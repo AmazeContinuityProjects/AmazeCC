@@ -4627,59 +4627,57 @@ export default function FFCSGuidedSelector({
     if (guidedPhase === "auto_results" || guidedPhase === "auto_timetable_view") {
       const currentVariant = stagedTimetables[selectedVariantIndex];
       return (
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
-          <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 w-full">
+          <button
+            type="button"
+            onClick={() => setGuidedPhase("auto_half_days")}
+            className="whitespace-nowrap py-3 sm:py-3.5 px-3.5 sm:px-4 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-indigo-400 font-black text-xs shadow-lg transition-all active:scale-95 cursor-pointer font-outfit flex items-center justify-center gap-1.5 shrink-0"
+            title="Adjust Generation Settings"
+          >
+            <Sliders className="w-4 h-4 shrink-0" />
+            <span className="whitespace-nowrap">Settings</span>
+          </button>
+
+          {guidedPhase === "auto_results" ? (
             <button
               type="button"
-              onClick={() => setGuidedPhase("auto_half_days")}
-              className="flex-1 sm:flex-none py-3 sm:py-3.5 px-3.5 sm:px-4 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-indigo-400 font-black text-xs shadow-lg transition-all active:scale-95 cursor-pointer font-outfit flex items-center justify-center gap-1.5"
-              title="Adjust Generation Settings"
+              onClick={() => setGuidedPhase("auto_timetable_view")}
+              className="whitespace-nowrap py-3 sm:py-3.5 px-3.5 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white font-black text-xs shadow-lg transition-all active:scale-95 cursor-pointer font-outfit flex items-center justify-center gap-1.5 shrink-0"
+              title="Switch to Timetable Grid View"
             >
-              <Sliders className="w-4 h-4" />
-              <span>Settings</span>
+              <LayoutGrid className="w-4 h-4 text-indigo-400 shrink-0" />
+              <span className="whitespace-nowrap">Grid View</span>
             </button>
-
-            {guidedPhase === "auto_results" ? (
-              <button
-                type="button"
-                onClick={() => setGuidedPhase("auto_timetable_view")}
-                className="flex-1 sm:flex-none py-3 sm:py-3.5 px-3.5 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white font-black text-xs shadow-lg transition-all active:scale-95 cursor-pointer font-outfit flex items-center justify-center gap-1.5"
-                title="Switch to Timetable Grid View"
-              >
-                <LayoutGrid className="w-4 h-4 text-indigo-400" />
-                <span>Grid View</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setGuidedPhase("auto_results")}
-                className="flex-1 sm:flex-none py-3 sm:py-3.5 px-3.5 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white font-black text-xs shadow-lg transition-all active:scale-95 cursor-pointer font-outfit flex items-center justify-center gap-1.5"
-                title="Switch to Faculty List View"
-              >
-                <FileSpreadsheet className="w-4 h-4 text-zinc-400" />
-                <span>List View</span>
-              </button>
-            )}
-
+          ) : (
             <button
               type="button"
-              onClick={() => setGuidedPhase("manual_timetable_view")}
-              className="flex-1 sm:flex-none py-3 sm:py-3.5 px-3.5 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white font-black text-xs shadow-lg transition-all active:scale-95 cursor-pointer font-outfit flex items-center justify-center gap-1.5"
-              title="Browse My Timetables"
+              onClick={() => setGuidedPhase("auto_results")}
+              className="whitespace-nowrap py-3 sm:py-3.5 px-3.5 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white font-black text-xs shadow-lg transition-all active:scale-95 cursor-pointer font-outfit flex items-center justify-center gap-1.5 shrink-0"
+              title="Switch to Faculty List View"
             >
-              <Calendar className="w-4 h-4 text-zinc-400" />
-              <span>My Timetables</span>
+              <FileSpreadsheet className="w-4 h-4 text-zinc-400 shrink-0" />
+              <span className="whitespace-nowrap">List View</span>
             </button>
-          </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setGuidedPhase("manual_timetable_view")}
+            className="whitespace-nowrap py-3 sm:py-3.5 px-3.5 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white font-black text-xs shadow-lg transition-all active:scale-95 cursor-pointer font-outfit flex items-center justify-center gap-1.5 shrink-0"
+            title="Browse My Timetables"
+          >
+            <Calendar className="w-4 h-4 text-zinc-400 shrink-0" />
+            <span className="whitespace-nowrap">My Timetables</span>
+          </button>
 
           <button
             type="button"
             disabled={!currentVariant}
             onClick={() => currentVariant && handleApplyVariant(currentVariant)}
-            className="flex-1 py-3.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm shadow-xl shadow-emerald-600/20 transition-all active:scale-95 cursor-pointer font-outfit tracking-wide flex items-center justify-center gap-2"
+            className="flex-1 min-w-[260px] whitespace-nowrap py-3.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm shadow-xl shadow-emerald-600/20 transition-all active:scale-95 cursor-pointer font-outfit tracking-wide flex items-center justify-center gap-2 shrink-0"
           >
             <Check className="w-4 h-4 shrink-0" />
-            <span className="truncate">Apply This Recommendation to {activeTimetable.name} 🚀</span>
+            <span className="whitespace-nowrap">Apply This Recommendation to {activeTimetable.name} 🚀</span>
           </button>
         </div>
       );
@@ -4688,74 +4686,72 @@ export default function FFCSGuidedSelector({
     if (guidedPhase === "manual_timetable_view") {
       const currentTt = effectiveTimetables[browsingTimetableIndex] || activeTimetable;
       return (
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={handlePrevStep}
-              aria-label="Previous Step"
-              className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 text-white flex items-center justify-center shadow-lg transition-all active:scale-90 hover:scale-105 cursor-pointer shrink-0"
-              title="Back to Review"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            {effectiveTimetables.length > 1 && (
-              <div className="flex items-center gap-1 bg-zinc-950/60 border border-zinc-800 rounded-2xl p-1">
-                <button
-                  type="button"
-                  disabled={browsingTimetableIndex <= 0}
-                  onClick={() => navigateBrowsingTimetable(browsingTimetableIndex - 1, "backward")}
-                  aria-label="Previous Timetable"
-                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed transition-all flex items-center justify-center"
-                  title="Previous Timetable"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                </button>
-                <span className="text-[11px] font-mono font-bold text-zinc-300 px-1.5 whitespace-nowrap">
-                  {browsingTimetableIndex + 1}/{effectiveTimetables.length}
-                </span>
-                <button
-                  type="button"
-                  disabled={browsingTimetableIndex >= effectiveTimetables.length - 1}
-                  onClick={() => navigateBrowsingTimetable(browsingTimetableIndex + 1, "forward")}
-                  aria-label="Next Timetable"
-                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed transition-all flex items-center justify-center"
-                  title="Next Timetable"
-                >
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            )}
-          </div>
+        <div className="flex flex-wrap items-center gap-2 w-full">
+          <button
+            type="button"
+            onClick={handlePrevStep}
+            aria-label="Previous Step"
+            className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 text-white flex items-center justify-center shadow-lg transition-all active:scale-90 hover:scale-105 cursor-pointer shrink-0"
+            title="Back to Review"
+          >
+            <ChevronLeft className="w-5 h-5 shrink-0" />
+          </button>
 
-          <div className="flex items-center gap-2 flex-1">
-            <button
-              type="button"
-              onClick={() => {
-                if (currentTt && onSelectTimetable && currentTt.id !== activeTimetable?.id) {
-                  onSelectTimetable(currentTt.id);
-                }
-                setSelectedCourseCode("");
-                setSelectedSlotIndex("-1");
-                setGuidedPhase("builder");
-                setCurrentStep(1);
-              }}
-              className="flex-1 py-3 sm:py-3.5 px-3 sm:px-4 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-indigo-400 hover:text-indigo-300 font-black text-xs sm:text-sm shadow-xl transition-all active:scale-95 cursor-pointer font-outfit tracking-wide flex items-center justify-center gap-2"
-            >
-              <Plus className="w-4 h-4 shrink-0" />
-              <span>Add Another Course</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (onViewTimetable) onViewTimetable();
-              }}
-              className="flex-1 py-3 sm:py-3.5 px-4 sm:px-5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs sm:text-sm shadow-xl shadow-indigo-600/20 transition-all active:scale-95 cursor-pointer font-outfit tracking-wide flex items-center justify-center gap-2"
-            >
-              <Check className="w-4 h-4 shrink-0" />
-              <span>Done / View Grid</span>
-            </button>
-          </div>
+          {effectiveTimetables.length > 1 && (
+            <div className="flex items-center gap-1 bg-zinc-950/60 border border-zinc-800 rounded-2xl p-1 shrink-0">
+              <button
+                type="button"
+                disabled={browsingTimetableIndex <= 0}
+                onClick={() => navigateBrowsingTimetable(browsingTimetableIndex - 1, "backward")}
+                aria-label="Previous Timetable"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed transition-all flex items-center justify-center"
+                title="Previous Timetable"
+              >
+                <ArrowLeft className="w-4 h-4 shrink-0" />
+              </button>
+              <span className="text-[11px] font-mono font-bold text-zinc-300 px-1.5 whitespace-nowrap">
+                {browsingTimetableIndex + 1}/{effectiveTimetables.length}
+              </span>
+              <button
+                type="button"
+                disabled={browsingTimetableIndex >= effectiveTimetables.length - 1}
+                onClick={() => navigateBrowsingTimetable(browsingTimetableIndex + 1, "forward")}
+                aria-label="Next Timetable"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed transition-all flex items-center justify-center"
+                title="Next Timetable"
+              >
+                <ArrowRight className="w-4 h-4 shrink-0" />
+              </button>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => {
+              if (currentTt && onSelectTimetable && currentTt.id !== activeTimetable?.id) {
+                onSelectTimetable(currentTt.id);
+              }
+              setSelectedCourseCode("");
+              setSelectedSlotIndex("-1");
+              setGuidedPhase("builder");
+              setCurrentStep(1);
+            }}
+            className="flex-1 min-w-[170px] whitespace-nowrap py-3 sm:py-3.5 px-3.5 sm:px-4 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-indigo-400 hover:text-indigo-300 font-black text-xs sm:text-sm shadow-xl transition-all active:scale-95 cursor-pointer font-outfit tracking-wide flex items-center justify-center gap-2 shrink-0"
+          >
+            <Plus className="w-4 h-4 shrink-0" />
+            <span className="whitespace-nowrap">Add Another Course</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (onViewTimetable) onViewTimetable();
+            }}
+            className="flex-1 min-w-[160px] whitespace-nowrap py-3 sm:py-3.5 px-4 sm:px-5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs sm:text-sm shadow-xl shadow-indigo-600/20 transition-all active:scale-95 cursor-pointer font-outfit tracking-wide flex items-center justify-center gap-2 shrink-0"
+          >
+            <Check className="w-4 h-4 shrink-0" />
+            <span className="whitespace-nowrap">Done / View Grid</span>
+          </button>
         </div>
       );
     }
@@ -4812,28 +4808,28 @@ export default function FFCSGuidedSelector({
         )}
 
         {currentStep === 3 && (
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
+          <div className="flex flex-wrap items-center gap-2 w-full">
             <button
               type="button"
               onClick={handleAddAnother}
-              className="py-3 sm:py-3.5 px-4 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-indigo-400 font-black text-xs shadow-lg transition-all active:scale-95 cursor-pointer font-outfit flex items-center justify-center gap-1.5 shrink-0"
+              className="whitespace-nowrap py-3 sm:py-3.5 px-4 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-indigo-400 font-black text-xs shadow-lg transition-all active:scale-95 cursor-pointer font-outfit flex items-center justify-center gap-1.5 shrink-0"
               title={isReplacingSlot ? "Replace slot and pick another course" : "Add to timetable and pick another course"}
             >
-              {isReplacingSlot ? <RotateCcw className="w-4 h-4 text-amber-400" /> : <PlusCircle className="w-4 h-4" />}
-              <span>{isReplacingSlot ? "Replace & Another" : "Add & Another"}</span>
+              {isReplacingSlot ? <RotateCcw className="w-4 h-4 text-amber-400 shrink-0" /> : <PlusCircle className="w-4 h-4 shrink-0" />}
+              <span className="whitespace-nowrap">{isReplacingSlot ? "Replace & Another" : "Add & Another"}</span>
             </button>
 
             <button
               type="button"
               onClick={handleConfirmAdd}
-              className={`flex-1 py-3.5 px-4 sm:px-5 rounded-2xl text-white font-black text-xs sm:text-sm shadow-xl transition-all active:scale-95 cursor-pointer font-outfit tracking-wide flex items-center justify-center gap-2 ${
+              className={`flex-1 min-w-[200px] whitespace-nowrap py-3.5 px-4 sm:px-5 rounded-2xl text-white font-black text-xs sm:text-sm shadow-xl transition-all active:scale-95 cursor-pointer font-outfit tracking-wide flex items-center justify-center gap-2 shrink-0 ${
                 isReplacingSlot
                   ? "bg-amber-600 hover:bg-amber-700 shadow-amber-600/20"
                   : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/20"
               }`}
             >
               {isReplacingSlot ? <RotateCcw className="w-4 h-4 shrink-0" /> : <Check className="w-4 h-4 shrink-0" />}
-              <span className="truncate">{isReplacingSlot ? `Replace Slot in ${activeTimetable.name}` : `Add to ${activeTimetable.name}`}</span>
+              <span className="whitespace-nowrap">{isReplacingSlot ? `Replace Slot in ${activeTimetable.name}` : `Add to ${activeTimetable.name}`}</span>
             </button>
           </div>
         )}
@@ -5349,7 +5345,7 @@ export default function FFCSGuidedSelector({
               )}
             </div>
 
-            <div className="flex items-center gap-2.5 shrink-0 pt-2 w-full">
+            <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 w-full">
               {renderBottomActions()}
             </div>
           </div>
@@ -5704,7 +5700,7 @@ export default function FFCSGuidedSelector({
             )}
           </main>
 
-          <footer className="relative z-20 w-full max-w-md sm:max-w-xl mx-auto flex items-center justify-center gap-2.5 shrink-0 pb-1 sm:pb-3">
+          <footer className="relative z-20 w-full max-w-md sm:max-w-xl mx-auto flex flex-wrap items-center justify-center gap-2 shrink-0 pb-1 sm:pb-3">
             {renderBottomActions()}
           </footer>
         </>

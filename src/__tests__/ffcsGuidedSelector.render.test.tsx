@@ -780,7 +780,7 @@ describe("FFCSGuidedSelector", () => {
     }
   });
 
-  it("supports two rows for footer action buttons when space is constrained", () => {
+  it("supports wrapping physical buttons to the next row with whitespace-nowrap in both viewports", () => {
     render(
       <FFCSGuidedSelector
         masterCourses={mockMasterCourses}
@@ -791,12 +791,18 @@ describe("FFCSGuidedSelector", () => {
       />
     );
 
-    // Verify footer actions container uses responsive column/row wrapping classes
+    // Verify footer actions container uses flex-wrap and buttons prevent text-wrapping inside
     const prevBtn = screen.getByRole("button", { name: /Previous Step/i });
-    const footerContainer = prevBtn.closest(".flex-col");
+    const footerContainer = prevBtn.closest(".flex-wrap");
     expect(footerContainer).toBeDefined();
-    expect(footerContainer?.className).toContain("sm:flex-row");
-    expect(screen.getByRole("button", { name: /^Add Another Course$/i })).toBeDefined();
-    expect(screen.getByRole("button", { name: /Done \/ View Grid/i })).toBeDefined();
+    expect(footerContainer?.className).toContain("flex-wrap");
+
+    const addAnotherBtn = screen.getByRole("button", { name: /^Add Another Course$/i });
+    expect(addAnotherBtn).toBeDefined();
+    expect(addAnotherBtn.className).toContain("whitespace-nowrap");
+
+    const doneBtn = screen.getByRole("button", { name: /Done \/ View Grid/i });
+    expect(doneBtn).toBeDefined();
+    expect(doneBtn.className).toContain("whitespace-nowrap");
   });
 });
