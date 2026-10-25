@@ -53,13 +53,18 @@ import { FacultyAvatar, VitfacReviewPill } from "./FacultyReviewSheet";
 import { ParsedCourse, AddedCourse, TimetableState, CourseLock, Friend, FriendGroup, TimetablePeriod } from "../types";
 import { COLORS, DAYS } from "../constants";
 import { splitSlots, sameSlotFacultyAlternatives } from "../logic/generate";
-import { useVitfacReview, getFacultyReview } from "@/lib/vitfacService";
+import { useVitfacReview, getFacultyReview, loadVitfacRankingData } from "@/lib/vitfacService";
 import { CourseImportPanel, type ImportMode } from "./CourseImportPanel";
 import { useGenerationRun } from "../hooks/useGenerationRun";
 import { getTimetableSchema } from "@/lib/campusSchema";
 import { timetableMetrics, type SortBy } from "@/lib/timetableMetrics";
-import type { RankingMode } from "@/lib/ffcsRanking";
-import type { FFCSSettings } from "@/lib/ffcsSettings";
+import { RANKING_MODES, type RankingMode } from "@/lib/ffcsRanking";
+import {
+  FFCSSettingsDefaults,
+  type FFCSSettings,
+  type RankingPriority,
+} from "@/lib/ffcsSettings";
+import type { FacultyRatingLookup } from "@/lib/ffcsFacultyRanking";
 import { usePwaInstall } from "@/lib/pwaInstall";
 import SlotFacultySwapSheet from "./SlotFacultySwapSheet";
 import VerticalTimetableGrid from "@/components/custom/timetable/VerticalTimetableGrid";
@@ -142,6 +147,21 @@ export type GuidedPhase =
 
 export type PlanMode = "auto" | "custom";
 export type CourseStrategy = "lock_advance" | "one_by_one";
+
+const AUTO_SORT_OPTIONS: readonly { value: SortBy; label: string }[] = [
+  { value: "balanced", label: "Balanced" },
+  { value: "social", label: "Social" },
+  { value: "halfdays", label: "Half-days" },
+  { value: "compactness", label: "Compact" },
+  { value: "faculty", label: "Faculty" },
+];
+
+const AUTO_RANKING_PRIORITY_LABELS: Record<RankingPriority, string> = {
+  profile: "Ranking profile",
+  faculty: "Faculty reviews",
+  sort: "Sort order",
+  time: "Time preference",
+};
 
 export interface FFCSGuidedSelectorProps {
   masterCourses: ParsedCourse[];
@@ -695,11 +715,22 @@ export default function FFCSGuidedSelector({
   // Auto-Generator States inside Guided Hero
   const generation = useGenerationRun();
   const [autoPreference, setAutoPreference] = useState<"compact" | "spread" | "morning" | "evening">("compact");
-  const [autoRankingMode, setAutoRankingMode] = useState<RankingMode | null>("Balanced");
+  const [autoRankingMode, setAutoRankingMode] = useState<RankingMode | null>(() =>
+    settings?.rankingMode === "none" ? null : settings?.rankingMode ?? "Balanced"
+  );
   const [autoMinHalfDays, setAutoMinHalfDays] = useState<number>(0);
   const [autoMinStartTime, setAutoMinStartTime] = useState<string>("08:00");
   const [autoMaxEndTime, setAutoMaxEndTime] = useState<string>("19:30");
-  const [autoSortBy, setAutoSortBy] = useState<SortBy>("balanced");
+  const [autoSortBy, setAutoSortBy] = useState<SortBy>(() => settings?.defaultSortBy ?? "balanced");
+  const [autoRankingPriorityOrder, setAutoRankingPriorityOrder] = useState<RankingPriority[]>(() => [
+    ...(settings?.rankingPriorityOrder ?? FFCSSettingsDefaults.rankingPriorityOrder),
+  ]);
+  const [autoFacultyMetricWeights, setAutoFacultyMetricWeights] = useState<
+    FFCSSettings["facultyMetricWeights"]
+  >(() => ({ ...(settings?.facultyMetricWeights ?? FFCSSettingsDefaults.facultyMetricWeights) }));
+  const [autoFacultyScoreFilters, setAutoFacultyScoreFilters] = useState<
+    FFCSSettings["facultyScoreFilters"]
+  >(() => ({ ...(settings?.facultyScoreFilters ?? FFCSSettingsDefaults.facultyScoreFilters) }));
   const [autoUniqueFaculties, setAutoUniqueFaculties] = useState<boolean>(false);
   const [autoSyncFriends, setAutoSyncFriends] = useState<boolean>(true);
   const [autoMaximizeFreeTime, setAutoMaximizeFreeTime] = useState<boolean>(true);
@@ -714,14 +745,60 @@ export default function FFCSGuidedSelector({
   const effectiveBlockedSlots = setBlockedSlots && blockedSlots ? blockedSlots : internalBlockedSlots;
   const [timeBlockedSlots, setTimeBlockedSlots] = useState<Set<string>>(new Set());
   const [blockingActiveDay, setBlockingActiveDay] = useState<string>("mon");
-  const [autoResultCap, setAutoResultCap] = useState<number>(50);
+  const [autoResultCap, setAutoResultCap] = useState<number>(() => settings?.resultCap ?? 50);
   const [autoNoLimit, setAutoNoLimit] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!settings) return;
+    setAutoRankingMode(settings.rankingMode === "none" ? null : settings.rankingMode);
+    setAutoSortBy(settings.defaultSortBy);
+    setAutoRankingPriorityOrder([...settings.rankingPriorityOrder]);
+    setAutoFacultyMetricWeights({ ...settings.facultyMetricWeights });
+    setAutoFacultyScoreFilters({ ...settings.facultyScoreFilters });
+  }, [
+    settings,
+  ]);
 
   const updateBlockedSlots = (updater: React.SetStateAction<Set<string>>) => {
     if (setBlockedSlots) {
       setBlockedSlots(updater);
     }
     setInternalBlockedSlots(updater);
+  };
+
+  const moveAutoRankingPriority = (index: number, direction: -1 | 1) => {
+    const next = [...autoRankingPriorityOrder];
+    const target = index + direction;
+    if (target < 0 || target >= next.length) return;
+    [next[index], next[target]] = [next[target], next[index]];
+    setAutoRankingPriorityOrder(next);
+  };
+
+  const updateAutoFacultyWeight = (
+    key: keyof FFCSSettings["facultyMetricWeights"],
+    value: string
+  ) => {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      setAutoFacultyMetricWeights((previous) => ({
+        ...previous,
+        [key]: Math.max(0, Math.min(5, parsed)),
+      }));
+    }
+  };
+
+  const updateAutoFacultyFilter = (
+    key: keyof FFCSSettings["facultyScoreFilters"],
+    value: string
+  ) => {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      const max = key === "minWPct" ? 100 : 5;
+      setAutoFacultyScoreFilters((previous) => ({
+        ...previous,
+        [key]: Math.max(0, Math.min(max, parsed)),
+      }));
+    }
   };
 
   const getSlotsOutsideTimeWindow = (minStart: string, maxEnd: string): string[] => {
@@ -1174,6 +1251,15 @@ export default function FFCSGuidedSelector({
     setStagedTimetables([]);
     setSelectedVariantIndex(0);
 
+    let facultyRatings: FacultyRatingLookup = {};
+    let facultyRatingsAvailable = false;
+    try {
+      const facultyData = await loadVitfacRankingData(masterCourses);
+      facultyRatings = facultyData.ratings;
+      facultyRatingsAvailable = facultyData.available;
+    } catch (err) {
+      console.warn("Faculty reviews could not be loaded for timetable ranking:", err);
+    }
     const outcome = await generation.run(
       {
         schema: getTimetableSchema(),
@@ -1191,6 +1277,11 @@ export default function FFCSGuidedSelector({
         resultCap: autoNoLimit ? undefined : autoResultCap,
         minHalfDays: autoMinHalfDays,
         sortBy: autoSortBy,
+        facultyRatings,
+        facultyRatingsAvailable,
+        facultyMetricWeights: autoFacultyMetricWeights,
+        facultyScoreFilters: autoFacultyScoreFilters,
+        rankingPriorityOrder: autoRankingPriorityOrder,
         ...(autoRankingMode ? { rankingMode: autoRankingMode } : {}),
       },
       (batch) => {
@@ -1202,7 +1293,9 @@ export default function FFCSGuidedSelector({
       setGenerationError(
         outcome.code === "no_conflict_free" || outcome.code === "no_valid_slots"
           ? "No clash-free timetable found for these courses. Try relaxing time preferences or unlocking specific slots."
-          : "An error occurred while generating timetables."
+          : outcome.code === "below_min_faculty_scores"
+            ? "No timetable met the minimum faculty review scores. Lower the score filters here or in Planner Settings."
+            : "An error occurred while generating timetables."
       );
       return;
     }
@@ -3277,7 +3370,9 @@ export default function FFCSGuidedSelector({
             </div>
 
             <div className="flex flex-wrap gap-1.5">
-              {[10, 25, 50, 100, 250].map((cap) => {
+              {[...new Set([10, 25, 50, 100, 250, 500, settings?.resultCap ?? 50])]
+                .sort((a, b) => a - b)
+                .map((cap) => {
                 const isSelected = !autoNoLimit && autoResultCap === cap;
                 return (
                   <button
@@ -3492,7 +3587,180 @@ export default function FFCSGuidedSelector({
               <span className="text-xs font-bold text-zinc-400">Pacing Style</span>
               <span className="text-xs font-extrabold text-white capitalize">{autoPreference}</span>
             </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-zinc-400">Ranking Profile</span>
+              <span className="text-xs font-extrabold text-white">{autoRankingMode ?? "None"}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-zinc-400">Sort Order</span>
+              <span className="text-xs font-extrabold text-white">
+                {AUTO_SORT_OPTIONS.find((option) => option.value === autoSortBy)?.label ?? autoSortBy}
+              </span>
+            </div>
           </div>
+
+          <section className="p-4 rounded-2xl bg-zinc-950/60 border border-indigo-500/20 space-y-4">
+            <div>
+              <h4 className="text-xs font-black text-white uppercase tracking-wider">Ranking &amp; Faculty Reviews</h4>
+              <p className="text-[11px] text-zinc-400 mt-1">
+                Customize this run without changing your saved Planner Settings.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Ranking Profile</span>
+              <div className="flex flex-wrap gap-1.5">
+                {[{ value: null, label: "No profile" }, ...RANKING_MODES.map((mode) => ({
+                  value: mode,
+                  label: mode,
+                }))].map((option) => (
+                  <button
+                    key={option.label}
+                    type="button"
+                    aria-pressed={autoRankingMode === option.value}
+                    onClick={() => setAutoRankingMode(option.value)}
+                    className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-colors ${
+                      autoRankingMode === option.value
+                        ? "bg-indigo-600 border-indigo-500 text-white"
+                        : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Sort Order</span>
+              <div className="flex flex-wrap gap-1.5">
+                {AUTO_SORT_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-pressed={autoSortBy === option.value}
+                    onClick={() => setAutoSortBy(option.value)}
+                    className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-colors ${
+                      autoSortBy === option.value
+                        ? "bg-indigo-600 border-indigo-500 text-white"
+                        : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div>
+                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                  Combined Ranking Priority
+                </span>
+                <p className="text-[10px] text-zinc-500">Move the most important factor to the top.</p>
+              </div>
+              <div className="space-y-1.5">
+                {autoRankingPriorityOrder.map((priority, index) => (
+                  <div
+                    key={priority}
+                    className="flex items-center justify-between gap-2 rounded-xl bg-zinc-900/80 px-3 py-1.5 text-xs"
+                  >
+                    <span className="font-medium text-zinc-200">
+                      {index + 1}. {AUTO_RANKING_PRIORITY_LABELS[priority]}
+                    </span>
+                    <span className="flex">
+                      <button
+                        type="button"
+                        aria-label={`Move ${AUTO_RANKING_PRIORITY_LABELS[priority]} up`}
+                        disabled={index === 0}
+                        onClick={() => moveAutoRankingPriority(index, -1)}
+                        className="rounded p-1 text-zinc-400 hover:text-white disabled:opacity-30"
+                      >
+                        <ChevronUp className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Move ${AUTO_RANKING_PRIORITY_LABELS[priority]} down`}
+                        disabled={index === autoRankingPriorityOrder.length - 1}
+                        onClick={() => moveAutoRankingPriority(index, 1)}
+                        className="rounded p-1 text-zinc-400 hover:text-white disabled:opacity-30"
+                      >
+                        <ChevronDown className="h-4 w-4" />
+                      </button>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div>
+                  <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                    Faculty Score Priorities
+                  </span>
+                  <p className="text-[10px] text-zinc-500">0 ignores a score; maximum weight is 5.</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {(
+                    [
+                      ["wPct", "Overall W %"],
+                      ["lecture", "Lecture"],
+                      ["da", "DA"],
+                      ["vibe", "Vibe"],
+                    ] as const
+                  ).map(([key, label]) => (
+                    <label key={key} className="flex items-center justify-between gap-2 text-[11px] text-zinc-300">
+                      <span>{label}</span>
+                      <input
+                        aria-label={`${label} importance`}
+                        type="number"
+                        min={0}
+                        max={5}
+                        step={1}
+                        value={autoFacultyMetricWeights[key]}
+                        onChange={(event) => updateAutoFacultyWeight(key, event.target.value)}
+                        className="w-16 rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-1 text-right text-white"
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div>
+                  <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                    Minimum Faculty Scores
+                  </span>
+                  <p className="text-[10px] text-zinc-500">0 disables a filter; unrated faculty are not rejected.</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {(
+                    [
+                      ["minWPct", "Overall W %", 100, 5],
+                      ["minLecture", "Lecture / 5", 5, 0.5],
+                      ["minDa", "DA / 5", 5, 0.5],
+                      ["minVibe", "Vibe / 5", 5, 0.5],
+                    ] as const
+                  ).map(([key, label, max, step]) => (
+                    <label key={key} className="flex items-center justify-between gap-2 text-[11px] text-zinc-300">
+                      <span>{label}</span>
+                      <input
+                        aria-label={`Minimum ${label}`}
+                        type="number"
+                        min={0}
+                        max={max}
+                        step={step}
+                        value={autoFacultyScoreFilters[key]}
+                        onChange={(event) => updateAutoFacultyFilter(key, event.target.value)}
+                        className="w-16 rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-1 text-right text-white"
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
 
           {effectiveCourseLocks.length > 0 && (
             <div className="space-y-1.5">
@@ -3537,10 +3805,12 @@ export default function FFCSGuidedSelector({
       })
       .filter((s): s is number => s !== null);
 
-    const avgFacultyScore =
+    const liveAvgFacultyScore =
       ratedScores.length > 0
         ? ratedScores.reduce((sum, s) => sum + s, 0) / ratedScores.length
         : null;
+    const avgFacultyScore =
+      currentVariant.facultySummary?.averageWPct ?? liveAvgFacultyScore;
 
     return (
       <div
@@ -3621,6 +3891,41 @@ export default function FFCSGuidedSelector({
             <span className="font-black text-indigo-400 text-sm font-outfit">{totalCredits}</span>
           </div>
         </div>
+
+        {currentVariant.rankingScore !== undefined && (
+          <section className="rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-3.5 space-y-2 shrink-0">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-300">
+                  Combined ranking
+                </span>
+                <p className="text-xs text-zinc-400">
+                  {currentVariant.rankingScore.toFixed(1)}/100 · unrated faculty lower review coverage
+                </p>
+              </div>
+              <span className="text-xs font-bold text-white">
+                {currentVariant.facultySummary?.ratedFacultyCount ?? 0} reviewed /{" "}
+                {currentVariant.facultySummary?.unratedFacultyCount ?? 0} unrated
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-zinc-400">
+              <span>W % {currentVariant.facultySummary?.averageWPct?.toFixed(1) ?? "—"}</span>
+              <span>Lecture {currentVariant.facultySummary?.averageLecture?.toFixed(1) ?? "—"}/5</span>
+              <span>DA {currentVariant.facultySummary?.averageDa?.toFixed(1) ?? "—"}/5</span>
+              <span>Vibe {currentVariant.facultySummary?.averageVibe?.toFixed(1) ?? "—"}/5</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {Object.entries(currentVariant.rankingBreakdown ?? {}).map(([key, points]) => (
+                <span
+                  key={key}
+                  className="rounded-md border border-zinc-700 bg-zinc-950/60 px-2 py-1 text-[10px] text-zinc-300"
+                >
+                  {key}: {points.toFixed(1)} pts
+                </span>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Course Roster with Faculty Review, Schedule & Replacement */}
         <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 custom-scrollbar">

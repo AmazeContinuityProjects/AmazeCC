@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { safeSessionStorage } from "./ffcsGeneratorSessionPrefs";
+import type { ParsedCourse } from "@/components/custom/exams/FFCS/types";
+import {
+  buildFacultyRatingLookup,
+  type FacultyRatingLookup,
+} from "@/lib/ffcsFacultyRanking";
 
 export interface VitfacLoreItem {
   text: string;
@@ -191,8 +196,10 @@ export async function loadVitfacCatalog(): Promise<Map<string, VitfacFaculty>> {
     }
 
     // 2. Fetch from Cloudflare Worker
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 1200);
     try {
-      const res = await fetch(`${VITFAC_WORKER_BASE}/faculty`);
+      const res = await fetch(`${VITFAC_WORKER_BASE}/faculty`, { signal: controller.signal });
       if (!res.ok) {
         throw new Error(`Vitfac catalog returned HTTP ${res.status}`);
       }
@@ -209,6 +216,8 @@ export async function loadVitfacCatalog(): Promise<Map<string, VitfacFaculty>> {
       }
     } catch (err) {
       console.warn("Failed to fetch vitfac faculty catalog:", err);
+    } finally {
+      clearTimeout(timeout);
     }
 
     return byEmployeeId;
@@ -252,6 +261,30 @@ export function getFacultyReview(params: {
   }
 
   return null;
+}
+
+/**
+ * Load the catalog once and prepare the selected report's ratings for the
+ * worker. The return value is plain structured-cloneable data; when Vitfac is
+ * disabled or unavailable, an empty lookup leaves schedule ranking untouched.
+ */
+export async function loadVitfacRankingData(
+  courses: readonly ParsedCourse[]
+): Promise<{ available: boolean; ratings: FacultyRatingLookup }> {
+  if (!ENABLE_VITFAC_INTEGRATION) return { available: false, ratings: {} };
+  const catalog = await loadVitfacCatalog();
+  const ratings = buildFacultyRatingLookup(courses, ({ employeeId, faculty }) => {
+    const review = getFacultyReview({ employeeId, name: faculty });
+    if (!review || review.reviews <= 0) return null;
+    return {
+      wPct: review.wPct,
+      lecture: review.metrics?.lecture ?? null,
+      da: review.metrics?.da ?? null,
+      vibe: review.metrics?.vibe ?? null,
+      reviews: review.reviews,
+    };
+  });
+  return { available: catalog.size > 0, ratings };
 }
 
 /**

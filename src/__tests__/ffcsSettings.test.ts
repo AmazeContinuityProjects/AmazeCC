@@ -56,6 +56,40 @@ describe("sanitizeFFCSSettings", () => {
     ).toBe(false);
   });
 
+  it("defaults separate course-list image downloads off and sanitizes the toggle", () => {
+    expect(FFCSSettingsDefaults.separateCourseListExport).toBe(false);
+    expect(sanitizeFFCSSettings({ separateCourseListExport: true }).separateCourseListExport).toBe(
+      true
+    );
+    expect(
+      sanitizeFFCSSettings({ separateCourseListExport: "yes" }).separateCourseListExport
+    ).toBe(false);
+  });
+
+  it("sanitizes ranking priority order, faculty weights, and review thresholds independently", () => {
+    const settings = sanitizeFFCSSettings({
+      rankingPriorityOrder: ["faculty", "faculty", "unknown"],
+      facultyMetricWeights: { wPct: 10, lecture: -1 },
+      facultyScoreFilters: { minWPct: 75, minLecture: 7 },
+      defaultSortBy: "faculty",
+    });
+
+    expect(settings.rankingPriorityOrder).toEqual(["faculty", "profile", "sort", "time"]);
+    expect(settings.facultyMetricWeights).toEqual({
+      wPct: 5,
+      lecture: 0,
+      da: FFCSSettingsDefaults.facultyMetricWeights.da,
+      vibe: FFCSSettingsDefaults.facultyMetricWeights.vibe,
+    });
+    expect(settings.facultyScoreFilters).toEqual({
+      minWPct: 75,
+      minLecture: 5,
+      minDa: 0,
+      minVibe: 0,
+    });
+    expect(settings.defaultSortBy).toBe("faculty");
+  });
+
   it("clamps the result cap into the range the sheet offers", () => {
     expect(sanitizeFFCSSettings({ resultCap: 1 }).resultCap).toBe(10);
     expect(sanitizeFFCSSettings({ resultCap: 99999 }).resultCap).toBe(1000);
@@ -91,15 +125,18 @@ describe("useFFCSSettings", () => {
     act(() => result.current.update("exportFormat", "png"));
     act(() => result.current.update("minHalfDays", 3));
     act(() => result.current.update("showVerticalTimetableBesideWidgets", true));
+    act(() => result.current.update("separateCourseListExport", true));
 
     expect(result.current.settings.exportFormat).toBe("png");
     expect(result.current.settings.minHalfDays).toBe(3);
     expect(result.current.settings.showVerticalTimetableBesideWidgets).toBe(true);
+    expect(result.current.settings.separateCourseListExport).toBe(true);
     await waitFor(() => {
       const stored = JSON.parse(store.getItem("ffcs_settings")!);
       expect(stored.exportFormat).toBe("png");
       expect(stored.minHalfDays).toBe(3);
       expect(stored.showVerticalTimetableBesideWidgets).toBe(true);
+      expect(stored.separateCourseListExport).toBe(true);
     });
   });
 

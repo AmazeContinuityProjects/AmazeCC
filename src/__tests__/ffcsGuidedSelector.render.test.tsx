@@ -249,6 +249,19 @@ describe("FFCSGuidedSelector", () => {
     // Step 8: Summary & Run
     expect(screen.getAllByText("6. Generation Blueprint").length).toBeGreaterThan(0);
     expect(screen.getByText("1 Courses")).toBeDefined();
+    expect(screen.getByText("Combined Ranking Priority")).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: "Best Faculty" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Faculty$/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Move Faculty reviews up" }));
+    fireEvent.change(screen.getByRole("spinbutton", { name: "Minimum Overall W %" }), {
+      target: { value: "80" },
+    });
+    expect(screen.getAllByText("Best Faculty").length).toBeGreaterThan(0);
+    expect(screen.getByText("1. Faculty reviews")).toBeDefined();
+    expect(screen.getByRole("spinbutton", { name: "Minimum Overall W %" })).toHaveProperty(
+      "value",
+      "80"
+    );
 
     // Click Generate Timetables
     const generateBtn = screen.getByRole("button", { name: /Generate Timetable Recommendations/i });

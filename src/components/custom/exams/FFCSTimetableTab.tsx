@@ -13,7 +13,7 @@ import BottomSheet from "../shared/BottomSheet";
 import FFCSGuideModal from "./FFCSGuideModal";
 import FFCSLayoutModeModal from "./FFCS/components/modals/FFCSLayoutModeModal";
 import FFCSDashboardHeader from "./FFCS/components/FFCSDashboardHeader";
-import { downloadTimetableImage, downloadModernTimetableImage, openTimetablePrintablePage, openModernPrintableDossier, downloadModernDossierHtml } from "@/lib/exportTimetable";
+import { downloadTimetableImage, downloadModernTimetableImage, downloadModernCourseListImage, openTimetablePrintablePage, openModernPrintableDossier, downloadModernDossierHtml } from "@/lib/exportTimetable";
 import { GLOBAL_CAMPUS, getTimetableSchema } from "@/lib/campusSchema";
 
 // Re-exported because the tab has always been where importers found these;
@@ -1429,41 +1429,66 @@ export default function FFCSTimetableTab({
       setIsDownloading(true);
       const activeView = forcedView ?? (resolvedView ?? (isMobile ? 'vertical' : 'horizontal'));
       try {
-        await downloadModernTimetableImage({
-          timetableName: activeTimetable.name,
-          courses,
-          theoryPeriods,
-          labPeriods,
-          days: DAYS,
-          viewMode: activeView === "vertical" ? "vertical" : "horizontal",
-          format,
-          themeBgColor: "#090d16",
-        });
-        track("export_image", { format, viewMode: activeView });
-        setSuccessMsg(`Timetable (${activeView === 'vertical' ? 'Vertical Heatmap' : 'Horizontal Grid'}) downloaded successfully!`);
-        setTimeout(() => setSuccessMsg(null), 3500);
-      } catch (err) {
-        console.warn("Modern offscreen image export failed, trying live capture fallback:", err);
-        if (captureRef.current) {
-          const captureElement = captureRef.current;
-          const originalClassName = captureElement.className;
-          try {
-            if (showVerticalTimetableBesideWidgets) {
-              captureElement.classList.remove("xl:contents");
-              captureElement.classList.add("xl:col-span-full");
+        let timetableExported = false;
+        try {
+          await downloadModernTimetableImage({
+            timetableName: activeTimetable.name,
+            courses,
+            theoryPeriods,
+            labPeriods,
+            days: DAYS,
+            viewMode: activeView === "vertical" ? "vertical" : "horizontal",
+            format,
+            themeBgColor: "#090d16",
+            includeCourseList: !settings.separateCourseListExport,
+          });
+          track("export_image", { format, viewMode: activeView });
+          timetableExported = true;
+        } catch (err) {
+          console.warn("Modern offscreen image export failed, trying live capture fallback:", err);
+          if (captureRef.current) {
+            const captureElement = captureRef.current;
+            const originalClassName = captureElement.className;
+            try {
+              if (showVerticalTimetableBesideWidgets) {
+                captureElement.classList.remove("xl:contents");
+                captureElement.classList.add("xl:col-span-full");
+              }
+              await downloadTimetableImage(captureElement, activeTimetable.name, themeBgColor, format);
+              track("export_image", { format, fallback: true });
+              timetableExported = true;
+            } catch {
+              // The error below reports that neither export path succeeded.
+            } finally {
+              captureElement.className = originalClassName;
             }
-            await downloadTimetableImage(captureElement, activeTimetable.name, themeBgColor, format);
-            track("export_image", { format, fallback: true });
-            setSuccessMsg("Timetable downloaded successfully!");
-            setTimeout(() => setSuccessMsg(null), 3000);
+          }
+          if (!timetableExported) setError("Failed to download timetable image.");
+        }
+
+        if (!timetableExported) return;
+        if (settings.separateCourseListExport) {
+          try {
+            await downloadModernCourseListImage({
+              timetableName: activeTimetable.name,
+              courses,
+              format,
+              themeBgColor: "#090d16",
+            });
+            track("export_image", { format, viewMode: "course_list" });
+          } catch (err) {
+            console.error("Failed to download the separate course-list image:", err);
+            setError("Timetable downloaded, but the course-list image failed to download.");
             return;
-          } catch {
-            // ignore
-          } finally {
-            captureElement.className = originalClassName;
           }
         }
-        setError("Failed to download timetable image.");
+
+        setSuccessMsg(
+          settings.separateCourseListExport
+            ? "Timetable and course-list images downloaded successfully!"
+            : `Timetable (${activeView === "vertical" ? "Vertical Heatmap" : "Horizontal Grid"}) downloaded successfully!`
+        );
+        setTimeout(() => setSuccessMsg(null), 3500);
       } finally {
         setIsDownloading(false);
       }
@@ -1477,6 +1502,7 @@ export default function FFCSTimetableTab({
       isMobile,
       themeBgColor,
       showVerticalTimetableBesideWidgets,
+      settings.separateCourseListExport,
     ]
   );
 

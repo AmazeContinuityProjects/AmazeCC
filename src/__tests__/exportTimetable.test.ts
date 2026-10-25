@@ -149,6 +149,21 @@ describe("Modern Timetable Export", () => {
     expect(html).toContain("LUNCH");
   });
 
+  it("can omit the course table when exporting it separately", () => {
+    const html = generateModernTimetableHtml({
+      timetableName: "Grid Only",
+      courses: mockCourses,
+      theoryPeriods: mockTheoryPeriods,
+      labPeriods: mockLabPeriods,
+      viewMode: "horizontal",
+      includeCourseList: false,
+    });
+
+    expect(html).toContain("Horizontal University Grid");
+    expect(html).not.toContain("Faculty &amp; Vitfac Review");
+    expect(html).not.toContain("Data Structures");
+  });
+
   it("generates comprehensive modern printable dossier with faculty scores and drop-in replacements", () => {
     const html = generateModernPrintableHtml({
       timetableName: "Semester 5 Timetable",

@@ -22,6 +22,8 @@ export interface ModernTimetableExportParams {
   format?: "jpg" | "png";
   themeBgColor?: string;
   totalCredits?: number;
+  /** Omit the selected-course table when exporting it as its own image. */
+  includeCourseList?: boolean;
 }
 
 /**
@@ -563,7 +565,8 @@ export function generateModernTimetableHtml(params: ModernTimetableExportParams)
       ? renderVerticalGridHtml(courses, theoryPeriods, labPeriods, daysList)
       : renderHorizontalGridHtml(courses, theoryPeriods, labPeriods, daysList);
 
-  const tableHtml = renderCourseTableHtml(groupedCourses);
+  const tableHtml =
+    params.includeCourseList === false ? "" : renderCourseTableHtml(groupedCourses);
 
   return `
     <div style="width: ${containerWidth}px; background: #090d16; color: #f8fafc; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 32px; box-sizing: border-box; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);">
@@ -655,6 +658,80 @@ export async function downloadModernTimetableImage(
     if (container && container.parentNode) {
       container.parentNode.removeChild(container);
     }
+  }
+}
+
+export interface ModernCourseListImageExportParams {
+  timetableName: string;
+  courses: AddedCourse[];
+  format?: "jpg" | "png";
+  themeBgColor?: string;
+}
+
+/** Downloads the selected courses as a standalone image in the chosen format. */
+export async function downloadModernCourseListImage(
+  params: ModernCourseListImageExportParams
+): Promise<void> {
+  const format = params.format || "jpg";
+  const toImageFn = format === "png" ? htmlToImage.toPng : htmlToImage.toJpeg;
+  if (typeof toImageFn !== "function") {
+    throw new Error("htmlToImage export function is not available");
+  }
+
+  const rows = params.courses
+    .map(
+      (course) => `
+        <article style="display:grid;grid-template-columns:1.2fr 2fr 1fr;gap:16px;padding:18px 0;border-bottom:1px solid rgba(255,255,255,.1);align-items:start">
+          <div>
+            <strong style="display:block;color:#fff;font-size:18px">${escapeHtml(course.code)}</strong>
+            <span style="display:inline-block;margin-top:6px;color:#c4b5fd;font-size:12px">${escapeHtml(course.type || "Course")}</span>
+          </div>
+          <div>
+            <strong style="display:block;color:#e2e8f0;font-size:15px">${escapeHtml(course.title || "Untitled course")}</strong>
+            <span style="display:block;margin-top:6px;color:#94a3b8;font-size:13px">${escapeHtml(course.faculty || "Faculty unstated")}</span>
+          </div>
+          <div style="text-align:right">
+            <strong style="color:#93c5fd;font-size:14px">${escapeHtml(course.slots.join(" + "))}</strong>
+            <span style="display:block;margin-top:6px;color:#94a3b8;font-size:12px">${escapeHtml(course.venue || "Venue unstated")}</span>
+          </div>
+        </article>`
+    )
+    .join("");
+  const html = `
+    <div style="width:1000px;padding:36px;background:#090d16;color:#f8fafc;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;box-sizing:border-box;border-radius:20px">
+      <header style="padding-bottom:20px;border-bottom:1px solid rgba(255,255,255,.14)">
+        <span style="color:#93c5fd;font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase">AmazeCC FFCS · Selected courses</span>
+        <h1 style="margin:10px 0 0;color:#fff;font-size:28px">${escapeHtml(params.timetableName)}</h1>
+        <p style="margin:6px 0 0;color:#94a3b8;font-size:14px">${params.courses.length} course${params.courses.length === 1 ? "" : "s"}</p>
+      </header>
+      <section style="margin-top:8px">${rows}</section>
+    </div>`;
+
+  let container: HTMLElement | null = null;
+  try {
+    container = document.createElement("div");
+    container.style.position = "fixed";
+    container.style.left = "-9999px";
+    container.style.top = "0";
+    container.style.zIndex = "-1000";
+    container.innerHTML = html;
+    document.body.appendChild(container);
+
+    const targetElement = (container.firstElementChild as HTMLElement) || container;
+    const dataUrl = await toImageFn(targetElement, {
+      quality: 0.95,
+      backgroundColor: params.themeBgColor || "#090d16",
+      pixelRatio: 2,
+    });
+    if (dataUrl) {
+      const cleanName = params.timetableName.replace(/[^a-zA-Z0-9_-]/g, "_");
+      const link = document.createElement("a");
+      link.download = `${cleanName}_COURSES.${format === "jpg" ? "jpeg" : "png"}`;
+      link.href = dataUrl;
+      link.click();
+    }
+  } finally {
+    container?.parentNode?.removeChild(container);
   }
 }
 

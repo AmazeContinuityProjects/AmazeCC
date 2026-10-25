@@ -1,4 +1,5 @@
 import SubTabStrip from "../shared/SubTabStrip";
+import { navigateToFFCSPlanner } from "@/lib/ffcsNavigation";
 
 export default function MoreSubTabs({ activeMoreSubTab, setActiveMoreSubTab }) {
   return (
@@ -8,7 +9,7 @@ export default function MoreSubTabs({ activeMoreSubTab, setActiveMoreSubTab }) {
         { id: "ffcs", label: "FFCS Planner" },
       ]}
       activeTab={activeMoreSubTab}
-      onChange={setActiveMoreSubTab}
+      onChange={(tab) => tab === "ffcs" ? navigateToFFCSPlanner() : setActiveMoreSubTab(tab)}
     />
   );
 }

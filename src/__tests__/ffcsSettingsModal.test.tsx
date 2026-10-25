@@ -123,6 +123,29 @@ describe("FFCSSettingsModal", () => {
     expect(p.update).toHaveBeenCalledWith("showVerticalTimetableBesideWidgets", true);
   });
 
+  it("updates the separate course-list image export preference", () => {
+    const p = props();
+    render(<FFCSSettingsModal {...p} />);
+
+    act(() => screen.getByRole("switch", { name: "Separate course-list image" }).click());
+
+    expect(p.update).toHaveBeenCalledWith("separateCourseListExport", true);
+  });
+
+  it("reorders the combined ranking priority through planner settings", () => {
+    const p = props();
+    render(<FFCSSettingsModal {...p} />);
+
+    act(() => screen.getByRole("button", { name: "Move Faculty reviews up" }).click());
+
+    expect(p.update).toHaveBeenCalledWith("rankingPriorityOrder", [
+      "faculty",
+      "profile",
+      "sort",
+      "time",
+    ]);
+  });
+
   it("writes analytics consent to the analytics key, not to settings", () => {
     const p = props();
     render(<FFCSSettingsModal {...p} />);

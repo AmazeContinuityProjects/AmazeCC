@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import { Settings2, Play, RotateCcw, Info, Sparkles } from "lucide-react";
+import { Settings2, Play, RotateCcw, Info, Sparkles, ChevronUp, ChevronDown } from "lucide-react";
 import BottomSheet from "../../../../shared/BottomSheet";
 import SettingRow from "../../../../shared/primitives/SettingRow";
 import Switch from "../../../../shared/primitives/Switch";
@@ -16,6 +16,7 @@ import {
 } from "@/lib/ffcsSettings";
 import { RANKING_MODES } from "@/lib/ffcsRanking";
 import type { SortBy } from "@/lib/timetableMetrics";
+import type { RankingPriority } from "@/lib/ffcsSettings";
 
 /**
  * The planner's settings sheet.
@@ -38,6 +39,11 @@ import type { SortBy } from "@/lib/timetableMetrics";
  */
 
 const RANKING_OPTIONS = [
+  {
+    value: "Best Faculty" as DefaultRankingMode,
+    label: "Best Faculty",
+    description: "Prioritizes Vitfac faculty review ratings and review coverage.",
+  },
   {
     value: "none" as DefaultRankingMode,
     label: "None",
@@ -91,6 +97,11 @@ const SORT_OPTIONS: readonly { value: SortBy; label: string; description: string
     label: "Compact",
     description: "Minimizes idle gaps between classes throughout the day.",
   },
+  {
+    value: "faculty",
+    label: "Faculty",
+    description: "Prioritizes reviewed faculty scores and coverage.",
+  },
 ];
 
 const SOCIAL_METHOD_OPTIONS = [
@@ -120,6 +131,13 @@ const CAP_OPTIONS = [
   { value: "250", label: "250" },
   { value: "500", label: "500" },
 ];
+
+const RANKING_PRIORITY_LABELS: Record<RankingPriority, string> = {
+  profile: "Ranking profile",
+  faculty: "Faculty reviews",
+  sort: "Selected sort order",
+  time: "Time preference",
+};
 
 export interface FFCSSettingsModalProps {
   isOpen: boolean;
@@ -171,6 +189,41 @@ export function FFCSSettingsModal({
     ) {
       reset();
       setAnalyticsOn(isAnalyticsEnabled());
+    }
+  };
+
+  const moveRankingPriority = (index: number, direction: -1 | 1) => {
+    const next = [...settings.rankingPriorityOrder];
+    const target = index + direction;
+    if (target < 0 || target >= next.length) return;
+    [next[index], next[target]] = [next[target], next[index]];
+    update("rankingPriorityOrder", next);
+  };
+
+  const updateFacultyWeight = (
+    key: keyof FFCSSettings["facultyMetricWeights"],
+    value: string
+  ) => {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      update("facultyMetricWeights", {
+        ...settings.facultyMetricWeights,
+        [key]: Math.max(0, Math.min(5, parsed)),
+      });
+    }
+  };
+
+  const updateFacultyFilter = (
+    key: keyof FFCSSettings["facultyScoreFilters"],
+    value: string
+  ) => {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      const max = key === "minWPct" ? 100 : 5;
+      update("facultyScoreFilters", {
+        ...settings.facultyScoreFilters,
+        [key]: Math.max(0, Math.min(max, parsed)),
+      });
     }
   };
 
@@ -250,6 +303,107 @@ export function FFCSSettingsModal({
               }
             />
             <SettingRow
+              stacked
+              title="Combined ranking priority"
+              description="Higher items carry more weight in the final generated timetable list."
+              control={
+                <div className="space-y-1.5">
+                  {settings.rankingPriorityOrder.map((priority, index) => (
+                    <div
+                      key={priority}
+                      className="flex items-center justify-between gap-2 rounded-lg bg-surface-secondary/40 px-3 py-1.5 text-xs"
+                    >
+                      <span className="font-medium text-text-heading">
+                        {index + 1}. {RANKING_PRIORITY_LABELS[priority]}
+                      </span>
+                      <span className="flex">
+                        <button
+                          type="button"
+                          aria-label={`Move ${RANKING_PRIORITY_LABELS[priority]} up`}
+                          disabled={index === 0}
+                          onClick={() => moveRankingPriority(index, -1)}
+                          className="rounded p-1 text-muted-foreground hover:text-text-heading disabled:opacity-30"
+                        >
+                          <ChevronUp className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Move ${RANKING_PRIORITY_LABELS[priority]} down`}
+                          disabled={index === settings.rankingPriorityOrder.length - 1}
+                          onClick={() => moveRankingPriority(index, 1)}
+                          className="rounded p-1 text-muted-foreground hover:text-text-heading disabled:opacity-30"
+                        >
+                          <ChevronDown className="h-4 w-4" />
+                        </button>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              }
+            />
+            <SettingRow
+              stacked
+              title="Faculty score priorities"
+              description="Relative weight for the overall Vitfac score and its individual review metrics; 0 ignores a score."
+              control={
+                <div className="grid grid-cols-2 gap-2">
+                  {(
+                    [
+                      ["wPct", "Overall W %", 5],
+                      ["lecture", "Lecture", 5],
+                      ["da", "DA", 5],
+                      ["vibe", "Vibe", 5],
+                    ] as const
+                  ).map(([key, label, max]) => (
+                    <label key={key} className="flex items-center justify-between gap-2 text-xs">
+                      <span>{label}</span>
+                      <input
+                        aria-label={`${label} importance`}
+                        type="number"
+                        min={0}
+                        max={max}
+                        step={1}
+                        value={settings.facultyMetricWeights[key]}
+                        onChange={(event) => updateFacultyWeight(key, event.target.value)}
+                        className="w-16 rounded-lg border border-border-strong bg-surface px-2 py-1 text-right text-text-heading"
+                      />
+                    </label>
+                  ))}
+                </div>
+              }
+            />
+            <SettingRow
+              stacked
+              title="Minimum faculty review scores"
+              description="Exclude reviewed faculty below these thresholds. Set a value to 0 to disable that filter."
+              control={
+                <div className="grid grid-cols-2 gap-2">
+                  {(
+                    [
+                      ["minWPct", "Overall W %", 100, 5],
+                      ["minLecture", "Lecture / 5", 5, 0.5],
+                      ["minDa", "DA / 5", 5, 0.5],
+                      ["minVibe", "Vibe / 5", 5, 0.5],
+                    ] as const
+                  ).map(([key, label, max, step]) => (
+                    <label key={key} className="flex items-center justify-between gap-2 text-xs">
+                      <span>{label}</span>
+                      <input
+                        aria-label={`Minimum ${label}`}
+                        type="number"
+                        min={0}
+                        max={max}
+                        step={step}
+                        value={settings.facultyScoreFilters[key]}
+                        onChange={(event) => updateFacultyFilter(key, event.target.value)}
+                        className="w-16 rounded-lg border border-border-strong bg-surface px-2 py-1 text-right text-text-heading"
+                      />
+                    </label>
+                  ))}
+                </div>
+              }
+            />
+            <SettingRow
               title="Image format"
               description="Format of the timetable image download."
               control={
@@ -260,6 +414,17 @@ export function FFCSSettingsModal({
                   ]}
                   value={settings.exportFormat}
                   onChange={(value) => update("exportFormat", value)}
+                />
+              }
+            />
+            <SettingRow
+              title="Separate course-list image"
+              description="Download the timetable and selected courses as two separate images."
+              control={
+                <Switch
+                  checked={settings.separateCourseListExport}
+                  onCheckedChange={(checked) => update("separateCourseListExport", checked)}
+                  label="Separate course-list image"
                 />
               }
             />

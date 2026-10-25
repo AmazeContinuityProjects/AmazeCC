@@ -426,7 +426,7 @@ export function pairwiseSocialScore(
  */
 export const MAX_WEEKLY_GAP_MIN = 1200;
 
-export type SortBy = "social" | "halfdays" | "compactness" | "balanced";
+export type SortBy = "social" | "halfdays" | "compactness" | "balanced" | "faculty";
 
 /**
  * Anything that can be ordered, with its score.
@@ -438,6 +438,7 @@ export type SortBy = "social" | "halfdays" | "compactness" | "balanced";
  */
 export interface SortableTimetable {
   metrics?: TimetableMetrics;
+  facultySummary?: { averageWPct: number | null; facultyScore: number | null };
 }
 
 /**
@@ -476,6 +477,8 @@ export function sortTimetables<T extends SortableTimetable>(timetables: T[], by:
         return bm.halfDays - am.halfDays;
       case "compactness":
         return am.gaps - bm.gaps; // fewer minutes of dead time is better
+      case "faculty":
+        return (b.facultySummary?.facultyScore ?? -1) - (a.facultySummary?.facultyScore ?? -1);
       case "balanced":
       default:
         return rank(bm) - rank(am);

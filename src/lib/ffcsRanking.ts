@@ -28,15 +28,13 @@
  * Any caller mixing them up will rank backwards, so they are named differently
  * everywhere and never read from each other.
  *
- * ## Faithfulness to the source
+ * ## Faculty reviews
  *
- * The profiles and the factor arithmetic are ported from the reference planner
- * (`ffcsmaker/src/engine/ranking.ts`). One term was dropped deliberately:
- * its *faculty preference* factor scores a hand-ordered shortlist of professors,
- * and this planner has no such shortlist — it has per-course faculty filters
- * that are already a hard constraint, not a preference. Including a factor that
- * is always zero would deflate every score for no reason, so it is out.
- * Free-days and standalone compactness were already folded away upstream.
+ * Vitfac scores are optional worker inputs. The Best Faculty profile can use
+ * their coverage-adjusted aggregate, while the generator's composite rank also
+ * combines faculty, sort, and time scores according to the user's priority.
+ * With no catalog data, the faculty factor is omitted rather than treated as
+ * zero.
  *
  * Everything here is **opt-in**. Nothing calls it unless a caller passes a
  * `rankingMode`, and with no mode the planner ranks exactly as it always has.
@@ -45,8 +43,9 @@
 import { DAYS_OF_WEEK, type CampusSchema } from "./slots";
 import { dayOccupancy, type MetricCourse } from "./timetableMetrics";
 
-/** The five opinions, from most to least conventional. */
+/** Ranking profiles, from faculty-focused to schedule-focused. */
 export const RANKING_MODES = [
+  "Best Faculty",
   "Balanced",
   "Half Days",
   "Minimize Gaps",
@@ -75,9 +74,11 @@ interface Weights {
   earlyFinish: number;
   lateStart: number;
   balancedLoad: number;
+  facultyQuality?: number;
 }
 
 const PROFILES: Record<RankingMode, Weights> = {
+  "Best Faculty": { compactDays: 2, lowGaps: 2, earlyFinish: 1, lateStart: 1, balancedLoad: 1, facultyQuality: 45 },
   Balanced: { compactDays: 10, lowGaps: 14, earlyFinish: 10, lateStart: 8, balancedLoad: 8 },
   "Half Days": { compactDays: 30, lowGaps: 10, earlyFinish: 8, lateStart: 4, balancedLoad: 3 },
   "Minimize Gaps": { compactDays: 6, lowGaps: 32, earlyFinish: 6, lateStart: 3, balancedLoad: 8 },
@@ -117,6 +118,8 @@ export interface RankingInputs {
   averageDayEndMinutes: number;
   /** Variance of classes-per-day across class days. */
   dailyLoadVariance: number;
+  /** Faculty review quality on a 0–1 scale, already penalized for unrated staff. */
+  facultyQuality?: number | null;
 }
 
 /** Four hours — the longest day still counted as a half day. */
@@ -225,6 +228,9 @@ export function scoreRanking(inputs: RankingInputs, mode: RankingMode): RankingS
     lateStart: [normalize(inputs.averageDayStartMinutes - 8 * 60, 6 * 60), weights.lateStart],
     balancedLoad: [inverted(inputs.dailyLoadVariance, 4), weights.balancedLoad],
   };
+  if (inputs.facultyQuality !== null && inputs.facultyQuality !== undefined && weights.facultyQuality) {
+    factors.facultyQuality = [normalize(inputs.facultyQuality, 1), weights.facultyQuality];
+  }
 
   const totalWeight = Object.values(factors).reduce((sum, [, weight]) => sum + weight, 0);
   const breakdown: Record<string, number> = {};
@@ -244,7 +250,57 @@ export function scoreRanking(inputs: RankingInputs, mode: RankingMode): RankingS
 export function rankCourses(
   courses: readonly MetricCourse[],
   schema: CampusSchema,
-  mode: RankingMode
+  mode: RankingMode,
+  facultyQuality?: number | null
 ): RankingScore {
-  return scoreRanking(rankingInputs(courses, schema), mode);
+  return scoreRanking({ ...rankingInputs(courses, schema), facultyQuality }, mode);
+}
+
+export type RankingPriority = "profile" | "faculty" | "sort" | "time";
+
+export interface CompositeRankingComponents {
+  profile?: number | null;
+  faculty?: number | null;
+  sort?: number | null;
+  time?: number | null;
+}
+
+export interface CompositeRankingResult {
+  score: number;
+  breakdown: Record<string, number>;
+}
+
+/** Combines the selected ranking profile and live preferences into one score. */
+export function combineRankingScores(
+  components: CompositeRankingComponents,
+  priorityOrder: readonly RankingPriority[]
+): CompositeRankingResult {
+  const order: RankingPriority[] = ["profile", "faculty", "sort", "time"];
+  const unique = priorityOrder.filter((key, index) => order.includes(key) && priorityOrder.indexOf(key) === index);
+  const priorities = [...unique, ...order.filter((key) => !unique.includes(key))];
+  const breakdown: Record<string, number> = {};
+  let totalWeight = 0;
+
+  priorities.forEach((key, index) => {
+    const value = components[key];
+    if (value === null || value === undefined || !Number.isFinite(value)) return;
+    const weight = priorities.length - index;
+    totalWeight += weight;
+  });
+  if (!totalWeight) return { score: 0, breakdown };
+
+  let score = 0;
+  priorities.forEach((key, index) => {
+    const value = components[key];
+    if (value === null || value === undefined || !Number.isFinite(value)) return;
+    const weight = priorities.length - index;
+    const points = (Math.max(0, Math.min(100, value)) * weight) / totalWeight;
+    breakdown[key] = Number(points.toFixed(1));
+    score += points;
+  });
+
+  return {
+    score: Number(score.toFixed(1)),
+    breakdown,
+  };
 }

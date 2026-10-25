@@ -6,6 +6,20 @@ import { asRankingMode, type RankingMode } from "./ffcsRanking";
 import type { SortBy } from "./timetableMetrics";
 import { DEFAULT_RESULT_LIMIT } from "@/components/custom/exams/FFCS/logic/generate";
 import { track } from "./analytics";
+import {
+  DEFAULT_FACULTY_METRIC_WEIGHTS,
+  DEFAULT_FACULTY_SCORE_FILTERS,
+  type FacultyMetricWeights,
+  type FacultyScoreFilters,
+} from "./ffcsFacultyRanking";
+
+export type RankingPriority = "profile" | "faculty" | "sort" | "time";
+export const DEFAULT_RANKING_PRIORITY_ORDER: readonly RankingPriority[] = [
+  "profile",
+  "faculty",
+  "sort",
+  "time",
+];
 
 /**
  * The planner's preferences, in their own namespace (`ffcs_settings`).
@@ -50,6 +64,14 @@ export interface FFCSSettings {
   defaultSortBy: SortBy;
   /** Format of the timetable image download. */
   exportFormat: ExportFormat;
+  /** Export the timetable and course list as separate images. */
+  separateCourseListExport: boolean;
+  /** Relative priority of the generator's profile, faculty, sort, and time scores. */
+  rankingPriorityOrder: RankingPriority[];
+  /** Relative weighting of Vitfac's overall and individual review scores. */
+  facultyMetricWeights: FacultyMetricWeights;
+  /** Minimum review scores required for a generated timetable; zero disables a filter. */
+  facultyScoreFilters: FacultyScoreFilters;
   /** Half-days floor the generator starts with (0 = off). */
   minHalfDays: number;
   /** Search cap used when the run is not unlimited. */
@@ -64,13 +86,17 @@ export const FFCSSettingsDefaults: Readonly<FFCSSettings> = Object.freeze({
   rankingMode: "none" as DefaultRankingMode,
   defaultSortBy: "balanced" as SortBy,
   exportFormat: "jpg" as ExportFormat,
+  separateCourseListExport: false,
+  rankingPriorityOrder: [...DEFAULT_RANKING_PRIORITY_ORDER],
+  facultyMetricWeights: { ...DEFAULT_FACULTY_METRIC_WEIGHTS },
+  facultyScoreFilters: { ...DEFAULT_FACULTY_SCORE_FILTERS },
   minHalfDays: 0,
   resultCap: DEFAULT_RESULT_LIMIT,
   showTour: true,
   showVerticalTimetableBesideWidgets: false,
 });
 
-const SORT_BY: readonly SortBy[] = ["social", "halfdays", "compactness", "balanced"];
+const SORT_BY: readonly SortBy[] = ["social", "halfdays", "compactness", "balanced", "faculty"];
 const EXPORT_FORMATS: readonly ExportFormat[] = ["jpg", "png"];
 /** Half a week of half-days (6 days × morning/evening); the real ceiling. */
 const MAX_HALF_DAYS = 12;
@@ -81,6 +107,12 @@ function asInt(value: unknown, min: number, max: number, fallback: number): numb
   const n = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(n)) return fallback;
   return Math.min(max, Math.max(min, Math.round(n)));
+}
+
+function asScore(value: unknown, max: number, fallback = 0): number {
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(0, Math.min(max, n));
 }
 
 /**
@@ -106,6 +138,43 @@ export function sanitizeFFCSSettings(raw: unknown): FFCSSettings {
     exportFormat: EXPORT_FORMATS.includes(r.exportFormat as ExportFormat)
       ? (r.exportFormat as ExportFormat)
       : FFCSSettingsDefaults.exportFormat,
+    separateCourseListExport:
+      typeof r.separateCourseListExport === "boolean"
+        ? r.separateCourseListExport
+        : FFCSSettingsDefaults.separateCourseListExport,
+    rankingPriorityOrder: (() => {
+      const allowed: readonly RankingPriority[] = ["profile", "faculty", "sort", "time"];
+      const supplied = Array.isArray(r.rankingPriorityOrder) ? r.rankingPriorityOrder : [];
+      const unique = supplied.filter(
+        (value, index): value is RankingPriority =>
+          allowed.includes(value as RankingPriority) && supplied.indexOf(value) === index
+      );
+      return [...unique, ...allowed.filter((value) => !unique.includes(value))];
+    })(),
+    facultyMetricWeights: (() => {
+      const rawWeights =
+        r.facultyMetricWeights && typeof r.facultyMetricWeights === "object"
+          ? (r.facultyMetricWeights as Record<string, unknown>)
+          : {};
+      return {
+        wPct: asScore(rawWeights.wPct, 5, FFCSSettingsDefaults.facultyMetricWeights.wPct),
+        lecture: asScore(rawWeights.lecture, 5, FFCSSettingsDefaults.facultyMetricWeights.lecture),
+        da: asScore(rawWeights.da, 5, FFCSSettingsDefaults.facultyMetricWeights.da),
+        vibe: asScore(rawWeights.vibe, 5, FFCSSettingsDefaults.facultyMetricWeights.vibe),
+      };
+    })(),
+    facultyScoreFilters: (() => {
+      const rawFilters =
+        r.facultyScoreFilters && typeof r.facultyScoreFilters === "object"
+          ? (r.facultyScoreFilters as Record<string, unknown>)
+          : {};
+      return {
+        minWPct: asScore(rawFilters.minWPct, 100, FFCSSettingsDefaults.facultyScoreFilters.minWPct),
+        minLecture: asScore(rawFilters.minLecture, 5, FFCSSettingsDefaults.facultyScoreFilters.minLecture),
+        minDa: asScore(rawFilters.minDa, 5, FFCSSettingsDefaults.facultyScoreFilters.minDa),
+        minVibe: asScore(rawFilters.minVibe, 5, FFCSSettingsDefaults.facultyScoreFilters.minVibe),
+      };
+    })(),
     minHalfDays: asInt(r.minHalfDays, 0, MAX_HALF_DAYS, FFCSSettingsDefaults.minHalfDays),
     resultCap: asInt(r.resultCap, MIN_RESULT_CAP, MAX_RESULT_CAP, FFCSSettingsDefaults.resultCap),
     showTour: typeof r.showTour === "boolean" ? r.showTour : FFCSSettingsDefaults.showTour,

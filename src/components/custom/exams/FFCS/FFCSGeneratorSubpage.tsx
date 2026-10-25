@@ -1,15 +1,21 @@
-import React, { memo, useState, useMemo, useEffect } from 'react';
-import { X, Wand2, Info, ChevronDown, Check, Beaker, Play, Lock, Hash, ArrowRight, Search, AlertTriangle, ArrowLeft, Save, Users } from 'lucide-react';
+import React, { memo, useCallback, useState, useMemo, useEffect } from 'react';
+import { X, Wand2, Info, ChevronDown, ChevronUp, Check, Beaker, Play, Lock, Hash, ArrowRight, Search, AlertTriangle, ArrowLeft, Save, Users } from 'lucide-react';
 import { TimetableState, CourseLock, Friend, FriendGroup, ParsedCourse, AddedCourse } from './types';
 import { getBatchColorClass } from '@/lib/utils';
-import { sortTimetables, timetableMetrics, formatHours, type SortBy } from '@/lib/timetableMetrics';
+import {
+  dayOccupancy,
+  sortTimetables,
+  timetableMetrics,
+  formatHours,
+  type SortBy,
+} from '@/lib/timetableMetrics';
 import { periodsForSlot } from '@/lib/slots';
 import { useOverlayBack } from '@/lib/overlayStack';
 import { type GeneratorErrorCode } from './logic/generator';
 import { useGenerationRun } from './hooks/useGenerationRun';
 import { RANKING_MODES, type RankingMode } from '@/lib/ffcsRanking';
 import { track } from '@/lib/analytics';
-import type { FFCSSettings } from '@/lib/ffcsSettings';
+import type { FFCSSettings, RankingPriority } from '@/lib/ffcsSettings';
 import SearchInput from "../../shared/SearchInput";
 import { GLOBAL_CAMPUS, getTimetableSchema, calculatePairwiseSocialScore, safeStorage } from '../FFCSTimetableTab';
 import { COLORS, DAYS } from './constants';
@@ -17,11 +23,14 @@ import { offeringId, offeringMatches } from './reports';
 import { splitSlots, HARD_RESULT_LIMIT, sameSlotFacultyAlternatives, expandCourseHalves } from './logic/generate';
 import { TimetableGrid, GapDetail } from './components/TimetableGrid';
 import SlotFacultySwapSheet from './components/SlotFacultySwapSheet';
-import { PageShell, SegmentedControl, RadioGroup } from "../../shared/primitives";
+import { PageShell, SegmentedControl, RadioGroup, SelectField } from "../../shared/primitives";
 import { AnimatePresence } from 'framer-motion';
 import BottomSheet from "../../shared/BottomSheet";
 import { loadSessionPreferences, saveSessionPreferences } from "@/lib/ffcsGeneratorSessionPrefs";
 import FacultyReviewSheet, { VitfacReviewPill, FacultyAvatar } from './components/FacultyReviewSheet';
+import { loadVitfacRankingData } from "@/lib/vitfacService";
+import type { FacultyRatingLookup } from "@/lib/ffcsFacultyRanking";
+import { DAYS_OF_WEEK, timeToMinutes, type DayId } from "@/lib/slots";
 
 const GENERATOR_SORT_OPTIONS = [
   {
@@ -43,6 +52,11 @@ const GENERATOR_SORT_OPTIONS = [
     value: "social" as const,
     label: "Max Social Score",
     description: "Maximizes overlapping class hours with friends.",
+  },
+  {
+    value: "faculty" as const,
+    label: "Highest Faculty Score",
+    description: "Prioritizes reviewed faculty using their overall and metric scores.",
   },
 ] as const;
 
@@ -71,6 +85,11 @@ const GENERATOR_RANKING_OPTIONS = [
     description: "No weighted profile — options are ordered purely by the sort order above.",
   },
   {
+    value: "Best Faculty" as const,
+    label: "Best Faculty",
+    description: "Prioritizes the selected faculty's Vitfac review scores and ratings coverage.",
+  },
+  {
     value: "Balanced" as const,
     label: "Balanced",
     description: "Overall balance across gaps, early finishes, and daily workload.",
@@ -97,6 +116,13 @@ const GENERATOR_RANKING_OPTIONS = [
   },
 ] as const;
 
+const RANKING_PRIORITY_LABELS: Record<RankingPriority, string> = {
+  profile: "Ranking profile",
+  faculty: "Faculty reviews",
+  sort: "Selected sort order",
+  time: "Time preference",
+};
+
 /**
  * How many option cards the review grid paints before it pauses for a
  * "Show more".
@@ -112,6 +138,35 @@ const GENERATOR_RANKING_OPTIONS = [
 const STAGED_RENDER_LIMIT = 60;
 const STAGED_RENDER_STEP = 240;
 
+const DAY_LABELS: Record<DayId, string> = {
+  mon: "Monday",
+  tue: "Tuesday",
+  wed: "Wednesday",
+  thu: "Thursday",
+  fri: "Friday",
+};
+
+function minutesToTimeValue(minutes: number): string {
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  return `${String(hours).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`;
+}
+
+function buildSlotTimeOptions(
+  boundaries: readonly { slot: string; time: string }[]
+): { value: string; label: string }[] {
+  const options = new Map<string, string>();
+  boundaries.forEach(({ slot, time }) => {
+    const minutes = timeToMinutes(time);
+    if (minutes === null) return;
+    const value = minutesToTimeValue(minutes);
+    const existing = options.get(value);
+    options.set(value, existing ? `${existing}, ${slot}` : `${time} · ${slot}`);
+  });
+  return [...options]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([value, label]) => ({ value, label }));
+}
 
 export interface FFCSGeneratorSubpageProps {
   onClose: () => void;
@@ -162,6 +217,9 @@ export function FFCSGeneratorSubpage({
   const [generatorNoLimit, setGeneratorNoLimit] = useState<boolean>(
     () => sessionPrefs.noLimit ?? false
   );
+  const [generatorResultCap, setGeneratorResultCap] = useState<number>(
+    () => sessionPrefs.resultCap ?? settings.resultCap
+  );
   // The generator now streams: `run` hands back batches while the search is
   // still going, and `cancel` stops a worker the old awaited promise could not
   // have interrupted.
@@ -174,6 +232,15 @@ export function FFCSGeneratorSubpage({
     () => sessionPrefs.rankingMode !== undefined
       ? sessionPrefs.rankingMode
       : (settings.rankingMode === "none" ? null : settings.rankingMode)
+  );
+  const [rankingPriorityOrder, setRankingPriorityOrder] = useState<RankingPriority[]>(() => [
+    ...(sessionPrefs.rankingPriorityOrder ?? settings.rankingPriorityOrder),
+  ]);
+  const [facultyMetricWeights, setFacultyMetricWeights] = useState<FFCSSettings["facultyMetricWeights"]>(
+    () => ({ ...(sessionPrefs.facultyMetricWeights ?? settings.facultyMetricWeights) })
+  );
+  const [facultyScoreFilters, setFacultyScoreFilters] = useState<FFCSSettings["facultyScoreFilters"]>(
+    () => ({ ...(sessionPrefs.facultyScoreFilters ?? settings.facultyScoreFilters) })
   );
   const [stagedTimetables, setStagedTimetables] = useState<TimetableState[]>([]);
   // The render window over `stagedTimetables`. State, not a derived slice
@@ -191,6 +258,9 @@ export function FFCSGeneratorSubpage({
   const [generatorMaxEndTime, setGeneratorMaxEndTime] = useState<string>(
     () => sessionPrefs.maxEndTime ?? "19:30"
   );
+  const [generatorMaxEndTimeByDay, setGeneratorMaxEndTimeByDay] = useState<
+    Partial<Record<DayId, string>>
+  >(() => ({ ...(sessionPrefs.maxEndTimeByDay ?? {}) }));
   const [generatorSortBy, setGeneratorSortBy] = useState<SortBy>(
     () => sessionPrefs.sortBy ?? settings.defaultSortBy
   );
@@ -251,10 +321,15 @@ export function FFCSGeneratorSubpage({
       preference: generatorPreference,
       uniqueFaculties: generatorUniqueFaculties,
       noLimit: generatorNoLimit,
+      resultCap: generatorResultCap,
       rankingMode,
+      rankingPriorityOrder,
+      facultyMetricWeights,
+      facultyScoreFilters,
       minHalfDays: generatorMinHalfDays,
       minStartTime: generatorMinStartTime,
       maxEndTime: generatorMaxEndTime,
+      maxEndTimeByDay: generatorMaxEndTimeByDay,
       sortBy: generatorSortBy,
       syncFriendsClasses: generatorSyncFriendsClasses,
       syncFriendClasses: generatorSyncFriendsClasses,
@@ -266,16 +341,57 @@ export function FFCSGeneratorSubpage({
     generatorPreference,
     generatorUniqueFaculties,
     generatorNoLimit,
+    generatorResultCap,
     rankingMode,
+    rankingPriorityOrder,
+    facultyMetricWeights,
+    facultyScoreFilters,
     generatorMinHalfDays,
     generatorMinStartTime,
     generatorMaxEndTime,
+    generatorMaxEndTimeByDay,
     generatorSortBy,
     generatorSyncFriendsClasses,
     generatorMaximizeFreeTimeFriends,
     generatorTargets,
     isReviewing,
   ]);
+
+  const moveRankingPriority = (index: number, direction: -1 | 1) => {
+    const next = [...rankingPriorityOrder];
+    const target = index + direction;
+    if (target < 0 || target >= next.length) return;
+    [next[index], next[target]] = [next[target], next[index]];
+    setRankingPriorityOrder(next);
+  };
+
+  const updateFacultyWeight = (
+    key: keyof FFCSSettings["facultyMetricWeights"],
+    value: string
+  ) => {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      setFacultyMetricWeights((previous) => ({
+        ...previous,
+        [key]: Math.max(0, Math.min(5, parsed)),
+      }));
+    }
+  };
+
+  const updateFacultyFilter = (
+    key: keyof FFCSSettings["facultyScoreFilters"],
+    value: string
+  ) => {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      const max = key === "minWPct" ? 100 : 5;
+      setFacultyScoreFilters((previous) => ({
+        ...previous,
+        [key]: Math.max(0, Math.min(max, parsed)),
+      }));
+    }
+  };
+
   const [generatorCourseSearchQuery, setGeneratorCourseSearchQuery] = useState("");
   const [isVariantSearchOpen, setIsVariantSearchOpen] = useState(false);
   const [variantSearchQuery, setVariantSearchQuery] = useState("");
@@ -329,8 +445,10 @@ export function FFCSGeneratorSubpage({
   // `parse24HourToMinutes` were copies of copies of things — all three moved
   // into `logic/generate.ts` with the solve that needed them, and are no longer
   // referenced here.
-  const getPeriodsForSlot = (slot: string) =>
-    periodsForSlot({ theory: theoryPeriods, lab: labPeriods }, slot);
+  const getPeriodsForSlot = useCallback(
+    (slot: string) => periodsForSlot({ theory: theoryPeriods, lab: labPeriods }, slot),
+    [theoryPeriods, labPeriods]
+  );
 
   const allAvailableSlots = React.useMemo(() => {
     const slots = new Set<string>();
@@ -358,6 +476,41 @@ export function FFCSGeneratorSubpage({
       return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
     });
   }, [theoryPeriods, labPeriods]);
+  const slotStartOptions = React.useMemo(
+    () =>
+      buildSlotTimeOptions(
+        allAvailableSlots.flatMap((slot) =>
+          getPeriodsForSlot(slot).map((period) => ({ slot, time: period.start }))
+        )
+      ),
+    [allAvailableSlots, getPeriodsForSlot]
+  );
+  const slotEndOptions = React.useMemo(
+    () =>
+      buildSlotTimeOptions(
+        allAvailableSlots.flatMap((slot) =>
+          getPeriodsForSlot(slot).map((period) => ({ slot, time: period.end }))
+        )
+      ),
+    [allAvailableSlots, getPeriodsForSlot]
+  );
+  const slotEndOptionsByDay = React.useMemo(() => {
+    const boundaries: Record<DayId, { slot: string; time: string }[]> = {
+      mon: [],
+      tue: [],
+      wed: [],
+      thu: [],
+      fri: [],
+    };
+    allAvailableSlots.forEach((slot) => {
+      getPeriodsForSlot(slot).forEach((period) => {
+        boundaries[period.day].push({ slot, time: period.end });
+      });
+    });
+    return Object.fromEntries(
+      DAYS_OF_WEEK.map((day) => [day, buildSlotTimeOptions(boundaries[day])])
+    ) as Record<DayId, { value: string; label: string }[]>;
+  }, [allAvailableSlots, getPeriodsForSlot]);
   const uniqueCourseCodes = Array.from(new Set(masterCourses.map(c => c.CODE)));
 
 
@@ -378,6 +531,8 @@ export function FFCSGeneratorSubpage({
         return "Could not generate any conflict-free timetables from the selected options.";
       case "below_min_half_days":
         return `No timetables met the minimum half-days requirement (${generatorMinHalfDays}). Try lowering it.`;
+      case "below_min_faculty_scores":
+        return "No timetables met the minimum faculty review scores. Lower the score filters here or in Planner Settings.";
       default:
         return "An error occurred while generating timetables.";
     }
@@ -393,6 +548,15 @@ export function FFCSGeneratorSubpage({
     setStagedVisibleCount(STAGED_RENDER_LIMIT);
     track("generation_started", { courses: generatorTargets.length, ranking: rankingMode ?? "none" });
     const startedAt = performance.now();
+    let facultyRatings: FacultyRatingLookup = {};
+    let facultyRatingsAvailable = false;
+    try {
+      const facultyData = await loadVitfacRankingData(masterCourses);
+      facultyRatings = facultyData.ratings;
+      facultyRatingsAvailable = facultyData.available;
+    } catch (err) {
+      console.warn("Faculty reviews could not be loaded for timetable ranking:", err);
+    }
 
     // Off the main thread where the browser will let us, and reported back as
     // it goes. Each batch gets a number as it lands so the list reads as a
@@ -411,13 +575,19 @@ export function FFCSGeneratorSubpage({
         maximizeFreeTimeFriends: generatorMaximizeFreeTimeFriends,
         minStartTime: generatorMinStartTime,
         maxEndTime: generatorMaxEndTime,
+        maxEndTimeByDay: generatorMaxEndTimeByDay,
         uniqueFaculties: generatorUniqueFaculties,
         noLimit: generatorNoLimit,
         // The settings cap only binds while the per-run switch leaves the
         // search bounded — the switch is the more recent thing chosen.
-        resultCap: settings.resultCap,
+        resultCap: generatorResultCap,
         minHalfDays: generatorMinHalfDays,
         sortBy: generatorSortBy,
+        facultyRatings,
+        facultyRatingsAvailable,
+        facultyMetricWeights,
+        facultyScoreFilters,
+        rankingPriorityOrder,
         // Only sent when one is picked: with no profile the solver does no
         // extra work and ranks exactly as it did before the profiles existed.
         ...(rankingMode ? { rankingMode } : {}),
@@ -781,7 +951,7 @@ export function FFCSGeneratorSubpage({
         subtitle={shellSubtitle}
         actions={shellActions}
         onBack={handleBack}
-        className="!max-w-6xl px-4 sm:px-6"
+        className="!max-w-none px-4 sm:px-6"
       >
         <div className="space-y-4">
           {isGenerating && (
@@ -825,7 +995,102 @@ export function FFCSGeneratorSubpage({
           <div className="flex justify-center">
             {generatorPreviewTimetable ? (
               <>
-              <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <div
+                className={`relative w-full max-w-none flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-300 ${
+                  isReviewing ? "lg:pl-[320px]" : ""
+                }`}
+              >
+                {isReviewing && (
+                  <aside className="hidden lg:block absolute left-0 top-0 w-[296px]">
+                    <div className="sticky top-4 overflow-hidden rounded-2xl border border-border-strong bg-surface shadow-sm">
+                      <div className="border-b border-border-strong px-4 py-3">
+                        <h2 className="text-sm font-bold text-text-heading">Timetable options</h2>
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">
+                          Choose a shape to compare its weekly rhythm.
+                        </p>
+                      </div>
+                      <div className="max-h-[calc(100vh-210px)] space-y-2 overflow-y-auto p-2 custom-scrollbar">
+                        {stagedTimetables.slice(0, stagedVisibleCount).map((option) => {
+                          const optionSchema = getTimetableSchema();
+                          const optionMetrics = timetableMetrics(option.courses, optionSchema);
+                          const occupancyByDay = DAYS_OF_WEEK.map((day) =>
+                            dayOccupancy(option.courses, optionSchema, day)
+                          );
+                          const occupiedDays = occupancyByDay.flatMap((occupancy) => occupancy.classes);
+                          const latestEnd = occupiedDays
+                            .slice()
+                            .sort((a, b) => b.endMin - a.endMin)[0]?.end;
+                          const isCurrent = option.id === generatorPreviewTimetable.id;
+                          return (
+                            <button
+                              key={option.id}
+                              type="button"
+                              aria-label={`${option.name}: ${optionMetrics.halfDays} free half-days, ${formatHours(optionMetrics.gaps)} hours of gaps${option.rankingScore === undefined ? "" : `, rank ${option.rankingScore.toFixed(1)}`}`}
+                              aria-pressed={isCurrent}
+                              onClick={() => {
+                                setSelectedGapDetails(null);
+                                setSelectedDashDetails(null);
+                                setGeneratorPreviewTimetable(option);
+                              }}
+                              className={`w-full rounded-xl border p-3 text-left transition-colors ${
+                                isCurrent
+                                  ? "border-indigo-500/60 bg-indigo-500/10"
+                                  : "border-border-strong/60 bg-surface-secondary/20 hover:border-indigo-500/40"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-xs font-bold text-text-heading">{option.name}</span>
+                                {option.rankingScore !== undefined && (
+                                  <span className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-300">
+                                    {option.rankingScore.toFixed(0)} pts
+                                  </span>
+                                )}
+                              </div>
+                              <div className="mt-2 flex flex-wrap gap-1.5 text-[10px]">
+                                <span className="rounded-md bg-surface px-1.5 py-1 text-text-secondary">
+                                  {optionMetrics.halfDays} free half-days
+                                </span>
+                                <span className="rounded-md bg-surface px-1.5 py-1 text-text-secondary">
+                                  {formatHours(optionMetrics.gaps)}h gaps
+                                </span>
+                                <span className="rounded-md bg-surface px-1.5 py-1 text-text-secondary">
+                                  {occupancyByDay.filter((occupancy) => occupancy.classes.length > 0).length}{" "}
+                                  class days
+                                </span>
+                                {latestEnd && (
+                                  <span className="rounded-md bg-surface px-1.5 py-1 text-text-secondary">
+                                    ends {latestEnd}
+                                  </span>
+                                )}
+                                {option.facultySummary?.averageWPct != null && (
+                                  <span className="rounded-md bg-indigo-500/10 px-1.5 py-1 text-indigo-700 dark:text-indigo-300">
+                                    {option.facultySummary.averageWPct.toFixed(0)}% W ·{" "}
+                                    {option.facultySummary.ratedFacultyCount}/
+                                    {option.facultySummary.totalFacultyCount} rated
+                                  </span>
+                                )}
+                              </div>
+                            </button>
+                          );
+                        })}
+                        {stagedTimetables.length > stagedVisibleCount && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setStagedVisibleCount((count) => count + STAGED_RENDER_STEP)
+                            }
+                            className="w-full rounded-lg border border-border-strong/60 bg-surface-secondary/30 px-3 py-2 text-xs font-semibold text-text-secondary hover:text-text-heading"
+                          >
+                            Show {Math.min(
+                              STAGED_RENDER_STEP,
+                              stagedTimetables.length - stagedVisibleCount
+                            ).toLocaleString()} more options
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </aside>
+                )}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="bg-surface rounded-2xl border border-border-strong p-4 flex flex-col justify-center items-center text-center shadow-sm">
                     <span className="text-2xl font-black text-text-heading">{generatorPreviewTimetable.metrics?.halfDays}</span>
@@ -871,6 +1136,127 @@ export function FFCSGeneratorSubpage({
                     <span className="text-xs uppercase font-bold text-pink-500/80 tracking-wider mt-1">Social Score</span>
                   </div>
                 </div>
+
+                {generatorPreviewTimetable.rankingScore !== undefined && (
+                  <section className="rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-4 md:p-5 space-y-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <h2 className="font-bold text-text-heading">Why this timetable ranks here</h2>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Combined score {generatorPreviewTimetable.rankingScore.toFixed(1)}/100.
+                          Higher-priority criteria carry more weight; missing faculty reviews are
+                          excluded from averages and reduce review coverage.
+                        </p>
+                      </div>
+                      <span className="rounded-lg border border-indigo-500/20 bg-indigo-500/10 px-3 py-1.5 text-sm font-bold text-indigo-600 dark:text-indigo-300">
+                        {generatorPreviewTimetable.facultySummary?.averageWPct == null
+                          ? "No faculty reviews"
+                          : `Avg ${generatorPreviewTimetable.facultySummary.averageWPct.toFixed(1)}% W`}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      {Object.entries(generatorPreviewTimetable.rankingBreakdown ?? {}).map(
+                        ([key, points]) => (
+                          <div
+                            key={key}
+                            className="rounded-xl bg-surface/80 border border-border-strong/60 px-3 py-2"
+                          >
+                            <span className="block text-[10px] uppercase tracking-wide text-muted-foreground">
+                              {key === "profile"
+                                ? rankingMode ?? "Profile"
+                                : key === "sort"
+                                  ? "Sort order"
+                                  : key === "time"
+                                    ? "Time preference"
+                                    : "Faculty reviews"}
+                            </span>
+                            <span className="font-bold text-text-heading">{points.toFixed(1)} pts</span>
+                          </div>
+                        )
+                      )}
+                    </div>
+                    {generatorPreviewTimetable.facultySummary && (
+                      <>
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                          <span>
+                            Faculty score:{" "}
+                            <strong className="text-text-heading">
+                              {generatorPreviewTimetable.facultySummary.facultyScore == null
+                                ? "—"
+                                : `${generatorPreviewTimetable.facultySummary.facultyScore.toFixed(1)}/100`}
+                            </strong>
+                          </span>
+                          <span>
+                            Reviewed:{" "}
+                            <strong className="text-text-heading">
+                              {generatorPreviewTimetable.facultySummary.ratedFacultyCount}/
+                              {generatorPreviewTimetable.facultySummary.totalFacultyCount}
+                            </strong>
+                          </span>
+                          <span>
+                            Unrated:{" "}
+                            <strong className="text-text-heading">
+                              {generatorPreviewTimetable.facultySummary.unratedFacultyCount}
+                            </strong>
+                          </span>
+                          {(
+                            [
+                              ["Lecture", generatorPreviewTimetable.facultySummary.averageLecture],
+                              ["DA", generatorPreviewTimetable.facultySummary.averageDa],
+                              ["Vibe", generatorPreviewTimetable.facultySummary.averageVibe],
+                            ] as const
+                          ).map(([label, score]) => (
+                            <span key={label}>
+                              {label}:{" "}
+                              <strong className="text-text-heading">
+                                {score == null ? "—" : `${score.toFixed(1)}/5`}
+                              </strong>
+                            </span>
+                          ))}
+                        </div>
+                        <div className="divide-y divide-border-strong/40 rounded-xl border border-border-strong/50 bg-surface/50 px-3">
+                          {generatorPreviewTimetable.facultySummary.courses.map((entry, index) => (
+                            <div
+                              key={`${entry.code}-${entry.faculty}-${index}`}
+                              className="flex flex-wrap items-center justify-between gap-2 py-2 text-xs"
+                            >
+                              <span className="font-medium text-text-heading">
+                                {entry.code} · {entry.faculty || "Faculty unstated"}
+                              </span>
+                              {entry.rating ? (
+                                <span className="text-muted-foreground">
+                                  {entry.rating.wPct == null ? "W —" : `${entry.rating.wPct}% W`}
+                                  {" · "}L {entry.rating.lecture?.toFixed(1) ?? "—"}
+                                  {" · "}DA {entry.rating.da?.toFixed(1) ?? "—"}
+                                  {" · "}Vibe {entry.rating.vibe?.toFixed(1) ?? "—"}
+                                  {" · "}{entry.rating.reviews} reviews
+                                </span>
+                              ) : (
+                                <span className="text-amber-600 dark:text-amber-400">
+                                  Unrated · no faculty score applied
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                    <p className="text-[11px] text-muted-foreground">
+                      Priority: {rankingPriorityOrder.map((priority, index) => (
+                        <React.Fragment key={priority}>
+                          {index > 0 ? " → " : ""}
+                          {priority === "profile"
+                            ? "profile"
+                            : priority === "faculty"
+                              ? "faculty reviews"
+                              : priority === "sort"
+                                ? "sort order"
+                                : "time"}
+                        </React.Fragment>
+                      ))}
+                    </p>
+                  </section>
+                )}
 
                 <div className="w-full flex flex-col gap-6 pb-20">
                   <TimetableGrid 
@@ -1213,7 +1599,7 @@ export function FFCSGeneratorSubpage({
                 </div>
               </div>
             ) : isReviewing && stagedTimetables.length > 0 ? (
-              <div className="w-full max-w-6xl flex flex-col gap-6 animate-in slide-in-from-bottom-4 duration-300">
+              <div className="w-full max-w-none flex flex-col gap-6 animate-in slide-in-from-bottom-4 duration-300">
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-surface p-6 rounded-2xl border border-border-strong shadow-sm">
                   <div>
@@ -1307,7 +1693,7 @@ export function FFCSGeneratorSubpage({
                 )}
               </div>
             ) : (
-            <div className="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-2 gap-10">
+            <div className="max-w-none w-full grid grid-cols-1 lg:grid-cols-2 gap-10">
               
               {/* Left Column: Courses Selection */}
               <div className="flex flex-col gap-6 min-w-0">
@@ -1613,6 +1999,36 @@ export function FFCSGeneratorSubpage({
                     </div>
 
                     <div>
+                      <label className="text-sm font-medium text-text-heading block mb-2">
+                        Maximum Timetables to Keep
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {[...new Set([50, 100, 250, 500, generatorResultCap])]
+                          .sort((a, b) => a - b)
+                          .map((cap) => (
+                            <button
+                              key={cap}
+                              type="button"
+                              aria-pressed={generatorResultCap === cap}
+                              onClick={() => setGeneratorResultCap(cap)}
+                              className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                                generatorResultCap === cap
+                                  ? "border-indigo-500 bg-indigo-500/15 text-indigo-600 dark:text-indigo-300"
+                                  : "border-border-strong bg-surface text-text-secondary hover:text-text-heading"
+                              }`}
+                            >
+                              {cap}
+                            </button>
+                          ))}
+                      </div>
+                      <p className="mt-1.5 text-xs text-muted-foreground">
+                        {generatorNoLimit
+                          ? "The cap is ignored while Remove Result Cap is enabled."
+                          : "Search stops after this many timetable options."}
+                      </p>
+                    </div>
+
+                    <div>
                       <label className="text-sm font-medium text-text-heading block mb-2 flex items-center gap-2">
                         Ranking Profile
                         <span className="text-[10px] font-bold uppercase tracking-wider bg-indigo-500/10 text-indigo-500 px-1.5 py-0.5 rounded-md border border-indigo-500/20">
@@ -1629,28 +2045,242 @@ export function FFCSGeneratorSubpage({
                       />
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <section className="space-y-4 rounded-xl border border-border-strong/70 bg-surface-secondary/20 p-4">
                       <div>
-                        <label className="text-sm font-medium text-text-heading block mb-1.5 flex items-center gap-2">
-                          Min Start Time
-                        </label>
-                        <input 
-                          type="time"
-                          value={generatorMinStartTime}
-                          onChange={(e) => setGeneratorMinStartTime(e.target.value)}
-                          className="w-full bg-surface-secondary/30 border border-border-strong rounded-xl px-4 py-3 text-sm text-text-heading focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-all [color-scheme:dark]"
-                        />
+                        <h4 className="text-sm font-semibold text-text-heading">Ranking &amp; Faculty Reviews</h4>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Tune this run independently from your saved Planner Settings.
+                        </p>
                       </div>
-                      <div>
-                        <label className="text-sm font-medium text-text-heading block mb-1.5 flex items-center gap-2">
-                          Max End Time
+
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-text-heading block">
+                          Combined Ranking Priority
                         </label>
-                        <input 
-                          type="time"
-                          value={generatorMaxEndTime}
-                          onChange={(e) => setGeneratorMaxEndTime(e.target.value)}
-                          className="w-full bg-surface-secondary/30 border border-border-strong rounded-xl px-4 py-3 text-sm text-text-heading focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-all [color-scheme:dark]"
-                        />
+                        <p className="text-[11px] text-muted-foreground">
+                          Move the factor that matters most to the top.
+                        </p>
+                        <div className="space-y-1.5">
+                          {rankingPriorityOrder.map((priority, index) => (
+                            <div
+                              key={priority}
+                              className="flex items-center justify-between gap-2 rounded-lg border border-border-strong/50 bg-surface px-3 py-1.5 text-xs"
+                            >
+                              <span className="font-medium text-text-heading">
+                                {index + 1}. {RANKING_PRIORITY_LABELS[priority]}
+                              </span>
+                              <span className="flex">
+                                <button
+                                  type="button"
+                                  aria-label={`Move ${RANKING_PRIORITY_LABELS[priority]} up`}
+                                  disabled={index === 0}
+                                  onClick={() => moveRankingPriority(index, -1)}
+                                  className="rounded p-1 text-muted-foreground hover:text-text-heading disabled:opacity-30"
+                                >
+                                  <ChevronUp className="h-4 w-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  aria-label={`Move ${RANKING_PRIORITY_LABELS[priority]} down`}
+                                  disabled={index === rankingPriorityOrder.length - 1}
+                                  onClick={() => moveRankingPriority(index, 1)}
+                                  className="rounded p-1 text-muted-foreground hover:text-text-heading disabled:opacity-30"
+                                >
+                                  <ChevronDown className="h-4 w-4" />
+                                </button>
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <div>
+                            <label className="text-xs font-medium text-text-heading block">
+                              Faculty Score Priorities
+                            </label>
+                            <p className="text-[11px] text-muted-foreground">
+                              0 ignores a metric; maximum importance is 5.
+                            </p>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            {(
+                              [
+                                ["wPct", "Overall W %"],
+                                ["lecture", "Lecture"],
+                                ["da", "DA"],
+                                ["vibe", "Vibe"],
+                              ] as const
+                            ).map(([key, label]) => (
+                              <label
+                                key={key}
+                                className="flex items-center justify-between gap-2 text-xs text-text-primary"
+                              >
+                                <span>{label}</span>
+                                <input
+                                  aria-label={`${label} importance`}
+                                  type="number"
+                                  min={0}
+                                  max={5}
+                                  step={1}
+                                  value={facultyMetricWeights[key]}
+                                  onChange={(event) => updateFacultyWeight(key, event.target.value)}
+                                  className="w-16 rounded-lg border border-border-strong bg-surface px-2 py-1 text-right text-text-heading"
+                                />
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <div>
+                            <label className="text-xs font-medium text-text-heading block">
+                              Minimum Faculty Review Scores
+                            </label>
+                            <p className="text-[11px] text-muted-foreground">
+                              0 disables a filter; unrated faculty are not rejected.
+                            </p>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            {(
+                              [
+                                ["minWPct", "Overall W %", 100, 5],
+                                ["minLecture", "Lecture / 5", 5, 0.5],
+                                ["minDa", "DA / 5", 5, 0.5],
+                                ["minVibe", "Vibe / 5", 5, 0.5],
+                              ] as const
+                            ).map(([key, label, max, step]) => (
+                              <label
+                                key={key}
+                                className="flex items-center justify-between gap-2 text-xs text-text-primary"
+                              >
+                                <span>{label}</span>
+                                <input
+                                  aria-label={`Minimum ${label}`}
+                                  type="number"
+                                  min={0}
+                                  max={max}
+                                  step={step}
+                                  value={facultyScoreFilters[key]}
+                                  onChange={(event) => updateFacultyFilter(key, event.target.value)}
+                                  className="w-16 rounded-lg border border-border-strong bg-surface px-2 py-1 text-right text-text-heading"
+                                />
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </section>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <SelectField
+                        stacked
+                        title="Earliest Slot Start"
+                        description="Only allow classes starting at or after this slot time."
+                        value={generatorMinStartTime}
+                        options={[
+                          { value: "", label: "Any start time" },
+                          ...slotStartOptions,
+                          ...(!slotStartOptions.some((option) => option.value === generatorMinStartTime)
+                            ? [{ value: generatorMinStartTime, label: `${generatorMinStartTime} · saved setting` }]
+                            : []),
+                        ]}
+                        onChange={setGeneratorMinStartTime}
+                        searchable={false}
+                      />
+                      <SelectField
+                        stacked
+                        title="Latest Slot End"
+                        description="Global end limit; day-specific limits below can be stricter."
+                        value={generatorMaxEndTime}
+                        options={[
+                          { value: "", label: "Any end time" },
+                          ...slotEndOptions,
+                          ...(!slotEndOptions.some((option) => option.value === generatorMaxEndTime)
+                            ? [{ value: generatorMaxEndTime, label: `${generatorMaxEndTime} · saved setting` }]
+                            : []),
+                        ]}
+                        onChange={setGeneratorMaxEndTime}
+                        searchable={false}
+                      />
+                    </div>
+
+                    <div className="space-y-3 rounded-xl border border-border-strong/70 bg-surface-secondary/20 p-4">
+                      <div>
+                        <h4 className="text-sm font-semibold text-text-heading">Day-specific class end times</h4>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Turn on a day to set its own latest slot end. Off days have no extra end limit.
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {DAYS_OF_WEEK.map((day) => {
+                          const dayLimit = generatorMaxEndTimeByDay[day];
+                          const options = slotEndOptionsByDay[day];
+                          const toggleDayLimit = () => {
+                            setGeneratorMaxEndTimeByDay((previous) => {
+                              if (previous[day] !== undefined) {
+                                const next = { ...previous };
+                                delete next[day];
+                                return next;
+                              }
+                              const defaultLimit =
+                                options.find((option) => option.value === generatorMaxEndTime)?.value ??
+                                options[options.length - 1]?.value ??
+                                generatorMaxEndTime;
+                              return { ...previous, [day]: defaultLimit };
+                            });
+                          };
+                          return (
+                            <div
+                              key={day}
+                              className="flex items-center gap-3 rounded-lg border border-border-strong/50 bg-surface px-3 py-2"
+                            >
+                              <button
+                                type="button"
+                                role="switch"
+                                aria-checked={dayLimit !== undefined}
+                                aria-label={`${DAY_LABELS[day]} end-time limit`}
+                                onClick={toggleDayLimit}
+                                className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${
+                                  dayLimit !== undefined ? "bg-indigo-500" : "bg-surface-secondary"
+                                }`}
+                              >
+                                <span
+                                  className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${
+                                    dayLimit !== undefined ? "translate-x-4" : "translate-x-0.5"
+                                  }`}
+                                />
+                              </button>
+                              <span className="w-20 shrink-0 text-xs font-medium text-text-heading">
+                                {DAY_LABELS[day]}
+                              </span>
+                              {dayLimit !== undefined && (
+                                <SelectField
+                                  value={dayLimit}
+                                  options={[
+                                    ...options,
+                                    ...(!options.some((option) => option.value === dayLimit)
+                                      ? [{ value: dayLimit, label: `${dayLimit} · saved setting` }]
+                                      : []),
+                                  ]}
+                                  onChange={(value) =>
+                                    setGeneratorMaxEndTimeByDay((previous) => ({
+                                      ...previous,
+                                      [day]: value,
+                                    }))
+                                  }
+                                  searchable={false}
+                                  size="sm"
+                                  aria-label={`${DAY_LABELS[day]} latest class end`}
+                                />
+                              )}
+                              {dayLimit === undefined && (
+                                <span className="text-[11px] text-muted-foreground">No day limit</span>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
 
@@ -1690,7 +2320,9 @@ export function FFCSGeneratorSubpage({
                           />
                           <div className="w-10 h-6 bg-surface-secondary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
                         </div>
-                        <span className="text-sm font-medium text-text-heading">Remove 50 Timetables Limit</span>
+                        <span className="text-sm font-medium text-text-heading">
+                          Remove Result Cap ({generatorResultCap})
+                        </span>
                       </label>
                     </div>
 
@@ -2033,6 +2665,22 @@ const StagedCard = memo(function StagedCard({
             </div>
           </div>
         </div>
+
+        {tt.facultySummary && (
+          <div className="mb-3 rounded-xl border border-indigo-500/20 bg-indigo-500/5 px-3 py-2.5">
+            <div className="flex items-center justify-between gap-2 text-xs">
+              <span className="font-bold text-indigo-600 dark:text-indigo-300">Faculty reviews</span>
+              <span className="font-semibold text-text-heading">
+                {tt.facultySummary.averageWPct == null
+                  ? "No ratings"
+                  : `${tt.facultySummary.averageWPct.toFixed(1)}% W`}
+              </span>
+            </div>
+            <p className="mt-1 text-[10px] text-muted-foreground">
+              {tt.facultySummary.ratedFacultyCount} reviewed · {tt.facultySummary.unratedFacultyCount} unrated
+            </p>
+          </div>
+        )}
 
         {tt.metrics?.isLongWeekend && (
           <div className="bg-green-500/10 text-green-500 text-xs font-bold px-3 py-2 rounded-xl w-full mb-3 flex items-center justify-center gap-1.5">

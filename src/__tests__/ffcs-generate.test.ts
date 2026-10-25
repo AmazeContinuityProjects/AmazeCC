@@ -259,6 +259,21 @@ describe("the filters", () => {
     expect(layouts(r)).toEqual(["A1|TA1"]);
   });
 
+  it("applies separate latest-end limits only on selected days", () => {
+    const r = generateTimetables(
+      params({
+        masterCourses: [
+          row({ CODE: "BCSE101", SLOT: "A1", ROOM: "AB1-101" }),
+          row({ CODE: "BCSE101", SLOT: "B1", ROOM: "AB2-202" }),
+        ],
+        courseLocks: [lock({ code: "BCSE101" })],
+        maxEndTimeByDay: { mon: "08:30" },
+      })
+    );
+
+    expect(layouts(r)).toEqual(["B1"]);
+  });
+
   it("drops a booking that runs past the cutoff", () => {
     // The same booking against a 10:00 cutoff loses TA1, which ends at 10:40.
     const r = generateTimetables(

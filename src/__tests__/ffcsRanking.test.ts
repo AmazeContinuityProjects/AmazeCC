@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   RANKING_MODES,
   asRankingMode,
+  combineRankingScores,
   profileFor,
   rankCourses,
   rankingInputs,
@@ -160,6 +161,19 @@ describe("naming a profile", () => {
   });
 });
 
+describe("combined ranking priorities", () => {
+  it("lets the configured priority order dominate the unified score", () => {
+    const scores = { profile: 100, faculty: 0, sort: 0, time: 0 };
+    const profileFirst = combineRankingScores(scores, ["profile", "faculty", "sort", "time"]);
+    const facultyFirst = combineRankingScores(scores, ["faculty", "profile", "sort", "time"]);
+
+    expect(profileFirst.score).toBeGreaterThan(facultyFirst.score);
+    expect(
+      Object.values(profileFirst.breakdown).reduce((sum, value) => sum + value, 0)
+    ).toBeCloseTo(profileFirst.score, 1);
+  });
+});
+
 /* ── the contract with the planner ─────────────────────────────────────── */
 
 const row = (
@@ -224,7 +238,7 @@ describe("ranking profiles inside the generator", () => {
     for (const timetable of r.timetables) {
       expect(timetable.rankingScore).toBeGreaterThanOrEqual(0);
       expect(timetable.rankingScore).toBeLessThanOrEqual(100);
-      expect(Object.keys(timetable.rankingBreakdown ?? {})).toHaveLength(5);
+      expect(Object.keys(timetable.rankingBreakdown ?? {})).toEqual(["profile", "sort"]);
     }
   });
 
@@ -264,10 +278,76 @@ describe("ranking profiles inside the generator", () => {
     if (r.kind !== "ok") return;
 
     for (const timetable of r.timetables) {
-      expect(rankCourses(timetable.courses, chennai as never, "Balanced")).toEqual({
-        score: timetable.rankingScore,
-        breakdown: timetable.rankingBreakdown,
-      });
+      expect(timetable.rankingComponents?.profile).toBe(
+        rankCourses(timetable.courses, chennai as never, "Balanced").score
+      );
     }
+  });
+
+  it("adds Best Faculty as an available profile", () => {
+    expect(RANKING_MODES).toContain("Best Faculty");
+    expect(asRankingMode("Best Faculty")).toBe("Best Faculty");
+  });
+
+  it("ranks equal-slot faculty variants by their review quality", () => {
+    const rows = [
+      row({ CODE: "BCSE101", SLOT: "TB1", FACULTY: "Dr Low", ERP_ID: "1001" }),
+      row({ CODE: "BCSE101", SLOT: "TB1", FACULTY: "Dr High", ERP_ID: "1002" }),
+    ];
+    const result = generateTimetables(
+      params({
+        masterCourses: rows,
+        rankingMode: "Best Faculty",
+        facultyRatingsAvailable: true,
+        facultyRatings: {
+          "id:1001": { wPct: 35, lecture: 2, da: 2, vibe: 2, reviews: 12 },
+          "id:1002": { wPct: 90, lecture: 4.5, da: 4, vibe: 4, reviews: 20 },
+        },
+      })
+    );
+
+    expect(result.kind).toBe("ok");
+    if (result.kind !== "ok") return;
+    const variants = result.timetables[0].variants ?? [];
+    expect(variants[0].courses[0].employeeId).toBe("1002");
+    expect(variants[0].facultySummary?.averageWPct).toBe(90);
+  });
+
+  it("filters low-rated offers by minimum faculty scores", () => {
+    const rows = [
+      row({ CODE: "BCSE101", SLOT: "TB1", FACULTY: "Dr Low", ERP_ID: "1001" }),
+      row({ CODE: "BCSE101", SLOT: "TG2", FACULTY: "Dr High", ERP_ID: "1002" }),
+    ];
+    const result = generateTimetables(
+      params({
+        masterCourses: rows,
+        facultyRatingsAvailable: true,
+        facultyRatings: {
+          "id:1001": { wPct: 35, lecture: 2, da: 2, vibe: 2, reviews: 12 },
+          "id:1002": { wPct: 90, lecture: 4.5, da: 4, vibe: 4, reviews: 20 },
+        },
+        facultyScoreFilters: { minWPct: 70, minLecture: 0, minDa: 0, minVibe: 0 },
+      })
+    );
+
+    expect(result.kind).toBe("ok");
+    if (result.kind !== "ok") return;
+    expect(result.timetables).toHaveLength(1);
+    expect(result.timetables[0].courses[0].employeeId).toBe("1002");
+  });
+
+  it("keeps generation running when faculty data is unavailable", () => {
+    const result = generateTimetables(
+      params({
+        facultyRatingsAvailable: false,
+        facultyRatings: {},
+        facultyScoreFilters: { minWPct: 95, minLecture: 5, minDa: 5, minVibe: 5 },
+      })
+    );
+
+    expect(result.kind).toBe("ok");
+    if (result.kind !== "ok") return;
+    expect(result.timetables.length).toBeGreaterThan(0);
+    expect(result.timetables[0].facultySummary).toBeUndefined();
   });
 });

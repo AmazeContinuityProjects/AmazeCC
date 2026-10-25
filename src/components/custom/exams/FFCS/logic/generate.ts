@@ -43,11 +43,28 @@ import {
 } from "@/lib/slots";
 import {
   pairwiseSocialScore,
+  balancedScore,
   sortTimetables,
   timetableMetrics,
   type SortBy,
 } from "@/lib/timetableMetrics";
-import { rankCourses, type RankingMode, type RankingScore } from "@/lib/ffcsRanking";
+import {
+  combineRankingScores,
+  rankingInputs,
+  rankCourses,
+  type RankingMode,
+  type RankingPriority,
+  type RankingScore,
+} from "@/lib/ffcsRanking";
+import {
+  DEFAULT_FACULTY_METRIC_WEIGHTS,
+  DEFAULT_FACULTY_SCORE_FILTERS,
+  facultyRankingSummary,
+  passesFacultyScoreFilters,
+  type FacultyMetricWeights,
+  type FacultyRatingLookup,
+  type FacultyScoreFilters,
+} from "@/lib/ffcsFacultyRanking";
 import { offeringMatches } from "../reports";
 import type { ParsedCourse, TimetableState, Friend, CourseLock, AddedCourse } from "../types";
 
@@ -57,6 +74,7 @@ export type GeneratorErrorCode =
   | "no_valid_slots"
   | "no_conflict_free"
   | "below_min_half_days"
+  | "below_min_faculty_scores"
   | "no_separate_labs"
   /**
    * The solver itself threw. Not a filtering outcome — the worker catches it and
@@ -111,6 +129,8 @@ export interface GenerateParams {
   /** `"08:00"`, 24-hour. Empty or null means unbounded. */
   minStartTime?: string | null;
   maxEndTime?: string | null;
+  /** Per-day latest class end (`"HH:mm"`). Missing days are unconstrained. */
+  maxEndTimeByDay?: Partial<Record<DayId, string | null>>;
   uniqueFaculties: boolean;
   noLimit: boolean;
   /**
@@ -136,6 +156,13 @@ export interface GenerateParams {
    * anything the first one established).
    */
   rankingMode?: RankingMode;
+  /** Vitfac scores prepared on the main thread for worker-safe ranking. */
+  facultyRatings?: FacultyRatingLookup;
+  /** Distinguishes a loaded catalog with unrated faculty from an unavailable integration. */
+  facultyRatingsAvailable?: boolean;
+  facultyMetricWeights?: FacultyMetricWeights;
+  facultyScoreFilters?: FacultyScoreFilters;
+  rankingPriorityOrder?: readonly RankingPriority[];
   /**
    * Keep every lab on its own day.
    *
@@ -421,16 +448,27 @@ function optionsFor(
   // 7. Time bounds.
   const minAllowed = params.minStartTime ? parse24HourToMinutes(params.minStartTime) : 0;
   const maxAllowed = params.maxEndTime ? parse24HourToMinutes(params.maxEndTime) : 24 * 60;
-  if (params.minStartTime || params.maxEndTime) {
+  const maxAllowedByDay = Object.fromEntries(
+    Object.entries(params.maxEndTimeByDay ?? {}).flatMap(([day, time]) => {
+      const minutes = time ? parse24HourToMinutes(time) : null;
+      return minutes === null ? [] : [[day, minutes]];
+    })
+  ) as Partial<Record<DayId, number>>;
+  if (params.minStartTime || params.maxEndTime || Object.keys(maxAllowedByDay).length > 0) {
     const lower = minAllowed ?? 0;
     const upper = maxAllowed ?? 24 * 60;
     options = options.filter((opt) =>
       splitSlots(opt.SLOT).every((slot) => {
-        // First match wins, theory before lab. A slot the schema does not define
-        // cannot be outside a time bound, so it passes.
-        const period = periodsForSlot(schema, slot)[0];
-        if (!period) return true;
-        return period.startMin >= lower && period.endMin <= upper;
+        // Slot ids can recur on several days; every occurrence must meet its
+        // global bounds and the optional day-specific end time.
+        return periodsForSlot(schema, slot).every((period) => {
+          const dayLimit = maxAllowedByDay[period.day];
+          return (
+            period.startMin >= lower &&
+            period.endMin <= upper &&
+            (dayLimit === undefined || period.endMin <= dayLimit)
+          );
+        });
       })
     );
   }
@@ -1030,19 +1068,88 @@ function scoreCombination(
   const courses = combination.map(toAddedCourse);
   const base = timetableMetrics(courses, params.schema);
   const social = socialScoreAgainst(courses, scoredFriends, params.schema);
+  const facultySummary = params.facultyRatingsAvailable && params.facultyRatings
+    ? facultyRankingSummary(
+        courses,
+        params.facultyRatings,
+        params.facultyMetricWeights ?? DEFAULT_FACULTY_METRIC_WEIGHTS
+      )
+    : undefined;
   const timetable: TimetableState = {
     id: newId(),
     name: "Generated Option",
     courses,
     metrics: { ...base, ...social },
+    ...(facultySummary ? { facultySummary } : {}),
   };
 
-  // Only when a profile was asked for: the second day-walk `rankCourses` does
-  // is real work, and the default path has no opinion to express with it.
-  if (params.rankingMode) {
-    const ranked: RankingScore = rankCourses(courses, params.schema, params.rankingMode);
-    timetable.rankingScore = ranked.score;
-    timetable.rankingBreakdown = ranked.breakdown;
+  const hasProfile = Boolean(params.rankingMode);
+  const hasFacultyData = (facultySummary?.ratedFacultyCount ?? 0) > 0;
+  const hasTimePreference =
+    params.preference !== "none" ||
+    Boolean(params.minStartTime || params.maxEndTime || Object.keys(params.maxEndTimeByDay ?? {}).length);
+  if (hasProfile || hasFacultyData) {
+    const ranked: RankingScore | null = params.rankingMode
+      ? rankCourses(
+          courses,
+          params.schema,
+          params.rankingMode,
+          facultySummary?.facultyScore == null ? null : facultySummary.facultyScore / 100
+        )
+      : null;
+    const metrics = timetable.metrics;
+    const timeInputs = hasTimePreference ? rankingInputs(courses, params.schema) : null;
+    const timeScore = (() => {
+      if (!timeInputs) return null;
+      const bounded = (value: number) => Math.max(0, Math.min(1, value));
+      const earlyStart = 1 - bounded((timeInputs.averageDayStartMinutes - 8 * 60) / (6 * 60));
+      const lateFinish = bounded((timeInputs.averageDayEndMinutes - 12 * 60) / (7 * 60));
+      switch (params.preference) {
+        case "morning":
+          return earlyStart * 100;
+        case "evening":
+          return lateFinish * 100;
+        case "compact":
+          return timeInputs.activeDays
+            ? (timeInputs.compactDays / timeInputs.activeDays) * 100
+            : 0;
+        case "spread":
+          return (timeInputs.activeDays / 6) * 100;
+        default:
+          return ((earlyStart + (1 - lateFinish)) / 2) * 100;
+      }
+    })();
+    const sortScore = (() => {
+      if (!metrics) return 0;
+      switch (params.sortBy) {
+        case "social":
+          return Math.max(0, Math.min(100, metrics.socialScore));
+        case "halfdays":
+          return Math.max(0, Math.min(100, (metrics.halfDays / 12) * 100));
+        case "compactness":
+          return Math.max(0, Math.min(100, 100 - (metrics.gaps / 1200) * 100));
+        case "faculty":
+          return facultySummary?.facultyScore ?? 0;
+        case "balanced":
+        default:
+          return Math.max(0, Math.min(100, balancedScore(metrics) / 3.2));
+      }
+    })();
+    const components = {
+      profile:
+        ranked?.score ??
+        (params.rankingMode === "Best Faculty" ? facultySummary?.facultyScore ?? null : null),
+      faculty: facultySummary?.facultyScore ?? null,
+      sort: sortScore,
+      time: timeScore,
+    };
+    const composite = combineRankingScores(
+      components,
+      params.rankingPriorityOrder ?? ["profile", "faculty", "sort", "time"]
+    );
+    timetable.rankingScore = composite.score;
+    timetable.rankingBreakdown = composite.breakdown;
+    timetable.rankingComponents = components;
   }
 
   return timetable;
@@ -1146,6 +1253,8 @@ export function generateTimetablesStream(
   // rule. Only read when the run ends with nothing accepted, to name which
   // result filter ate the search.
   let labDayRejected = false;
+  let facultyScoreRejected = false;
+  let halfDaysRejected = false;
   let emitted = 0;
   const flush = () => {
     if (accepted.length <= emitted) return;
@@ -1166,10 +1275,26 @@ export function generateTimetablesStream(
         return;
       }
       const timetable = scoreCombination(params, combination, scoredFriends);
+      const facultyFilters = params.facultyScoreFilters ?? DEFAULT_FACULTY_SCORE_FILTERS;
+      const hasActiveFacultyFilter = Object.values(facultyFilters).some((minimum) => minimum > 0);
+      if (
+        hasActiveFacultyFilter &&
+        params.facultyRatingsAvailable &&
+        params.facultyRatings &&
+        Object.keys(params.facultyRatings).length > 0 &&
+        timetable.facultySummary &&
+        !passesFacultyScoreFilters(timetable.facultySummary, facultyFilters)
+      ) {
+        facultyScoreRejected = true;
+        return;
+      }
       // The half-days floor is a filter on the *result*, not on the search: a
       // combination can be perfectly conflict-free and still be a week the
       // student did not ask for.
-      if ((timetable.metrics?.halfDays ?? 0) < params.minHalfDays) return;
+      if ((timetable.metrics?.halfDays ?? 0) < params.minHalfDays) {
+        halfDaysRejected = true;
+        return;
+      }
       accepted.push(timetable);
       if (accepted.length - emitted >= batchSize) flush();
     },
@@ -1202,15 +1327,18 @@ export function generateTimetablesStream(
     if (labDayRejected) {
       return { kind: "error", code: "no_separate_labs" };
     }
+    if (facultyScoreRejected && !halfDaysRejected) {
+      return { kind: "error", code: "below_min_faculty_scores" };
+    }
     return { kind: "error", code: "below_min_half_days" };
   }
 
   let timetables = sortTimetables(accepted, params.sortBy);
 
-  if (params.rankingMode) {
-    // A second, stable pass: options of equal profile score keep the order the
-    // student's `sortBy` gave them, so turning a profile on refines their
-    // existing answer rather than throwing it away.
+  if (
+    params.rankingMode ||
+    timetables.some((timetable) => (timetable.facultySummary?.ratedFacultyCount ?? 0) > 0)
+  ) {
     timetables = [...timetables].sort(
       (a, b) => (b.rankingScore ?? -1) - (a.rankingScore ?? -1)
     );
