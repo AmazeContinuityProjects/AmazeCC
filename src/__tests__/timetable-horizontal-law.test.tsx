@@ -135,4 +135,20 @@ describe("a law course in the horizontal grid", () => {
     expect(root.className).toContain("border-slate-200");
     expect(root.className).toContain("dark:border-white/10");
   });
+
+  it("numbers periods sequentially without duplicate P5", () => {
+    const { container } = renderGrid();
+    const periodHeaders = Array.from(container.querySelectorAll("thead th span.tracking-wide"))
+      .map((th) => th.textContent || "")
+      .filter((text) => text.includes("P"));
+
+    const pNumbers = periodHeaders.map((text) => text.match(/P(\d+)/)?.[0]).filter(Boolean);
+    expect(pNumbers).toContain("P1");
+    expect(pNumbers).toContain("P5");
+    expect(pNumbers).toContain("P6");
+    expect(pNumbers).toContain("P7");
+
+    const uniquePNumbers = new Set(pNumbers);
+    expect(uniquePNumbers.size).toBe(pNumbers.length);
+  });
 });

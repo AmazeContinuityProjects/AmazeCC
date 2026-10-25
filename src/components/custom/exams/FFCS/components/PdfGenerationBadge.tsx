@@ -40,7 +40,7 @@ export default function PdfGenerationBadge({
     <div
       role="status"
       aria-live="polite"
-      className={`fixed bottom-[calc(env(safe-area-inset-bottom,0px)+6rem)] right-4 z-50 w-full max-w-[310px] bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-white/10 shadow-2xl rounded-2xl p-3 pr-2.5 flex items-center gap-3 select-none font-sans border-l-[4px] ${borderLeftColor} animate-in fade-in slide-in-from-bottom-3 duration-200`}
+      className={`fixed bottom-[calc(env(safe-area-inset-bottom,0px)+5.5rem)] sm:bottom-[calc(env(safe-area-inset-bottom,0px)+6rem)] right-4 left-4 sm:left-auto max-w-[calc(100%-2rem)] sm:max-w-[310px] z-50 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-white/10 shadow-2xl rounded-2xl p-3 pr-2.5 flex items-center gap-3 select-none font-sans border-l-[4px] ${borderLeftColor} animate-in fade-in slide-in-from-bottom-3 duration-200`}
     >
       <div className="flex items-center gap-3 w-full">
         {/* Circular Progress / Rotating Spinner SVG (Sync Engine Collapsed Badge style) */}
@@ -86,10 +86,10 @@ export default function PdfGenerationBadge({
           <div className="flex items-center gap-1.5">
             <h4 className="text-[11px] font-extrabold text-slate-800 dark:text-white leading-none font-outfit truncate">
               {isSuccess
-                ? "PDF Dossier Ready"
+                ? "Dossier Downloaded"
                 : isError
-                ? "PDF Export Failed"
-                : "Generating PDF Dossier"}
+                ? "Dossier Download Failed"
+                : "Preparing Dossier Download"}
             </h4>
             <span
               className={`text-[8.5px] font-black uppercase px-1.5 py-0.2 rounded border shrink-0 ${
@@ -106,7 +106,7 @@ export default function PdfGenerationBadge({
               ? successMessage || `${timetableName} downloaded`
               : isError
               ? errorMessage || "An error occurred"
-              : `Building ${timetableName}...`}
+              : `Preparing ${timetableName} download...`}
           </p>
         </div>
 
@@ -115,7 +115,7 @@ export default function PdfGenerationBadge({
           <button
             type="button"
             onClick={onDismiss}
-            className="p-1 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors cursor-pointer shrink-0"
+            className="p-1.5 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors cursor-pointer shrink-0 relative hit-expand touch-press"
             title="Dismiss notification"
           >
             <X size={13} />

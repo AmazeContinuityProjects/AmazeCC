@@ -572,3 +572,18 @@ input[type="range"].m3-range::-moz-range-track {
     animation: none;
   }
 }
+
+/* -- Mobile Touch Polish (Emil Kowalski / Apple HIG) -- */
+.momentum-scroll {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+@media (hover: none) {
+  .touch-press {
+    transition: transform 100ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .touch-press:active {
+    transform: scale(0.97);
+  }
+}

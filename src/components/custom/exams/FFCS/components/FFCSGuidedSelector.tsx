@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
   Search,
   Check,
@@ -45,23 +45,88 @@ import {
   Eye,
   LayoutGrid,
   LayoutDashboard,
+  Smartphone,
+  Download,
 } from "lucide-react";
 import { Switch, SegmentedControl } from "../../../shared/primitives";
 import { FacultyAvatar, VitfacReviewPill } from "./FacultyReviewSheet";
 import { ParsedCourse, AddedCourse, TimetableState, CourseLock, Friend, FriendGroup, TimetablePeriod } from "../types";
 import { COLORS, DAYS } from "../constants";
 import { splitSlots, sameSlotFacultyAlternatives } from "../logic/generate";
-import { useVitfacReview, getFacultyReview } from "@/lib/vitfacService";
+import { useVitfacReview, getFacultyReview, loadVitfacRankingData } from "@/lib/vitfacService";
 import { CourseImportPanel, type ImportMode } from "./CourseImportPanel";
 import { useGenerationRun } from "../hooks/useGenerationRun";
 import { getTimetableSchema } from "@/lib/campusSchema";
 import { timetableMetrics, type SortBy } from "@/lib/timetableMetrics";
-import type { RankingMode } from "@/lib/ffcsRanking";
-import type { FFCSSettings } from "@/lib/ffcsSettings";
+import { RANKING_MODES, type RankingMode } from "@/lib/ffcsRanking";
+import {
+  FFCSSettingsDefaults,
+  type FFCSSettings,
+  type RankingPriority,
+} from "@/lib/ffcsSettings";
+import type { FacultyRatingLookup } from "@/lib/ffcsFacultyRanking";
+import { usePwaInstall } from "@/lib/pwaInstall";
 import SlotFacultySwapSheet from "./SlotFacultySwapSheet";
 import VerticalTimetableGrid from "@/components/custom/timetable/VerticalTimetableGrid";
 import { toMinutes } from "@/lib/social/schedule";
 import { ensureLunchPeriod } from "@/lib/slots";
+
+export function requestNativeFullscreen(element?: HTMLElement): Promise<void> {
+  if (typeof document === "undefined") return Promise.resolve();
+  const target = element || document.documentElement;
+  if (!target) return Promise.resolve();
+
+  try {
+    if (typeof target.requestFullscreen === "function") {
+      return target.requestFullscreen().catch(() => {});
+    }
+    const elWithWebkit = target as HTMLElement & {
+      webkitRequestFullscreen?: () => Promise<void> | void;
+      webkitRequestFullScreen?: () => Promise<void> | void;
+    };
+    if (typeof elWithWebkit.webkitRequestFullscreen === "function") {
+      return Promise.resolve(elWithWebkit.webkitRequestFullscreen());
+    }
+    if (typeof elWithWebkit.webkitRequestFullScreen === "function") {
+      return Promise.resolve(elWithWebkit.webkitRequestFullScreen());
+    }
+  } catch {
+    // Ignore fullscreen request rejection
+  }
+  return Promise.resolve();
+}
+
+export function exitNativeFullscreen(): Promise<void> {
+  if (typeof document === "undefined") return Promise.resolve();
+
+  try {
+    const docWithWebkit = document as Document & {
+      webkitExitFullscreen?: () => Promise<void> | void;
+      webkitCancelFullScreen?: () => Promise<void> | void;
+      fullscreenElement?: Element | null;
+      webkitFullscreenElement?: Element | null;
+    };
+
+    const isCurrentlyFullscreen = Boolean(
+      document.fullscreenElement || docWithWebkit.webkitFullscreenElement
+    );
+
+    if (!isCurrentlyFullscreen) return Promise.resolve();
+
+    if (typeof document.exitFullscreen === "function") {
+      return document.exitFullscreen().catch(() => {});
+    }
+    if (typeof docWithWebkit.webkitExitFullscreen === "function") {
+      return Promise.resolve(docWithWebkit.webkitExitFullscreen());
+    }
+    if (typeof docWithWebkit.webkitCancelFullScreen === "function") {
+      return Promise.resolve(docWithWebkit.webkitCancelFullScreen());
+    }
+  } catch {
+    // Ignore exit fullscreen rejection
+  }
+  return Promise.resolve();
+}
 
 export type GuidedPhase =
   | "setup_mode"
@@ -77,10 +142,26 @@ export type GuidedPhase =
   | "auto_summary"
   | "auto_results"
   | "auto_timetable_view"
+  | "manual_timetable_view"
   | "builder";
 
 export type PlanMode = "auto" | "custom";
 export type CourseStrategy = "lock_advance" | "one_by_one";
+
+const AUTO_SORT_OPTIONS: readonly { value: SortBy; label: string }[] = [
+  { value: "balanced", label: "Balanced" },
+  { value: "social", label: "Social" },
+  { value: "halfdays", label: "Half-days" },
+  { value: "compactness", label: "Compact" },
+  { value: "faculty", label: "Faculty" },
+];
+
+const AUTO_RANKING_PRIORITY_LABELS: Record<RankingPriority, string> = {
+  profile: "Ranking profile",
+  faculty: "Faculty reviews",
+  sort: "Sort order",
+  time: "Time preference",
+};
 
 export interface FFCSGuidedSelectorProps {
   masterCourses: ParsedCourse[];
@@ -111,6 +192,7 @@ export interface FFCSGuidedSelectorProps {
   onOpenGenerator?: () => void;
   onOpenCourseLocks?: () => void;
   initialGuidedPhase?: GuidedPhase;
+  initialHasLaunchedHero?: boolean;
   initialStep?: GuidedStep;
   initialPlanMode?: PlanMode;
   onApplyTimetable?: (courses: AddedCourse[]) => void;
@@ -481,6 +563,7 @@ export default function FFCSGuidedSelector({
   onOpenGenerator,
   onOpenCourseLocks,
   initialGuidedPhase,
+  initialHasLaunchedHero,
   initialStep = 1,
   initialPlanMode = "custom",
   onApplyTimetable,
@@ -498,7 +581,18 @@ export default function FFCSGuidedSelector({
   onToggleBlockSlot,
   settings,
 }: FFCSGuidedSelectorProps) {
-  const effectiveTimetables = allTimetables || timetables || [];
+  const effectiveTimetables = useMemo(
+    () =>
+      (allTimetables && allTimetables.length > 0
+        ? allTimetables
+        : timetables && timetables.length > 0
+        ? timetables
+        : activeTimetable
+        ? [activeTimetable]
+        : []
+      ).filter(Boolean),
+    [allTimetables, timetables, activeTimetable]
+  );
   const courses = propCourses || activeTimetable?.courses || [];
 
   const uniqueCourses = useMemo(() => {
@@ -539,14 +633,108 @@ export default function FFCSGuidedSelector({
   const [locksSearchQuery, setLocksSearchQuery] = useState("");
   const [locksMode, setLocksMode] = useState<ImportMode | "search">("search");
 
+  // Multi-timetable browser in Guided Hero
+  const [browsingTimetableIndex, setBrowsingTimetableIndex] = useState<number>(() => {
+    if (activeTimetable?.id && effectiveTimetables.length > 0) {
+      const idx = effectiveTimetables.findIndex((t) => t.id === activeTimetable.id);
+      return idx !== -1 ? idx : 0;
+    }
+    return 0;
+  });
+  const [browserTransitionDirection, setBrowserTransitionDirection] = useState<"forward" | "backward">("forward");
+
+  // Only re-sync browsing index if activeTimetable ID genuinely changed externally
+  const prevActiveTtIdRef = useRef<string | undefined>(activeTimetable?.id);
+  useEffect(() => {
+    if (activeTimetable?.id && activeTimetable.id !== prevActiveTtIdRef.current) {
+      prevActiveTtIdRef.current = activeTimetable.id;
+      const idx = effectiveTimetables.findIndex((t) => t.id === activeTimetable.id);
+      if (idx !== -1) {
+        setBrowsingTimetableIndex(idx);
+      }
+    }
+  }, [activeTimetable?.id, effectiveTimetables]);
+
+  const navigateBrowsingTimetable = (newIndex: number, direction: "forward" | "backward") => {
+    if (newIndex < 0 || newIndex >= effectiveTimetables.length) return;
+    const targetTt = effectiveTimetables[newIndex];
+    setBrowserTransitionDirection(direction);
+
+    const updateDOM = () => {
+      setBrowsingTimetableIndex(newIndex);
+      if (targetTt && onSelectTimetable) {
+        onSelectTimetable(targetTt.id);
+      }
+    };
+
+    if (
+      typeof window !== "undefined" &&
+      typeof document !== "undefined" &&
+      typeof (document as any).startViewTransition === "function" &&
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      try {
+        (document as any).startViewTransition({
+          update: updateDOM,
+          types: [direction === "forward" ? "slide-left" : "slide-right"],
+        });
+        return;
+      } catch {
+        try {
+          (document as any).startViewTransition(updateDOM);
+          return;
+        } catch {
+          // Fallback
+        }
+      }
+    }
+    updateDOM();
+  };
+
+  // Keyboard navigation for timetable cycling in manual_timetable_view
+  useEffect(() => {
+    if (guidedPhase !== "manual_timetable_view") return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
+      if (tag === "input" || tag === "textarea" || tag === "select") return;
+
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        navigateBrowsingTimetable(browsingTimetableIndex - 1, "backward");
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        navigateBrowsingTimetable(browsingTimetableIndex + 1, "forward");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [guidedPhase, browsingTimetableIndex, effectiveTimetables.length]);
+
   // Auto-Generator States inside Guided Hero
   const generation = useGenerationRun();
   const [autoPreference, setAutoPreference] = useState<"compact" | "spread" | "morning" | "evening">("compact");
-  const [autoRankingMode, setAutoRankingMode] = useState<RankingMode | null>("Balanced");
+  const [autoStrictTheoryPreference, setAutoStrictTheoryPreference] = useState<boolean>(true);
+  const [autoSeparateLabDays, setAutoSeparateLabDays] = useState<boolean>(false);
+  const [autoAvoidConsecutiveLabs, setAutoAvoidConsecutiveLabs] = useState<boolean>(false);
+  const [autoLunchBreakSeparatesLabs, setAutoLunchBreakSeparatesLabs] = useState<boolean>(false);
+  const [autoRankingMode, setAutoRankingMode] = useState<RankingMode | null>(() =>
+    settings?.rankingMode === "none" ? null : settings?.rankingMode ?? "Balanced"
+  );
   const [autoMinHalfDays, setAutoMinHalfDays] = useState<number>(0);
   const [autoMinStartTime, setAutoMinStartTime] = useState<string>("08:00");
   const [autoMaxEndTime, setAutoMaxEndTime] = useState<string>("19:30");
-  const [autoSortBy, setAutoSortBy] = useState<SortBy>("balanced");
+  const [autoSortBy, setAutoSortBy] = useState<SortBy>(() => settings?.defaultSortBy ?? "balanced");
+  const [autoRankingPriorityOrder, setAutoRankingPriorityOrder] = useState<RankingPriority[]>(() => [
+    ...(settings?.rankingPriorityOrder ?? FFCSSettingsDefaults.rankingPriorityOrder),
+  ]);
+  const [autoFacultyMetricWeights, setAutoFacultyMetricWeights] = useState<
+    FFCSSettings["facultyMetricWeights"]
+  >(() => ({ ...(settings?.facultyMetricWeights ?? FFCSSettingsDefaults.facultyMetricWeights) }));
+  const [autoFacultyScoreFilters, setAutoFacultyScoreFilters] = useState<
+    FFCSSettings["facultyScoreFilters"]
+  >(() => ({ ...(settings?.facultyScoreFilters ?? FFCSSettingsDefaults.facultyScoreFilters) }));
   const [autoUniqueFaculties, setAutoUniqueFaculties] = useState<boolean>(false);
   const [autoSyncFriends, setAutoSyncFriends] = useState<boolean>(true);
   const [autoMaximizeFreeTime, setAutoMaximizeFreeTime] = useState<boolean>(true);
@@ -561,14 +749,60 @@ export default function FFCSGuidedSelector({
   const effectiveBlockedSlots = setBlockedSlots && blockedSlots ? blockedSlots : internalBlockedSlots;
   const [timeBlockedSlots, setTimeBlockedSlots] = useState<Set<string>>(new Set());
   const [blockingActiveDay, setBlockingActiveDay] = useState<string>("mon");
-  const [autoResultCap, setAutoResultCap] = useState<number>(50);
+  const [autoResultCap, setAutoResultCap] = useState<number>(() => settings?.resultCap ?? 50);
   const [autoNoLimit, setAutoNoLimit] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!settings) return;
+    setAutoRankingMode(settings.rankingMode === "none" ? null : settings.rankingMode);
+    setAutoSortBy(settings.defaultSortBy);
+    setAutoRankingPriorityOrder([...settings.rankingPriorityOrder]);
+    setAutoFacultyMetricWeights({ ...settings.facultyMetricWeights });
+    setAutoFacultyScoreFilters({ ...settings.facultyScoreFilters });
+  }, [
+    settings,
+  ]);
 
   const updateBlockedSlots = (updater: React.SetStateAction<Set<string>>) => {
     if (setBlockedSlots) {
       setBlockedSlots(updater);
     }
     setInternalBlockedSlots(updater);
+  };
+
+  const moveAutoRankingPriority = (index: number, direction: -1 | 1) => {
+    const next = [...autoRankingPriorityOrder];
+    const target = index + direction;
+    if (target < 0 || target >= next.length) return;
+    [next[index], next[target]] = [next[target], next[index]];
+    setAutoRankingPriorityOrder(next);
+  };
+
+  const updateAutoFacultyWeight = (
+    key: keyof FFCSSettings["facultyMetricWeights"],
+    value: string
+  ) => {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      setAutoFacultyMetricWeights((previous) => ({
+        ...previous,
+        [key]: Math.max(0, Math.min(5, parsed)),
+      }));
+    }
+  };
+
+  const updateAutoFacultyFilter = (
+    key: keyof FFCSSettings["facultyScoreFilters"],
+    value: string
+  ) => {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      const max = key === "minWPct" ? 100 : 5;
+      setAutoFacultyScoreFilters((previous) => ({
+        ...previous,
+        [key]: Math.max(0, Math.min(max, parsed)),
+      }));
+    }
   };
 
   const getSlotsOutsideTimeWindow = (minStart: string, maxEnd: string): string[] => {
@@ -692,6 +926,24 @@ export default function FFCSGuidedSelector({
   const [slotFilter, setSlotFilter] = useState<string>("all");
   const [addedJustNow, setAddedJustNow] = useState<{ code: string; isReplacement: boolean } | null>(null);
   const [fullScreenMode, setFullScreenMode] = useState<boolean>(isFullScreen);
+  const [hasLaunchedHero, setHasLaunchedHero] = useState<boolean>(() => {
+    if (initialHasLaunchedHero !== undefined) {
+      return initialHasLaunchedHero;
+    }
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      return false;
+    }
+    return true;
+  });
+
+  const { canInstall, promptInstall } = usePwaInstall();
+  const isPwaStandalone = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    return Boolean(
+      window.matchMedia?.("(display-mode: standalone)")?.matches ||
+        (window.navigator as unknown as { standalone?: boolean })?.standalone
+    );
+  }, []);
 
   useEffect(() => {
     if (isFullScreen !== undefined) {
@@ -699,11 +951,45 @@ export default function FFCSGuidedSelector({
     }
   }, [isFullScreen]);
 
-  const handleToggleFullScreen = () => {
+  const handleToggleFullScreen = async () => {
     const next = !fullScreenMode;
     setFullScreenMode(next);
     onToggleFullScreen?.(next);
+
+    if (next) {
+      await requestNativeFullscreen();
+    } else {
+      await exitNativeFullscreen();
+    }
   };
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    const handleFullscreenChange = () => {
+      const docWithWebkit = document as Document & {
+        webkitFullscreenElement?: Element | null;
+      };
+      const isNativeFullscreen = Boolean(
+        document.fullscreenElement || docWithWebkit.webkitFullscreenElement
+      );
+      if (!isNativeFullscreen && fullScreenMode) {
+        setFullScreenMode(false);
+        onToggleFullScreen?.(false);
+      } else if (isNativeFullscreen && !fullScreenMode) {
+        setFullScreenMode(true);
+        onToggleFullScreen?.(true);
+      }
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
+    };
+  }, [fullScreenMode, onToggleFullScreen]);
 
   useEffect(() => {
     if (fullScreenMode && typeof document !== "undefined") {
@@ -723,25 +1009,39 @@ export default function FFCSGuidedSelector({
     }
   }, [effectiveCourseLocks.length]);
 
-  const [viewportDimensions, setViewportDimensions] = useState<{ width: number; height: number }>({
-    width: 0,
-    height: 0,
-  });
+  const [viewportDimensions, setViewportDimensions] = useState<{ width: number; height: number }>(() => ({
+    width: typeof window !== "undefined" ? window.innerWidth : 1200,
+    height: typeof window !== "undefined" ? window.innerHeight : 800,
+  }));
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    let rafId: number | null = null;
     const updateDimensions = () => {
-      setViewportDimensions({
-        width: window.innerWidth,
-        height: window.innerHeight,
+      if (rafId !== null) return;
+      rafId = window.requestAnimationFrame(() => {
+        rafId = null;
+        setViewportDimensions((prev) => {
+          if (prev.width === window.innerWidth && prev.height === window.innerHeight) {
+            return prev;
+          }
+          return {
+            width: window.innerWidth,
+            height: window.innerHeight,
+          };
+        });
       });
     };
     updateDimensions();
     window.addEventListener("resize", updateDimensions);
-    return () => window.removeEventListener("resize", updateDimensions);
+    return () => {
+      window.removeEventListener("resize", updateDimensions);
+      if (rafId !== null) window.cancelAnimationFrame(rafId);
+    };
   }, []);
 
-  const isHorizontal = viewportDimensions.width > 0 && viewportDimensions.width > viewportDimensions.height;
+  const isHorizontal = viewportDimensions.width >= 1024 && viewportDimensions.width > viewportDimensions.height;
+  const isMobileViewport = viewportDimensions.width > 0 && viewportDimensions.width < 768;
 
   const availableOfferings = useMemo(() => {
     if (!selectedCourseCode) return [];
@@ -906,6 +1206,7 @@ export default function FFCSGuidedSelector({
       slots: slotsArray,
       faculty: selectedOffering.FACULTY,
       employeeId: selectedOffering.ERP_ID,
+      classId: selectedOffering.CLASS_ID,
       venue: selectedOffering.ROOM || "TBA",
       credits: selectedOffering.CREDITS || "0",
       type: selectedOffering.TYPE || "Theory",
@@ -916,12 +1217,38 @@ export default function FFCSGuidedSelector({
     onAddCourse(newCourse, isReplacing);
     setAddedJustNow({ code: newCourse.code, isReplacement: isReplacing });
     setTimeout(() => setAddedJustNow(null), 4000);
+    setGuidedPhase("manual_timetable_view");
   };
 
   const handleAddAnother = () => {
-    handleConfirmAdd();
+    if (!selectedOffering || !selectedCourseMeta) return;
+
+    const slotsArray = splitSlots(selectedOffering.SLOT);
+    const isReplacing = isCourseInTimetable(selectedOffering.CODE);
+    const existingCourse = courses.find((c) => c.code === selectedOffering.CODE);
+
+    const newCourse: AddedCourse = {
+      id: Math.random().toString(36).substr(2, 9),
+      code: selectedOffering.CODE,
+      title: selectedOffering.TITLE,
+      slots: slotsArray,
+      faculty: selectedOffering.FACULTY,
+      employeeId: selectedOffering.ERP_ID,
+      classId: selectedOffering.CLASS_ID,
+      venue: selectedOffering.ROOM || "TBA",
+      credits: selectedOffering.CREDITS || "0",
+      type: selectedOffering.TYPE || "Theory",
+      color: existingCourse?.color || COLORS[courses.length % COLORS.length],
+      batch: selectedOffering.BATCH,
+    };
+
+    onAddCourse(newCourse, isReplacing);
+    setAddedJustNow({ code: newCourse.code, isReplacement: isReplacing });
+    setTimeout(() => setAddedJustNow(null), 4000);
+
     setSelectedCourseCode("");
     setSelectedSlotIndex("-1");
+    setGuidedPhase("builder");
     setCurrentStep(1);
   };
 
@@ -930,6 +1257,15 @@ export default function FFCSGuidedSelector({
     setStagedTimetables([]);
     setSelectedVariantIndex(0);
 
+    let facultyRatings: FacultyRatingLookup = {};
+    let facultyRatingsAvailable = false;
+    try {
+      const facultyData = await loadVitfacRankingData(masterCourses);
+      facultyRatings = facultyData.ratings;
+      facultyRatingsAvailable = facultyData.available;
+    } catch (err) {
+      console.warn("Faculty reviews could not be loaded for timetable ranking:", err);
+    }
     const outcome = await generation.run(
       {
         schema: getTimetableSchema(),
@@ -938,15 +1274,25 @@ export default function FFCSGuidedSelector({
         blockedSlots: Array.from(effectiveBlockedSlots),
         friends: friends || [],
         preference: autoPreference,
+        strictTheoryPreference: autoStrictTheoryPreference,
+        separateLabDays: autoSeparateLabDays,
+        avoidConsecutiveLabs: autoAvoidConsecutiveLabs,
+        lunchBreakSeparatesLabs: autoLunchBreakSeparatesLabs,
         syncFriendClasses: autoSyncFriends,
         maximizeFreeTimeFriends: autoMaximizeFreeTime ? (friends || []).map((f) => f.id) : [],
         minStartTime: autoMinStartTime,
         maxEndTime: autoMaxEndTime,
         uniqueFaculties: autoUniqueFaculties,
         noLimit: autoNoLimit,
+        removeHardResultLimit: settings?.removeHardResultLimit ?? false,
         resultCap: autoNoLimit ? undefined : autoResultCap,
         minHalfDays: autoMinHalfDays,
         sortBy: autoSortBy,
+        facultyRatings,
+        facultyRatingsAvailable,
+        facultyMetricWeights: autoFacultyMetricWeights,
+        facultyScoreFilters: autoFacultyScoreFilters,
+        rankingPriorityOrder: autoRankingPriorityOrder,
         ...(autoRankingMode ? { rankingMode: autoRankingMode } : {}),
       },
       (batch) => {
@@ -958,7 +1304,13 @@ export default function FFCSGuidedSelector({
       setGenerationError(
         outcome.code === "no_conflict_free" || outcome.code === "no_valid_slots"
           ? "No clash-free timetable found for these courses. Try relaxing time preferences or unlocking specific slots."
-          : "An error occurred while generating timetables."
+          : outcome.code === "below_min_faculty_scores"
+            ? "No timetable met the minimum faculty review scores. Lower the score filters here or in Planner Settings."
+            : outcome.code === "no_separate_labs"
+              ? "No timetable met the one-lab-class-per-day rule. Try turning it off or relaxing other constraints."
+              : outcome.code === "no_consecutive_labs"
+                ? "No timetable met the consecutive-lab rule. Try allowing consecutive slots or treating lunch as a break."
+            : "An error occurred while generating timetables."
       );
       return;
     }
@@ -982,6 +1334,8 @@ export default function FFCSGuidedSelector({
     }
     setAddedJustNow({ code: `${variant.courses.length} Courses`, isReplacement: false });
     setTimeout(() => setAddedJustNow(null), 5000);
+    // Transition to Hero Multi-Timetable Browser
+    setGuidedPhase("manual_timetable_view");
   };
 
   const handleSwapVariantFaculty = (courseId: string, offering: ParsedCourse) => {
@@ -996,6 +1350,7 @@ export default function FFCSGuidedSelector({
           slots: splitSlots(offering.SLOT),
           faculty: offering.FACULTY,
           employeeId: offering.ERP_ID,
+          classId: offering.CLASS_ID,
           venue: offering.ROOM || c.venue,
         };
       });
@@ -1036,6 +1391,9 @@ export default function FFCSGuidedSelector({
       setGuidedPhase("auto_summary");
     } else if (guidedPhase === "auto_timetable_view") {
       setGuidedPhase("auto_results");
+    } else if (guidedPhase === "manual_timetable_view") {
+      setGuidedPhase("builder");
+      setCurrentStep(1);
     } else if (guidedPhase === "builder") {
       if (currentStep === 3) setCurrentStep(2);
       else if (currentStep === 2) setCurrentStep(1);
@@ -1053,6 +1411,7 @@ export default function FFCSGuidedSelector({
     if (guidedPhase === "builder") {
       if (currentStep === 1 && selectedCourseCode) setCurrentStep(2);
       else if (currentStep === 2 && selectedOffering) setCurrentStep(3);
+      else if (currentStep === 3) setGuidedPhase("manual_timetable_view");
     }
   };
 
@@ -1468,13 +1827,13 @@ export default function FFCSGuidedSelector({
                         type="text"
                         value={editingTtName}
                         onChange={(e) => setEditingTtName(e.target.value)}
-                        className="bg-zinc-900 border border-indigo-500 rounded-lg px-2.5 py-1 text-sm font-bold text-white focus:outline-none w-full max-w-xs"
+                        className="bg-zinc-900 border border-indigo-500 rounded-lg px-2.5 py-1 text-base sm:text-sm font-bold text-white focus:outline-none w-full max-w-xs"
                         autoFocus
                       />
                       <button
                         type="button"
                         onClick={() => handleSaveRename(tt.id)}
-                        className="p-1 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 cursor-pointer"
+                        className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 cursor-pointer relative hit-expand touch-press"
                       >
                         <Check className="w-4 h-4" />
                       </button>
@@ -1489,7 +1848,7 @@ export default function FFCSGuidedSelector({
                           setEditingTtId(tt.id);
                           setEditingTtName(tt.name);
                         }}
-                        className="p-1 rounded-md text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+                        className="p-1.5 rounded-md text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer relative hit-expand touch-press"
                         title="Rename Timetable"
                       >
                         <Pencil className="w-3.5 h-3.5" />
@@ -1510,7 +1869,7 @@ export default function FFCSGuidedSelector({
                       e.stopPropagation();
                       onDeleteTimetable(tt.id);
                     }}
-                    className="p-2 rounded-xl border border-red-500/20 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors cursor-pointer"
+                    className="p-2 rounded-xl border border-red-500/20 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors cursor-pointer relative hit-expand touch-press"
                     title="Delete Timetable"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -1681,13 +2040,13 @@ export default function FFCSGuidedSelector({
               value={locksSearchQuery}
               onChange={(e) => setLocksSearchQuery(e.target.value)}
               placeholder="Search mandatory course code or title..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950/60 text-sm font-bold text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all placeholder:text-zinc-600"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950/60 text-base sm:text-sm font-bold text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all placeholder:text-zinc-600"
             />
           </div>
         )}
 
         {locksMode !== "search" ? (
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto momentum-scroll">
             <CourseImportPanel
               mode={locksMode}
               onImport={(courses) => {
@@ -1902,7 +2261,7 @@ export default function FFCSGuidedSelector({
             value={locksSearchQuery}
             onChange={(e) => setLocksSearchQuery(e.target.value)}
             placeholder="Search course code or title..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950/60 text-sm font-bold text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all placeholder:text-zinc-600"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950/60 text-base sm:text-sm font-bold text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all placeholder:text-zinc-600"
           />
         </div>
 
@@ -1918,7 +2277,7 @@ export default function FFCSGuidedSelector({
                 key={opt.id}
                 type="button"
                 onClick={() => setTypeFilter(opt.id)}
-                className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer touch-press active:scale-[0.97] ${
                   typeFilter === opt.id
                     ? "bg-indigo-600 text-white shadow-xs"
                     : "bg-zinc-950/40 text-zinc-400 border border-zinc-800 hover:text-white hover:border-zinc-700"
@@ -1933,7 +2292,7 @@ export default function FFCSGuidedSelector({
             <button
               type="button"
               onClick={onOpenPasteRegistered}
-              className="text-[11px] text-purple-400 hover:text-purple-300 font-bold flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+              className="text-[11px] text-purple-400 hover:text-purple-300 font-bold flex items-center gap-1 transition-colors cursor-pointer shrink-0 touch-press active:scale-[0.97]"
             >
               <ClipboardPaste className="w-3.5 h-3.5" />
               <span>Paste VTOP</span>
@@ -1941,7 +2300,7 @@ export default function FFCSGuidedSelector({
           )}
         </div>
 
-        <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto momentum-scroll space-y-2 pr-1 custom-scrollbar">
           {filteredAutoCourses.slice(0, 100).map((c) => {
             const sel = effectiveCourseLocks.find((l) => l.code === c.code);
             const isSelected = !!sel;
@@ -2491,7 +2850,7 @@ export default function FFCSGuidedSelector({
                   value={facultySearchQuery}
                   onChange={(e) => setFacultySearchQuery(e.target.value)}
                   placeholder="Search faculty name..."
-                  className="w-full bg-zinc-950/60 border border-zinc-800 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500 transition-colors"
+                  className="w-full bg-zinc-950/60 border border-zinc-800 rounded-xl pl-9 pr-3 py-1.5 text-base sm:text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500 transition-colors"
                 />
               </div>
             )}
@@ -3022,12 +3381,18 @@ export default function FFCSGuidedSelector({
                 </span>
               </div>
               <span className="text-xs font-black text-indigo-400 font-mono">
-                {autoNoLimit ? "Unlimited (30k max)" : `${autoResultCap} Timetables`}
+                {autoNoLimit
+                  ? settings?.removeHardResultLimit
+                    ? "Unlimited"
+                    : "Unlimited (30k max)"
+                  : `${autoResultCap} Timetables`}
               </span>
             </div>
 
             <div className="flex flex-wrap gap-1.5">
-              {[10, 25, 50, 100, 250].map((cap) => {
+              {[...new Set([10, 25, 50, 100, 250, 500, settings?.resultCap ?? 50])]
+                .sort((a, b) => a - b)
+                .map((cap) => {
                 const isSelected = !autoNoLimit && autoResultCap === cap;
                 return (
                   <button
@@ -3060,6 +3425,66 @@ export default function FFCSGuidedSelector({
                 Unlimited ✨
               </button>
             </div>
+            {autoNoLimit && !settings?.removeHardResultLimit && (
+              <p className="mt-2 text-[10px] text-amber-300">
+                Unlimited runs still stop at 30,000 results. The Planner Settings opt-in can remove that safety ceiling, but may make the browser unstable.
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2 rounded-2xl border border-zinc-800 bg-zinc-950/40 p-3.5 text-left">
+            <div>
+              <span className="block text-xs font-black text-white uppercase tracking-wider font-outfit">
+                Lab Scheduling
+              </span>
+              <span className="text-[10px] text-zinc-400">
+                These rules only apply to different lab classes; slots within one lab class stay together.
+              </span>
+            </div>
+            <label className="flex items-start gap-2 text-xs text-zinc-200">
+              <input
+                type="checkbox"
+                checked={autoSeparateLabDays}
+                onChange={(event) => setAutoSeparateLabDays(event.target.checked)}
+                className="mt-0.5 accent-indigo-500"
+              />
+              <span>
+                <span className="block font-bold">At most one lab class per day</span>
+                <span className="block text-[10px] text-zinc-400">
+                  Multiple slots within one lab class still count as one class.
+                </span>
+              </span>
+            </label>
+            <label className="flex items-start gap-2 text-xs text-zinc-200">
+              <input
+                type="checkbox"
+                checked={autoAvoidConsecutiveLabs}
+                onChange={(event) => setAutoAvoidConsecutiveLabs(event.target.checked)}
+                className="mt-0.5 accent-indigo-500"
+              />
+              <span>
+                <span className="block font-bold">Avoid consecutive lab slots</span>
+                <span className="block text-[10px] text-zinc-400">
+                  Includes slots across lunch unless lunch is treated as a break below.
+                </span>
+              </span>
+            </label>
+            {autoAvoidConsecutiveLabs && (
+              <label className="ml-5 flex items-start gap-2 text-xs text-zinc-200">
+                <input
+                  type="checkbox"
+                  checked={autoLunchBreakSeparatesLabs}
+                  onChange={(event) => setAutoLunchBreakSeparatesLabs(event.target.checked)}
+                  className="mt-0.5 accent-indigo-500"
+                />
+                <span>
+                  <span className="block font-bold">Treat lunch as a break</span>
+                  <span className="block text-[10px] text-zinc-400">
+                    Uses the lunch break in the timetable schema, not specific slot names.
+                  </span>
+                </span>
+              </label>
+            )}
           </div>
 
           {/* Section 3: Pacing Style */}
@@ -3070,8 +3495,8 @@ export default function FFCSGuidedSelector({
             <div className="grid grid-cols-2 gap-2">
               {[
                 { id: "compact", label: "Compact & Packed", desc: "Minimizes idle gaps between classes" },
-                { id: "morning", label: "Morning Theory", desc: "Theory in morning, lab in afternoon" },
-                { id: "evening", label: "Evening Theory", desc: "Theory in evening, lab in morning" },
+                { id: "morning", label: "Morning Theory", desc: "Prefer morning theory; strictness is adjustable" },
+                { id: "evening", label: "Evening Theory", desc: "Prefer evening theory; strictness is adjustable" },
                 { id: "spread", label: "Spread & Relaxed", desc: "Paced evenly throughout the week" },
               ].map((opt) => (
                 <button
@@ -3092,6 +3517,24 @@ export default function FFCSGuidedSelector({
                 </button>
               ))}
             </div>
+            {(autoPreference === "morning" || autoPreference === "evening") && (
+              <label className="flex items-start gap-2.5 rounded-xl border border-zinc-800 bg-zinc-950/40 p-3 text-xs text-zinc-200">
+                <input
+                  type="checkbox"
+                  checked={autoStrictTheoryPreference}
+                  onChange={(event) => setAutoStrictTheoryPreference(event.target.checked)}
+                  className="mt-0.5 accent-indigo-500"
+                />
+                <span>
+                  <span className="block font-bold">
+                    Strictly {autoPreference} theory only
+                  </span>
+                  <span className="mt-0.5 block text-[10px] leading-snug text-zinc-400">
+                    Turn off to allow some {autoPreference === "morning" ? "evening" : "morning"} theory classes, while ranking schedules with more preferred-time theory higher. Labs are not restricted.
+                  </span>
+                </span>
+              </label>
+            )}
           </div>
         </div>
       </div>
@@ -3242,7 +3685,180 @@ export default function FFCSGuidedSelector({
               <span className="text-xs font-bold text-zinc-400">Pacing Style</span>
               <span className="text-xs font-extrabold text-white capitalize">{autoPreference}</span>
             </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-zinc-400">Ranking Profile</span>
+              <span className="text-xs font-extrabold text-white">{autoRankingMode ?? "None"}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-zinc-400">Sort Order</span>
+              <span className="text-xs font-extrabold text-white">
+                {AUTO_SORT_OPTIONS.find((option) => option.value === autoSortBy)?.label ?? autoSortBy}
+              </span>
+            </div>
           </div>
+
+          <section className="p-4 rounded-2xl bg-zinc-950/60 border border-indigo-500/20 space-y-4">
+            <div>
+              <h4 className="text-xs font-black text-white uppercase tracking-wider">Ranking &amp; Faculty Reviews</h4>
+              <p className="text-[11px] text-zinc-400 mt-1">
+                Customize this run without changing your saved Planner Settings.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Ranking Profile</span>
+              <div className="flex flex-wrap gap-1.5">
+                {[{ value: null, label: "No profile" }, ...RANKING_MODES.map((mode) => ({
+                  value: mode,
+                  label: mode,
+                }))].map((option) => (
+                  <button
+                    key={option.label}
+                    type="button"
+                    aria-pressed={autoRankingMode === option.value}
+                    onClick={() => setAutoRankingMode(option.value)}
+                    className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-colors ${
+                      autoRankingMode === option.value
+                        ? "bg-indigo-600 border-indigo-500 text-white"
+                        : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Sort Order</span>
+              <div className="flex flex-wrap gap-1.5">
+                {AUTO_SORT_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-pressed={autoSortBy === option.value}
+                    onClick={() => setAutoSortBy(option.value)}
+                    className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-colors ${
+                      autoSortBy === option.value
+                        ? "bg-indigo-600 border-indigo-500 text-white"
+                        : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div>
+                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                  Combined Ranking Priority
+                </span>
+                <p className="text-[10px] text-zinc-500">Move the most important factor to the top.</p>
+              </div>
+              <div className="space-y-1.5">
+                {autoRankingPriorityOrder.map((priority, index) => (
+                  <div
+                    key={priority}
+                    className="flex items-center justify-between gap-2 rounded-xl bg-zinc-900/80 px-3 py-1.5 text-xs"
+                  >
+                    <span className="font-medium text-zinc-200">
+                      {index + 1}. {AUTO_RANKING_PRIORITY_LABELS[priority]}
+                    </span>
+                    <span className="flex">
+                      <button
+                        type="button"
+                        aria-label={`Move ${AUTO_RANKING_PRIORITY_LABELS[priority]} up`}
+                        disabled={index === 0}
+                        onClick={() => moveAutoRankingPriority(index, -1)}
+                        className="rounded p-1 text-zinc-400 hover:text-white disabled:opacity-30"
+                      >
+                        <ChevronUp className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Move ${AUTO_RANKING_PRIORITY_LABELS[priority]} down`}
+                        disabled={index === autoRankingPriorityOrder.length - 1}
+                        onClick={() => moveAutoRankingPriority(index, 1)}
+                        className="rounded p-1 text-zinc-400 hover:text-white disabled:opacity-30"
+                      >
+                        <ChevronDown className="h-4 w-4" />
+                      </button>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div>
+                  <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                    Faculty Score Priorities
+                  </span>
+                  <p className="text-[10px] text-zinc-500">0 ignores a score; maximum weight is 5.</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {(
+                    [
+                      ["wPct", "Overall W %"],
+                      ["lecture", "Lecture"],
+                      ["da", "DA"],
+                      ["vibe", "Vibe"],
+                    ] as const
+                  ).map(([key, label]) => (
+                    <label key={key} className="flex items-center justify-between gap-2 text-[11px] text-zinc-300">
+                      <span>{label}</span>
+                      <input
+                        aria-label={`${label} importance`}
+                        type="number"
+                        min={0}
+                        max={5}
+                        step={1}
+                        value={autoFacultyMetricWeights[key]}
+                        onChange={(event) => updateAutoFacultyWeight(key, event.target.value)}
+                        className="w-16 rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-1 text-right text-white"
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div>
+                  <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                    Minimum Faculty Scores
+                  </span>
+                  <p className="text-[10px] text-zinc-500">0 disables a filter; unrated faculty are not rejected.</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {(
+                    [
+                      ["minWPct", "Overall W %", 100, 5],
+                      ["minLecture", "Lecture / 5", 5, 0.5],
+                      ["minDa", "DA / 5", 5, 0.5],
+                      ["minVibe", "Vibe / 5", 5, 0.5],
+                    ] as const
+                  ).map(([key, label, max, step]) => (
+                    <label key={key} className="flex items-center justify-between gap-2 text-[11px] text-zinc-300">
+                      <span>{label}</span>
+                      <input
+                        aria-label={`Minimum ${label}`}
+                        type="number"
+                        min={0}
+                        max={max}
+                        step={step}
+                        value={autoFacultyScoreFilters[key]}
+                        onChange={(event) => updateAutoFacultyFilter(key, event.target.value)}
+                        className="w-16 rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-1 text-right text-white"
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
 
           {effectiveCourseLocks.length > 0 && (
             <div className="space-y-1.5">
@@ -3287,10 +3903,12 @@ export default function FFCSGuidedSelector({
       })
       .filter((s): s is number => s !== null);
 
-    const avgFacultyScore =
+    const liveAvgFacultyScore =
       ratedScores.length > 0
         ? ratedScores.reduce((sum, s) => sum + s, 0) / ratedScores.length
         : null;
+    const avgFacultyScore =
+      currentVariant.facultySummary?.averageWPct ?? liveAvgFacultyScore;
 
     return (
       <div
@@ -3331,6 +3949,16 @@ export default function FFCSGuidedSelector({
 
             <button
               type="button"
+              onClick={() => setGuidedPhase("manual_timetable_view")}
+              className="px-2.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+              title="Browse My Timetables"
+            >
+              <Calendar className="w-3.5 h-3.5 text-zinc-400" />
+              <span className="hidden sm:inline">My Timetables ({effectiveTimetables.length})</span>
+            </button>
+
+            <button
+              type="button"
               disabled={selectedVariantIndex >= stagedTimetables.length - 1}
               onClick={() => setSelectedVariantIndex((prev) => Math.min(stagedTimetables.length - 1, prev + 1))}
               className="p-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
@@ -3361,6 +3989,41 @@ export default function FFCSGuidedSelector({
             <span className="font-black text-indigo-400 text-sm font-outfit">{totalCredits}</span>
           </div>
         </div>
+
+        {currentVariant.rankingScore !== undefined && (
+          <section className="rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-3.5 space-y-2 shrink-0">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-300">
+                  Combined ranking
+                </span>
+                <p className="text-xs text-zinc-400">
+                  {currentVariant.rankingScore.toFixed(1)}/100 · unrated faculty lower review coverage
+                </p>
+              </div>
+              <span className="text-xs font-bold text-white">
+                {currentVariant.facultySummary?.ratedFacultyCount ?? 0} reviewed /{" "}
+                {currentVariant.facultySummary?.unratedFacultyCount ?? 0} unrated
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-zinc-400">
+              <span>W % {currentVariant.facultySummary?.averageWPct?.toFixed(1) ?? "—"}</span>
+              <span>Lecture {currentVariant.facultySummary?.averageLecture?.toFixed(1) ?? "—"}/5</span>
+              <span>DA {currentVariant.facultySummary?.averageDa?.toFixed(1) ?? "—"}/5</span>
+              <span>Vibe {currentVariant.facultySummary?.averageVibe?.toFixed(1) ?? "—"}/5</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {Object.entries(currentVariant.rankingBreakdown ?? {}).map(([key, points]) => (
+                <span
+                  key={key}
+                  className="rounded-md border border-zinc-700 bg-zinc-950/60 px-2 py-1 text-[10px] text-zinc-300"
+                >
+                  {key}: {points.toFixed(1)} pts
+                </span>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Course Roster with Faculty Review, Schedule & Replacement */}
         <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 custom-scrollbar">
@@ -3517,6 +4180,14 @@ export default function FFCSGuidedSelector({
               <FileSpreadsheet className="w-3.5 h-3.5 text-zinc-400" />
               <span>List &amp; Faculty View</span>
             </button>
+            <button
+              type="button"
+              onClick={() => setGuidedPhase("manual_timetable_view")}
+              className="px-2.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <Calendar className="w-3.5 h-3.5 text-zinc-400" />
+              <span>My Timetables ({effectiveTimetables.length})</span>
+            </button>
           </div>
         </div>
 
@@ -3532,6 +4203,207 @@ export default function FFCSGuidedSelector({
             showSlotNames={true}
           />
         </div>
+      </div>
+    );
+  };
+
+  const renderManualTimetableViewCard = (isLandscape = false) => {
+    const currentTt = effectiveTimetables[browsingTimetableIndex] || activeTimetable;
+    const browsingCourses = currentTt?.courses || [];
+    const schema = getTimetableSchema();
+    const totalCredits = browsingCourses.reduce((sum, c) => sum + (Number(c.credits) || 0), 0);
+    const metrics = timetableMetrics(browsingCourses, schema);
+    const isCurrentActive = (currentTt?.id || "") === (activeTimetable?.id || "");
+    const daysList = DAYS || [
+      { id: "mon", name: "Monday" },
+      { id: "tue", name: "Tuesday" },
+      { id: "wed", name: "Wednesday" },
+      { id: "thu", name: "Thursday" },
+      { id: "fri", name: "Friday" },
+    ];
+    const theoryPeriods = ensureLunchPeriod(schema.theory as TimetablePeriod[]);
+    const labPeriods = ensureLunchPeriod(schema.lab as TimetablePeriod[]);
+
+    return (
+      <div
+        className={`p-4 sm:p-5 rounded-[28px] sm:rounded-[32px] bg-zinc-900/90 border border-zinc-800/80 backdrop-blur-xl shadow-2xl space-y-3 text-left flex flex-col justify-between ${
+          isLandscape ? "h-[74vh] max-h-[640px] w-full" : "h-[62vh] sm:h-[68vh] min-h-[480px] max-h-[720px]"
+        }`}
+      >
+        {/* Header Strip with Multi-Timetable Navigation & Metrics */}
+        <div className="flex items-center justify-between p-2.5 rounded-2xl bg-zinc-950/60 border border-zinc-800 shrink-0 gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              aria-label="Previous Timetable"
+              disabled={browsingTimetableIndex <= 0}
+              onClick={() => navigateBrowsingTimetable(browsingTimetableIndex - 1, "backward")}
+              className="p-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed transition-all"
+              title="Previous Timetable"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+
+            <div className="text-left min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="font-extrabold text-xs sm:text-sm text-white font-outfit truncate max-w-[140px] sm:max-w-[200px]">
+                  {currentTt.name}
+                </span>
+                <span className="text-[10px] text-zinc-400 font-mono">
+                  ({browsingTimetableIndex + 1}/{effectiveTimetables.length})
+                </span>
+              </div>
+              {isCurrentActive ? (
+                <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider block">
+                  ● Mounted Active Timetable
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onSelectTimetable && onSelectTimetable(currentTt.id)}
+                  className="text-[10px] text-indigo-400 hover:text-indigo-300 font-bold uppercase tracking-wider block cursor-pointer underline"
+                >
+                  Set as Active Schedule
+                </button>
+              )}
+            </div>
+
+            <button
+              type="button"
+              aria-label="Next Timetable"
+              disabled={browsingTimetableIndex >= effectiveTimetables.length - 1}
+              onClick={() => navigateBrowsingTimetable(browsingTimetableIndex + 1, "forward")}
+              className="p-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed transition-all"
+              title="Next Timetable"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[11px] font-bold">
+              {metrics.halfDays} Half-Days
+            </span>
+            <span className="px-2.5 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[11px] font-bold">
+              {browsingCourses.length} Course{browsingCourses.length === 1 ? "" : "s"}
+            </span>
+            <span className="px-2.5 py-1 rounded-lg bg-zinc-800/80 border border-zinc-700/60 text-zinc-300 text-[11px] font-bold">
+              {totalCredits} Credits
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                if (currentTt && onSelectTimetable && currentTt.id !== activeTimetable?.id) {
+                  onSelectTimetable(currentTt.id);
+                }
+                setSelectedCourseCode("");
+                setSelectedSlotIndex("-1");
+                setGuidedPhase("builder");
+                setCurrentStep(1);
+              }}
+              className="px-2.5 py-1.5 rounded-xl bg-indigo-600/15 hover:bg-indigo-600/25 border border-indigo-500/30 text-indigo-300 hover:text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5 text-indigo-400" />
+              <span>+ Add Course</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Scroll-snapped Timetable Pill Tabs */}
+        {effectiveTimetables.length > 1 && (
+          <div
+            role="tablist"
+            aria-label="Select saved timetable"
+            className="flex items-center gap-1.5 overflow-x-auto snap-x snap-mandatory py-1 px-1 custom-scrollbar shrink-0 border-b border-zinc-800/50 pb-2"
+          >
+            {effectiveTimetables.map((tt, idx) => {
+              const isSelected = idx === browsingTimetableIndex;
+              const isMountedActive = tt.id === activeTimetable?.id;
+              return (
+                <button
+                  key={tt.id}
+                  role="tab"
+                  aria-selected={isSelected}
+                  onClick={() =>
+                    navigateBrowsingTimetable(
+                      idx,
+                      idx >= browsingTimetableIndex ? "forward" : "backward"
+                    )
+                  }
+                  className={`snap-center px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 border ${
+                    isSelected
+                      ? "bg-indigo-600/25 border-indigo-500/50 text-white shadow-sm ring-1 ring-indigo-500/30"
+                      : "bg-zinc-950/60 border-zinc-800/80 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900"
+                  }`}
+                >
+                  <span className="truncate max-w-[120px]">{tt.name}</span>
+                  <span
+                    className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${
+                      isSelected
+                        ? "bg-indigo-500/30 text-indigo-200"
+                        : "bg-zinc-800 text-zinc-400"
+                    }`}
+                  >
+                    {tt.courses?.length || 0}
+                  </span>
+                  {isMountedActive && (
+                    <span
+                      title="Currently Active Schedule"
+                      className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Embedded Interactive Vertical Timetable Grid with View Transition Class */}
+        <div
+          key={currentTt.id}
+          className={`flex-1 min-h-[260px] overflow-auto rounded-2xl bg-zinc-950/70 border border-zinc-800/80 p-2 custom-scrollbar transition-all duration-300 animate-in fade-in ${
+            browserTransitionDirection === "forward" ? "slide-in-from-right-2" : "slide-in-from-left-2"
+          }`}
+        >
+          <VerticalTimetableGrid
+            courses={browsingCourses}
+            theoryPeriods={theoryPeriods}
+            labPeriods={labPeriods}
+            days={daysList}
+            blockedSlots={effectiveBlockedSlots}
+            compact={true}
+            showSlotNames={true}
+          />
+        </div>
+
+        {/* Course chips row / Empty Notice */}
+        {browsingCourses.length > 0 ? (
+          <div className="flex items-center gap-1.5 overflow-x-auto py-1 px-0.5 custom-scrollbar shrink-0">
+            {browsingCourses.map((c) => (
+              <div
+                key={c.id}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-zinc-950/80 border border-zinc-800 text-[11px] shrink-0"
+              >
+                <div
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{ backgroundColor: c.color || "#6366f1" }}
+                />
+                <span className="font-black text-white">{c.code}</span>
+                <span className="text-zinc-400 font-medium truncate max-w-[100px]">
+                  {c.slots.join("+")}
+                </span>
+                <span className="text-zinc-500 text-[10px]">({c.faculty})</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="py-2 px-3 rounded-xl bg-zinc-950/50 border border-dashed border-zinc-800/80 text-center shrink-0">
+            <span className="text-xs text-zinc-400 font-medium">
+              No courses placed in <strong className="text-white">{currentTt.name}</strong> yet. Click{" "}
+              <strong className="text-indigo-400">+ Add Course</strong> to begin.
+            </span>
+          </div>
+        )}
       </div>
     );
   };
@@ -3570,7 +4442,7 @@ export default function FFCSGuidedSelector({
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search code (e.g. BCSE101), title, or batch..."
-          className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950/60 text-sm font-bold text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all placeholder:text-zinc-600"
+          className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950/60 text-base sm:text-sm font-bold text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all placeholder:text-zinc-600"
         />
       </div>
 
@@ -3619,7 +4491,7 @@ export default function FFCSGuidedSelector({
               key={opt.id}
               type="button"
               onClick={() => setTypeFilter(opt.id)}
-              className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer touch-press active:scale-[0.97] ${
                 typeFilter === opt.id
                   ? "bg-indigo-600 text-white shadow-xs"
                   : "bg-zinc-950/40 text-zinc-400 border border-zinc-800 hover:text-white hover:border-zinc-700"
@@ -3633,14 +4505,14 @@ export default function FFCSGuidedSelector({
         <button
           type="button"
           onClick={onOpenPasteRegistered}
-          className="text-[11px] text-purple-400 hover:text-purple-300 font-bold flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+          className="text-[11px] text-purple-400 hover:text-purple-300 font-bold flex items-center gap-1 transition-colors cursor-pointer shrink-0 touch-press active:scale-[0.97]"
         >
           <ClipboardPaste className="w-3.5 h-3.5" />
           <span>Paste VTOP</span>
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto momentum-scroll space-y-2 pr-1 custom-scrollbar">
         {filteredCourses.length === 0 ? (
           <div className="p-8 rounded-2xl bg-zinc-950/40 border border-zinc-800 text-center space-y-2">
             <Search className="w-8 h-8 text-zinc-600 mx-auto" />
@@ -3977,6 +4849,52 @@ export default function FFCSGuidedSelector({
   );
 
   const renderBottomActions = () => {
+    if (isMobileViewport && !hasLaunchedHero) {
+      return (
+        <div className="flex flex-col gap-2 w-full max-w-md mx-auto">
+          <button
+            type="button"
+            data-testid="enter-fullscreen-start-btn"
+            onClick={async () => {
+              try {
+                await requestNativeFullscreen();
+              } catch {}
+              setFullScreenMode(true);
+              onToggleFullScreen?.(true);
+              setHasLaunchedHero(true);
+            }}
+            className="w-full py-3.5 px-5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm shadow-xl shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer font-outfit tracking-wide"
+          >
+            <Maximize2 className="w-4 h-4" />
+            <span>Enter Full Screen & Start</span>
+          </button>
+
+          <button
+            type="button"
+            data-testid="start-in-window-btn"
+            onClick={() => {
+              setHasLaunchedHero(true);
+            }}
+            className="w-full py-2.5 px-4 rounded-xl bg-zinc-900/60 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+          >
+            <span>Continue in Window</span>
+          </button>
+
+          {onSwitchToSinglePageView && (
+            <button
+              type="button"
+              data-testid="switch-to-single-page-btn"
+              onClick={onSwitchToSinglePageView}
+              className="w-full py-2 px-3 text-xs text-zinc-400 hover:text-zinc-200 font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer mt-1"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Single Page View</span>
+            </button>
+          )}
+        </div>
+      );
+    }
+
     if (guidedPhase === "setup_mode") {
       return (
         <button
@@ -4286,47 +5204,130 @@ export default function FFCSGuidedSelector({
     if (guidedPhase === "auto_results" || guidedPhase === "auto_timetable_view") {
       const currentVariant = stagedTimetables[selectedVariantIndex];
       return (
-        <div className="flex items-center gap-2 w-full">
+        <div className="flex flex-wrap items-center gap-2 w-full">
           <button
             type="button"
             onClick={() => setGuidedPhase("auto_half_days")}
-            className="py-3.5 px-4 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-indigo-400 font-black text-xs shadow-lg transition-all active:scale-95 cursor-pointer font-outfit flex items-center justify-center gap-1.5 shrink-0"
+            className="whitespace-nowrap py-3 sm:py-3.5 px-3.5 sm:px-4 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-indigo-400 font-black text-xs shadow-lg transition-all active:scale-95 cursor-pointer font-outfit flex items-center justify-center gap-1.5 shrink-0"
             title="Adjust Generation Settings"
           >
-            <Sliders className="w-4 h-4" />
-            <span className="hidden sm:inline">Settings</span>
+            <Sliders className="w-4 h-4 shrink-0" />
+            <span className="whitespace-nowrap">Settings</span>
           </button>
 
           {guidedPhase === "auto_results" ? (
             <button
               type="button"
               onClick={() => setGuidedPhase("auto_timetable_view")}
-              className="py-3.5 px-3.5 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white font-black text-xs shadow-lg transition-all active:scale-95 cursor-pointer font-outfit flex items-center justify-center gap-1.5 shrink-0"
+              className="whitespace-nowrap py-3 sm:py-3.5 px-3.5 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white font-black text-xs shadow-lg transition-all active:scale-95 cursor-pointer font-outfit flex items-center justify-center gap-1.5 shrink-0"
               title="Switch to Timetable Grid View"
             >
-              <LayoutGrid className="w-4 h-4 text-indigo-400" />
-              <span className="hidden sm:inline">Grid View</span>
+              <LayoutGrid className="w-4 h-4 text-indigo-400 shrink-0" />
+              <span className="whitespace-nowrap">Grid View</span>
             </button>
           ) : (
             <button
               type="button"
               onClick={() => setGuidedPhase("auto_results")}
-              className="py-3.5 px-3.5 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white font-black text-xs shadow-lg transition-all active:scale-95 cursor-pointer font-outfit flex items-center justify-center gap-1.5 shrink-0"
+              className="whitespace-nowrap py-3 sm:py-3.5 px-3.5 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white font-black text-xs shadow-lg transition-all active:scale-95 cursor-pointer font-outfit flex items-center justify-center gap-1.5 shrink-0"
               title="Switch to Faculty List View"
             >
-              <FileSpreadsheet className="w-4 h-4 text-zinc-400" />
-              <span className="hidden sm:inline">List View</span>
+              <FileSpreadsheet className="w-4 h-4 text-zinc-400 shrink-0" />
+              <span className="whitespace-nowrap">List View</span>
             </button>
           )}
 
           <button
             type="button"
+            onClick={() => setGuidedPhase("manual_timetable_view")}
+            className="whitespace-nowrap py-3 sm:py-3.5 px-3.5 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white font-black text-xs shadow-lg transition-all active:scale-95 cursor-pointer font-outfit flex items-center justify-center gap-1.5 shrink-0"
+            title="Browse My Timetables"
+          >
+            <Calendar className="w-4 h-4 text-zinc-400 shrink-0" />
+            <span className="whitespace-nowrap">My Timetables</span>
+          </button>
+
+          <button
+            type="button"
             disabled={!currentVariant}
             onClick={() => currentVariant && handleApplyVariant(currentVariant)}
-            className="flex-1 py-3.5 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm shadow-xl shadow-emerald-600/20 transition-all active:scale-95 cursor-pointer font-outfit tracking-wide flex items-center justify-center gap-2 truncate"
+            className="flex-1 min-w-[260px] whitespace-nowrap py-3.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm shadow-xl shadow-emerald-600/20 transition-all active:scale-95 cursor-pointer font-outfit tracking-wide flex items-center justify-center gap-2 shrink-0"
           >
             <Check className="w-4 h-4 shrink-0" />
-            <span className="truncate">Apply This Recommendation to {activeTimetable.name} 🚀</span>
+            <span className="whitespace-nowrap">Apply This Recommendation to {activeTimetable.name} 🚀</span>
+          </button>
+        </div>
+      );
+    }
+
+    if (guidedPhase === "manual_timetable_view") {
+      const currentTt = effectiveTimetables[browsingTimetableIndex] || activeTimetable;
+      return (
+        <div className="flex flex-wrap items-center gap-2 w-full">
+          <button
+            type="button"
+            onClick={handlePrevStep}
+            aria-label="Previous Step"
+            className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 text-white flex items-center justify-center shadow-lg transition-all active:scale-90 hover:scale-105 cursor-pointer shrink-0"
+            title="Back to Review"
+          >
+            <ChevronLeft className="w-5 h-5 shrink-0" />
+          </button>
+
+          {effectiveTimetables.length > 1 && (
+            <div className="flex items-center gap-1 bg-zinc-950/60 border border-zinc-800 rounded-2xl p-1 shrink-0">
+              <button
+                type="button"
+                disabled={browsingTimetableIndex <= 0}
+                onClick={() => navigateBrowsingTimetable(browsingTimetableIndex - 1, "backward")}
+                aria-label="Previous Timetable"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed transition-all flex items-center justify-center"
+                title="Previous Timetable"
+              >
+                <ArrowLeft className="w-4 h-4 shrink-0" />
+              </button>
+              <span className="text-[11px] font-mono font-bold text-zinc-300 px-1.5 whitespace-nowrap">
+                {browsingTimetableIndex + 1}/{effectiveTimetables.length}
+              </span>
+              <button
+                type="button"
+                disabled={browsingTimetableIndex >= effectiveTimetables.length - 1}
+                onClick={() => navigateBrowsingTimetable(browsingTimetableIndex + 1, "forward")}
+                aria-label="Next Timetable"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed transition-all flex items-center justify-center"
+                title="Next Timetable"
+              >
+                <ArrowRight className="w-4 h-4 shrink-0" />
+              </button>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => {
+              if (currentTt && onSelectTimetable && currentTt.id !== activeTimetable?.id) {
+                onSelectTimetable(currentTt.id);
+              }
+              setSelectedCourseCode("");
+              setSelectedSlotIndex("-1");
+              setGuidedPhase("builder");
+              setCurrentStep(1);
+            }}
+            className="flex-1 min-w-[170px] whitespace-nowrap py-3 sm:py-3.5 px-3.5 sm:px-4 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-indigo-400 hover:text-indigo-300 font-black text-xs sm:text-sm shadow-xl transition-all active:scale-95 cursor-pointer font-outfit tracking-wide flex items-center justify-center gap-2 shrink-0"
+          >
+            <Plus className="w-4 h-4 shrink-0" />
+            <span className="whitespace-nowrap">Add Another Course</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (onViewTimetable) onViewTimetable();
+            }}
+            className="flex-1 min-w-[160px] whitespace-nowrap py-3 sm:py-3.5 px-4 sm:px-5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs sm:text-sm shadow-xl shadow-indigo-600/20 transition-all active:scale-95 cursor-pointer font-outfit tracking-wide flex items-center justify-center gap-2 shrink-0"
+          >
+            <Check className="w-4 h-4 shrink-0" />
+            <span className="whitespace-nowrap">Done / View Grid</span>
           </button>
         </div>
       );
@@ -4384,28 +5385,28 @@ export default function FFCSGuidedSelector({
         )}
 
         {currentStep === 3 && (
-          <div className="flex items-center gap-2 w-full">
+          <div className="flex flex-wrap items-center gap-2 w-full">
             <button
               type="button"
               onClick={handleAddAnother}
-              className="py-3.5 px-4 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-indigo-400 font-black text-xs shadow-lg transition-all active:scale-95 cursor-pointer font-outfit flex items-center justify-center gap-1.5 shrink-0"
+              className="whitespace-nowrap py-3 sm:py-3.5 px-4 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-indigo-400 font-black text-xs shadow-lg transition-all active:scale-95 cursor-pointer font-outfit flex items-center justify-center gap-1.5 shrink-0"
               title={isReplacingSlot ? "Replace slot and pick another course" : "Add to timetable and pick another course"}
             >
-              {isReplacingSlot ? <RotateCcw className="w-4 h-4 text-amber-400" /> : <PlusCircle className="w-4 h-4" />}
-              <span className="hidden sm:inline">{isReplacingSlot ? "Replace & Another" : "Add & Another"}</span>
+              {isReplacingSlot ? <RotateCcw className="w-4 h-4 text-amber-400 shrink-0" /> : <PlusCircle className="w-4 h-4 shrink-0" />}
+              <span className="whitespace-nowrap">{isReplacingSlot ? "Replace & Another" : "Add & Another"}</span>
             </button>
 
             <button
               type="button"
               onClick={handleConfirmAdd}
-              className={`flex-1 py-3.5 px-5 rounded-2xl text-white font-black text-xs sm:text-sm shadow-xl transition-all active:scale-95 cursor-pointer font-outfit tracking-wide flex items-center justify-center gap-2 truncate ${
+              className={`flex-1 min-w-[200px] whitespace-nowrap py-3.5 px-4 sm:px-5 rounded-2xl text-white font-black text-xs sm:text-sm shadow-xl transition-all active:scale-95 cursor-pointer font-outfit tracking-wide flex items-center justify-center gap-2 shrink-0 ${
                 isReplacingSlot
                   ? "bg-amber-600 hover:bg-amber-700 shadow-amber-600/20"
                   : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/20"
               }`}
             >
               {isReplacingSlot ? <RotateCcw className="w-4 h-4 shrink-0" /> : <Check className="w-4 h-4 shrink-0" />}
-              <span className="truncate">{isReplacingSlot ? `Replace Slot in ${activeTimetable.name}` : `Add to ${activeTimetable.name}`}</span>
+              <span className="whitespace-nowrap">{isReplacingSlot ? `Replace Slot in ${activeTimetable.name}` : `Add to ${activeTimetable.name}`}</span>
             </button>
           </div>
         )}
@@ -4413,9 +5414,41 @@ export default function FFCSGuidedSelector({
     );
   };
 
-  const getPillsList = (): GuidedPhase[] => {
+  const getCurrentStepPill = (): string => {
+    if (guidedPhase === "builder") {
+      if (currentStep === 1) return "builder_course";
+      if (currentStep === 2) return "builder_slot";
+      return "builder_review";
+    }
+    return guidedPhase;
+  };
+
+  const handlePillClick = (p: string) => {
+    if (p === "builder_course") {
+      setGuidedPhase("builder");
+      setCurrentStep(1);
+    } else if (p === "builder_slot") {
+      if (selectedCourseCode) {
+        setGuidedPhase("builder");
+        setCurrentStep(2);
+      }
+    } else if (p === "builder_review") {
+      if (selectedOffering) {
+        setGuidedPhase("builder");
+        setCurrentStep(3);
+      }
+    } else {
+      setGuidedPhase(p as GuidedPhase);
+    }
+  };
+
+  const getPillsList = (): (GuidedPhase | "builder_course" | "builder_slot" | "builder_review")[] => {
     if (planMode === "auto") {
-      const phases: GuidedPhase[] = ["setup_mode", "setup_timetable", "setup_strategy"];
+      const phases: (GuidedPhase | "builder_course" | "builder_slot" | "builder_review")[] = [
+        "setup_mode",
+        "setup_timetable",
+        "setup_strategy",
+      ];
       if (guidedPhase === "setup_locks" || courseStrategy === "lock_advance") {
         phases.push("setup_locks");
       } else {
@@ -4429,17 +5462,207 @@ export default function FFCSGuidedSelector({
       phases.push("auto_summary", "auto_results");
       return phases;
     }
-    return courseStrategy === "lock_advance" || guidedPhase === "setup_locks"
-      ? ["setup_mode", "setup_timetable", "setup_strategy", "setup_locks"]
-      : ["setup_mode", "setup_timetable", "setup_strategy"];
+
+    // Manual flow: completely integrated for whichever timetable is mounted
+    const manualPhases: (GuidedPhase | "builder_course" | "builder_slot" | "builder_review")[] = [
+      "setup_mode",
+      "setup_timetable",
+      "setup_strategy",
+    ];
+    if (courseStrategy === "lock_advance" || guidedPhase === "setup_locks") {
+      manualPhases.push("setup_locks");
+    }
+    manualPhases.push("builder_course", "builder_slot", "builder_review", "manual_timetable_view");
+    return manualPhases;
+  };
+
+  const renderMobilePreflightCard = () => (
+    <div
+      data-testid="mobile-preflight-screen"
+      className="w-full max-w-md mx-auto flex-1 flex flex-col justify-center gap-4 my-auto animate-in fade-in duration-200"
+    >
+      {/* Top category label & PWA status */}
+      <div className="space-y-1.5 text-center sm:text-left">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400 font-outfit">
+            Mobile First · Timetable Studio
+          </span>
+          {isPwaStandalone ? (
+            <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+              <CheckCircle2 className="w-3 h-3" />
+              <span>App Installed</span>
+            </span>
+          ) : canInstall ? (
+            <span className="text-[11px] font-semibold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+              <Smartphone className="w-3 h-3" />
+              <span>PWA Ready</span>
+            </span>
+          ) : null}
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight font-outfit">
+          Mobile-First Timetable Builder
+        </h1>
+        <p className="text-xs text-zinc-400 leading-relaxed font-medium">
+          Step-by-step mobile timetable designer with live clash checking, faculty ratings, and fast multi-timetable switching.
+        </p>
+      </div>
+
+      {/* Feature Highlight Cards */}
+      <div className="grid grid-cols-1 gap-2.5">
+        <div className="flex items-center gap-3 p-3 rounded-2xl bg-zinc-900/80 border border-zinc-800 shadow-sm">
+          <div className="w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center shrink-0">
+            <Wand2 className="w-4 h-4 text-indigo-400" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-zinc-200">Clash-Free Timetable Generator</p>
+            <p className="text-[11px] text-zinc-400 truncate">Automatic ranking with preferred slots and timings</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 p-3 rounded-2xl bg-zinc-900/80 border border-zinc-800 shadow-sm">
+          <div className="w-8 h-8 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center shrink-0">
+            <Users className="w-4 h-4 text-purple-400" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-zinc-200">Faculty Ratings & Swapping</p>
+            <p className="text-[11px] text-zinc-400 truncate">Compare faculty scores and swap slots seamlessly</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 p-3 rounded-2xl bg-zinc-900/80 border border-zinc-800 shadow-sm">
+          <div className="w-8 h-8 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center shrink-0">
+            <CalendarDays className="w-4 h-4 text-blue-400" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-zinc-200">Multi-Timetable Browser</p>
+            <p className="text-[11px] text-zinc-400 truncate">Switch, create, and manage schedules side-by-side</p>
+          </div>
+        </div>
+      </div>
+
+      {/* PWA Install Button */}
+      {canInstall && !isPwaStandalone && (
+        <button
+          type="button"
+          data-testid="pwa-install-btn"
+          onClick={promptInstall}
+          className="w-full py-2.5 px-4 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm active:scale-98"
+        >
+          <Download className="w-3.5 h-3.5" />
+          <span>Install App</span>
+        </button>
+      )}
+    </div>
+  );
+
+  const renderHeader = () => {
+    if (isMobileViewport && !hasLaunchedHero) {
+      return (
+        <header className="relative z-20 w-full max-w-md sm:max-w-2xl mx-auto flex items-center justify-between shrink-0 pt-1">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-extrabold tracking-wider uppercase bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
+              <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+              <span>FFCS Mobile Generator</span>
+            </span>
+            {activeTimetable?.name && (
+              <span className="text-[11px] font-semibold text-zinc-400 bg-zinc-900/60 border border-zinc-800 px-2.5 py-1 rounded-full hidden sm:inline-flex items-center gap-1">
+                <CalendarDays className="w-3 h-3 text-indigo-400" />
+                <span>{activeTimetable.name}</span>
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {onSwitchToSinglePageView && (
+              <button
+                type="button"
+                onClick={onSwitchToSinglePageView}
+                className="h-8 px-2.5 rounded-xl bg-zinc-900/60 border border-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-800/80 flex items-center gap-1.5 text-xs font-semibold transition-colors cursor-pointer"
+                title="Switch to Single Page View"
+              >
+                <ArrowLeft className="w-3.5 h-3.5 text-blue-400" />
+                <span>Single Page View (Plan)</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={handleToggleFullScreen}
+              className="w-8 h-8 rounded-xl bg-zinc-900/60 border border-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+              title={fullScreenMode ? "Exit Fullscreen" : "Enter Fullscreen"}
+            >
+              {fullScreenMode ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+            </button>
+          </div>
+        </header>
+      );
+    }
+
+    return (
+      <header className="relative z-20 w-full max-w-md sm:max-w-2xl mx-auto flex items-center justify-between shrink-0 pt-1">
+        <button
+          type="button"
+          onClick={handlePrevStep}
+          className="flex items-center gap-1.5 text-xs font-bold text-zinc-400 hover:text-white transition-colors cursor-pointer py-1.5 px-3 rounded-xl bg-zinc-900/60 border border-zinc-800 backdrop-blur-md active:scale-95"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          <span>{guidedPhase === "setup_mode" ? "Timetable" : "Back"}</span>
+        </button>
+
+        <div className="flex items-center gap-2">
+          {getPillsList().map((p, idx, arr) => {
+            const stepNum = idx + 1;
+            const currentPill = getCurrentStepPill();
+            const currentIdx = arr.indexOf(currentPill as any);
+            return (
+              <button
+                key={p}
+                type="button"
+                onClick={() => handlePillClick(p)}
+                className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                  currentPill === p
+                    ? "w-7 bg-indigo-500 shadow-xs shadow-indigo-500/50"
+                    : currentIdx > idx
+                    ? "w-2.5 bg-indigo-400/50 hover:bg-indigo-400"
+                    : "w-2 bg-zinc-800"
+                }`}
+                title={`Step ${stepNum}`}
+              />
+            );
+          })}
+        </div>
+
+        <div className="flex items-center gap-2">
+          {onSwitchToSinglePageView && (
+            <button
+              type="button"
+              onClick={onSwitchToSinglePageView}
+              className="h-8 px-2.5 rounded-xl bg-zinc-900/60 border border-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-800/80 flex items-center gap-1.5 text-xs font-semibold transition-colors cursor-pointer"
+              title="Switch to Single Page View"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 text-blue-400" />
+              <span>Single Page View (Plan)</span>
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={handleToggleFullScreen}
+            className="w-8 h-8 rounded-xl bg-zinc-900/60 border border-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+            title={fullScreenMode ? "Exit Fullscreen" : "Enter Fullscreen"}
+          >
+            {fullScreenMode ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+          </button>
+        </div>
+      </header>
+    );
   };
 
   return (
     <div
+      data-testid="guided-hero-container"
       className={
         fullScreenMode
-          ? "fixed inset-0 z-50 bg-zinc-950 text-zinc-100 flex flex-col justify-between overflow-hidden select-none px-4 sm:px-8 py-4 sm:py-6 animate-in fade-in duration-300"
-          : "relative w-full rounded-[32px] bg-zinc-950 text-zinc-100 flex flex-col justify-between overflow-hidden select-none px-4 sm:px-6 py-5 shadow-2xl border border-zinc-800 min-h-[640px]"
+          ? "fixed inset-0 z-50 h-[100dvh] w-full bg-zinc-950 text-zinc-100 flex flex-col justify-between overflow-y-auto sm:overflow-hidden select-none px-4 sm:px-8 py-4 sm:py-6 animate-in fade-in duration-300"
+          : "relative w-full rounded-[32px] bg-zinc-950 text-zinc-100 flex flex-col justify-between overflow-hidden select-none px-4 sm:px-6 py-5 shadow-2xl border border-zinc-800 min-h-[580px]"
       }
     >
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -4501,44 +5724,26 @@ export default function FFCSGuidedSelector({
               </button>
 
               <div className="flex items-center gap-2">
-                {guidedPhase !== "builder" ? (
-                  getPillsList().map((p, idx, arr) => {
-                    const stepNum = idx + 1;
-                    const currentIdx = arr.indexOf(guidedPhase);
-                    return (
-                      <button
-                        key={p}
-                        type="button"
-                        onClick={() => setGuidedPhase(p)}
-                        className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
-                          guidedPhase === p
-                            ? "w-7 bg-indigo-500 shadow-xs shadow-indigo-500/50"
-                            : currentIdx > idx
-                            ? "w-2.5 bg-indigo-400/50 hover:bg-indigo-400"
-                            : "w-2 bg-zinc-800"
-                        }`}
-                        title={`Step ${stepNum}`}
-                      />
-                    );
-                  })
-                ) : (
-                  [1, 2, 3].map((stepNum) => (
+                {getPillsList().map((p, idx, arr) => {
+                  const stepNum = idx + 1;
+                  const currentPill = getCurrentStepPill();
+                  const currentIdx = arr.indexOf(currentPill as any);
+                  return (
                     <button
-                      key={stepNum}
+                      key={p}
                       type="button"
-                      disabled={stepNum > currentStep}
-                      onClick={() => setCurrentStep(stepNum as GuidedStep)}
+                      onClick={() => handlePillClick(p)}
                       className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
-                        currentStep === stepNum
+                        currentPill === p
                           ? "w-7 bg-indigo-500 shadow-xs shadow-indigo-500/50"
-                          : currentStep > stepNum
+                          : currentIdx > idx
                           ? "w-2.5 bg-indigo-400/50 hover:bg-indigo-400"
                           : "w-2 bg-zinc-800"
                       }`}
                       title={`Step ${stepNum}`}
                     />
-                  ))
-                )}
+                  );
+                })}
               </div>
 
               <div className="flex items-center gap-2">
@@ -4547,10 +5752,10 @@ export default function FFCSGuidedSelector({
                     type="button"
                     onClick={onSwitchToSinglePageView}
                     className="h-8 px-2.5 rounded-xl bg-zinc-900/60 border border-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-800/80 flex items-center gap-1.5 text-xs font-semibold transition-colors cursor-pointer"
-                    title="Move back to Single Page Viewer Mode"
+                    title="Switch to Single Page View"
                   >
                     <ArrowLeft className="w-3.5 h-3.5 text-blue-400" />
-                    <span>Single Page View</span>
+                    <span>Single Page View (Plan)</span>
                   </button>
                 )}
                 <button
@@ -4813,6 +6018,25 @@ export default function FFCSGuidedSelector({
                 </>
               )}
 
+              {guidedPhase === "manual_timetable_view" && (
+                <>
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-lg">
+                    <LayoutGrid className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400 font-outfit">
+                      Phase {getPillsList().indexOf("manual_timetable_view") + 1} of {getPillsList().length} · Timetable Browser
+                    </span>
+                    <h1 className="text-2xl lg:text-3xl font-black text-white font-outfit tracking-tight">
+                      {(effectiveTimetables[browsingTimetableIndex] || activeTimetable)?.name || "Timetable"}
+                    </h1>
+                  </div>
+                  <p className="text-xs text-zinc-400 font-medium leading-relaxed">
+                    Browse and cycle through all your saved timetables, review slot allocations, and inspect metrics directly inside the hero.
+                  </p>
+                </>
+              )}
+
               {guidedPhase === "builder" && currentStep === 1 && (
                 <>
                   <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-lg">
@@ -4820,14 +6044,14 @@ export default function FFCSGuidedSelector({
                   </div>
                   <div>
                     <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400 font-outfit">
-                      Step 1 · Discovery
+                      Phase {getPillsList().indexOf("builder_course") + 1} of {getPillsList().length} · Choose Course
                     </span>
                     <h1 className="text-2xl lg:text-3xl font-black text-white font-outfit tracking-tight">
-                      Choose Course
+                      Choose Course for {activeTimetable.name}
                     </h1>
                   </div>
                   <p className="text-xs text-zinc-400 font-medium leading-relaxed">
-                    Browse the university catalogue or filter by your pre-locked courses.
+                    Browse the university catalogue or filter by your pre-locked courses for <strong className="text-white">{activeTimetable.name}</strong>.
                   </p>
                 </>
               )}
@@ -4839,14 +6063,14 @@ export default function FFCSGuidedSelector({
                   </div>
                   <div>
                     <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400 font-outfit">
-                      Step 2 · Timings &amp; Profs
+                      Phase {getPillsList().indexOf("builder_slot") + 1} of {getPillsList().length} · Timings &amp; Profs
                     </span>
                     <h1 className="text-2xl lg:text-3xl font-black text-white font-outfit tracking-tight">
                       Pick Faculty &amp; Slot
                     </h1>
                   </div>
                   <p className="text-xs text-zinc-400 font-medium leading-relaxed">
-                    Choose your preferred instructor and slot timing for <strong className="text-white">{selectedCourseCode}</strong>.
+                    Choose your preferred instructor and slot timing for <strong className="text-white">{selectedCourseCode}</strong> into <strong className="text-white">{activeTimetable.name}</strong>.
                   </p>
                 </>
               )}
@@ -4860,7 +6084,7 @@ export default function FFCSGuidedSelector({
                   </div>
                   <div>
                     <span className={`text-[10px] font-black uppercase tracking-wider font-outfit ${isReplacingSlot ? "text-amber-400" : "text-emerald-400"}`}>
-                      Step 3 · {isReplacingSlot ? "Replace Slot" : "Review & Lore"}
+                      Phase {getPillsList().indexOf("builder_review") + 1} of {getPillsList().length} · {isReplacingSlot ? "Replace Slot" : "Review & Place"}
                     </span>
                     <h1 className="text-2xl lg:text-3xl font-black text-white font-outfit tracking-tight">
                       {isReplacingSlot ? "Replace Slot" : "Review & Place"}
@@ -4870,14 +6094,14 @@ export default function FFCSGuidedSelector({
                     {isReplacingSlot ? (
                       <>This course is currently in <strong className="text-white">{activeTimetable.name}</strong>. Confirm to replace the existing slot.</>
                     ) : (
-                      <>Confirm placement into <strong className="text-white">{activeTimetable.name}</strong> with community W ratings and clash detection.</>
+                      <>Confirm placement into <strong className="text-white">{activeTimetable.name}</strong> with community ratings and clash detection.</>
                     )}
                   </p>
                 </>
               )}
             </div>
 
-            <div className="flex items-center gap-2.5 shrink-0 pt-2 w-full">
+            <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 w-full">
               {renderBottomActions()}
             </div>
           </div>
@@ -4897,6 +6121,7 @@ export default function FFCSGuidedSelector({
             {guidedPhase === "auto_summary" && renderAutoSummaryCard(true)}
             {guidedPhase === "auto_results" && renderAutoResultsCard(true)}
             {guidedPhase === "auto_timetable_view" && renderAutoTimetableViewCard(true)}
+            {guidedPhase === "manual_timetable_view" && renderManualTimetableViewCard(true)}
             {guidedPhase === "builder" && currentStep === 1 && renderCourseListCard(true)}
             {guidedPhase === "builder" && currentStep === 2 && renderSlotOfferingsCard(true)}
             {guidedPhase === "builder" && currentStep === 3 && renderReviewCard(true)}
@@ -4905,81 +6130,13 @@ export default function FFCSGuidedSelector({
       ) : (
         /* Vertical Portrait Layout */
         <>
-          <header className="relative z-20 w-full max-w-md sm:max-w-2xl mx-auto flex items-center justify-between shrink-0 pt-1">
-            <button
-              type="button"
-              onClick={handlePrevStep}
-              className="flex items-center gap-1.5 text-xs font-bold text-zinc-400 hover:text-white transition-colors cursor-pointer py-1.5 px-3 rounded-xl bg-zinc-900/60 border border-zinc-800 backdrop-blur-md active:scale-95"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              <span>{guidedPhase === "setup_mode" ? "Timetable" : "Back"}</span>
-            </button>
-
-            <div className="flex items-center gap-2">
-              {guidedPhase !== "builder" ? (
-                getPillsList().map((p, idx, arr) => {
-                  const stepNum = idx + 1;
-                  const currentIdx = arr.indexOf(guidedPhase);
-                  return (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => setGuidedPhase(p)}
-                      className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
-                        guidedPhase === p
-                          ? "w-7 bg-indigo-500 shadow-xs shadow-indigo-500/50"
-                          : currentIdx > idx
-                          ? "w-2.5 bg-indigo-400/50 hover:bg-indigo-400"
-                          : "w-2 bg-zinc-800"
-                      }`}
-                      title={`Step ${stepNum}`}
-                    />
-                  );
-                })
-              ) : (
-                [1, 2, 3].map((stepNum) => (
-                  <button
-                    key={stepNum}
-                    type="button"
-                    disabled={stepNum > currentStep}
-                    onClick={() => setCurrentStep(stepNum as GuidedStep)}
-                    className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
-                      currentStep === stepNum
-                        ? "w-7 bg-indigo-500 shadow-xs shadow-indigo-500/50"
-                        : currentStep > stepNum
-                        ? "w-2.5 bg-indigo-400/50 hover:bg-indigo-400"
-                        : "w-2 bg-zinc-800"
-                    }`}
-                    title={`Step ${stepNum}`}
-                  />
-                ))
-              )}
-            </div>
-
-            <div className="flex items-center gap-2">
-              {onSwitchToSinglePageView && (
-                <button
-                  type="button"
-                  onClick={onSwitchToSinglePageView}
-                  className="h-8 px-2.5 rounded-xl bg-zinc-900/60 border border-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-800/80 flex items-center gap-1.5 text-xs font-semibold transition-colors cursor-pointer"
-                  title="Move back to Single Page Viewer Mode"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5 text-blue-400" />
-                  <span>Single Page View</span>
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={handleToggleFullScreen}
-                className="w-8 h-8 rounded-xl bg-zinc-900/60 border border-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
-                title={fullScreenMode ? "Exit Fullscreen" : "Enter Fullscreen"}
-              >
-                {fullScreenMode ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-              </button>
-            </div>
-          </header>
+          {renderHeader()}
 
           <main className="relative z-20 w-full max-w-md sm:max-w-2xl mx-auto flex-1 flex flex-col justify-center min-h-0 my-auto py-2 sm:py-3">
+            {isMobileViewport && !hasLaunchedHero ? (
+              renderMobilePreflightCard()
+            ) : (
+              <>
             {guidedPhase === "setup_mode" && (
               <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
                 <div className="flex flex-col items-center gap-2 shrink-0">
@@ -5227,9 +6384,31 @@ export default function FFCSGuidedSelector({
                 {renderReviewCard(false)}
               </div>
             )}
+
+            {guidedPhase === "manual_timetable_view" && (
+              <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
+                <div className="flex flex-col items-center gap-2 shrink-0">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-lg">
+                    <LayoutGrid className="w-6 h-6" />
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400 font-outfit">
+                    Phase {getPillsList().indexOf("manual_timetable_view") + 1} of {getPillsList().length} · Timetable Browser
+                  </span>
+                  <h1 className="text-2xl sm:text-3xl font-black text-white font-outfit tracking-tight">
+                    {(effectiveTimetables[browsingTimetableIndex] || activeTimetable)?.name || "Timetable"}
+                  </h1>
+                  <p className="text-xs text-zinc-400 font-medium max-w-xs sm:max-w-md">
+                    Browse and cycle through all your saved timetables, review slot allocations, and inspect metrics directly inside the hero.
+                  </p>
+                </div>
+                {renderManualTimetableViewCard(false)}
+              </div>
+            )}
+              </>
+            )}
           </main>
 
-          <footer className="relative z-20 w-full max-w-sm sm:max-w-md mx-auto flex items-center justify-center gap-2.5 shrink-0 pb-1 sm:pb-3">
+          <footer className="relative z-20 w-full max-w-md sm:max-w-xl mx-auto flex flex-wrap items-center justify-center gap-2 shrink-0 pb-1 sm:pb-3">
             {renderBottomActions()}
           </footer>
         </>

@@ -101,7 +101,7 @@ export default function ModernHorizontalTimetableGrid({
       )}
 
       {/* Responsive scrollable table container */}
-      <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700/60">
+      <div className="overflow-x-auto momentum-scroll scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700/60 touch-pan-x">
         <table className="w-full text-left border-collapse min-w-[1000px]">
           {/* Table Header */}
           <thead>
@@ -130,12 +130,7 @@ export default function ModernHorizontalTimetableGrid({
                   );
                 }
 
-                let pNum: number;
-                if (lunchIdx !== -1 && pIdx > lunchIdx) {
-                  pNum = 6 + (pIdx - (lunchIdx + 1));
-                } else {
-                  pNum = Math.min(pIdx + 1, 5);
-                }
+                const pNum = lunchIdx !== -1 && pIdx > lunchIdx ? pIdx : pIdx + 1;
 
                 return (
                   <th

@@ -14,6 +14,7 @@ import SelectField from "../shared/primitives/SelectField";
 import OptionPicker from "../shared/primitives/OptionPicker";
 
 import { getAssetPath } from "@/lib/utils";
+import { navigateToFFCSPlanner } from "@/lib/ffcsNavigation";
 import { createTapTracker, hasSectionHome, sectionHomeFor } from "@/lib/sectionHome";
 import { useOverlayBack } from "@/lib/overlayStack";
 import { animateThemeCircularExpansion } from "../ThemeToggle";
@@ -608,10 +609,7 @@ export default function NavigationTabs({
       label: "FFCS Planner",
       icon: Compass,
       isActive: (activeTab === "more" && activeMoreSubTab === "ffcs") || (activeTab === "tools" && activeToolsSubTab === "ffcs"),
-      onSelect: () => {
-        selectTab("tools");
-        setActiveToolsSubTab?.("ffcs");
-      },
+      onSelect: navigateToFFCSPlanner,
     },
     {
       id: "tools",
@@ -913,10 +911,7 @@ export default function NavigationTabs({
       id: "ffcs",
       label: "FFCS Planner",
       isActive: activeTab === "tools" && activeToolsSubTab === "ffcs",
-      onSelect: () => {
-        selectTab("tools");
-        setActiveToolsSubTab?.("ffcs");
-      },
+      onSelect: navigateToFFCSPlanner,
     },
   ], [activeTab, activeToolsSubTab, selectTab, setActiveToolsSubTab]);
 
@@ -1775,7 +1770,7 @@ const AppLibraryPortal = memo(({
     { label: "Announcements", group: "Campus", icon: Rss, action: () => { selectTab("community"); } },
     
     { label: "Timetable Sharing", group: "Tools", icon: Users, action: () => { selectTab("tools"); setActiveToolsSubTab?.("social"); } },
-    { label: "FFCS Planner", group: "Tools", icon: Compass, action: () => { selectTab("tools"); setActiveToolsSubTab?.("ffcs"); } },
+    { label: "FFCS Planner", group: "Tools", icon: Compass, action: navigateToFFCSPlanner },
     { label: "Tools Hub", group: "Tools", icon: Layers, action: () => { selectTab("tools"); setActiveToolsSubTab?.("overview"); } },
     { label: "Question Bank", group: "Tools", icon: Database, action: () => { selectTab("tools"); setActiveToolsSubTab?.("qbank"); } },
     { label: "Faculty Explorer", group: "Tools", icon: UserCheck, action: () => { selectTab("tools"); setActiveToolsSubTab?.("faculty-info"); } },
@@ -1820,7 +1815,7 @@ const AppLibraryPortal = memo(({
       name: "Tools",
       items: [
         { label: "Timetable Sharing", icon: Users, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("social"); } },
-        { label: "FFCS Planner", icon: Compass, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("ffcs"); } },
+        { label: "FFCS Planner", icon: Compass, type: "link", action: navigateToFFCSPlanner },
         { label: "Tools Hub", icon: Layers, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("overview"); } },
         { label: "Question Bank", icon: Database, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("qbank"); } },
         { label: "Faculty Explorer", icon: UserCheck, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("faculty-info"); } },

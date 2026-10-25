@@ -16,7 +16,7 @@ describe("FFCSLayoutModeModal", () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it("renders both layout mode options and header details when open", () => {
+  it("renders all layout mode options and header details when open", () => {
     render(
       <FFCSLayoutModeModal
         isOpen={true}
@@ -29,9 +29,11 @@ describe("FFCSLayoutModeModal", () => {
     expect(screen.getByText("Choose Your Planner Experience")).toBeDefined();
     expect(screen.getByText("Guided Hero Mode")).toBeDefined();
     expect(screen.getByText("Standard Single Page View")).toBeDefined();
+    expect(screen.getByText("Classic View")).toBeDefined();
     expect(screen.getByText("Mobile First")).toBeDefined();
     expect(screen.getByText("All-in-One")).toBeDefined();
     expect(screen.getByText(/Remember my preference/i)).toBeDefined();
+    expect(screen.getByRole("radio", { name: /Standard Single Page View/ }).getAttribute("aria-checked")).toBe("true");
   });
 
   it("selects Guided Hero Mode and triggers onSelectMode with remember flag", () => {
@@ -83,6 +85,30 @@ describe("FFCSLayoutModeModal", () => {
     fireEvent.click(switchBtn);
 
     expect(onSelectMode).toHaveBeenCalledWith("modern", false);
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("selects Classic View and triggers onSelectMode with remember flag", () => {
+    const onSelectMode = vi.fn();
+    const onClose = vi.fn();
+
+    render(
+      <FFCSLayoutModeModal
+        isOpen={true}
+        onClose={onClose}
+        currentMode="guided"
+        onSelectMode={onSelectMode}
+      />
+    );
+
+    const classicOption = screen.getByText("Classic View").closest("button");
+    expect(classicOption).toBeDefined();
+    fireEvent.click(classicOption!);
+
+    const switchBtn = screen.getByText("Switch to Classic View");
+    fireEvent.click(switchBtn);
+
+    expect(onSelectMode).toHaveBeenCalledWith("classic", true);
     expect(onClose).toHaveBeenCalled();
   });
 

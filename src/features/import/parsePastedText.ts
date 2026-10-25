@@ -22,6 +22,7 @@
 
 import type { ParsedCourse, AddedCourse } from "@/components/custom/exams/FFCS/types";
 import { COLORS } from "@/components/custom/exams/FFCS/constants";
+import { normalizeHeader, type ImportableField } from "./normalizeColumns";
 
 export interface PastedCourseOption {
   /** Exactly what was pasted, so the preview can echo it back unaltered. */
@@ -425,28 +426,446 @@ export function parseVtopRegistrationText(raw: string): VtopCourseRow[] {
   return results;
 }
 
-export function parsePastedText(raw: string): PastedCourseOption[] {
-  if (isVtopRegistrationText(raw)) {
-    const vtopRows = parseVtopRegistrationText(raw);
-    if (vtopRows.length > 0) {
-      return vtopRows.map((row) => ({
-        rawLine: `${row.code} - ${row.title} - ${row.type} - ${row.slot} - ${row.venue} - ${row.faculty}`,
-        courseCode: row.code,
-        courseName: row.title,
-        professorName: row.faculty,
-        theorySlotRaw: row.type === "ELA" || row.type === "LO" ? null : row.slot,
-        labSlotRaw: row.type === "ELA" || row.type === "LO" ? row.slot : null,
-        credits: row.credits ? parseFloat(row.credits) : null,
-        confidence: "high",
-        errors: [],
-        venue: row.venue,
-        type: row.type,
-        classId: row.classId,
-        employeeId: row.employeeId,
-      }));
+/** Delimited row tokenizer supporting CSV quotes and markdown table borders */
+function parseDelimitedRow(line: string, delimiter: string): string[] {
+  let cleaned = line.trim();
+  if (delimiter === "|") {
+    if (cleaned.startsWith("|")) cleaned = cleaned.slice(1);
+    if (cleaned.endsWith("|")) cleaned = cleaned.slice(0, -1);
+  }
+
+  if (delimiter === "\t") {
+    return cleaned.split("\t").map((c) => c.trim().replace(/^["']|["']$/g, ""));
+  }
+
+  const cells: string[] = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < cleaned.length; i++) {
+    const char = cleaned[i];
+    if (char === '"' || char === "'") {
+      inQuotes = !inQuotes;
+    } else if (char === delimiter && !inQuotes) {
+      cells.push(current.trim().replace(/^["']|["']$/g, ""));
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+  cells.push(current.trim().replace(/^["']|["']$/g, ""));
+  return cells;
+}
+
+/** Sniff delimiter across lines (\t > | > ; > ,) */
+function detectDelimiter(lines: string[]): string | null {
+  const candidates = ["\t", "|", ";", ","];
+
+  for (const delim of candidates) {
+    let matchCount = 0;
+    for (const line of lines) {
+      if (delim === "|") {
+        let inner = line.trim();
+        if (inner.startsWith("|")) inner = inner.slice(1);
+        if (inner.endsWith("|")) inner = inner.slice(0, -1);
+        if (inner.includes("|")) matchCount++;
+      } else {
+        if (line.includes(delim)) matchCount++;
+      }
+    }
+
+    if (lines.length > 0 && matchCount >= Math.ceil(lines.length * 0.5)) {
+      return delim;
     }
   }
 
+  return null;
+}
+
+/** Infer column roles from cell content patterns when no header row is present */
+function inferColumnMapping(grid: string[][]): Map<number, ImportableField> {
+  const colMap = new Map<number, ImportableField>();
+  if (grid.length === 0) return colMap;
+
+  const numCols = Math.max(...grid.map((r) => r.length));
+  const claimed = new Set<ImportableField>();
+
+  // Pass 1: exact slot token match
+  for (let c = 0; c < numCols; c++) {
+    const vals = grid.map((r) => r[c] || "").filter(Boolean);
+    if (!claimed.has("SLOT") && vals.length > 0 && vals.every((v) => isValidSlot(v))) {
+      colMap.set(c, "SLOT");
+      claimed.add("SLOT");
+      break;
+    }
+  }
+
+  // Pass 2: exact course code match
+  for (let c = 0; c < numCols; c++) {
+    if (colMap.has(c)) continue;
+    const vals = grid.map((r) => r[c] || "").filter(Boolean);
+    if (!claimed.has("CODE") && vals.length > 0 && vals.every((v) => /^[A-Z]{2,6}\d{2,4}[A-Z]?$/i.test(v))) {
+      colMap.set(c, "CODE");
+      claimed.add("CODE");
+      break;
+    }
+  }
+
+  // Pass 3: credits match (e.g. 1, 2, 3, 4, 1.0, 3.0)
+  for (let c = 0; c < numCols; c++) {
+    if (colMap.has(c)) continue;
+    const vals = grid.map((r) => r[c] || "").filter(Boolean);
+    if (!claimed.has("CREDITS") && vals.length > 0 && vals.every((v) => /^[0-9](?:\.[05])?$/.test(v))) {
+      colMap.set(c, "CREDITS");
+      claimed.add("CREDITS");
+      break;
+    }
+  }
+
+  // Pass 4: venue match (e.g. AB4-305, AB3-102, SJ-101, TT-204)
+  for (let c = 0; c < numCols; c++) {
+    if (colMap.has(c)) continue;
+    const vals = grid.map((r) => r[c] || "").filter(Boolean);
+    if (!claimed.has("ROOM") && vals.length > 0 && vals.every((v) => /^[A-Z]{1,4}\d*[-_]\d+[A-Z]?$/i.test(v))) {
+      colMap.set(c, "ROOM");
+      claimed.add("ROOM");
+      break;
+    }
+  }
+
+  // Pass 5: course type match (e.g. ETH, ELA, TH, LO, SS)
+  for (let c = 0; c < numCols; c++) {
+    if (colMap.has(c)) continue;
+    const vals = grid.map((r) => r[c] || "").filter(Boolean);
+    if (
+      !claimed.has("TYPE") &&
+      vals.length > 0 &&
+      vals.every((v) =>
+        /^(?:ETH|ELA|TH|LO|SS|EPJ|PJ|Embedded\s+Theory|Embedded\s+Lab|Theory\s+Only|Lab\s+Only|Soft\s+Skill)$/i.test(v)
+      )
+    ) {
+      colMap.set(c, "TYPE");
+      claimed.add("TYPE");
+      break;
+    }
+  }
+
+  // Pass 6: Title and Faculty among remaining columns
+  const remaining: number[] = [];
+  for (let c = 0; c < numCols; c++) {
+    if (!colMap.has(c)) remaining.push(c);
+  }
+
+  if (remaining.length === 1) {
+    colMap.set(remaining[0], "TITLE");
+  } else if (remaining.length >= 2) {
+    const col0Vals = grid.map((r) => r[remaining[0]] || "");
+    const col1Vals = grid.map((r) => r[remaining[1]] || "");
+    const col0HasProf = col0Vals.some((v) => isProfessorish(v));
+    const col1HasProf = col1Vals.some((v) => isProfessorish(v));
+
+    if (col1HasProf && !col0HasProf) {
+      colMap.set(remaining[0], "TITLE");
+      colMap.set(remaining[1], "FACULTY");
+    } else if (col0HasProf && !col1HasProf) {
+      colMap.set(remaining[0], "FACULTY");
+      colMap.set(remaining[1], "TITLE");
+    } else {
+      colMap.set(remaining[0], "TITLE");
+      colMap.set(remaining[1], "FACULTY");
+    }
+  }
+
+  return colMap;
+}
+
+/** Parse any table-like delimited text (CSV, TSV, Piped, Markdown, Semicolon) */
+function parseDelimitedText(
+  raw: string
+): { courses: ParsedCourse[]; addedCourses: AddedCourse[]; format: string } | null {
+  const lines = raw
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+
+  const dataLines = lines.filter((l) => !/^[|\s:-]+$/.test(l));
+  if (dataLines.length === 0) return null;
+
+  const delimiter = detectDelimiter(dataLines);
+  if (!delimiter) return null;
+
+  const grid = dataLines.map((l) => parseDelimitedRow(l, delimiter));
+  if (grid.length === 0) return null;
+
+  const row0 = grid[0];
+  const headerMap = new Map<number, ImportableField>();
+  let hasHeader = false;
+
+  row0.forEach((cell, idx) => {
+    const field = normalizeHeader(cell);
+    if (field) {
+      headerMap.set(idx, field);
+      hasHeader = true;
+    }
+  });
+
+  const isRealHeader =
+    hasHeader &&
+    (headerMap.has(0) ||
+      Array.from(headerMap.values()).some((f) => f === "CODE" || f === "SLOT"));
+
+  let colMap: Map<number, ImportableField>;
+  let contentRows: string[][];
+
+  if (isRealHeader) {
+    colMap = headerMap;
+    contentRows = grid.slice(1);
+  } else {
+    contentRows = grid;
+    colMap = inferColumnMapping(contentRows.slice(0, 5));
+  }
+
+  const hasCode = Array.from(colMap.values()).includes("CODE");
+  const hasSlot = Array.from(colMap.values()).includes("SLOT");
+  if (!hasCode || !hasSlot) return null;
+
+  const parsedCourses: ParsedCourse[] = [];
+
+  for (const row of contentRows) {
+    let code = "";
+    let title = "";
+    let slot = "";
+    let faculty = "";
+    let venue = "";
+    let credits = "0";
+    let type = "Theory";
+    let batch = "";
+
+    colMap.forEach((field, colIdx) => {
+      const val = row[colIdx]?.trim() ?? "";
+      if (field === "CODE") code = val.toUpperCase();
+      else if (field === "TITLE") title = val;
+      else if (field === "SLOT") slot = val.toUpperCase();
+      else if (field === "FACULTY") faculty = val;
+      else if (field === "ROOM") venue = val;
+      else if (field === "CREDITS") credits = val;
+      else if (field === "TYPE") type = val;
+      else if (field === "BATCH") batch = val;
+    });
+
+    if (!code || !slot || !isValidSlot(slot)) continue;
+
+    if (type === "Theory" || !type) {
+      const tokens = slot.split("+");
+      const hasLab = tokens.some((t) => t.startsWith("L"));
+      const hasTheory = tokens.some((t) => !t.startsWith("L"));
+      type = hasTheory && hasLab ? "ETH+ELA" : hasLab ? "LO" : "TH";
+    }
+
+    parsedCourses.push({
+      CODE: code,
+      TITLE: title,
+      TYPE: type,
+      CREDITS: credits || "0",
+      ROOM: venue || "TBA",
+      SLOT: slot,
+      FACULTY: faculty,
+      BATCH: batch,
+    });
+  }
+
+  if (parsedCourses.length === 0) return null;
+
+  const formatName =
+    delimiter === "\t"
+      ? "tsv"
+      : delimiter === "|"
+      ? dataLines[0].startsWith("|")
+        ? "markdown"
+        : "piped"
+      : delimiter === ";"
+      ? "semicolon"
+      : "csv";
+
+  return {
+    courses: parsedCourses,
+    addedCourses: parsedCoursesToAddedCourses(parsedCourses),
+    format: formatName,
+  };
+}
+
+/** Parse JSON array or backup export */
+function parseJsonPaste(raw: string): { courses: ParsedCourse[]; addedCourses: AddedCourse[] } | null {
+  const trimmed = raw.trim();
+  if (!trimmed.startsWith("[") && !trimmed.startsWith("{")) return null;
+
+  try {
+    const data = JSON.parse(trimmed);
+    let items: any[] = [];
+    if (Array.isArray(data)) {
+      items = data;
+    } else if (data && typeof data === "object") {
+      if (Array.isArray(data.courses)) {
+        items = data.courses;
+      } else if (Array.isArray(data.timetables) && data.timetables[0]?.courses) {
+        items = data.timetables[0].courses;
+      }
+    }
+
+    if (items.length === 0) return null;
+
+    const parsedCourses: ParsedCourse[] = [];
+    for (const item of items) {
+      const code = String(item.code || item.CODE || "").trim().toUpperCase();
+      const slot = String(
+        item.slot || item.SLOT || (Array.isArray(item.slots) ? item.slots.join("+") : "")
+      )
+        .trim()
+        .toUpperCase();
+      if (!code || !slot) continue;
+
+      const title = String(item.title || item.TITLE || item.name || "").trim();
+      const faculty = String(item.faculty || item.FACULTY || item.professor || "").trim();
+      const venue = String(item.venue || item.VENUE || item.room || item.ROOM || "").trim();
+      const credits = String(item.credits || item.CREDITS || "0").trim();
+      const type = String(item.type || item.TYPE || "Theory").trim();
+
+      parsedCourses.push({
+        CODE: code,
+        TITLE: title,
+        TYPE: type,
+        CREDITS: credits,
+        ROOM: venue || "TBA",
+        SLOT: slot,
+        FACULTY: faculty,
+        BATCH: String(item.batch || item.BATCH || ""),
+        ERP_ID: item.employeeId || item.ERP_ID,
+        CLASS_ID: item.classId || item.CLASS_ID,
+      });
+    }
+
+    if (parsedCourses.length === 0) return null;
+
+    return {
+      courses: parsedCourses,
+      addedCourses: parsedCoursesToAddedCourses(parsedCourses),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export interface UniversalPasteResult {
+  addedCourses: AddedCourse[];
+  parsedCourses: ParsedCourse[];
+  format: "vtop" | "markdown" | "tsv" | "csv" | "piped" | "semicolon" | "json" | "generic";
+  totalCredits: number;
+  uniqueCount: number;
+}
+
+/** Universal parser: accepts JSON, VTOP tables, CSV, TSV, Markdown, Piped, Semicolon, or plain text */
+export function parseUniversalPaste(raw: string): UniversalPasteResult {
+  const trimmed = String(raw ?? "").trim();
+  if (!trimmed) {
+    return {
+      addedCourses: [],
+      parsedCourses: [],
+      format: "generic",
+      totalCredits: 0,
+      uniqueCount: 0,
+    };
+  }
+
+  // 1. JSON
+  const jsonResult = parseJsonPaste(trimmed);
+  if (jsonResult) {
+    return {
+      addedCourses: jsonResult.addedCourses,
+      parsedCourses: jsonResult.courses,
+      format: "json",
+      totalCredits: jsonResult.addedCourses.reduce((sum, c) => sum + (parseFloat(c.credits) || 0), 0),
+      uniqueCount: new Set(jsonResult.addedCourses.map((c) => c.code)).size,
+    };
+  }
+
+  // 2. VTOP Registration
+  if (isVtopRegistrationText(trimmed)) {
+    const vtopRows = parseVtopRegistrationText(trimmed);
+    if (vtopRows.length > 0) {
+      const addedCourses = vtopRowsToAddedCourses(vtopRows);
+      const parsedCourses: ParsedCourse[] = vtopRows.map((r) => ({
+        CODE: r.code,
+        TITLE: r.title,
+        TYPE: r.type,
+        CREDITS: r.credits,
+        ROOM: r.venue,
+        SLOT: r.slot,
+        FACULTY: r.faculty,
+        ERP_ID: r.employeeId,
+        CLASS_ID: r.classId,
+        BATCH: "",
+      }));
+
+      return {
+        addedCourses,
+        parsedCourses,
+        format: "vtop",
+        totalCredits: addedCourses.reduce((sum, c) => sum + (parseFloat(c.credits) || 0), 0),
+        uniqueCount: new Set(addedCourses.map((c) => c.code)).size,
+      };
+    }
+  }
+
+  // 3. Delimited Table (Markdown, TSV, CSV, Piped, Semicolon)
+  const delimited = parseDelimitedText(trimmed);
+  if (delimited && delimited.courses.length > 0) {
+    return {
+      addedCourses: delimited.addedCourses,
+      parsedCourses: delimited.courses,
+      format: delimited.format as any,
+      totalCredits: delimited.addedCourses.reduce((sum, c) => sum + (parseFloat(c.credits) || 0), 0),
+      uniqueCount: new Set(delimited.addedCourses.map((c) => c.code)).size,
+    };
+  }
+
+  // 4. Generic line-by-line fallback
+  const options = parsePastedTextLines(trimmed);
+  const parsedCourses = toParsedCourses(options);
+  const addedCourses = parsedCoursesToAddedCourses(parsedCourses);
+
+  return {
+    addedCourses,
+    parsedCourses,
+    format: "generic",
+    totalCredits: addedCourses.reduce((sum, c) => sum + (parseFloat(c.credits) || 0), 0),
+    uniqueCount: new Set(addedCourses.map((c) => c.code)).size,
+  };
+}
+
+export function parsePastedText(raw: string): PastedCourseOption[] {
+  const universal = parseUniversalPaste(raw);
+  if (universal.format !== "generic" && universal.parsedCourses.length > 0) {
+    return universal.parsedCourses.map((c) => ({
+      rawLine: `${c.CODE} - ${c.TITLE} - ${c.TYPE} - ${c.SLOT} - ${c.ROOM} - ${c.FACULTY}`,
+      courseCode: c.CODE,
+      courseName: c.TITLE,
+      professorName: c.FACULTY,
+      theorySlotRaw: c.SLOT.split("+").some((s) => !s.startsWith("L")) ? c.SLOT : null,
+      labSlotRaw: c.SLOT.split("+").some((s) => s.startsWith("L")) ? c.SLOT : null,
+      credits: c.CREDITS ? parseFloat(c.CREDITS) : null,
+      confidence: "high",
+      errors: [],
+      venue: c.ROOM,
+      type: c.TYPE,
+      classId: c.CLASS_ID,
+      employeeId: c.ERP_ID,
+    }));
+  }
+
+  return parsePastedTextLines(raw);
+}
+
+function parsePastedTextLines(raw: string): PastedCourseOption[] {
   const lines = String(raw ?? "")
     .split(/\r?\n/)
     .map(cleanLine)

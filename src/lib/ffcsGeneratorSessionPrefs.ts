@@ -1,15 +1,27 @@
 import type { CourseLock } from "@/components/custom/exams/FFCS/types";
 import type { RankingMode } from "@/lib/ffcsRanking";
+import type { FacultyMetricWeights, FacultyScoreFilters } from "@/lib/ffcsFacultyRanking";
+import type { RankingPriority } from "@/lib/ffcsSettings";
+import type { DayId } from "@/lib/slots";
 import type { SortBy } from "@/lib/timetableMetrics";
 
 export interface GeneratorSessionPreferences {
   preference?: "compact" | "spread" | "morning" | "evening";
+  strictTheoryPreference?: boolean;
+  separateLabDays?: boolean;
+  avoidConsecutiveLabs?: boolean;
+  lunchBreakSeparatesLabs?: boolean;
   uniqueFaculties?: boolean;
   noLimit?: boolean;
+  resultCap?: number;
   rankingMode?: RankingMode | null;
+  rankingPriorityOrder?: RankingPriority[];
+  facultyMetricWeights?: FacultyMetricWeights;
+  facultyScoreFilters?: FacultyScoreFilters;
   minHalfDays?: number;
   minStartTime?: string;
   maxEndTime?: string;
+  maxEndTimeByDay?: Partial<Record<DayId, string>>;
   sortBy?: SortBy;
   syncFriendsClasses?: boolean;
   syncFriendClasses?: boolean; // alias for backwards compatibility

@@ -1,7 +1,8 @@
 import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import FFCSTimetableTab from "../components/custom/exams/FFCSTimetableTab";
+import { getFittingStatTileCount } from "../components/custom/exams/FFCS/components/FFCSDashboardHeader";
 import { closeTopOverlayFromPop } from "../lib/overlayStack";
 import { installLocalStorage, stubScrollIntoView } from "./helpers/localStorage";
 
@@ -20,6 +21,20 @@ describe("FFCSTimetableTab", () => {
     }
     storage.clear();
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("fits as many stat tiles as the available width allows", () => {
+    expect(getFittingStatTileCount(279)).toBe(1);
+    expect(getFittingStatTileCount(280)).toBe(1);
+    expect(getFittingStatTileCount(571)).toBe(1);
+    expect(getFittingStatTileCount(572)).toBe(2);
+    expect(getFittingStatTileCount(863)).toBe(2);
+    expect(getFittingStatTileCount(864)).toBe(3);
+    expect(getFittingStatTileCount(1155)).toBe(3);
+    expect(getFittingStatTileCount(1156)).toBe(4);
+    expect(getFittingStatTileCount(1200)).toBe(4);
+    expect(getFittingStatTileCount(0)).toBe(4);
   });
 
   it("renders the FFCS planner interface without crashing", () => {
@@ -28,6 +43,575 @@ describe("FFCSTimetableTab", () => {
     // The tab's first mount is heavy (its report load, sheets and the planner
     // grid all come up together), so its budget is the suite's, not the 5s
     // default — under a full parallel run the default starves it.
+  }, 30_000);
+
+  it("renders the original dashboard in Classic mode", () => {
+    storage.setItem("ffcs_layout_mode", "classic");
+    render(<FFCSTimetableTab />);
+
+    expect(screen.getByText("Timetable Manager")).toBeDefined();
+    expect(screen.getByText("Course Selector")).toBeDefined();
+    expect(screen.getByText("Social Score")).toBeDefined();
+  }, 30_000);
+
+  it("maps the legacy Revamp preference to Modern", () => {
+    storage.setItem("ffcs_layout_mode", "revamp");
+    render(<FFCSTimetableTab />);
+
+    expect(screen.getByRole("button", { name: "New Plan" })).toBeDefined();
+    expect(screen.queryByText("Timetable Manager")).toBeNull();
+  }, 30_000);
+
+  it("defaults mobile to Modern without showing the Guided install/full-screen hero", () => {
+    const originalWidth = window.innerWidth;
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+    try {
+      render(<FFCSTimetableTab />);
+
+      expect(
+        screen.getByRole("button", { name: /Switch Planner View Modern planner/ })
+      ).toBeDefined();
+      expect(screen.queryByText("Enter Full Screen & Start")).toBeNull();
+      expect(screen.queryByText("Install App")).toBeNull();
+    } finally {
+      Object.defineProperty(window, "innerWidth", { configurable: true, value: originalWidth });
+    }
+  }, 30_000);
+
+  it("shows the overflow statistic in the responsive carousel", async () => {
+    storage.setItem(
+      "ffcs_timetables",
+      JSON.stringify([
+        {
+          id: "default",
+          name: "Credit Test",
+          courses: [
+            {
+              id: "course-theory",
+              code: "CSE2001",
+              title: "Course",
+              slots: ["A1"],
+              faculty: "Faculty One",
+              venue: "SJT",
+              credits: "3",
+              type: "ETH",
+              color: "blue",
+            },
+          ],
+        },
+      ])
+    );
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor(private callback: ResizeObserverCallback) {}
+        observe(target: Element) {
+          this.callback(
+            [{ target, contentRect: { width: 324 } } as ResizeObserverEntry],
+            this as unknown as ResizeObserver
+          );
+        }
+        unobserve() {}
+        disconnect() {}
+      }
+    );
+    render(<FFCSTimetableTab />);
+
+    const carousel = await screen.findByRole("region", { name: "More timetable statistics" });
+    expect(carousel.textContent).toContain("Total Credits");
+    expect(carousel.textContent).toContain("3 / 27");
+  }, 30_000);
+
+  it("hides course-dependent stats for an empty single timetable", () => {
+    render(<FFCSTimetableTab />);
+
+    expect(screen.queryByTestId("ffcs-stat-strip")).toBeNull();
+    expect(screen.queryByText("Total Credits")).toBeNull();
+    expect(screen.queryByText("Weekly Rhythm")).toBeNull();
+    expect(screen.queryByText("Active Timetable")).toBeNull();
+  }, 30_000);
+
+  it("shows the timetable stat when multiple timetables exist even if they are empty", () => {
+    storage.setItem(
+      "ffcs_timetables",
+      JSON.stringify([
+        { id: "default", name: "Plan One", courses: [] },
+        { id: "plan-two", name: "Plan Two", courses: [] },
+      ])
+    );
+    render(<FFCSTimetableTab />);
+
+    expect(screen.getByText("Active Timetable")).toBeDefined();
+    expect(screen.queryByText("Total Credits")).toBeNull();
+    expect(screen.queryByText("Weekly Rhythm")).toBeNull();
+  }, 30_000);
+
+  it("shows one mobile stat card beside the remaining-stat carousel", async () => {
+    storage.setItem(
+      "ffcs_timetables",
+      JSON.stringify([
+        {
+          id: "default",
+          name: "Mobile Plan",
+          courses: [
+            {
+              id: "course-theory",
+              code: "CSE2001",
+              title: "Course",
+              slots: ["A1"],
+              faculty: "Faculty One",
+              venue: "SJT",
+              credits: "3",
+              type: "ETH",
+              color: "blue",
+            },
+          ],
+        },
+      ])
+    );
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn((query: string) => ({
+        matches: query === "(max-width: 767px)",
+        media: query,
+        onchange: null,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }))
+    );
+
+    render(<FFCSTimetableTab />);
+
+    const statStrip = screen.getByTestId("ffcs-stat-strip");
+    expect(statStrip.style.gridTemplateColumns).toBe("repeat(2, minmax(0, 1fr))");
+    expect(
+      await screen.findByRole("button", {
+        name: /Weekly Rhythm: .*View schedule details/,
+      })
+    ).toBeDefined();
+    const carousel = within(statStrip).getByRole("region", {
+      name: "More timetable statistics",
+    });
+    const carouselValue = within(carousel).getByText("3 / 27");
+    expect(carouselValue.className).toContain("text-xl");
+    expect(carouselValue.parentElement?.tagName).toBe("DIV");
+    expect(carouselValue.parentElement?.style.opacity).toBe("");
+  }, 30_000);
+
+  it("matches the Selected Courses credit total and opens the timetable switcher from its stat", () => {
+    storage.setItem(
+      "ffcs_timetables",
+      JSON.stringify([
+        {
+          id: "default",
+          name: "Credit Test",
+          courses: [
+            {
+              id: "course-theory",
+              code: "CSE2001",
+              title: "Course",
+              slots: ["A1"],
+              faculty: "Faculty One",
+              venue: "SJT",
+              credits: "3",
+              type: "ETH",
+              color: "blue",
+            },
+            {
+              id: "course-lab",
+              code: "CSE2001",
+              title: "Course",
+              slots: ["L1"],
+              faculty: "Faculty Two",
+              venue: "SJT",
+              credits: "1",
+              type: "ELA",
+              color: "red",
+            },
+          ],
+        },
+      ])
+    );
+    render(<FFCSTimetableTab />);
+
+    expect(screen.getByText("Total Credits: 4")).toBeDefined();
+    expect(screen.getByText("4 / 27")).toBeDefined();
+    const statStrip = screen.getByTestId("ffcs-stat-strip").textContent ?? "";
+    expect(statStrip.indexOf("Total Credits")).toBeLessThan(
+      statStrip.indexOf("Active Timetable")
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Active Timetable: Credit Test. 2 courses enrolled. Switch timetable.",
+      })
+    );
+    expect(screen.getByRole("heading", { name: "Select Timetable" })).toBeDefined();
+  }, 30_000);
+
+  it("shows free half-days in Weekly Rhythm and opens the full schedule details", () => {
+    storage.setItem(
+      "ffcs_timetables",
+      JSON.stringify([
+        {
+          id: "default",
+          name: "Schedule Test",
+          courses: [
+            {
+              id: "course-theory",
+              code: "CSE2001",
+              title: "Course",
+              slots: ["A1"],
+              faculty: "Faculty One",
+              venue: "SJT",
+              credits: "3",
+              type: "ETH",
+              color: "blue",
+            },
+          ],
+        },
+      ])
+    );
+    render(<FFCSTimetableTab />);
+
+    const weeklyRhythm = screen.getByRole("button", {
+      name: /Weekly Rhythm: 8 free half-days out of 10/,
+    });
+    expect(weeklyRhythm.textContent).toContain("8 / 10");
+    expect(weeklyRhythm.textContent).not.toMatch(/\b(Standard|Light)\b/);
+    fireEvent.click(weeklyRhythm);
+
+    expect(screen.getByRole("heading", { name: "Weekly Rhythm" })).toBeDefined();
+    expect(screen.getAllByText("Free half-days").length).toBeGreaterThan(0);
+    expect(screen.getByText("Morning theory")).toBeDefined();
+    expect(screen.getByText("Evening theory")).toBeDefined();
+    expect(screen.getByText("Latest class end")).toBeDefined();
+    expect(screen.getAllByText("Best faculty").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Worst faculty").length).toBeGreaterThan(0);
+    const weeklyContent = document.body.textContent ?? "";
+    expect(weeklyContent.indexOf("Faculty ratings in this timetable")).toBeLessThan(
+      weeklyContent.indexOf("Day-by-day schedule")
+    );
+    expect(weeklyContent.indexOf("Largest class gaps")).toBeLessThan(
+      weeklyContent.indexOf("Faculty average win rate")
+    );
+  }, 30_000);
+
+  it("hides the clash statistic when there are no clashes", () => {
+    render(<FFCSTimetableTab />);
+
+    expect(screen.queryByText("Clash Status")).toBeNull();
+  }, 30_000);
+
+  it("lists clashing courses with their faculty and removes the selected course", () => {
+    storage.setItem(
+      "ffcs_timetables",
+      JSON.stringify([
+        {
+          id: "default",
+          name: "Clash Test",
+          courses: [
+            {
+              id: "course-a",
+              code: "CSE1001",
+              title: "Course A",
+              slots: ["A1"],
+              faculty: "Faculty One",
+              employeeId: "1001",
+              venue: "SJT",
+              credits: "3",
+              type: "ETH",
+              color: "blue",
+            },
+            {
+              id: "course-b",
+              code: "CSE1002",
+              title: "Course B",
+              slots: ["A1"],
+              faculty: "Faculty Two",
+              employeeId: "1002",
+              venue: "SJT",
+              credits: "3",
+              type: "ETH",
+              color: "red",
+            },
+          ],
+        },
+      ])
+    );
+    render(<FFCSTimetableTab />);
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Clash Status: 1 clash. View clashing courses.",
+      })
+    );
+    expect(screen.getAllByText("CSE1001").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Faculty One").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("CSE1002").length).toBeGreaterThan(0);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Remove CSE1001 — Faculty One" })
+    );
+    expect(screen.getByText("This timetable has no course or blocked-slot clashes.")).toBeDefined();
+  }, 30_000);
+
+  it("shows planner actions as selectable menu rows", () => {
+    const { unmount } = render(<FFCSTimetableTab />);
+
+    expect(screen.getByRole("region", { name: "Add Courses widget" })).toBeDefined();
+    expect(screen.getByRole("button", { name: /Manually Add Course/ })).toBeDefined();
+    expect(screen.getByRole("button", { name: /Target Courses/ })).toBeDefined();
+    expect(screen.getByRole("region", { name: "Timetable Actions widget" })).toBeDefined();
+    const widgetPanel = screen.getByLabelText("Enabled planner widgets");
+    expect(widgetPanel.className).toContain("xl:columns-2");
+    expect(widgetPanel.className).not.toContain("columns-3");
+    expect(widgetPanel.className).toContain("break-inside-avoid");
+    expect(JSON.parse(storage.getItem("ffcs_dashboard_widgets") || "[]")).toEqual([
+      "add-courses",
+      "timetables",
+    ]);
+
+    const socialToggle = screen.getByRole("button", { name: /Social & Friends/ });
+    fireEvent.click(socialToggle);
+    expect(socialToggle.getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("region", { name: "Social & Friends widget" })).toBeDefined();
+    expect(screen.getByText("Social Overlap")).toBeDefined();
+
+    expect(JSON.parse(storage.getItem("ffcs_dashboard_widgets") || "[]")).toEqual([
+      "add-courses",
+      "timetables",
+      "social",
+    ]);
+
+    unmount();
+    render(<FFCSTimetableTab />);
+    expect(screen.getByRole("region", { name: "Add Courses widget" })).toBeDefined();
+    expect(screen.getByRole("region", { name: "Social & Friends widget" })).toBeDefined();
+  }, 30_000);
+
+  it("shows a vertical timetable beside a single widget column when enabled on xl screens", () => {
+    storage.setItem(
+      "ffcs_settings",
+      JSON.stringify({ showVerticalTimetableBesideWidgets: true })
+    );
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn((query: string) => ({
+        matches: query === "(min-width: 1280px)",
+        media: query,
+        onchange: null,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }))
+    );
+
+    render(<FFCSTimetableTab />);
+
+    expect(screen.getByLabelText("Enabled planner widgets").className).toContain("xl:columns-1");
+    expect(screen.getByTestId("ffcs-selected-courses").className).toContain("xl:col-span-full");
+    expect(
+      screen.queryByText("Auto · showing the modern grid on this screen")
+    ).toBeNull();
+  }, 30_000);
+
+  it("moves planner view, course list, and settings actions to the wide-screen header", () => {
+    render(<FFCSTimetableTab />);
+
+    for (const label of ["Switch Planner View", "Switch Course List", "Planner Settings"]) {
+      const headerButton = screen
+        .getAllByRole("button", { name: label })
+        .find((button) => button.parentElement?.className.includes("hidden xl:flex"));
+      expect(headerButton).toBeDefined();
+    }
+    const plannerMenu = within(screen.getByRole("navigation", { name: "Planner menu" }));
+    expect(plannerMenu.getByRole("region", { name: "Views & Course Lists" }).className).toContain("xl:hidden");
+    expect(plannerMenu.getByRole("region", { name: "Planner Settings" }).className).toContain("xl:hidden");
+  }, 30_000);
+
+  it("opens FFCS share options and shares the FFCS link in the modern promotion order", async () => {
+    render(<FFCSTimetableTab />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Share this plan" }));
+
+    expect(screen.getByRole("heading", { name: "Share AmazeCC FFCS" })).toBeDefined();
+    expect(screen.getByText("Share as link")).toBeDefined();
+    expect(screen.getByText("Share as JSON")).toBeDefined();
+    expect(screen.getByText("Share as JPG")).toBeDefined();
+    expect(screen.getByText("Share as PNG")).toBeDefined();
+    expect(screen.getByText("Share as HTML")).toBeDefined();
+    const shareFFCS = screen.getByRole("button", { name: /Share AmazeCC FFCS/ });
+    expect(screen.getByText("Sign in to AmazeCC")).toBeDefined();
+    const shareSheetText = screen.getByRole("heading", { name: "Share AmazeCC FFCS" })
+      .closest("[role='dialog']")?.textContent ?? document.body.textContent ?? "";
+    expect(shareSheetText.indexOf("Share AmazeCC FFCS")).toBeLessThan(
+      shareSheetText.indexOf("Sign in to AmazeCC")
+    );
+
+    const shareMock = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal("navigator", { ...navigator, share: shareMock });
+    fireEvent.click(shareFFCS);
+
+    expect(shareMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "AmazeCC FFCS",
+        url: `${window.location.origin}/ffcs`,
+      })
+    );
+  }, 30_000);
+
+  it("places the guide in mobile Planner Settings and keeps the theme toggle in the header", () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn((query: string) => ({
+        matches: query === "(max-width: 767px)",
+        media: query,
+        onchange: null,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }))
+    );
+    render(<FFCSTimetableTab />);
+
+    const plannerMenu = within(screen.getByRole("navigation", { name: "Planner menu" }));
+    expect(plannerMenu.getByRole("button", { name: /How does this work\?/ })).toBeDefined();
+    expect(screen.queryByRole("button", { name: "How does this work?" })).toBeNull();
+    expect(screen.getByTitle(/Switch to (Light|Dark) mode/)).toBeDefined();
+  }, 30_000);
+
+  it("lets the desktop Add Courses menu entry toggle its widget", () => {
+    render(<FFCSTimetableTab />);
+
+    const plannerMenu = within(screen.getByRole("navigation", { name: "Planner menu" }));
+    const addCourses = plannerMenu.getByRole("button", { name: /Add Courses/ });
+    expect(addCourses.getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("region", { name: "Add Courses widget" })).toBeDefined();
+
+    fireEvent.click(addCourses);
+    expect(addCourses.getAttribute("aria-pressed")).toBe("false");
+    expect(screen.queryByRole("region", { name: "Add Courses widget" })).toBeNull();
+  }, 30_000);
+
+  it("opens a selected planner widget in a mobile sheet", async () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn((query: string) => ({
+        matches: query === "(max-width: 767px)",
+        media: query,
+        onchange: null,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }))
+    );
+    render(<FFCSTimetableTab />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Social & Friends/ }));
+    expect(await screen.findByRole("heading", { name: "Social & Friends" })).toBeDefined();
+    expect(screen.getByRole("region", { name: "Social & Friends widget" })).toBeDefined();
+    expect(screen.queryByRole("region", { name: "Timetable Actions widget" })).toBeNull();
+    expect(screen.queryByRole("region", { name: "Add Courses widget" })).toBeNull();
+    expect(
+      within(screen.getByRole("navigation", { name: "Planner menu" })).queryByRole("button", {
+        name: /^Add Courses$/,
+      })
+    ).toBeNull();
+    expect(screen.getByRole("button", { name: /Manually Add Course/ })).toBeDefined();
+
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(screen.queryByRole("region", { name: "Social & Friends widget" })).toBeNull();
+  }, 30_000);
+
+  it("opens Configure Selected Course in a mobile sheet when a course is selected", async () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn((query: string) => ({
+        matches: query === "(max-width: 767px)",
+        media: query,
+        onchange: null,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }))
+    );
+    const csvContent =
+      "COURSE CODE,COURSE TITLE,TYPE,CREDITS,SLOT,FACULTY,ROOM,ERP ID\n" +
+      "BCSE101,Programming,TH,3,A1,PARTHIBAN V,AB3-101,1001\n";
+    vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true,
+      arrayBuffer: async () => new TextEncoder().encode(csvContent).buffer,
+      json: async () => [],
+    } as any);
+
+    render(<FFCSTimetableTab />);
+    fireEvent.click(screen.getByRole("button", { name: /Manually Add Course/ }));
+
+    fireEvent.click(await screen.findByText("BCSE101", {}, { timeout: 5000 }));
+
+    expect(
+      await screen.findByRole("heading", { name: "Configure Selected Course" })
+    ).toBeDefined();
+    expect(
+      screen.getByRole("region", { name: "Configure Selected Course widget" })
+    ).toBeDefined();
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Close" })[1]);
+    expect(
+      screen.queryByRole("region", { name: "Configure Selected Course widget" })
+    ).toBeNull();
+  }, 30_000);
+
+  it("puts course-planning actions in the menu and keeps their actions wired", () => {
+    render(<FFCSTimetableTab />);
+
+    expect(screen.getByRole("navigation", { name: "Planner menu" })).toBeDefined();
+    const manualAdd = screen.getByRole("button", { name: /Manually Add Course/ });
+    const targetCourses = screen.getByRole("button", { name: /Target Courses/ });
+    expect(manualAdd).toBeDefined();
+    expect(targetCourses).toBeDefined();
+    expect(screen.getByRole("button", { name: /Auto-Generate/ })).toBeDefined();
+    expect(screen.getByRole("button", { name: /Paste VTOP/ })).toBeDefined();
+    expect(screen.getByRole("button", { name: /Advanced Linker/ })).toBeDefined();
+    expect(targetCourses.firstElementChild?.className).toContain("text-purple-600");
+  }, 30_000);
+
+  it("opens planner settings from the planner menu", () => {
+    render(<FFCSTimetableTab />);
+
+    const plannerMenu = within(screen.getByRole("navigation", { name: "Planner menu" }));
+    fireEvent.click(plannerMenu.getByRole("button", { name: /Planner Settings/ }));
+    expect(screen.getAllByRole("heading", { name: "Planner Settings" })).toHaveLength(2);
+    expect(screen.getByText("Ranking profile")).toBeDefined();
+
+    fireEvent.click(screen.getByRole("button", { name: /Target Courses/ }));
+    expect(screen.getByText(/Select the courses you intend to take/)).toBeDefined();
+  }, 30_000);
+
+  it("opens view and course-list switching from Modern menu rows", () => {
+    render(<FFCSTimetableTab />);
+
+    expect(screen.queryByTitle("Load the Winter Semester 2026-2027 slot timetable")).toBeNull();
+    const plannerMenu = within(screen.getByRole("navigation", { name: "Planner menu" }));
+    fireEvent.click(plannerMenu.getByRole("button", { name: /Switch Course List/ }));
+    expect(screen.getByRole("heading", { name: "Switch Course List" })).toBeDefined();
+    expect(screen.getByRole("button", { name: /Previous Semester/ })).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+
+    fireEvent.click(plannerMenu.getByRole("button", { name: /Switch Planner View/ }));
+    expect(screen.getByText("Choose Your Planner Experience")).toBeDefined();
+    expect(screen.getByRole("radio", { name: /Guided Hero/ })).toBeDefined();
   }, 30_000);
 
   it("renames and deletes timetables inside the Select Timetable sheet", () => {
@@ -39,10 +623,12 @@ describe("FFCSTimetableTab", () => {
     render(<FFCSTimetableTab />);
 
     // A second timetable, so the sheet has a row to rename and a deletable
-    // one without tripping the one-timetable floor. "New" from the header
-    // makes the fresh table active, so the picker below is named for it.
-    fireEvent.click(screen.getByRole("button", { name: "New" }));
-    fireEvent.click(screen.getByRole("button", { name: /Timetable 2/ }));
+    // one without tripping the one-timetable floor. "New Plan" from the
+    // dashboard header makes the fresh table active, so the picker below is
+    // named for it. The name is scoped with ^ because the accessible name
+    // carries the trailing course count next to it.
+    fireEvent.click(screen.getByRole("button", { name: "New Plan" }));
+    fireEvent.click(screen.getByTitle("Switch or manage saved timetables"));
 
     // Every row carries its own Rename and Delete next to the select area.
     fireEvent.click(screen.getByTitle("Rename Timetable 2"));
@@ -70,6 +656,31 @@ describe("FFCSTimetableTab", () => {
     expect(confirmSpy).toHaveBeenCalledTimes(1);
     expect(screen.getByText("You must have at least one timetable.")).toBeDefined();
     // Same heavy-mount budget as the smoke test above.
+  }, 30_000);
+
+  it("confirms clearing every timetable and leaves one blank timetable", () => {
+    const confirmSpy = vi.spyOn(window, "confirm")
+      .mockReturnValueOnce(false)
+      .mockReturnValueOnce(true);
+
+    render(<FFCSTimetableTab />);
+    fireEvent.click(screen.getByRole("button", { name: "New Plan" }));
+    fireEvent.click(screen.getByTitle("Switch or manage saved timetables"));
+    expect(
+      screen.getByRole("button", { name: "New" }).closest(".sticky")
+    ).not.toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+    expect(confirmSpy).toHaveBeenLastCalledWith(
+      "Delete all 2 timetables and their courses? A blank timetable will be kept."
+    );
+    expect(screen.getByTitle("Delete Timetable 1")).toBeDefined();
+    expect(screen.getByTitle("Delete Timetable 2")).toBeDefined();
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+    expect(screen.getByTitle("Delete Timetable 1")).toBeDefined();
+    expect(screen.queryByTitle("Delete Timetable 2")).toBeNull();
+    expect(screen.getByText("1 timetable")).toBeDefined();
   }, 30_000);
 
   it("renders the faculty count badge in Selected Courses table and opens SlotFacultySwapSheet", async () => {
@@ -148,21 +759,19 @@ describe("FFCSTimetableTab", () => {
 
     render(<FFCSTimetableTab />);
 
-    // Open Course Search
-    const chooseCourseBtn = await screen.findByText(
-      "-- Search & Choose Course --",
-      {},
-      { timeout: 5000 }
-    );
-    fireEvent.click(chooseCourseBtn);
+    // Open Course Search from its menu item.
+    fireEvent.click(screen.getByRole("button", { name: /Manually Add Course/ }));
 
     // Pick BCSE101 from modal
     const courseOption = await screen.findByText("BCSE101", {}, { timeout: 5000 });
     fireEvent.click(courseOption);
+    expect(screen.getByRole("region", { name: "Configure Selected Course widget" })).toBeDefined();
+    expect(screen.getByText("Faculty, slots & timetable conflicts")).toBeDefined();
+    expect(screen.getAllByText(/A1/).length).toBeGreaterThan(0);
 
     // Step 2 appears, open Slot Search
     const chooseSlotBtn = await screen.findByText(
-      "-- Search & Choose Slot --",
+      "Click to choose slot & faculty option...",
       {},
       { timeout: 5000 }
     );
@@ -236,15 +845,36 @@ describe("FFCSTimetableTab", () => {
     expect(screen.getAllByText("DR BOB").length).toBeGreaterThan(0);
   }, 30_000);
 
-  it("automatically greets the user with full-screen hero when clicking on Guided", async () => {
+  it("automatically greets the user with full-screen hero when clicking on Guided, removing legacy banner and grid", async () => {
     render(<FFCSTimetableTab />);
 
-    // Click on Guided in the layout SegmentedControl
-    const guidedButton = screen.getByTitle("Step-by-step mobile-first course selector");
-    fireEvent.click(guidedButton);
+    // Initially in modern mode: timetable grid is in DOM
+    expect(document.getElementById("ffcs-timetable-grid")).not.toBeNull();
+
+    // Open the planner-view menu sheet, choose Guided, and apply it.
+    fireEvent.click(
+      within(screen.getByRole("navigation", { name: "Planner menu" })).getByRole("button", {
+        name: /Switch Planner View/,
+      })
+    );
+    fireEvent.click(screen.getByRole("radio", { name: /Guided Hero/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Switch to Guided Hero Mode" }));
 
     // Should display Guided Hero with full-screen exit button and mode selection
     expect(screen.getByTitle("Exit Fullscreen")).toBeDefined();
     expect(screen.getByText("Choose Creation Mode")).toBeDefined();
+
+    // Legacy banner card and controls must NOT be present
+    expect(screen.queryByText("Guided Flow")).toBeNull();
+    expect(screen.queryByText("Full-Screen Course Adder")).toBeNull();
+
+    // Standard timetable grid must NOT be rendered in guided mode
+    expect(document.getElementById("ffcs-timetable-grid")).toBeNull();
+
+    // Clicking Single Page View restores modern layout and timetable grid
+    const singlePageViewBtn = screen.getByTitle("Switch to Single Page View");
+    fireEvent.click(singlePageViewBtn);
+
+    expect(document.getElementById("ffcs-timetable-grid")).not.toBeNull();
   }, 30_000);
 });

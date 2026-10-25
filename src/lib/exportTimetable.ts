@@ -3,9 +3,11 @@ import { jsPDF } from "jspdf";
 import type { AddedCourse, TimetablePeriod, ParsedCourse } from "@/components/custom/exams/FFCS/types";
 import { buildVerticalGrid } from "@/components/custom/timetable";
 import { COLOR_HEX_MAP, typeLabels } from "@/components/custom/exams/FFCS/constants";
-import { getFacultyReview, getVitfacProfileUrl } from "./vitfacService";
+import { getFacultyReview, getVitfacProfileUrl, loadVitfacCatalog, normalizeFacultyName, type VitfacFaculty } from "./vitfacService";
 import { ensureLunchPeriod, hasSlot } from "./slots";
 import { sameSlotFacultyAlternatives, expandCourseHalves } from "@/components/custom/exams/FFCS/logic/generate";
+
+export { createPortraitDossierPdf } from "./portraitDossier";
 
 /**
  * Modern Timetable Export Parameters
@@ -20,6 +22,8 @@ export interface ModernTimetableExportParams {
   format?: "jpg" | "png";
   themeBgColor?: string;
   totalCredits?: number;
+  /** Omit the selected-course table when exporting it as its own image. */
+  includeCourseList?: boolean;
 }
 
 /**
@@ -209,11 +213,11 @@ function renderHorizontalGridHtml(
     const tp = effectiveTheory[i];
     if (tp?.lunch) {
       thHeaders.push(`
-        <th style="padding: 6px 2px; background: ${lunchThBg}; border-left: 1px solid ${lunchThBorder}; border-right: 1px solid ${lunchThBorder}; border-top: 1px solid ${lunchThBorder}; border-bottom: 1px solid ${lunchThBorder}; text-align: center; width: 36px; min-width: 36px; max-width: 42px; vertical-align: middle;" title="LUNCH (1:20 PM - 2:00 PM)">
+        <th class="lunch-column lunch-header" style="padding: 6px 2px; background: ${lunchThBg}; border-left: 1px solid ${lunchThBorder}; border-right: 1px solid ${lunchThBorder}; border-top: 1px solid ${lunchThBorder}; border-bottom: 1px solid ${lunchThBorder}; text-align: center; width: 36px; min-width: 36px; max-width: 42px; vertical-align: middle;" title="LUNCH (1:20 PM - 2:00 PM)">
           <span style="display: none;">LUNCH</span>
           <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1;">
-            <span style="font-size: 9.5px; font-weight: 900; color: ${lunchText}; letter-spacing: 0.5px;">LUNCH</span>
-            <span style="font-size: 7.5px; font-weight: 700; color: ${lunchSubText}; opacity: 0.9; margin-top: 2px;">1:20-2:00</span>
+            <span class="lunch-label" style="font-size: 9.5px; font-weight: 900; color: ${lunchText}; letter-spacing: 0.5px;">LUNCH</span>
+            <span class="lunch-time" style="font-size: 7.5px; font-weight: 700; color: ${lunchSubText}; opacity: 0.9; margin-top: 2px;">1:20-2:00</span>
           </div>
         </th>
       `);
@@ -241,7 +245,7 @@ function renderHorizontalGridHtml(
         if (tp?.lunch) {
           if (dayIdx === 0) {
             periodCells.push(`
-            <td rowspan="${daysList.length}" style="width: 36px; min-width: 36px; max-width: 42px; background: ${lunchColBg}; border-left: 1px solid ${lunchColBorder}; border-right: 1px solid ${lunchColBorder}; border-top: 1px solid ${lunchColBorder}; border-bottom: 1px solid ${lunchColBorder}; text-align: center; vertical-align: middle; padding: 6px 2px;">
+            <td class="lunch-column lunch-cell" rowspan="${daysList.length}" style="width: 36px; min-width: 36px; max-width: 42px; background: ${lunchColBg}; border-left: 1px solid ${lunchColBorder}; border-right: 1px solid ${lunchColBorder}; border-top: 1px solid ${lunchColBorder}; border-bottom: 1px solid ${lunchColBorder}; text-align: center; vertical-align: middle; padding: 6px 2px;">
               <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
                 <span style="font-size: 12px; font-weight: 900; color: ${lunchText}; letter-spacing: 1px; line-height: 1.25;">L</span>
                 <span style="font-size: 12px; font-weight: 900; color: ${lunchText}; letter-spacing: 1px; line-height: 1.25;">U</span>
@@ -308,7 +312,7 @@ function renderHorizontalGridHtml(
     .join("");
 
   return `
-    <div style="overflow-x: auto; border-radius: 12px; border: 1px solid ${wrapperBorder}; background: ${wrapperBg}; margin-bottom: 24px;">
+    <div class="pdf-timetable-grid" style="overflow-x: auto; border-radius: 12px; border: 1px solid ${wrapperBorder}; background: ${wrapperBg}; margin-bottom: 24px;">
       <table style="width: 100%; border-collapse: collapse; text-align: left;">
         <thead>
           <tr>
@@ -422,13 +426,13 @@ function renderCourseTableHtml(
         <td style="padding: 10px 8px; font-size: 12px; font-weight: 700; color: #64748b; text-align: center; vertical-align: middle;">
           ${idx + 1}
         </td>
-        <td style="padding: 10px 12px; vertical-align: middle;">
+        <td class="pdf-course-cell" style="padding: 10px 12px; vertical-align: middle;">
           <div style="display: flex; align-items: center; gap: 8px;">
-            <span style="background: ${colorHex}; color: #ffffff; font-size: 11px; font-weight: 800; padding: 3px 7px; border-radius: 5px; letter-spacing: 0.5px;">
+            <span class="pdf-course-code" style="background: ${colorHex}; color: #ffffff; font-size: 11px; font-weight: 800; padding: 3px 7px; border-radius: 5px; letter-spacing: 0.5px;">
               ${escapeHtml(c.code)}
             </span>
             <div>
-              <div style="font-weight: 700; color: ${courseTitleColor}; font-size: 12px;">${escapeHtml(c.title)}</div>
+              <div class="pdf-course-title" style="font-weight: 700; color: ${courseTitleColor}; font-size: 12px;">${escapeHtml(c.title)}</div>
               ${
                 c.batches && c.batches.length > 0
                   ? `<div style="font-size: 10px; color: ${batchColor}; font-weight: 600;">Batch: ${escapeHtml(
@@ -460,14 +464,14 @@ function renderCourseTableHtml(
     .join("");
 
   return `
-    <div style="background: ${containerBg}; border: 1px solid ${containerBorder}; border-radius: 14px; padding: 18px 20px;">
+    <div class="pdf-course-section" style="background: ${containerBg}; border: 1px solid ${containerBorder}; border-radius: 14px; padding: 18px 20px;">
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid ${headerBorder};">
         <div style="display: flex; align-items: center; gap: 8px;">
           <span style="font-size: 14px; font-weight: 800; color: ${titleColor};">📋 ENROLLED COURSES &amp; FACULTY REVIEWS</span>
           <span style="font-size: 11px; color: ${subColor};">(Vitfac Sentiment &amp; Ratings)</span>
         </div>
       </div>
-      <table style="width: 100%; border-collapse: collapse; text-align: left;">
+      <table class="pdf-course-table" style="width: 100%; border-collapse: collapse; text-align: left;">
         <thead>
           <tr style="border-bottom: 1px solid ${thRowBorder}; font-size: 10px; font-weight: 800; color: ${thTextColor}; text-transform: uppercase;">
             <th style="padding: 8px 8px; text-align: center; width: 30px;">#</th>
@@ -561,7 +565,8 @@ export function generateModernTimetableHtml(params: ModernTimetableExportParams)
       ? renderVerticalGridHtml(courses, theoryPeriods, labPeriods, daysList)
       : renderHorizontalGridHtml(courses, theoryPeriods, labPeriods, daysList);
 
-  const tableHtml = renderCourseTableHtml(groupedCourses);
+  const tableHtml =
+    params.includeCourseList === false ? "" : renderCourseTableHtml(groupedCourses);
 
   return `
     <div style="width: ${containerWidth}px; background: #090d16; color: #f8fafc; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 32px; box-sizing: border-box; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);">
@@ -653,6 +658,80 @@ export async function downloadModernTimetableImage(
     if (container && container.parentNode) {
       container.parentNode.removeChild(container);
     }
+  }
+}
+
+export interface ModernCourseListImageExportParams {
+  timetableName: string;
+  courses: AddedCourse[];
+  format?: "jpg" | "png";
+  themeBgColor?: string;
+}
+
+/** Downloads the selected courses as a standalone image in the chosen format. */
+export async function downloadModernCourseListImage(
+  params: ModernCourseListImageExportParams
+): Promise<void> {
+  const format = params.format || "jpg";
+  const toImageFn = format === "png" ? htmlToImage.toPng : htmlToImage.toJpeg;
+  if (typeof toImageFn !== "function") {
+    throw new Error("htmlToImage export function is not available");
+  }
+
+  const rows = params.courses
+    .map(
+      (course) => `
+        <article style="display:grid;grid-template-columns:1.2fr 2fr 1fr;gap:16px;padding:18px 0;border-bottom:1px solid rgba(255,255,255,.1);align-items:start">
+          <div>
+            <strong style="display:block;color:#fff;font-size:18px">${escapeHtml(course.code)}</strong>
+            <span style="display:inline-block;margin-top:6px;color:#c4b5fd;font-size:12px">${escapeHtml(course.type || "Course")}</span>
+          </div>
+          <div>
+            <strong style="display:block;color:#e2e8f0;font-size:15px">${escapeHtml(course.title || "Untitled course")}</strong>
+            <span style="display:block;margin-top:6px;color:#94a3b8;font-size:13px">${escapeHtml(course.faculty || "Faculty unstated")}</span>
+          </div>
+          <div style="text-align:right">
+            <strong style="color:#93c5fd;font-size:14px">${escapeHtml(course.slots.join(" + "))}</strong>
+            <span style="display:block;margin-top:6px;color:#94a3b8;font-size:12px">${escapeHtml(course.venue || "Venue unstated")}</span>
+          </div>
+        </article>`
+    )
+    .join("");
+  const html = `
+    <div style="width:1000px;padding:36px;background:#090d16;color:#f8fafc;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;box-sizing:border-box;border-radius:20px">
+      <header style="padding-bottom:20px;border-bottom:1px solid rgba(255,255,255,.14)">
+        <span style="color:#93c5fd;font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase">AmazeCC FFCS · Selected courses</span>
+        <h1 style="margin:10px 0 0;color:#fff;font-size:28px">${escapeHtml(params.timetableName)}</h1>
+        <p style="margin:6px 0 0;color:#94a3b8;font-size:14px">${params.courses.length} course${params.courses.length === 1 ? "" : "s"}</p>
+      </header>
+      <section style="margin-top:8px">${rows}</section>
+    </div>`;
+
+  let container: HTMLElement | null = null;
+  try {
+    container = document.createElement("div");
+    container.style.position = "fixed";
+    container.style.left = "-9999px";
+    container.style.top = "0";
+    container.style.zIndex = "-1000";
+    container.innerHTML = html;
+    document.body.appendChild(container);
+
+    const targetElement = (container.firstElementChild as HTMLElement) || container;
+    const dataUrl = await toImageFn(targetElement, {
+      quality: 0.95,
+      backgroundColor: params.themeBgColor || "#090d16",
+      pixelRatio: 2,
+    });
+    if (dataUrl) {
+      const cleanName = params.timetableName.replace(/[^a-zA-Z0-9_-]/g, "_");
+      const link = document.createElement("a");
+      link.download = `${cleanName}_COURSES.${format === "jpg" ? "jpeg" : "png"}`;
+      link.href = dataUrl;
+      link.click();
+    }
+  } finally {
+    container?.parentNode?.removeChild(container);
   }
 }
 
@@ -774,12 +853,31 @@ export interface ModernPrintableReportParams {
   themeTextColor?: string;
   autoPrint?: boolean;
   theme?: "light" | "dark";
+  pageOrientation?: "portrait" | "landscape";
 }
 
 /**
  * Build Detailed Faculty Intelligence & Sentiment Dossier HTML
  */
-function renderDetailedFacultyReviewsDossierHtml(courses: AddedCourse[], isLight = false): string {
+type FacultyImageMap = ReadonlyMap<string, string>;
+
+function facultyImageLookupKeys(employeeId?: string | null, name?: string | null): string[] {
+  const keys: string[] = [];
+  if (employeeId?.trim()) keys.push(`id:${employeeId.trim()}`);
+  const normalizedName = name ? normalizeFacultyName(name) : "";
+  if (normalizedName) keys.push(`name:${normalizedName}`);
+  return keys;
+}
+
+function findFacultyImage(images: FacultyImageMap | undefined, employeeId?: string | null, name?: string | null): string | undefined {
+  for (const key of facultyImageLookupKeys(employeeId, name)) {
+    const image = images?.get(key);
+    if (image) return image;
+  }
+  return undefined;
+}
+
+function renderDetailedFacultyReviewsDossierHtml(courses: AddedCourse[], isLight = false, facultyImages?: FacultyImageMap): string {
   interface FacEntry {
     name: string;
     employeeId?: string;
@@ -849,6 +947,7 @@ function renderDetailedFacultyReviewsDossierHtml(courses: AddedCourse[], isLight
     .map((f) => {
       const rev = getFacultyReview({ employeeId: f.employeeId, name: f.name });
       const profileUrl = f.employeeId ? getVitfacProfileUrl(f.employeeId) : null;
+      const facultyImage = findFacultyImage(facultyImages, f.employeeId, f.name);
 
       let scoreBadge = "";
       let metricsHtml = "";
@@ -949,8 +1048,8 @@ function renderDetailedFacultyReviewsDossierHtml(courses: AddedCourse[], isLight
           <div>
             <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 8px;">
               <div style="display: flex; align-items: center; gap: 10px;">
-                <div style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: #ffffff; font-weight: 900; font-size: 13px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 8px rgba(59,130,246,0.3);">
-                  ${escapeHtml(initials || "FAC")}
+                <div style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: #ffffff; font-weight: 900; font-size: 13px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 8px rgba(59,130,246,0.3); overflow: hidden;">
+                  ${facultyImage ? `<img src="${facultyImage}" alt="${escapeHtml(f.name)}" width="36" height="36" style="width:36px;height:36px;object-fit:cover;border-radius:50%;" />` : escapeHtml(initials || "FAC")}
                 </div>
                 <div>
                   <h4 style="margin: 0; font-size: 13.5px; font-weight: 800; color: ${facNameColor}; line-height: 1.2;">
@@ -1008,7 +1107,8 @@ function renderDetailedFacultyReviewsDossierHtml(courses: AddedCourse[], isLight
 function renderDropInReplacementsDossierHtml(
   courses: AddedCourse[],
   masterCourses?: readonly ParsedCourse[],
-  isLight = false
+  isLight = false,
+  facultyImages?: FacultyImageMap
 ): string {
   const cardBg = isLight ? "#ffffff" : "rgba(15, 23, 42, 0.88)";
   const cardBorder = isLight ? "#cbd5e1" : "rgba(255, 255, 255, 0.1)";
@@ -1068,6 +1168,8 @@ function renderDropInReplacementsDossierHtml(
         const altItems = alts
           .map((alt) => {
             const rev = getFacultyReview({ employeeId: alt.ERP_ID, name: alt.FACULTY });
+            const facultyImage = findFacultyImage(facultyImages, alt.ERP_ID, alt.FACULTY);
+            const initials = alt.FACULTY.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase() || "").join("");
             let revBadge = "";
             if (rev && rev.reviews > 0) {
               const isGood = rev.wPct >= 70;
@@ -1083,6 +1185,9 @@ function renderDropInReplacementsDossierHtml(
             return `
               <div style="display: flex; align-items: center; justify-content: space-between; background: ${altRowBg}; border: 1px solid ${altRowBorder}; border-radius: 8px; padding: 8px 12px; margin-top: 5px;">
                 <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="width:24px;height:24px;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff;font-size:9px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    ${facultyImage ? `<img src="${facultyImage}" alt="${escapeHtml(alt.FACULTY)}" width="24" height="24" style="width:24px;height:24px;object-fit:cover;border-radius:50%;" />` : escapeHtml(initials || "FAC")}
+                  </span>
                   <span style="font-weight: 800; font-size: 12.5px; color: ${altFacColor};">${escapeHtml(
                     alt.FACULTY
                   )}</span>
@@ -1167,7 +1272,8 @@ function renderDropInReplacementsDossierHtml(
  */
 export function generateModernDossierInnerHtml(
   params: ModernPrintableReportParams,
-  isLight: boolean
+  isLight: boolean,
+  facultyImages?: FacultyImageMap
 ): string {
   const {
     timetableName,
@@ -1253,8 +1359,8 @@ export function generateModernDossierInnerHtml(
       : renderHorizontalGridHtml(courses, theoryPeriods, labPeriods, daysList, isLight);
 
   const tableHtml = renderCourseTableHtml(groupedCourses, isLight);
-  const facultyDossierHtml = renderDetailedFacultyReviewsDossierHtml(courses, isLight);
-  const dropInsHtml = renderDropInReplacementsDossierHtml(courses, masterCourses, isLight);
+  const facultyDossierHtml = renderDetailedFacultyReviewsDossierHtml(courses, isLight, facultyImages);
+  const dropInsHtml = renderDropInReplacementsDossierHtml(courses, masterCourses, isLight, facultyImages);
 
   return `
     <div style="width: 100%; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: ${isLight ? '#0f172a' : '#f8fafc'};">
@@ -1318,6 +1424,7 @@ export function generateModernPrintableHtml(params: ModernPrintableReportParams)
     viewMode = "horizontal",
     themeHtmlClass = "dark",
     autoPrint = false,
+    pageOrientation = "landscape",
   } = params;
 
   const isLight =
@@ -1326,6 +1433,10 @@ export function generateModernPrintableHtml(params: ModernPrintableReportParams)
 
   const containerWidth = viewMode === "vertical" ? 1280 : 1540;
   const innerHtml = generateModernDossierInnerHtml(params, isLight);
+  const portraitPrint = pageOrientation === "portrait";
+  const pageBand = isLight ? "#e8eef7" : "#090d16";
+  const pageSurface = isLight ? "#ffffff" : "#0c1222";
+  const pageBorder = isLight ? "#cbd5e1" : "rgba(255,255,255,0.12)";
 
   return `
     <!DOCTYPE html>
@@ -1346,6 +1457,27 @@ export function generateModernPrintableHtml(params: ModernPrintableReportParams)
           flex-direction: column;
           align-items: center;
           transition: background 0.2s ease, color 0.2s ease;
+        }
+
+        body.portrait-print {
+          padding: 10mm;
+          display: block;
+          min-height: 100vh;
+          background: ${pageBand};
+        }
+
+        body.portrait-print.light-theme { background: #e8eef7 !important; }
+
+        body.portrait-print .report-container {
+          max-width: 100%;
+          width: 100%;
+          padding: 7mm;
+          background: ${pageSurface};
+          border: 1px solid ${pageBorder};
+          border-radius: 3mm;
+          box-shadow: 0 1.5mm 5mm rgba(15, 23, 42, 0.12);
+          -webkit-box-decoration-break: clone;
+          box-decoration-break: clone;
         }
 
         .report-container {
@@ -1378,8 +1510,8 @@ export function generateModernPrintableHtml(params: ModernPrintableReportParams)
         }
 
         @page {
-          size: landscape;
-          margin: 10mm 12mm;
+          size: ${portraitPrint ? "A4 portrait" : "landscape"};
+          margin: ${portraitPrint ? "0" : "10mm 12mm"};
         }
 
         @media print {
@@ -1395,10 +1527,177 @@ export function generateModernPrintableHtml(params: ModernPrintableReportParams)
             max-width: 100% !important;
             width: 100% !important;
           }
+
+          body.portrait-print {
+            padding: 10mm !important;
+            display: block !important;
+            min-height: auto !important;
+            background: ${pageBand} !important;
+            color: ${isLight ? "#0f172a" : "#f8fafc"} !important;
+          }
+
+          body.portrait-print.light-theme { background: #e8eef7 !important; }
+
+          body.portrait-print .report-container {
+            max-width: none !important;
+            width: 100% !important;
+            padding: 7mm !important;
+            margin: 0 !important;
+            background: ${pageSurface} !important;
+            border: 1px solid ${pageBorder} !important;
+            border-radius: 3mm !important;
+            box-shadow: none !important;
+            -webkit-box-decoration-break: clone;
+            box-decoration-break: clone;
+          }
+
+          body.portrait-print .report-container > div { width: 100% !important; }
+          body.portrait-print .report-container .overflow-x-auto { overflow: visible !important; }
+          body.portrait-print .report-container table {
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            table-layout: fixed !important;
+          }
+          body.portrait-print .report-container th,
+          body.portrait-print .report-container td {
+            min-width: 0 !important;
+            padding: 1.2mm 0.7mm !important;
+            font-size: 6pt !important;
+            overflow-wrap: normal !important;
+            word-break: normal !important;
+            position: static !important;
+            left: auto !important;
+          }
+          body.portrait-print .report-container .rounded-2xl table th,
+          body.portrait-print .report-container .rounded-2xl table td { font-size: 5.2pt !important; }
+          body.portrait-print .report-container .rounded-2xl table td > div {
+            height: auto !important;
+            min-height: 3.5mm !important;
+            margin: 0.4mm 0 !important;
+            padding: 0.5mm !important;
+            overflow: visible !important;
+          }
+          body.portrait-print .report-container .rounded-2xl table td > div div,
+          body.portrait-print .report-container .rounded-2xl table td > div span {
+            font-size: 5pt !important;
+            line-height: 1.1 !important;
+            white-space: normal !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
+          }
+          body.portrait-print .report-container tr { break-inside: avoid; page-break-inside: avoid; }
+          body.portrait-print .pdf-timetable-grid { overflow: visible !important; }
+          body.portrait-print .pdf-timetable-grid table {
+            width: 100% !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
+            table-layout: fixed !important;
+          }
+          body.portrait-print .pdf-timetable-grid th,
+          body.portrait-print .pdf-timetable-grid td {
+            width: auto !important;
+            min-width: 0 !important;
+            max-width: none !important;
+            padding: 0.8mm 0.45mm !important;
+            font-size: 5.2pt !important;
+            overflow-wrap: anywhere !important;
+          }
+          body.portrait-print .pdf-timetable-grid th:first-child { width: 11mm !important; }
+          body.portrait-print .pdf-timetable-grid .lunch-column { width: 10mm !important; min-width: 10mm !important; max-width: 10mm !important; }
+          body.portrait-print .pdf-timetable-grid .lunch-cell { width: 12mm !important; min-width: 12mm !important; max-width: 12mm !important; }
+          body.portrait-print .pdf-timetable-grid .lunch-cell > div > span:nth-of-type(-n+5) {
+            font-size: 7pt !important;
+            letter-spacing: 0.25pt !important;
+          }
+          body.portrait-print .pdf-timetable-grid .lunch-cell > div > span:nth-of-type(n+6) { font-size: 5.5pt !important; }
+          body.portrait-print .pdf-timetable-grid .lunch-header { width: 14mm !important; min-width: 14mm !important; max-width: 14mm !important; }
+          body.portrait-print .pdf-timetable-grid .lunch-header .lunch-label {
+            white-space: nowrap !important;
+            font-size: 5.2pt !important;
+            letter-spacing: 0 !important;
+          }
+          body.portrait-print .pdf-timetable-grid .lunch-header .lunch-time {
+            white-space: nowrap !important;
+            font-size: 4.2pt !important;
+          }
+          body.portrait-print .pdf-timetable-grid td > div {
+            height: auto !important;
+            min-height: 1.5mm !important;
+            margin: 0.3mm 0 !important;
+            padding: 0.5mm !important;
+            overflow: visible !important;
+          }
+          body.portrait-print .pdf-timetable-grid td > div[style*="height: 28px"] { height: 1.5mm !important; }
+          body.portrait-print .pdf-timetable-grid td > div[style*="height: 26px"] { height: 5mm !important; }
+          body.portrait-print .pdf-timetable-grid td > div > div:first-child {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            justify-content: center !important;
+            gap: 0.4mm !important;
+          }
+          body.portrait-print .pdf-timetable-grid td > div > div:last-child {
+            white-space: normal !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
+          }
+          body.portrait-print .pdf-timetable-grid td > div span { font-size: 5pt !important; }
+          body.portrait-print .pdf-course-section { padding: 2.5mm !important; }
+          body.portrait-print table.pdf-course-table {
+            table-layout: fixed !important;
+            width: 100% !important;
+            min-width: 0 !important;
+            overflow-wrap: normal !important;
+            word-break: normal !important;
+          }
+          body.portrait-print .pdf-course-table th,
+          body.portrait-print .pdf-course-table td {
+            padding: 0.8mm 0.55mm !important;
+            font-size: 5.6pt !important;
+            line-height: 1.15 !important;
+            overflow-wrap: normal !important;
+            word-break: normal !important;
+          }
+          body.portrait-print .pdf-course-table th:nth-child(1),
+          body.portrait-print .pdf-course-table td:nth-child(1) { width: 4% !important; }
+          body.portrait-print .pdf-course-table th:nth-child(2),
+          body.portrait-print .pdf-course-table td:nth-child(2) { width: 31% !important; }
+          body.portrait-print .pdf-course-table th:nth-child(3),
+          body.portrait-print .pdf-course-table td:nth-child(3) { width: 12% !important; }
+          body.portrait-print .pdf-course-table th:nth-child(4),
+          body.portrait-print .pdf-course-table td:nth-child(4) { width: 6% !important; }
+          body.portrait-print .pdf-course-table th:nth-child(5),
+          body.portrait-print .pdf-course-table td:nth-child(5) { width: 13% !important; }
+          body.portrait-print .pdf-course-table th:nth-child(6),
+          body.portrait-print .pdf-course-table td:nth-child(6) { width: 11% !important; }
+          body.portrait-print .pdf-course-table th:nth-child(7),
+          body.portrait-print .pdf-course-table td:nth-child(7) { width: 23% !important; }
+          body.portrait-print .pdf-course-cell > div {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            align-items: flex-start !important;
+            gap: 0.8mm !important;
+          }
+          body.portrait-print .pdf-course-cell > div > div { flex: 1 1 24mm !important; min-width: 24mm !important; }
+          body.portrait-print .pdf-course-table .pdf-course-code {
+            flex: 0 0 auto !important;
+            white-space: nowrap !important;
+            font-size: 5.2pt !important;
+            letter-spacing: 0 !important;
+            padding: 0.5mm 1mm !important;
+          }
+          body.portrait-print .pdf-course-table .pdf-course-title {
+            min-width: 24mm !important;
+            font-size: 5.6pt !important;
+            white-space: normal !important;
+            overflow-wrap: break-word !important;
+            word-break: normal !important;
+          }
+          body.portrait-print .pdf-course-table td:nth-child(5) span { white-space: nowrap !important; }
         }
       </style>
     </head>
-    <body class="${isLight ? "light-theme" : ""}">
+    <body class="${[isLight ? "light-theme" : "", portraitPrint ? "portrait-print" : ""].filter(Boolean).join(" ")}">
       <div class="print-toolbar">
         <div style="display: flex; align-items: center; gap: 12px;">
           <span style="background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: #ffffff; font-size: 10px; font-weight: 900; padding: 4px 9px; border-radius: 6px; letter-spacing: 1px; text-transform: uppercase;">
@@ -1447,6 +1746,323 @@ export function generateModernPrintableHtml(params: ModernPrintableReportParams)
 }
 
 /**
+ * Build a standalone, responsive HTML dossier from the same grouped report
+ * content used by the printable view. This document has no print controls or
+ * print handlers and always uses the modern horizontal schedule.
+ */
+export function generateModernDossierHtml(params: ModernPrintableReportParams, facultyImages?: FacultyImageMap): string {
+  const timetableName = params.timetableName || "Timetable";
+  const isLight = params.theme === "light" || (!params.theme && (!params.themeHtmlClass?.includes("dark") || Boolean(params.themeHtmlClass?.includes("light"))));
+  const pageBand = isLight ? "#e8eef7" : "#090d16";
+  const surface = isLight ? "#ffffff" : "#0c1222";
+  const border = isLight ? "#cbd5e1" : "rgba(255,255,255,0.12)";
+  const content = generateModernDossierInnerHtml({ ...params, viewMode: "horizontal" }, isLight, facultyImages);
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="${isLight ? "light" : "dark"}">
+  <title>${escapeHtml(timetableName)} - FFCS Registration Dossier</title>
+  <style>
+    * { box-sizing: border-box; }
+    html { min-width: 320px; background: ${pageBand}; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: clamp(12px, 3vw, 36px);
+      background: ${pageBand};
+      color: ${isLight ? "#0f172a" : "#f8fafc"};
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    .dossier-shell {
+      width: min(1540px, 100%);
+      margin: 0 auto;
+      padding: clamp(14px, 2.5vw, 32px);
+      border: 1px solid ${border};
+      border-radius: clamp(12px, 2vw, 24px);
+      background: ${surface};
+      box-shadow: 0 12px 40px rgba(15, 23, 42, 0.16);
+    }
+    .dossier-content { width: 100%; min-width: 0; }
+    .pdf-timetable-grid, .pdf-course-section { max-width: 100%; }
+    .pdf-timetable-grid { overflow-x: auto; overscroll-behavior-inline: contain; -webkit-overflow-scrolling: touch; }
+    .pdf-timetable-grid table { width: 100%; min-width: 1000px; border-collapse: collapse; }
+    .pdf-course-section { overflow-x: auto; overscroll-behavior-inline: contain; -webkit-overflow-scrolling: touch; }
+    .pdf-course-table { min-width: 780px; }
+    @media (max-width: 640px) {
+      body { padding: 10px; }
+      .dossier-shell { padding: 12px; border-radius: 12px; }
+      .dossier-content { font-size: 14px; }
+      .pdf-timetable-grid, .pdf-course-section { margin-inline: -2px; }
+    }
+  </style>
+</head>
+<body class="${isLight ? "light-theme" : "dark-theme"}">
+  <main class="dossier-shell">
+    <div class="dossier-content">${content}</div>
+  </main>
+</body>
+</html>`;
+}
+
+interface FacultyImageTarget {
+  employeeId?: string;
+  name?: string;
+}
+
+function collectFacultyImageTargets(params: ModernPrintableReportParams): FacultyImageTarget[] {
+  const targets = new Map<string, FacultyImageTarget>();
+  const add = (employeeId?: string | null, name?: string | null) => {
+    const cleanId = employeeId?.trim();
+    const cleanName = name?.trim();
+    const key = cleanId ? `id:${cleanId}` : `name:${cleanName ? normalizeFacultyName(cleanName) : ""}`;
+    if ((cleanId || cleanName) && !targets.has(key)) targets.set(key, { employeeId: cleanId || undefined, name: cleanName || undefined });
+  };
+
+  for (const course of params.courses) {
+    const names = (course.faculty || "").split(/\s*\/\s*/).map((name) => name.trim()).filter(Boolean);
+    const ids = (course.employeeId || "").split(/\s*\/\s*/).map((id) => id.trim()).filter(Boolean);
+    names.forEach((name, index) => add(ids[index] || (ids.length === 1 ? ids[0] : undefined), name));
+  }
+
+  for (const half of expandCourseHalves(params.courses)) {
+    const alternatives = sameSlotFacultyAlternatives(
+      half.code,
+      half.slots,
+      { faculty: half.faculty, employeeId: half.employeeId },
+      params.masterCourses
+    );
+    alternatives.forEach((alternative) => add(alternative.ERP_ID, alternative.FACULTY));
+  }
+  return [...targets.values()];
+}
+
+async function shrinkFacultyImageToDataUrl(sourceUrl: string): Promise<string | null> {
+  try {
+    const response = await fetch(sourceUrl, { mode: "cors", credentials: "omit" });
+    if (!response.ok) return null;
+    const bitmap = await createImageBitmap(await response.blob());
+    try {
+      const maxDimension = 96;
+      const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
+      const width = Math.max(1, Math.round(bitmap.width * scale));
+      const height = Math.max(1, Math.round(bitmap.height * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const context = canvas.getContext("2d");
+      if (!context) return null;
+      context.drawImage(bitmap, 0, 0, width, height);
+      return canvas.toDataURL("image/jpeg", 0.78);
+    } finally {
+      bitmap.close();
+    }
+  } catch {
+    // Cross-origin images without CORS support intentionally fall back to initials.
+    return null;
+  }
+}
+
+async function buildFacultyImageMap(
+  params: ModernPrintableReportParams,
+  catalog: Map<string, VitfacFaculty>
+): Promise<Map<string, string>> {
+  const targets = collectFacultyImageTargets(params);
+  const facultyByTarget = new Map<string, VitfacFaculty>();
+  const catalogEntries = [...new Set(catalog.values())];
+  for (const target of targets) {
+    const normalizedName = target.name ? normalizeFacultyName(target.name) : "";
+    const faculty = catalog.get(target.employeeId || "") || catalogEntries.find((entry) =>
+      (target.employeeId && entry.employeeId === target.employeeId) ||
+      (normalizedName && normalizeFacultyName(entry.name) === normalizedName)
+    );
+    if (faculty?.image_url) facultyByTarget.set(target.employeeId ? `id:${target.employeeId}` : `name:${normalizedName}`, faculty);
+  }
+
+  const imageMap = new Map<string, string>();
+  const embeddedImages = await Promise.all(
+    [...facultyByTarget].map(async ([targetKey, faculty]) => ({
+      targetKey,
+      faculty,
+      dataUrl: await shrinkFacultyImageToDataUrl(faculty.image_url!),
+    }))
+  );
+  for (const { targetKey, faculty, dataUrl } of embeddedImages) {
+    if (!dataUrl) continue;
+    imageMap.set(targetKey, dataUrl);
+    // Also index by catalog identity to support a selected name whose catalog ID was resolved.
+    facultyImageLookupKeys(faculty.employeeId, faculty.name).forEach((key) => imageMap.set(key, dataUrl));
+  }
+  return imageMap;
+}
+
+/** Wait for VITFAC review data, then download a standalone dossier HTML file. */
+export async function downloadModernDossierHtml(params: ModernPrintableReportParams): Promise<void> {
+  const catalog = await loadVitfacCatalog();
+  const facultyImages = await buildFacultyImageMap(params, catalog);
+  const html = generateModernDossierHtml({ ...params, viewMode: "horizontal" }, facultyImages);
+  const isLight = params.theme === "light" || (!params.theme && (!params.themeHtmlClass?.includes("dark") || Boolean(params.themeHtmlClass?.includes("light"))));
+  const themeTag = isLight ? "LIGHT" : "DARK";
+  const cleanName = (params.timetableName || "Timetable").replace(/[^a-zA-Z0-9_-]/g, "_");
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${cleanName}_${themeTag}_FFCS_Dossier.html`;
+  link.style.display = "none";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+/**
+ * Compiles the multi-page PDF document inline on the main thread
+ * (fallback when Worker or OffscreenCanvas is unavailable).
+ */
+export async function compileDossierPdfInline(params: {
+  timetableName: string;
+  theme?: "light" | "dark";
+  isLight: boolean;
+  dataUrl: string;
+  imgNaturalWidth?: number;
+  imgNaturalHeight?: number;
+}): Promise<{ pdfBuffer: ArrayBuffer; fileName: string }> {
+  const { timetableName, isLight, dataUrl, imgNaturalWidth, imgNaturalHeight } = params;
+
+  const img = new Image();
+  img.src = dataUrl;
+  await new Promise<void>((resolve, reject) => {
+    img.onload = () => resolve();
+    img.onerror = () => reject(new Error("Failed to load captured timetable image"));
+  });
+
+  const pdf = new jsPDF({
+    orientation: "landscape",
+    unit: "mm",
+    format: "a4",
+  });
+
+  const pageWidth = 297;
+  const pageHeight = 210;
+  const margin = 10;
+  const printWidth = pageWidth - margin * 2; // 277mm
+  const printHeight = pageHeight - margin * 2; // 190mm
+
+  const totalCanvasWidth = imgNaturalWidth || img.naturalWidth;
+  const totalCanvasHeight = imgNaturalHeight || img.naturalHeight;
+  const pxPerMm = totalCanvasWidth / printWidth;
+  const pageHeightPx = Math.floor(printHeight * pxPerMm);
+
+  let remainingHeight = totalCanvasHeight;
+  let sourceY = 0;
+  let pageIndex = 0;
+
+  while (remainingHeight > 0) {
+    if (pageIndex > 0) {
+      pdf.addPage("a4", "landscape");
+    }
+    const sliceHeightPx = Math.min(pageHeightPx, remainingHeight);
+    const sliceCanvas = document.createElement("canvas");
+    sliceCanvas.width = totalCanvasWidth;
+    sliceCanvas.height = sliceHeightPx;
+    const ctx = sliceCanvas.getContext("2d");
+    if (ctx) {
+      ctx.fillStyle = isLight ? "#ffffff" : "#090d16";
+      ctx.fillRect(0, 0, totalCanvasWidth, sliceHeightPx);
+      ctx.drawImage(
+        img,
+        0,
+        sourceY,
+        totalCanvasWidth,
+        sliceHeightPx,
+        0,
+        0,
+        totalCanvasWidth,
+        sliceHeightPx
+      );
+      const sliceDataUrl = sliceCanvas.toDataURL("image/jpeg", 0.95);
+      const sliceHeightMm = sliceHeightPx / pxPerMm;
+      pdf.addImage(sliceDataUrl, "JPEG", margin, margin, printWidth, sliceHeightMm);
+    }
+    sourceY += sliceHeightPx;
+    remainingHeight -= sliceHeightPx;
+    pageIndex++;
+  }
+
+  const themeTag = isLight ? "LIGHT" : "DARK";
+  const cleanName = (timetableName || "Timetable").replace(/[^a-zA-Z0-9_-]/g, "_");
+  const fileName = `${cleanName}_${themeTag}_FFCS_Dossier.pdf`;
+  const pdfBuffer = pdf.output("arraybuffer");
+  return { pdfBuffer, fileName };
+}
+
+/**
+ * Compiles the sliced multi-page PDF document on a background Web Worker thread,
+ * with graceful fallback to inline main thread execution if Web Workers or
+ * OffscreenCanvas are unsupported.
+ */
+export async function compileDossierPdf(params: {
+  timetableName: string;
+  theme: "light" | "dark";
+  isLight: boolean;
+  dataUrl: string;
+  imgNaturalWidth?: number;
+  imgNaturalHeight?: number;
+}): Promise<{ pdfBuffer: ArrayBuffer; fileName: string }> {
+  // 1. Try background worker thread if Worker and OffscreenCanvas are available
+  if (typeof Worker !== "undefined" && typeof OffscreenCanvas !== "undefined") {
+    try {
+      const worker = new Worker(
+        new URL("../components/custom/exams/FFCS/workers/pdf.worker.ts", import.meta.url),
+        { type: "module" }
+      );
+
+      return await new Promise<{ pdfBuffer: ArrayBuffer; fileName: string }>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          worker.terminate();
+          reject(new Error("PDF worker timed out"));
+        }, 30000);
+
+        worker.onmessage = (event) => {
+          clearTimeout(timeout);
+          worker.terminate();
+          if (event.data.type === "success") {
+            resolve({
+              pdfBuffer: event.data.pdfBuffer,
+              fileName: event.data.fileName,
+            });
+          } else {
+            reject(new Error(event.data.message || "PDF worker failed"));
+          }
+        };
+
+        worker.onerror = (err) => {
+          clearTimeout(timeout);
+          worker.terminate();
+          reject(err);
+        };
+
+        worker.postMessage({
+          type: "build_dossier_pdf",
+          timetableName: params.timetableName,
+          theme: params.theme,
+          isLight: params.isLight,
+          dataUrl: params.dataUrl,
+        });
+      });
+    } catch (workerErr) {
+      console.warn("PDF worker execution failed or unavailable, falling back to inline main thread:", workerErr);
+    }
+  }
+
+  // 2. Inline fallback (guarantees compatibility in all environments, unit tests, and older browsers)
+  return compileDossierPdfInline(params);
+}
+
+/**
  * Automatically downloads a modern, high-res PDF dossier with Light and Dark mode compatibility
  */
 export async function downloadModernTimetablePdf(
@@ -1492,6 +2108,12 @@ export async function downloadModernTimetablePdf(
       throw new Error("Failed to render timetable image for PDF generation.");
     }
 
+    // Clean up DOM container immediately to release memory
+    if (container && container.parentNode) {
+      container.parentNode.removeChild(container);
+      container = null;
+    }
+
     const img = new Image();
     img.src = dataUrl;
     await new Promise<void>((resolve, reject) => {
@@ -1499,62 +2121,26 @@ export async function downloadModernTimetablePdf(
       img.onerror = () => reject(new Error("Failed to load captured timetable image"));
     });
 
-    const pdf = new jsPDF({
-      orientation: "landscape",
-      unit: "mm",
-      format: "a4",
+    // Compile multi-page PDF on worker thread (or fallback inline)
+    const { pdfBuffer, fileName } = await compileDossierPdf({
+      timetableName: params.timetableName,
+      theme: isLight ? "light" : "dark",
+      isLight,
+      dataUrl,
+      imgNaturalWidth: img.naturalWidth,
+      imgNaturalHeight: img.naturalHeight,
     });
 
-    const pageWidth = 297;
-    const pageHeight = 210;
-    const margin = 10;
-    const printWidth = pageWidth - margin * 2; // 277mm
-    const printHeight = pageHeight - margin * 2; // 190mm
-
-    const totalCanvasWidth = img.naturalWidth;
-    const totalCanvasHeight = img.naturalHeight;
-    const pxPerMm = totalCanvasWidth / printWidth;
-    const pageHeightPx = Math.floor(printHeight * pxPerMm);
-
-    let remainingHeight = totalCanvasHeight;
-    let sourceY = 0;
-    let pageIndex = 0;
-
-    while (remainingHeight > 0) {
-      if (pageIndex > 0) {
-        pdf.addPage("a4", "landscape");
-      }
-      const sliceHeightPx = Math.min(pageHeightPx, remainingHeight);
-      const sliceCanvas = document.createElement("canvas");
-      sliceCanvas.width = totalCanvasWidth;
-      sliceCanvas.height = sliceHeightPx;
-      const ctx = sliceCanvas.getContext("2d");
-      if (ctx) {
-        ctx.fillStyle = isLight ? "#ffffff" : "#090d16";
-        ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
-        ctx.drawImage(
-          img,
-          0,
-          sourceY,
-          totalCanvasWidth,
-          sliceHeightPx,
-          0,
-          0,
-          totalCanvasWidth,
-          sliceHeightPx
-        );
-        const sliceDataUrl = sliceCanvas.toDataURL("image/png");
-        const sliceHeightMm = sliceHeightPx / pxPerMm;
-        pdf.addImage(sliceDataUrl, "PNG", margin, margin, printWidth, sliceHeightMm);
-      }
-      sourceY += sliceHeightPx;
-      remainingHeight -= sliceHeightPx;
-      pageIndex++;
-    }
-
-    const themeTag = isLight ? "LIGHT" : "DARK";
-    const cleanName = (params.timetableName || "Timetable").replace(/[^a-zA-Z0-9_-]/g, "_");
-    pdf.save(`${cleanName}_${themeTag}_FFCS_Dossier.pdf`);
+    // Save and download PDF
+    const blob = new Blob([pdfBuffer], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
   } finally {
     if (container && container.parentNode) {
       container.parentNode.removeChild(container);

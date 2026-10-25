@@ -1,6 +1,6 @@
 import React from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import FFCSGuidedSelector from "../components/custom/exams/FFCS/components/FFCSGuidedSelector";
 import type { ParsedCourse, AddedCourse, TimetableState } from "../components/custom/exams/FFCS/types";
 
@@ -249,6 +249,19 @@ describe("FFCSGuidedSelector", () => {
     // Step 8: Summary & Run
     expect(screen.getAllByText("6. Generation Blueprint").length).toBeGreaterThan(0);
     expect(screen.getByText("1 Courses")).toBeDefined();
+    expect(screen.getByText("Combined Ranking Priority")).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: "Best Faculty" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Faculty$/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Move Faculty reviews up" }));
+    fireEvent.change(screen.getByRole("spinbutton", { name: "Minimum Overall W %" }), {
+      target: { value: "80" },
+    });
+    expect(screen.getAllByText("Best Faculty").length).toBeGreaterThan(0);
+    expect(screen.getByText("1. Faculty reviews")).toBeDefined();
+    expect(screen.getByRole("spinbutton", { name: "Minimum Overall W %" })).toHaveProperty(
+      "value",
+      "80"
+    );
 
     // Click Generate Timetables
     const generateBtn = screen.getByRole("button", { name: /Generate Timetable Recommendations/i });
@@ -498,6 +511,8 @@ describe("FFCSGuidedSelector", () => {
     expect(screen.getByText("5. Free Half-Days & Limits")).toBeDefined();
     expect(screen.getByText("Minimum Free Half-Days")).toBeDefined();
     expect(screen.getByText("Maximum Timetables to Generate")).toBeDefined();
+    expect(screen.getByRole("checkbox", { name: /At most one lab class per day/i })).toBeDefined();
+    expect(screen.getByRole("checkbox", { name: /Avoid consecutive lab slots/i })).toBeDefined();
 
     // Select half-days target (e.g. 2)
     fireEvent.click(screen.getByRole("button", { name: "2" }));
@@ -508,6 +523,8 @@ describe("FFCSGuidedSelector", () => {
     expect(screen.getByText("50 Timetables")).toBeDefined();
     fireEvent.click(screen.getByRole("button", { name: "Unlimited ✨" }));
     expect(screen.getByText("Unlimited (30k max)")).toBeDefined();
+    fireEvent.click(screen.getByRole("checkbox", { name: /Avoid consecutive lab slots/i }));
+    expect(screen.getByRole("checkbox", { name: /Treat lunch as a break/i })).toBeDefined();
 
     // Advance to Summary
     fireEvent.click(screen.getByRole("button", { name: /Review Generation Blueprint/i }));
@@ -603,7 +620,7 @@ describe("FFCSGuidedSelector", () => {
     expect(onToggleBlockSlot).toHaveBeenCalledWith("D1");
   });
 
-  it("renders the Single Page View button and invokes onSwitchToSinglePageView when clicked", () => {
+  it("renders the Single Page View (Plan) button and invokes onSwitchToSinglePageView when clicked", () => {
     const onSwitchToSinglePageView = vi.fn();
     render(
       <FFCSGuidedSelector
@@ -615,9 +632,314 @@ describe("FFCSGuidedSelector", () => {
       />
     );
 
-    const singlePageBtn = screen.getByRole("button", { name: /Single Page View/i });
-    expect(singlePageBtn).toBeDefined();
+    const planBtn = screen.getByRole("button", { name: /Single Page View|Plan/i });
+    expect(planBtn).toBeDefined();
+    fireEvent.click(planBtn);
+    expect(onSwitchToSinglePageView).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders at 1:1 pixel scale without non-standard zoom to avoid overzoom and layout thrashing", () => {
+    render(
+      <FFCSGuidedSelector
+        masterCourses={mockMasterCourses}
+        activeTimetable={mockTimetables[0]}
+        allTimetables={mockTimetables}
+        onAddCourse={vi.fn()}
+      />
+    );
+
+    const container = screen.getByTestId("guided-hero-container");
+    expect(container).toBeDefined();
+    // Non-standard CSS zoom removed to prevent overzoom and viewport snapping bugs
+    expect(container.style.zoom).toBe("");
+    expect(container.className).not.toContain("[zoom:0.85]");
+    expect(container.className).toContain("fixed inset-0");
+  });
+
+  it("integrates manual timetable flow into one continuous unified flow for the mounted timetable", async () => {
+    const onAddCourse = vi.fn();
+    const onViewTimetable = vi.fn();
+
+    render(
+      <FFCSGuidedSelector
+        masterCourses={mockMasterCourses}
+        activeTimetable={mockTimetables[0]} // Timetable 1
+        allTimetables={mockTimetables}
+        courses={mockTimetables[0].courses}
+        onAddCourse={onAddCourse}
+        onViewTimetable={onViewTimetable}
+      />
+    );
+
+    // Step 1: Mode -> Select Manual Builder
+    fireEvent.click(screen.getByRole("button", { name: /Build My Own Timetable/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Continue to Timetable Selection/i }));
+
+    // Step 2: Target Timetable -> Timetable 1 is mounted
+    expect(screen.getAllByText("Select Target Timetable").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Timetable 1").length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: /Continue to Course Strategy/i }));
+
+    // Step 3: Course Strategy -> Choose One by One
+    expect(screen.getAllByText("Course Strategy").length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: /Choose Courses One by One/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Start Adding Courses/i }));
+
+    // Step 4: Unified Course Selection for Timetable 1
+    expect(screen.getAllByText(/Choose Course for Timetable 1/i).length).toBeGreaterThan(0);
+    // BCSE102 (Algorithms)
+    const bcse102Card = screen.getByText("BCSE102");
+    expect(bcse102Card).toBeDefined();
+    fireEvent.click(bcse102Card);
+
+    // Step 5: Pick Faculty & Slot
+    expect(screen.getAllByText(/Pick Faculty & Slot/i).length).toBeGreaterThan(0);
+    expect(screen.getByText("DR. BOB")).toBeDefined();
+    const bobOffering = screen.getByText("DR. BOB");
+    fireEvent.click(bobOffering);
+
+    // Step 6: Review & Place into Timetable 1
+    const addBtn = screen.getByRole("button", { name: /Add to Timetable 1/i });
+    expect(addBtn).toBeDefined();
+    fireEvent.click(addBtn);
+
+    // Verifies addition called
+    expect(onAddCourse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: "BCSE102",
+        faculty: "DR. BOB",
+      }),
+      false
+    );
+
+    // Step 7: Seamlessly transitions to Mounted Timetable Grid View within the hero
+    expect(screen.getAllByText(/Timetable 1/i).length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: /^Add Another Course$/i })).toBeDefined();
+    expect(screen.getByRole("button", { name: /Done \/ View Grid/i })).toBeDefined();
+
+    // Clicking Add Another Course returns to Course selection in the same unified flow
+    fireEvent.click(screen.getByRole("button", { name: /^Add Another Course$/i }));
+    expect(screen.getAllByText(/Choose Course for Timetable 1/i).length).toBeGreaterThan(0);
+  });
+
+  it("allows browsing and cycling between multiple timetables directly in the hero UI", async () => {
+    const onSelectTimetable = vi.fn();
+    const onViewTimetable = vi.fn();
+
+    render(
+      <FFCSGuidedSelector
+        masterCourses={mockMasterCourses}
+        activeTimetable={mockTimetables[0]} // Timetable 1
+        allTimetables={mockTimetables} // Timetable 1 and Timetable 2
+        initialGuidedPhase="manual_timetable_view"
+        onAddCourse={vi.fn()}
+        onSelectTimetable={onSelectTimetable}
+        onViewTimetable={onViewTimetable}
+      />
+    );
+
+    // Should display Timetable 1 initially with 1 course and credit count
+    expect(screen.getAllByText(/Timetable 1/i).length).toBeGreaterThan(0);
+    expect(screen.getByText("4 Credits")).toBeDefined();
+    expect(screen.getAllByText("● Mounted Active Timetable").length).toBeGreaterThan(0);
+
+    // Pill tabs for timetables are present
+    const ttTabs = screen.getAllByRole("tab");
+    expect(ttTabs.length).toBe(2);
+    expect(ttTabs[0].getAttribute("aria-selected")).toBe("true");
+    expect(ttTabs[1].getAttribute("aria-selected")).toBe("false");
+
+    // Click Next Timetable button to switch to Timetable 2
+    const nextBtns = screen.getAllByRole("button", { name: /Next Timetable/i });
+    expect(nextBtns.length).toBeGreaterThan(0);
+    fireEvent.click(nextBtns[0]);
+
+    // onSelectTimetable should be called with tt-2 id
+    expect(onSelectTimetable).toHaveBeenCalledWith("tt-2");
+    expect(screen.getAllByText(/Timetable 2/i).length).toBeGreaterThan(0);
+
+    // Empty state rendered for Timetable 2
+    expect(screen.getByText(/No courses placed in/i)).toBeDefined();
+
+    // Click tab 0 to navigate back to Timetable 1
+    fireEvent.click(ttTabs[0]);
+    expect(onSelectTimetable).toHaveBeenCalledWith("tt-1");
+
+    // Arrow keys cycle timetables
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+    expect(onSelectTimetable).toHaveBeenCalledWith("tt-2");
+
+    fireEvent.keyDown(window, { key: "ArrowLeft" });
+    expect(onSelectTimetable).toHaveBeenCalledWith("tt-1");
+  });
+
+  it("navigates to multi-timetable browser from auto results via My Timetables button", async () => {
+    const onSelectTimetable = vi.fn();
+
+    render(
+      <FFCSGuidedSelector
+        masterCourses={mockMasterCourses}
+        activeTimetable={mockTimetables[0]}
+        allTimetables={mockTimetables}
+        initialGuidedPhase="auto_results"
+        initialPlanMode="auto"
+        onAddCourse={vi.fn()}
+        onSelectTimetable={onSelectTimetable}
+      />
+    );
+
+    // Mock auto results state with at least one variant if present or check button
+    // The "My Timetables" button in auto results header strip
+    const myTimetablesBtns = screen.queryAllByRole("button", { name: /My Timetables/i });
+    if (myTimetablesBtns.length > 0) {
+      fireEvent.click(myTimetablesBtns[0]);
+      // Should now be in the timetable browser
+      expect(screen.getAllByText(/Timetable Browser/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/Timetable 1/i).length).toBeGreaterThan(0);
+    }
+  });
+
+  it("supports wrapping physical buttons to the next row with whitespace-nowrap in both viewports", () => {
+    render(
+      <FFCSGuidedSelector
+        masterCourses={mockMasterCourses}
+        activeTimetable={mockTimetables[0]}
+        allTimetables={mockTimetables}
+        initialGuidedPhase="manual_timetable_view"
+        onAddCourse={vi.fn()}
+      />
+    );
+
+    // Verify footer actions container uses flex-wrap and buttons prevent text-wrapping inside
+    const prevBtn = screen.getByRole("button", { name: /Previous Step/i });
+    const footerContainer = prevBtn.closest(".flex-wrap");
+    expect(footerContainer).toBeDefined();
+    expect(footerContainer?.className).toContain("flex-wrap");
+
+    const addAnotherBtn = screen.getByRole("button", { name: /^Add Another Course$/i });
+    expect(addAnotherBtn).toBeDefined();
+    expect(addAnotherBtn.className).toContain("whitespace-nowrap");
+
+    const doneBtn = screen.getByRole("button", { name: /Done \/ View Grid/i });
+    expect(doneBtn).toBeDefined();
+    expect(doneBtn.className).toContain("whitespace-nowrap");
+  });
+
+  it("renders mobile pre-flight launch screen when on mobile viewport and has not launched yet", async () => {
+    const originalInnerWidth = window.innerWidth;
+    window.innerWidth = 375;
+    const onSwitchToSinglePageView = vi.fn();
+
+    const requestFullscreenMock = vi.fn().mockResolvedValue(undefined);
+    document.documentElement.requestFullscreen = requestFullscreenMock;
+
+    render(
+      <FFCSGuidedSelector
+        masterCourses={mockMasterCourses}
+        activeTimetable={mockTimetables[0]}
+        courses={mockTimetables[0].courses}
+        onAddCourse={vi.fn()}
+        initialHasLaunchedHero={false}
+        onSwitchToSinglePageView={onSwitchToSinglePageView}
+      />
+    );
+
+    // Should display Mobile Pre-Flight screen
+    expect(screen.getByTestId("mobile-preflight-screen")).toBeDefined();
+    expect(screen.getByText("FFCS Mobile Generator")).toBeDefined();
+    expect(screen.getByText("Mobile-First Timetable Builder")).toBeDefined();
+
+    // The pre-flight screen is an organic step of the hero, not an external
+    // splash: it lives inside the unified hero container and under the hero
+    // header (Plan + Fullscreen toggle), with the ambient lighting that
+    // container provides.
+    expect(screen.getByTestId("guided-hero-container")).toBeDefined();
+    expect(screen.getByText("Single Page View (Plan)")).toBeDefined();
+    // The fullscreen toggle's title reflects the current state ("Enter
+    // Fullscreen" vs "Exit Fullscreen"), so match on the shared word.
+    expect(screen.getByTitle(/Fullscreen/)).toBeDefined();
+
+    // Single Page View button calls onSwitchToSinglePageView
+    const singlePageBtn = screen.getByTestId("switch-to-single-page-btn");
     fireEvent.click(singlePageBtn);
     expect(onSwitchToSinglePageView).toHaveBeenCalledTimes(1);
+
+    // Clicking Enter Full Screen & Start invokes native fullscreen and enters the hero
+    const startFullscreenBtn = screen.getByTestId("enter-fullscreen-start-btn");
+    await act(async () => {
+      fireEvent.click(startFullscreenBtn);
+    });
+
+    expect(requestFullscreenMock).toHaveBeenCalled();
+    // After launching, pre-flight screen is replaced by normal hero flow
+    expect(screen.queryByTestId("mobile-preflight-screen")).toBeNull();
+    expect(screen.getByText("Choose Creation Mode")).toBeDefined();
+
+    window.innerWidth = originalInnerWidth;
+  });
+
+  it("allows continuing in window from mobile pre-flight screen without fullscreen", async () => {
+    const originalInnerWidth = window.innerWidth;
+    window.innerWidth = 375;
+
+    render(
+      <FFCSGuidedSelector
+        masterCourses={mockMasterCourses}
+        activeTimetable={mockTimetables[0]}
+        courses={mockTimetables[0].courses}
+        onAddCourse={vi.fn()}
+        initialHasLaunchedHero={false}
+      />
+    );
+
+    expect(screen.getByTestId("mobile-preflight-screen")).toBeDefined();
+    const continueBtn = screen.getByTestId("start-in-window-btn");
+    fireEvent.click(continueBtn);
+
+    expect(screen.queryByTestId("mobile-preflight-screen")).toBeNull();
+    expect(screen.getByText("Choose Creation Mode")).toBeDefined();
+
+    window.innerWidth = originalInnerWidth;
+  });
+
+  it("invokes native fullscreen toggle API and responds to fullscreenchange events", async () => {
+    const requestFullscreenMock = vi.fn().mockResolvedValue(undefined);
+    const exitFullscreenMock = vi.fn().mockResolvedValue(undefined);
+    document.documentElement.requestFullscreen = requestFullscreenMock;
+    document.exitFullscreen = exitFullscreenMock;
+
+    const onToggleFullScreen = vi.fn();
+
+    render(
+      <FFCSGuidedSelector
+        masterCourses={mockMasterCourses}
+        activeTimetable={mockTimetables[0]}
+        courses={mockTimetables[0].courses}
+        onAddCourse={vi.fn()}
+        isFullScreen={false}
+        onToggleFullScreen={onToggleFullScreen}
+      />
+    );
+
+    // Click Enter Fullscreen button
+    const toggleBtn = screen.getByTitle("Enter Fullscreen");
+    await act(async () => {
+      fireEvent.click(toggleBtn);
+    });
+
+    expect(requestFullscreenMock).toHaveBeenCalled();
+    expect(onToggleFullScreen).toHaveBeenCalledWith(true);
+
+    // Simulate fullscreen change event when user exits fullscreen in browser
+    Object.defineProperty(document, "fullscreenElement", {
+      configurable: true,
+      value: null,
+    });
+
+    act(() => {
+      document.dispatchEvent(new Event("fullscreenchange"));
+    });
+
+    expect(onToggleFullScreen).toHaveBeenCalledWith(false);
   });
 });

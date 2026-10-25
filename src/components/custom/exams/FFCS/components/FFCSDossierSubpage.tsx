@@ -29,7 +29,7 @@ import type { AddedCourse, TimetablePeriod, ParsedCourse, TimetableState } from 
 import { COLOR_HEX_MAP, typeLabels, getCourseBadgeProps } from "../constants";
 import { getFacultyReview, getVitfacProfileUrl } from "@/lib/vitfacService";
 import { sameSlotFacultyAlternatives, expandCourseHalves } from "../logic/generate";
-import { downloadModernTimetablePdf } from "@/lib/exportTimetable";
+import { downloadModernDossierHtml } from "@/lib/exportTimetable";
 import PdfGenerationBadge from "./PdfGenerationBadge";
 
 export interface FFCSDossierSubpageProps {
@@ -198,22 +198,22 @@ export default function FFCSDossierSubpage({
   const handleDownloadPdf = async () => {
     setIsGeneratingPdf(true);
     try {
-      await downloadModernTimetablePdf({
+      await downloadModernDossierHtml({
         timetableName: timetable.name,
         courses,
         theoryPeriods,
         labPeriods,
         days,
         masterCourses,
-        viewMode,
+        viewMode: "horizontal",
         totalCredits,
         theme: isLightMode ? "light" : "dark",
       });
-      setPdfToast(`PDF (${isLightMode ? "Light" : "Dark"} Mode) downloaded successfully!`);
+      setPdfToast("HTML dossier downloaded successfully.");
       setTimeout(() => setPdfToast(null), 3500);
     } catch (err) {
-      console.error("Failed to generate and download PDF:", err);
-      setPdfToast("Failed to generate PDF. Please try again.");
+      console.error("Failed to download HTML dossier:", err);
+      setPdfToast("Failed to download HTML dossier. Please try again.");
       setTimeout(() => setPdfToast(null), 3500);
     } finally {
       setIsGeneratingPdf(false);
@@ -407,17 +407,17 @@ export default function FFCSDossierSubpage({
             onClick={handleDownloadPdf}
             disabled={isGeneratingPdf}
             className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-black bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white shadow-md shadow-indigo-500/20 active:scale-95 transition-all cursor-pointer"
-            title="Automatically generate and download PDF dossier with selected theme"
+                title="Download a standalone HTML dossier"
           >
             {isGeneratingPdf ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Generating PDF...</span>
+                <span>Preparing HTML dossier...</span>
               </>
             ) : (
               <>
-                <Download className="w-4 h-4" />
-                <span>Download PDF</span>
+                <Printer className="w-4 h-4" />
+                <span>Download HTML Dossier</span>
               </>
             )}
           </button>

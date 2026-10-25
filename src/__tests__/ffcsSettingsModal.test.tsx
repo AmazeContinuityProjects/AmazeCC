@@ -84,17 +84,94 @@ describe("FFCSSettingsModal", () => {
     expect(p.setSocialScoreGroupMethod).toHaveBeenCalledWith("cumulative");
   });
 
+  it("keeps radio-setting prompts and options in a single vertical pane", () => {
+    render(<FFCSSettingsModal {...props()} />);
+
+    const rankingGroup = screen.getByDisplayValue("Balanced").parentElement?.parentElement;
+    expect(rankingGroup?.className).toContain("flex-col");
+    expect(rankingGroup?.className).not.toContain("sm:flex-row");
+    expect(rankingGroup?.parentElement?.className).toContain("w-full");
+    expect(rankingGroup?.parentElement?.parentElement?.className).toContain("flex-col");
+    expect(rankingGroup?.parentElement?.parentElement?.className).not.toContain("sm:flex-row");
+  });
+
   it("edits the tab's own state for grouping, not a copy in settings", () => {
     const p = props({ isGroupingEnabled: false });
     render(<FFCSSettingsModal {...p} />);
 
-    // Switches are unnamed on purpose — SettingRow names the row — so pick
-    // them in document order: grouping, tour, analytics.
-    const [grouping] = screen.getAllByRole("switch") as HTMLButtonElement[];
+    // Grouping's switch is unnamed on purpose; the wide-screen layout switch
+    // is labelled because it is a new presentation preference.
+    const grouping = (screen.getAllByRole("switch") as HTMLButtonElement[]).find(
+      (control) => !control.hasAttribute("aria-label")
+    );
+    expect(grouping).toBeDefined();
     act(() => grouping.click());
 
     expect(p.setIsGroupingEnabled).toHaveBeenCalledWith(true);
     expect(p.update).not.toHaveBeenCalled();
+  });
+
+  it("updates the wide-screen vertical timetable layout preference", () => {
+    const p = props();
+    render(<FFCSSettingsModal {...p} />);
+
+    const layoutSwitch = screen.getByRole("switch", {
+      name: "Vertical timetable beside widgets",
+    });
+    act(() => layoutSwitch.click());
+
+    expect(p.update).toHaveBeenCalledWith("showVerticalTimetableBesideWidgets", true);
+  });
+
+  it("updates the generator timetable options pane preference", () => {
+    const p = props();
+    render(<FFCSSettingsModal {...p} />);
+
+    const description = screen.getByText(
+      "Show the desktop side pane for switching between generated timetable options while reviewing."
+    );
+    expect(description.className).toContain("whitespace-normal");
+    expect(description.className).not.toContain("truncate");
+
+    act(() =>
+      screen.getByRole("switch", { name: "Generator timetable options pane" }).click()
+    );
+
+    expect(p.update).toHaveBeenCalledWith("showGeneratorOptionPane", false);
+  });
+
+  it("updates the separate course-list image export preference", () => {
+    const p = props();
+    render(<FFCSSettingsModal {...p} />);
+
+    act(() => screen.getByRole("switch", { name: "Separate course-list image" }).click());
+
+    expect(p.update).toHaveBeenCalledWith("separateCourseListExport", true);
+  });
+
+  it("updates the unlimited-search safety ceiling preference", () => {
+    const p = props();
+    render(<FFCSSettingsModal {...p} />);
+
+    act(() =>
+      screen.getByRole("switch", { name: "Remove 30,000-result safety ceiling" }).click()
+    );
+
+    expect(p.update).toHaveBeenCalledWith("removeHardResultLimit", true);
+  });
+
+  it("reorders the combined ranking priority through planner settings", () => {
+    const p = props();
+    render(<FFCSSettingsModal {...p} />);
+
+    act(() => screen.getByRole("button", { name: "Move Faculty reviews up" }).click());
+
+    expect(p.update).toHaveBeenCalledWith("rankingPriorityOrder", [
+      "faculty",
+      "profile",
+      "sort",
+      "time",
+    ]);
   });
 
   it("writes analytics consent to the analytics key, not to settings", () => {

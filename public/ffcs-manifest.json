@@ -1,0 +1,37 @@
+{
+  "id": "/ffcs/",
+  "name": "AmazeCC FFCS Planner",
+  "short_name": "Amaze FFCS",
+  "description": "Conflict-free course timetable planner, faculty ratings, slot clash detector, and automated schedule generator for VIT.",
+  "lang": "en",
+  "categories": ["education", "productivity"],
+  "start_url": "/ffcs/",
+  "scope": "/ffcs/",
+  "display": "standalone",
+  "background_color": "#03060F",
+  "theme_color": "#4f46e5",
+  "shortcuts": [
+    {
+      "name": "FFCS Timetable",
+      "short_name": "Timetable",
+      "description": "Open your FFCS timetable schedule",
+      "url": "/ffcs/",
+      "icons": [{ "src": "/favicon/FFCS.png", "sizes": "512x512", "type": "image/png" }]
+    }
+  ],
+  "icons": [
+    {
+      "src": "/favicon/FFCS.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon/FFCS.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "orientation": "portrait-primary"
+}

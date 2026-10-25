@@ -58,6 +58,7 @@ import { closeTopOverlayFromPop, hasOpenOverlays, useOverlayBack } from "@/lib/o
 import { readHistoryOp, writeHistoryEntry } from "@/lib/historyStack";
 import type { Ids } from "@/lib/sync-engine/types";
 import { storage } from "@/lib/storage";
+import { navigateToFFCSPlanner } from "@/lib/ffcsNavigation";
 import { reportError } from "@/lib/error-utils";
 import { DEMO_OFFICIAL_OD } from "@/lib/officialOd";
 
@@ -1619,7 +1620,7 @@ export default function LoginPage() {
       { id: "events", label: "Event Hub", description: "Registered events & campus activities", icon: "🎉", category: "Campus", onSelect: () => { setActiveTab("events"); } },
       { id: "clubs", label: "Club Hub", description: "Discover student clubs & chapters", icon: "🏛️", category: "Campus", onSelect: () => { setActiveTab("clubs"); } },
     { id: "community", label: "Community Feed", description: "Announcements from clubs & chapters", icon: "📣", category: "Campus", onSelect: () => { setActiveTab("community"); } },
-      { id: "more-schedules", label: "FFCS Planner", description: "Plan and compare schedules", icon: "🗓️", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("ffcs"); } },
+      { id: "more-schedules", label: "FFCS Planner", description: "Plan and compare schedules", icon: "🗓️", category: "Tools", onSelect: navigateToFFCSPlanner },
     );
 
     // ── Tools & Modals ──

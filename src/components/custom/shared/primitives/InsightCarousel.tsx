@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, type ReactNode } from "react";
-import { AnimatePresence, m } from "framer-motion";
 import { cn } from "@amazecontinuityprojects/amazeui";
 import { TILE, TONE_BADGE, TONE_TEXT } from "@/lib/uiTokens";
 import type { CarouselState } from "./useCarousel";
@@ -11,10 +10,9 @@ import { useHorizontalSwipe } from "./useHorizontalSwipe";
  * The rotating "insight" tile.
  *
  * Eight pages had this tile: hero stat, an auto-advancing carousel of them. The
- * three-slot body (label + badge / big value / subline + dots), the 6px
- * cross-fade between slides and the dot indicator were character-identical in
- * all eight — what differed was the headline size, whether the tile was
- * clickable, and whether the dots were buttons.
+ * three-slot body (label + badge / big value / subline + dots) and dot indicator
+ * were character-identical in all eight — what differed was the headline size,
+ * whether the tile was clickable, and whether the dots were buttons.
  *
  * ## Swiping
  *
@@ -128,6 +126,8 @@ export function InsightCarousel({
   // overlay button, with the decorative body made click-transparent on top.
   return (
     <div
+      role={ariaLabel ? "region" : undefined}
+      aria-label={ariaLabel}
       className={cn(
         TILE,
         height,
@@ -174,29 +174,18 @@ export function InsightCarousel({
         ) : null}
       </div>
 
-      <div className="my-auto min-w-0 relative z-10 pointer-events-none">
-        <AnimatePresence mode="wait">
-          <m.div
-            key={slide.id}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.2 }}
-            className="min-w-0"
-          >
-            <p
-              className={cn(
-                "font-black font-outfit tracking-tight truncate block",
-                HEADLINE[headlineSize],
-                valueTone,
-                slide.valueClassName,
-                slide.blur && `select-none ${slide.blur}`
-              )}
-            >
-              {slide.value}
-            </p>
-          </m.div>
-        </AnimatePresence>
+      <div className="flex min-h-0 flex-1 items-center min-w-0 relative z-10 pointer-events-none">
+        <p
+          className={cn(
+            "font-black font-outfit tracking-tight truncate block",
+            HEADLINE[headlineSize],
+            valueTone,
+            slide.valueClassName,
+            slide.blur && `select-none ${slide.blur}`
+          )}
+        >
+          {slide.value}
+        </p>
       </div>
 
       <div className="flex items-center justify-between gap-2 relative z-10">
@@ -220,17 +209,14 @@ export function InsightCarousel({
                       (typeof s.label === "string" ? s.label : `slide ${i + 1}`)
                     }`}
                     className={cn(
-                      "h-1.5 rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-strong dark:focus-visible:ring-text-secondary",
+                      "h-1.5 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-strong dark:focus-visible:ring-text-secondary",
                       i === carousel.index ? DOT_ACTIVE : DOT_IDLE
                     )}
                   />
                 ) : (
                   <span
                     key={s.id}
-                    className={cn(
-                      "h-1.5 rounded-full transition-all duration-300",
-                      i === carousel.index ? DOT_ACTIVE : DOT_IDLE
-                    )}
+                    className={cn("h-1.5 rounded-full", i === carousel.index ? DOT_ACTIVE : DOT_IDLE)}
                   />
                 )
               )}

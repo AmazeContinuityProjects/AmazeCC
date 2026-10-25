@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { navigateToFFCSPlanner } from "@/lib/ffcsNavigation";
 import {
   Database,
   UserCheck,
@@ -177,7 +178,7 @@ export default function ToolsHub({
           return (
             <button
               key={tool.id}
-              onClick={() => setActiveToolsSubTab(tool.id)}
+              onClick={() => tool.id === "ffcs" ? navigateToFFCSPlanner() : setActiveToolsSubTab(tool.id)}
               className="group relative flex items-center justify-between p-3.5 sm:p-4 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 card-surface hover:border-indigo-500/40 dark:hover:border-indigo-500/40 transition-all duration-150 cursor-pointer shadow-2xs hover:shadow-sm active:scale-[0.99] text-left"
             >
               <div className="flex items-center gap-3.5 min-w-0 flex-1 pr-2">

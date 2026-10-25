@@ -6,6 +6,46 @@ import { getAssetPath } from "@/lib/utils";
 export default function IconUpdater() {
   useEffect(() => {
     const updateIcon = () => {
+      // In standalone /ffcs route, enforce the dedicated FFCS icon and manifest
+      if (typeof window !== "undefined" && window.location.pathname.startsWith("/ffcs")) {
+        const ffcsIconUrl = getAssetPath("/favicon/FFCS.png");
+        const ffcsManifestUrl = getAssetPath("/ffcs-manifest.json");
+
+        const iconLinks = document.querySelectorAll("link[rel~='icon']");
+        const appleIconLinks = document.querySelectorAll("link[rel='apple-touch-icon']");
+
+        if (iconLinks.length > 0) {
+          iconLinks.forEach((link) => {
+            (link as HTMLLinkElement).href = ffcsIconUrl;
+          });
+        } else {
+          const newIconLink = document.createElement("link");
+          newIconLink.rel = "icon";
+          newIconLink.href = ffcsIconUrl;
+          document.head.appendChild(newIconLink);
+        }
+
+        if (appleIconLinks.length > 0) {
+          appleIconLinks.forEach((link) => {
+            (link as HTMLLinkElement).href = ffcsIconUrl;
+          });
+        } else {
+          const newAppleIconLink = document.createElement("link");
+          newAppleIconLink.rel = "apple-touch-icon";
+          newAppleIconLink.href = ffcsIconUrl;
+          document.head.appendChild(newAppleIconLink);
+        }
+
+        let manifestLink = document.querySelector("link[rel='manifest']") as HTMLLinkElement;
+        if (!manifestLink) {
+          manifestLink = document.createElement("link");
+          manifestLink.rel = "manifest";
+          document.head.appendChild(manifestLink);
+        }
+        manifestLink.href = ffcsManifestUrl;
+        return;
+      }
+
       const savedIcon = localStorage.getItem("app-icon") || "default";
       
       // Update ALL link[rel~="icon"] tags

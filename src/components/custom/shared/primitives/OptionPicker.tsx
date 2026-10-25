@@ -78,7 +78,8 @@ const OptionPicker = forwardRef<HTMLDivElement, OptionPickerProps>(function Opti
   const [query, setQuery] = useState("");
   const isMobile = useIsMobile();
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
+  const [position, setPosition] = useState({ top: 0, left: 0, width: 0, height: 320 });
+  const [mobilePopupHeight, setMobilePopupHeight] = useState(600);
 
   const selected = options.find((o) => o.value === value);
   const filtered = query
@@ -90,11 +91,34 @@ const OptionPicker = forwardRef<HTMLDivElement, OptionPickerProps>(function Opti
     : options;
 
   useEffect(() => {
-    if (open && !isMobile && triggerRef.current) {
-      const rect = triggerRef.current.getBoundingClientRect();
-      setPosition({ top: rect.bottom + 6, left: rect.left, width: rect.width });
-    }
-  }, [open, isMobile]);
+    if (!open) return;
+    const updatePosition = () => {
+      if (isMobile) {
+        setMobilePopupHeight(Math.min(640, window.innerHeight * 0.85));
+        return;
+      }
+      const trigger = triggerRef.current;
+      if (!trigger) return;
+      const rect = trigger.getBoundingClientRect();
+      const below = Math.max(80, window.innerHeight - rect.bottom - 12);
+      const above = Math.max(80, rect.top - 12);
+      const openAbove = below < Math.min(240, options.length * 44) && above > below;
+      const height = Math.min(320, openAbove ? above : below);
+      setPosition({
+        top: openAbove ? rect.top - height - 6 : rect.bottom + 6,
+        left: rect.left,
+        width: rect.width,
+        height,
+      });
+    };
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition);
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition);
+    };
+  }, [open, isMobile, options.length]);
 
   useEffect(() => {
     if (!open) setQuery("");
@@ -117,7 +141,7 @@ const OptionPicker = forwardRef<HTMLDivElement, OptionPickerProps>(function Opti
   };
 
   const listContent = (
-    <div className="flex flex-col h-full max-h-[85vh]">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
       {searchable && (
         <div className="relative shrink-0 border-b border-border">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60 pointer-events-none" />
@@ -140,7 +164,11 @@ const OptionPicker = forwardRef<HTMLDivElement, OptionPickerProps>(function Opti
           )}
         </div>
       )}
-      <div className="flex-1 overflow-y-auto py-1" role="listbox">
+      <div
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-1 touch-pan-y"
+        role="listbox"
+        style={{ WebkitOverflowScrolling: "touch" }}
+      >
         {filtered.length === 0 ? (
           <div className="py-8 text-center">
             <p className="text-sm text-muted-foreground/50">No options found</p>
@@ -210,15 +238,16 @@ const OptionPicker = forwardRef<HTMLDivElement, OptionPickerProps>(function Opti
               className={cn(
                 `fixed ${OVERLAY_Z} bg-popover border border-border rounded-xl shadow-xl overflow-hidden`,
                 "animate-in fade-in slide-in-from-top-2 duration-200",
-                "min-w-[240px]"
+                "min-w-[240px] min-h-0"
               )}
               style={{
                 top: position.top,
                 left: position.left,
                 width: Math.max(position.width, 240),
+                height: position.height,
               }}
             >
-              <div className="max-h-[320px] flex flex-col">{listContent}</div>
+              <div className="h-full min-h-0 flex flex-col">{listContent}</div>
             </div>
           </>,
           document.body
@@ -238,7 +267,8 @@ const OptionPicker = forwardRef<HTMLDivElement, OptionPickerProps>(function Opti
             <div
               role="dialog"
               aria-modal="true"
-              className="relative w-full max-w-md max-h-[85vh] bg-background rounded-2xl border border-border shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+              className="relative w-full max-w-md min-h-0 bg-background rounded-2xl border border-border shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+              style={{ height: mobilePopupHeight, maxHeight: "85dvh" }}
             >
               {listContent}
             </div>

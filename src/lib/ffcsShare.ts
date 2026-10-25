@@ -1,6 +1,7 @@
 import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from "lz-string";
 import type { AddedCourse, TimetableState } from "@/components/custom/exams/FFCS/types";
 import { GLOBAL_CAMPUS } from "@/lib/campusSchema";
+import type { FFCSSemesterId } from "@/components/custom/exams/FFCS/reports";
 
 /**
  * Share links: one timetable, compressed into the URL itself.
@@ -48,6 +49,14 @@ interface ShareWire {
   k: AddedCourse[];
 }
 
+export interface CompactShareWire {
+  v: number;
+  s: FFCSSemesterId;
+  p: string;
+  i: string[];
+  n: string;
+}
+
 /** Known fields only — a course from a future version travels as what it is. */
 function asCourse(raw: unknown): AddedCourse | null {
   if (!raw || typeof raw !== "object") return null;
@@ -60,12 +69,93 @@ function asCourse(raw: unknown): AddedCourse | null {
     title: typeof c.title === "string" ? c.title : "",
     slots: c.slots as string[],
     faculty: typeof c.faculty === "string" ? c.faculty : "",
+    ...(typeof c.classId === "string" && c.classId ? { classId: c.classId } : {}),
     venue: typeof c.venue === "string" ? c.venue : "",
     credits: typeof c.credits === "string" ? c.credits : "",
     type: typeof c.type === "string" ? c.type : "",
     color: typeof c.color === "string" ? c.color : "",
     ...(typeof c.batch === "string" ? { batch: c.batch } : {}),
   };
+}
+
+function commonPrefix(values: readonly string[]): string {
+  if (!values.length) return "";
+  let prefix = values[0];
+  for (const value of values.slice(1)) {
+    let length = 0;
+    while (length < prefix.length && length < value.length && prefix[length] === value[length]) {
+      length++;
+    }
+    prefix = prefix.slice(0, length);
+    if (!prefix) break;
+  }
+  return prefix;
+}
+
+/**
+ * A compact report-backed format: transmit only the shared class-id prefix and
+ * each selected class-id suffix. Returns null when the plan has no complete,
+ * unique report IDs or they do not share a useful prefix.
+ */
+export function encodeCompactTimetableShare(
+  timetable: Pick<TimetableState, "name" | "courses">,
+  semester: FFCSSemesterId
+): string | null {
+  const classIds = timetable.courses.map((course) => course.classId?.trim() ?? "");
+  if (classIds.some((id) => !id) || new Set(classIds).size !== classIds.length) return null;
+  const prefix = commonPrefix(classIds);
+  if (prefix.length < 4) return null;
+  const wire: CompactShareWire = {
+    v: FFCS_SHARE_VERSION,
+    s: semester,
+    p: prefix,
+    i: classIds.map((id) => id.slice(prefix.length)),
+    n: timetable.name,
+  };
+  return compressToEncodedURIComponent(JSON.stringify(wire));
+}
+
+/** Decode and validate the compact report-backed payload before fetching its semester data. */
+export function decodeCompactTimetableShare(encoded: string): CompactShareWire | null {
+  if (!encoded) return null;
+  try {
+    const json = decompressFromEncodedURIComponent(encoded);
+    if (!json) return null;
+    const raw: unknown = JSON.parse(json);
+    if (!raw || typeof raw !== "object") return null;
+    const wire = raw as Record<string, unknown>;
+    if (
+      wire.v !== FFCS_SHARE_VERSION ||
+      (wire.s !== "winter-2026-2027" && wire.s !== "previous") ||
+      typeof wire.p !== "string" ||
+      wire.p.length < 4 ||
+      wire.p.length > 100 ||
+      !/^[A-Za-z0-9_-]+$/.test(wire.p) ||
+      typeof wire.n !== "string" ||
+      wire.n.length > 120 ||
+      !Array.isArray(wire.i) ||
+      wire.i.length === 0 ||
+      wire.i.length > 100 ||
+      !wire.i.every(
+        (suffix) =>
+          typeof suffix === "string" &&
+          suffix.length <= 100 &&
+          /^[A-Za-z0-9_-]*$/.test(suffix)
+      ) ||
+      new Set(wire.i).size !== wire.i.length
+    ) {
+      return null;
+    }
+    return {
+      v: FFCS_SHARE_VERSION,
+      s: wire.s as FFCSSemesterId,
+      p: wire.p,
+      i: wire.i as string[],
+      n: wire.n,
+    };
+  } catch {
+    return null;
+  }
 }
 
 /** Compresses one timetable into the `d=` parameter of a share URL. */
@@ -130,7 +220,14 @@ export function decodeTimetableShare(
 export function buildShareUrl(encoded: string, origin: string): string {
   const base = (process.env.NEXT_PUBLIC_BASE_PATH ?? "").replace(/\/+$/, "");
   const host = origin.replace(/\/+$/, "");
-  return `${host}${base}/share/ffcs/?d=${encoded}`;
+  return `${host}${base}/share/ffcs/?d=${encodeURIComponent(encoded)}`;
+}
+
+/** URL for the compact, class-id-only share payload. */
+export function buildCompactShareUrl(encoded: string, origin: string): string {
+  const base = (process.env.NEXT_PUBLIC_BASE_PATH ?? "").replace(/\/+$/, "");
+  const host = origin.replace(/\/+$/, "");
+  return `${host}${base}/share/ffcs/?x=${encodeURIComponent(encoded)}`;
 }
 
 /** Whether a built link is long enough to warn the sender about. */

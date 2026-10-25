@@ -11,6 +11,7 @@
  */
 export type { TimetableMetrics } from "@/lib/timetableMetrics";
 import type { TimetableMetrics } from "@/lib/timetableMetrics";
+import type { FacultyRankingSummary } from "@/lib/ffcsFacultyRanking";
 
 export interface GenCourseSelection {
   code: string;
@@ -71,6 +72,8 @@ export type AddedCourse = {
   faculty: string;
   /** The faculty member's employee id, when the report carried one. */
   employeeId?: string;
+  /** The registration-list class id, when this offering came from a report. */
+  classId?: string;
   venue: string;
   credits: string;
   type: string;
@@ -94,6 +97,15 @@ export type TimetableState = {
   rankingScore?: number;
   /** Where the 100 points came from, for the breakdown panel. */
   rankingBreakdown?: Record<string, number>;
+  /** Vitfac aggregate and per-course review details, when the catalog was available. */
+  facultySummary?: FacultyRankingSummary;
+  /** The four input scores combined to produce `rankingScore`. */
+  rankingComponents?: {
+    profile: number | null;
+    faculty: number | null;
+    sort: number | null;
+    time: number | null;
+  };
 };
 
 export interface Friend {
@@ -116,5 +128,3 @@ export interface CourseLock {
   /** Exact offerings, as `FACULTY|SLOT|ROOM` plus `|ERP_ID` when the report has one. */
   offerings?: string[];
 }
-
-

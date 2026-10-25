@@ -1,16 +1,26 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   generateModernTimetableHtml,
   downloadModernTimetableImage,
   generateModernPrintableHtml,
   generateModernDossierInnerHtml,
   downloadModernTimetablePdf,
+  compileDossierPdfInline,
+  compileDossierPdf,
+  generateModernDossierHtml,
+  downloadModernDossierHtml,
   openModernPrintableDossier,
   openTimetablePrintablePage,
 } from "../lib/exportTimetable";
 import type { AddedCourse, TimetablePeriod, ParsedCourse } from "../components/custom/exams/FFCS/types";
+import * as vitfacService from "../lib/vitfacService";
 
 describe("Modern Timetable Export", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
   const mockCourses: AddedCourse[] = [
     {
       id: "course-1",
@@ -139,6 +149,21 @@ describe("Modern Timetable Export", () => {
     expect(html).toContain("LUNCH");
   });
 
+  it("can omit the course table when exporting it separately", () => {
+    const html = generateModernTimetableHtml({
+      timetableName: "Grid Only",
+      courses: mockCourses,
+      theoryPeriods: mockTheoryPeriods,
+      labPeriods: mockLabPeriods,
+      viewMode: "horizontal",
+      includeCourseList: false,
+    });
+
+    expect(html).toContain("Horizontal University Grid");
+    expect(html).not.toContain("Faculty &amp; Vitfac Review");
+    expect(html).not.toContain("Data Structures");
+  });
+
   it("generates comprehensive modern printable dossier with faculty scores and drop-in replacements", () => {
     const html = generateModernPrintableHtml({
       timetableName: "Semester 5 Timetable",
@@ -178,6 +203,112 @@ describe("Modern Timetable Export", () => {
     expect(html).toContain("Dr. Suresh");
     expect(html).toContain("AB1-205");
     expect(html).toContain("0 Clash Risk");
+  });
+
+  it("generates standalone responsive horizontal HTML without print controls or handlers", () => {
+    const html = generateModernDossierHtml({
+      timetableName: "Standalone Dossier",
+      courses: mockCourses,
+      theoryPeriods: mockTheoryPeriods,
+      labPeriods: mockLabPeriods,
+      masterCourses: mockMasterCourses,
+      theme: "dark",
+    });
+
+    expect(html).toContain('<meta name="viewport"');
+    expect(html).toContain('class="dark-theme"');
+    expect(html).toContain("background: #090d16");
+    expect(html).toContain("Horizontal University Grid");
+    expect(html).toContain("lunch-column");
+    expect(html).toContain("pdf-course-table");
+    expect(html).toContain("viewport");
+    expect(html).not.toContain("window.print");
+    expect(html).not.toContain("print-toolbar");
+    expect(html).not.toContain("@page");
+    expect(html).not.toContain("<script");
+    expect(html).toContain("FACULTY INTELLIGENCE &amp; SENTIMENT REPORT");
+    expect(html).toContain("0 Clash Risk");
+  });
+
+  it("waits for VITFAC and downloads a standalone HTML dossier with theme filename", async () => {
+    let resolveCatalog!: (catalog: Map<string, vitfacService.VitfacFaculty>) => void;
+    const catalogPromise = new Promise<Map<string, vitfacService.VitfacFaculty>>(resolve => {
+      resolveCatalog = resolve;
+    });
+    vi.spyOn(vitfacService, "loadVitfacCatalog").mockReturnValue(catalogPromise);
+    const createObjectURL = vi.fn((_blob: Blob) => "blob:html-dossier");
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal("URL", { createObjectURL, revokeObjectURL });
+    let downloadedFile = "";
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
+      downloadedFile = this.download;
+    });
+    const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
+
+    const pending = downloadModernDossierHtml({
+      timetableName: "Print Dossier",
+      courses: mockCourses,
+      theoryPeriods: mockTheoryPeriods,
+      labPeriods: mockLabPeriods,
+      masterCourses: mockMasterCourses,
+      theme: "light",
+    });
+
+    expect(createObjectURL).not.toHaveBeenCalled();
+
+    resolveCatalog(new Map());
+    await pending;
+
+    expect(openSpy).not.toHaveBeenCalled();
+    expect(createObjectURL).toHaveBeenCalledOnce();
+    const blob = createObjectURL.mock.calls[0][0] as Blob;
+    expect(blob.type).toBe("text/html;charset=utf-8");
+    expect(await blob.text()).toContain("Horizontal University Grid");
+    expect(clickSpy).toHaveBeenCalledOnce();
+    expect(downloadedFile).toBe("Print_Dossier_LIGHT_FFCS_Dossier.html");
+  });
+
+  it("embeds reduced VITFAC portraits as data URLs without external image URLs", async () => {
+    vi.spyOn(vitfacService, "loadVitfacCatalog").mockResolvedValue(new Map([
+      ["10090", {
+        id: "MTAwOTA=",
+        employeeId: "10090",
+        name: "Dr. Ramesh",
+        wPct: 80,
+        reviews: 10,
+        wCount: 8,
+        lCount: 2,
+        image_url: "data:image/png;base64,fixture-image",
+      }],
+    ]));
+    vi.stubGlobal("fetch", vi.fn(async (_url: string, init?: RequestInit) => {
+      expect(init?.mode).toBe("cors");
+      return { ok: true, blob: async () => new Blob(["fixture-image"], { type: "image/png" }) };
+    }));
+    vi.stubGlobal("createImageBitmap", vi.fn(async () => ({
+      width: 192,
+      height: 128,
+      close: vi.fn(),
+    })));
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({ drawImage: vi.fn() } as unknown as CanvasRenderingContext2D);
+    vi.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockReturnValue("data:image/jpeg;base64,smallportrait");
+    vi.stubGlobal("URL", { createObjectURL: vi.fn(() => "blob:portrait"), revokeObjectURL: vi.fn() });
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+
+    await downloadModernDossierHtml({
+      timetableName: "Portraits",
+      courses: mockCourses,
+      theoryPeriods: mockTheoryPeriods,
+      labPeriods: mockLabPeriods,
+      masterCourses: mockMasterCourses,
+      theme: "dark",
+    });
+
+    const blob = (URL.createObjectURL as ReturnType<typeof vi.fn>).mock.calls[0][0] as Blob;
+    const html = await blob.text();
+    expect(html).toContain('<img src="data:image/jpeg;base64,smallportrait" alt="Dr. Ramesh" width="36" height="36"');
+    expect(html).not.toContain('src="data:image/png;base64,fixture-image"');
+    expect(html).not.toContain('<img src="https://');
   });
 
   it("opens printable window via openModernPrintableDossier and openTimetablePrintablePage", () => {
@@ -243,5 +374,125 @@ describe("Modern Timetable Export", () => {
     // Dark Mode tokens
     expect(darkHtml).toContain("color: #ffffff");
     expect(darkHtml).toContain("Winter 2026 Dark");
+  });
+
+  describe("compileDossierPdfInline & compileDossierPdf", () => {
+    /**
+     * jsdom ships without the `canvas` package, so a real `Image` given a
+     * `data:` URL fires neither `load` nor `error` — the inline compiler's
+     * `await` on `img.onload` would hang until the 5s test timeout. This stub
+     * answers on the next macrotask, which is after the caller has installed
+     * its handlers (`src` is assigned before `onload` in the source).
+     */
+    class StubImage {
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      naturalWidth = 1400;
+      naturalHeight = 2000;
+      private _src = "";
+      set src(value: string) {
+        this._src = value;
+        setTimeout(() => this.onload?.(), 0);
+      }
+      get src(): string {
+        return this._src;
+      }
+    }
+
+    beforeEach(() => {
+      vi.stubGlobal("Image", StubImage);
+    });
+
+    // Runs even when a test fails or times out: the in-test
+    // `vi.restoreAllMocks()` never executes on a timeout, and a leaked
+    // `document.createElement` spy makes the *next* test recurse without end —
+    // its `origCreateElement` binds the spy itself, so every createElement
+    // call routes straight back into the active implementation.
+    afterEach(() => {
+      vi.restoreAllMocks();
+      vi.unstubAllGlobals();
+    });
+
+    it("compiles PDF inline and returns ArrayBuffer and formatted filename", async () => {
+      // Mock canvas getContext and toDataURL in jsdom
+      const origCreateElement = document.createElement.bind(document);
+      vi.spyOn(document, "createElement").mockImplementation((tagName: string) => {
+        const el = origCreateElement(tagName);
+        if (tagName.toLowerCase() === "canvas") {
+          const canvas = el as HTMLCanvasElement;
+          canvas.getContext = vi.fn().mockReturnValue({
+            fillStyle: "",
+            fillRect: vi.fn(),
+            drawImage: vi.fn(),
+          } as unknown as CanvasRenderingContext2D);
+          canvas.toDataURL = vi.fn().mockReturnValue("data:image/jpeg;base64,mockjpegdata");
+        }
+        return el;
+      });
+
+      const dummy1x1DataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+      const lightResult = await compileDossierPdfInline({
+        timetableName: "Winter 2026",
+        theme: "light",
+        isLight: true,
+        dataUrl: dummy1x1DataUrl,
+        imgNaturalWidth: 1400,
+        imgNaturalHeight: 2000,
+      });
+
+      expect(lightResult.fileName).toBe("Winter_2026_LIGHT_FFCS_Dossier.pdf");
+      expect(lightResult.pdfBuffer).toBeInstanceOf(ArrayBuffer);
+      expect(lightResult.pdfBuffer.byteLength).toBeGreaterThan(0);
+
+      const darkResult = await compileDossierPdfInline({
+        timetableName: "Winter 2026",
+        theme: "dark",
+        isLight: false,
+        dataUrl: dummy1x1DataUrl,
+        imgNaturalWidth: 1400,
+        imgNaturalHeight: 2000,
+      });
+
+      expect(darkResult.fileName).toBe("Winter_2026_DARK_FFCS_Dossier.pdf");
+      expect(darkResult.pdfBuffer).toBeInstanceOf(ArrayBuffer);
+      expect(darkResult.pdfBuffer.byteLength).toBeGreaterThan(0);
+
+      vi.restoreAllMocks();
+    });
+
+    it("compileDossierPdf falls back gracefully to inline when Worker is undefined", async () => {
+      const origCreateElement = document.createElement.bind(document);
+      vi.spyOn(document, "createElement").mockImplementation((tagName: string) => {
+        const el = origCreateElement(tagName);
+        if (tagName.toLowerCase() === "canvas") {
+          const canvas = el as HTMLCanvasElement;
+          canvas.getContext = vi.fn().mockReturnValue({
+            fillStyle: "",
+            fillRect: vi.fn(),
+            drawImage: vi.fn(),
+          } as unknown as CanvasRenderingContext2D);
+          canvas.toDataURL = vi.fn().mockReturnValue("data:image/jpeg;base64,mockjpegdata");
+        }
+        return el;
+      });
+
+      const dummy1x1DataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+      // In Node/JSDOM, Worker or OffscreenCanvas might be undefined or mockable
+      const res = await compileDossierPdf({
+        timetableName: "Fallback Test",
+        theme: "dark",
+        isLight: false,
+        dataUrl: dummy1x1DataUrl,
+        imgNaturalWidth: 1400,
+        imgNaturalHeight: 2000,
+      });
+
+      expect(res.fileName).toBe("Fallback_Test_DARK_FFCS_Dossier.pdf");
+      expect(res.pdfBuffer).toBeInstanceOf(ArrayBuffer);
+
+      vi.restoreAllMocks();
+    });
   });
 });

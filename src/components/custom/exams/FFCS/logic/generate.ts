@@ -36,28 +36,49 @@ import {
   periodsForSlot,
   slotSpellings,
   splitSlots,
+  timeToMinutes,
   periodListsClash,
   type CampusSchema,
   type DayId,
   type SlotPeriod,
+  DAYS_OF_WEEK,
 } from "@/lib/slots";
 import {
   pairwiseSocialScore,
+  balancedScore,
   sortTimetables,
   timetableMetrics,
   type SortBy,
 } from "@/lib/timetableMetrics";
-import { rankCourses, type RankingMode, type RankingScore } from "@/lib/ffcsRanking";
+import {
+  combineRankingScores,
+  rankingInputs,
+  rankCourses,
+  type RankingMode,
+  type RankingPriority,
+  type RankingScore,
+} from "@/lib/ffcsRanking";
+import {
+  DEFAULT_FACULTY_METRIC_WEIGHTS,
+  DEFAULT_FACULTY_SCORE_FILTERS,
+  facultyRankingSummary,
+  passesFacultyScoreFilters,
+  type FacultyMetricWeights,
+  type FacultyRatingLookup,
+  type FacultyScoreFilters,
+} from "@/lib/ffcsFacultyRanking";
 import { offeringMatches } from "../reports";
 import type { ParsedCourse, TimetableState, Friend, CourseLock, AddedCourse } from "../types";
 
-/** The eight ways a narrowing can end with nothing to offer. */
+/** The ways a narrowing can end with nothing to offer. */
 export type GeneratorErrorCode =
   | "no_courses_selected"
   | "no_valid_slots"
   | "no_conflict_free"
   | "below_min_half_days"
+  | "below_min_faculty_scores"
   | "no_separate_labs"
+  | "no_consecutive_labs"
   /**
    * The solver itself threw. Not a filtering outcome — the worker catches it and
    * reports it under this code so the caller can tell "nothing matched" from
@@ -83,13 +104,13 @@ export interface GenerateParams {
   /**
    * Which half of the day the student wants.
    *
-   * The caller's type also admits `"compact"` and `"spread"`, and the filter
-   * this replaces only ever tested for `"morning"` and `"evening"` — so those
-   * two behaved as `"none"` and still do. They are accepted here rather than
-   * rejected so the two entry points agree; deciding what they should do is a
-   * question about the planner's UI, not about this filter.
+   * `"morning"` and `"evening"` can filter strictly or score preferred-side
+   * theory coverage softly, based on `strictTheoryPreference`. `"compact"` and
+   * `"spread"` are ranking preferences rather than option filters.
    */
   preference: "none" | "morning" | "evening" | "compact" | "spread";
+  /** Keep the morning/evening theory filter strict; false ranks both sides softly. */
+  strictTheoryPreference?: boolean;
   /**
    * Narrow each course to the exact offering a friend already has.
    *
@@ -111,6 +132,8 @@ export interface GenerateParams {
   /** `"08:00"`, 24-hour. Empty or null means unbounded. */
   minStartTime?: string | null;
   maxEndTime?: string | null;
+  /** Per-day latest class end (`"HH:mm"`). Missing days are unconstrained. */
+  maxEndTimeByDay?: Partial<Record<DayId, string | null>>;
   uniqueFaculties: boolean;
   noLimit: boolean;
   /**
@@ -120,10 +143,13 @@ export interface GenerateParams {
    * the same fifty the planner has always stopped at. It exists so the result
    * cap in settings is a real ceiling on the search rather than a display
    * number trimmed after the fact; `noLimit` still outranks it, because the
-   * per-run switch is the more recent thing the student chose — and the switch
-   * is itself bounded by {@link HARD_RESULT_LIMIT}, so no run is unbounded.
+   * per-run switch is the more recent thing the student chose. Unlimited runs
+   * retain {@link HARD_RESULT_LIMIT} unless Planner Settings explicitly opts
+   * out via `removeHardResultLimit`.
    */
   resultCap?: number;
+  /** Explicit Planner Settings opt-in to remove the unlimited run safety ceiling. */
+  removeHardResultLimit?: boolean;
   minHalfDays: number;
   sortBy: SortBy;
   /**
@@ -136,6 +162,13 @@ export interface GenerateParams {
    * anything the first one established).
    */
   rankingMode?: RankingMode;
+  /** Vitfac scores prepared on the main thread for worker-safe ranking. */
+  facultyRatings?: FacultyRatingLookup;
+  /** Distinguishes a loaded catalog with unrated faculty from an unavailable integration. */
+  facultyRatingsAvailable?: boolean;
+  facultyMetricWeights?: FacultyMetricWeights;
+  facultyScoreFilters?: FacultyScoreFilters;
+  rankingPriorityOrder?: readonly RankingPriority[];
   /**
    * Keep every lab on its own day.
    *
@@ -148,6 +181,10 @@ export interface GenerateParams {
    * `no_separate_labs`, an emptiness worded for the toggle that caused it.
    */
   separateLabDays?: boolean;
+  /** Reject two different lab classes that occupy consecutive lab periods on one day. */
+  avoidConsecutiveLabs?: boolean;
+  /** When enabled, a schema lunch marker separates otherwise consecutive lab periods. */
+  lunchBreakSeparatesLabs?: boolean;
 }
 
 /**
@@ -392,19 +429,15 @@ function optionsFor(
   options = options.filter(isCompleteEmbeddedCourse);
 
   // 5. Morning-only or evening-only.
-  if (params.preference === "morning") {
+  if (params.preference === "morning" && params.strictTheoryPreference !== false) {
     options = options.filter((opt) => {
       const theory = splitSlots(opt.SLOT).filter((s) => !s.startsWith("L") && s !== "NIL");
-      // A course with a theory slot is judged on it; a lab-only course has to be
-      // judged on whether any of its slots reach the evening.
-      if (theory.length) return isMorningSlot(schema, theory[0]);
-      return splitSlots(opt.SLOT).filter((s) => s !== "NIL").some((s) => isEveningSlot(schema, s));
+      return !theory.length || isMorningSlot(schema, theory[0]);
     });
-  } else if (params.preference === "evening") {
+  } else if (params.preference === "evening" && params.strictTheoryPreference !== false) {
     options = options.filter((opt) => {
       const theory = splitSlots(opt.SLOT).filter((s) => !s.startsWith("L") && s !== "NIL");
-      if (theory.length) return isEveningSlot(schema, theory[0]);
-      return splitSlots(opt.SLOT).filter((s) => s !== "NIL").some((s) => isMorningSlot(schema, s));
+      return !theory.length || isEveningSlot(schema, theory[0]);
     });
   }
 
@@ -421,16 +454,27 @@ function optionsFor(
   // 7. Time bounds.
   const minAllowed = params.minStartTime ? parse24HourToMinutes(params.minStartTime) : 0;
   const maxAllowed = params.maxEndTime ? parse24HourToMinutes(params.maxEndTime) : 24 * 60;
-  if (params.minStartTime || params.maxEndTime) {
+  const maxAllowedByDay = Object.fromEntries(
+    Object.entries(params.maxEndTimeByDay ?? {}).flatMap(([day, time]) => {
+      const minutes = time ? parse24HourToMinutes(time) : null;
+      return minutes === null ? [] : [[day, minutes]];
+    })
+  ) as Partial<Record<DayId, number>>;
+  if (params.minStartTime || params.maxEndTime || Object.keys(maxAllowedByDay).length > 0) {
     const lower = minAllowed ?? 0;
     const upper = maxAllowed ?? 24 * 60;
     options = options.filter((opt) =>
       splitSlots(opt.SLOT).every((slot) => {
-        // First match wins, theory before lab. A slot the schema does not define
-        // cannot be outside a time bound, so it passes.
-        const period = periodsForSlot(schema, slot)[0];
-        if (!period) return true;
-        return period.startMin >= lower && period.endMin <= upper;
+        // Slot ids can recur on several days; every occurrence must meet its
+        // global bounds and the optional day-specific end time.
+        return periodsForSlot(schema, slot).every((period) => {
+          const dayLimit = maxAllowedByDay[period.day];
+          return (
+            period.startMin >= lower &&
+            period.endMin <= upper &&
+            (dayLimit === undefined || period.endMin <= dayLimit)
+          );
+        });
       })
     );
   }
@@ -474,15 +518,72 @@ const clashes = periodListsClash;
  */
 function labsShareADay(
   combination: readonly ParsedCourse[],
-  labDaysByOffering: ReadonlyMap<ParsedCourse, ReadonlySet<DayId>>
+  labPeriodsByOffering: ReadonlyMap<ParsedCourse, readonly SlotPeriod[]>
 ): boolean {
   const taken = new Set<DayId>();
   for (const offering of combination) {
-    const labDays = labDaysByOffering.get(offering);
-    if (!labDays) continue;
-    for (const day of labDays) {
+    const labPeriods = labPeriodsByOffering.get(offering);
+    if (!labPeriods) continue;
+    const offeringDays = new Set(labPeriods.map((period) => period.day));
+    for (const day of offeringDays) {
       if (taken.has(day)) return true;
       taken.add(day);
+    }
+  }
+  return false;
+}
+
+function labPeriodPairKey(day: DayId, firstIndex: number, secondIndex: number): string {
+  return `${day}:${Math.min(firstIndex, secondIndex)}:${Math.max(firstIndex, secondIndex)}`;
+}
+
+function consecutiveLabPeriodPairs(
+  schema: CampusSchema,
+  lunchBreakSeparatesLabs: boolean
+): Set<string> {
+  const pairs = new Set<string>();
+  for (const day of DAYS_OF_WEEK) {
+    const dayPeriods = (schema.lab ?? [])
+      .flatMap((period, index) => {
+        if (period.lunch || !period.start || !period.end || !period.days?.[day]) return [];
+        const startMin = timeToMinutes(period.start);
+        return startMin === null ? [] : [{ index, startMin }];
+      })
+      .sort((a, b) => a.startMin - b.startMin || a.index - b.index);
+    for (let index = 0; index < dayPeriods.length - 1; index++) {
+      const first = dayPeriods[index];
+      const second = dayPeriods[index + 1];
+      if (
+        lunchBreakSeparatesLabs &&
+        (schema.lab ?? []).slice(first.index + 1, second.index).some((period) => period.lunch)
+      ) {
+        continue;
+      }
+      pairs.add(labPeriodPairKey(day, first.index, second.index));
+    }
+  }
+  return pairs;
+}
+
+function labsAreConsecutive(
+  combination: readonly ParsedCourse[],
+  labPeriodsByOffering: ReadonlyMap<ParsedCourse, readonly SlotPeriod[]>,
+  consecutivePairs: ReadonlySet<string>
+): boolean {
+  for (let firstIndex = 0; firstIndex < combination.length; firstIndex++) {
+    const firstPeriods = labPeriodsByOffering.get(combination[firstIndex]) ?? [];
+    for (let secondIndex = firstIndex + 1; secondIndex < combination.length; secondIndex++) {
+      const secondPeriods = labPeriodsByOffering.get(combination[secondIndex]) ?? [];
+      if (
+        firstPeriods.some((first) =>
+          secondPeriods.some((second) =>
+            first.day === second.day &&
+            consecutivePairs.has(labPeriodPairKey(first.day, first.index, second.index))
+          )
+        )
+      ) {
+        return true;
+      }
     }
   }
   return false;
@@ -612,6 +713,7 @@ function toAddedCourse(course: ParsedCourse, index: number): AddedCourse {
     title: course.TITLE,
     faculty: course.FACULTY,
     employeeId: course.ERP_ID,
+    classId: course.CLASS_ID,
     venue: course.ROOM,
     slots: splitSlots(course.SLOT),
     credits: course.CREDITS,
@@ -1017,6 +1119,25 @@ function groupVariants(timetables: TimetableState[]): TimetableState[] {
 
 /* ── entry point ────────────────────────────────────────────────────────── */
 
+function preferredTheoryScore(
+  courses: AddedCourse[],
+  schema: CampusSchema,
+  preference: "morning" | "evening"
+): number | null {
+  const theoryPeriods = courses.flatMap((course) =>
+    course.slots.flatMap((slot) =>
+      periodsForSlot(schema, slot).filter((period) => period.type === "theory")
+    )
+  );
+  if (!theoryPeriods.length) return null;
+  const preferredCount = theoryPeriods.filter((period) =>
+    preference === "morning"
+      ? period.startMin < MORNING_BEFORE_MIN
+      : period.startMin >= MORNING_BEFORE_MIN
+  ).length;
+  return (preferredCount / theoryPeriods.length) * 100;
+}
+
 /**
  * Score one combination. Split out because both the streaming path and the
  * progress reporting need to describe it, and because the half-days test is
@@ -1030,19 +1151,95 @@ function scoreCombination(
   const courses = combination.map(toAddedCourse);
   const base = timetableMetrics(courses, params.schema);
   const social = socialScoreAgainst(courses, scoredFriends, params.schema);
+  const facultySummary = params.facultyRatingsAvailable && params.facultyRatings
+    ? facultyRankingSummary(
+        courses,
+        params.facultyRatings,
+        params.facultyMetricWeights ?? DEFAULT_FACULTY_METRIC_WEIGHTS
+      )
+    : undefined;
   const timetable: TimetableState = {
     id: newId(),
     name: "Generated Option",
     courses,
     metrics: { ...base, ...social },
+    ...(facultySummary ? { facultySummary } : {}),
   };
 
-  // Only when a profile was asked for: the second day-walk `rankCourses` does
-  // is real work, and the default path has no opinion to express with it.
-  if (params.rankingMode) {
-    const ranked: RankingScore = rankCourses(courses, params.schema, params.rankingMode);
-    timetable.rankingScore = ranked.score;
-    timetable.rankingBreakdown = ranked.breakdown;
+  const hasProfile = Boolean(params.rankingMode);
+  const hasFacultyData = (facultySummary?.ratedFacultyCount ?? 0) > 0;
+  const hasSoftTheoryPreference =
+    params.strictTheoryPreference === false &&
+    (params.preference === "morning" || params.preference === "evening");
+  const hasTimePreference =
+    params.preference !== "none" ||
+    Boolean(params.minStartTime || params.maxEndTime || Object.keys(params.maxEndTimeByDay ?? {}).length);
+  if (hasProfile || hasFacultyData || hasSoftTheoryPreference) {
+    const ranked: RankingScore | null = params.rankingMode
+      ? rankCourses(
+          courses,
+          params.schema,
+          params.rankingMode,
+          facultySummary?.facultyScore == null ? null : facultySummary.facultyScore / 100
+        )
+      : null;
+    const metrics = timetable.metrics;
+    const timeInputs = hasTimePreference ? rankingInputs(courses, params.schema) : null;
+    const timeScore = (() => {
+      if (!timeInputs) return null;
+      const bounded = (value: number) => Math.max(0, Math.min(1, value));
+      const earlyStart = 1 - bounded((timeInputs.averageDayStartMinutes - 8 * 60) / (6 * 60));
+      const lateFinish = bounded((timeInputs.averageDayEndMinutes - 12 * 60) / (7 * 60));
+      switch (params.preference) {
+        case "morning":
+          return hasSoftTheoryPreference
+            ? preferredTheoryScore(courses, params.schema, "morning")
+            : earlyStart * 100;
+        case "evening":
+          return hasSoftTheoryPreference
+            ? preferredTheoryScore(courses, params.schema, "evening")
+            : lateFinish * 100;
+        case "compact":
+          return timeInputs.activeDays
+            ? (timeInputs.compactDays / timeInputs.activeDays) * 100
+            : 0;
+        case "spread":
+          return (timeInputs.activeDays / 6) * 100;
+        default:
+          return ((earlyStart + (1 - lateFinish)) / 2) * 100;
+      }
+    })();
+    const sortScore = (() => {
+      if (!metrics) return 0;
+      switch (params.sortBy) {
+        case "social":
+          return Math.max(0, Math.min(100, metrics.socialScore));
+        case "halfdays":
+          return Math.max(0, Math.min(100, (metrics.halfDays / 12) * 100));
+        case "compactness":
+          return Math.max(0, Math.min(100, 100 - (metrics.gaps / 1200) * 100));
+        case "faculty":
+          return facultySummary?.facultyScore ?? 0;
+        case "balanced":
+        default:
+          return Math.max(0, Math.min(100, balancedScore(metrics) / 3.2));
+      }
+    })();
+    const components = {
+      profile:
+        ranked?.score ??
+        (params.rankingMode === "Best Faculty" ? facultySummary?.facultyScore ?? null : null),
+      faculty: facultySummary?.facultyScore ?? null,
+      sort: sortScore,
+      time: timeScore,
+    };
+    const composite = combineRankingScores(
+      components,
+      params.rankingPriorityOrder ?? ["profile", "faculty", "sort", "time"]
+    );
+    timetable.rankingScore = composite.score;
+    timetable.rankingBreakdown = composite.breakdown;
+    timetable.rankingComponents = components;
   }
 
   return timetable;
@@ -1092,14 +1289,12 @@ export function generateTimetablesStream(
 
   const optionsPerCourse: ParsedCourse[][] = [];
   const windowsPerCourse: SlotPeriod[][][] = [];
-  /**
-   * Which days each offering's lab periods land on, by offering reference —
-   * collected while the windows are built because only here are the periods
-   * in hand (a second schema walk per visited combination would be the cost
-   * this precompute exists to avoid). Empty unless the run rules lab days
-   * apart; the rule reads absence as "never".
-   */
-  const labDaysByOffering = new Map<ParsedCourse, Set<DayId>>();
+  /** Each offering's actual lab periods, reused by both optional lab rules. */
+  const labPeriodsByOffering = new Map<ParsedCourse, SlotPeriod[]>();
+  const consecutiveLabPairs = consecutiveLabPeriodPairs(
+    schema,
+    params.lunchBreakSeparatesLabs ?? false
+  );
 
   for (const lock of params.courseLocks) {
     const options = optionsFor(schema, params, lock, byCode.get(lock.code) ?? []);
@@ -1115,25 +1310,23 @@ export function generateTimetablesStream(
     windowsPerCourse.push(
       options.map((opt) => {
         const periods: SlotPeriod[] = [];
-        const labDays = new Set<DayId>();
+        const labPeriods: SlotPeriod[] = [];
         for (const slot of splitSlots(opt.SLOT)) {
           for (const period of periodsForSlot(schema, slot)) {
             periods.push(period);
-            // The schema's own lab/theory split, not a slot-name convention:
-            // the lab list is what makes a period a lab.
-            if (params.separateLabDays && period.type === "lab") {
-              labDays.add(period.day);
-            }
+            if (period.type === "lab") labPeriods.push(period);
           }
         }
-        if (params.separateLabDays) labDaysByOffering.set(opt, labDays);
+        labPeriodsByOffering.set(opt, labPeriods);
         return periods;
       })
     );
   }
 
   const limit = params.noLimit
-    ? HARD_RESULT_LIMIT
+    ? params.removeHardResultLimit
+      ? Number.POSITIVE_INFINITY
+      : HARD_RESULT_LIMIT
     : params.resultCap ?? DEFAULT_RESULT_LIMIT;
   const batchSize = hooks.batchSize && hooks.batchSize > 0 ? hooks.batchSize : DEFAULT_BATCH_SIZE;
 
@@ -1143,9 +1336,12 @@ export function generateTimetablesStream(
 
   const accepted: TimetableState[] = [];
   // Whether any complete, conflict-free combination was rejected by the lab
-  // rule. Only read when the run ends with nothing accepted, to name which
+  // rules. Only read when the run ends with nothing accepted, to report which
   // result filter ate the search.
   let labDayRejected = false;
+  let consecutiveLabsRejected = false;
+  let facultyScoreRejected = false;
+  let halfDaysRejected = false;
   let emitted = 0;
   const flush = () => {
     if (accepted.length <= emitted) return;
@@ -1161,15 +1357,42 @@ export function generateTimetablesStream(
       // money spent for nothing. It is a filter on the *result*, not on the
       // search — the walk's own `found` keeps counting all conflict-free
       // combinations, exactly as it does for the half-days floor.
-      if (params.separateLabDays && labsShareADay(combination, labDaysByOffering)) {
+      if (params.separateLabDays && labsShareADay(combination, labPeriodsByOffering)) {
         labDayRejected = true;
         return;
       }
+      if (
+        params.avoidConsecutiveLabs &&
+        labsAreConsecutive(
+          combination,
+          labPeriodsByOffering,
+          consecutiveLabPairs
+        )
+      ) {
+        consecutiveLabsRejected = true;
+        return;
+      }
       const timetable = scoreCombination(params, combination, scoredFriends);
+      const facultyFilters = params.facultyScoreFilters ?? DEFAULT_FACULTY_SCORE_FILTERS;
+      const hasActiveFacultyFilter = Object.values(facultyFilters).some((minimum) => minimum > 0);
+      if (
+        hasActiveFacultyFilter &&
+        params.facultyRatingsAvailable &&
+        params.facultyRatings &&
+        Object.keys(params.facultyRatings).length > 0 &&
+        timetable.facultySummary &&
+        !passesFacultyScoreFilters(timetable.facultySummary, facultyFilters)
+      ) {
+        facultyScoreRejected = true;
+        return;
+      }
       // The half-days floor is a filter on the *result*, not on the search: a
       // combination can be perfectly conflict-free and still be a week the
       // student did not ask for.
-      if ((timetable.metrics?.halfDays ?? 0) < params.minHalfDays) return;
+      if ((timetable.metrics?.halfDays ?? 0) < params.minHalfDays) {
+        halfDaysRejected = true;
+        return;
+      }
       accepted.push(timetable);
       if (accepted.length - emitted >= batchSize) flush();
     },
@@ -1202,15 +1425,23 @@ export function generateTimetablesStream(
     if (labDayRejected) {
       return { kind: "error", code: "no_separate_labs" };
     }
+    if (consecutiveLabsRejected) {
+      return { kind: "error", code: "no_consecutive_labs" };
+    }
+    if (facultyScoreRejected && !halfDaysRejected) {
+      return { kind: "error", code: "below_min_faculty_scores" };
+    }
     return { kind: "error", code: "below_min_half_days" };
   }
 
   let timetables = sortTimetables(accepted, params.sortBy);
 
-  if (params.rankingMode) {
-    // A second, stable pass: options of equal profile score keep the order the
-    // student's `sortBy` gave them, so turning a profile on refines their
-    // existing answer rather than throwing it away.
+  if (
+    params.rankingMode ||
+    timetables.some((timetable) => (timetable.facultySummary?.ratedFacultyCount ?? 0) > 0) ||
+    (params.strictTheoryPreference === false &&
+      (params.preference === "morning" || params.preference === "evening"))
+  ) {
     timetables = [...timetables].sort(
       (a, b) => (b.rankingScore ?? -1) - (a.rankingScore ?? -1)
     );
@@ -1223,7 +1454,7 @@ export function generateTimetablesStream(
   return {
     kind: "ok",
     timetables: groupVariants(timetables),
-    capped: walk.found >= limit,
+    capped: Number.isFinite(limit) && walk.found >= limit,
   };
 }
 

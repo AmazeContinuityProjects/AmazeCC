@@ -34,9 +34,9 @@ const CHUNKS = join(OUT, "_next", "static", "chunks");
  * `window`, which a worker has no business reaching for. Matching on a name or
  * on webpack's numeric chunk id would break the moment either changes.
  */
-function findWorkerChunk(): string | null {
-  if (!existsSync(CHUNKS)) return null;
-
+/** Every emitted `.js` under `out/_next/static/chunks`, flattened. */
+function listChunkFiles(): string[] {
+  if (!existsSync(CHUNKS)) return [] as string[];
   const candidates: string[] = [];
   const walk = (dir: string) => {
     for (const entry of readdirSync(dir)) {
@@ -46,8 +46,11 @@ function findWorkerChunk(): string | null {
     }
   };
   walk(CHUNKS);
+  return candidates;
+}
 
-  for (const file of candidates) {
+function findWorkerChunk(): string | null {
+  for (const file of listChunkFiles()) {
     const src = readFileSync(file, "utf8");
     if (!/self\.onmessage|\["message"\]|addEventListener\(\s*["']message/.test(src)) continue;
     if (/\bdocument\b|\bwindow\b/.test(src)) continue;
@@ -57,7 +60,26 @@ function findWorkerChunk(): string | null {
   return null;
 }
 
+/**
+ * The PDF dossier worker among the emitted chunks.
+ *
+ * Identified the same way as the solver — by what it says, not what it is
+ * called: `"Invalid worker request type"` is a literal only `pdf.worker.ts`
+ * writes, so this cannot match the *sender* in the main bundle, which also
+ * mentions `build_dossier_pdf`. Unlike the solver, the word-`document`
+ * exclusion above does not apply: the bundled jsPDF names `document` inside
+ * guarded branches, and the vm test below is what actually proves the worker
+ * never executes them at load.
+ */
+function findPdfWorkerChunk(): string | null {
+  for (const file of listChunkFiles()) {
+    if (readFileSync(file, "utf8").includes("Invalid worker request type")) return file;
+  }
+  return null;
+}
+
 const workerFile = findWorkerChunk();
+const pdfWorkerFile = findPdfWorkerChunk();
 
 /** A report row, in the shape the solver reads. */
 const row = (over: Partial<ParsedCourse> & Pick<ParsedCourse, "CODE" | "SLOT">): ParsedCourse => ({
@@ -88,14 +110,55 @@ interface Reply {
 /**
  * Run the chunk in a context with only what a worker has, and post it a message.
  *
+ * Defaults to the solver's chunk, so every existing call is unchanged;
+ * `chunkFile` points it at any other emitted worker.
+ *
  * Deliberately minimal: `self`, `console` and `crypto` are the globals a module
  * worker can rely on, and nothing else is provided. If the bundle reaches for
  * anything more, this throws — which is the point, because in a real worker that
  * would be a `ReferenceError` at load time and the page would fall back to
  * running the solve inline without ever telling anyone.
  */
-function runWorker(payload: unknown, timeoutMs = 5000): Promise<Reply> {
-  const source = readFileSync(workerFile!, "utf8");
+/**
+ * Give the context the genuine worker globals an emitted bundle may reach for.
+ *
+ * - `importScripts`: webpack's chunk loader calls it at startup when a
+ *   dependency (jsPDF) was split into its own chunk. The URL it passes is a
+ *   browser path (`/_next/static/chunks/…`), so it resolves by basename
+ *   against the emitted files and evaluates them in the same context —
+ *   exactly as a real worker would.
+ * - `TextEncoder`/`TextDecoder`: plain worker globals the bundle's own
+ *   runtime touches. Real workers all have them, so their absence would be a
+ *   harness artefact, not a defect worth catching.
+ *
+ * Everything else stays unprovided on purpose: the original test's claim is
+ * that nothing more is needed, and it is still the missing-globals class of
+ * failure if that claim ever stops being true.
+ */
+function withWorkerGlobals(context: vm.Context): vm.Context {
+  const target = context as unknown as Record<string, unknown>;
+  target.TextEncoder = TextEncoder;
+  target.TextDecoder = TextDecoder;
+  // jsPDF binds these off the global at import: `s.atob.bind(s)`.
+  target.atob = atob;
+  target.btoa = btoa;
+  target.importScripts = (...urls: string[]) => {
+    for (const url of urls) {
+      const base = url.split("?")[0].split("/").pop() ?? "";
+      const file = listChunkFiles().find((f) => f.endsWith(base));
+      if (!file) throw new Error(`importScripts could not resolve ${url}`);
+      new vm.Script(readFileSync(file, "utf8"), { filename: file }).runInContext(context);
+    }
+  };
+  return context;
+}
+
+function runWorker(
+  payload: unknown,
+  timeoutMs = 5000,
+  chunkFile: string = workerFile!
+): Promise<Reply> {
+  const source = readFileSync(chunkFile, "utf8");
   const replies: Reply[] = [];
 
   const self = {
@@ -103,12 +166,14 @@ function runWorker(payload: unknown, timeoutMs = 5000): Promise<Reply> {
     postMessage: (msg: Reply) => replies.push(msg),
   };
 
-  const context = vm.createContext({
-    self,
-    console,
-    crypto,
-    // Node's module wrapper is irrelevant here; the chunk is a plain IIFE.
-  });
+  const context = withWorkerGlobals(
+    vm.createContext({
+      self,
+      console,
+      crypto,
+      // Node's module wrapper is irrelevant here; the chunk is a plain IIFE.
+    })
+  );
 
   return new Promise<Reply>((resolve, reject) => {
     const timer = setTimeout(
@@ -127,7 +192,7 @@ function runWorker(payload: unknown, timeoutMs = 5000): Promise<Reply> {
       if (replies.length) finish(replies[0]);
     };
 
-    const script = new vm.Script(`${source}\n//# sourceURL=worker`, { filename: workerFile! });
+    const script = new vm.Script(`${source}\n//# sourceURL=worker`, { filename: chunkFile });
     script.runInContext(context);
 
     // Give the chunk a tick to install its handler if it does so asynchronously.
@@ -238,5 +303,40 @@ describe.runIf(workerFile)("the emitted worker", () => {
 describe.skipIf(workerFile)("the emitted worker", () => {
   it("is skipped because out/ does not exist — run `npm run build` first", () => {
     expect(findWorkerChunk()).toBeNull();
+  });
+});
+
+describe.runIf(pdfWorkerFile)("the emitted PDF dossier worker", () => {
+  it("loads with only the globals a worker has, and installs its handler", async () => {
+    // Reaching the assertion means the chunk evaluated in a bare context —
+    // no `document`, no `window` — which is exactly what a real worker
+    // gives it, and the message handler is on. Bundled jsPDF names `document`
+    // in code it must never reach at import time; if it ever does, this is
+    // where it throws instead of silently dying in the browser.
+    expect(pdfWorkerFile).toBeTruthy();
+    const source = readFileSync(pdfWorkerFile!, "utf8");
+    const context = withWorkerGlobals(
+      vm.createContext({ self: { onmessage: null, postMessage: () => {} }, console, crypto })
+    );
+    new vm.Script(source, { filename: pdfWorkerFile! }).runInContext(context);
+    // The handler lands after the startup promise chain — the split jsPDF
+    // chunk is loaded first — so give the microtasks a turn before reading.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(typeof (context as { self: { onmessage: unknown } }).self.onmessage).toBe("function");
+  });
+
+  it("answers a malformed request with an error rather than silence", async () => {
+    // The caller's fallback only fires on a *reply*; a worker that accepts a
+    // message and never answers would leave the caller waiting on its
+    // timeout. This pins the validation branch that guarantees a reply.
+    const reply = await runWorker({ type: "nonsense" }, 5000, pdfWorkerFile!);
+    expect(reply.type).toBe("error");
+    expect(reply.message).toBe("Invalid worker request type");
+  });
+});
+
+describe.skipIf(pdfWorkerFile)("the emitted PDF dossier worker", () => {
+  it("is skipped because out/ has no such chunk — run `npm run build` first", () => {
+    expect(findPdfWorkerChunk()).toBeNull();
   });
 });

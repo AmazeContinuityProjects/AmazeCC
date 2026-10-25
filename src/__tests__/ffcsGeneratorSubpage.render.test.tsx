@@ -11,7 +11,11 @@ import { periodsForSlot, type SlotPeriod } from "../lib/slots";
 import chennai from "../data/campus/chennai.json";
 import type { CourseLock, ParsedCourse } from "../components/custom/exams/FFCS/types";
 import { installLocalStorage } from "./helpers/localStorage";
-import { clearSessionPreferences, saveSessionPreferences } from "../lib/ffcsGeneratorSessionPrefs";
+import {
+  clearSessionPreferences,
+  loadSessionPreferences,
+  saveSessionPreferences,
+} from "../lib/ffcsGeneratorSessionPrefs";
 
 // The generator persists its private picks under "ffcs_generator_targets", and
 // this jsdom environment ships without a localStorage — the repo stub fills it
@@ -154,6 +158,82 @@ describe("FFCSGeneratorSubpage", () => {
     // Back comes from the layout, not from a sheet's X: `SubpageLayout` is the
     // only thing on this screen that renders a back control.
     expect(hasOpenOverlays()).toBe(true);
+  });
+
+  it("lets the generator and its content use the available viewport width", () => {
+    const { container } = render(<FFCSGeneratorSubpage {...props()} />);
+
+    const shell = Array.from(container.querySelectorAll("div")).find((element) =>
+      element.className.includes("!max-w-none")
+    );
+    const contentGrid = Array.from(container.querySelectorAll("div")).find((element) =>
+      element.className.includes("grid-cols-1 lg:grid-cols-2")
+    );
+
+    expect(shell).toBeDefined();
+    expect(shell?.className).toContain("px-4");
+    expect(contentGrid?.className).toContain("w-full");
+    expect(contentGrid?.className).toContain("max-w-none");
+    expect(container.querySelector(".max-w-6xl")).toBeNull();
+  });
+
+  it("lets users override faculty ranking settings before generating", () => {
+    render(<FFCSGeneratorSubpage {...props()} />);
+
+    expect(screen.getByText("Combined Ranking Priority")).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: "Move Faculty reviews up" }));
+    fireEvent.change(screen.getByRole("spinbutton", { name: "Minimum Overall W %" }), {
+      target: { value: "80" },
+    });
+    fireEvent.change(screen.getByRole("spinbutton", { name: "DA importance" }), {
+      target: { value: "4" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^250$/ }));
+
+    expect(screen.getByText("1. Faculty reviews")).toBeDefined();
+    expect(screen.getByRole("spinbutton", { name: "Minimum Overall W %" })).toHaveProperty(
+      "value",
+      "80"
+    );
+    expect(loadSessionPreferences()).toMatchObject({
+      rankingPriorityOrder: ["faculty", "profile", "sort", "time"],
+      facultyScoreFilters: { minWPct: 80 },
+      facultyMetricWeights: { da: 4 },
+      resultCap: 250,
+    });
+  });
+
+  it("uses slot-based time pickers and allows independent day end limits", () => {
+    render(
+      <FFCSGeneratorSubpage
+        {...props({
+          theoryPeriods: chennai.theory,
+          labPeriods: chennai.lab,
+        })}
+      />
+    );
+
+    expect(screen.queryByLabelText("Min Start Time")).toBeNull();
+    expect(screen.queryByLabelText("Max End Time")).toBeNull();
+    const mondayLimit = screen.getByRole("switch", { name: "Monday end-time limit" });
+    expect(mondayLimit.getAttribute("aria-checked")).toBe("false");
+    fireEvent.click(mondayLimit);
+    expect(mondayLimit.getAttribute("aria-checked")).toBe("true");
+    expect(screen.getByText("Day-specific class end times")).toBeDefined();
+  });
+
+  it("offers and remembers per-run lab scheduling rules", () => {
+    render(<FFCSGeneratorSubpage {...props()} />);
+
+    fireEvent.click(screen.getByRole("checkbox", { name: /At most one lab class per day/i }));
+    fireEvent.click(screen.getByRole("checkbox", { name: /Avoid consecutive lab slots/i }));
+    fireEvent.click(screen.getByRole("checkbox", { name: /Treat lunch as a break/i }));
+
+    expect(loadSessionPreferences()).toMatchObject({
+      separateLabDays: true,
+      avoidConsecutiveLabs: true,
+      lunchBreakSeparatesLabs: true,
+    });
   });
 
   it("holds generate back until a course is picked, and keeps the pick private", () => {
@@ -303,35 +383,43 @@ describe("FFCSGeneratorSubpage", () => {
     const masterCourses: ParsedCourse[] = [
       { ...courseRow("BCSE101", pool[0], "AB1-101"), FACULTY: "Prof Alpha" },
       { ...courseRow("BCSE101", pool[0], "AB1-102"), FACULTY: "Prof Beta" },
+      { ...courseRow("BCSE101", pool[1], "AB2-201"), FACULTY: "Prof Gamma" },
     ];
     const courses = [{ code: "BCSE101", title: "Structured Programming", types: [] as string[] }];
 
     const Harness = () => {
       const [msg, setMsg] = useState<string | null>(null);
+      const [showGeneratorOptionPane, setShowGeneratorOptionPane] = useState(true);
       return (
-        <FFCSGeneratorSubpage
-          {...props({
-            successMsg: msg,
-            setSuccessMsg: setMsg,
-            courseLocks: [courseLock("BCSE101")],
-            generatorDisplayCourses: courses,
-            masterCourses,
-            getGroupedCourses: (list) => {
-              return list.map((c) => ({
-                id: c.id,
-                code: c.code,
-                title: c.title,
-                type: c.type,
-                faculty: c.faculty,
-                slots: c.slots,
-                venue: c.venue,
-                credits: c.credits,
-                color: c.color,
-                ids: [c.id],
-              }));
-            },
-          })}
-        />
+        <>
+          <button type="button" onClick={() => setShowGeneratorOptionPane(false)}>
+            Disable options pane
+          </button>
+          <FFCSGeneratorSubpage
+            {...props({
+              settings: { ...FFCSSettingsDefaults, showGeneratorOptionPane },
+              successMsg: msg,
+              setSuccessMsg: setMsg,
+              courseLocks: [courseLock("BCSE101")],
+              generatorDisplayCourses: courses,
+              masterCourses,
+              getGroupedCourses: (list) => {
+                return list.map((c) => ({
+                  id: c.id,
+                  code: c.code,
+                  title: c.title,
+                  type: c.type,
+                  faculty: c.faculty,
+                  slots: c.slots,
+                  venue: c.venue,
+                  credits: c.credits,
+                  color: c.color,
+                  ids: [c.id],
+                }));
+              },
+            })}
+          />
+        </>
       );
     };
 
@@ -340,15 +428,33 @@ describe("FFCSGeneratorSubpage", () => {
     fireEvent.click(generateButton());
     await screen.findByText(/Found \d+ unique timetables/, {}, { timeout: 15_000 });
 
-    const optionCard = screen.getByText("Option 1").closest(".cursor-pointer")!;
-    fireEvent.doubleClick(optionCard);
+    expect(screen.getAllByText(/free half-days$/).length).toBeGreaterThan(0);
+    const detailedMetrics = screen.getAllByText("Free Half-Days")[0].parentElement?.parentElement;
+    expect(detailedMetrics?.className).toContain("hidden sm:grid");
+    expect(screen.getByRole("button", { name: /Back to Options/ }).className).toContain(
+      "hidden sm:flex"
+    );
+    expect(
+      screen.getByRole("button", { name: "Discard all generated timetables" }).querySelector("svg")
+    ).not.toBeNull();
+    expect(screen.getByRole("button", { name: /Save \d+ selected timetables/ }).querySelector("svg"))
+      .not.toBeNull();
+    expect(screen.getByRole("button", { name: "Preview Option 1" })).toBeDefined();
+    expect(screen.getAllByRole("button", { name: "Compare" }).length).toBeGreaterThan(1);
+    fireEvent.click(screen.getByRole("button", { name: "Preview Option 1" }));
 
     // Enters preview mode
     await screen.findByText("Selected Courses");
+    expect(screen.getByText("Timetable options")).toBeDefined();
+    expect(screen.getByRole("button", { name: /Option 1: .*free half-days/ })).toBeDefined();
 
     // The badge next to the faculty should show 2 (both Prof Alpha and Prof Beta teach this slot)
     expect(screen.getByText("2")).toBeTruthy();
     expect(screen.getAllByTitle("2 faculties teaching this slot · Click to switch").length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: /Option 2:/ }));
+    expect(screen.getByText("Preview: Option 2")).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: "Disable options pane" }));
+    expect(screen.queryByText("Timetable options")).toBeNull();
   }, 20_000);
 
   it("navigates back to the generator options page when Back to Options is clicked after generating", async () => {

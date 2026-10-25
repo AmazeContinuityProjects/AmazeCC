@@ -12,6 +12,7 @@ import React, {
 import { storage } from "@/lib/storage";
 import { track } from "@/lib/analytics";
 import { useOverlayBack } from "@/lib/overlayStack";
+import { useIsMobile } from "@/components/custom/shared";
 import { TOUR_STEPS, TOUR_VERSION, type TourStep } from "./tourSteps";
 import { TourSpotlight } from "./TourSpotlight";
 
@@ -28,6 +29,8 @@ import { TourSpotlight } from "./TourSpotlight";
  * and skipping both count as "seen"; the difference is only whether you made
  * it to the end. `offerTour={false}` (the settings switch) disables the
  * auto-start but keeps the explicit "Take the tour" entry points working.
+ * Phones never get the tour at all: the auto-start is suppressed below the
+ * `sm` breakpoint, and the settings sheet hides its tour row there too.
  */
 
 export interface TourContextValue {
@@ -56,13 +59,35 @@ const AUTO_START_MS = 600;
 
 export function TourProvider({
   offerTour,
+  onStepChange,
   children,
 }: {
   offerTour: boolean;
+  /**
+   * Step announcements for the dashboard header, which opens the utility tab
+   * a spotlighted step lives inside. The header deliberately does NOT consume
+   * the context — it stays a provider-free, reusable UI component — so the
+   * tab bridges each announcement into a prop instead. Called with null when
+   * no run is active. Kept out of the context value on purpose, for the same
+   * reason.
+   */
+  onStepChange?: (step: TourStep | null) => void;
   children: React.ReactNode;
 }) {
   const [stepIndex, setStepIndex] = useState<number | null>(null);
   const autoStartedRef = useRef(false);
+  const onStepChangeRef = useRef(onStepChange);
+  onStepChangeRef.current = onStepChange;
+
+  // Announce step changes once per index change, not per render: the ref
+  // dance keeps an unstable callback identity from re-firing announcements.
+  useEffect(() => {
+    onStepChangeRef.current?.(stepIndex === null ? null : TOUR_STEPS[stepIndex]);
+  }, [stepIndex]);
+  // The tour anchors spotlight rings over desktop-only chrome (the keyboard
+  // cluster, wide grid headers) — on a phone it lands on things that are
+  // either hidden or already obvious, so it never auto-starts there.
+  const isMobile = useIsMobile();
 
   const markSeen = useCallback(() => {
     storage.ffcsTourSeen.set(String(TOUR_VERSION));
@@ -95,12 +120,12 @@ export function TourProvider({
   }, []);
 
   useEffect(() => {
-    if (!offerTour || autoStartedRef.current) return;
+    if (!offerTour || isMobile || autoStartedRef.current) return;
     if (storage.ffcsTourSeen.get() === String(TOUR_VERSION)) return;
     autoStartedRef.current = true;
     const timer = setTimeout(start, AUTO_START_MS);
     return () => clearTimeout(timer);
-  }, [offerTour, start]);
+  }, [offerTour, isMobile, start]);
 
   // A system back gesture dismisses the tour, not the planner behind it.
   useOverlayBack("ffcs-tour", stepIndex !== null, stop);
