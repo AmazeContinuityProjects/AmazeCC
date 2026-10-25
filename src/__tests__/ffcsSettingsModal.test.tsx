@@ -84,6 +84,17 @@ describe("FFCSSettingsModal", () => {
     expect(p.setSocialScoreGroupMethod).toHaveBeenCalledWith("cumulative");
   });
 
+  it("keeps radio-setting prompts and options in a single vertical pane", () => {
+    render(<FFCSSettingsModal {...props()} />);
+
+    const rankingGroup = screen.getByDisplayValue("Balanced").parentElement?.parentElement;
+    expect(rankingGroup?.className).toContain("flex-col");
+    expect(rankingGroup?.className).not.toContain("sm:flex-row");
+    expect(rankingGroup?.parentElement?.className).toContain("w-full");
+    expect(rankingGroup?.parentElement?.parentElement?.className).toContain("flex-col");
+    expect(rankingGroup?.parentElement?.parentElement?.className).not.toContain("sm:flex-row");
+  });
+
   it("edits the tab's own state for grouping, not a copy in settings", () => {
     const p = props({ isGroupingEnabled: false });
     render(<FFCSSettingsModal {...p} />);

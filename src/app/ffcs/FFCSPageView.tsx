@@ -2,20 +2,22 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Calendar, LogIn } from "lucide-react";
+import { Calendar, LogIn, Download, ExternalLink } from "lucide-react";
 import ThemeToggle from "@/components/custom/ThemeToggle";
 import FFCSTimetableTab from "@/components/custom/exams/FFCSTimetableTab";
 import { getAssetPath } from "@/lib/utils";
+import { usePwaInstall } from "@/lib/pwaInstall";
 
 export default function FFCSPageView() {
   const [mounted, setMounted] = useState(false);
+  const { canInstall, promptInstall } = usePwaInstall();
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-850 dark:bg-[#03060F] dark:text-gray-100 flex flex-col font-sans transition-colors duration-300">
+    <div className="min-h-[100dvh] w-full max-w-full overflow-x-hidden bg-slate-50 text-slate-850 dark:bg-[#03060F] dark:text-gray-100 flex flex-col font-sans transition-colors duration-300">
       {/* Top Navigation Bar - non-sticky so it scrolls with the page */}
       <nav
         className="w-full bg-white/85 dark:bg-[#03060F]/85 border-b border-slate-200/80 dark:border-white/[0.08]"
@@ -29,31 +31,41 @@ export default function FFCSPageView() {
               title="AmazeCC Home"
             >
               <img
-                src={getAssetPath("/logo.png")}
-                alt="AmazeCC"
-                className="h-8 w-8 rounded-xl object-contain shadow-xs border border-zinc-200/60 dark:border-zinc-800/80 p-0.5 bg-white dark:bg-zinc-900"
+                src={getAssetPath("/favicon/FFCS.png")}
+                alt="AmazeCC FFCS"
+                className="h-8 w-8 rounded-xl object-contain shadow-xs border border-indigo-500/30 p-0.5 bg-white dark:bg-zinc-900"
               />
-              <span className="text-base sm:text-lg font-black tracking-tight font-outfit text-zinc-900 dark:text-white">
-                AmazeCC
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-base sm:text-lg font-black tracking-tight font-outfit text-zinc-900 dark:text-white">
+                  AmazeCC <span className="text-indigo-600 dark:text-indigo-400">FFCS</span>
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                  App
+                </span>
+              </div>
             </Link>
-
-            <div className="h-4 w-px bg-slate-200 dark:border-white/[0.08] dark:bg-white/[0.08]" />
-
-            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-zinc-400">
-              <Calendar size={14} className="text-indigo-600 dark:text-indigo-400" />
-              <span>FFCS Planner</span>
-            </div>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 sm:gap-2.5">
+            {canInstall && (
+              <button
+                type="button"
+                onClick={promptInstall}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 transition-colors px-2.5 sm:px-3 py-2 rounded-xl shadow-xs cursor-pointer active:scale-95"
+                title="Install AmazeCC FFCS as an independent web app on your device"
+              >
+                <Download size={14} className="shrink-0" />
+                <span className="hidden sm:inline">Install App</span>
+              </button>
+            )}
+
             <Link
               href="/"
               title="Login to AmazeCC"
               aria-label="Login to AmazeCC"
               className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors p-2 sm:px-3 sm:py-2 rounded-xl bg-slate-100 hover:bg-slate-200/80 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-slate-200/80 dark:border-zinc-800 shadow-2xs active:scale-95"
             >
-              <LogIn size={15} className="shrink-0" />
+              <LogIn size={14} className="shrink-0" />
               <span className="hidden sm:inline">Login to AmazeCC</span>
             </Link>
             {mounted && <ThemeToggle />}
@@ -62,7 +74,7 @@ export default function FFCSPageView() {
       </nav>
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-6 overflow-x-hidden">
         <FFCSTimetableTab />
       </main>
 

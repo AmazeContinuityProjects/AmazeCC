@@ -115,9 +115,9 @@ export function StatTile({
 
       {sub ? (
         <div className="flex items-center justify-between gap-2 min-w-0">
-          <p className="text-[10.5px] sm:text-xs text-text-secondary dark:text-text-muted font-medium truncate">
+          <div className="text-[10.5px] sm:text-xs text-text-secondary dark:text-text-muted font-medium truncate">
             {sub}
-          </p>
+          </div>
         </div>
       ) : null}
     </div>

@@ -1558,10 +1558,10 @@ export function FFCSGeneratorSubpage({
                           </div>
                         )}
                   </div>
-                  <div className="mt-4 text-sm bg-amber-500/10 text-amber-600 dark:text-amber-400 py-2.5 px-4 rounded-xl w-fit max-w-full border border-amber-500/20 leading-relaxed break-words">
-                    <span className="font-bold">Selected: {generatorTargets.length} target courses</span>
+                  <div className="mt-4 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-sm bg-amber-500/10 text-amber-600 dark:text-amber-400 py-2.5 px-4 rounded-xl w-fit max-w-full min-w-0 border border-amber-500/20 leading-relaxed">
+                    <span className="font-bold whitespace-nowrap shrink-0">Selected: {generatorTargets.length} target courses</span>
                     {seededFromLocks && (
-                      <span className="text-amber-600/80 dark:text-amber-400/80 font-normal">
+                      <span className="text-amber-600/80 dark:text-amber-400/80 font-normal min-w-0 break-words">
                         {" — from your locked Target Courses; changes here don't write back"}
                       </span>
                     )}

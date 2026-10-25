@@ -128,6 +128,8 @@ export function InsightCarousel({
   // overlay button, with the decorative body made click-transparent on top.
   return (
     <div
+      role={ariaLabel ? "region" : undefined}
+      aria-label={ariaLabel}
       className={cn(
         TILE,
         height,

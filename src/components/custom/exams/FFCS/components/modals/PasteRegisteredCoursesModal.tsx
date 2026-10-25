@@ -5,15 +5,7 @@ import { AnimatePresence } from "framer-motion";
 import { ClipboardPaste, CheckCircle2, AlertTriangle, Sparkles, BookOpen, Layers } from "lucide-react";
 import BottomSheet from "../../../../shared/BottomSheet";
 import type { AddedCourse, ParsedCourse } from "../../types";
-import {
-  isVtopRegistrationText,
-  parseVtopRegistrationText,
-  vtopRowsToAddedCourses,
-  parsePastedText,
-  toParsedCourses,
-  parsedCoursesToAddedCourses,
-  type VtopCourseRow,
-} from "@/features/import/parsePastedText";
+import { parseUniversalPaste } from "@/features/import/parsePastedText";
 import { track } from "@/lib/analytics";
 
 interface PasteRegisteredCoursesModalProps {
@@ -21,6 +13,17 @@ interface PasteRegisteredCoursesModalProps {
   onClose: () => void;
   onLoadCourses: (addedCourses: AddedCourse[], parsedCourses: ParsedCourse[], replaceExisting: boolean) => void;
 }
+
+const FORMAT_LABELS: Record<string, string> = {
+  vtop: "VTOP Registration Format detected",
+  markdown: "Markdown Table detected",
+  tsv: "TSV / Spreadsheet Paste detected",
+  csv: "CSV Format detected",
+  piped: "Piped Table (|) detected",
+  semicolon: "Semicolon Delimited detected",
+  json: "JSON Export detected",
+  generic: "Standard Text / List detected",
+};
 
 export const PasteRegisteredCoursesModal: React.FC<PasteRegisteredCoursesModalProps> = ({
   isOpen,
@@ -32,48 +35,7 @@ export const PasteRegisteredCoursesModal: React.FC<PasteRegisteredCoursesModalPr
 
   const parsedData = useMemo(() => {
     if (!text.trim()) return null;
-
-    if (isVtopRegistrationText(text)) {
-      const vtopRows = parseVtopRegistrationText(text);
-      if (vtopRows.length > 0) {
-        const addedCourses = vtopRowsToAddedCourses(vtopRows);
-        const parsedCourses: ParsedCourse[] = vtopRows.map((r) => ({
-          CODE: r.code,
-          TITLE: r.title,
-          TYPE: r.type,
-          CREDITS: r.credits,
-          ROOM: r.venue,
-          SLOT: r.slot,
-          FACULTY: r.faculty,
-          ERP_ID: r.employeeId,
-          CLASS_ID: r.classId,
-          BATCH: "",
-        }));
-
-        return {
-          type: "vtop" as const,
-          vtopRows,
-          addedCourses,
-          parsedCourses,
-          totalCredits: addedCourses.reduce((sum, c) => sum + (parseFloat(c.credits) || 0), 0),
-          uniqueCount: new Set(addedCourses.map((c) => c.code)).size,
-        };
-      }
-    }
-
-    // Fallback to standard line parser
-    const options = parsePastedText(text);
-    const parsedCourses = toParsedCourses(options);
-    const addedCourses = parsedCoursesToAddedCourses(parsedCourses);
-
-    return {
-      type: "generic" as const,
-      vtopRows: [] as VtopCourseRow[],
-      addedCourses,
-      parsedCourses,
-      totalCredits: addedCourses.reduce((sum, c) => sum + (parseFloat(c.credits) || 0), 0),
-      uniqueCount: new Set(addedCourses.map((c) => c.code)).size,
-    };
+    return parseUniversalPaste(text);
   }, [text]);
 
   const canApply = Boolean(parsedData && parsedData.addedCourses.length > 0);
@@ -82,7 +44,7 @@ export const PasteRegisteredCoursesModal: React.FC<PasteRegisteredCoursesModalPr
     if (!parsedData || !canApply) return;
     track("ffcs_paste_registered_courses", {
       count: parsedData.addedCourses.length,
-      mode: parsedData.type,
+      mode: parsedData.format,
       replace: replaceExisting,
     });
     onLoadCourses(parsedData.addedCourses, parsedData.parsedCourses, replaceExisting);
@@ -101,7 +63,7 @@ export const PasteRegisteredCoursesModal: React.FC<PasteRegisteredCoursesModalPr
           backdropZIndex={345}
           contentClassName="flex flex-col gap-4"
           title="Paste Registered Courses"
-          subtitle="Paste copied text from VTOP (Registration or View/Modify page) to load your schedule directly."
+          subtitle="Paste copied courses in any format (VTOP, CSV, TSV, Markdown table, Piped, or JSON) to load your schedule directly."
           icon={<ClipboardPaste className="w-5 h-5" />}
           accent="bg-purple-500/10 border-purple-500/20 text-purple-500"
           closeLabel="Close paste modal"
@@ -110,7 +72,7 @@ export const PasteRegisteredCoursesModal: React.FC<PasteRegisteredCoursesModalPr
             <div className="flex items-center justify-between">
               <label htmlFor="vtop-paste-textarea" className="text-xs font-semibold text-text-heading flex items-center gap-1.5">
                 <BookOpen className="w-3.5 h-3.5 text-purple-500" />
-                <span>Paste Table or Text from VTOP</span>
+                <span>Paste Course Schedule / Table</span>
               </label>
               {parsedData && parsedData.addedCourses.length > 0 && (
                 <span className="text-xs font-medium text-emerald-500 flex items-center gap-1 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
@@ -126,7 +88,7 @@ export const PasteRegisteredCoursesModal: React.FC<PasteRegisteredCoursesModalPr
               onChange={(e) => setText(e.target.value)}
               rows={7}
               spellCheck={false}
-              placeholder={`Paste your courses from VTOP here...\n\nExample:\nBACSE202 -Database Systems- Embedded Theory\n3.0 Concentration\nRegular CH2026270502880 - COE01\nAB4-305\nF1+TF1 VISWANATHAN V COE01\nRegistered and Approved Delete`}
+              placeholder={`Paste your courses here from any source...\n\nSupports:\n• VTOP Registration page copy-paste\n• Markdown or Piped tables (| Code | Title | Slot | Faculty | Room |)\n• CSV / Excel TSV data (with or without headers)\n• JSON array export`}
               className="w-full bg-surface border border-border-strong rounded-xl p-3 text-xs font-mono text-text-heading resize-y focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all custom-scrollbar placeholder:text-muted-foreground/60"
             />
 
@@ -137,8 +99,8 @@ export const PasteRegisteredCoursesModal: React.FC<PasteRegisteredCoursesModalPr
                   <span className="font-semibold flex items-center gap-1.5">
                     <Layers className="w-3.5 h-3.5 text-blue-500" /> Detected Courses Preview:
                   </span>
-                  <span className="text-muted-foreground text-[11px]">
-                    {parsedData.type === "vtop" ? "VTOP Registration Format detected" : "Standard text format"}
+                  <span className="text-purple-400 font-semibold text-[11px] bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">
+                    {FORMAT_LABELS[parsedData.format] || "Detected format"}
                   </span>
                 </div>
 

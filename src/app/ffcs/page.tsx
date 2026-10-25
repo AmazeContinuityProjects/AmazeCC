@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import FFCSPageView from "./FFCSPageView";
 
 export const metadata: Metadata = {
-  title: "FFCS Timetable Planner",
+  title: "AmazeCC FFCS - Timetable Planner & Auto-Generator",
   description: "Plan conflict-free course timetables, check slot collisions, explore faculties, and generate optimal schedules on AmazeCC without logging in.",
 };
 

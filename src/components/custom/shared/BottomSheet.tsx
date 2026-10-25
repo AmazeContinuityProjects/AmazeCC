@@ -336,7 +336,7 @@ export default function BottomSheet({
       initial={{ y: "100%" }}
       animate={{ y: 0 }}
       exit={{ y: "100%" }}
-      transition={{ type: "spring", damping: 30, stiffness: 250, mass: 0.8 }}
+      transition={{ type: "spring", damping: 30, stiffness: 300, mass: 0.8 }}
       data-prevent-swipe="true"
       className={`${anchoredBottom}w-[calc(100%-2rem)] ${maxWidth} ${surface} rounded-[28px] shadow-[0_-15px_40px_-15px_rgba(0,0,0,0.3)] ${className}`}
       style={panelStyle}
@@ -349,7 +349,7 @@ export default function BottomSheet({
       initial={{ y: "100%" }}
       animate={{ y: 0 }}
       exit={{ y: "100%" }}
-      transition={{ type: "spring", damping: 30, stiffness: 250, mass: 0.8 }}
+      transition={{ type: "spring", damping: 30, stiffness: 300, mass: 0.8 }}
       data-prevent-swipe="true"
       className={`${anchoredBottom}w-full ${maxWidth} ${surface} rounded-t-[28px] sm:rounded-[28px] shadow-[0_-15px_40px_-15px_rgba(0,0,0,0.3)] ${className}`}
       style={panelStyle}

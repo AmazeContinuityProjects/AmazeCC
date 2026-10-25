@@ -283,25 +283,29 @@ export function FFCSSettingsModal({
                 />
               }
             />
-            <SettingRow
-              title="Guided tour"
-              description="Offer the tour when you open the planner."
-              control={
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={replayTour}
-                    className="flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline px-2 py-1.5 rounded-lg cursor-pointer"
-                  >
-                    <Play className="w-3.5 h-3.5" /> Replay
-                  </button>
-                  <Switch
-                    checked={settings.showTour}
-                    onCheckedChange={(checked) => update("showTour", checked)}
-                  />
-                </div>
-              }
-            />
+            {/* Desktop-only: the tour never runs on phones, so neither the
+                replay nor the offer switch has anything to act on. */}
+            <div className="hidden sm:block">
+              <SettingRow
+                title="Guided tour"
+                description="Offer the tour when you open the planner."
+                control={
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={replayTour}
+                      className="flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline px-2 py-1.5 rounded-lg cursor-pointer"
+                    >
+                      <Play className="w-3.5 h-3.5" /> Replay
+                    </button>
+                    <Switch
+                      checked={settings.showTour}
+                      onCheckedChange={(checked) => update("showTour", checked)}
+                    />
+                  </div>
+                }
+              />
+            </div>
             {onOpenLayoutModal && (
               <SettingRow
                 title="Planner layout experience"

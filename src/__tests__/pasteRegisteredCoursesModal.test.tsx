@@ -154,7 +154,7 @@ describe("PasteRegisteredCoursesModal", () => {
       />
     );
 
-    const textarea = screen.getByPlaceholderText(/Paste your courses from VTOP here/i);
+    const textarea = screen.getByPlaceholderText(/Paste your courses here/i);
     fireEvent.change(textarea, { target: { value: sampleInput } });
 
     // Should detect 12 offerings and 23 credits
@@ -179,5 +179,38 @@ describe("PasteRegisteredCoursesModal", () => {
     expect(addedCourses[0].venue).toBe("AB4-305");
 
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it("renders and parses Markdown/CSV tables and displays format indicator", () => {
+    const onLoadCourses = vi.fn();
+    const onClose = vi.fn();
+
+    render(
+      <PasteRegisteredCoursesModal
+        isOpen={true}
+        onClose={onClose}
+        onLoadCourses={onLoadCourses}
+      />
+    );
+
+    const textarea = screen.getByPlaceholderText(/Paste your courses here/i);
+    const mdTable = `| Course Code | Title | Slot | Faculty | Venue | Credits |
+| BACSE202 | Database Systems | F1+TF1 | Dr. Alan | AB4-305 | 3.0 |
+| BACSE203 | Computer Networks | B1+TB1 | Dr. Bob | AB4-306 | 3.0 |`;
+
+    fireEvent.change(textarea, { target: { value: mdTable } });
+
+    expect(screen.getByText(/2 offerings/i)).toBeDefined();
+    expect(screen.getByText(/6 credits/i)).toBeDefined();
+    expect(screen.getByText(/Markdown Table detected/i)).toBeDefined();
+
+    const applyButton = screen.getByRole("button", { name: /Load into Timetable/i });
+    fireEvent.click(applyButton);
+
+    expect(onLoadCourses).toHaveBeenCalledTimes(1);
+    const [addedCourses] = onLoadCourses.mock.calls[0];
+    expect(addedCourses).toHaveLength(2);
+    expect(addedCourses[0].code).toBe("BACSE202");
+    expect(addedCourses[0].slots).toEqual(["F1", "TF1"]);
   });
 });
