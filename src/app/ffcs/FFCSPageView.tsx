@@ -9,17 +9,7 @@ import { getAssetPath } from "@/lib/utils";
 
 export default function FFCSPageView() {
   const [mounted, setMounted] = useState(false);
-  const [plannerLayoutMode, setPlannerLayoutMode] = useState<"guided" | "modern" | "classic">(() => {
-    if (typeof window === "undefined") return "modern";
-    try {
-      const saved = window.localStorage.getItem("ffcs_layout_mode");
-      if (saved === "revamp") return "modern";
-      if (saved === "guided" || saved === "modern" || saved === "classic") return saved;
-    } catch {
-      // Fall back to the viewport default when storage is unavailable.
-    }
-    return "modern";
-  });
+  const [plannerLayoutMode, setPlannerLayoutMode] = useState<"guided" | "modern" | "classic">("modern");
 
   useEffect(() => {
     setMounted(true);

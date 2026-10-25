@@ -45,13 +45,13 @@ describe("FFCSTimetableTab", () => {
     // default — under a full parallel run the default starves it.
   }, 30_000);
 
-  it("renders the original dashboard in Classic mode", () => {
+  it("starts in Modern mode even when a previous layout preference was saved", () => {
     storage.setItem("ffcs_layout_mode", "classic");
     render(<FFCSTimetableTab />);
 
-    expect(screen.getByText("Timetable Manager")).toBeDefined();
-    expect(screen.getByText("Course Selector")).toBeDefined();
-    expect(screen.getByText("Social Score")).toBeDefined();
+    expect(screen.getByRole("button", { name: "New Plan" })).toBeDefined();
+    expect(screen.queryByText("Timetable Manager")).toBeNull();
+    expect(storage.getItem("ffcs_layout_mode")).toBe("modern");
   }, 30_000);
 
   it("maps the legacy Revamp preference to Modern", () => {
@@ -859,6 +859,7 @@ describe("FFCSTimetableTab", () => {
     );
     fireEvent.click(screen.getByRole("radio", { name: /Guided Hero/ }));
     fireEvent.click(screen.getByRole("button", { name: "Switch to Guided Hero Mode" }));
+    expect(storage.getItem("ffcs_layout_mode")).toBe("guided");
 
     // Should display Guided Hero with full-screen exit button and mode selection
     expect(screen.getByTitle("Exit Fullscreen")).toBeDefined();
@@ -876,5 +877,6 @@ describe("FFCSTimetableTab", () => {
     fireEvent.click(singlePageViewBtn);
 
     expect(document.getElementById("ffcs-timetable-grid")).not.toBeNull();
+    expect(storage.getItem("ffcs_layout_mode")).toBe("modern");
   }, 30_000);
 });
