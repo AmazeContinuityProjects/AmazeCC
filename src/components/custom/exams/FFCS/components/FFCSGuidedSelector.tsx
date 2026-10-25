@@ -849,10 +849,10 @@ export default function FFCSGuidedSelector({
     if (initialHasLaunchedHero !== undefined) {
       return initialHasLaunchedHero;
     }
-    if (typeof window !== "undefined" && window.innerWidth >= 768) {
-      return true;
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      return false;
     }
-    return false;
+    return true;
   });
 
   const { canInstall, promptInstall } = usePwaInstall();
@@ -928,25 +928,38 @@ export default function FFCSGuidedSelector({
     }
   }, [effectiveCourseLocks.length]);
 
-  const [viewportDimensions, setViewportDimensions] = useState<{ width: number; height: number }>({
-    width: 0,
-    height: 0,
-  });
+  const [viewportDimensions, setViewportDimensions] = useState<{ width: number; height: number }>(() => ({
+    width: typeof window !== "undefined" ? window.innerWidth : 1200,
+    height: typeof window !== "undefined" ? window.innerHeight : 800,
+  }));
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    let rafId: number | null = null;
     const updateDimensions = () => {
-      setViewportDimensions({
-        width: window.innerWidth,
-        height: window.innerHeight,
+      if (rafId !== null) return;
+      rafId = window.requestAnimationFrame(() => {
+        rafId = null;
+        setViewportDimensions((prev) => {
+          if (prev.width === window.innerWidth && prev.height === window.innerHeight) {
+            return prev;
+          }
+          return {
+            width: window.innerWidth,
+            height: window.innerHeight,
+          };
+        });
       });
     };
     updateDimensions();
     window.addEventListener("resize", updateDimensions);
-    return () => window.removeEventListener("resize", updateDimensions);
+    return () => {
+      window.removeEventListener("resize", updateDimensions);
+      if (rafId !== null) window.cancelAnimationFrame(rafId);
+    };
   }, []);
 
-  const isHorizontal = viewportDimensions.width > 0 && viewportDimensions.width > viewportDimensions.height;
+  const isHorizontal = viewportDimensions.width >= 1024 && viewportDimensions.width > viewportDimensions.height;
 
   const availableOfferings = useMemo(() => {
     if (!selectedCourseCode) return [];
@@ -5019,11 +5032,10 @@ export default function FFCSGuidedSelector({
     return (
       <div
         data-testid="mobile-preflight-screen"
-        style={{ zoom: 0.85 }}
         className={
           fullScreenMode
-            ? "fixed inset-0 z-50 bg-zinc-950 text-zinc-100 flex flex-col justify-between overflow-y-auto select-none p-5 sm:p-8 animate-in fade-in duration-300 [zoom:0.85]"
-            : "relative w-full rounded-[32px] bg-zinc-950 text-zinc-100 flex flex-col justify-between overflow-hidden select-none p-5 sm:p-8 shadow-2xl border border-zinc-800 min-h-[580px] [zoom:0.85]"
+            ? "fixed inset-0 z-50 h-[100dvh] w-full bg-zinc-950 text-zinc-100 flex flex-col justify-between overflow-y-auto select-none p-5 sm:p-8 animate-in fade-in duration-300"
+            : "relative w-full rounded-[32px] bg-zinc-950 text-zinc-100 flex flex-col justify-between overflow-hidden select-none p-5 sm:p-8 shadow-2xl border border-zinc-800 min-h-[580px]"
         }
       >
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -5161,7 +5173,7 @@ export default function FFCSGuidedSelector({
       style={{ zoom: 0.85 }}
       className={
         fullScreenMode
-          ? "fixed inset-0 z-50 bg-zinc-950 text-zinc-100 flex flex-col justify-between overflow-hidden select-none px-4 sm:px-8 py-4 sm:py-6 animate-in fade-in duration-300 [zoom:0.85]"
+          ? "fixed inset-0 z-50 h-[100dvh] w-full bg-zinc-950 text-zinc-100 flex flex-col justify-between overflow-y-auto sm:overflow-hidden select-none px-4 sm:px-8 py-4 sm:py-6 animate-in fade-in duration-300 [zoom:0.85]"
           : "relative w-full rounded-[32px] bg-zinc-950 text-zinc-100 flex flex-col justify-between overflow-hidden select-none px-4 sm:px-6 py-5 shadow-2xl border border-zinc-800 min-h-[580px] [zoom:0.85]"
       }
     >
