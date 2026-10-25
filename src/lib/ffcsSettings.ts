@@ -82,6 +82,8 @@ export interface FFCSSettings {
   showTour: boolean;
   /** Show a vertical timetable beside the dashboard on extra-wide screens. */
   showVerticalTimetableBesideWidgets: boolean;
+  /** Show the desktop option pane while reviewing generated timetables. */
+  showGeneratorOptionPane: boolean;
 }
 
 export const FFCSSettingsDefaults: Readonly<FFCSSettings> = Object.freeze({
@@ -97,6 +99,7 @@ export const FFCSSettingsDefaults: Readonly<FFCSSettings> = Object.freeze({
   removeHardResultLimit: false,
   showTour: true,
   showVerticalTimetableBesideWidgets: false,
+  showGeneratorOptionPane: true,
 });
 
 const SORT_BY: readonly SortBy[] = ["social", "halfdays", "compactness", "balanced", "faculty"];
@@ -189,6 +192,10 @@ export function sanitizeFFCSSettings(raw: unknown): FFCSSettings {
       typeof r.showVerticalTimetableBesideWidgets === "boolean"
         ? r.showVerticalTimetableBesideWidgets
         : FFCSSettingsDefaults.showVerticalTimetableBesideWidgets,
+    showGeneratorOptionPane:
+      typeof r.showGeneratorOptionPane === "boolean"
+        ? r.showGeneratorOptionPane
+        : FFCSSettingsDefaults.showGeneratorOptionPane,
   };
 }
 

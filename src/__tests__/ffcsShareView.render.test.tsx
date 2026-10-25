@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import FFCSShareView from "@/app/share/ffcs/FFCSShareView";
-import { encodeTimetableShare } from "@/lib/ffcsShare";
+import { encodeCompactTimetableShare, encodeTimetableShare } from "@/lib/ffcsShare";
 import { DAYS } from "@/components/custom/exams/FFCS/constants";
 import type { AddedCourse } from "@/components/custom/exams/FFCS/types";
 
@@ -36,8 +36,13 @@ const course: AddedCourse = {
 
 describe("FFCSShareView image export", () => {
   beforeEach(() => {
+    searchParams.delete("x");
     searchParams.set("d", encodeTimetableShare({ name: "Shared Plan", courses: [course] }));
     downloadModernTimetableImage.mockClear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it("uses the modern horizontal exporter for PNG and JPEG", async () => {
@@ -63,5 +68,28 @@ describe("FFCSShareView image export", () => {
       viewMode: "horizontal",
       format: "jpg",
     });
+  });
+
+  it("resolves a short class-ID link against its semester report", async () => {
+    const csv = [
+      "COURSE CODE,COURSE TITLE,CREDITS,CLASS ID,SLOT,ERP ID,EMPLOYEE NAME,EMPLOYEE SCHOOL",
+      "CSE1001,Computer Science,3,CH2026270500002,A1,ERP1,Dr Example,SCI",
+    ].join("\n");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response(csv, { status: 200 }))
+    );
+    const compact = encodeCompactTimetableShare({
+      name: "Compact Plan",
+      courses: [{ ...course, classId: "CH2026270500002" }],
+    }, "winter-2026-2027")!;
+    searchParams.delete("d");
+    searchParams.set("x", compact);
+
+    render(<FFCSShareView />);
+
+    expect(await screen.findByRole("heading", { name: "Compact Plan" })).toBeDefined();
+    expect(screen.getByText("Computer Science")).toBeDefined();
+    expect(screen.getByText(/selected class IDs/i)).toBeDefined();
   });
 });

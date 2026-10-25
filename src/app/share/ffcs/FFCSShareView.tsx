@@ -4,7 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Download, Map as MapIcon, AlertTriangle, CalendarDays, Layers, Clock } from "lucide-react";
-import { decodeTimetableShare } from "@/lib/ffcsShare";
+import {
+  decodeCompactTimetableShare,
+  decodeTimetableShare,
+} from "@/lib/ffcsShare";
 import { CAMPUS_SCHEMAS, GLOBAL_CAMPUS } from "@/lib/campusSchema";
 import { timetableMetrics, formatHours } from "@/lib/timetableMetrics";
 import { downloadModernTimetableImage } from "@/lib/exportTimetable";
@@ -12,7 +15,11 @@ import { storage } from "@/lib/storage";
 import { track } from "@/lib/analytics";
 import { TimetableGrid } from "@/components/custom/exams/FFCS/components/TimetableGrid";
 import { DAYS } from "@/components/custom/exams/FFCS/constants";
-import type { TimetablePeriod, TimetableState } from "@/components/custom/exams/FFCS/types";
+import type { ParsedCourse, TimetablePeriod, TimetableState } from "@/components/custom/exams/FFCS/types";
+import { getFFCSSemester, parseReportRows } from "@/components/custom/exams/FFCS/reports";
+import { COLORS } from "@/components/custom/exams/FFCS/constants";
+import { splitSlots } from "@/components/custom/exams/FFCS/logic/generate";
+import { getAssetPath } from "@/lib/utils";
 
 /**
  * The receiver's side of a share link: the plan, read-only, plus the two
@@ -32,7 +39,86 @@ function Card({ children, className = "" }: { children: React.ReactNode; classNa
 export default function FFCSShareView() {
   const searchParams = useSearchParams();
   const encoded = searchParams.get("d") ?? "";
-  const decoded = useMemo(() => decodeTimetableShare(encoded), [encoded]);
+  const compactEncoded = searchParams.get("x") ?? "";
+  const fullDecoded = useMemo(() => decodeTimetableShare(encoded), [encoded]);
+  const compactPayload = useMemo(
+    () => decodeCompactTimetableShare(compactEncoded),
+    [compactEncoded]
+  );
+  const [compactDecoded, setCompactDecoded] = useState<{
+    timetable: TimetableState;
+    campus: string;
+  } | null>(null);
+  const [compactLoadState, setCompactLoadState] = useState<"idle" | "loading" | "ready" | "invalid">("idle");
+  const decoded = compactEncoded ? compactDecoded : fullDecoded;
+
+  useEffect(() => {
+    if (!compactEncoded) {
+      setCompactDecoded(null);
+      setCompactLoadState("idle");
+      return;
+    }
+    if (!compactPayload) {
+      setCompactDecoded(null);
+      setCompactLoadState("invalid");
+      return;
+    }
+
+    let active = true;
+    setCompactDecoded(null);
+    setCompactLoadState("loading");
+    const loadCompactTimetable = async () => {
+      try {
+        const semester = getFFCSSemester(compactPayload.s);
+        const response = await fetch(getAssetPath(semester.path));
+        if (!response.ok) throw new Error(`Failed to fetch ${semester.path}`);
+        const XLSX = await import("xlsx");
+        const workbook = XLSX.read(new Uint8Array(await response.arrayBuffer()), { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet);
+        const reportCourses = parseReportRows(rows);
+        const selectedCourses = compactPayload.i.map((suffix) =>
+          reportCourses.find((course) => course.CLASS_ID === `${compactPayload.p}${suffix}`)
+        );
+        if (selectedCourses.some((course) => !course)) {
+          throw new Error("One or more shared class IDs are not in the selected semester report.");
+        }
+        const resolvedCourses = selectedCourses.filter(
+          (course): course is ParsedCourse => Boolean(course)
+        );
+
+        const timetable: TimetableState = {
+          id: `share-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+          name: compactPayload.n,
+          courses: resolvedCourses.map((course, index) => ({
+            id: `share-${course.CLASS_ID}`,
+            code: course.CODE,
+            title: course.TITLE,
+            slots: splitSlots(course.SLOT),
+            faculty: course.FACULTY,
+            employeeId: course.ERP_ID,
+            classId: course.CLASS_ID,
+            venue: course.ROOM,
+            credits: course.CREDITS,
+            type: course.TYPE || (course.SLOT.includes("L") ? "Lab" : "Theory"),
+            color: COLORS[index % COLORS.length],
+            batch: course!.BATCH,
+          })),
+        };
+        if (!active) return;
+        setCompactDecoded({ timetable, campus: GLOBAL_CAMPUS });
+        setCompactLoadState("ready");
+      } catch {
+        if (!active) return;
+        setCompactDecoded(null);
+        setCompactLoadState("invalid");
+      }
+    };
+    void loadCompactTimetable();
+    return () => {
+      active = false;
+    };
+  }, [compactEncoded, compactPayload]);
 
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -97,14 +183,27 @@ export default function FFCSShareView() {
   };
 
   if (!decoded) {
+    if (compactEncoded && (compactLoadState === "idle" || compactLoadState === "loading")) {
+      return (
+        <main className="min-h-screen bg-surface text-text-heading flex items-center justify-center p-4">
+          <Card className="max-w-md w-full text-center space-y-3">
+            <h1 className="text-lg font-bold">Opening short timetable link…</h1>
+            <p className="text-sm text-muted-foreground">
+              Loading the selected semester report to resolve its class IDs.
+            </p>
+          </Card>
+        </main>
+      );
+    }
     return (
       <main className="min-h-screen bg-surface text-text-heading flex items-center justify-center p-4">
         <Card className="max-w-md w-full text-center space-y-3">
           <AlertTriangle className="w-8 h-8 text-amber-500 mx-auto" />
           <h1 className="text-lg font-bold">This link isn&rsquo;t a timetable plan</h1>
           <p className="text-sm text-muted-foreground">
-            It may have been cut off in transit, or it was made by a different version of the
-            planner. Ask for the link again, or build one of your own.
+            {compactEncoded
+              ? "The selected semester report could not resolve every class ID in this short link. Ask for a fresh link or use the full timetable link instead."
+              : "It may have been cut off in transit, or it was made by a different version of the planner. Ask for the link again, or build one of your own."}
           </p>
           <Link
             href="/"
@@ -222,8 +321,9 @@ export default function FFCSShareView() {
         </div>
 
         <p className="text-[11px] text-muted-foreground text-center pb-6">
-          Plans travel inside the link itself — nothing was uploaded, and opening one here keeps
-          it on this device.
+          {compactEncoded
+            ? "This short link contains the semester and selected class IDs; the matching public semester report supplies the timetable details."
+            : "Plans travel inside the link itself — nothing was uploaded, and opening one here keeps it on this device."}
         </p>
       </div>
     </main>

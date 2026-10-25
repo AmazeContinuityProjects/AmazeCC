@@ -214,6 +214,15 @@ export function FFCSGeneratorSubpage({
   const [strictTheoryPreference, setStrictTheoryPreference] = useState<boolean>(
     () => sessionPrefs.strictTheoryPreference ?? true
   );
+  const [separateLabDays, setSeparateLabDays] = useState<boolean>(
+    () => sessionPrefs.separateLabDays ?? false
+  );
+  const [avoidConsecutiveLabs, setAvoidConsecutiveLabs] = useState<boolean>(
+    () => sessionPrefs.avoidConsecutiveLabs ?? false
+  );
+  const [lunchBreakSeparatesLabs, setLunchBreakSeparatesLabs] = useState<boolean>(
+    () => sessionPrefs.lunchBreakSeparatesLabs ?? false
+  );
   const [generatorUniqueFaculties, setGeneratorUniqueFaculties] = useState<boolean>(
     () => sessionPrefs.uniqueFaculties ?? false
   );
@@ -323,6 +332,9 @@ export function FFCSGeneratorSubpage({
     saveSessionPreferences({
       preference: generatorPreference,
       strictTheoryPreference,
+      separateLabDays,
+      avoidConsecutiveLabs,
+      lunchBreakSeparatesLabs,
       uniqueFaculties: generatorUniqueFaculties,
       noLimit: generatorNoLimit,
       resultCap: generatorResultCap,
@@ -344,6 +356,9 @@ export function FFCSGeneratorSubpage({
   }, [
     generatorPreference,
     strictTheoryPreference,
+    separateLabDays,
+    avoidConsecutiveLabs,
+    lunchBreakSeparatesLabs,
     generatorUniqueFaculties,
     generatorNoLimit,
     generatorResultCap,
@@ -538,6 +553,10 @@ export function FFCSGeneratorSubpage({
         return `No timetables met the minimum half-days requirement (${generatorMinHalfDays}). Try lowering it.`;
       case "below_min_faculty_scores":
         return "No timetables met the minimum faculty review scores. Lower the score filters here or in Planner Settings.";
+      case "no_separate_labs":
+        return "No timetables met the one-lab-class-per-day rule. Try turning it off or relaxing other constraints.";
+      case "no_consecutive_labs":
+        return "No timetables met the consecutive-lab rule. Try allowing consecutive slots or treating lunch as a break.";
       default:
         return "An error occurred while generating timetables.";
     }
@@ -577,6 +596,9 @@ export function FFCSGeneratorSubpage({
         friends,
         preference: generatorPreference,
         strictTheoryPreference,
+        separateLabDays,
+        avoidConsecutiveLabs,
+        lunchBreakSeparatesLabs,
         syncFriendClasses: generatorSyncFriendsClasses,
         maximizeFreeTimeFriends: generatorMaximizeFreeTimeFriends,
         minStartTime: generatorMinStartTime,
@@ -712,6 +734,7 @@ export function FFCSGeneratorSubpage({
           ...c,
           faculty: newFaculty,
           employeeId: offering.ERP_ID,
+          classId: offering.CLASS_ID,
           venue: newVenue,
         };
       }
@@ -745,6 +768,7 @@ export function FFCSGeneratorSubpage({
           title: offering.TITLE || c.title,
           faculty: facParts[0]?.trim() || offering.FACULTY,
           employeeId: offering.ERP_ID,
+          classId: offering.CLASS_ID,
           venue: roomParts[0]?.trim() || offering.ROOM || c.venue,
           slots: theorySlots,
         };
@@ -766,6 +790,7 @@ export function FFCSGeneratorSubpage({
         title: offering.TITLE || c.title,
         faculty: offering.FACULTY,
         employeeId: offering.ERP_ID,
+        classId: offering.CLASS_ID,
         venue: offering.ROOM || (offering as any).VENUE || c.venue,
         slots: offSlots.length > 0 ? offSlots : c.slots,
       };
@@ -1004,10 +1029,10 @@ export function FFCSGeneratorSubpage({
               <>
               <div
                 className={`relative w-full max-w-none flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-300 ${
-                  isReviewing ? "lg:pl-[320px]" : ""
+                  isReviewing && settings.showGeneratorOptionPane ? "lg:pl-[320px]" : ""
                 }`}
               >
-                {isReviewing && (
+                {isReviewing && settings.showGeneratorOptionPane && (
                   <aside className="hidden lg:block absolute left-0 top-0 w-[296px]">
                     <div className="sticky top-4 overflow-hidden rounded-2xl border border-border-strong bg-surface shadow-sm">
                       <div className="border-b border-border-strong px-4 py-3">
@@ -2284,6 +2309,56 @@ export function FFCSGeneratorSubpage({
                         </label>
                       )}
                     </div>
+
+                    <fieldset className="space-y-2 rounded-xl border border-border-strong bg-surface-secondary/10 p-3">
+                      <legend className="px-1 text-sm font-medium text-text-heading">
+                        Lab Scheduling
+                      </legend>
+                      <label className="flex items-start gap-2 text-sm text-text-heading">
+                        <input
+                          type="checkbox"
+                          checked={separateLabDays}
+                          onChange={(event) => setSeparateLabDays(event.target.checked)}
+                          className="mt-0.5 accent-indigo-500"
+                        />
+                        <span>
+                          <span className="block font-medium">At most one lab class per day</span>
+                          <span className="block text-xs text-muted-foreground">
+                            Multiple slots within one lab class still count as one class.
+                          </span>
+                        </span>
+                      </label>
+                      <label className="flex items-start gap-2 text-sm text-text-heading">
+                        <input
+                          type="checkbox"
+                          checked={avoidConsecutiveLabs}
+                          onChange={(event) => setAvoidConsecutiveLabs(event.target.checked)}
+                          className="mt-0.5 accent-indigo-500"
+                        />
+                        <span>
+                          <span className="block font-medium">Avoid consecutive lab slots</span>
+                          <span className="block text-xs text-muted-foreground">
+                            Uses actual timed lab periods; consecutive slots across lunch are included by default.
+                          </span>
+                        </span>
+                      </label>
+                      {avoidConsecutiveLabs && (
+                        <label className="ml-6 flex items-start gap-2 text-sm text-text-heading">
+                          <input
+                            type="checkbox"
+                            checked={lunchBreakSeparatesLabs}
+                            onChange={(event) => setLunchBreakSeparatesLabs(event.target.checked)}
+                            className="mt-0.5 accent-indigo-500"
+                          />
+                          <span>
+                            <span className="block font-medium">Treat lunch as a break</span>
+                            <span className="block text-xs text-muted-foreground">
+                              Lab slots immediately before and after a schema-defined lunch break will not count as consecutive.
+                            </span>
+                          </span>
+                        </label>
+                      )}
+                    </fieldset>
 
                     <div className="flex flex-col gap-3">
                       <label className="flex items-center gap-3 cursor-pointer group bg-surface-secondary/20 p-3 rounded-xl border border-transparent hover:border-border-strong transition-all">

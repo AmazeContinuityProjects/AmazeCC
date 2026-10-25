@@ -56,6 +56,16 @@ describe("sanitizeFFCSSettings", () => {
     ).toBe(false);
   });
 
+  it("shows the generator option pane by default and sanitizes its preference", () => {
+    expect(FFCSSettingsDefaults.showGeneratorOptionPane).toBe(true);
+    expect(sanitizeFFCSSettings({ showGeneratorOptionPane: false }).showGeneratorOptionPane).toBe(
+      false
+    );
+    expect(
+      sanitizeFFCSSettings({ showGeneratorOptionPane: "yes" }).showGeneratorOptionPane
+    ).toBe(true);
+  });
+
   it("defaults separate course-list image downloads off and sanitizes the toggle", () => {
     expect(FFCSSettingsDefaults.separateCourseListExport).toBe(false);
     expect(sanitizeFFCSSettings({ separateCourseListExport: true }).separateCourseListExport).toBe(

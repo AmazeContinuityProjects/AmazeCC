@@ -716,6 +716,9 @@ export default function FFCSGuidedSelector({
   const generation = useGenerationRun();
   const [autoPreference, setAutoPreference] = useState<"compact" | "spread" | "morning" | "evening">("compact");
   const [autoStrictTheoryPreference, setAutoStrictTheoryPreference] = useState<boolean>(true);
+  const [autoSeparateLabDays, setAutoSeparateLabDays] = useState<boolean>(false);
+  const [autoAvoidConsecutiveLabs, setAutoAvoidConsecutiveLabs] = useState<boolean>(false);
+  const [autoLunchBreakSeparatesLabs, setAutoLunchBreakSeparatesLabs] = useState<boolean>(false);
   const [autoRankingMode, setAutoRankingMode] = useState<RankingMode | null>(() =>
     settings?.rankingMode === "none" ? null : settings?.rankingMode ?? "Balanced"
   );
@@ -1203,6 +1206,7 @@ export default function FFCSGuidedSelector({
       slots: slotsArray,
       faculty: selectedOffering.FACULTY,
       employeeId: selectedOffering.ERP_ID,
+      classId: selectedOffering.CLASS_ID,
       venue: selectedOffering.ROOM || "TBA",
       credits: selectedOffering.CREDITS || "0",
       type: selectedOffering.TYPE || "Theory",
@@ -1230,6 +1234,7 @@ export default function FFCSGuidedSelector({
       slots: slotsArray,
       faculty: selectedOffering.FACULTY,
       employeeId: selectedOffering.ERP_ID,
+      classId: selectedOffering.CLASS_ID,
       venue: selectedOffering.ROOM || "TBA",
       credits: selectedOffering.CREDITS || "0",
       type: selectedOffering.TYPE || "Theory",
@@ -1270,6 +1275,9 @@ export default function FFCSGuidedSelector({
         friends: friends || [],
         preference: autoPreference,
         strictTheoryPreference: autoStrictTheoryPreference,
+        separateLabDays: autoSeparateLabDays,
+        avoidConsecutiveLabs: autoAvoidConsecutiveLabs,
+        lunchBreakSeparatesLabs: autoLunchBreakSeparatesLabs,
         syncFriendClasses: autoSyncFriends,
         maximizeFreeTimeFriends: autoMaximizeFreeTime ? (friends || []).map((f) => f.id) : [],
         minStartTime: autoMinStartTime,
@@ -1298,6 +1306,10 @@ export default function FFCSGuidedSelector({
           ? "No clash-free timetable found for these courses. Try relaxing time preferences or unlocking specific slots."
           : outcome.code === "below_min_faculty_scores"
             ? "No timetable met the minimum faculty review scores. Lower the score filters here or in Planner Settings."
+            : outcome.code === "no_separate_labs"
+              ? "No timetable met the one-lab-class-per-day rule. Try turning it off or relaxing other constraints."
+              : outcome.code === "no_consecutive_labs"
+                ? "No timetable met the consecutive-lab rule. Try allowing consecutive slots or treating lunch as a break."
             : "An error occurred while generating timetables."
       );
       return;
@@ -1338,6 +1350,7 @@ export default function FFCSGuidedSelector({
           slots: splitSlots(offering.SLOT),
           faculty: offering.FACULTY,
           employeeId: offering.ERP_ID,
+          classId: offering.CLASS_ID,
           venue: offering.ROOM || c.venue,
         };
       });
@@ -3416,6 +3429,61 @@ export default function FFCSGuidedSelector({
               <p className="mt-2 text-[10px] text-amber-300">
                 Unlimited runs still stop at 30,000 results. The Planner Settings opt-in can remove that safety ceiling, but may make the browser unstable.
               </p>
+            )}
+          </div>
+
+          <div className="space-y-2 rounded-2xl border border-zinc-800 bg-zinc-950/40 p-3.5 text-left">
+            <div>
+              <span className="block text-xs font-black text-white uppercase tracking-wider font-outfit">
+                Lab Scheduling
+              </span>
+              <span className="text-[10px] text-zinc-400">
+                These rules only apply to different lab classes; slots within one lab class stay together.
+              </span>
+            </div>
+            <label className="flex items-start gap-2 text-xs text-zinc-200">
+              <input
+                type="checkbox"
+                checked={autoSeparateLabDays}
+                onChange={(event) => setAutoSeparateLabDays(event.target.checked)}
+                className="mt-0.5 accent-indigo-500"
+              />
+              <span>
+                <span className="block font-bold">At most one lab class per day</span>
+                <span className="block text-[10px] text-zinc-400">
+                  Multiple slots within one lab class still count as one class.
+                </span>
+              </span>
+            </label>
+            <label className="flex items-start gap-2 text-xs text-zinc-200">
+              <input
+                type="checkbox"
+                checked={autoAvoidConsecutiveLabs}
+                onChange={(event) => setAutoAvoidConsecutiveLabs(event.target.checked)}
+                className="mt-0.5 accent-indigo-500"
+              />
+              <span>
+                <span className="block font-bold">Avoid consecutive lab slots</span>
+                <span className="block text-[10px] text-zinc-400">
+                  Includes slots across lunch unless lunch is treated as a break below.
+                </span>
+              </span>
+            </label>
+            {autoAvoidConsecutiveLabs && (
+              <label className="ml-5 flex items-start gap-2 text-xs text-zinc-200">
+                <input
+                  type="checkbox"
+                  checked={autoLunchBreakSeparatesLabs}
+                  onChange={(event) => setAutoLunchBreakSeparatesLabs(event.target.checked)}
+                  className="mt-0.5 accent-indigo-500"
+                />
+                <span>
+                  <span className="block font-bold">Treat lunch as a break</span>
+                  <span className="block text-[10px] text-zinc-400">
+                    Uses the lunch break in the timetable schema, not specific slot names.
+                  </span>
+                </span>
+              </label>
             )}
           </div>
 

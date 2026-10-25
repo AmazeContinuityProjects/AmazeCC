@@ -511,6 +511,8 @@ describe("FFCSGuidedSelector", () => {
     expect(screen.getByText("5. Free Half-Days & Limits")).toBeDefined();
     expect(screen.getByText("Minimum Free Half-Days")).toBeDefined();
     expect(screen.getByText("Maximum Timetables to Generate")).toBeDefined();
+    expect(screen.getByRole("checkbox", { name: /At most one lab class per day/i })).toBeDefined();
+    expect(screen.getByRole("checkbox", { name: /Avoid consecutive lab slots/i })).toBeDefined();
 
     // Select half-days target (e.g. 2)
     fireEvent.click(screen.getByRole("button", { name: "2" }));
@@ -521,6 +523,8 @@ describe("FFCSGuidedSelector", () => {
     expect(screen.getByText("50 Timetables")).toBeDefined();
     fireEvent.click(screen.getByRole("button", { name: "Unlimited ✨" }));
     expect(screen.getByText("Unlimited (30k max)")).toBeDefined();
+    fireEvent.click(screen.getByRole("checkbox", { name: /Avoid consecutive lab slots/i }));
+    expect(screen.getByRole("checkbox", { name: /Treat lunch as a break/i })).toBeDefined();
 
     // Advance to Summary
     fireEvent.click(screen.getByRole("button", { name: /Review Generation Blueprint/i }));

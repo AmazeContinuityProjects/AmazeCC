@@ -137,8 +137,10 @@ export function ListShell({
 
 const ROW_TITLE =
   "font-bold text-sm text-text-heading truncate font-outfit leading-tight";
-const ROW_SUBTITLE =
-  "text-[11px] text-text-secondary dark:text-text-muted font-medium mt-0.5 truncate";
+const ROW_SUBTITLE_BASE =
+  "text-[11px] text-text-secondary dark:text-text-muted font-medium mt-0.5";
+const ROW_SUBTITLE = `${ROW_SUBTITLE_BASE} truncate`;
+const ROW_SUBTITLE_WRAP = `${ROW_SUBTITLE_BASE} whitespace-normal break-words`;
 
 /**
  * The title + muted subtitle block that sits inside a list row.
@@ -153,6 +155,7 @@ export function ListRowText({
   subtitle,
   titleTag: Tag = "p",
   titleTooltip,
+  wrapSubtitle = false,
   right,
   className = "",
 }: {
@@ -162,6 +165,8 @@ export function ListRowText({
   titleTag?: "p" | "h3" | "h4" | "span";
   /** Native tooltip, for titles that truncate to something unreadable. */
   titleTooltip?: string;
+  /** Keep longer explanatory copy visible instead of truncating to one line. */
+  wrapSubtitle?: boolean;
   right?: ReactNode;
   className?: string;
 }) {
@@ -173,7 +178,9 @@ export function ListRowText({
         </Tag>
         {right ? <div className="flex items-center gap-2 shrink-0">{right}</div> : null}
       </div>
-      {subtitle ? <p className={ROW_SUBTITLE}>{subtitle}</p> : null}
+      {subtitle ? (
+        <p className={wrapSubtitle ? ROW_SUBTITLE_WRAP : ROW_SUBTITLE}>{subtitle}</p>
+      ) : null}
     </div>
   );
 }

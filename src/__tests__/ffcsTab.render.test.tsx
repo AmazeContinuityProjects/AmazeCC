@@ -641,6 +641,28 @@ describe("FFCSTimetableTab", () => {
     // Same heavy-mount budget as the smoke test above.
   }, 30_000);
 
+  it("confirms clearing every timetable and leaves one blank timetable", () => {
+    const confirmSpy = vi.spyOn(window, "confirm")
+      .mockReturnValueOnce(false)
+      .mockReturnValueOnce(true);
+
+    render(<FFCSTimetableTab />);
+    fireEvent.click(screen.getByRole("button", { name: "New Plan" }));
+    fireEvent.click(screen.getByTitle("Switch or manage saved timetables"));
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+    expect(confirmSpy).toHaveBeenLastCalledWith(
+      "Delete all 2 timetables and their courses? A blank timetable will be kept."
+    );
+    expect(screen.getByTitle("Delete Timetable 1")).toBeDefined();
+    expect(screen.getByTitle("Delete Timetable 2")).toBeDefined();
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+    expect(screen.getByTitle("Delete Timetable 1")).toBeDefined();
+    expect(screen.queryByTitle("Delete Timetable 2")).toBeNull();
+    expect(screen.getByText("1 timetable")).toBeDefined();
+  }, 30_000);
+
   it("renders the faculty count badge in Selected Courses table and opens SlotFacultySwapSheet", async () => {
     const csvContent =
       "COURSE CODE,COURSE TITLE,TYPE,CREDITS,SLOT,FACULTY,ROOM,ERP ID\n" +

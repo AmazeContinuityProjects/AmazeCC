@@ -123,6 +123,23 @@ describe("FFCSSettingsModal", () => {
     expect(p.update).toHaveBeenCalledWith("showVerticalTimetableBesideWidgets", true);
   });
 
+  it("updates the generator timetable options pane preference", () => {
+    const p = props();
+    render(<FFCSSettingsModal {...p} />);
+
+    const description = screen.getByText(
+      "Show the desktop side pane for switching between generated timetable options while reviewing."
+    );
+    expect(description.className).toContain("whitespace-normal");
+    expect(description.className).not.toContain("truncate");
+
+    act(() =>
+      screen.getByRole("switch", { name: "Generator timetable options pane" }).click()
+    );
+
+    expect(p.update).toHaveBeenCalledWith("showGeneratorOptionPane", false);
+  });
+
   it("updates the separate course-list image export preference", () => {
     const p = props();
     render(<FFCSSettingsModal {...p} />);

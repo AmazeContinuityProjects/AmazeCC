@@ -814,4 +814,74 @@ describe("labs on separate days", () => {
     expect(r.kind).toBe("ok");
     expect(layouts(r)).toHaveLength(1);
   });
+
+  it("rejects separate lab classes in consecutive time slots", () => {
+    const r = generateTimetables(
+      params({
+        masterCourses: [
+          row({ CODE: "BCSE101", SLOT: "L1" }),
+          row({ CODE: "BCSE102", SLOT: "L2" }),
+        ],
+        courseLocks: [lock({ code: "BCSE101" }), lock({ code: "BCSE102" })],
+        avoidConsecutiveLabs: true,
+      })
+    );
+    expect(r.kind).toBe("error");
+    if (r.kind === "error") expect(r.code).toBe("no_consecutive_labs");
+  });
+
+  it("does not call non-adjacent lab periods consecutive", () => {
+    const r = generateTimetables(
+      params({
+        masterCourses: [
+          row({ CODE: "BCSE101", SLOT: "L1" }),
+          row({ CODE: "BCSE102", SLOT: "L3" }),
+        ],
+        courseLocks: [lock({ code: "BCSE101" }), lock({ code: "BCSE102" })],
+        avoidConsecutiveLabs: true,
+      })
+    );
+    expect(r.kind).toBe("ok");
+  });
+
+  it("treats lab periods immediately before and after lunch as consecutive by default", () => {
+    const r = generateTimetables(
+      params({
+        masterCourses: [
+          row({ CODE: "BCSE101", SLOT: "L6" }),
+          row({ CODE: "BCSE102", SLOT: "L31" }),
+        ],
+        courseLocks: [lock({ code: "BCSE101" }), lock({ code: "BCSE102" })],
+        avoidConsecutiveLabs: true,
+      })
+    );
+    expect(r.kind).toBe("error");
+    if (r.kind === "error") expect(r.code).toBe("no_consecutive_labs");
+  });
+
+  it("lets students treat the schema-defined lunch break as a break between lab classes", () => {
+    const r = generateTimetables(
+      params({
+        masterCourses: [
+          row({ CODE: "BCSE101", SLOT: "L6" }),
+          row({ CODE: "BCSE102", SLOT: "L31" }),
+        ],
+        courseLocks: [lock({ code: "BCSE101" }), lock({ code: "BCSE102" })],
+        avoidConsecutiveLabs: true,
+        lunchBreakSeparatesLabs: true,
+      })
+    );
+    expect(r.kind).toBe("ok");
+  });
+
+  it("does not treat slots within a single multi-slot lab class as consecutive classes", () => {
+    const r = generateTimetables(
+      params({
+        masterCourses: [row({ CODE: "BCSE101", SLOT: "L1+L2" })],
+        courseLocks: [lock({ code: "BCSE101" })],
+        avoidConsecutiveLabs: true,
+      })
+    );
+    expect(r.kind).toBe("ok");
+  });
 });

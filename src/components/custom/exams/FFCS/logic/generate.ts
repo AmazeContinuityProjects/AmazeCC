@@ -36,10 +36,12 @@ import {
   periodsForSlot,
   slotSpellings,
   splitSlots,
+  timeToMinutes,
   periodListsClash,
   type CampusSchema,
   type DayId,
   type SlotPeriod,
+  DAYS_OF_WEEK,
 } from "@/lib/slots";
 import {
   pairwiseSocialScore,
@@ -68,7 +70,7 @@ import {
 import { offeringMatches } from "../reports";
 import type { ParsedCourse, TimetableState, Friend, CourseLock, AddedCourse } from "../types";
 
-/** The eight ways a narrowing can end with nothing to offer. */
+/** The ways a narrowing can end with nothing to offer. */
 export type GeneratorErrorCode =
   | "no_courses_selected"
   | "no_valid_slots"
@@ -76,6 +78,7 @@ export type GeneratorErrorCode =
   | "below_min_half_days"
   | "below_min_faculty_scores"
   | "no_separate_labs"
+  | "no_consecutive_labs"
   /**
    * The solver itself threw. Not a filtering outcome — the worker catches it and
    * reports it under this code so the caller can tell "nothing matched" from
@@ -178,6 +181,10 @@ export interface GenerateParams {
    * `no_separate_labs`, an emptiness worded for the toggle that caused it.
    */
   separateLabDays?: boolean;
+  /** Reject two different lab classes that occupy consecutive lab periods on one day. */
+  avoidConsecutiveLabs?: boolean;
+  /** When enabled, a schema lunch marker separates otherwise consecutive lab periods. */
+  lunchBreakSeparatesLabs?: boolean;
 }
 
 /**
@@ -511,15 +518,72 @@ const clashes = periodListsClash;
  */
 function labsShareADay(
   combination: readonly ParsedCourse[],
-  labDaysByOffering: ReadonlyMap<ParsedCourse, ReadonlySet<DayId>>
+  labPeriodsByOffering: ReadonlyMap<ParsedCourse, readonly SlotPeriod[]>
 ): boolean {
   const taken = new Set<DayId>();
   for (const offering of combination) {
-    const labDays = labDaysByOffering.get(offering);
-    if (!labDays) continue;
-    for (const day of labDays) {
+    const labPeriods = labPeriodsByOffering.get(offering);
+    if (!labPeriods) continue;
+    const offeringDays = new Set(labPeriods.map((period) => period.day));
+    for (const day of offeringDays) {
       if (taken.has(day)) return true;
       taken.add(day);
+    }
+  }
+  return false;
+}
+
+function labPeriodPairKey(day: DayId, firstIndex: number, secondIndex: number): string {
+  return `${day}:${Math.min(firstIndex, secondIndex)}:${Math.max(firstIndex, secondIndex)}`;
+}
+
+function consecutiveLabPeriodPairs(
+  schema: CampusSchema,
+  lunchBreakSeparatesLabs: boolean
+): Set<string> {
+  const pairs = new Set<string>();
+  for (const day of DAYS_OF_WEEK) {
+    const dayPeriods = (schema.lab ?? [])
+      .flatMap((period, index) => {
+        if (period.lunch || !period.start || !period.end || !period.days?.[day]) return [];
+        const startMin = timeToMinutes(period.start);
+        return startMin === null ? [] : [{ index, startMin }];
+      })
+      .sort((a, b) => a.startMin - b.startMin || a.index - b.index);
+    for (let index = 0; index < dayPeriods.length - 1; index++) {
+      const first = dayPeriods[index];
+      const second = dayPeriods[index + 1];
+      if (
+        lunchBreakSeparatesLabs &&
+        (schema.lab ?? []).slice(first.index + 1, second.index).some((period) => period.lunch)
+      ) {
+        continue;
+      }
+      pairs.add(labPeriodPairKey(day, first.index, second.index));
+    }
+  }
+  return pairs;
+}
+
+function labsAreConsecutive(
+  combination: readonly ParsedCourse[],
+  labPeriodsByOffering: ReadonlyMap<ParsedCourse, readonly SlotPeriod[]>,
+  consecutivePairs: ReadonlySet<string>
+): boolean {
+  for (let firstIndex = 0; firstIndex < combination.length; firstIndex++) {
+    const firstPeriods = labPeriodsByOffering.get(combination[firstIndex]) ?? [];
+    for (let secondIndex = firstIndex + 1; secondIndex < combination.length; secondIndex++) {
+      const secondPeriods = labPeriodsByOffering.get(combination[secondIndex]) ?? [];
+      if (
+        firstPeriods.some((first) =>
+          secondPeriods.some((second) =>
+            first.day === second.day &&
+            consecutivePairs.has(labPeriodPairKey(first.day, first.index, second.index))
+          )
+        )
+      ) {
+        return true;
+      }
     }
   }
   return false;
@@ -649,6 +713,7 @@ function toAddedCourse(course: ParsedCourse, index: number): AddedCourse {
     title: course.TITLE,
     faculty: course.FACULTY,
     employeeId: course.ERP_ID,
+    classId: course.CLASS_ID,
     venue: course.ROOM,
     slots: splitSlots(course.SLOT),
     credits: course.CREDITS,
@@ -1224,14 +1289,12 @@ export function generateTimetablesStream(
 
   const optionsPerCourse: ParsedCourse[][] = [];
   const windowsPerCourse: SlotPeriod[][][] = [];
-  /**
-   * Which days each offering's lab periods land on, by offering reference —
-   * collected while the windows are built because only here are the periods
-   * in hand (a second schema walk per visited combination would be the cost
-   * this precompute exists to avoid). Empty unless the run rules lab days
-   * apart; the rule reads absence as "never".
-   */
-  const labDaysByOffering = new Map<ParsedCourse, Set<DayId>>();
+  /** Each offering's actual lab periods, reused by both optional lab rules. */
+  const labPeriodsByOffering = new Map<ParsedCourse, SlotPeriod[]>();
+  const consecutiveLabPairs = consecutiveLabPeriodPairs(
+    schema,
+    params.lunchBreakSeparatesLabs ?? false
+  );
 
   for (const lock of params.courseLocks) {
     const options = optionsFor(schema, params, lock, byCode.get(lock.code) ?? []);
@@ -1247,18 +1310,14 @@ export function generateTimetablesStream(
     windowsPerCourse.push(
       options.map((opt) => {
         const periods: SlotPeriod[] = [];
-        const labDays = new Set<DayId>();
+        const labPeriods: SlotPeriod[] = [];
         for (const slot of splitSlots(opt.SLOT)) {
           for (const period of periodsForSlot(schema, slot)) {
             periods.push(period);
-            // The schema's own lab/theory split, not a slot-name convention:
-            // the lab list is what makes a period a lab.
-            if (params.separateLabDays && period.type === "lab") {
-              labDays.add(period.day);
-            }
+            if (period.type === "lab") labPeriods.push(period);
           }
         }
-        if (params.separateLabDays) labDaysByOffering.set(opt, labDays);
+        labPeriodsByOffering.set(opt, labPeriods);
         return periods;
       })
     );
@@ -1277,9 +1336,10 @@ export function generateTimetablesStream(
 
   const accepted: TimetableState[] = [];
   // Whether any complete, conflict-free combination was rejected by the lab
-  // rule. Only read when the run ends with nothing accepted, to name which
+  // rules. Only read when the run ends with nothing accepted, to report which
   // result filter ate the search.
   let labDayRejected = false;
+  let consecutiveLabsRejected = false;
   let facultyScoreRejected = false;
   let halfDaysRejected = false;
   let emitted = 0;
@@ -1297,8 +1357,19 @@ export function generateTimetablesStream(
       // money spent for nothing. It is a filter on the *result*, not on the
       // search — the walk's own `found` keeps counting all conflict-free
       // combinations, exactly as it does for the half-days floor.
-      if (params.separateLabDays && labsShareADay(combination, labDaysByOffering)) {
+      if (params.separateLabDays && labsShareADay(combination, labPeriodsByOffering)) {
         labDayRejected = true;
+        return;
+      }
+      if (
+        params.avoidConsecutiveLabs &&
+        labsAreConsecutive(
+          combination,
+          labPeriodsByOffering,
+          consecutiveLabPairs
+        )
+      ) {
+        consecutiveLabsRejected = true;
         return;
       }
       const timetable = scoreCombination(params, combination, scoredFriends);
@@ -1353,6 +1424,9 @@ export function generateTimetablesStream(
     // half-days floor was already in effect while the search ran.
     if (labDayRejected) {
       return { kind: "error", code: "no_separate_labs" };
+    }
+    if (consecutiveLabsRejected) {
+      return { kind: "error", code: "no_consecutive_labs" };
     }
     if (facultyScoreRejected && !halfDaysRejected) {
       return { kind: "error", code: "below_min_faculty_scores" };

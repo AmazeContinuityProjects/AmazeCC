@@ -456,6 +456,17 @@ export function FFCSSettingsModal({
               />
             </div>
             <SettingRow
+              title="Generator timetable options pane"
+              description="Show the desktop side pane for switching between generated timetable options while reviewing."
+              control={
+                <Switch
+                  checked={settings.showGeneratorOptionPane}
+                  onCheckedChange={(checked) => update("showGeneratorOptionPane", checked)}
+                  label="Generator timetable options pane"
+                />
+              }
+            />
+            <SettingRow
               title="Group by batch"
               description="Pair each theory course with its lab in the course report."
               control={

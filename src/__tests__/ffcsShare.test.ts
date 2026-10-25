@@ -3,7 +3,10 @@ import {
   FFCS_SHARE_VERSION,
   FFCS_SHARE_WARN_LENGTH,
   buildShareUrl,
+  buildCompactShareUrl,
+  decodeCompactTimetableShare,
   decodeTimetableShare,
+  encodeCompactTimetableShare,
   encodeTimetableShare,
   isOversizedShareLink,
 } from "../lib/ffcsShare";
@@ -64,6 +67,46 @@ describe("encode/decode", () => {
     const decoded = decodeTimetableShare(encoded)!;
     expect(decoded.timetable.courses[0].id).toBe("share-CSE1001");
   });
+
+  it("encodes only the shared semester class-id prefix and selected suffixes", () => {
+    const planWithClassIds = {
+      name: "Winter plan",
+      courses: [
+        { ...course("CSE1001", ["A1"]), classId: "CH2026270500002" },
+        { ...course("MATH101", ["B1"]), classId: "CH2026270500108" },
+      ],
+    };
+    const encoded = encodeCompactTimetableShare(planWithClassIds, "winter-2026-2027");
+
+    expect(encoded).not.toBeNull();
+    expect(decodeCompactTimetableShare(encoded!)).toEqual({
+      v: FFCS_SHARE_VERSION,
+      s: "winter-2026-2027",
+      p: "CH2026270500",
+      i: ["002", "108"],
+      n: "Winter plan",
+    });
+    expect(encoded!.length).toBeLessThan(encodeTimetableShare(planWithClassIds).length);
+    expect(
+      buildCompactShareUrl(encoded!, "https://example.com/")
+    ).toContain("/share/ffcs/?x=");
+  });
+
+  it("does not offer compact encoding when report class IDs are missing or ambiguous", () => {
+    expect(encodeCompactTimetableShare(plan(), "winter-2026-2027")).toBeNull();
+    expect(
+      encodeCompactTimetableShare(
+        {
+          name: "duplicate",
+          courses: [
+            { ...course("CSE1001", ["A1"]), classId: "CH2026270500002" },
+            { ...course("CSE1001", ["A1"]), classId: "CH2026270500002" },
+          ],
+        },
+        "winter-2026-2027"
+      )
+    ).toBeNull();
+  });
 });
 
 describe("refusals", () => {
@@ -123,6 +166,18 @@ describe("the URL", () => {
     try {
       expect(buildShareUrl("abc", "https://example.com")).toBe(
         "https://example.com/share/ffcs/?d=abc"
+      );
+    } finally {
+      process.env.NEXT_PUBLIC_BASE_PATH = previous;
+    }
+  });
+
+  it("encodes compact payloads for safe query-string transport", () => {
+    const previous = process.env.NEXT_PUBLIC_BASE_PATH;
+    process.env.NEXT_PUBLIC_BASE_PATH = "";
+    try {
+      expect(buildCompactShareUrl("a+b", "https://example.com")).toBe(
+        "https://example.com/share/ffcs/?x=a%2Bb"
       );
     } finally {
       process.env.NEXT_PUBLIC_BASE_PATH = previous;

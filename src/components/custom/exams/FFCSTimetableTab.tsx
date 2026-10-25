@@ -38,7 +38,13 @@ import { buildFacultyNameGroups } from './FFCS/logic/facultyGroups';
 import { mergeCourses } from '@/features/import/importFile';
 import { track } from "@/lib/analytics";
 import { useFFCSSettings } from "@/lib/ffcsSettings";
-import { encodeTimetableShare, buildShareUrl, isOversizedShareLink } from "@/lib/ffcsShare";
+import {
+  encodeTimetableShare,
+  encodeCompactTimetableShare,
+  buildShareUrl,
+  buildCompactShareUrl,
+  isOversizedShareLink,
+} from "@/lib/ffcsShare";
 import { FFCSSettingsModal, type FFCSSettingsModalProps } from "./FFCS/components/modals/FFCSSettingsModal";
 import { TourProvider, useTour } from "./FFCS/features/tour/TourProvider";
 import type { TourStep } from "./FFCS/features/tour/tourSteps";
@@ -658,6 +664,18 @@ export default function FFCSTimetableTab({
 
   const activeTimetable = timetables.find(t => t.id === activeTimetableId) || timetables[0];
   const courses = generatorPreviewTimetable ? generatorPreviewTimetable.courses : activeTimetable.courses;
+  const canShareCompactLink = useMemo(
+    () => {
+      if (!encodeCompactTimetableShare(activeTimetable, semesterId)) return false;
+      const loadedClassIds = new Set(
+        rawParsedCourses.map((course) => course.CLASS_ID).filter(Boolean)
+      );
+      return activeTimetable.courses.every(
+        (course) => course.classId && loadedClassIds.has(course.classId)
+      );
+    },
+    [activeTimetable, rawParsedCourses, semesterId]
+  );
   
   // Selection states
   const [selectedCourseCode, setSelectedCourseCode] = useState("");
@@ -670,6 +688,7 @@ export default function FFCSTimetableTab({
   const [isDownloading, setIsDownloading] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isShareSheetOpen, setIsShareSheetOpen] = useState(false);
+  const [isShareLinkOptionsOpen, setIsShareLinkOptionsOpen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
   const [layoutMode, setLayoutMode] = useState<"guided" | "modern" | "classic">(() => {
@@ -817,6 +836,7 @@ export default function FFCSTimetableTab({
           ...c,
           faculty: newFaculty,
           employeeId: offering.ERP_ID,
+          classId: offering.CLASS_ID,
           venue: newVenue,
         };
       }
@@ -850,6 +870,7 @@ export default function FFCSTimetableTab({
           title: offering.TITLE || c.title,
           faculty: facParts[0]?.trim() || offering.FACULTY,
           employeeId: offering.ERP_ID,
+          classId: offering.CLASS_ID,
           venue: roomParts[0]?.trim() || offering.ROOM || c.venue,
           slots: theorySlots,
         };
@@ -871,6 +892,7 @@ export default function FFCSTimetableTab({
         title: offering.TITLE || c.title,
         faculty: offering.FACULTY,
         employeeId: offering.ERP_ID,
+        classId: offering.CLASS_ID,
         venue: offering.ROOM || (offering as any).VENUE || c.venue,
         slots: offSlots.length > 0 ? offSlots : c.slots,
       };
@@ -1326,6 +1348,16 @@ export default function FFCSTimetableTab({
     }
   };
 
+  const clearAllTimetables = () => {
+    if (!confirm(`Delete all ${timetables.length} timetables and their courses? A blank timetable will be kept.`)) {
+      return;
+    }
+
+    setTimetables([{ id: "default", name: "Timetable 1", courses: [] }]);
+    setActiveTimetableId("default");
+    setSheetEditingId(null);
+  };
+
   /**
    * Confirm a row's rename in the Select Timetable sheet — the same
    * trim-and-drop-empty rule the header's rename follows, applied to the id
@@ -1514,14 +1546,32 @@ export default function FFCSTimetableTab({
    * treated as a decision, not a failure, so it does not fall through to a
    * copy the student did not ask for.
    */
-  const handleSharePlan = useCallback(async () => {
+  const handleSharePlan = useCallback(async (compact = false) => {
     const plan = activeTimetable;
     if (!plan || plan.courses.length === 0) {
       setError("Add at least one course to the timetable before sharing it.");
       return;
     }
 
-    const url = buildShareUrl(encodeTimetableShare(plan), window.location.origin);
+    let url: string;
+    if (compact) {
+      const compactData = encodeCompactTimetableShare(plan, semesterId);
+      const loadedClassIds = new Set(
+        rawParsedCourses.map((course) => course.CLASS_ID).filter(Boolean)
+      );
+      if (
+        !compactData ||
+        plan.courses.some((course) => !course.classId || !loadedClassIds.has(course.classId))
+      ) {
+        setError(
+          "A short link is unavailable because one or more classes do not have a class ID in the selected semester report."
+        );
+        return;
+      }
+      url = buildCompactShareUrl(compactData, window.location.origin);
+    } else {
+      url = buildShareUrl(encodeTimetableShare(plan), window.location.origin);
+    }
     track("share_created", { courses: plan.courses.length, bytes: url.length });
 
     if (typeof navigator.share === "function") {
@@ -1542,15 +1592,17 @@ export default function FFCSTimetableTab({
     try {
       await navigator.clipboard.writeText(url);
       setSuccessMsg(
-        isOversizedShareLink(url)
-          ? "Share link copied — it is very long, so some apps may cut it short."
-          : "Share link copied to clipboard!"
+        compact
+          ? "Short class-ID link copied to clipboard!"
+          : isOversizedShareLink(url)
+            ? "Share link copied — it is very long, so some apps may cut it short."
+            : "Share link copied to clipboard!"
       );
       setTimeout(() => setSuccessMsg(null), 4000);
     } catch {
       setError("Could not copy the share link. Try again over https.");
     }
-  }, [activeTimetable]);
+  }, [activeTimetable, rawParsedCourses, semesterId]);
 
   const handleSharePlanJson = useCallback(async () => {
     if (!activeTimetable || activeTimetable.courses.length === 0) {
@@ -1789,6 +1841,7 @@ export default function FFCSTimetableTab({
       slots: slotsArray,
       faculty: selectedRow.FACULTY,
       venue: selectedRow.ROOM || "TBA",
+      classId: selectedRow.CLASS_ID,
       credits: selectedRow.CREDITS || "0",
       type: selectedRow.TYPE || "Theory",
       color: COLORS[courses.length % COLORS.length],
@@ -4059,14 +4112,25 @@ export default function FFCSTimetableTab({
                 </div>
               )}
             </div>
-            <div className="pt-3 border-t border-border-strong flex justify-between items-center">
+            <div className="pt-3 border-t border-border-strong flex flex-wrap justify-between items-center gap-2">
               <span className="text-xs text-muted-foreground">{timetables.length} timetable{timetables.length !== 1 ? 's' : ''}</span>
-              <button
-                onClick={() => { createNewTimetable(); setIsTimetableModalOpen(false); }}
-                className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
-              >
-                <Plus className="w-3 h-3" /> New
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={clearAllTimetables}
+                  className="text-red-600 dark:text-red-400 hover:bg-red-500/10 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+                  title="Delete all saved timetables and keep one blank timetable"
+                >
+                  <Trash2 className="w-3 h-3" /> Clear all
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { createNewTimetable(); setIsTimetableModalOpen(false); }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+                >
+                  <Plus className="w-3 h-3" /> New
+                </button>
+              </div>
             </div>
           </BottomSheet>
         )}
@@ -4307,14 +4371,14 @@ export default function FFCSTimetableTab({
                 disabled={courses.length === 0}
                 onClick={() => {
                   setIsShareSheetOpen(false);
-                  void handleSharePlan();
+                  setIsShareLinkOptionsOpen(true);
                 }}
                 className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-surface-secondary/60 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-indigo-500/10 text-indigo-600 border-indigo-500/20 dark:text-indigo-400">
                   <ExternalLink className="w-4 h-4" />
                 </span>
-                <ListRowText title="Share as link" titleTag="span" subtitle="Create a link that opens this timetable." />
+                <ListRowText title="Share as link" titleTag="span" subtitle="Choose a full link or a shorter class-ID link." />
               </button>
               <button
                 type="button"
@@ -4404,6 +4468,61 @@ export default function FFCSTimetableTab({
               </Link>
             )}
           </div>
+        </BottomSheet>
+      )}
+
+      {isShareLinkOptionsOpen && (
+        <BottomSheet
+          onClose={() => setIsShareLinkOptionsOpen(false)}
+          overlayId="ffcs-share-link-format"
+          title="Share timetable link"
+          subtitle="Choose how much timetable data to include in the link."
+          icon={<ExternalLink className="w-5 h-5" />}
+          accent="bg-indigo-500/10 text-indigo-600 border-indigo-500/20 dark:text-indigo-400"
+          maxWidth="max-w-lg"
+        >
+          <ListShell>
+            <button
+              type="button"
+              disabled={activeTimetable.courses.length === 0}
+              onClick={() => {
+                setIsShareLinkOptionsOpen(false);
+                void handleSharePlan(false);
+              }}
+              className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-surface-secondary/60 disabled:opacity-50"
+            >
+              <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-indigo-500/10 text-indigo-600 border-indigo-500/20 dark:text-indigo-400">
+                <Code2 className="w-4 h-4" />
+              </span>
+              <ListRowText
+                title="Full timetable link"
+                titleTag="span"
+                subtitle="Includes course names, slots, and faculty details in the link."
+              />
+            </button>
+            <button
+              type="button"
+              disabled={!canShareCompactLink}
+              onClick={() => {
+                setIsShareLinkOptionsOpen(false);
+                void handleSharePlan(true);
+              }}
+              className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-surface-secondary/60 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400">
+                <Share2 className="w-4 h-4" />
+              </span>
+              <ListRowText
+                title="Short class-ID link"
+                titleTag="span"
+                subtitle={
+                  canShareCompactLink
+                    ? `Shares the ${activeSemester.shortLabel} class-ID prefix and selected class IDs; the receiver loads class details from that semester's report.`
+                    : "Available when every course in this timetable has a class ID from the selected semester."
+                }
+              />
+            </button>
+          </ListShell>
         </BottomSheet>
       )}
 

@@ -72,6 +72,8 @@ export type AddedCourse = {
   faculty: string;
   /** The faculty member's employee id, when the report carried one. */
   employeeId?: string;
+  /** The registration-list class id, when this offering came from a report. */
+  classId?: string;
   venue: string;
   credits: string;
   type: string;
@@ -126,4 +128,3 @@ export interface CourseLock {
   /** Exact offerings, as `FACULTY|SLOT|ROOM` plus `|ERP_ID` when the report has one. */
   offerings?: string[];
 }
-

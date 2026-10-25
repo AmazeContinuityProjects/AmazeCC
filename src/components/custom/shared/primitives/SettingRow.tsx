@@ -54,7 +54,7 @@ export default function SettingRow({
         onRowClick ? ROW_TAPPABLE : ""
       } ${className}`.trim()}
     >
-      <ListRowText title={title} subtitle={description} right={badge} />
+      <ListRowText title={title} subtitle={description} wrapSubtitle right={badge} />
       {control ? (
         <div className={stacked ? "w-full min-w-0" : "flex items-center gap-2 shrink-0"}>
           {control}

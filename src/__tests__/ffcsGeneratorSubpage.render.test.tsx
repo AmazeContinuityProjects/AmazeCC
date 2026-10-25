@@ -222,6 +222,20 @@ describe("FFCSGeneratorSubpage", () => {
     expect(screen.getByText("Day-specific class end times")).toBeDefined();
   });
 
+  it("offers and remembers per-run lab scheduling rules", () => {
+    render(<FFCSGeneratorSubpage {...props()} />);
+
+    fireEvent.click(screen.getByRole("checkbox", { name: /At most one lab class per day/i }));
+    fireEvent.click(screen.getByRole("checkbox", { name: /Avoid consecutive lab slots/i }));
+    fireEvent.click(screen.getByRole("checkbox", { name: /Treat lunch as a break/i }));
+
+    expect(loadSessionPreferences()).toMatchObject({
+      separateLabDays: true,
+      avoidConsecutiveLabs: true,
+      lunchBreakSeparatesLabs: true,
+    });
+  });
+
   it("holds generate back until a course is picked, and keeps the pick private", () => {
     const courses = [{ code: "BCSE101", title: "Structured Programming", types: [] as string[] }];
     const { unmount } = render(<FFCSGeneratorSubpage {...props({ generatorDisplayCourses: courses })} />);
@@ -375,30 +389,37 @@ describe("FFCSGeneratorSubpage", () => {
 
     const Harness = () => {
       const [msg, setMsg] = useState<string | null>(null);
+      const [showGeneratorOptionPane, setShowGeneratorOptionPane] = useState(true);
       return (
-        <FFCSGeneratorSubpage
-          {...props({
-            successMsg: msg,
-            setSuccessMsg: setMsg,
-            courseLocks: [courseLock("BCSE101")],
-            generatorDisplayCourses: courses,
-            masterCourses,
-            getGroupedCourses: (list) => {
-              return list.map((c) => ({
-                id: c.id,
-                code: c.code,
-                title: c.title,
-                type: c.type,
-                faculty: c.faculty,
-                slots: c.slots,
-                venue: c.venue,
-                credits: c.credits,
-                color: c.color,
-                ids: [c.id],
-              }));
-            },
-          })}
-        />
+        <>
+          <button type="button" onClick={() => setShowGeneratorOptionPane(false)}>
+            Disable options pane
+          </button>
+          <FFCSGeneratorSubpage
+            {...props({
+              settings: { ...FFCSSettingsDefaults, showGeneratorOptionPane },
+              successMsg: msg,
+              setSuccessMsg: setMsg,
+              courseLocks: [courseLock("BCSE101")],
+              generatorDisplayCourses: courses,
+              masterCourses,
+              getGroupedCourses: (list) => {
+                return list.map((c) => ({
+                  id: c.id,
+                  code: c.code,
+                  title: c.title,
+                  type: c.type,
+                  faculty: c.faculty,
+                  slots: c.slots,
+                  venue: c.venue,
+                  credits: c.credits,
+                  color: c.color,
+                  ids: [c.id],
+                }));
+              },
+            })}
+          />
+        </>
       );
     };
 
@@ -420,6 +441,8 @@ describe("FFCSGeneratorSubpage", () => {
     expect(screen.getAllByTitle("2 faculties teaching this slot · Click to switch").length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole("button", { name: /Option 2:/ }));
     expect(screen.getByText("Preview: Option 2")).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: "Disable options pane" }));
+    expect(screen.queryByText("Timetable options")).toBeNull();
   }, 20_000);
 
   it("navigates back to the generator options page when Back to Options is clicked after generating", async () => {
