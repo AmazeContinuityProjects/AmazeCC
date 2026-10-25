@@ -779,4 +779,24 @@ describe("FFCSGuidedSelector", () => {
       expect(screen.getAllByText(/Timetable 1/i).length).toBeGreaterThan(0);
     }
   });
+
+  it("supports two rows for footer action buttons when space is constrained", () => {
+    render(
+      <FFCSGuidedSelector
+        masterCourses={mockMasterCourses}
+        activeTimetable={mockTimetables[0]}
+        allTimetables={mockTimetables}
+        initialGuidedPhase="manual_timetable_view"
+        onAddCourse={vi.fn()}
+      />
+    );
+
+    // Verify footer actions container uses responsive column/row wrapping classes
+    const prevBtn = screen.getByRole("button", { name: /Previous Step/i });
+    const footerContainer = prevBtn.closest(".flex-col");
+    expect(footerContainer).toBeDefined();
+    expect(footerContainer?.className).toContain("sm:flex-row");
+    expect(screen.getByRole("button", { name: /^Add Another Course$/i })).toBeDefined();
+    expect(screen.getByRole("button", { name: /Done \/ View Grid/i })).toBeDefined();
+  });
 });
