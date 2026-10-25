@@ -62,6 +62,22 @@ describe("FFCSTimetableTab", () => {
     expect(screen.queryByText("Timetable Manager")).toBeNull();
   }, 30_000);
 
+  it("defaults mobile to Modern without showing the Guided install/full-screen hero", () => {
+    const originalWidth = window.innerWidth;
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+    try {
+      render(<FFCSTimetableTab />);
+
+      expect(
+        screen.getByRole("button", { name: /Switch Planner View Modern planner/ })
+      ).toBeDefined();
+      expect(screen.queryByText("Enter Full Screen & Start")).toBeNull();
+      expect(screen.queryByText("Install App")).toBeNull();
+    } finally {
+      Object.defineProperty(window, "innerWidth", { configurable: true, value: originalWidth });
+    }
+  }, 30_000);
+
   it("shows the overflow statistic in the responsive carousel", async () => {
     storage.setItem(
       "ffcs_timetables",

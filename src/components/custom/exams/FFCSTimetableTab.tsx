@@ -696,7 +696,7 @@ export default function FFCSTimetableTab({
       const saved = safeStorage.getItem("ffcs_layout_mode");
       if (saved === "guided" || saved === "modern" || saved === "classic") return saved;
       if (saved === "revamp") return "modern";
-      if (window.innerWidth < 768) return "guided";
+      if (window.innerWidth < 768) return "modern";
     }
     return "modern";
   });
@@ -715,8 +715,7 @@ export default function FFCSTimetableTab({
           setIsGuidedFullScreen(true);
         }
       } else if (typeof window !== "undefined" && window.innerWidth < 768) {
-        if (layoutMode !== "guided") setLayoutMode("guided");
-        setIsGuidedFullScreen(true);
+        if (layoutMode !== "modern") setLayoutMode("modern");
       }
     } catch {}
   }, []);

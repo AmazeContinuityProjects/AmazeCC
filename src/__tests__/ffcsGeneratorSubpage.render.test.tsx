@@ -428,8 +428,20 @@ describe("FFCSGeneratorSubpage", () => {
     fireEvent.click(generateButton());
     await screen.findByText(/Found \d+ unique timetables/, {}, { timeout: 15_000 });
 
-    const optionCard = screen.getByText("Option 1").closest(".cursor-pointer")!;
-    fireEvent.doubleClick(optionCard);
+    expect(screen.getAllByText(/free half-days$/).length).toBeGreaterThan(0);
+    const detailedMetrics = screen.getAllByText("Free Half-Days")[0].parentElement?.parentElement;
+    expect(detailedMetrics?.className).toContain("hidden sm:grid");
+    expect(screen.getByRole("button", { name: /Back to Options/ }).className).toContain(
+      "hidden sm:flex"
+    );
+    expect(
+      screen.getByRole("button", { name: "Discard all generated timetables" }).querySelector("svg")
+    ).not.toBeNull();
+    expect(screen.getByRole("button", { name: /Save \d+ selected timetables/ }).querySelector("svg"))
+      .not.toBeNull();
+    expect(screen.getByRole("button", { name: "Preview Option 1" })).toBeDefined();
+    expect(screen.getAllByRole("button", { name: "Compare" }).length).toBeGreaterThan(1);
+    fireEvent.click(screen.getByRole("button", { name: "Preview Option 1" }));
 
     // Enters preview mode
     await screen.findByText("Selected Courses");

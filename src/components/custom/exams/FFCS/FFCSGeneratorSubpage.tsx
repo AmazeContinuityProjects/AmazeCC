@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useState, useMemo, useEffect } from 'react';
-import { X, Wand2, Info, ChevronDown, ChevronUp, Check, Beaker, Play, Lock, Hash, ArrowRight, Search, AlertTriangle, ArrowLeft, Save, Users } from 'lucide-react';
+import { X, Wand2, Info, ChevronDown, ChevronUp, Check, Beaker, Play, Lock, Hash, ArrowRight, Search, AlertTriangle, ArrowLeft, Save, Users, Trash2 } from 'lucide-react';
 import { TimetableState, CourseLock, Friend, FriendGroup, ParsedCourse, AddedCourse } from './types';
 import { getBatchColorClass } from '@/lib/utils';
 import {
@@ -916,7 +916,7 @@ export function FFCSGeneratorSubpage({
       <button
         type="button"
         onClick={() => setIsReviewing(false)}
-        className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border-strong bg-surface hover:bg-surface-secondary text-text-heading text-xs sm:text-sm font-semibold transition-colors cursor-pointer"
+        className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border-strong bg-surface hover:bg-surface-secondary text-text-heading text-xs sm:text-sm font-semibold transition-colors cursor-pointer"
       >
         <ArrowLeft className="w-3.5 h-3.5" /> Back to Options
       </button>
@@ -927,17 +927,23 @@ export function FFCSGeneratorSubpage({
           setSelectedStagedIds(new Set());
           setIsReviewing(false);
         }}
-        className="px-2.5 sm:px-3 py-2 text-xs font-bold text-muted-foreground hover:text-red-500 rounded-xl transition-colors cursor-pointer"
+        aria-label="Discard all generated timetables"
+        title="Discard all"
+        className="min-h-10 min-w-10 sm:min-w-0 flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 text-xs font-bold text-muted-foreground hover:text-red-500 rounded-xl transition-colors cursor-pointer"
       >
-        Discard All
+        <Trash2 className="w-4 h-4" />
+        <span className="hidden sm:inline">Discard All</span>
       </button>
       <button
         type="button"
         disabled={selectedStagedIds.size === 0}
         onClick={saveSelectedTimetables}
-        className="flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-sm cursor-pointer"
+        aria-label={`Save ${selectedStagedIds.size} selected timetables`}
+        title={`Save selected (${selectedStagedIds.size})`}
+        className="min-h-10 min-w-10 flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-sm cursor-pointer"
       >
-        <Save className="w-3.5 h-3.5" /> Save Selected ({selectedStagedIds.size})
+        <Save className="w-4 h-4" />
+        <span className="hidden sm:inline">Save Selected ({selectedStagedIds.size})</span>
       </button>
     </div>
   ) : (
@@ -2673,6 +2679,19 @@ interface StagedCardProps {
 const StagedCard = memo(function StagedCard({
   tt, selectedIds, setSelectedIds, compareIds, setCompareIds, socialOn, onPreview,
 }: StagedCardProps) {
+  const optionSchema = getTimetableSchema();
+  const occupancyByDay = DAYS_OF_WEEK.map((day) => dayOccupancy(tt.courses, optionSchema, day));
+  const occupiedClasses = occupancyByDay.flatMap((occupancy) => occupancy.classes);
+  const latestEnd = occupiedClasses.slice().sort((a, b) => b.endMin - a.endMin)[0]?.end;
+  const wPct = tt.facultySummary?.averageWPct;
+  const wRatingTone =
+    wPct == null
+      ? "text-muted-foreground"
+      : wPct >= 70
+        ? "text-green-600 dark:text-green-400"
+        : wPct >= 50
+          ? "text-yellow-600 dark:text-yellow-400"
+          : "text-red-600 dark:text-red-400";
   return (
     <div
       className={`relative flex flex-col bg-surface rounded-2xl border-2 transition-all cursor-pointer overflow-hidden ${selectedIds.has(tt.id) ? 'border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.2)]' : 'border-border-strong hover:border-amber-500/50 hover:shadow-lg'}`}
@@ -2692,11 +2711,12 @@ const StagedCard = memo(function StagedCard({
         onPreview(tt);
       }}
     >
-      <div className="p-5 flex-1 flex flex-col">
-        <div className="flex justify-between items-start mb-4">
-          <h3 className="font-bold text-lg text-text-heading">{tt.name}</h3>
+      <div className="p-3 sm:p-5 flex-1 flex flex-col">
+        <div className="flex justify-between items-center gap-2 mb-2 sm:mb-4">
+          <h3 className="font-bold text-sm sm:text-lg text-text-heading">{tt.name}</h3>
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 setCompareIds(prev => {
@@ -2705,17 +2725,56 @@ const StagedCard = memo(function StagedCard({
                   return [...prev, tt.id];
                 });
               }}
-              className={`text-[10px] uppercase font-bold px-2 py-1 rounded-md border transition-colors ${compareIds.includes(tt.id) ? 'bg-purple-500 text-white border-purple-500' : 'bg-transparent text-muted-foreground border-border-strong hover:border-purple-500/50'}`}
+              className={`hidden sm:inline-flex min-h-10 sm:min-h-0 text-[10px] uppercase font-bold px-2 py-1 rounded-md border transition-colors ${compareIds.includes(tt.id) ? 'bg-purple-500 text-white border-purple-500' : 'bg-transparent text-muted-foreground border-border-strong hover:border-purple-500/50'}`}
             >
               Compare
             </button>
+            <div className="flex items-center gap-2 text-right">
+              {tt.rankingScore !== undefined && (
+                <span className="font-mono text-xs font-bold tabular-nums text-indigo-700 dark:text-indigo-300">
+                  {tt.rankingScore.toFixed(0)} pts
+                </span>
+              )}
+              {tt.facultySummary && (
+                <span className={`font-mono text-xs font-bold tabular-nums ${wRatingTone}`}>
+                  W {wPct == null ? "—" : `${wPct.toFixed(0)}%`}
+                </span>
+              )}
+            </div>
             <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors ${selectedIds.has(tt.id) ? 'bg-amber-500 border-amber-500 text-white' : 'border-muted-foreground/30'}`}>
               {selectedIds.has(tt.id) && <Check className="w-4 h-4" />}
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 mb-4 flex-1 content-start">
+        <div className="sm:hidden mb-2 flex flex-wrap gap-1.5">
+          <span className="rounded-md bg-surface-secondary px-2 py-1 text-[10px] font-semibold text-text-secondary">
+            {tt.metrics?.halfDays ?? 0} free half-days
+          </span>
+          <span className="rounded-md bg-surface-secondary px-2 py-1 text-[10px] font-semibold text-text-secondary">
+            {formatHours(tt.metrics?.gaps ?? 0)}h gaps
+          </span>
+          <span className="rounded-md bg-surface-secondary px-2 py-1 text-[10px] font-semibold text-text-secondary">
+            {occupancyByDay.filter((occupancy) => occupancy.classes.length > 0).length} class days
+          </span>
+          {latestEnd && (
+            <span className="rounded-md bg-surface-secondary px-2 py-1 text-[10px] font-semibold text-text-secondary">
+              ends {latestEnd}
+            </span>
+          )}
+          {socialOn && (
+            <span className="rounded-md bg-pink-500/10 px-2 py-1 text-[10px] font-semibold text-pink-600 dark:text-pink-400">
+              Social {tt.metrics?.socialScore ?? 0}
+            </span>
+          )}
+          {tt.metrics?.isLongWeekend && (
+            <span className="rounded-md bg-green-500/10 px-2 py-1 text-[10px] font-semibold text-green-600 dark:text-green-400">
+              Long weekend
+            </span>
+          )}
+        </div>
+
+        <div className="hidden sm:grid grid-cols-2 gap-3 mb-4 flex-1 content-start">
           <div className="bg-surface-secondary/30 rounded-xl p-3 flex flex-col items-center justify-center text-center">
             <span className="text-2xl font-black text-text-heading">{tt.metrics?.halfDays}</span>
             <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Free Half-Days</span>
@@ -2735,7 +2794,7 @@ const StagedCard = memo(function StagedCard({
         </div>
 
         {tt.facultySummary && (
-          <div className="mb-3 rounded-xl border border-indigo-500/20 bg-indigo-500/5 px-3 py-2.5">
+          <div className="hidden sm:block mb-3 rounded-xl border border-indigo-500/20 bg-indigo-500/5 px-3 py-2.5">
             <div className="flex items-center justify-between gap-2 text-xs">
               <span className="font-bold text-indigo-600 dark:text-indigo-300">Faculty reviews</span>
               <span className="font-semibold text-text-heading">
@@ -2751,18 +2810,18 @@ const StagedCard = memo(function StagedCard({
         )}
 
         {tt.metrics?.isLongWeekend && (
-          <div className="bg-green-500/10 text-green-500 text-xs font-bold px-3 py-2 rounded-xl w-full mb-3 flex items-center justify-center gap-1.5">
+          <div className="hidden sm:flex bg-green-500/10 text-green-500 text-xs font-bold px-3 py-2 rounded-xl w-full mb-3 items-center justify-center gap-1.5">
              Long Weekend!
           </div>
         )}
         {(tt.metrics?.buildingDashes ?? 0) > 0 && (
-          <div className="bg-red-500/10 text-red-500 text-xs font-bold px-3 py-2 rounded-xl w-full mb-3 flex items-center justify-center gap-1.5">
+          <div className="hidden sm:flex bg-red-500/10 text-red-500 text-xs font-bold px-3 py-2 rounded-xl w-full mb-3 items-center justify-center gap-1.5">
              {tt.metrics?.buildingDashes} Block Dash{(tt.metrics?.buildingDashes ?? 0) > 1 ? 'es' : ''}
           </div>
         )}
 
         {socialOn && (
-          <div className="bg-pink-500/5 border border-pink-500/20 rounded-xl p-3 mt-auto mb-3">
+          <div className="hidden sm:block bg-pink-500/5 border border-pink-500/20 rounded-xl p-3 mt-auto mb-3">
             <div className="text-xs font-bold text-pink-500 mb-1 flex items-center gap-1.5">
               <Users className="w-3.5 h-3.5" /> Social Score: {tt.metrics?.socialScore}
             </div>
@@ -2772,8 +2831,41 @@ const StagedCard = memo(function StagedCard({
           </div>
         )}
 
+        <div className="sm:hidden mt-auto flex gap-2 border-t border-border-strong/50 pt-2">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onPreview(tt);
+            }}
+            aria-label={`Preview ${tt.name}`}
+            className="min-h-10 flex-1 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 text-xs font-bold text-indigo-700 dark:text-indigo-300"
+          >
+            Preview
+          </button>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              setCompareIds((prev) => {
+                if (prev.includes(tt.id)) return prev.filter((id) => id !== tt.id);
+                if (prev.length >= 3) return prev;
+                return [...prev, tt.id];
+              });
+            }}
+            aria-pressed={compareIds.includes(tt.id)}
+            className={`min-h-10 flex-1 rounded-lg border px-3 text-xs font-bold ${
+              compareIds.includes(tt.id)
+                ? "border-purple-500 bg-purple-500 text-white"
+                : "border-border-strong bg-surface text-muted-foreground"
+            }`}
+          >
+            {compareIds.includes(tt.id) ? "Comparing" : "Compare"}
+          </button>
+        </div>
+
         {tt.variants && tt.variants.length > 1 && (
-          <div className="mt-auto pt-4 border-t border-border-strong/50">
+          <div className="hidden sm:block mt-auto pt-4 border-t border-border-strong/50">
             <div className="flex justify-between items-center mb-2">
               <span className="text-xs font-bold text-muted-foreground uppercase">Faculty Variants</span>
               <span className="text-[10px] bg-surface-secondary px-2 py-0.5 rounded-full">{tt.variants.length} available</span>
