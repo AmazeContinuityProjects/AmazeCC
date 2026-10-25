@@ -44,6 +44,7 @@ import {
   Play,
   Eye,
   LayoutGrid,
+  LayoutDashboard,
 } from "lucide-react";
 import { Switch, SegmentedControl } from "../../../shared/primitives";
 import { FacultyAvatar, VitfacReviewPill } from "./FacultyReviewSheet";
@@ -99,6 +100,7 @@ export interface FFCSGuidedSelectorProps {
   onViewTimetable?: () => void;
   isFullScreen?: boolean;
   onToggleFullScreen?: (isFullScreen: boolean) => void;
+  onSwitchToSinglePageView?: () => void;
   // Wizard Setup & Timetable props
   timetables?: TimetableState[];
   allTimetables?: TimetableState[];
@@ -469,6 +471,7 @@ export default function FFCSGuidedSelector({
   onViewTimetable,
   isFullScreen = true,
   onToggleFullScreen,
+  onSwitchToSinglePageView,
   timetables = [],
   allTimetables,
   onSelectTimetable,
@@ -4539,6 +4542,17 @@ export default function FFCSGuidedSelector({
               </div>
 
               <div className="flex items-center gap-2">
+                {onSwitchToSinglePageView && (
+                  <button
+                    type="button"
+                    onClick={onSwitchToSinglePageView}
+                    className="h-8 px-2.5 rounded-xl bg-zinc-900/60 border border-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-800/80 flex items-center gap-1.5 text-xs font-semibold transition-colors cursor-pointer"
+                    title="Move back to Single Page Viewer Mode"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5 text-blue-400" />
+                    <span>Single Page View</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={handleToggleFullScreen}
@@ -4943,6 +4957,17 @@ export default function FFCSGuidedSelector({
             </div>
 
             <div className="flex items-center gap-2">
+              {onSwitchToSinglePageView && (
+                <button
+                  type="button"
+                  onClick={onSwitchToSinglePageView}
+                  className="h-8 px-2.5 rounded-xl bg-zinc-900/60 border border-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-800/80 flex items-center gap-1.5 text-xs font-semibold transition-colors cursor-pointer"
+                  title="Move back to Single Page Viewer Mode"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5 text-blue-400" />
+                  <span>Single Page View</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={handleToggleFullScreen}

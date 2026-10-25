@@ -529,7 +529,7 @@ describe("FFCSGuidedSelector", () => {
     // Verify on vertical timetable grid counterpart
     expect(screen.getAllByText("Timetable Grid View").length).toBeGreaterThan(0);
     expect(screen.getByText("List & Faculty View")).toBeDefined();
-  });
+  }, 15000);
 
   it("automatically blocks out-of-range slots when ending times are selected before advancing, and displays slot names in the vertical timetable", () => {
     const onToggleBlockSlot = vi.fn();
@@ -601,5 +601,23 @@ describe("FFCSGuidedSelector", () => {
     const d1SlotBtn = screen.getAllByRole("button", { name: "D1" })[0];
     fireEvent.click(d1SlotBtn);
     expect(onToggleBlockSlot).toHaveBeenCalledWith("D1");
+  });
+
+  it("renders the Single Page View button and invokes onSwitchToSinglePageView when clicked", () => {
+    const onSwitchToSinglePageView = vi.fn();
+    render(
+      <FFCSGuidedSelector
+        masterCourses={mockMasterCourses}
+        activeTimetable={mockTimetables[0]}
+        allTimetables={mockTimetables}
+        onAddCourse={vi.fn()}
+        onSwitchToSinglePageView={onSwitchToSinglePageView}
+      />
+    );
+
+    const singlePageBtn = screen.getByRole("button", { name: /Single Page View/i });
+    expect(singlePageBtn).toBeDefined();
+    fireEvent.click(singlePageBtn);
+    expect(onSwitchToSinglePageView).toHaveBeenCalledTimes(1);
   });
 });

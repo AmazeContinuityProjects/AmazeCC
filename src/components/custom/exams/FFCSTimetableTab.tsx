@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { PlusCircle, Trash2, AlertTriangle, Info, UploadCloud, Map as MapIcon, Download, Plus, Edit2, Check, Maximize2, Minimize2, Copy, Save, Upload, Wand2, X, Settings2, Users, ArrowLeft, ArrowRight, Eye, HelpCircle, Share2, FileText, Printer, Search, Lock, ChevronDown, Keyboard, CalendarDays, ExternalLink, ClipboardPaste, Compass, LayoutDashboard, Clock, BookOpen } from "lucide-react";
+import { PlusCircle, Trash2, AlertTriangle, Info, UploadCloud, Map as MapIcon, Download, Plus, Edit2, Check, Maximize2, Minimize2, Copy, Save, Upload, Wand2, X, Settings2, Users, ArrowLeft, ArrowRight, Eye, HelpCircle, Share2, FileText, Printer, Search, Lock, ChevronDown, Keyboard, CalendarDays, ExternalLink, ClipboardPaste, Compass, LayoutDashboard, Clock, BookOpen, Sparkles } from "lucide-react";
 
 import SearchInput from "../shared/SearchInput";
 import EmptyState from "../shared/EmptyState";
@@ -9,6 +9,7 @@ import { useTheme } from "next-themes";
 import { AnimatePresence } from "framer-motion";
 import BottomSheet from "../shared/BottomSheet";
 import FFCSGuideModal from "./FFCSGuideModal";
+import FFCSLayoutModeModal from "./FFCS/components/modals/FFCSLayoutModeModal";
 import { downloadTimetableImage, downloadModernTimetableImage, openTimetablePrintablePage, openModernPrintableDossier, downloadModernTimetablePdf } from "@/lib/exportTimetable";
 import { GLOBAL_CAMPUS, getTimetableSchema } from "@/lib/campusSchema";
 
@@ -668,10 +669,13 @@ export default function FFCSTimetableTab() {
 
   const [layoutMode, setLayoutMode] = useState<"guided" | "modern">("modern");
   const [isGuidedFullScreen, setIsGuidedFullScreen] = useState(true);
+  const [isLayoutModalOpen, setIsLayoutModalOpen] = useState(false);
 
   useEffect(() => {
     try {
       const saved = safeStorage.getItem("ffcs_layout_mode");
+      const promptSeen = safeStorage.getItem("ffcs_layout_mode_prompt_seen");
+
       if (saved === "guided" || saved === "modern") {
         setLayoutMode(saved);
         if (saved === "guided") {
@@ -681,8 +685,30 @@ export default function FFCSTimetableTab() {
         setLayoutMode("guided");
         setIsGuidedFullScreen(true);
       }
+
+      if (!promptSeen) {
+        setIsLayoutModalOpen(true);
+      }
     } catch {}
   }, []);
+
+  const handleSelectLayoutMode = (mode: "guided" | "modern", remember: boolean) => {
+    setLayoutMode(mode);
+    if (remember) {
+      safeStorage.setItem("ffcs_layout_mode", mode);
+    }
+    safeStorage.setItem("ffcs_layout_mode_prompt_seen", "true");
+    if (mode === "guided") {
+      setGuidedSubView("adder");
+      setGuidedInitialPhase("setup_mode");
+      setIsGuidedFullScreen(true);
+    }
+  };
+
+  const handleCloseLayoutModal = () => {
+    setIsLayoutModalOpen(false);
+    safeStorage.setItem("ffcs_layout_mode_prompt_seen", "true");
+  };
 
   const [guidedSubView, setGuidedSubView] = useState<"adder" | "timetable">("adder");
   const [guidedInitialPhase, setGuidedInitialPhase] = useState<GuidedPhase>("setup_mode");
@@ -1967,21 +1993,33 @@ export default function FFCSTimetableTab() {
               }))}
             />
 
-            <SegmentedControl
-              value={layoutMode}
-              onChange={(value) => {
-                setLayoutMode(value as "guided" | "modern");
-                if (value === "guided") {
-                  setGuidedSubView("adder");
-                  setGuidedInitialPhase("setup_mode");
-                  setIsGuidedFullScreen(true);
-                }
-              }}
-              options={[
-                { value: "guided", label: "Guided", icon: <Compass className="w-3.5 h-3.5" />, title: "Step-by-step mobile-first course selector" },
-                { value: "modern", label: "Modern", icon: <LayoutDashboard className="w-3.5 h-3.5" />, title: "Modernized all-in-one planner dashboard" },
-              ]}
-            />
+            <div className="flex items-center gap-1.5">
+              <SegmentedControl
+                value={layoutMode}
+                onChange={(value) => {
+                  setLayoutMode(value as "guided" | "modern");
+                  if (value === "guided") {
+                    setGuidedSubView("adder");
+                    setGuidedInitialPhase("setup_mode");
+                    setIsGuidedFullScreen(true);
+                  }
+                }}
+                options={[
+                  { value: "guided", label: "Guided", icon: <Compass className="w-3.5 h-3.5" />, title: "Step-by-step mobile-first course selector" },
+                  { value: "modern", label: "Modern", icon: <LayoutDashboard className="w-3.5 h-3.5" />, title: "Modernized all-in-one planner dashboard" },
+                ]}
+              />
+
+              <button
+                type="button"
+                onClick={() => setIsLayoutModalOpen(true)}
+                title="Choose planner layout experience (Guided Hero vs Standard View)"
+                aria-label="Choose layout mode"
+                className="h-8 w-8 rounded-xl border border-border-strong/70 bg-surface hover:bg-surface-secondary text-muted-foreground hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center justify-center transition-colors shadow-2xs cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
@@ -2072,6 +2110,25 @@ export default function FFCSTimetableTab() {
                         },
                       ]}
                     />
+
+                    <button
+                      type="button"
+                      onClick={() => handleSelectLayoutMode("modern", true)}
+                      className="h-8 px-3 rounded-xl border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 text-xs font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+                      title="Move back to Single Page Viewer Mode"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                      <span>Single Page View</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsLayoutModalOpen(true)}
+                      className="h-8 w-8 rounded-xl border border-border-strong/80 bg-surface/80 hover:bg-surface text-xs font-semibold text-muted-foreground hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center justify-center shadow-2xs transition-all cursor-pointer"
+                      title="Choose layout experience"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
 
@@ -2190,6 +2247,7 @@ export default function FFCSTimetableTab() {
                 onViewTimetable={() => setGuidedSubView("timetable")}
                 isFullScreen={isGuidedFullScreen}
                 onToggleFullScreen={setIsGuidedFullScreen}
+                onSwitchToSinglePageView={() => handleSelectLayoutMode("modern", true)}
                 timetables={timetables}
                 onSelectTimetable={setActiveTimetableId}
                 onCreateNewTimetable={createNewTimetable}
@@ -4104,6 +4162,7 @@ export default function FFCSTimetableTab() {
           setIsGroupingEnabled={setIsGroupingEnabled}
           socialScoreGroupMethod={socialScoreGroupMethod}
           setSocialScoreGroupMethod={setSocialScoreGroupMethod}
+          onOpenLayoutModal={() => setIsLayoutModalOpen(true)}
         />
         <PdfGenerationBadge
           isGenerating={isGeneratingPdf}
@@ -4114,6 +4173,14 @@ export default function FFCSTimetableTab() {
           onDismiss={() => setPdfBadgeMsg(null)}
         />
       </TourProvider>
+
+      {/* Layout Mode Selection Modal */}
+      <FFCSLayoutModeModal
+        isOpen={isLayoutModalOpen}
+        onClose={handleCloseLayoutModal}
+        currentMode={layoutMode}
+        onSelectMode={handleSelectLayoutMode}
+      />
     </div>
   );
 }
