@@ -19,7 +19,10 @@ import BottomSheet from "../components/custom/shared/BottomSheet";
  * it now routes through the same overridable handler.
  */
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  document.body.style.overflow = "";
+});
 
 /**
  * The backdrop, not the panel.
@@ -101,6 +104,34 @@ const renderStack = (ids: string[], onClose: (id: string) => void) =>
   render(<Stack ids={ids} onClose={onClose} />);
 
 describe("BottomSheet dismissal", () => {
+  it("keeps sheet content natively scrollable on touch devices without scroll chaining", () => {
+    render(
+      <BottomSheet overlayId="scrollable-sheet" onClose={() => {}}>
+        <span>Scrollable sheet content</span>
+      </BottomSheet>
+    );
+
+    const content = document.querySelector(".overflow-y-auto");
+    expect(content?.className).toContain("overflow-y-auto");
+    expect(content?.className).toContain("overscroll-y-contain");
+    expect(content?.className).toContain("touch-pan-y");
+  });
+
+  it("keeps the page locked until the last stacked sheet closes", () => {
+    document.body.style.overflow = "auto";
+    const closed: string[] = [];
+    renderStack(["outer", "inner"], (id) => closed.push(id));
+
+    expect(document.body.style.overflow).toBe("hidden");
+    fireEvent.click(screen.getAllByLabelText("Close")[0]);
+    expect(closed).toEqual(["outer"]);
+    expect(document.body.style.overflow).toBe("hidden");
+
+    fireEvent.click(screen.getByLabelText("Close"));
+    expect(closed).toEqual(["outer", "inner"]);
+    expect(document.body.style.overflow).toBe("auto");
+  });
+
   it("closes the top sheet on Escape, not every sheet", () => {
     const closed: string[] = [];
     renderStack(["outer", "inner"], (id) => closed.push(id));
