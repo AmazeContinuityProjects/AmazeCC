@@ -621,7 +621,7 @@ describe("FFCSGuidedSelector", () => {
     expect(onSwitchToSinglePageView).toHaveBeenCalledTimes(1);
   });
 
-  it("applies 85% scale to the entire hero UI container", () => {
+  it("renders at 1:1 pixel scale without non-standard zoom to avoid overzoom and layout thrashing", () => {
     render(
       <FFCSGuidedSelector
         masterCourses={mockMasterCourses}
@@ -633,8 +633,10 @@ describe("FFCSGuidedSelector", () => {
 
     const container = screen.getByTestId("guided-hero-container");
     expect(container).toBeDefined();
-    expect(container.style.zoom).toBe("0.85");
-    expect(container.className).toContain("[zoom:0.85]");
+    // Non-standard CSS zoom removed to prevent overzoom and viewport snapping bugs
+    expect(container.style.zoom).toBe("");
+    expect(container.className).not.toContain("[zoom:0.85]");
+    expect(container.className).toContain("fixed inset-0");
   });
 
   it("integrates manual timetable flow into one continuous unified flow for the mounted timetable", async () => {
@@ -829,6 +831,16 @@ describe("FFCSGuidedSelector", () => {
     expect(screen.getByTestId("mobile-preflight-screen")).toBeDefined();
     expect(screen.getByText("FFCS Mobile Generator")).toBeDefined();
     expect(screen.getByText("Mobile-First Timetable Builder")).toBeDefined();
+
+    // The pre-flight screen is an organic step of the hero, not an external
+    // splash: it lives inside the unified hero container and under the hero
+    // header (Plan + Fullscreen toggle), with the ambient lighting that
+    // container provides.
+    expect(screen.getByTestId("guided-hero-container")).toBeDefined();
+    expect(screen.getByText("Single Page View (Plan)")).toBeDefined();
+    // The fullscreen toggle's title reflects the current state ("Enter
+    // Fullscreen" vs "Exit Fullscreen"), so match on the shared word.
+    expect(screen.getByTitle(/Fullscreen/)).toBeDefined();
 
     // Single Page View button calls onSwitchToSinglePageView
     const singlePageBtn = screen.getByTestId("switch-to-single-page-btn");

@@ -960,6 +960,7 @@ export default function FFCSGuidedSelector({
   }, []);
 
   const isHorizontal = viewportDimensions.width >= 1024 && viewportDimensions.width > viewportDimensions.height;
+  const isMobileViewport = viewportDimensions.width > 0 && viewportDimensions.width < 768;
 
   const availableOfferings = useMemo(() => {
     if (!selectedCourseCode) return [];
@@ -4445,6 +4446,52 @@ export default function FFCSGuidedSelector({
   );
 
   const renderBottomActions = () => {
+    if (isMobileViewport && !hasLaunchedHero) {
+      return (
+        <div className="flex flex-col gap-2 w-full max-w-md mx-auto">
+          <button
+            type="button"
+            data-testid="enter-fullscreen-start-btn"
+            onClick={async () => {
+              try {
+                await requestNativeFullscreen();
+              } catch {}
+              setFullScreenMode(true);
+              onToggleFullScreen?.(true);
+              setHasLaunchedHero(true);
+            }}
+            className="w-full py-3.5 px-5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm shadow-xl shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer font-outfit tracking-wide"
+          >
+            <Maximize2 className="w-4 h-4" />
+            <span>Enter Full Screen & Start</span>
+          </button>
+
+          <button
+            type="button"
+            data-testid="start-in-window-btn"
+            onClick={() => {
+              setHasLaunchedHero(true);
+            }}
+            className="w-full py-2.5 px-4 rounded-xl bg-zinc-900/60 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+          >
+            <span>Continue in Window</span>
+          </button>
+
+          {onSwitchToSinglePageView && (
+            <button
+              type="button"
+              data-testid="switch-to-single-page-btn"
+              onClick={onSwitchToSinglePageView}
+              className="w-full py-2 px-3 text-xs text-zinc-400 hover:text-zinc-200 font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer mt-1"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Single Page View</span>
+            </button>
+          )}
+        </div>
+      );
+    }
+
     if (guidedPhase === "setup_mode") {
       return (
         <button
@@ -5026,155 +5073,193 @@ export default function FFCSGuidedSelector({
     return manualPhases;
   };
 
-  const isMobileViewport = viewportDimensions.width > 0 && viewportDimensions.width < 768;
+  const renderMobilePreflightCard = () => (
+    <div
+      data-testid="mobile-preflight-screen"
+      className="w-full max-w-md mx-auto flex-1 flex flex-col justify-center gap-4 my-auto animate-in fade-in duration-200"
+    >
+      {/* Top category label & PWA status */}
+      <div className="space-y-1.5 text-center sm:text-left">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400 font-outfit">
+            Mobile First · Timetable Studio
+          </span>
+          {isPwaStandalone ? (
+            <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+              <CheckCircle2 className="w-3 h-3" />
+              <span>App Installed</span>
+            </span>
+          ) : canInstall ? (
+            <span className="text-[11px] font-semibold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+              <Smartphone className="w-3 h-3" />
+              <span>PWA Ready</span>
+            </span>
+          ) : null}
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight font-outfit">
+          Mobile-First Timetable Builder
+        </h1>
+        <p className="text-xs text-zinc-400 leading-relaxed font-medium">
+          Step-by-step mobile timetable designer with live clash checking, faculty ratings, and fast multi-timetable switching.
+        </p>
+      </div>
 
-  if (isMobileViewport && !hasLaunchedHero) {
-    return (
-      <div
-        data-testid="mobile-preflight-screen"
-        className={
-          fullScreenMode
-            ? "fixed inset-0 z-50 h-[100dvh] w-full bg-zinc-950 text-zinc-100 flex flex-col justify-between overflow-y-auto select-none p-5 sm:p-8 animate-in fade-in duration-300"
-            : "relative w-full rounded-[32px] bg-zinc-950 text-zinc-100 flex flex-col justify-between overflow-hidden select-none p-5 sm:p-8 shadow-2xl border border-zinc-800 min-h-[580px]"
-        }
-      >
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute -top-32 right-0 w-64 h-64 rounded-full bg-indigo-600/20 blur-[120px]" />
-          <div className="absolute -bottom-32 left-0 w-64 h-64 rounded-full bg-violet-600/20 blur-[120px]" />
+      {/* Feature Highlight Cards */}
+      <div className="grid grid-cols-1 gap-2.5">
+        <div className="flex items-center gap-3 p-3 rounded-2xl bg-zinc-900/80 border border-zinc-800 shadow-sm">
+          <div className="w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center shrink-0">
+            <Wand2 className="w-4 h-4 text-indigo-400" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-zinc-200">Clash-Free Timetable Generator</p>
+            <p className="text-[11px] text-zinc-400 truncate">Automatic ranking with preferred slots and timings</p>
+          </div>
         </div>
 
-        <div className="relative z-10 w-full max-w-md mx-auto flex-1 flex flex-col justify-center gap-5 my-auto">
-          {/* Top badge & Status */}
-          <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3 p-3 rounded-2xl bg-zinc-900/80 border border-zinc-800 shadow-sm">
+          <div className="w-8 h-8 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center shrink-0">
+            <Users className="w-4 h-4 text-purple-400" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-zinc-200">Faculty Ratings & Swapping</p>
+            <p className="text-[11px] text-zinc-400 truncate">Compare faculty scores and swap slots seamlessly</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 p-3 rounded-2xl bg-zinc-900/80 border border-zinc-800 shadow-sm">
+          <div className="w-8 h-8 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center shrink-0">
+            <CalendarDays className="w-4 h-4 text-blue-400" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-zinc-200">Multi-Timetable Browser</p>
+            <p className="text-[11px] text-zinc-400 truncate">Switch, create, and manage schedules side-by-side</p>
+          </div>
+        </div>
+      </div>
+
+      {/* PWA Install Button */}
+      {canInstall && !isPwaStandalone && (
+        <button
+          type="button"
+          data-testid="pwa-install-btn"
+          onClick={promptInstall}
+          className="w-full py-2.5 px-4 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm active:scale-98"
+        >
+          <Download className="w-3.5 h-3.5" />
+          <span>Install App</span>
+        </button>
+      )}
+    </div>
+  );
+
+  const renderHeader = () => {
+    if (isMobileViewport && !hasLaunchedHero) {
+      return (
+        <header className="relative z-20 w-full max-w-md sm:max-w-2xl mx-auto flex items-center justify-between shrink-0 pt-1">
+          <div className="flex items-center gap-2">
             <span className="text-[11px] font-extrabold tracking-wider uppercase bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
               <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
               <span>FFCS Mobile Generator</span>
             </span>
-
-            {isPwaStandalone ? (
-              <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3" />
-                <span>App Installed</span>
+            {activeTimetable?.name && (
+              <span className="text-[11px] font-semibold text-zinc-400 bg-zinc-900/60 border border-zinc-800 px-2.5 py-1 rounded-full hidden sm:inline-flex items-center gap-1">
+                <CalendarDays className="w-3 h-3 text-indigo-400" />
+                <span>{activeTimetable.name}</span>
               </span>
-            ) : canInstall ? (
-              <span className="text-[11px] font-semibold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-1 rounded-full flex items-center gap-1">
-                <Smartphone className="w-3 h-3" />
-                <span>PWA Ready</span>
-              </span>
-            ) : null}
+            )}
           </div>
 
-          {/* Title and subtitle */}
-          <div className="space-y-1.5">
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight font-outfit">
-              Mobile-First Timetable Builder
-            </h1>
-            <p className="text-xs text-zinc-400 leading-relaxed">
-              Step-by-step mobile timetable designer with live clash checking, faculty ratings, and fast multi-timetable switching.
-            </p>
-          </div>
-
-          {/* Feature Highlight Pills */}
-          <div className="grid grid-cols-1 gap-2.5">
-            <div className="flex items-center gap-3 p-3 rounded-2xl bg-zinc-900/80 border border-zinc-800">
-              <div className="w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center shrink-0">
-                <Wand2 className="w-4 h-4 text-indigo-400" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-zinc-200">Clash-Free Timetable Generator</p>
-                <p className="text-[11px] text-zinc-400 truncate">Automatic ranking with preferred slots and timings</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 p-3 rounded-2xl bg-zinc-900/80 border border-zinc-800">
-              <div className="w-8 h-8 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center shrink-0">
-                <Users className="w-4 h-4 text-purple-400" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-zinc-200">Faculty Ratings & Swapping</p>
-                <p className="text-[11px] text-zinc-400 truncate">Compare faculty scores and swap slots seamlessly</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 p-3 rounded-2xl bg-zinc-900/80 border border-zinc-800">
-              <div className="w-8 h-8 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center shrink-0">
-                <CalendarDays className="w-4 h-4 text-blue-400" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-zinc-200">Multi-Timetable Browser</p>
-                <p className="text-[11px] text-zinc-400 truncate">Switch, create, and manage schedules side-by-side</p>
-              </div>
-            </div>
-          </div>
-
-          {/* PWA Install Button */}
-          {canInstall && !isPwaStandalone && (
-            <button
-              type="button"
-              data-testid="pwa-install-btn"
-              onClick={promptInstall}
-              className="w-full py-2.5 px-4 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm active:scale-98"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Install App</span>
-            </button>
-          )}
-
-          {/* Actions */}
-          <div className="flex flex-col gap-2 pt-2">
-            <button
-              type="button"
-              data-testid="enter-fullscreen-start-btn"
-              onClick={async () => {
-                try {
-                  await requestNativeFullscreen();
-                } catch {}
-                setFullScreenMode(true);
-                onToggleFullScreen?.(true);
-                setHasLaunchedHero(true);
-              }}
-              className="w-full py-3.5 px-5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm shadow-xl shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer font-outfit tracking-wide"
-            >
-              <Maximize2 className="w-4 h-4" />
-              <span>Enter Full Screen & Start</span>
-            </button>
-
-            <button
-              type="button"
-              data-testid="start-in-window-btn"
-              onClick={() => {
-                setHasLaunchedHero(true);
-              }}
-              className="w-full py-2.5 px-4 rounded-xl bg-zinc-900/60 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-            >
-              <span>Continue in Window</span>
-            </button>
-
+          <div className="flex items-center gap-2">
             {onSwitchToSinglePageView && (
               <button
                 type="button"
-                data-testid="switch-to-single-page-btn"
                 onClick={onSwitchToSinglePageView}
-                className="w-full py-2 px-3 text-xs text-zinc-400 hover:text-zinc-200 font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer mt-1"
+                className="h-8 px-2.5 rounded-xl bg-zinc-900/60 border border-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-800/80 flex items-center gap-1.5 text-xs font-semibold transition-colors cursor-pointer"
+                title="Switch to Single Page View"
               >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Single Page View</span>
+                <ArrowLeft className="w-3.5 h-3.5 text-blue-400" />
+                <span>Single Page View (Plan)</span>
               </button>
             )}
+            <button
+              type="button"
+              onClick={handleToggleFullScreen}
+              className="w-8 h-8 rounded-xl bg-zinc-900/60 border border-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+              title={fullScreenMode ? "Exit Fullscreen" : "Enter Fullscreen"}
+            >
+              {fullScreenMode ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+            </button>
           </div>
+        </header>
+      );
+    }
+
+    return (
+      <header className="relative z-20 w-full max-w-md sm:max-w-2xl mx-auto flex items-center justify-between shrink-0 pt-1">
+        <button
+          type="button"
+          onClick={handlePrevStep}
+          className="flex items-center gap-1.5 text-xs font-bold text-zinc-400 hover:text-white transition-colors cursor-pointer py-1.5 px-3 rounded-xl bg-zinc-900/60 border border-zinc-800 backdrop-blur-md active:scale-95"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          <span>{guidedPhase === "setup_mode" ? "Timetable" : "Back"}</span>
+        </button>
+
+        <div className="flex items-center gap-2">
+          {getPillsList().map((p, idx, arr) => {
+            const stepNum = idx + 1;
+            const currentPill = getCurrentStepPill();
+            const currentIdx = arr.indexOf(currentPill as any);
+            return (
+              <button
+                key={p}
+                type="button"
+                onClick={() => handlePillClick(p)}
+                className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                  currentPill === p
+                    ? "w-7 bg-indigo-500 shadow-xs shadow-indigo-500/50"
+                    : currentIdx > idx
+                    ? "w-2.5 bg-indigo-400/50 hover:bg-indigo-400"
+                    : "w-2 bg-zinc-800"
+                }`}
+                title={`Step ${stepNum}`}
+              />
+            );
+          })}
         </div>
-      </div>
+
+        <div className="flex items-center gap-2">
+          {onSwitchToSinglePageView && (
+            <button
+              type="button"
+              onClick={onSwitchToSinglePageView}
+              className="h-8 px-2.5 rounded-xl bg-zinc-900/60 border border-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-800/80 flex items-center gap-1.5 text-xs font-semibold transition-colors cursor-pointer"
+              title="Switch to Single Page View"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 text-blue-400" />
+              <span>Single Page View (Plan)</span>
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={handleToggleFullScreen}
+            className="w-8 h-8 rounded-xl bg-zinc-900/60 border border-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+            title={fullScreenMode ? "Exit Fullscreen" : "Enter Fullscreen"}
+          >
+            {fullScreenMode ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+          </button>
+        </div>
+      </header>
     );
-  }
+  };
 
   return (
     <div
       data-testid="guided-hero-container"
-      style={{ zoom: 0.85 }}
       className={
         fullScreenMode
-          ? "fixed inset-0 z-50 h-[100dvh] w-full bg-zinc-950 text-zinc-100 flex flex-col justify-between overflow-y-auto sm:overflow-hidden select-none px-4 sm:px-8 py-4 sm:py-6 animate-in fade-in duration-300 [zoom:0.85]"
-          : "relative w-full rounded-[32px] bg-zinc-950 text-zinc-100 flex flex-col justify-between overflow-hidden select-none px-4 sm:px-6 py-5 shadow-2xl border border-zinc-800 min-h-[580px] [zoom:0.85]"
+          ? "fixed inset-0 z-50 h-[100dvh] w-full bg-zinc-950 text-zinc-100 flex flex-col justify-between overflow-y-auto sm:overflow-hidden select-none px-4 sm:px-8 py-4 sm:py-6 animate-in fade-in duration-300"
+          : "relative w-full rounded-[32px] bg-zinc-950 text-zinc-100 flex flex-col justify-between overflow-hidden select-none px-4 sm:px-6 py-5 shadow-2xl border border-zinc-800 min-h-[580px]"
       }
     >
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -5642,63 +5727,13 @@ export default function FFCSGuidedSelector({
       ) : (
         /* Vertical Portrait Layout */
         <>
-          <header className="relative z-20 w-full max-w-md sm:max-w-2xl mx-auto flex items-center justify-between shrink-0 pt-1">
-            <button
-              type="button"
-              onClick={handlePrevStep}
-              className="flex items-center gap-1.5 text-xs font-bold text-zinc-400 hover:text-white transition-colors cursor-pointer py-1.5 px-3 rounded-xl bg-zinc-900/60 border border-zinc-800 backdrop-blur-md active:scale-95"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              <span>{guidedPhase === "setup_mode" ? "Timetable" : "Back"}</span>
-            </button>
-
-            <div className="flex items-center gap-2">
-              {getPillsList().map((p, idx, arr) => {
-                const stepNum = idx + 1;
-                const currentPill = getCurrentStepPill();
-                const currentIdx = arr.indexOf(currentPill as any);
-                return (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => handlePillClick(p)}
-                    className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
-                      currentPill === p
-                        ? "w-7 bg-indigo-500 shadow-xs shadow-indigo-500/50"
-                        : currentIdx > idx
-                        ? "w-2.5 bg-indigo-400/50 hover:bg-indigo-400"
-                        : "w-2 bg-zinc-800"
-                    }`}
-                    title={`Step ${stepNum}`}
-                  />
-                );
-              })}
-            </div>
-
-            <div className="flex items-center gap-2">
-              {onSwitchToSinglePageView && (
-                <button
-                  type="button"
-                  onClick={onSwitchToSinglePageView}
-                  className="h-8 px-2.5 rounded-xl bg-zinc-900/60 border border-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-800/80 flex items-center gap-1.5 text-xs font-semibold transition-colors cursor-pointer"
-                  title="Switch to Single Page View"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5 text-blue-400" />
-                  <span>Single Page View (Plan)</span>
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={handleToggleFullScreen}
-                className="w-8 h-8 rounded-xl bg-zinc-900/60 border border-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
-                title={fullScreenMode ? "Exit Fullscreen" : "Enter Fullscreen"}
-              >
-                {fullScreenMode ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-              </button>
-            </div>
-          </header>
+          {renderHeader()}
 
           <main className="relative z-20 w-full max-w-md sm:max-w-2xl mx-auto flex-1 flex flex-col justify-center min-h-0 my-auto py-2 sm:py-3">
+            {isMobileViewport && !hasLaunchedHero ? (
+              renderMobilePreflightCard()
+            ) : (
+              <>
             {guidedPhase === "setup_mode" && (
               <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
                 <div className="flex flex-col items-center gap-2 shrink-0">
@@ -5965,6 +6000,8 @@ export default function FFCSGuidedSelector({
                 </div>
                 {renderManualTimetableViewCard(false)}
               </div>
+            )}
+              </>
             )}
           </main>
 
