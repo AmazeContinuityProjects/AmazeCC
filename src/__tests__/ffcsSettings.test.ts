@@ -44,6 +44,18 @@ describe("sanitizeFFCSSettings", () => {
     expect(sanitizeFFCSSettings({ rankingMode: "none" }).rankingMode).toBe("none");
   });
 
+  it("defaults the wide-screen side-by-side timetable layout to off", () => {
+    expect(FFCSSettingsDefaults.showVerticalTimetableBesideWidgets).toBe(false);
+    expect(
+      sanitizeFFCSSettings({ showVerticalTimetableBesideWidgets: true })
+        .showVerticalTimetableBesideWidgets
+    ).toBe(true);
+    expect(
+      sanitizeFFCSSettings({ showVerticalTimetableBesideWidgets: "yes" })
+        .showVerticalTimetableBesideWidgets
+    ).toBe(false);
+  });
+
   it("clamps the result cap into the range the sheet offers", () => {
     expect(sanitizeFFCSSettings({ resultCap: 1 }).resultCap).toBe(10);
     expect(sanitizeFFCSSettings({ resultCap: 99999 }).resultCap).toBe(1000);
@@ -78,13 +90,16 @@ describe("useFFCSSettings", () => {
 
     act(() => result.current.update("exportFormat", "png"));
     act(() => result.current.update("minHalfDays", 3));
+    act(() => result.current.update("showVerticalTimetableBesideWidgets", true));
 
     expect(result.current.settings.exportFormat).toBe("png");
     expect(result.current.settings.minHalfDays).toBe(3);
+    expect(result.current.settings.showVerticalTimetableBesideWidgets).toBe(true);
     await waitFor(() => {
       const stored = JSON.parse(store.getItem("ffcs_settings")!);
       expect(stored.exportFormat).toBe("png");
       expect(stored.minHalfDays).toBe(3);
+      expect(stored.showVerticalTimetableBesideWidgets).toBe(true);
     });
   });
 

@@ -263,6 +263,21 @@ export function FFCSSettingsModal({
                 />
               }
             />
+            <div className="hidden xl:block">
+              <SettingRow
+                title="Vertical timetable beside widgets"
+                description="On extra-wide screens, use one widget column and place the vertical timetable on the right."
+                control={
+                  <Switch
+                    checked={settings.showVerticalTimetableBesideWidgets}
+                    onCheckedChange={(checked) =>
+                      update("showVerticalTimetableBesideWidgets", checked)
+                    }
+                    label="Vertical timetable beside widgets"
+                  />
+                }
+              />
+            </div>
             <SettingRow
               title="Group by batch"
               description="Pair each theory course with its lab in the course report."

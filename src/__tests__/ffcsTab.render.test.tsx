@@ -348,6 +348,10 @@ describe("FFCSTimetableTab", () => {
     expect(screen.getByRole("button", { name: /Manually Add Course/ })).toBeDefined();
     expect(screen.getByRole("button", { name: /Target Courses/ })).toBeDefined();
     expect(screen.getByRole("region", { name: "Timetable Actions widget" })).toBeDefined();
+    const widgetPanel = screen.getByLabelText("Enabled planner widgets");
+    expect(widgetPanel.className).toContain("xl:columns-2");
+    expect(widgetPanel.className).not.toContain("columns-3");
+    expect(widgetPanel.className).toContain("break-inside-avoid");
     expect(JSON.parse(storage.getItem("ffcs_dashboard_widgets") || "[]")).toEqual([
       "add-courses",
       "timetables",
@@ -369,6 +373,101 @@ describe("FFCSTimetableTab", () => {
     render(<FFCSTimetableTab />);
     expect(screen.getByRole("region", { name: "Add Courses widget" })).toBeDefined();
     expect(screen.getByRole("region", { name: "Social & Friends widget" })).toBeDefined();
+  }, 30_000);
+
+  it("shows a vertical timetable beside a single widget column when enabled on xl screens", () => {
+    storage.setItem(
+      "ffcs_settings",
+      JSON.stringify({ showVerticalTimetableBesideWidgets: true })
+    );
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn((query: string) => ({
+        matches: query === "(min-width: 1280px)",
+        media: query,
+        onchange: null,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }))
+    );
+
+    render(<FFCSTimetableTab />);
+
+    expect(screen.getByLabelText("Enabled planner widgets").className).toContain("xl:columns-1");
+    expect(screen.getByTestId("ffcs-selected-courses").className).toContain("xl:col-span-full");
+    expect(
+      screen.queryByText("Auto · showing the modern grid on this screen")
+    ).toBeNull();
+  }, 30_000);
+
+  it("moves planner view, course list, and settings actions to the wide-screen header", () => {
+    render(<FFCSTimetableTab />);
+
+    for (const label of ["Switch Planner View", "Switch Course List", "Planner Settings"]) {
+      const headerButton = screen
+        .getAllByRole("button", { name: label })
+        .find((button) => button.parentElement?.className.includes("hidden xl:flex"));
+      expect(headerButton).toBeDefined();
+    }
+    const plannerMenu = within(screen.getByRole("navigation", { name: "Planner menu" }));
+    expect(plannerMenu.getByRole("region", { name: "Views & Course Lists" }).className).toContain("xl:hidden");
+    expect(plannerMenu.getByRole("region", { name: "Planner Settings" }).className).toContain("xl:hidden");
+  }, 30_000);
+
+  it("opens FFCS share options and shares the FFCS link in the modern promotion order", async () => {
+    render(<FFCSTimetableTab />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Share this plan" }));
+
+    expect(screen.getByRole("heading", { name: "Share AmazeCC FFCS" })).toBeDefined();
+    expect(screen.getByText("Share as link")).toBeDefined();
+    expect(screen.getByText("Share as JSON")).toBeDefined();
+    expect(screen.getByText("Share as JPG")).toBeDefined();
+    expect(screen.getByText("Share as PNG")).toBeDefined();
+    expect(screen.getByText("Share as HTML")).toBeDefined();
+    const shareFFCS = screen.getByRole("button", { name: /Share AmazeCC FFCS/ });
+    expect(screen.getByText("Sign in to AmazeCC")).toBeDefined();
+    const shareSheetText = screen.getByRole("heading", { name: "Share AmazeCC FFCS" })
+      .closest("[role='dialog']")?.textContent ?? document.body.textContent ?? "";
+    expect(shareSheetText.indexOf("Share AmazeCC FFCS")).toBeLessThan(
+      shareSheetText.indexOf("Sign in to AmazeCC")
+    );
+
+    const shareMock = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal("navigator", { ...navigator, share: shareMock });
+    fireEvent.click(shareFFCS);
+
+    expect(shareMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "AmazeCC FFCS",
+        url: `${window.location.origin}/ffcs`,
+      })
+    );
+  }, 30_000);
+
+  it("places the guide in mobile Planner Settings and keeps the theme toggle in the header", () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn((query: string) => ({
+        matches: query === "(max-width: 767px)",
+        media: query,
+        onchange: null,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }))
+    );
+    render(<FFCSTimetableTab />);
+
+    const plannerMenu = within(screen.getByRole("navigation", { name: "Planner menu" }));
+    expect(plannerMenu.getByRole("button", { name: /How does this work\?/ })).toBeDefined();
+    expect(screen.queryByRole("button", { name: "How does this work?" })).toBeNull();
+    expect(screen.getByTitle(/Switch to (Light|Dark) mode/)).toBeDefined();
   }, 30_000);
 
   it("lets the desktop Add Courses menu entry toggle its widget", () => {
@@ -487,12 +586,13 @@ describe("FFCSTimetableTab", () => {
     render(<FFCSTimetableTab />);
 
     expect(screen.queryByTitle("Load the Winter Semester 2026-2027 slot timetable")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /Switch Course List/ }));
+    const plannerMenu = within(screen.getByRole("navigation", { name: "Planner menu" }));
+    fireEvent.click(plannerMenu.getByRole("button", { name: /Switch Course List/ }));
     expect(screen.getByRole("heading", { name: "Switch Course List" })).toBeDefined();
     expect(screen.getByRole("button", { name: /Previous Semester/ })).toBeDefined();
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
 
-    fireEvent.click(screen.getByRole("button", { name: /Switch Planner View/ }));
+    fireEvent.click(plannerMenu.getByRole("button", { name: /Switch Planner View/ }));
     expect(screen.getByText("Choose Your Planner Experience")).toBeDefined();
     expect(screen.getByRole("radio", { name: /Guided Hero/ })).toBeDefined();
   }, 30_000);
@@ -710,7 +810,11 @@ describe("FFCSTimetableTab", () => {
     expect(document.getElementById("ffcs-timetable-grid")).not.toBeNull();
 
     // Open the planner-view menu sheet, choose Guided, and apply it.
-    fireEvent.click(screen.getByRole("button", { name: /Switch Planner View/ }));
+    fireEvent.click(
+      within(screen.getByRole("navigation", { name: "Planner menu" })).getByRole("button", {
+        name: /Switch Planner View/,
+      })
+    );
     fireEvent.click(screen.getByRole("radio", { name: /Guided Hero/ }));
     fireEvent.click(screen.getByRole("button", { name: "Switch to Guided Hero Mode" }));
 

@@ -99,13 +99,28 @@ describe("FFCSSettingsModal", () => {
     const p = props({ isGroupingEnabled: false });
     render(<FFCSSettingsModal {...p} />);
 
-    // Switches are unnamed on purpose — SettingRow names the row — so pick
-    // them in document order: grouping, tour, analytics.
-    const [grouping] = screen.getAllByRole("switch") as HTMLButtonElement[];
+    // Grouping's switch is unnamed on purpose; the wide-screen layout switch
+    // is labelled because it is a new presentation preference.
+    const grouping = (screen.getAllByRole("switch") as HTMLButtonElement[]).find(
+      (control) => !control.hasAttribute("aria-label")
+    );
+    expect(grouping).toBeDefined();
     act(() => grouping.click());
 
     expect(p.setIsGroupingEnabled).toHaveBeenCalledWith(true);
     expect(p.update).not.toHaveBeenCalled();
+  });
+
+  it("updates the wide-screen vertical timetable layout preference", () => {
+    const p = props();
+    render(<FFCSSettingsModal {...p} />);
+
+    const layoutSwitch = screen.getByRole("switch", {
+      name: "Vertical timetable beside widgets",
+    });
+    act(() => layoutSwitch.click());
+
+    expect(p.update).toHaveBeenCalledWith("showVerticalTimetableBesideWidgets", true);
   });
 
   it("writes analytics consent to the analytics key, not to settings", () => {

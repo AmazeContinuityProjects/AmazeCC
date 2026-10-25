@@ -36,6 +36,7 @@ import {
   BookOpen,
   Smile,
   Settings2,
+  CircleHelp,
 } from "lucide-react";
 import {
   StatTile,
@@ -82,6 +83,7 @@ export interface FFCSDashboardHeaderProps {
   onOpenLayoutPicker?: () => void;
   onOpenCourseListPicker?: () => void;
   onOpenPlannerSettings?: () => void;
+  onOpenHelp?: () => void;
   currentCourseListLabel?: string;
   currentLayoutLabel?: string;
 
@@ -155,6 +157,8 @@ export interface FFCSDashboardHeaderProps {
    * visible anchor — see the effect below.
    */
   tourStepTarget?: string | null;
+  /** Use a single widget column when the timetable occupies the wide-screen side column. */
+  wideScreenSingleWidgetColumn?: boolean;
 }
 
 type UtilityTab = "timetables" | "social" | "faculty" | "export";
@@ -733,6 +737,7 @@ export default function FFCSDashboardHeader({
   onOpenLayoutPicker,
   onOpenCourseListPicker,
   onOpenPlannerSettings,
+  onOpenHelp,
   currentCourseListLabel,
   currentLayoutLabel,
   courses,
@@ -782,7 +787,9 @@ export default function FFCSDashboardHeader({
   onOpenPrintablePage,
   onOpenDetachedPrintablePage,
   tourStepTarget = null,
+  wideScreenSingleWidgetColumn = false,
 }: FFCSDashboardHeaderProps) {
+  const isModernLayout = currentLayoutLabel?.toLowerCase().startsWith("modern") ?? false;
   const [enabledWidgets, setEnabledWidgets] = useState<DashboardWidget[]>([
     "add-courses",
     "timetables",
@@ -1297,7 +1304,10 @@ export default function FFCSDashboardHeader({
             </ListShell>
           )}
 
-          <section aria-labelledby="ffcs-view-course-heading" className="space-y-2">
+          <section
+            aria-labelledby="ffcs-view-course-heading"
+            className={`space-y-2 ${isModernLayout ? "xl:hidden" : ""}`}
+          >
             <h3 id="ffcs-view-course-heading" className="px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
               Views & Course Lists
             </h3>
@@ -1325,7 +1335,10 @@ export default function FFCSDashboardHeader({
             </ListShell>
           </section>
           {onOpenPlannerSettings && (
-            <section aria-labelledby="ffcs-settings-heading" className="space-y-2">
+            <section
+              aria-labelledby="ffcs-settings-heading"
+              className={`space-y-2 ${isModernLayout ? "xl:hidden" : ""}`}
+            >
               <h3 id="ffcs-settings-heading" className="px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                 Planner Settings
               </h3>
@@ -1344,6 +1357,22 @@ export default function FFCSDashboardHeader({
                     subtitle="Adjust ranking, defaults, and planner preferences."
                   />
                 </button>
+                {isMobileViewport && onOpenHelp && (
+                  <button
+                    type="button"
+                    onClick={onOpenHelp}
+                    className="w-full flex items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-surface-secondary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500"
+                  >
+                    <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border-indigo-500/20">
+                      <CircleHelp className="w-4 h-4" />
+                    </span>
+                    <ListRowText
+                      title="How does this work?"
+                      titleTag="span"
+                      subtitle="Open the FFCS planner guide."
+                    />
+                  </button>
+                )}
               </ListShell>
             </section>
           )}
@@ -1358,7 +1387,9 @@ export default function FFCSDashboardHeader({
         <div
           id="ffcs-utility-panel"
           aria-label="Enabled planner widgets"
-          className="min-w-0 grid grid-cols-1 xl:grid-cols-2 gap-3 items-start"
+          className={`min-w-0 columns-1 gap-3 ${
+            wideScreenSingleWidgetColumn ? "xl:columns-1" : "xl:columns-2"
+          } [&>*]:mb-3 [&>*]:break-inside-avoid`}
         >
           {selectedCourseCode &&
             (!isMobileViewport || mobileWidget === "selected-course") && (

@@ -10,6 +10,17 @@ import { usePwaInstall } from "@/lib/pwaInstall";
 
 export default function FFCSPageView() {
   const [mounted, setMounted] = useState(false);
+  const [plannerLayoutMode, setPlannerLayoutMode] = useState<"guided" | "modern" | "classic">(() => {
+    if (typeof window === "undefined") return "modern";
+    try {
+      const saved = window.localStorage.getItem("ffcs_layout_mode");
+      if (saved === "revamp") return "modern";
+      if (saved === "guided" || saved === "modern" || saved === "classic") return saved;
+    } catch {
+      // Fall back to the viewport default when storage is unavailable.
+    }
+    return window.innerWidth < 768 ? "guided" : "modern";
+  });
   const { canInstall, promptInstall } = usePwaInstall();
 
   useEffect(() => {
@@ -20,6 +31,7 @@ export default function FFCSPageView() {
     <div className="min-h-[100dvh] w-full max-w-full overflow-x-hidden bg-slate-50 text-slate-850 dark:bg-[#03060F] dark:text-gray-100 flex flex-col font-sans transition-colors duration-300">
       {/* Top Navigation Bar - non-sticky so it scrolls with the page */}
       <nav
+        hidden={plannerLayoutMode === "modern"}
         className="w-full bg-white/85 dark:bg-[#03060F]/85 border-b border-slate-200/80 dark:border-white/[0.08]"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
@@ -74,8 +86,8 @@ export default function FFCSPageView() {
       </nav>
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-6 overflow-x-hidden">
-        <FFCSTimetableTab />
+      <main className="flex-1 w-full px-3 sm:px-6 py-4 sm:py-6 overflow-x-hidden">
+        <FFCSTimetableTab onLayoutModeChange={setPlannerLayoutMode} />
       </main>
 
       {/* Simple Footer */}

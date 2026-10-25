@@ -12,10 +12,10 @@ import { track } from "./analytics";
  *
  * ## What belongs here, and what does not
  *
- * Only *defaults* live in this record — the starting values for controls that
- * the student can override per run (the generator's sort order, its ranking
- * profile, the half-days floor, the result cap) plus two switches that have no
- * per-run moment (the image export format, whether to offer the tour).
+ * Defaults and persistent presentation preferences live in this record — the
+ * starting values for controls that the student can override per run (the
+ * generator's sort order, its ranking profile, the half-days floor, the result
+ * cap), plus image export, tour, and wide-screen layout preferences.
  *
  * Deliberately **not** here: `isGroupingEnabled` and `socialScoreGroupMethod`.
  * Those already have tab state and their own storage keys, and the tab's
@@ -56,6 +56,8 @@ export interface FFCSSettings {
   resultCap: number;
   /** Whether to offer the guided tour to a first-time visitor. */
   showTour: boolean;
+  /** Show a vertical timetable beside the dashboard on extra-wide screens. */
+  showVerticalTimetableBesideWidgets: boolean;
 }
 
 export const FFCSSettingsDefaults: Readonly<FFCSSettings> = Object.freeze({
@@ -65,6 +67,7 @@ export const FFCSSettingsDefaults: Readonly<FFCSSettings> = Object.freeze({
   minHalfDays: 0,
   resultCap: DEFAULT_RESULT_LIMIT,
   showTour: true,
+  showVerticalTimetableBesideWidgets: false,
 });
 
 const SORT_BY: readonly SortBy[] = ["social", "halfdays", "compactness", "balanced"];
@@ -106,6 +109,10 @@ export function sanitizeFFCSSettings(raw: unknown): FFCSSettings {
     minHalfDays: asInt(r.minHalfDays, 0, MAX_HALF_DAYS, FFCSSettingsDefaults.minHalfDays),
     resultCap: asInt(r.resultCap, MIN_RESULT_CAP, MAX_RESULT_CAP, FFCSSettingsDefaults.resultCap),
     showTour: typeof r.showTour === "boolean" ? r.showTour : FFCSSettingsDefaults.showTour,
+    showVerticalTimetableBesideWidgets:
+      typeof r.showVerticalTimetableBesideWidgets === "boolean"
+        ? r.showVerticalTimetableBesideWidgets
+        : FFCSSettingsDefaults.showVerticalTimetableBesideWidgets,
   };
 }
 

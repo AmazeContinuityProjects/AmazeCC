@@ -1,16 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Download, Map as MapIcon, AlertTriangle, CalendarDays, Layers, Clock } from "lucide-react";
 import { decodeTimetableShare } from "@/lib/ffcsShare";
 import { CAMPUS_SCHEMAS, GLOBAL_CAMPUS } from "@/lib/campusSchema";
 import { timetableMetrics, formatHours } from "@/lib/timetableMetrics";
-import { downloadTimetableImage } from "@/lib/exportTimetable";
+import { downloadModernTimetableImage } from "@/lib/exportTimetable";
 import { storage } from "@/lib/storage";
 import { track } from "@/lib/analytics";
 import { TimetableGrid } from "@/components/custom/exams/FFCS/components/TimetableGrid";
+import { DAYS } from "@/components/custom/exams/FFCS/constants";
 import type { TimetablePeriod, TimetableState } from "@/components/custom/exams/FFCS/types";
 
 /**
@@ -33,7 +34,6 @@ export default function FFCSShareView() {
   const encoded = searchParams.get("d") ?? "";
   const decoded = useMemo(() => decodeTimetableShare(encoded), [encoded]);
 
-  const captureRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
@@ -65,15 +65,21 @@ export default function FFCSShareView() {
     }
   }, [decoded, schema]);
 
-  const downloadPng = async () => {
-    if (!captureRef.current || !decoded) return;
+  const downloadImage = async (format: "jpg" | "png") => {
+    if (!decoded) return;
     setIsDownloading(true);
     try {
-      const bg =
-        getComputedStyle(document.documentElement).getPropertyValue("--background").trim() ||
-        "#ffffff";
-      await downloadTimetableImage(captureRef.current, decoded.timetable.name, bg, "png");
-      track("export_image", { format: "png" });
+      await downloadModernTimetableImage({
+        timetableName: decoded.timetable.name,
+        courses: decoded.timetable.courses,
+        theoryPeriods,
+        labPeriods,
+        days: DAYS,
+        viewMode: "horizontal",
+        format,
+        themeBgColor: "#090d16",
+      });
+      track("export_image", { format, viewMode: "horizontal" });
     } catch (err) {
       console.error(err);
     } finally {
@@ -115,7 +121,7 @@ export default function FFCSShareView() {
 
   return (
     <main className="min-h-screen bg-surface text-text-heading">
-      <div className="max-w-3xl mx-auto p-4 md:p-8 space-y-5">
+      <div className="w-full p-4 md:p-8 space-y-5">
         <header className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -146,7 +152,7 @@ export default function FFCSShareView() {
         )}
 
         <Card>
-          <div ref={captureRef} className="rounded-xl overflow-hidden">
+          <div className="rounded-xl overflow-hidden">
             <TimetableGrid
               courses={timetable.courses}
               customCourses={timetable.courses}
@@ -190,12 +196,21 @@ export default function FFCSShareView() {
         <div className="flex flex-col sm:flex-row gap-3">
           <button
             type="button"
-            onClick={downloadPng}
+            onClick={() => void downloadImage("png")}
             disabled={isDownloading}
             className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-3 rounded-xl transition-colors cursor-pointer"
           >
             <Download className="w-4 h-4" />
-            {isDownloading ? "Capturing…" : "Download as PNG"}
+            {isDownloading ? "Preparing image…" : "Download as PNG"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void downloadImage("jpg")}
+            disabled={isDownloading}
+            className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-3 rounded-xl transition-colors cursor-pointer"
+          >
+            <Download className="w-4 h-4" />
+            {isDownloading ? "Preparing image…" : "Download as JPEG"}
           </button>
           <Link
             href="/ffcs"

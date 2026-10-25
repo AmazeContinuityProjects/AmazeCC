@@ -4,8 +4,22 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import FFCSPageView from "../app/ffcs/FFCSPageView";
 import * as pwaModule from "@/lib/pwaInstall";
 
+function setLayoutMode(mode: "guided" | "modern") {
+  const values = new Map<string, string>([["ffcs_layout_mode", mode]]);
+  Object.defineProperty(window, "localStorage", {
+    configurable: true,
+    value: {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+      removeItem: (key: string) => values.delete(key),
+      clear: () => values.clear(),
+    },
+  });
+}
+
 describe("FFCSPageView", () => {
   it("renders AmazeCC brand and Login to AmazeCC, with non-sticky header and no back button", () => {
+    setLayoutMode("guided");
     const { container } = render(<FFCSPageView />);
 
     // 1. Should NOT show "Back to AmazeCC Home" or "VTOP Login"
@@ -29,6 +43,7 @@ describe("FFCSPageView", () => {
   });
 
   it("renders Install App button when PWA installation is available and invokes promptInstall", () => {
+    setLayoutMode("guided");
     const promptInstallMock = vi.fn().mockResolvedValue(true);
     vi.spyOn(pwaModule, "usePwaInstall").mockReturnValue({
       canInstall: true,
@@ -43,5 +58,24 @@ describe("FFCSPageView", () => {
     expect(promptInstallMock).toHaveBeenCalledTimes(1);
 
     vi.restoreAllMocks();
+  });
+
+  it("combines the page headers in Modern mode", () => {
+    setLayoutMode("modern");
+    const { container } = render(<FFCSPageView />);
+
+    const main = container.querySelector("main");
+    expect(main?.className).toContain("w-full");
+    expect(main?.className).not.toContain("max-w-7xl");
+    expect(main?.className).toContain("sm:px-6");
+
+    const topNav = container.querySelector("nav");
+    expect(topNav?.hasAttribute("hidden")).toBe(true);
+    expect(screen.getByRole("link", { name: "AmazeCC home" })).toBeDefined();
+    expect(
+      screen.getByRole("link", { name: "AmazeCC home" }).querySelector("img")?.getAttribute("src")
+    ).toContain("/favicon/favicon.svg");
+    expect(screen.getByText("Amaze")).toBeDefined();
+    expect(screen.getByText("CC")).toBeDefined();
   });
 });

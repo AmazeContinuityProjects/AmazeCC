@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { Trash2, AlertTriangle, Info, Map as MapIcon, Plus, Edit2, Check, Maximize2, Minimize2, Upload, X, Settings2, Users, Eye, HelpCircle, Share2, Search, Lock, Keyboard, Compass, LayoutDashboard, BookOpen, Sparkles, CalendarDays, ChevronDown, ClipboardPaste, Copy, Download, ExternalLink, FileText, PlusCircle, Printer, Save, Wand2, ListFilter } from "lucide-react";
+import Link from "next/link";
+import { Trash2, AlertTriangle, Info, Map as MapIcon, Plus, Edit2, Check, Maximize2, Minimize2, Upload, X, Settings2, Users, Eye, HelpCircle, Share2, Search, Lock, Keyboard, Compass, LayoutDashboard, BookOpen, Sparkles, CalendarDays, ChevronDown, ClipboardPaste, Copy, Download, ExternalLink, FileText, PlusCircle, Printer, Save, Wand2, ListFilter, PanelsTopLeft, Image, Code2, Megaphone, LogIn } from "lucide-react";
 
 import SearchInput from "../shared/SearchInput";
 import EmptyState from "../shared/EmptyState";
 import { useTheme } from "next-themes";
+import ThemeToggle from "@/components/custom/ThemeToggle";
 import { AnimatePresence } from "framer-motion";
 import BottomSheet from "../shared/BottomSheet";
 import FFCSGuideModal from "./FFCSGuideModal";
@@ -596,7 +598,11 @@ export const processParsedCourses = (parsed: ParsedCourse[], manualLinks: Manual
   return combined;
 };
 
-export default function FFCSTimetableTab() {
+export default function FFCSTimetableTab({
+  onLayoutModeChange,
+}: {
+  onLayoutModeChange?: (mode: "guided" | "modern" | "classic") => void;
+} = {}) {
   const { theme, resolvedTheme } = useTheme();
   const currentTheme = resolvedTheme || theme || "light";
   const rootStyles = typeof window === "undefined" ? null : getComputedStyle(document.documentElement);
@@ -663,6 +669,7 @@ export default function FFCSTimetableTab() {
   const [isDragging, setIsDragging] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isShareSheetOpen, setIsShareSheetOpen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
   const [layoutMode, setLayoutMode] = useState<"guided" | "modern" | "classic">(() => {
@@ -695,6 +702,10 @@ export default function FFCSTimetableTab() {
     } catch {}
   }, []);
 
+  useEffect(() => {
+    onLayoutModeChange?.(layoutMode);
+  }, [layoutMode, onLayoutModeChange]);
+
   const handleSelectLayoutMode = (mode: "guided" | "modern" | "classic", remember: boolean) => {
     setLayoutMode(mode);
     if (remember) {
@@ -722,6 +733,23 @@ export default function FFCSTimetableTab() {
   const { visible: hints, dismiss: dismissHint } = useTips();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const { resolved: resolvedView, isMobile } = useTimetableViewMode();
+  const [isExtraLargeViewport, setIsExtraLargeViewport] = useState(false);
+  useEffect(() => {
+    const mediaQuery = window.matchMedia?.("(min-width: 1280px)");
+    const updateViewport = () =>
+      setIsExtraLargeViewport(mediaQuery?.matches ?? window.innerWidth >= 1280);
+    updateViewport();
+    if (mediaQuery) {
+      mediaQuery.addEventListener("change", updateViewport);
+      return () => mediaQuery.removeEventListener("change", updateViewport);
+    }
+    window.addEventListener("resize", updateViewport);
+    return () => window.removeEventListener("resize", updateViewport);
+  }, []);
+  const showVerticalTimetableBesideWidgets =
+    layoutMode === "modern" &&
+    settings.showVerticalTimetableBesideWidgets &&
+    isExtraLargeViewport;
 
   // Generator State
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
@@ -1417,14 +1445,22 @@ export default function FFCSTimetableTab() {
       } catch (err) {
         console.warn("Modern offscreen image export failed, trying live capture fallback:", err);
         if (captureRef.current) {
+          const captureElement = captureRef.current;
+          const originalClassName = captureElement.className;
           try {
-            await downloadTimetableImage(captureRef.current, activeTimetable.name, themeBgColor, format);
+            if (showVerticalTimetableBesideWidgets) {
+              captureElement.classList.remove("xl:contents");
+              captureElement.classList.add("xl:col-span-full");
+            }
+            await downloadTimetableImage(captureElement, activeTimetable.name, themeBgColor, format);
             track("export_image", { format, fallback: true });
             setSuccessMsg("Timetable downloaded successfully!");
             setTimeout(() => setSuccessMsg(null), 3000);
             return;
           } catch {
             // ignore
+          } finally {
+            captureElement.className = originalClassName;
           }
         }
         setError("Failed to download timetable image.");
@@ -1432,7 +1468,16 @@ export default function FFCSTimetableTab() {
         setIsDownloading(false);
       }
     },
-    [courses, activeTimetable.name, theoryPeriods, labPeriods, resolvedView, isMobile, themeBgColor]
+    [
+      courses,
+      activeTimetable.name,
+      theoryPeriods,
+      labPeriods,
+      resolvedView,
+      isMobile,
+      themeBgColor,
+      showVerticalTimetableBesideWidgets,
+    ]
   );
 
   /**
@@ -1480,6 +1525,49 @@ export default function FFCSTimetableTab() {
       setError("Could not copy the share link. Try again over https.");
     }
   }, [activeTimetable]);
+
+  const handleSharePlanJson = useCallback(async () => {
+    if (!activeTimetable || activeTimetable.courses.length === 0) {
+      setError("Add at least one course to the timetable before sharing it.");
+      return;
+    }
+    const json = JSON.stringify(activeTimetable, null, 2);
+    try {
+      if (typeof navigator.share === "function") {
+        await navigator.share({
+          title: `${activeTimetable.name} — AmazeCC FFCS`,
+          text: json,
+        });
+      } else {
+        await navigator.clipboard.writeText(json);
+        setSuccessMsg("Timetable JSON copied to clipboard.");
+        setTimeout(() => setSuccessMsg(null), 4000);
+      }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      setError("Could not share the timetable JSON.");
+    }
+  }, [activeTimetable]);
+
+  const handleShareAmazeCC = useCallback(async () => {
+    const url = new URL("/ffcs", window.location.origin).toString();
+    try {
+      if (typeof navigator.share === "function") {
+        await navigator.share({
+          title: "AmazeCC FFCS",
+          text: "Plan your semester with AmazeCC FFCS.",
+          url,
+        });
+      } else {
+        await navigator.clipboard.writeText(url);
+        setSuccessMsg("AmazeCC FFCS link copied to clipboard.");
+        setTimeout(() => setSuccessMsg(null), 4000);
+      }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      setError("Could not share AmazeCC FFCS.");
+    }
+  }, [setError, setSuccessMsg]);
 
   const downloadDossierHtml = useCallback(
     async (forcedTheme?: "light" | "dark") => {
@@ -1933,33 +2021,107 @@ export default function FFCSTimetableTab() {
     // generator subpage is an early return *above* this tree, so opening it
     // still unmounts the provider and ends any run in progress.
     <TourProvider offerTour={settings.showTour} onStepChange={handleTourStepChange}>
-    <div data-prevent-swipe="true" className={`w-full space-y-6 transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-[100] bg-slate-950 p-4 md:p-8 overflow-y-auto' : ''}`}>
+    <div data-prevent-swipe="true" className={`w-full ${layoutMode === "modern" ? "space-y-4" : "space-y-6"} transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-[100] bg-slate-950 p-4 md:p-8 overflow-y-auto' : ''}`}>
       
       {/* ── TOP HEADER BLOCK: EYEBROW, TITLE, ACTIONS & CONTROLS (AmazeCC pattern) ── */}
       {!(layoutMode === "guided" && isGuidedFullScreen) && (
-        <div className="space-y-4 px-1" data-tour-id="ffcs-banner">
+        <div
+          className={`space-y-3 ${layoutMode === "modern" ? "px-2 pt-4 sm:px-1 sm:pt-0" : "px-1"}`}
+          data-tour-id="ffcs-banner"
+        >
         <div className="flex items-start justify-between gap-3">
-          <div className="flex flex-col items-start min-w-0 text-left">
-            <p className="text-xs font-semibold text-zinc-400 dark:text-zinc-500 leading-none mb-1">
-              Academics · Registration
-            </p>
-            <h1 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white tracking-tight leading-tight font-outfit truncate flex items-center gap-2">
-              <MapIcon className="text-indigo-600 dark:text-indigo-400 w-5 h-5 sm:w-6 sm:h-6 shrink-0" />
-              <span>FFCS Planner</span>
-            </h1>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-1">
-              Plan your semester from the {activeSemester.label.toLowerCase()} slot timetable.
-            </p>
+          <div className={`flex items-start min-w-0 text-left ${layoutMode === "modern" ? "flex-col" : ""}`}>
+            {layoutMode === "modern" && (
+              <Link
+                href="/"
+                aria-label="AmazeCC home"
+                className="mb-2 shrink-0 transition-transform active:scale-95"
+              >
+                <img
+                  src={getAssetPath("/favicon/favicon.svg")}
+                  alt=""
+                  className="h-9 w-9 sm:h-10 sm:w-10 object-contain"
+                />
+              </Link>
+            )}
+            <div className="flex flex-col items-start min-w-0">
+              <p className="text-xs font-semibold text-zinc-400 dark:text-zinc-500 leading-none mb-1">
+                {layoutMode === "modern" ? (
+                  <span className="font-black tracking-tight text-zinc-700 dark:text-zinc-200">
+                    Amaze<span className="text-indigo-600 dark:text-indigo-400">CC</span>
+                  </span>
+                ) : (
+                  "Academics · Registration"
+                )}
+              </p>
+              <h1 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white tracking-tight leading-tight font-outfit truncate flex items-center gap-2">
+                {layoutMode !== "modern" && (
+                  <MapIcon className="text-indigo-600 dark:text-indigo-400 w-5 h-5 sm:w-6 sm:h-6 shrink-0" />
+                )}
+                <span>FFCS Planner</span>
+              </h1>
+              {layoutMode === "modern" ? (
+                isLoadingCourses ? (
+                  <span className="mt-1 text-amber-600 dark:text-amber-400 text-[10px] sm:text-xs font-semibold flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                    <span className="w-2.5 h-2.5 rounded-full border-2 border-amber-500 border-t-transparent animate-spin" />
+                    Loading {activeSemester.shortLabel}...
+                  </span>
+                ) : masterCourses.length > 0 ? (
+                  <span className="mt-1 text-emerald-600 dark:text-emerald-400 text-[10px] sm:text-xs font-semibold flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    {activeSemester.shortLabel} loaded ({masterCourses.length} slots)
+                  </span>
+                ) : (
+                  <span className="mt-1 text-rose-600 dark:text-rose-400 text-[10px] sm:text-xs font-semibold flex items-center gap-1.5 px-2 py-1 rounded-lg bg-rose-500/10 border border-rose-500/20">
+                    <AlertTriangle className="w-3 h-3" />
+                    No course report loaded
+                  </span>
+                )
+              ) : (
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-1">
+                  Plan your semester from the {activeSemester.label.toLowerCase()} slot timetable.
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Action cluster on top-right */}
           <div className="flex items-center gap-1.5 sm:gap-2 pt-0.5 shrink-0">
-            <IconButton
-              onClick={() => setIsGuideModalOpen(true)}
-              title="How does this work?"
-            >
-              <HelpCircle className="w-4 h-4" />
-            </IconButton>
+            {layoutMode === "modern" ? (
+              <>
+                <div className="hidden xl:flex items-center gap-1.5">
+                  <IconButton
+                    onClick={() => setIsLayoutModalOpen(true)}
+                    title="Switch Planner View"
+                    aria-label="Switch Planner View"
+                  >
+                    <PanelsTopLeft className="w-4 h-4" />
+                  </IconButton>
+                  <IconButton
+                    onClick={() => setIsCourseListModalOpen(true)}
+                    title="Switch Course List"
+                    aria-label="Switch Course List"
+                  >
+                    <ListFilter className="w-4 h-4" />
+                  </IconButton>
+                  <IconButton
+                    onClick={() => setIsSettingsOpen(true)}
+                    title="Planner Settings"
+                    aria-label="Planner Settings"
+                  >
+                    <Settings2 className="w-4 h-4" />
+                  </IconButton>
+                </div>
+                <ThemeToggle className="h-9 w-9 rounded-xl border-border-strong shadow-2xs" />
+              </>
+            ) : (
+              <IconButton
+                onClick={() => setIsGuideModalOpen(true)}
+                title="How does this work?"
+              >
+                <HelpCircle className="w-4 h-4" />
+              </IconButton>
+            )}
             {/* Pointless on touch: the shortcuts are all single desktop keys. */}
             <IconButton
               onClick={() => setIsShortcutsModalOpen(true)}
@@ -1976,7 +2138,7 @@ export default function FFCSTimetableTab() {
               <Settings2 className="w-4 h-4" />
             </IconButton>
             <IconButton
-              onClick={() => { void handleSharePlan(); }}
+              onClick={() => setIsShareSheetOpen(true)}
               title="Share this plan"
             >
               <Share2 className="w-4 h-4" />
@@ -1992,8 +2154,8 @@ export default function FFCSTimetableTab() {
         </div>
 
         {/* Secondary controls row: Segmented control + report status badge */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-          {layoutMode !== "modern" && (
+        {layoutMode !== "modern" && (
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
             <div className="flex flex-wrap items-center gap-2.5">
               <SegmentedControl
                 value={semesterId}
@@ -2033,27 +2195,27 @@ export default function FFCSTimetableTab() {
                 </button>
               </div>
             </div>
-          )}
 
-          <div className="flex items-center gap-2">
-            {isLoadingCourses ? (
-              <span className="text-amber-600 dark:text-amber-400 text-xs font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 shadow-2xs">
-                <div className="w-3.5 h-3.5 rounded-full border-2 border-amber-500 border-t-transparent animate-spin" />
-                Loading {activeSemester.shortLabel}...
-              </span>
-            ) : masterCourses.length > 0 ? (
-              <span className="text-emerald-600 dark:text-emerald-400 text-xs font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 shadow-2xs">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                {activeSemester.shortLabel} loaded ({masterCourses.length} slots)
-              </span>
-            ) : (
-              <span className="text-rose-600 dark:text-rose-400 text-xs font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/20 shadow-2xs">
-                <AlertTriangle className="w-3.5 h-3.5" />
-                No course report loaded
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {isLoadingCourses ? (
+                <span className="text-amber-600 dark:text-amber-400 text-xs font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 shadow-2xs">
+                  <div className="w-3.5 h-3.5 rounded-full border-2 border-amber-500 border-t-transparent animate-spin" />
+                  Loading {activeSemester.shortLabel}...
+                </span>
+              ) : masterCourses.length > 0 ? (
+                <span className="text-emerald-600 dark:text-emerald-400 text-xs font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 shadow-2xs">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  {activeSemester.shortLabel} loaded ({masterCourses.length} slots)
+                </span>
+              ) : (
+                <span className="text-rose-600 dark:text-rose-400 text-xs font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/20 shadow-2xs">
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  No course report loaded
+                </span>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {(error || successMsg) && (
           <div className={`p-3 rounded-xl flex items-start gap-2 text-xs font-medium border shadow-2xs ${error ? 'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400'}`}>
@@ -2074,7 +2236,13 @@ export default function FFCSTimetableTab() {
         </div>
       )}
 
-      <div className="flex flex-col gap-6">
+      <div
+        className={
+          showVerticalTimetableBesideWidgets
+            ? "grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(360px,1fr)] xl:items-start"
+            : "flex flex-col gap-6"
+        }
+      >
         
         {layoutMode === "guided" ? (
           <FFCSGuidedSelector
@@ -2585,6 +2753,8 @@ export default function FFCSTimetableTab() {
             onOpenLayoutPicker={() => setIsLayoutModalOpen(true)}
             onOpenCourseListPicker={() => setIsCourseListModalOpen(true)}
             onOpenPlannerSettings={() => setIsSettingsOpen(true)}
+            wideScreenSingleWidgetColumn={showVerticalTimetableBesideWidgets}
+            onOpenHelp={layoutMode === "modern" ? () => setIsGuideModalOpen(true) : undefined}
             currentCourseListLabel={activeSemester.label}
             currentLayoutLabel={`${layoutMode[0].toUpperCase()}${layoutMode.slice(1)} planner`}
             courses={courses}
@@ -2638,7 +2808,10 @@ export default function FFCSTimetableTab() {
 
         {/* Right Panel: The Grid and Export */}
         {layoutMode !== "guided" && (
-          <div id="ffcs-timetable-grid" className="w-full space-y-6">
+          <div
+            id="ffcs-timetable-grid"
+            className={`w-full space-y-6 ${showVerticalTimetableBesideWidgets ? "xl:contents" : ""}`}
+          >
           {layoutMode === "classic" && (
           <div className="flex flex-wrap justify-between items-center gap-2 mb-2">
             {/* Social Score Widget */}
@@ -2789,7 +2962,11 @@ export default function FFCSTimetableTab() {
             </div>
           </div>
           )}
-          <div ref={captureRef} className="space-y-6 rounded-xl" data-tour-id="ffcs-grid">
+          <div
+            ref={captureRef}
+            className={`space-y-6 rounded-xl ${showVerticalTimetableBesideWidgets ? "xl:contents" : ""}`}
+            data-tour-id="ffcs-grid"
+          >
             {/* Header for the exported image */}
             <div className="hidden print:block p-4 mb-4 bg-surface-secondary rounded-xl border border-border-strong text-center">
               <h1 className="text-2xl font-bold text-text-heading">{activeTimetable.name}</h1>
@@ -2806,11 +2983,18 @@ export default function FFCSTimetableTab() {
               selectedGapDetails={selectedGapDetails}
               title="Unified Schedule"
               showLegend
+              forceView={showVerticalTimetableBesideWidgets ? "vertical" : undefined}
+              className={showVerticalTimetableBesideWidgets ? "xl:col-start-2 xl:row-start-1" : undefined}
             />
             
             {/* Bottom Panel: Selected Courses Table inside capture ref to include in image */}
             {courses.length > 0 ? (
-              <div className="bg-transparent md:card-surface border-0 md:border md:border-border-strong rounded-none md:rounded-2xl shadow-none md:shadow-xs text-text-primary p-0 md:p-6">
+              <div
+                data-testid="ffcs-selected-courses"
+                className={`bg-transparent md:card-surface border-0 md:border md:border-border-strong rounded-none md:rounded-2xl shadow-none md:shadow-xs text-text-primary p-0 md:p-6 ${
+                  showVerticalTimetableBesideWidgets ? "xl:col-span-full" : ""
+                }`}
+              >
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
                   <h2 className="text-xl font-bold text-text-heading flex flex-wrap items-center gap-2 w-full sm:w-auto">
                     Selected Courses
@@ -3115,7 +3299,12 @@ export default function FFCSTimetableTab() {
                 </div>
               </div>
             ) : (
-              <div className="card-surface border border-border-strong rounded-2xl p-8 text-center text-text-primary space-y-3 shadow-xs">
+              <div
+                data-testid="ffcs-selected-courses"
+                className={`card-surface border border-border-strong rounded-2xl p-8 text-center text-text-primary space-y-3 shadow-xs ${
+                  showVerticalTimetableBesideWidgets ? "xl:col-span-full" : ""
+                }`}
+              >
                 <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center mx-auto">
                   <BookOpen className="w-6 h-6" />
                 </div>
@@ -4074,6 +4263,123 @@ export default function FFCSTimetableTab() {
         theme={pdfGenerationTheme}
         onDismiss={() => setPdfBadgeMsg(null)}
       />
+
+      {isShareSheetOpen && (
+        <BottomSheet
+          onClose={() => setIsShareSheetOpen(false)}
+          overlayId="ffcs-share-options"
+          title="Share AmazeCC FFCS"
+          subtitle="Share your timetable or tell a friend about the planner."
+          icon={<Share2 className="w-5 h-5" />}
+          accent="bg-indigo-500/10 text-indigo-600 border-indigo-500/20 dark:text-indigo-400"
+          maxWidth="max-w-lg"
+        >
+          <div className="space-y-3">
+            <ListShell>
+              <button
+                type="button"
+                disabled={courses.length === 0}
+                onClick={() => {
+                  setIsShareSheetOpen(false);
+                  void handleSharePlan();
+                }}
+                className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-surface-secondary/60 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-indigo-500/10 text-indigo-600 border-indigo-500/20 dark:text-indigo-400">
+                  <ExternalLink className="w-4 h-4" />
+                </span>
+                <ListRowText title="Share as link" titleTag="span" subtitle="Create a link that opens this timetable." />
+              </button>
+              <button
+                type="button"
+                disabled={courses.length === 0}
+                onClick={() => {
+                  setIsShareSheetOpen(false);
+                  void handleSharePlanJson();
+                }}
+                className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-surface-secondary/60 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-violet-500/10 text-violet-600 border-violet-500/20 dark:text-violet-400">
+                  <Code2 className="w-4 h-4" />
+                </span>
+                <ListRowText title="Share as JSON" titleTag="span" subtitle="Share the selected timetable data." />
+              </button>
+              <button
+                type="button"
+                disabled={courses.length === 0 || isDownloading}
+                onClick={() => {
+                  setIsShareSheetOpen(false);
+                  void downloadImage("jpg");
+                }}
+                className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-surface-secondary/60 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-amber-500/10 text-amber-600 border-amber-500/20 dark:text-amber-400">
+                  <Image className="w-4 h-4" />
+                </span>
+                <ListRowText title="Share as JPG" titleTag="span" subtitle="Download a timetable image to send." />
+              </button>
+              <button
+                type="button"
+                disabled={courses.length === 0 || isDownloading}
+                onClick={() => {
+                  setIsShareSheetOpen(false);
+                  void downloadImage("png");
+                }}
+                className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-surface-secondary/60 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400">
+                  <Image className="w-4 h-4" />
+                </span>
+                <ListRowText title="Share as PNG" titleTag="span" subtitle="Download a high-quality transparent image." />
+              </button>
+              <button
+                type="button"
+                disabled={courses.length === 0 || isDownloading}
+                onClick={() => {
+                  setIsShareSheetOpen(false);
+                  void downloadDossierHtml();
+                }}
+                className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-surface-secondary/60 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-sky-500/10 text-sky-600 border-sky-500/20 dark:text-sky-400">
+                  <FileText className="w-4 h-4" />
+                </span>
+                <ListRowText title="Share as HTML" titleTag="span" subtitle="Download a standalone timetable dossier." />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsShareSheetOpen(false);
+                  void handleShareAmazeCC();
+                }}
+                className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-surface-secondary/60"
+              >
+                <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-fuchsia-500/10 text-fuchsia-600 border-fuchsia-500/20 dark:text-fuchsia-400">
+                  <Megaphone className="w-4 h-4" />
+                </span>
+                <ListRowText title="Share AmazeCC FFCS" titleTag="span" subtitle="Share the FFCS planner link with your friends." />
+              </button>
+            </ListShell>
+
+            {layoutMode === "modern" && (
+              <Link
+                href="/"
+                onClick={() => setIsShareSheetOpen(false)}
+                className="flex items-center gap-3 rounded-2xl border border-indigo-500/25 bg-gradient-to-r from-indigo-500/10 to-fuchsia-500/10 p-4 transition-colors hover:from-indigo-500/15 hover:to-fuchsia-500/15"
+              >
+                <span className="w-10 h-10 rounded-2xl border border-indigo-500/20 bg-surface flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+                  <LogIn className="w-4 h-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-bold text-text-heading">Sign in to AmazeCC</span>
+                  <span className="block text-xs text-muted-foreground mt-0.5">Save your plans and unlock more features.</span>
+                </span>
+                <ExternalLink className="w-4 h-4 text-muted-foreground shrink-0" />
+              </Link>
+            )}
+          </div>
+        </BottomSheet>
+      )}
 
       {/* Layout Mode Selection Modal */}
       <AnimatePresence>
