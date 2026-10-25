@@ -699,7 +699,6 @@ export default function FFCSTimetableTab() {
     }
     safeStorage.setItem("ffcs_layout_mode_prompt_seen", "true");
     if (mode === "guided") {
-      setGuidedSubView("adder");
       setGuidedInitialPhase("setup_mode");
       setIsGuidedFullScreen(true);
     }
@@ -710,7 +709,6 @@ export default function FFCSTimetableTab() {
     safeStorage.setItem("ffcs_layout_mode_prompt_seen", "true");
   };
 
-  const [guidedSubView, setGuidedSubView] = useState<"adder" | "timetable">("adder");
   const [guidedInitialPhase, setGuidedInitialPhase] = useState<GuidedPhase>("setup_mode");
 
   // Preferences live one level above the UI that consumes them: the tab owns
@@ -1835,8 +1833,8 @@ export default function FFCSTimetableTab() {
       } else if (key === "t") {
         e.preventDefault();
         if (layoutMode === "guided") {
-          setGuidedSubView("adder");
           setGuidedInitialPhase("setup_locks");
+          setIsGuidedFullScreen(true);
         } else {
           setIsCourseLockOpen(true);
         }
@@ -1999,7 +1997,6 @@ export default function FFCSTimetableTab() {
                 onChange={(value) => {
                   setLayoutMode(value as "guided" | "modern");
                   if (value === "guided") {
-                    setGuidedSubView("adder");
                     setGuidedInitialPhase("setup_mode");
                     setIsGuidedFullScreen(true);
                   }
@@ -2063,224 +2060,55 @@ export default function FFCSTimetableTab() {
       <div className="flex flex-col gap-6">
         
         {layoutMode === "guided" ? (
-          <div className="space-y-5">
-            {/* Guided Full-Screen Hero & Sub-View Switcher */}
-            <div className="relative overflow-hidden rounded-3xl bg-surface border border-border-strong p-4 sm:p-6 shadow-sm">
-              <div className="absolute top-0 right-0 -mt-8 -mr-8 w-44 h-44 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-              <div className="absolute bottom-0 left-0 -mb-8 -ml-8 w-44 h-44 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-
-              <div className="relative z-10 flex flex-col gap-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[10px] font-extrabold tracking-wider uppercase bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 px-2.5 py-0.5 rounded-full">
-                        Guided Flow
-                      </span>
-                      <span className="text-xs text-muted-foreground font-medium">
-                        {activeTimetable?.name} · {courses.length} courses added
-                      </span>
-                    </div>
-                    <h2 className="text-xl sm:text-2xl font-black text-text-heading tracking-tight">
-                      {guidedSubView === "adder" ? "Full-Screen Course Adder" : "Timetable & Course List"}
-                    </h2>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {guidedSubView === "adder"
-                        ? "Discover courses, check slot clashes live, and view faculty ratings."
-                        : "Review your full schedule, weekly hours, and course placements."}
-                    </p>
-                  </div>
-
-                  {/* Sub-view switcher: Adder vs Timetable */}
-                  <div className="flex items-center gap-2 self-start sm:self-auto">
-                    <SegmentedControl
-                      value={guidedSubView}
-                      onChange={(v) => setGuidedSubView(v as "adder" | "timetable")}
-                      options={[
-                        {
-                          value: "adder",
-                          label: "Course Adder",
-                          icon: <PlusCircle className="w-3.5 h-3.5 text-blue-500" />,
-                          title: "Switch to Guided Course Selector",
-                        },
-                        {
-                          value: "timetable",
-                          label: `Timetable (${courses.length})`,
-                          icon: <CalendarDays className="w-3.5 h-3.5 text-indigo-500" />,
-                          title: "Switch to Timetable & Course Schedule",
-                        },
-                      ]}
-                    />
-
-                    <button
-                      type="button"
-                      onClick={() => handleSelectLayoutMode("modern", true)}
-                      className="h-8 px-3 rounded-xl border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 text-xs font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
-                      title="Move back to Single Page Viewer Mode"
-                    >
-                      <ArrowLeft className="w-3.5 h-3.5" />
-                      <span>Single Page View</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setIsLayoutModalOpen(true)}
-                      className="h-8 w-8 rounded-xl border border-border-strong/80 bg-surface/80 hover:bg-surface text-xs font-semibold text-muted-foreground hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center justify-center shadow-2xs transition-all cursor-pointer"
-                      title="Choose layout experience"
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Sub-hero Metric & Action Strip */}
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-border-strong/50">
-                  <div className="flex items-center gap-2.5 flex-wrap">
-                    <button
-                      type="button"
-                      onClick={() => { setSheetEditingId(null); setIsTimetableModalOpen(true); }}
-                      className="bg-surface-secondary/70 border border-border-strong rounded-xl pl-3 pr-2.5 py-1.5 text-xs text-text-heading hover:bg-surface-secondary transition-all flex items-center gap-1.5 shadow-2xs group cursor-pointer"
-                    >
-                      <span className="font-bold truncate">{activeTimetable?.name || 'Select Timetable'}</span>
-                      <ChevronDown className="w-3 h-3 text-muted-foreground group-hover:text-text-heading" />
-                    </button>
-
-                    <button 
-                      type="button"
-                      onClick={createNewTimetable} 
-                      className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-3 py-1.5 rounded-xl transition-all duration-200 flex items-center gap-1 shadow-2xs text-xs shrink-0 cursor-pointer"
-                      title="Create New Timetable"
-                    >
-                      <Plus className="w-3 h-3" />
-                      <span>New</span>
-                    </button>
-
-                    <span className="text-xs font-bold px-2.5 py-1 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400">
-                      {getGroupedCourses(courses).reduce((sum, c) => sum + parseFloat(c.credits || "0"), 0)} Credits
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <button 
-                      type="button"
-                      onClick={() => {
-                        if (layoutMode === "guided") {
-                          setGuidedSubView("adder");
-                          setGuidedInitialPhase("setup_locks");
-                          setIsGuidedFullScreen(true);
-                        } else {
-                          setIsCourseLockOpen(true);
-                        }
-                      }}
-                      className="bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 text-xs font-semibold px-3 py-1.5 rounded-xl border border-purple-500/20 transition-all flex items-center gap-1.5 shadow-2xs relative cursor-pointer"
-                    >
-                      <Lock className="w-3.5 h-3.5" /> 
-                      <span>Target Courses</span>
-                      {courseLocks.length > 0 && (
-                        <span className="bg-purple-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
-                          {courseLocks.length}
-                        </span>
-                      )}
-                    </button>
-
-                    <button 
-                      type="button"
-                      onClick={() => setIsGeneratorOpen(true)}
-                      className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-semibold px-3 py-1.5 rounded-xl border border-amber-500/20 transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
-                    >
-                      <Wand2 className="w-3.5 h-3.5" /> 
-                      <span>Auto-Generate</span>
-                    </button>
-
-                    <button 
-                      type="button"
-                      onClick={() => setIsFacultyScheduleOpen(true)}
-                      className="bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 text-xs font-semibold px-3 py-1.5 rounded-xl border border-cyan-500/20 transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
-                    >
-                      <CalendarDays className="w-3.5 h-3.5" />
-                      <span>Faculty Schedule</span>
-                    </button>
-
-                    {guidedSubView === "adder" ? (
-                      <button
-                        type="button"
-                        onClick={() => setGuidedSubView("timetable")}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
-                      >
-                        <CalendarDays className="w-3.5 h-3.5" />
-                        <span>View Timetable ({courses.length})</span>
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setGuidedSubView("adder");
-                          setIsGuidedFullScreen(true);
-                        }}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
-                      >
-                        <PlusCircle className="w-3.5 h-3.5" />
-                        <span>+ Add More Courses</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* In Guided Mode: Render Adder when guidedSubView is adder */}
-            {guidedSubView === "adder" && (
-              <FFCSGuidedSelector
-                masterCourses={masterCourses}
-                uniqueCourses={uniqueCourses}
-                courses={courses}
-                activeTimetable={activeTimetable}
-                onAddCourse={handleAddGuidedCourse}
-                checkClashes={checkClashes}
-                isGroupingEnabled={isGroupingEnabled}
-                setIsGroupingEnabled={setIsGroupingEnabled}
-                renderTypeChips={renderTypeChips}
-                getBatchColorClass={getBatchColorClass}
-                courseAlternativesPool={courseAlternativesPool}
-                onOpenFacultyReview={(target) => setFacultyReviewTarget(target)}
-                onOpenPasteRegistered={() => setIsPasteRegisteredModalOpen(true)}
-                onOpenManualLinker={() => setIsManualLinkerOpen(true)}
-                onViewTimetable={() => setGuidedSubView("timetable")}
-                isFullScreen={isGuidedFullScreen}
-                onToggleFullScreen={setIsGuidedFullScreen}
-                onSwitchToSinglePageView={() => handleSelectLayoutMode("modern", true)}
-                timetables={timetables}
-                onSelectTimetable={setActiveTimetableId}
-                onCreateNewTimetable={createNewTimetable}
-                onRenameTimetable={(id, newName) => {
-                  const trimmed = newName.trim();
-                  if (trimmed) {
-                    setTimetables((prev) => prev.map((t) => (t.id === id ? { ...t, name: trimmed } : t)));
-                  }
-                }}
-                onDeleteTimetable={deleteTimetable}
-                onOpenGenerator={() => setIsGeneratorOpen(true)}
-                onOpenCourseLocks={() => {
-                  setGuidedSubView("adder");
-                  setGuidedInitialPhase("setup_locks");
-                  setIsGuidedFullScreen(true);
-                }}
-                initialGuidedPhase={guidedInitialPhase}
-                courseLocks={courseLocks}
-                setCourseLocks={setCourseLocks}
-                uniqueCourseCodes={uniqueCourseCodes}
-                onImportCourses={handleImportCourses}
-                onImportToTimetable={(added) => handleLoadRegisteredCourses(added, [], false)}
-                onOpenFacultySchedule={handleOpenFacultySchedule}
-                friends={friends}
-                friendGroups={friendGroups}
-                socialScoreGroupMethod={socialScoreGroupMethod}
-                blockedSlots={blockedSlots}
-                setBlockedSlots={setBlockedSlots}
-                onToggleBlockSlot={toggleBlockSlot}
-                settings={settings}
-              />
-            )}
-          </div>
+          <FFCSGuidedSelector
+            masterCourses={masterCourses}
+            uniqueCourses={uniqueCourses}
+            courses={courses}
+            activeTimetable={activeTimetable}
+            onAddCourse={handleAddGuidedCourse}
+            checkClashes={checkClashes}
+            isGroupingEnabled={isGroupingEnabled}
+            setIsGroupingEnabled={setIsGroupingEnabled}
+            renderTypeChips={renderTypeChips}
+            getBatchColorClass={getBatchColorClass}
+            courseAlternativesPool={courseAlternativesPool}
+            onOpenFacultyReview={(target) => setFacultyReviewTarget(target)}
+            onOpenPasteRegistered={() => setIsPasteRegisteredModalOpen(true)}
+            onOpenManualLinker={() => setIsManualLinkerOpen(true)}
+            onViewTimetable={() => handleSelectLayoutMode("modern", true)}
+            isFullScreen={isGuidedFullScreen}
+            onToggleFullScreen={setIsGuidedFullScreen}
+            onSwitchToSinglePageView={() => handleSelectLayoutMode("modern", true)}
+            timetables={timetables}
+            onSelectTimetable={setActiveTimetableId}
+            onCreateNewTimetable={createNewTimetable}
+            onRenameTimetable={(id, newName) => {
+              const trimmed = newName.trim();
+              if (trimmed) {
+                setTimetables((prev) => prev.map((t) => (t.id === id ? { ...t, name: trimmed } : t)));
+              }
+            }}
+            onDeleteTimetable={deleteTimetable}
+            onOpenGenerator={() => setIsGeneratorOpen(true)}
+            onOpenCourseLocks={() => {
+              setGuidedInitialPhase("setup_locks");
+              setIsGuidedFullScreen(true);
+            }}
+            initialGuidedPhase={guidedInitialPhase}
+            courseLocks={courseLocks}
+            setCourseLocks={setCourseLocks}
+            uniqueCourseCodes={uniqueCourseCodes}
+            onImportCourses={handleImportCourses}
+            onImportToTimetable={(added) => handleLoadRegisteredCourses(added, [], false)}
+            onOpenFacultySchedule={handleOpenFacultySchedule}
+            friends={friends}
+            friendGroups={friendGroups}
+            socialScoreGroupMethod={socialScoreGroupMethod}
+            blockedSlots={blockedSlots}
+            setBlockedSlots={setBlockedSlots}
+            onToggleBlockSlot={toggleBlockSlot}
+            settings={settings}
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Modern Timetable Manager */}
@@ -2363,12 +2191,12 @@ export default function FFCSTimetableTab() {
                       type="text" 
                       value={editNameValue}
                       onChange={e => setEditNameValue(e.target.value)}
-                      className="flex-1 bg-surface border border-border-strong rounded-xl px-3 py-1.5 text-sm text-text-heading focus:outline-none focus:border-blue-500/50"
+                      className="flex-1 bg-surface border border-border-strong rounded-xl px-3 py-1.5 text-base sm:text-sm text-text-heading focus:outline-none focus:border-blue-500/50"
                       placeholder="New name..."
                     />
                     <button 
                       onClick={handleRenameSubmit}
-                      className="bg-green-500/20 text-green-400 p-2 rounded-xl border border-green-500/20 hover:bg-green-500/30"
+                      className="bg-green-500/20 text-green-400 p-2 rounded-xl border border-green-500/20 hover:bg-green-500/30 relative hit-expand touch-press active:scale-[0.95]"
                     >
                       <Check className="w-4 h-4" />
                     </button>
@@ -2723,7 +2551,7 @@ export default function FFCSTimetableTab() {
         )}
 
         {/* Right Panel: The Grid and Export */}
-        {(layoutMode !== "guided" || guidedSubView === "timetable") && (
+        {layoutMode !== "guided" && (
           <div id="ffcs-timetable-grid" className="w-full space-y-6">
           <div className="flex flex-wrap justify-between items-center gap-2 mb-2">
             {/* Social Score Widget */}
@@ -2987,7 +2815,7 @@ export default function FFCSTimetableTab() {
                               onClick={() => {
                                 c.ids.forEach(id => handleRemoveCourse(id));
                               }}
-                              className="text-muted-foreground hover:text-red-400 p-1.5 rounded-lg hover:bg-red-500/10 transition-colors shrink-0"
+                              className="text-muted-foreground hover:text-red-400 p-1.5 rounded-lg hover:bg-red-500/10 transition-colors shrink-0 relative hit-expand touch-press active:scale-[0.95]"
                               title="Remove Course"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -3006,7 +2834,7 @@ export default function FFCSTimetableTab() {
                                 type="button"
                                 onClick={() => setSlotSwapRow({ code: c.code, title: c.title, ids: c.ids ?? [c.id] })}
                                 title={facultyCountTitle}
-                                className="flex items-center gap-1.5 text-xs text-text-heading/90 hover:text-blue-500 transition-colors cursor-pointer min-w-0"
+                                className="flex items-center gap-1.5 text-xs text-text-heading/90 hover:text-blue-500 transition-colors cursor-pointer min-w-0 touch-press active:scale-[0.98]"
                               >
                                 <span className="truncate max-w-[130px] font-medium">{c.faculty}</span>
                                 <span
@@ -3208,16 +3036,6 @@ export default function FFCSTimetableTab() {
                 <p className="text-xs text-muted-foreground max-w-sm mx-auto">
                   Your timetable grid is currently empty. Use the course adder to search courses, verify conflicts, and schedule your semester.
                 </p>
-                {layoutMode === "guided" && (
-                  <button
-                    type="button"
-                    onClick={() => setGuidedSubView("adder")}
-                    className="py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md transition-all inline-flex items-center gap-2 cursor-pointer active:scale-95"
-                  >
-                    <PlusCircle className="w-4 h-4" />
-                    <span>Launch Course Adder</span>
-                  </button>
-                )}
               </div>
             )}
           </div>
@@ -3383,7 +3201,7 @@ export default function FFCSTimetableTab() {
                       placeholder="Group Name (e.g., Gaming Squad)" 
                       value={newGroupName}
                       onChange={e => setNewGroupName(e.target.value)}
-                      className="w-full bg-surface border border-border-strong rounded-lg px-3 py-2 text-sm text-text-heading focus:outline-none focus:border-pink-500/50"
+                      className="w-full bg-surface border border-border-strong rounded-lg px-3 py-2 text-base sm:text-sm text-text-heading focus:outline-none focus:border-pink-500/50"
                     />
                     <div className="max-h-32 overflow-y-auto custom-scrollbar border border-border-strong rounded-lg bg-surface p-2">
                       {friends.length === 0 ? (
@@ -3483,7 +3301,7 @@ export default function FFCSTimetableTab() {
               value={pendingFriendName}
               onChange={(e) => setPendingFriendName(e.target.value)}
               placeholder="E.g., Rahul"
-              className="w-full bg-surface-secondary/30 border border-border-strong rounded-xl px-4 py-3 text-sm text-text-heading focus:outline-none focus:border-pink-500/50 focus:ring-1 focus:ring-pink-500/50 transition-all"
+              className="w-full bg-surface-secondary/30 border border-border-strong rounded-xl px-4 py-3 text-base sm:text-sm text-text-heading focus:outline-none focus:border-pink-500/50 focus:ring-1 focus:ring-pink-500/50 transition-all"
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleSaveFriend();
@@ -3864,14 +3682,14 @@ export default function FFCSTimetableTab() {
                             if (e.key === 'Enter') submitSheetRename(t.id);
                             if (e.key === 'Escape') setSheetEditingId(null);
                           }}
-                          className="flex-1 min-w-0 bg-surface border border-border-strong rounded-lg px-3 py-1.5 text-sm text-text-heading focus:outline-none focus:border-blue-500/50"
+                          className="flex-1 min-w-0 bg-surface border border-border-strong rounded-lg px-3 py-1.5 text-base sm:text-sm text-text-heading focus:outline-none focus:border-blue-500/50"
                           placeholder="New name..."
                           aria-label="Timetable name"
                         />
                         <button
                           type="button"
                           onClick={() => submitSheetRename(t.id)}
-                          className="shrink-0 bg-green-500/20 text-green-400 p-1.5 rounded-lg border border-green-500/20 hover:bg-green-500/30"
+                          className="shrink-0 bg-green-500/20 text-green-400 p-1.5 rounded-lg border border-green-500/20 hover:bg-green-500/30 relative hit-expand touch-press active:scale-[0.95]"
                           title="Save name"
                           aria-label="Save name"
                         >
@@ -3880,7 +3698,7 @@ export default function FFCSTimetableTab() {
                         <button
                           type="button"
                           onClick={() => setSheetEditingId(null)}
-                          className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-text-heading hover:bg-surface-secondary transition-colors"
+                          className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-text-heading hover:bg-surface-secondary transition-colors relative hit-expand touch-press active:scale-[0.95]"
                           title="Cancel rename"
                           aria-label="Cancel rename"
                         >

@@ -1,6 +1,6 @@
 import React from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import FFCSGuidedSelector from "../components/custom/exams/FFCS/components/FFCSGuidedSelector";
 import type { ParsedCourse, AddedCourse, TimetableState } from "../components/custom/exams/FFCS/types";
 
@@ -603,7 +603,7 @@ describe("FFCSGuidedSelector", () => {
     expect(onToggleBlockSlot).toHaveBeenCalledWith("D1");
   });
 
-  it("renders the Plan button and invokes onSwitchToSinglePageView when clicked", () => {
+  it("renders the Single Page View (Plan) button and invokes onSwitchToSinglePageView when clicked", () => {
     const onSwitchToSinglePageView = vi.fn();
     render(
       <FFCSGuidedSelector
@@ -615,7 +615,7 @@ describe("FFCSGuidedSelector", () => {
       />
     );
 
-    const planBtn = screen.getByRole("button", { name: /Plan/i });
+    const planBtn = screen.getByRole("button", { name: /Single Page View|Plan/i });
     expect(planBtn).toBeDefined();
     fireEvent.click(planBtn);
     expect(onSwitchToSinglePageView).toHaveBeenCalledTimes(1);
@@ -804,5 +804,113 @@ describe("FFCSGuidedSelector", () => {
     const doneBtn = screen.getByRole("button", { name: /Done \/ View Grid/i });
     expect(doneBtn).toBeDefined();
     expect(doneBtn.className).toContain("whitespace-nowrap");
+  });
+
+  it("renders mobile pre-flight launch screen when on mobile viewport and has not launched yet", async () => {
+    const originalInnerWidth = window.innerWidth;
+    window.innerWidth = 375;
+    const onSwitchToSinglePageView = vi.fn();
+
+    const requestFullscreenMock = vi.fn().mockResolvedValue(undefined);
+    document.documentElement.requestFullscreen = requestFullscreenMock;
+
+    render(
+      <FFCSGuidedSelector
+        masterCourses={mockMasterCourses}
+        activeTimetable={mockTimetables[0]}
+        courses={mockTimetables[0].courses}
+        onAddCourse={vi.fn()}
+        initialHasLaunchedHero={false}
+        onSwitchToSinglePageView={onSwitchToSinglePageView}
+      />
+    );
+
+    // Should display Mobile Pre-Flight screen
+    expect(screen.getByTestId("mobile-preflight-screen")).toBeDefined();
+    expect(screen.getByText("FFCS Mobile Generator")).toBeDefined();
+    expect(screen.getByText("Mobile-First Timetable Builder")).toBeDefined();
+
+    // Single Page View button calls onSwitchToSinglePageView
+    const singlePageBtn = screen.getByTestId("switch-to-single-page-btn");
+    fireEvent.click(singlePageBtn);
+    expect(onSwitchToSinglePageView).toHaveBeenCalledTimes(1);
+
+    // Clicking Enter Full Screen & Start invokes native fullscreen and enters the hero
+    const startFullscreenBtn = screen.getByTestId("enter-fullscreen-start-btn");
+    await act(async () => {
+      fireEvent.click(startFullscreenBtn);
+    });
+
+    expect(requestFullscreenMock).toHaveBeenCalled();
+    // After launching, pre-flight screen is replaced by normal hero flow
+    expect(screen.queryByTestId("mobile-preflight-screen")).toBeNull();
+    expect(screen.getByText("Choose Creation Mode")).toBeDefined();
+
+    window.innerWidth = originalInnerWidth;
+  });
+
+  it("allows continuing in window from mobile pre-flight screen without fullscreen", async () => {
+    const originalInnerWidth = window.innerWidth;
+    window.innerWidth = 375;
+
+    render(
+      <FFCSGuidedSelector
+        masterCourses={mockMasterCourses}
+        activeTimetable={mockTimetables[0]}
+        courses={mockTimetables[0].courses}
+        onAddCourse={vi.fn()}
+        initialHasLaunchedHero={false}
+      />
+    );
+
+    expect(screen.getByTestId("mobile-preflight-screen")).toBeDefined();
+    const continueBtn = screen.getByTestId("start-in-window-btn");
+    fireEvent.click(continueBtn);
+
+    expect(screen.queryByTestId("mobile-preflight-screen")).toBeNull();
+    expect(screen.getByText("Choose Creation Mode")).toBeDefined();
+
+    window.innerWidth = originalInnerWidth;
+  });
+
+  it("invokes native fullscreen toggle API and responds to fullscreenchange events", async () => {
+    const requestFullscreenMock = vi.fn().mockResolvedValue(undefined);
+    const exitFullscreenMock = vi.fn().mockResolvedValue(undefined);
+    document.documentElement.requestFullscreen = requestFullscreenMock;
+    document.exitFullscreen = exitFullscreenMock;
+
+    const onToggleFullScreen = vi.fn();
+
+    render(
+      <FFCSGuidedSelector
+        masterCourses={mockMasterCourses}
+        activeTimetable={mockTimetables[0]}
+        courses={mockTimetables[0].courses}
+        onAddCourse={vi.fn()}
+        isFullScreen={false}
+        onToggleFullScreen={onToggleFullScreen}
+      />
+    );
+
+    // Click Enter Fullscreen button
+    const toggleBtn = screen.getByTitle("Enter Fullscreen");
+    await act(async () => {
+      fireEvent.click(toggleBtn);
+    });
+
+    expect(requestFullscreenMock).toHaveBeenCalled();
+    expect(onToggleFullScreen).toHaveBeenCalledWith(true);
+
+    // Simulate fullscreen change event when user exits fullscreen in browser
+    Object.defineProperty(document, "fullscreenElement", {
+      configurable: true,
+      value: null,
+    });
+
+    act(() => {
+      document.dispatchEvent(new Event("fullscreenchange"));
+    });
+
+    expect(onToggleFullScreen).toHaveBeenCalledWith(false);
   });
 });

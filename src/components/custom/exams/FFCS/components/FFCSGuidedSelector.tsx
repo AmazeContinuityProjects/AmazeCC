@@ -45,6 +45,8 @@ import {
   Eye,
   LayoutGrid,
   LayoutDashboard,
+  Smartphone,
+  Download,
 } from "lucide-react";
 import { Switch, SegmentedControl } from "../../../shared/primitives";
 import { FacultyAvatar, VitfacReviewPill } from "./FacultyReviewSheet";
@@ -58,10 +60,68 @@ import { getTimetableSchema } from "@/lib/campusSchema";
 import { timetableMetrics, type SortBy } from "@/lib/timetableMetrics";
 import type { RankingMode } from "@/lib/ffcsRanking";
 import type { FFCSSettings } from "@/lib/ffcsSettings";
+import { usePwaInstall } from "@/lib/pwaInstall";
 import SlotFacultySwapSheet from "./SlotFacultySwapSheet";
 import VerticalTimetableGrid from "@/components/custom/timetable/VerticalTimetableGrid";
 import { toMinutes } from "@/lib/social/schedule";
 import { ensureLunchPeriod } from "@/lib/slots";
+
+export function requestNativeFullscreen(element?: HTMLElement): Promise<void> {
+  if (typeof document === "undefined") return Promise.resolve();
+  const target = element || document.documentElement;
+  if (!target) return Promise.resolve();
+
+  try {
+    if (typeof target.requestFullscreen === "function") {
+      return target.requestFullscreen().catch(() => {});
+    }
+    const elWithWebkit = target as HTMLElement & {
+      webkitRequestFullscreen?: () => Promise<void> | void;
+      webkitRequestFullScreen?: () => Promise<void> | void;
+    };
+    if (typeof elWithWebkit.webkitRequestFullscreen === "function") {
+      return Promise.resolve(elWithWebkit.webkitRequestFullscreen());
+    }
+    if (typeof elWithWebkit.webkitRequestFullScreen === "function") {
+      return Promise.resolve(elWithWebkit.webkitRequestFullScreen());
+    }
+  } catch {
+    // Ignore fullscreen request rejection
+  }
+  return Promise.resolve();
+}
+
+export function exitNativeFullscreen(): Promise<void> {
+  if (typeof document === "undefined") return Promise.resolve();
+
+  try {
+    const docWithWebkit = document as Document & {
+      webkitExitFullscreen?: () => Promise<void> | void;
+      webkitCancelFullScreen?: () => Promise<void> | void;
+      fullscreenElement?: Element | null;
+      webkitFullscreenElement?: Element | null;
+    };
+
+    const isCurrentlyFullscreen = Boolean(
+      document.fullscreenElement || docWithWebkit.webkitFullscreenElement
+    );
+
+    if (!isCurrentlyFullscreen) return Promise.resolve();
+
+    if (typeof document.exitFullscreen === "function") {
+      return document.exitFullscreen().catch(() => {});
+    }
+    if (typeof docWithWebkit.webkitExitFullscreen === "function") {
+      return Promise.resolve(docWithWebkit.webkitExitFullscreen());
+    }
+    if (typeof docWithWebkit.webkitCancelFullScreen === "function") {
+      return Promise.resolve(docWithWebkit.webkitCancelFullScreen());
+    }
+  } catch {
+    // Ignore exit fullscreen rejection
+  }
+  return Promise.resolve();
+}
 
 export type GuidedPhase =
   | "setup_mode"
@@ -112,6 +172,7 @@ export interface FFCSGuidedSelectorProps {
   onOpenGenerator?: () => void;
   onOpenCourseLocks?: () => void;
   initialGuidedPhase?: GuidedPhase;
+  initialHasLaunchedHero?: boolean;
   initialStep?: GuidedStep;
   initialPlanMode?: PlanMode;
   onApplyTimetable?: (courses: AddedCourse[]) => void;
@@ -482,6 +543,7 @@ export default function FFCSGuidedSelector({
   onOpenGenerator,
   onOpenCourseLocks,
   initialGuidedPhase,
+  initialHasLaunchedHero,
   initialStep = 1,
   initialPlanMode = "custom",
   onApplyTimetable,
@@ -783,6 +845,24 @@ export default function FFCSGuidedSelector({
   const [slotFilter, setSlotFilter] = useState<string>("all");
   const [addedJustNow, setAddedJustNow] = useState<{ code: string; isReplacement: boolean } | null>(null);
   const [fullScreenMode, setFullScreenMode] = useState<boolean>(isFullScreen);
+  const [hasLaunchedHero, setHasLaunchedHero] = useState<boolean>(() => {
+    if (initialHasLaunchedHero !== undefined) {
+      return initialHasLaunchedHero;
+    }
+    if (typeof window !== "undefined" && window.innerWidth >= 768) {
+      return true;
+    }
+    return false;
+  });
+
+  const { canInstall, promptInstall } = usePwaInstall();
+  const isPwaStandalone = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    return Boolean(
+      window.matchMedia?.("(display-mode: standalone)")?.matches ||
+        (window.navigator as unknown as { standalone?: boolean })?.standalone
+    );
+  }, []);
 
   useEffect(() => {
     if (isFullScreen !== undefined) {
@@ -790,11 +870,45 @@ export default function FFCSGuidedSelector({
     }
   }, [isFullScreen]);
 
-  const handleToggleFullScreen = () => {
+  const handleToggleFullScreen = async () => {
     const next = !fullScreenMode;
     setFullScreenMode(next);
     onToggleFullScreen?.(next);
+
+    if (next) {
+      await requestNativeFullscreen();
+    } else {
+      await exitNativeFullscreen();
+    }
   };
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    const handleFullscreenChange = () => {
+      const docWithWebkit = document as Document & {
+        webkitFullscreenElement?: Element | null;
+      };
+      const isNativeFullscreen = Boolean(
+        document.fullscreenElement || docWithWebkit.webkitFullscreenElement
+      );
+      if (!isNativeFullscreen && fullScreenMode) {
+        setFullScreenMode(false);
+        onToggleFullScreen?.(false);
+      } else if (isNativeFullscreen && !fullScreenMode) {
+        setFullScreenMode(true);
+        onToggleFullScreen?.(true);
+      }
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
+    };
+  }, [fullScreenMode, onToggleFullScreen]);
 
   useEffect(() => {
     if (fullScreenMode && typeof document !== "undefined") {
@@ -4899,6 +5013,148 @@ export default function FFCSGuidedSelector({
     return manualPhases;
   };
 
+  const isMobileViewport = viewportDimensions.width > 0 && viewportDimensions.width < 768;
+
+  if (isMobileViewport && !hasLaunchedHero) {
+    return (
+      <div
+        data-testid="mobile-preflight-screen"
+        style={{ zoom: 0.85 }}
+        className={
+          fullScreenMode
+            ? "fixed inset-0 z-50 bg-zinc-950 text-zinc-100 flex flex-col justify-between overflow-y-auto select-none p-5 sm:p-8 animate-in fade-in duration-300 [zoom:0.85]"
+            : "relative w-full rounded-[32px] bg-zinc-950 text-zinc-100 flex flex-col justify-between overflow-hidden select-none p-5 sm:p-8 shadow-2xl border border-zinc-800 min-h-[580px] [zoom:0.85]"
+        }
+      >
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute -top-32 right-0 w-64 h-64 rounded-full bg-indigo-600/20 blur-[120px]" />
+          <div className="absolute -bottom-32 left-0 w-64 h-64 rounded-full bg-violet-600/20 blur-[120px]" />
+        </div>
+
+        <div className="relative z-10 w-full max-w-md mx-auto flex-1 flex flex-col justify-center gap-5 my-auto">
+          {/* Top badge & Status */}
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-extrabold tracking-wider uppercase bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
+              <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+              <span>FFCS Mobile Generator</span>
+            </span>
+
+            {isPwaStandalone ? (
+              <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" />
+                <span>App Installed</span>
+              </span>
+            ) : canInstall ? (
+              <span className="text-[11px] font-semibold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-1 rounded-full flex items-center gap-1">
+                <Smartphone className="w-3 h-3" />
+                <span>PWA Ready</span>
+              </span>
+            ) : null}
+          </div>
+
+          {/* Title and subtitle */}
+          <div className="space-y-1.5">
+            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight font-outfit">
+              Mobile-First Timetable Builder
+            </h1>
+            <p className="text-xs text-zinc-400 leading-relaxed">
+              Step-by-step mobile timetable designer with live clash checking, faculty ratings, and fast multi-timetable switching.
+            </p>
+          </div>
+
+          {/* Feature Highlight Pills */}
+          <div className="grid grid-cols-1 gap-2.5">
+            <div className="flex items-center gap-3 p-3 rounded-2xl bg-zinc-900/80 border border-zinc-800">
+              <div className="w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center shrink-0">
+                <Wand2 className="w-4 h-4 text-indigo-400" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-zinc-200">Clash-Free Timetable Generator</p>
+                <p className="text-[11px] text-zinc-400 truncate">Automatic ranking with preferred slots and timings</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3 rounded-2xl bg-zinc-900/80 border border-zinc-800">
+              <div className="w-8 h-8 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center shrink-0">
+                <Users className="w-4 h-4 text-purple-400" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-zinc-200">Faculty Ratings & Swapping</p>
+                <p className="text-[11px] text-zinc-400 truncate">Compare faculty scores and swap slots seamlessly</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3 rounded-2xl bg-zinc-900/80 border border-zinc-800">
+              <div className="w-8 h-8 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center shrink-0">
+                <CalendarDays className="w-4 h-4 text-blue-400" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-zinc-200">Multi-Timetable Browser</p>
+                <p className="text-[11px] text-zinc-400 truncate">Switch, create, and manage schedules side-by-side</p>
+              </div>
+            </div>
+          </div>
+
+          {/* PWA Install Button */}
+          {canInstall && !isPwaStandalone && (
+            <button
+              type="button"
+              data-testid="pwa-install-btn"
+              onClick={promptInstall}
+              className="w-full py-2.5 px-4 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm active:scale-98"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Install App</span>
+            </button>
+          )}
+
+          {/* Actions */}
+          <div className="flex flex-col gap-2 pt-2">
+            <button
+              type="button"
+              data-testid="enter-fullscreen-start-btn"
+              onClick={async () => {
+                try {
+                  await requestNativeFullscreen();
+                } catch {}
+                setFullScreenMode(true);
+                onToggleFullScreen?.(true);
+                setHasLaunchedHero(true);
+              }}
+              className="w-full py-3.5 px-5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm shadow-xl shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer font-outfit tracking-wide"
+            >
+              <Maximize2 className="w-4 h-4" />
+              <span>Enter Full Screen & Start</span>
+            </button>
+
+            <button
+              type="button"
+              data-testid="start-in-window-btn"
+              onClick={() => {
+                setHasLaunchedHero(true);
+              }}
+              className="w-full py-2.5 px-4 rounded-xl bg-zinc-900/60 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+            >
+              <span>Continue in Window</span>
+            </button>
+
+            {onSwitchToSinglePageView && (
+              <button
+                type="button"
+                data-testid="switch-to-single-page-btn"
+                onClick={onSwitchToSinglePageView}
+                className="w-full py-2 px-3 text-xs text-zinc-400 hover:text-zinc-200 font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer mt-1"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Single Page View</span>
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       data-testid="guided-hero-container"
@@ -4996,10 +5252,10 @@ export default function FFCSGuidedSelector({
                     type="button"
                     onClick={onSwitchToSinglePageView}
                     className="h-8 px-2.5 rounded-xl bg-zinc-900/60 border border-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-800/80 flex items-center gap-1.5 text-xs font-semibold transition-colors cursor-pointer"
-                    title="Switch to Plan View"
+                    title="Switch to Single Page View"
                   >
                     <ArrowLeft className="w-3.5 h-3.5 text-blue-400" />
-                    <span>Plan</span>
+                    <span>Single Page View (Plan)</span>
                   </button>
                 )}
                 <button
@@ -5413,10 +5669,10 @@ export default function FFCSGuidedSelector({
                   type="button"
                   onClick={onSwitchToSinglePageView}
                   className="h-8 px-2.5 rounded-xl bg-zinc-900/60 border border-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-800/80 flex items-center gap-1.5 text-xs font-semibold transition-colors cursor-pointer"
-                  title="Switch to Plan View"
+                  title="Switch to Single Page View"
                 >
                   <ArrowLeft className="w-3.5 h-3.5 text-blue-400" />
-                  <span>Plan</span>
+                  <span>Single Page View (Plan)</span>
                 </button>
               )}
               <button

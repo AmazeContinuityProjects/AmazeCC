@@ -236,8 +236,11 @@ describe("FFCSTimetableTab", () => {
     expect(screen.getAllByText("DR BOB").length).toBeGreaterThan(0);
   }, 30_000);
 
-  it("automatically greets the user with full-screen hero when clicking on Guided", async () => {
+  it("automatically greets the user with full-screen hero when clicking on Guided, removing legacy banner and grid", async () => {
     render(<FFCSTimetableTab />);
+
+    // Initially in modern mode: timetable grid is in DOM
+    expect(document.getElementById("ffcs-timetable-grid")).not.toBeNull();
 
     // Click on Guided in the layout SegmentedControl
     const guidedButton = screen.getByTitle("Step-by-step mobile-first course selector");
@@ -246,5 +249,18 @@ describe("FFCSTimetableTab", () => {
     // Should display Guided Hero with full-screen exit button and mode selection
     expect(screen.getByTitle("Exit Fullscreen")).toBeDefined();
     expect(screen.getByText("Choose Creation Mode")).toBeDefined();
+
+    // Legacy banner card and controls must NOT be present
+    expect(screen.queryByText("Guided Flow")).toBeNull();
+    expect(screen.queryByText("Full-Screen Course Adder")).toBeNull();
+
+    // Standard timetable grid must NOT be rendered in guided mode
+    expect(document.getElementById("ffcs-timetable-grid")).toBeNull();
+
+    // Clicking Single Page View restores modern layout and timetable grid
+    const singlePageViewBtn = screen.getByTitle("Switch to Single Page View");
+    fireEvent.click(singlePageViewBtn);
+
+    expect(document.getElementById("ffcs-timetable-grid")).not.toBeNull();
   }, 30_000);
 });
