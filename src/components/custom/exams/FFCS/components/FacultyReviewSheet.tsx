@@ -75,7 +75,7 @@ export interface FacultyAvatarProps {
   name?: string | null;
   fallbackImageUrl?: string | null;
   size?: "xs" | "sm" | "md" | "lg" | "xl";
-  tone?: "blue" | "amber" | "indigo";
+  tone?: "blue" | "amber" | "indigo" | "zinc";
   className?: string;
   alt?: string;
 }
@@ -123,6 +123,7 @@ export function FacultyAvatar({
     blue: "bg-blue-500/10 border-blue-500/20 text-blue-500",
     amber: "bg-amber-500/10 border-amber-500/20 text-amber-500",
     indigo: "bg-indigo-500/10 border-indigo-500/20 text-indigo-500",
+    zinc: "bg-zinc-800/40 border-zinc-700/40 text-zinc-500",
   }[tone];
 
   const initials = getFacultyInitials(name, review?.avatar);
@@ -163,11 +164,19 @@ export default function FacultyReviewSheet({
   const { review, loading } = useVitfacReview(employeeId, facultyName);
   const [bundle, setBundle] = useState<VitfacProfileBundle | null>(null);
   const [loadingBundle, setLoadingBundle] = useState(false);
+  const [activeCourseFilter, setActiveCourseFilter] = useState<string>("global");
 
   useEffect(() => {
     if (!open) {
       setBundle(null);
+      setActiveCourseFilter("global");
       return;
+    }
+
+    if (courseCode) {
+      setActiveCourseFilter(courseCode.toUpperCase());
+    } else {
+      setActiveCourseFilter("global");
     }
 
     const targetId = review?.id || employeeId;
@@ -179,24 +188,35 @@ export default function FacultyReviewSheet({
         })
         .finally(() => setLoadingBundle(false));
     }
-  }, [open, review?.id, employeeId]);
+  }, [open, review?.id, employeeId, courseCode]);
 
   if (!ENABLE_VITFAC_INTEGRATION || !open) return null;
 
   const prof = bundle?.prof || review;
   const profileUrl = prof?.id || employeeId ? getVitfacProfileUrl(prof?.id || employeeId!) : "https://vitfac.pages.dev";
 
-  const wPct = prof ? prof.wPct : 0;
-  const reviewsCount = prof ? prof.reviews : 0;
-  const wCount = prof ? prof.wCount : 0;
-  const lCount = prof ? prof.lCount : 0;
+  const availableCourses = bundle?.courseStats?.courses || [];
+  const selectedCourseStat =
+    activeCourseFilter !== "global"
+      ? availableCourses.find(
+          (c) => c.code.toUpperCase() === activeCourseFilter.toUpperCase()
+        )
+      : null;
 
-  const lecture = prof?.metrics?.lecture ?? 0;
-  const da = prof?.metrics?.da ?? 0;
-  const vibe = prof?.metrics?.vibe ?? 0;
+  // Harmonize stats: prioritize course selection -> global courseStats -> prof summary
+  const activeStats = selectedCourseStat || bundle?.courseStats?.global || null;
 
-  const greenLore = prof?.lore?.green || [];
-  const redLore = prof?.lore?.red || [];
+  const wPct = activeStats?.wPct ?? prof?.wPct ?? 0;
+  const reviewsCount = activeStats?.reviews ?? prof?.reviews ?? 0;
+  const wCount = Math.round((wPct / 100) * reviewsCount);
+  const lCount = Math.max(0, reviewsCount - wCount);
+
+  const lecture = activeStats?.metrics?.lecture ?? prof?.metrics?.lecture ?? 0;
+  const da = activeStats?.metrics?.da ?? prof?.metrics?.da ?? 0;
+  const vibe = activeStats?.metrics?.vibe ?? prof?.metrics?.vibe ?? 0;
+
+  const greenLore = activeStats?.lore?.green ?? prof?.lore?.green ?? [];
+  const redLore = activeStats?.lore?.red ?? prof?.lore?.red ?? [];
 
   return (
     <BottomSheet
@@ -262,6 +282,47 @@ export default function FacultyReviewSheet({
         </div>
       ) : (
         <>
+          {/* Subject Filter Bar (matching vitfac subject toggle) */}
+          {availableCourses.length > 0 && (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                <span>Filter by Course</span>
+                {selectedCourseStat && (
+                  <span className="text-amber-500 font-semibold lowercase">
+                    showing {selectedCourseStat.code} stats
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-1">
+                <button
+                  type="button"
+                  onClick={() => setActiveCourseFilter("global")}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+                    activeCourseFilter === "global"
+                      ? "bg-amber-500 text-white font-bold shadow-xs"
+                      : "bg-surface-secondary text-muted-foreground hover:text-text-heading border border-border-strong/70"
+                  }`}
+                >
+                  All Courses ({bundle?.courseStats?.global?.reviews ?? reviewsCount})
+                </button>
+                {availableCourses.map((c) => (
+                  <button
+                    key={c.code}
+                    type="button"
+                    onClick={() => setActiveCourseFilter(c.code)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+                      activeCourseFilter.toUpperCase() === c.code.toUpperCase()
+                        ? "bg-amber-500 text-white font-bold shadow-xs"
+                        : "bg-surface-secondary text-muted-foreground hover:text-text-heading border border-border-strong/70"
+                    }`}
+                  >
+                    {c.code} ({c.reviews})
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Win / Loss Rating Hero */}
           <div className="bg-surface rounded-2xl border border-border-strong p-4 shadow-xs space-y-3">
             <div className="flex items-center justify-between">

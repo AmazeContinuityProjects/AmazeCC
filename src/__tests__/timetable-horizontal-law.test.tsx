@@ -126,4 +126,13 @@ describe("a law course in the horizontal grid", () => {
     expect(cell).toContain("L34");
     expect(cell).not.toContain("TLAW524L");
   });
+
+  it("renders light mode compatible classes on ModernHorizontalTimetableGrid", () => {
+    const { container } = renderGrid();
+    const root = container.firstElementChild as HTMLElement;
+    expect(root.className).toContain("bg-white");
+    expect(root.className).toContain("dark:bg-[#0c1222]");
+    expect(root.className).toContain("border-slate-200");
+    expect(root.className).toContain("dark:border-white/10");
+  });
 });

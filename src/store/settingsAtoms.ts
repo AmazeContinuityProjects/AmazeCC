@@ -49,7 +49,7 @@ export type Settings = {
    * Which timetable grid to draw. "auto" means vertical under 768px (the
    * mobile heatmap) and the full horizontal grid above it.
    */
-  timetableViewMode?: "auto" | "vertical" | "horizontal";
+  timetableViewMode?: "auto" | "vertical" | "horizontal" | "classic";
   /**
    * How much the vertical grid puts in a cell. "compact" shows the slot only and
    * sizes the table to the viewport; "full" adds the course code and scrolls

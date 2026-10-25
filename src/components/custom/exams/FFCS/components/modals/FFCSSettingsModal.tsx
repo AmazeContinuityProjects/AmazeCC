@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import { Settings2, Play, RotateCcw, Info } from "lucide-react";
+import { Settings2, Play, RotateCcw, Info, Sparkles } from "lucide-react";
 import BottomSheet from "../../../../shared/BottomSheet";
 import SettingRow from "../../../../shared/primitives/SettingRow";
 import Switch from "../../../../shared/primitives/Switch";
@@ -134,6 +134,8 @@ export interface FFCSSettingsModalProps {
   setSocialScoreGroupMethod: (method: "intersection" | "cumulative") => void;
   /** Starts the tab's tour — the sheet cannot reach the provider directly. */
   onReplayTour: () => void;
+  /** Opens the layout mode selector popup (Guided vs Standard) */
+  onOpenLayoutModal?: () => void;
 }
 
 export function FFCSSettingsModal({
@@ -147,6 +149,7 @@ export function FFCSSettingsModal({
   socialScoreGroupMethod,
   setSocialScoreGroupMethod,
   onReplayTour,
+  onOpenLayoutModal,
 }: FFCSSettingsModalProps) {
   // Consent is read live rather than held in `ffcs_settings`: it is a privacy
   // choice with its own key, and a settings reset must not flip it silently.
@@ -299,6 +302,25 @@ export function FFCSSettingsModal({
                 </div>
               }
             />
+            {onOpenLayoutModal && (
+              <SettingRow
+                title="Planner layout experience"
+                description="Choose between Guided Hero Mode and Standard Single Page View."
+                control={
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenLayoutModal();
+                    }}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 px-2.5 py-1.5 rounded-lg border border-indigo-500/20 transition-colors cursor-pointer"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Choose mode</span>
+                  </button>
+                }
+              />
+            )}
             <SettingRow
               title="Usage analytics"
               description="Share anonymous counts — which features run, never your courses or timetable."

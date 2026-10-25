@@ -144,10 +144,12 @@ export const TargetCoursesModal: React.FC<TargetCoursesModalProps> = ({
                       }}
                     />
                     <div className="flex flex-col flex-1">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-                        <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1">
+                        <div className="flex flex-col gap-1 min-w-0">
                           <span className="font-bold text-base text-text-heading">{c.code}</span>
-                           {renderTypeChips(c.types || [], 'sm')}
+                          <div className="flex items-center gap-1 flex-wrap">
+                            {renderTypeChips(c.types || [], 'sm')}
+                          </div>
                         </div>
                         <div className="flex items-center gap-1.5 flex-wrap sm:shrink-0">
                           {c.batches && c.batches.length > 0 && c.batches.map(b => (
@@ -162,33 +164,66 @@ export const TargetCoursesModal: React.FC<TargetCoursesModalProps> = ({
                   </label>
 
                   {isSelected && uniqueSlots.length > 1 && (() => {
-                    const availableSeries = Array.from(new Set(
-                      uniqueSlots.map(slot => {
-                        const firstSlot = slot.split('+')[0].trim().toUpperCase();
-                        const match = firstSlot.match(/^[T]?([A-G])/);
-                        return match ? match[1] : null;
-                      }).filter(Boolean) as string[]
-                    )).sort();
+                    const clusterMap = new Map<string, { clusterKey: string; clusterLabel: string; letter: string; slots: string[] }>();
+                    const letterMap = new Map<string, string[]>();
+
+                    const getSlotClusterKey = (slot: string): { cluster: string; letter: string } => {
+                      const s = slot.trim().toUpperCase();
+                      const theoryMatch = s.match(/^[T]*([A-G])([1-2])$/);
+                      if (theoryMatch) {
+                        return { cluster: `${theoryMatch[1]}${theoryMatch[2]}`, letter: theoryMatch[1] };
+                      }
+                      const labMatch = s.match(/^L([0-9]+)$/);
+                      if (labMatch) {
+                        const num = parseInt(labMatch[1], 10);
+                        const cluster = num <= 30 ? "Lab (Morning)" : "Lab (Evening)";
+                        return { cluster, letter: "Lab" };
+                      }
+                      const generalMatch = s.match(/^[T]*([A-Z])([0-9]+)?$/);
+                      if (generalMatch) {
+                        const letter = generalMatch[1];
+                        const num = generalMatch[2] || "";
+                        return { cluster: num ? `${letter}${num}` : letter, letter };
+                      }
+                      return { cluster: s, letter: s };
+                    };
+
+                    uniqueSlots.forEach((slot) => {
+                      const { cluster, letter } = getSlotClusterKey(slot);
+                      if (!clusterMap.has(cluster)) {
+                        clusterMap.set(cluster, {
+                          clusterKey: cluster,
+                          clusterLabel: cluster.endsWith("1") || cluster.endsWith("2") ? `${cluster} Slots` : `${cluster} Series`,
+                          letter,
+                          slots: [],
+                        });
+                      }
+                      clusterMap.get(cluster)!.slots.push(slot);
+
+                      if (!letterMap.has(letter)) {
+                        letterMap.set(letter, []);
+                      }
+                      letterMap.get(letter)!.push(slot);
+                    });
+
+                    const availableClusters = Array.from(clusterMap.keys()).sort();
+                    const availableBroadLetters = Array.from(letterMap.keys()).sort();
 
                     return (
-                      <div className="pl-8 mt-2">
-                        <div className="text-[11px] font-bold text-muted-foreground mb-2 uppercase tracking-wider">Filter Slots (Optional)</div>
+                      <div className="pl-8 mt-2 space-y-2">
+                        <div className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Filter Slots (Optional)</div>
                         
-                        {availableSeries.length > 0 && (
-                          <div className="mb-3">
-                            <div className="text-[10px] font-bold text-text-heading/70 mb-1.5 uppercase">Quick Select Series</div>
+                        {availableClusters.length > 0 && (
+                          <div className="space-y-1">
+                            <div className="text-[10px] font-bold text-text-heading/70 uppercase">Quick Select Slot Bundles</div>
                             <div className="flex flex-wrap gap-1.5">
-                              {availableSeries.map(series => {
-                                const seriesSlots = uniqueSlots.filter(slot => {
-                                  const firstSlot = slot.split('+')[0].trim().toUpperCase();
-                                  const match = firstSlot.match(/^[T]?([A-G])/);
-                                  return match && match[1] === series;
-                                });
-                                const allSelected = seriesSlots.every(s => sel.allowedSlots.includes(s));
+                              {availableClusters.map((clusterKey) => {
+                                const clusterSlots = clusterMap.get(clusterKey)?.slots || [];
+                                const allSelected = clusterSlots.length > 0 && clusterSlots.every(s => sel.allowedSlots.includes(s));
                                 
                                 return (
                                   <button
-                                    key={series}
+                                    key={clusterKey}
                                     type="button"
                                     onClick={(e) => {
                                       e.preventDefault();
@@ -197,9 +232,49 @@ export const TargetCoursesModal: React.FC<TargetCoursesModalProps> = ({
                                         if (p.code !== c.code) return p;
                                         let newSlots = [...p.allowedSlots];
                                         if (allSelected) {
-                                          newSlots = newSlots.filter(s => !seriesSlots.includes(s));
+                                          newSlots = newSlots.filter(s => !clusterSlots.includes(s));
                                         } else {
-                                          seriesSlots.forEach(s => {
+                                          clusterSlots.forEach(s => {
+                                            if (!newSlots.includes(s)) newSlots.push(s);
+                                          });
+                                        }
+                                        return { ...p, allowedSlots: newSlots };
+                                      }));
+                                    }}
+                                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors flex items-center gap-1 ${
+                                      allSelected 
+                                        ? 'bg-purple-500 text-white shadow-sm ring-1 ring-purple-300' 
+                                        : 'bg-surface-secondary hover:bg-surface-secondary/80 text-text-heading/70'
+                                    }`}
+                                    title={`Toggle ${clusterKey} bundle (${clusterSlots.join(", ")})`}
+                                  >
+                                    <span>{clusterKey.endsWith("1") || clusterKey.endsWith("2") ? `${clusterKey} Slots` : clusterKey}</span>
+                                    <span className="text-[10px] font-normal opacity-80">
+                                      ({clusterSlots.join(", ")})
+                                    </span>
+                                  </button>
+                                );
+                              })}
+
+                              {/* Broad Series buttons */}
+                              {availableBroadLetters.filter((letter) => (letterMap.get(letter)?.length || 0) > (clusterMap.get(`${letter}1`)?.slots.length || 0)).map((letter) => {
+                                const letterSlots = letterMap.get(letter) || [];
+                                const allSelected = letterSlots.length > 0 && letterSlots.every(s => sel.allowedSlots.includes(s));
+
+                                return (
+                                  <button
+                                    key={`broad-${letter}`}
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      setCourseLocks(prev => prev.map(p => {
+                                        if (p.code !== c.code) return p;
+                                        let newSlots = [...p.allowedSlots];
+                                        if (allSelected) {
+                                          newSlots = newSlots.filter(s => !letterSlots.includes(s));
+                                        } else {
+                                          letterSlots.forEach(s => {
                                             if (!newSlots.includes(s)) newSlots.push(s);
                                           });
                                         }
@@ -208,11 +283,12 @@ export const TargetCoursesModal: React.FC<TargetCoursesModalProps> = ({
                                     }}
                                     className={`px-2 py-1 rounded text-xs font-bold transition-colors ${
                                       allSelected 
-                                        ? 'bg-purple-500 text-white shadow-sm' 
-                                        : 'bg-surface-secondary hover:bg-surface-secondary/80 text-text-heading/70'
+                                        ? 'bg-indigo-600 text-white shadow-sm' 
+                                        : 'bg-surface-secondary/60 hover:bg-surface-secondary text-muted-foreground'
                                     }`}
+                                    title={`Toggle All ${letter} Series (${letterSlots.join(", ")})`}
                                   >
-                                    {series} Series
+                                    All {letter} Series
                                   </button>
                                 );
                               })}

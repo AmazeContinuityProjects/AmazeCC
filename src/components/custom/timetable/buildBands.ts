@@ -362,11 +362,10 @@ export function buildVerticalGrid({
         slots.length > 0 &&
         (runSlots.length > 0
           ? runSlots.every(isBlocked)
-          : bandSlots.some(isBlocked));
+          : bandSlots.length > 0 && bandSlots.every(isBlocked));
       const partiallyBlocked =
-        runSlots.length > 0 &&
         !blocked &&
-        runSlots.some(isBlocked);
+        (runSlots.length > 0 ? runSlots.some(isBlocked) : bandSlots.some(isBlocked));
 
       const inGap =
         band.hasTime &&

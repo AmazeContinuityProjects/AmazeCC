@@ -35,6 +35,8 @@ import {
   MORNING_BEFORE_MIN,
   periodsForSlot,
   slotSpellings,
+  splitSlots,
+  periodListsClash,
   type CampusSchema,
   type DayId,
   type SlotPeriod,
@@ -289,18 +291,7 @@ const DEFAULT_BATCH_SIZE = 50;
 
 /* ── helpers ────────────────────────────────────────────────────────────── */
 
-/** Split `"A1+TA1"` into its slots, upper-cased and trimmed. */
-/**
- * "G1+L31+L32" → ["G1", "L31", "L32"].
- *
- * Shared with the generator screen, which needs the same tokenization when it
- * hands a preview course to a same-slot faculty alternative.
- */
-export const splitSlots = (slot: string): string[] =>
-  String(slot ?? "")
-    .split("+")
-    .map((s) => s.trim().toUpperCase())
-    .filter(Boolean);
+export { splitSlots };
 
 /** `"08:00"` → 480. Returns null rather than 0, which would be midnight. */
 function parse24HourToMinutes(time: string): number | null {
@@ -377,7 +368,11 @@ function optionsFor(
   // 1. The student named specific slots.
   if (lock.allowedSlots?.length) {
     const allowed = new Set(lock.allowedSlots.map((s) => s.trim().toUpperCase()));
-    options = options.filter((opt) => splitSlots(opt.SLOT).some((s) => allowed.has(s)));
+    options = options.filter(
+      (opt) =>
+        allowed.has(opt.SLOT.trim().toUpperCase()) ||
+        splitSlots(opt.SLOT).some((s) => allowed.has(s))
+    );
   }
 
   // 2. The student named specific faculty.
@@ -464,16 +459,8 @@ function optionsFor(
 
 /* ── the solve ──────────────────────────────────────────────────────────── */
 
-/** Do two bookings collide anywhere? */
-function clashes(a: readonly SlotPeriod[], b: readonly SlotPeriod[]): boolean {
-  for (const x of a) {
-    for (const y of b) {
-      if (x.day !== y.day) continue;
-      if (Math.max(x.startMin, y.startMin) < Math.min(x.endMin, y.endMin)) return true;
-    }
-  }
-  return false;
-}
+/** Do two bookings collide anywhere? Shared canonical interval clash predicate. */
+const clashes = periodListsClash;
 
 /**
  * Does this week put two lab bookings on one day?
@@ -675,7 +662,7 @@ export function expandCourseHalves(halves: readonly AddedCourse[]): AddedCourse[
       const theoryHalf: AddedCourse = {
         ...h,
         id: `${h.id}:theory`,
-        type: h.type && h.type.includes("Embedded") ? "Embedded Theory" : "ETH",
+        type: "Embedded Theory",
         slots: theorySlots,
         faculty: facs[0]?.trim() || h.faculty,
         venue: venues[0]?.trim() || h.venue,
@@ -685,7 +672,7 @@ export function expandCourseHalves(halves: readonly AddedCourse[]): AddedCourse[
       const labHalf: AddedCourse = {
         ...h,
         id: `${h.id}:lab`,
-        type: h.type && h.type.includes("Embedded") ? "Embedded Lab" : "ELA",
+        type: "Embedded Lab",
         slots: labSlots,
         faculty: (facs[1] || facs[0])?.trim() || h.faculty,
         venue: (venues[1] || venues[0])?.trim() || h.venue,
@@ -732,8 +719,10 @@ export function sameSlotFacultyAlternatives(
   const wantTheoryTokens = wantTokens.filter((s) => !s.startsWith("L")).sort().join("+");
   const wantLabTokens = wantTokens.filter((s) => s.startsWith("L")).sort().join("+");
 
-  const isPureTheory = wantTokens.length > 0 && wantTokens.every((s) => !s.startsWith("L"));
-  const isPureLab = wantTokens.length > 0 && wantTokens.every((s) => s.startsWith("L"));
+  const hasTheory = wantTheoryTokens.length > 0;
+  const hasLab = wantLabTokens.length > 0;
+  const isPureTheory = hasTheory && !hasLab;
+  const isPureLab = hasLab && !hasTheory;
 
   const currentFacultyNorm = (current.faculty || "").trim().toLowerCase();
   const currentFacultyHalfNorm = isPureTheory
@@ -785,6 +774,19 @@ export function sameSlotFacultyAlternatives(
         TYPE: typeParts[1]?.trim() || "ELA",
         ERP_ID: facParts.length > 1 ? undefined : c.ERP_ID,
       };
+    } else if (hasTheory && hasLab && cTheory === wantTheoryTokens && cLab === wantLabTokens) {
+      // Both theory and lab slot together: require same faculty for both theory and lab
+      const facParts = (c.FACULTY || "").split(/\s*\/\s*/).map((s) => s.trim()).filter(Boolean);
+      const isSameFac =
+        facParts.length <= 1 ||
+        (facParts.length === 2 && facParts[0].toLowerCase() === facParts[1].toLowerCase());
+      if (!isSameFac) continue;
+
+      isMatch = true;
+      effectiveOffering = {
+        ...c,
+        FACULTY: facParts[0] || c.FACULTY,
+      };
     } else if (cExact === wantExact) {
       isMatch = true;
       effectiveOffering = { ...c };
@@ -813,6 +815,100 @@ export function sameSlotFacultyAlternatives(
     (a, b) =>
       a.FACULTY.localeCompare(b.FACULTY) ||
       String(a.ROOM ?? "").localeCompare(String(b.ROOM ?? ""))
+  );
+}
+
+/**
+ * Return all distinct offerings for a subject code from the report,
+ * preserving embedded theory+lab pairings.
+ */
+export function allCourseOfferings(
+  code: string,
+  masterCourses: readonly ParsedCourse[]
+): ParsedCourse[] {
+  const normalizedCode = code.trim().toUpperCase();
+  const baseCode = (normalizedCode.endsWith('L') || normalizedCode.endsWith('P'))
+    ? normalizedCode.slice(0, -1)
+    : normalizedCode;
+
+  const codeMatches = (c: ParsedCourse): boolean => {
+    const cCode = c.CODE.trim().toUpperCase();
+    const cOrig = (c as any).ORIGINAL_CODE?.trim()?.toUpperCase();
+    const cBase = (cCode.endsWith('L') || cCode.endsWith('P')) ? cCode.slice(0, -1) : cCode;
+    return (
+      cCode === normalizedCode ||
+      cOrig === normalizedCode ||
+      cBase === baseCode ||
+      cBase === normalizedCode
+    );
+  };
+
+  const dedupeKey = (c: ParsedCourse): string =>
+    `${c.FACULTY.trim().toLowerCase()}|${splitSlots(c.SLOT).sort().join("+")}|${(c.ROOM ?? "").trim().toLowerCase()}|${c.ERP_ID ?? ""}`;
+
+  const seen = new Set<string>();
+  const results: ParsedCourse[] = [];
+
+  for (const c of masterCourses) {
+    if (!codeMatches(c)) continue;
+    const key = dedupeKey(c);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    results.push(c);
+  }
+
+  // Check if course has combined offerings (embedded theory + lab)
+  const hasCombined = results.some((c) => {
+    const tokens = splitSlots(c.SLOT);
+    return (
+      tokens.some((s) => !s.startsWith("L") && s !== "NIL") &&
+      tokens.some((s) => s.startsWith("L"))
+    );
+  });
+
+  let filtered = results;
+  if (hasCombined) {
+    // If embedded grouping exists, eliminate individual half-slots of faculties
+    filtered = results.filter((c) => {
+      const tokens = splitSlots(c.SLOT);
+      const isComb =
+        tokens.some((s) => !s.startsWith("L") && s !== "NIL") &&
+        tokens.some((s) => s.startsWith("L"));
+      if (isComb) return true;
+
+      const facNorm = c.FACULTY.trim().toLowerCase();
+      const isSubset = results.some((other) => {
+        if (other === c) return false;
+        const otherTokens = splitSlots(other.SLOT);
+        const otherIsComb =
+          otherTokens.some((s) => !s.startsWith("L") && s !== "NIL") &&
+          otherTokens.some((s) => s.startsWith("L"));
+        if (!otherIsComb) return false;
+        const otherFacNorm = other.FACULTY.trim().toLowerCase();
+        const facMatches = otherFacNorm.includes(facNorm) || facNorm.includes(otherFacNorm);
+        return facMatches && tokens.every((s) => otherTokens.includes(s));
+      });
+
+      return !isSubset;
+    });
+
+    const combinedOnly = filtered.filter((c) => {
+      const tokens = splitSlots(c.SLOT);
+      return (
+        tokens.some((s) => !s.startsWith("L") && s !== "NIL") &&
+        tokens.some((s) => s.startsWith("L"))
+      );
+    });
+
+    if (combinedOnly.length > 0) {
+      filtered = combinedOnly;
+    }
+  }
+
+  return filtered.sort(
+    (a, b) =>
+      a.FACULTY.localeCompare(b.FACULTY) ||
+      splitSlots(a.SLOT).sort().join("+").localeCompare(splitSlots(b.SLOT).sort().join("+"))
   );
 }
 
