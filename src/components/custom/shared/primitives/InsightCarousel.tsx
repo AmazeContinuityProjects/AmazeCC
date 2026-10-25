@@ -209,17 +209,14 @@ export function InsightCarousel({
                       (typeof s.label === "string" ? s.label : `slide ${i + 1}`)
                     }`}
                     className={cn(
-                      "h-1.5 rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-strong dark:focus-visible:ring-text-secondary",
+                      "h-1.5 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-strong dark:focus-visible:ring-text-secondary",
                       i === carousel.index ? DOT_ACTIVE : DOT_IDLE
                     )}
                   />
                 ) : (
                   <span
                     key={s.id}
-                    className={cn(
-                      "h-1.5 rounded-full transition-all duration-300",
-                      i === carousel.index ? DOT_ACTIVE : DOT_IDLE
-                    )}
+                    className={cn("h-1.5 rounded-full", i === carousel.index ? DOT_ACTIVE : DOT_IDLE)}
                   />
                 )
               )}

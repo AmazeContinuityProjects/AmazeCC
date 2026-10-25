@@ -220,6 +220,12 @@ describe("carousel swipe", () => {
     expect(
       screen.getByRole("button", { name: "Show Second" }).className
     ).toContain("w-3");
+    expect(
+      screen.getByRole("button", { name: "Show Second" }).className
+    ).not.toContain("transition-all");
+    expect(
+      screen.getByRole("button", { name: "Show First" }).className
+    ).toContain("w-1.5");
   });
 
   it("claims the horizontal axis and leaves vertical panning to the page", () => {
