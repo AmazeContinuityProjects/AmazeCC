@@ -41,9 +41,11 @@ import { useFFCSSettings } from "@/lib/ffcsSettings";
 import {
   encodeTimetableShare,
   encodeCompactTimetableShare,
+  encodeTimetableShapeShare,
   attachReportClassIds,
   buildShareUrl,
   buildCompactShareUrl,
+  buildTimetableShapeShareUrl,
   isOversizedShareLink,
 } from "@/lib/ffcsShare";
 import { FFCSSettingsModal, type FFCSSettingsModalProps } from "./FFCS/components/modals/FFCSSettingsModal";
@@ -717,6 +719,11 @@ export default function FFCSTimetableTab({
     [compactSharePlan, semesterId]
   );
   const canShareCompactLink = Boolean(compactShareData);
+  const shapeShareData = useMemo(
+    () => encodeTimetableShapeShare(compactSharePlan, semesterId),
+    [compactSharePlan, semesterId]
+  );
+  const canShareShapeLink = Boolean(shapeShareData);
   
   // Selection states
   const [selectedCourseCode, setSelectedCourseCode] = useState("");
@@ -1575,7 +1582,7 @@ export default function FFCSTimetableTab({
    * treated as a decision, not a failure, so it does not fall through to a
    * copy the student did not ask for.
    */
-  const handleSharePlan = useCallback(async (compact = false) => {
+  const handleSharePlan = useCallback(async (compact = false, shapeOnly = false) => {
     const plan = activeTimetable;
     if (!plan || plan.courses.length === 0) {
       setError("Add at least one course to the timetable before sharing it.");
@@ -1583,7 +1590,19 @@ export default function FFCSTimetableTab({
     }
 
     let url: string;
-    if (compact) {
+    if (shapeOnly) {
+      const shapeData = encodeTimetableShapeShare(
+        attachReportClassIds(plan, reportCoursesForSharing),
+        semesterId
+      );
+      if (!shapeData) {
+        setError(
+          "Share TT shape is unavailable because the timetable does not have unique class IDs in the selected semester's registration report."
+        );
+        return;
+      }
+      url = buildTimetableShapeShareUrl(shapeData, window.location.origin);
+    } else if (compact) {
       const compactData = encodeCompactTimetableShare(
         attachReportClassIds(plan, reportCoursesForSharing),
         semesterId
@@ -1603,8 +1622,8 @@ export default function FFCSTimetableTab({
     if (typeof navigator.share === "function") {
       try {
         await navigator.share({
-          title: `${plan.name} — AmazeCC FFCS`,
-          text: "My FFCS plan:",
+          title: shapeOnly ? "FFCS timetable shape" : `${plan.name} — AmazeCC FFCS`,
+          text: shapeOnly ? "Open this shared timetable shape." : "My FFCS plan:",
           url,
         });
         return;
@@ -1618,7 +1637,9 @@ export default function FFCSTimetableTab({
     try {
       await navigator.clipboard.writeText(url);
       setSuccessMsg(
-        compact
+        shapeOnly
+          ? "TT shape link copied to clipboard!"
+          : compact
           ? "Short class-ID link copied to clipboard!"
           : isOversizedShareLink(url)
             ? "Share link copied — it is very long, so some apps may cut it short."
@@ -4605,6 +4626,28 @@ export default function FFCSTimetableTab({
                   canShareCompactLink
                     ? `Creates a shorter URL using the ${activeSemester.shortLabel} class IDs; the receiver looks up course details in that report.`
                     : "Creates a shorter URL when every course matches a class ID in the selected semester's registration list."
+                }
+              />
+            </button>
+            <button
+              type="button"
+              disabled={!canShareShapeLink}
+              onClick={() => {
+                setIsShareLinkOptionsOpen(false);
+                void handleSharePlan(false, true);
+              }}
+              className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-surface-secondary/60 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-fuchsia-500/10 text-fuchsia-600 border-fuchsia-500/20 dark:text-fuchsia-400">
+                <Share2 className="w-4 h-4" />
+              </span>
+              <ListRowText
+                title="Share TT shape"
+                titleTag="span"
+                subtitle={
+                  canShareShapeLink
+                    ? "Shortest URL: shares only class IDs; the semester is inferred from their prefix."
+                    : "Available when every course has a unique class ID from a known semester report."
                 }
               />
             </button>
