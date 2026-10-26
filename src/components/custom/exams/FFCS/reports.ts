@@ -21,6 +21,8 @@ export interface FFCSSemesterReport {
   path: string;
   /** Unique namespace carried by this report's registration class IDs. */
   classIdPrefix?: string;
+  /** Stable numeric alias used by the shortest class-ID share format. */
+  classIdPrefixCode?: string;
   /** What the dataset is called in prose, e.g. in an error message. */
   name: string;
 }
@@ -32,6 +34,7 @@ export const FFCS_SEMESTER_REPORTS: readonly FFCSSemesterReport[] = [
     shortLabel: "Winter 2026-27",
     path: "/ffcs/winter-2026-2027-slot-timetable.csv",
     classIdPrefix: "CH202627050",
+    classIdPrefixCode: "1",
     name: "Winter Semester 2026-2027 slot timetable",
   },
   {
@@ -68,6 +71,15 @@ export function getFFCSSemesterByClassIdPrefix(prefix: string): FFCSSemesterRepo
     return null;
   }
   return matches[0];
+}
+
+/** Resolve the stable numeric alias used by compact, delta-coded shape links. */
+export function getFFCSSemesterByClassIdPrefixCode(code: string): FFCSSemesterReport | null {
+  if (!/^\d{1,3}$/.test(code)) return null;
+  const matches = FFCS_SEMESTER_REPORTS.filter(
+    (report) => report.classIdPrefixCode === code && report.classIdPrefix
+  );
+  return matches.length === 1 ? matches[0] : null;
 }
 
 export interface OfferingIdentity {

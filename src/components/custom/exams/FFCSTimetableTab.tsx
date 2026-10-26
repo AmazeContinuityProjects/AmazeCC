@@ -29,6 +29,7 @@ import PasteRegisteredCoursesModal from './FFCS/components/modals/PasteRegistere
 import FacultyScheduleModal from './FFCS/components/modals/FacultyScheduleModal';
 import SlotFacultySwapSheet from './FFCS/components/SlotFacultySwapSheet';
 import FFCSDossierSubpage from './FFCS/components/FFCSDossierSubpage';
+import SelectedCoursesList, { groupSelectedCourses } from './FFCS/components/SelectedCoursesList';
 import PdfGenerationBadge from './FFCS/components/PdfGenerationBadge';
 import { sameSlotFacultyAlternatives, expandCourseHalves } from './FFCS/logic/generate';
 import FacultyReviewSheet, { VitfacReviewPill, FacultyAvatar } from './FFCS/components/FacultyReviewSheet';
@@ -36,16 +37,20 @@ import FFCSGuidedSelector, { type GuidedPhase } from './FFCS/components/FFCSGuid
 import { ENABLE_VITFAC_INTEGRATION } from '@/lib/vitfacService';
 import { buildFacultyNameGroups } from './FFCS/logic/facultyGroups';
 import { mergeCourses } from '@/features/import/importFile';
+import { processParsedCourses } from '@/lib/ffcsCourseGrouping';
+export { processParsedCourses } from '@/lib/ffcsCourseGrouping';
 import { track } from "@/lib/analytics";
 import { useFFCSSettings } from "@/lib/ffcsSettings";
 import {
   encodeTimetableShare,
   encodeCompactTimetableShare,
   encodeTimetableShapeShare,
+  encodeNumericTimetableShapeShare,
   attachReportClassIds,
   buildShareUrl,
   buildCompactShareUrl,
   buildTimetableShapeShareUrl,
+  buildNumericTimetableShapeShareUrl,
   isOversizedShareLink,
 } from "@/lib/ffcsShare";
 import { FFCSSettingsModal, type FFCSSettingsModalProps } from "./FFCS/components/modals/FFCSSettingsModal";
@@ -73,7 +78,6 @@ import {
   MORNING_BEFORE_MIN,
   courseInPeriod,
   periodsForSlot,
-  slotsOverlap,
   splitSlots,
   findPeriodClash,
   type SlotPeriod,
@@ -153,36 +157,6 @@ const renderTypeChips = (typesInput: string | string[], size: 'sm' | 'md' = 'md'
  * than reporting it as midnight, and the second came along with the generator's
  * time-bounds filter. Neither is referenced in this file any more.
  */
-
-const getGroupedCourses = (courseList: AddedCourse[]) => {
-  const groups = new Map<string, AddedCourse & { ids: string[]; batches: string[] }>();
-  courseList.forEach(c => {
-    if (groups.has(c.code)) {
-      const g = groups.get(c.code)!;
-      g.ids.push(c.id);
-      
-      if (!g.faculty.includes(c.faculty)) g.faculty += ` / ${c.faculty}`;
-      if (!g.venue.includes(c.venue)) g.venue += ` / ${c.venue}`;
-      if (!g.type.includes(c.type)) g.type += ` + ${c.type}`;
-      
-      c.slots.forEach(s => {
-        if (!g.slots.includes(s)) g.slots.push(s);
-      });
-      
-      if (c.batch) {
-        c.batch.split(",").map(b => b.trim()).forEach(b => {
-          if (b && !g.batches.includes(b)) g.batches.push(b);
-        });
-      }
-      
-      g.credits = String(parseFloat(g.credits || "0") + parseFloat(c.credits || "0"));
-    } else {
-      const batches = c.batch ? c.batch.split(",").map(b => b.trim()).filter(Boolean) : [];
-      groups.set(c.code, { ...c, ids: [c.id], faculty: c.faculty, venue: c.venue, type: c.type, slots: [...c.slots], batches });
-    }
-  });
-  return Array.from(groups.values());
-};
 
 /**
  * Free half-days for a set of slots.
@@ -265,390 +239,6 @@ function matchesSlotTokenFilter(slotStr: string, selectedToken: string, lab: boo
   );
 }
 
-const isOverlap = (theorySlotStr: string, labSlotStr: string) =>
-  slotsOverlap(theorySlotStr, labSlotStr, getTimetableSchema());
-
-// Core morning lab slots (8:00 AM - 11:40 AM: periods 1 to 4)
-const CORE_MORNING_LABS = new Set([
-  "L1", "L2", "L3", "L4", "L7", "L8", "L9", "L10", "L13", "L14", "L15", "L16", "L19", "L20", "L21", "L22", "L25", "L26", "L27", "L28"
-]);
-
-// Core afternoon/evening lab slots (2:00 PM - 5:30 PM: periods 7 to 10)
-const CORE_EVENING_LABS = new Set([
-  "L31", "L32", "L33", "L34", "L37", "L38", "L39", "L40", "L43", "L44", "L45", "L46", "L49", "L50", "L51", "L52", "L55", "L56", "L57", "L58"
-]);
-
-// Late morning window lab slots (11:40 AM - 1:20 PM: periods 5 and 6)
-const LATE_MORNING_LABS = new Set([
-  "L5", "L6", "L11", "L12", "L17", "L18", "L23", "L24", "L29", "L30"
-]);
-
-// Late evening window lab slots (5:40 PM - 7:20 PM: periods 11 and 12)
-const LATE_EVENING_LABS = new Set([
-  "L35", "L36", "L41", "L42", "L47", "L48", "L53", "L54", "L59", "L60"
-]);
-
-const isCoreMorningLab = (slotStr: string) => {
-  const parts = String(slotStr ?? "")
-    .split("+")
-    .map(s => s.trim().toUpperCase())
-    .filter(Boolean);
-  return parts.length > 0 && parts.every(s => CORE_MORNING_LABS.has(s));
-};
-
-const isCoreEveningLab = (slotStr: string) => {
-  const parts = String(slotStr ?? "")
-    .split("+")
-    .map(s => s.trim().toUpperCase())
-    .filter(Boolean);
-  return parts.length > 0 && parts.every(s => CORE_EVENING_LABS.has(s));
-};
-
-const isLateMorningLab = (slotStr: string) => {
-  const parts = String(slotStr ?? "")
-    .split("+")
-    .map(s => s.trim().toUpperCase())
-    .filter(Boolean);
-  return parts.length > 0 && parts.every(s => LATE_MORNING_LABS.has(s));
-};
-
-const isLateEveningLab = (slotStr: string) => {
-  const parts = String(slotStr ?? "")
-    .split("+")
-    .map(s => s.trim().toUpperCase())
-    .filter(Boolean);
-  return parts.length > 0 && parts.every(s => LATE_EVENING_LABS.has(s));
-};
-
-const computePairScore = (t: ParsedCourse, l: ParsedCourse): number => {
-  let score = 0;
-  const tPeriods = getPeriodsForSlotsOuter(t.SLOT);
-  const lPeriods = getPeriodsForSlotsOuter(l.SLOT);
-
-  const tMorning = tPeriods.some(p => p.startMin < MORNING_BEFORE_MIN);
-  const tEvening = tPeriods.some(p => p.startMin >= MORNING_BEFORE_MIN);
-
-  // Analyze whether the lab tokens are below 30 (morning) or above 30 (evening)
-  const labParts = String(l.SLOT ?? "")
-    .split("+")
-    .map(s => parseInt(s.replace(/[^0-9]/g, ""), 10))
-    .filter(n => !isNaN(n));
-  const hasBelow30 = labParts.some(n => n <= 30);
-  const hasAbove30 = labParts.some(n => n > 30);
-  const isBelow30Only = labParts.length > 0 && labParts.every(n => n <= 30);
-  const isAbove30Only = labParts.length > 0 && labParts.every(n => n > 30);
-
-  // Priority 1: 8:00-11:40 morning lab for evening theory, and 2:00-5:30 evening lab for morning theory
-  if ((tEvening && isCoreMorningLab(l.SLOT)) || (tMorning && isCoreEveningLab(l.SLOT))) {
-    score += 2000;
-  }
-  // Priority 2: 11:40-1:20 morning lab for morning theory, and 5:30-7:20 evening lab for evening theory
-  else if ((tMorning && isLateMorningLab(l.SLOT)) || (tEvening && isLateEveningLab(l.SLOT))) {
-    score += 1000;
-  }
-  // Priority 3 (Current Priority 1 fallback): general cross-shift / above-30 & below-30
-  // (e.g. evening theory with late morning lab, morning theory with late evening lab / mixed)
-  else if ((tEvening && isBelow30Only) || (tMorning && isAbove30Only)) {
-    score += 500;
-  } else if (hasBelow30 && hasAbove30) {
-    score += 200;
-  }
-  // Priority 4: strongly penalize same-shift pairings outside the permitted late-window slots
-  else {
-    score -= 1000;
-  }
-
-  // Penalize clustering theory and lab on the same day in the same half-day
-  for (const tp of tPeriods) {
-    for (const lp of lPeriods) {
-      if (tp.day === lp.day) {
-        const tpMorning = tp.startMin < MORNING_BEFORE_MIN;
-        const lpMorning = lp.startMin < MORNING_BEFORE_MIN;
-        if (tpMorning === lpMorning) {
-          score -= 30;
-        }
-      }
-    }
-  }
-
-  // If class numbers / IDs are available, reward proximity (sections registered together)
-  if (t.CLASS_ID && l.CLASS_ID) {
-    const tNum = parseInt(t.CLASS_ID.replace(/[^0-9]/g, ""), 10);
-    const lNum = parseInt(l.CLASS_ID.replace(/[^0-9]/g, ""), 10);
-    if (!isNaN(tNum) && !isNaN(lNum)) {
-      const diff = Math.abs(tNum - lNum);
-      if (diff <= 2) score += 20;
-      else if (diff <= 10) score += 10;
-    }
-  }
-
-  return score;
-};
-
-// Only exported for the tests; callers inside the app go through masterCourses.
-export const processParsedCourses = (parsed: ParsedCourse[], manualLinks: ManualLink[] = []): ParsedCourse[] => {
-  // 1. Find all codes that end with L or P
-  const hasL = new Set<string>();
-  const hasP = new Set<string>();
-  parsed.forEach(c => {
-    const code = c.CODE.trim().toUpperCase();
-    if (code.endsWith('L')) {
-      hasL.add(code.slice(0, -1));
-    } else if (code.endsWith('P')) {
-      hasP.add(code.slice(0, -1));
-    }
-  });
-
-  // 2. Identify mergeable base codes (must have both L and P)
-  const mergeableBases = new Set<string>();
-  hasL.forEach(base => {
-    if (hasP.has(base)) {
-      mergeableBases.add(base);
-    }
-  });
-
-  const mappedParsed = parsed.map(c => {
-    let resultCourse = { ...c };
-    const code = c.CODE.trim().toUpperCase();
-    const base = (code.endsWith('L') || code.endsWith('P')) ? code.slice(0, -1) : code;
-    if (mergeableBases.has(base)) {
-      resultCourse = {
-        ...resultCourse,
-        ORIGINAL_CODE: c.CODE, // Keep reference to original code ending in L or P
-        CODE: base
-      };
-    }
-
-    // Attach LINK_ID if matching manual rule
-    const linkMatch = manualLinks.find(
-      l => l.CODE === c.CODE && l.TYPE === c.TYPE && l.SLOT === c.SLOT && l.FACULTY === c.FACULTY
-    );
-    if (linkMatch) {
-      resultCourse.LINK_ID = linkMatch.LINK_ID;
-    }
-
-    return resultCourse;
-  });
-
-  // Combine embedded theory and lab
-  const combined: ParsedCourse[] = [];
-  const byCode = new Map<string, ParsedCourse[]>();
-  mappedParsed.forEach(c => {
-    if (!byCode.has(c.CODE)) byCode.set(c.CODE, []);
-    byCode.get(c.CODE)!.push(c);
-  });
-
-  byCode.forEach((coursesList, codeKey) => {
-    const isMergedLPBase = mergeableBases.has(codeKey);
-    // A blank type is embedded too: the winter report carries no TYPE column at
-    // all, so its rows are unlabeled halves, and the pairing below is what
-    // infers which theory belongs to which lab.
-    const hasEmbedded = isMergedLPBase || coursesList.some(c => {
-      const t = c.TYPE.trim().toUpperCase();
-      return !t || t === "ETH" || t === "ELA" || t === "EPJ" || t.includes("EMBEDDED");
-    });
-
-    if (hasEmbedded) {
-      // 1. Cross-faculty manual pairing
-      const remainingCourses = [...coursesList];
-      
-      const manualTheories = remainingCourses.filter(c => {
-        const t = c.TYPE.trim().toUpperCase();
-        const origCode = (c as any).ORIGINAL_CODE || c.CODE;
-        return c.LINK_ID && (t === "ETH" || t === "TH" || origCode.endsWith('L') || (!c.SLOT.startsWith('L') && c.SLOT !== 'NIL'));
-      });
-      const manualLabs = remainingCourses.filter(c => {
-        const t = c.TYPE.trim().toUpperCase();
-        const origCode = (c as any).ORIGINAL_CODE || c.CODE;
-        return c.LINK_ID && (t === "ELA" || t === "LO" || origCode.endsWith('P') || c.SLOT.startsWith('L'));
-      });
-
-      const linkIds = new Set<string>();
-      manualTheories.forEach(t => linkIds.add(t.LINK_ID!));
-      manualLabs.forEach(l => linkIds.add(l.LINK_ID!));
-
-      linkIds.forEach(id => {
-        const tMatches = manualTheories.filter(t => t.LINK_ID === id);
-        const lMatches = manualLabs.filter(l => l.LINK_ID === id);
-
-        if (tMatches.length > 0 && lMatches.length > 0) {
-          tMatches.forEach(t => {
-            lMatches.forEach(l => {
-              const tType = t.TYPE.trim().toUpperCase();
-              const lType = l.TYPE.trim().toUpperCase();
-              const combinedType = tType && lType ? `${tType}+${lType}` : "ETH+ELA";
-
-              let combinedTitle = t.TITLE;
-              if ((t as any).ORIGINAL_CODE?.endsWith('L') && (l as any).ORIGINAL_CODE?.endsWith('P')) {
-                const typeLabel = (tType === "ETH" || tType.includes("EMBEDDED") || lType === "ELA" || lType.includes("EMBEDDED")) 
-                  ? "Embedded Theory and Lab" 
-                  : "Theory + Lab";
-                combinedTitle = `${t.TITLE} [${typeLabel}]`;
-              } else {
-                combinedTitle = `${t.TITLE} [Embedded Theory and Lab]`;
-              }
-
-              let combinedFac = t.FACULTY;
-              if (t.FACULTY !== l.FACULTY) {
-                combinedFac = `${t.FACULTY} / ${l.FACULTY}`;
-              }
-
-              combined.push({
-                ...t,
-                TYPE: combinedType,
-                TITLE: combinedTitle,
-                CREDITS: String((tType.includes("EMBEDDED") && lType.includes("EMBEDDED")) ? 
-                                Math.max(parseFloat(t.CREDITS || "0"), parseFloat(l.CREDITS || "0")) : 
-                                parseFloat(t.CREDITS || "0") + parseFloat(l.CREDITS || "0")),
-                SLOT: `${t.SLOT}+${l.SLOT}`,
-                CLASS_IDS: Array.from(new Set([t.CLASS_ID, l.CLASS_ID].filter((id): id is string => Boolean(id)))),
-                ROOM: t.ROOM && l.ROOM ? `${t.ROOM} / ${l.ROOM}` : (t.ROOM || l.ROOM),
-                ORIGINAL_CODE: (t as any).ORIGINAL_CODE || t.CODE,
-                FACULTY: combinedFac
-              } as any);
-            });
-          });
-
-          // Remove all matched theories and labs from remainingCourses
-          tMatches.forEach(t => {
-            const idx = remainingCourses.indexOf(t);
-            if (idx > -1) remainingCourses.splice(idx, 1);
-          });
-          lMatches.forEach(l => {
-            const idx = remainingCourses.indexOf(l);
-            if (idx > -1) remainingCourses.splice(idx, 1);
-          });
-        }
-      });
-
-      // 2. Normal processing for the rest
-      const byFac = new Map<string, ParsedCourse[]>();
-      remainingCourses.forEach(c => {
-        // The employee id decides who "the same faculty" is wherever the report
-        // has one; without it a name keys the grouping, as it always has.
-        const facKey = c.ERP_ID || c.FACULTY;
-        if (!byFac.has(facKey)) byFac.set(facKey, []);
-        byFac.get(facKey)!.push(c);
-      });
-
-      byFac.forEach((facCourses) => {
-        // The code-suffix branches describe the L/P lab variant, and only
-        // carry meaning where the report labels rows the old way (a typed
-        // row, any report before winter) or where the merge above rewrote
-        // the code (ORIGINAL_CODE). A lone `P` code with a blank type — the
-        // winter report's pooled thesis lists, no `L` sibling anywhere — is
-        // otherwise a theory half by slot shape and a lab half by suffix on
-        // every row at once, which blows the matching below up into an
-        // unbounded search; unlabeled rows stand on their slot shape alone.
-        const theorySlots = facCourses.filter(c => {
-          const t = c.TYPE.trim().toUpperCase();
-          const origCode = (c as any).ORIGINAL_CODE || c.CODE;
-          return t === "ETH" || t === "TH" || ((c as any).ORIGINAL_CODE || t) && origCode.endsWith('L') || (!c.SLOT.startsWith('L') && c.SLOT !== 'NIL');
-        });
-        const labSlots = facCourses.filter(c => {
-          const t = c.TYPE.trim().toUpperCase();
-          const origCode = (c as any).ORIGINAL_CODE || c.CODE;
-          return t === "ELA" || t === "LO" || ((c as any).ORIGINAL_CODE || t) && origCode.endsWith('P') || c.SLOT.startsWith('L');
-        });
-
-        if (theorySlots.length > 0 && labSlots.length > 0) {
-          let bestMatch: { tIdx: number; lIdx: number }[] = [];
-          let bestScore = -Infinity;
-          const maxPossible = Math.min(theorySlots.length, labSlots.length);
-          let steps = 0;
-
-          const backtrack = (
-            tIdx: number,
-            currentMatch: { tIdx: number; lIdx: number }[],
-            usedLabs: Set<number>,
-            currentScore: number
-          ) => {
-            if (
-              currentMatch.length > bestMatch.length ||
-              (currentMatch.length === bestMatch.length && currentScore > bestScore)
-            ) {
-              bestMatch = [...currentMatch];
-              bestScore = currentScore;
-            }
-            if (tIdx >= theorySlots.length) return;
-            if (currentMatch.length + (theorySlots.length - tIdx) < bestMatch.length) return;
-            const maxRemaining = (maxPossible - currentMatch.length) * 2100;
-            if (bestMatch.length === maxPossible && currentScore + maxRemaining <= bestScore) return;
-            if (++steps > 20000) return;
-
-            const t = theorySlots[tIdx];
-
-            const candidates = labSlots
-              .map((l, j) => ({ l, j, score: computePairScore(t, l) }))
-              .filter(({ l, j }) => !usedLabs.has(j) && !isOverlap(t.SLOT, l.SLOT))
-              .sort((a, b) => b.score - a.score);
-
-            for (const { j, score } of candidates) {
-              usedLabs.add(j);
-              currentMatch.push({ tIdx, lIdx: j });
-              backtrack(tIdx + 1, currentMatch, usedLabs, currentScore + score);
-              currentMatch.pop();
-              usedLabs.delete(j);
-            }
-            
-            backtrack(tIdx + 1, currentMatch, usedLabs, currentScore);
-          };
-
-          backtrack(0, [], new Set<number>(), 0);
-
-          if (bestMatch.length > 0) {
-            const matchedT = new Set(bestMatch.map(m => m.tIdx));
-            const matchedL = new Set(bestMatch.map(m => m.lIdx));
-            
-            bestMatch.forEach(m => {
-              const t = theorySlots[m.tIdx];
-              const l = labSlots[m.lIdx];
-              
-              const tType = t.TYPE.trim().toUpperCase();
-              const lType = l.TYPE.trim().toUpperCase();
-              const combinedType = tType && lType ? `${tType}+${lType}` : "ETH+ELA";
-
-              let combinedTitle = t.TITLE;
-              if ((t as any).ORIGINAL_CODE?.endsWith('L') && (l as any).ORIGINAL_CODE?.endsWith('P')) {
-                const typeLabel = (tType === "ETH" || tType.includes("EMBEDDED") || lType === "ELA" || lType.includes("EMBEDDED")) 
-                  ? "Embedded Theory and Lab" 
-                  : "Theory + Lab";
-                combinedTitle = `${t.TITLE} [${typeLabel}]`;
-              } else {
-                combinedTitle = `${t.TITLE} [Embedded Theory and Lab]`;
-              }
-
-              combined.push({
-                ...t,
-                TYPE: combinedType,
-                TITLE: combinedTitle,
-                CREDITS: String((tType.includes("EMBEDDED") && lType.includes("EMBEDDED")) ? 
-                                Math.max(parseFloat(t.CREDITS || "0"), parseFloat(l.CREDITS || "0")) : 
-                                parseFloat(t.CREDITS || "0") + parseFloat(l.CREDITS || "0")),
-                SLOT: `${t.SLOT}+${l.SLOT}`,
-                CLASS_IDS: Array.from(new Set([t.CLASS_ID, l.CLASS_ID].filter((id): id is string => Boolean(id)))),
-                ROOM: t.ROOM && l.ROOM ? `${t.ROOM} / ${l.ROOM}` : (t.ROOM || l.ROOM),
-                ORIGINAL_CODE: (t as any).ORIGINAL_CODE || t.CODE
-              } as any);
-            });
-
-            theorySlots.forEach((t, i) => { if (!matchedT.has(i)) combined.push(t); });
-            labSlots.forEach((l, i) => { if (!matchedL.has(i)) combined.push(l); });
-          } else {
-            combined.push(...facCourses);
-          }
-        } else {
-          combined.push(...facCourses);
-        }
-      });
-    } else {
-      combined.push(...coursesList);
-    }
-  });
-
-  return combined;
-};
-
 export default function FFCSTimetableTab({
   onLayoutModeChange,
 }: {
@@ -726,6 +316,11 @@ export default function FFCSTimetableTab({
     [compactSharePlan, semesterId]
   );
   const canShareShapeLink = Boolean(shapeShareData);
+  const numericShapeShareData = useMemo(
+    () => encodeNumericTimetableShapeShare(compactSharePlan, semesterId),
+    [compactSharePlan, semesterId]
+  );
+  const canShareNumericShapeLink = Boolean(numericShapeShareData);
   
   // Selection states
   const [selectedCourseCode, setSelectedCourseCode] = useState("");
@@ -1584,15 +1179,30 @@ export default function FFCSTimetableTab({
    * treated as a decision, not a failure, so it does not fall through to a
    * copy the student did not ask for.
    */
-  const handleSharePlan = useCallback(async (compact = false, shapeOnly = false) => {
+  const handleSharePlan = useCallback(async (
+    format: "full" | "compact" | "shape" | "numeric-shape" = "full"
+  ) => {
     const plan = activeTimetable;
     if (!plan || plan.courses.length === 0) {
       setError("Add at least one course to the timetable before sharing it.");
       return;
     }
 
+    const shapeOnly = format === "shape" || format === "numeric-shape";
     let url: string;
-    if (shapeOnly) {
+    if (format === "numeric-shape") {
+      const numericShapeData = encodeNumericTimetableShapeShare(
+        attachReportClassIds(plan, reportCoursesForSharing),
+        semesterId
+      );
+      if (!numericShapeData) {
+        setError(
+          "Numeric TT shape is unavailable because every class needs a unique four-digit ID in a supported semester report."
+        );
+        return;
+      }
+      url = buildNumericTimetableShapeShareUrl(numericShapeData, window.location.origin);
+    } else if (format === "shape") {
       const shapeData = encodeTimetableShapeShare(
         attachReportClassIds(plan, reportCoursesForSharing),
         semesterId
@@ -1604,7 +1214,7 @@ export default function FFCSTimetableTab({
         return;
       }
       url = buildTimetableShapeShareUrl(shapeData, window.location.origin);
-    } else if (compact) {
+    } else if (format === "compact") {
       const compactData = encodeCompactTimetableShare(
         attachReportClassIds(plan, reportCoursesForSharing),
         semesterId
@@ -1619,7 +1229,7 @@ export default function FFCSTimetableTab({
     } else {
       url = buildShareUrl(encodeTimetableShare(plan), window.location.origin);
     }
-    track("share_created", { courses: plan.courses.length, bytes: url.length });
+    track("share_created", { courses: plan.courses.length, bytes: url.length, format });
 
     if (typeof navigator.share === "function") {
       try {
@@ -1639,9 +1249,11 @@ export default function FFCSTimetableTab({
     try {
       await navigator.clipboard.writeText(url);
       setSuccessMsg(
-        shapeOnly
+        format === "numeric-shape"
+          ? "Numeric TT shape link copied to clipboard!"
+          : format === "shape"
           ? "TT shape link copied to clipboard!"
-          : compact
+          : format === "compact"
           ? "Short class-ID link copied to clipboard!"
           : isOversizedShareLink(url)
             ? "Share link copied — it is very long, so some apps may cut it short."
@@ -2158,7 +1770,7 @@ export default function FFCSTimetableTab({
           successMsg={successMsg}
           setSuccessMsg={setSuccessMsg}
           renderTypeChips={renderTypeChips}
-          getGroupedCourses={getGroupedCourses}
+          getGroupedCourses={groupSelectedCourses}
           generatorDisplayCourses={generatorDisplayCourses}
           theoryPeriods={theoryPeriods}
           labPeriods={labPeriods}
@@ -3144,308 +2756,53 @@ export default function FFCSTimetableTab({
                   showVerticalTimetableBesideWidgets ? "xl:col-span-full" : ""
                 }`}
               >
-                <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-                  <h2 className="text-xl font-bold text-text-heading flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                    Selected Courses
-                    <span className="bg-blue-500/20 text-blue-400 text-xs py-1 px-2.5 rounded-full border border-blue-500/20 whitespace-nowrap">
-                      Total Credits: {getGroupedCourses(courses).reduce((sum, c) => sum + parseFloat(c.credits || "0"), 0)}
-                    </span>
-                  </h2>
-                  <button 
-                    onClick={handleClearTimetable}
-                    className="text-red-400 hover:bg-red-500/10 px-3 py-1.5 rounded-lg transition-colors text-sm font-medium flex items-center gap-2 print:hidden whitespace-nowrap ml-auto"
-                  >
-                    <Trash2 className="w-4 h-4" /> Clear All
-                  </button>
-                </div>
-                
-                {/* Mobile Cards (on small screens) */}
-                <div className="block md:hidden space-y-3 print:hidden">
-                    {getGroupedCourses(courses).map(c => {
-                      const rawHalves: AddedCourse[] = courses.filter((course) =>
-                        (c.ids ?? [c.id]).includes(course.id)
-                      );
-                      const allSlots = Array.from(new Set(rawHalves.flatMap((h) => h.slots)));
-                      const theorySlots = allSlots.filter((s) => !s.startsWith("L") && s !== "NIL");
-                      const labSlots = allSlots.filter((s) => s.startsWith("L"));
-                      const isEmbedded = theorySlots.length > 0 && labSlots.length > 0;
-
-                      const dropIns = isEmbedded
-                        ? sameSlotFacultyAlternatives(
-                            c.code,
-                            allSlots,
-                            { faculty: c.faculty, employeeId: rawHalves[0]?.employeeId || (c as any).employeeId },
-                            courseAlternativesPool
-                          )
-                        : [];
-
-                      const expandedHalves = expandCourseHalves(rawHalves);
-                      const counts = expandedHalves.map((half) => {
-                        const alts = sameSlotFacultyAlternatives(
-                          half.code,
-                          half.slots,
-                          { faculty: half.faculty, employeeId: half.employeeId },
+                <SelectedCoursesList
+                  courses={courses}
+                  modern={resolvedView !== "classic"}
+                  onClear={handleClearTimetable}
+                  onRemove={(ids) => ids.forEach(handleRemoveCourse)}
+                  onFacultyClick={(course) => setSlotSwapRow({ code: course.code, title: course.title, ids: course.ids })}
+                  onReviewClick={(faculty) => setFacultyReviewTarget(faculty)}
+                  getFacultyInfo={(course, rawHalves) => {
+                    const allSlots = Array.from(new Set(rawHalves.flatMap((half) => half.slots)));
+                    const theorySlots = allSlots.filter((slot) => !slot.startsWith("L") && slot !== "NIL");
+                    const labSlots = allSlots.filter((slot) => slot.startsWith("L"));
+                    const isEmbedded = theorySlots.length > 0 && labSlots.length > 0;
+                    const dropIns = isEmbedded
+                      ? sameSlotFacultyAlternatives(
+                          course.code,
+                          allSlots,
+                          { faculty: course.faculty, employeeId: rawHalves[0]?.employeeId || course.employeeId },
                           courseAlternativesPool
-                        );
-                        return 1 + alts.length;
-                      });
-
-                      const dropInCount = dropIns.length;
-                      const facultyCountDisplay =
-                        dropInCount > 0
-                          ? `${1 + dropInCount} drop-in`
-                          : isEmbedded
-                          ? "1"
-                          : counts.length > 1 && counts.some((cnt) => cnt !== counts[0])
+                        )
+                      : [];
+                    const expandedHalves = expandCourseHalves(rawHalves);
+                    const counts = expandedHalves.map((half) =>
+                      1 + sameSlotFacultyAlternatives(
+                        half.code,
+                        half.slots,
+                        { faculty: half.faculty, employeeId: half.employeeId },
+                        courseAlternativesPool
+                      ).length
+                    );
+                    const dropInCount = dropIns.length;
+                    const display = dropInCount > 0
+                      ? `${1 + dropInCount} drop-in`
+                      : isEmbedded
+                        ? "1"
+                        : counts.length > 1 && counts.some((count) => count !== counts[0])
                           ? counts.join(" / ")
                           : String(counts[0] ?? 1);
-
-                      const facultyCountTitle =
-                        dropInCount > 0
-                          ? `${1 + dropInCount} drop-in replacements · Click to switch`
-                          : isEmbedded
-                          ? "1 faculty teaching this slot · Click to switch to other slots"
-                          : counts.length === 1 && counts[0] === 1
+                    const title = dropInCount > 0
+                      ? `${1 + dropInCount} drop-in replacements · Click to switch`
+                      : isEmbedded
+                        ? "1 faculty teaching this slot · Click to switch to other slots"
+                        : counts.length === 1 && counts[0] === 1
                           ? "1 faculty teaching this slot · Click to switch"
-                          : `${facultyCountDisplay} faculties teaching this slot · Click to switch`;
-
-                      const badgeProps = getCourseBadgeProps(c.color, resolvedView !== "classic");
-
-                      return (
-                        <div key={c.id} className="p-3.5 rounded-2xl bg-surface border border-border-strong shadow-2xs space-y-2.5">
-                          <div className="flex items-start justify-between gap-2.5">
-                            <div className="flex flex-col gap-1 min-w-0 flex-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <div className={badgeProps.className} style={badgeProps.style}>{c.code}</div>
-                                {renderTypeChips(c.type, "sm")}
-                                <span className="text-[10px] text-muted-foreground font-semibold bg-surface-secondary/70 px-1.5 py-0.5 rounded border border-border-strong/50">
-                                  {c.credits} cr
-                                </span>
-                                {c.batches && c.batches.length > 0 && c.batches.map(b => (
-                                  <span key={b} className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${getBatchColorClass(b)}`}>
-                                    {b}
-                                  </span>
-                                ))}
-                              </div>
-                              <h3 className="text-xs sm:text-sm font-bold text-text-heading leading-snug line-clamp-2">
-                                {c.title}
-                              </h3>
-                            </div>
-                            <button 
-                              onClick={() => {
-                                c.ids.forEach(id => handleRemoveCourse(id));
-                              }}
-                              className="text-muted-foreground hover:text-red-400 p-1.5 rounded-lg hover:bg-red-500/10 transition-colors shrink-0 relative hit-expand touch-press active:scale-[0.95]"
-                              title="Remove Course"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-
-                          <div className="flex items-center justify-between gap-2 pt-2 border-t border-border-strong/40">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <FacultyAvatar
-                                employeeId={rawHalves[0]?.employeeId || (c as any).employeeId}
-                                name={c.faculty}
-                                size="xs"
-                                tone="blue"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => setSlotSwapRow({ code: c.code, title: c.title, ids: c.ids ?? [c.id] })}
-                                title={facultyCountTitle}
-                                className="flex items-center gap-1.5 text-xs text-text-heading/90 hover:text-blue-500 transition-colors cursor-pointer min-w-0 touch-press active:scale-[0.98]"
-                              >
-                                <span className="truncate max-w-[130px] font-medium">{c.faculty}</span>
-                                <span
-                                  className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-surface-secondary/70 border border-border-strong/70 text-muted-foreground hover:text-blue-500 shrink-0"
-                                  title={facultyCountTitle}
-                                >
-                                  <Users className="w-3 h-3 text-muted-foreground/60 shrink-0" />
-                                  <span>{facultyCountDisplay}</span>
-                                </span>
-                              </button>
-                            </div>
-                            <VitfacReviewPill
-                              employeeId={rawHalves[0]?.employeeId || (c as any).employeeId}
-                              name={c.faculty}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setFacultyReviewTarget({
-                                  name: c.faculty,
-                                  employeeId: rawHalves[0]?.employeeId || (c as any).employeeId,
-                                  courseCode: c.code,
-                                });
-                              }}
-                            />
-                          </div>
-
-                          <div className="flex items-center justify-between gap-2 text-xs">
-                            <div className="flex flex-wrap gap-1 items-center">
-                              {c.slots.map(s => (
-                                <span key={s} className="bg-accent/50 border border-border-strong text-text-heading/80 text-[10px] px-1.5 py-0.5 rounded-md">
-                                  {s}
-                                </span>
-                              ))}
-                            </div>
-                            <div className="text-[11px] text-muted-foreground font-medium truncate shrink-0 max-w-[140px]">
-                              📍 {c.venue}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                <div className="hidden md:block overflow-x-auto scrollbar-none">
-                  <table className="w-full text-left min-w-[600px]">
-                    <thead>
-                      <tr className="border-b border-border-strong">
-                        <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Course</th>
-                        <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
-                        <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Faculty</th>
-                        <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Slots</th>
-                        <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Venue</th>
-                        <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Credits</th>
-                        <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider text-right print:hidden">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5">
-                      {getGroupedCourses(courses).map(c => {
-                        const rawHalves: AddedCourse[] = courses.filter((course) =>
-                          (c.ids ?? [c.id]).includes(course.id)
-                        );
-                        const allSlots = Array.from(new Set(rawHalves.flatMap((h) => h.slots)));
-                        const theorySlots = allSlots.filter((s) => !s.startsWith("L") && s !== "NIL");
-                        const labSlots = allSlots.filter((s) => s.startsWith("L"));
-                        const isEmbedded = theorySlots.length > 0 && labSlots.length > 0;
-
-                        const dropIns = isEmbedded
-                          ? sameSlotFacultyAlternatives(
-                              c.code,
-                              allSlots,
-                              { faculty: c.faculty, employeeId: rawHalves[0]?.employeeId || (c as any).employeeId },
-                              courseAlternativesPool
-                            )
-                          : [];
-
-                        const expandedHalves = expandCourseHalves(rawHalves);
-                        const counts = expandedHalves.map((half) => {
-                          const alts = sameSlotFacultyAlternatives(
-                            half.code,
-                            half.slots,
-                            { faculty: half.faculty, employeeId: half.employeeId },
-                            courseAlternativesPool
-                          );
-                          return 1 + alts.length;
-                        });
-
-                        const dropInCount = dropIns.length;
-                        const facultyCountDisplay =
-                          dropInCount > 0
-                            ? `${1 + dropInCount} drop-in`
-                            : isEmbedded
-                            ? "1"
-                            : counts.length > 1 && counts.some((cnt) => cnt !== counts[0])
-                            ? counts.join(" / ")
-                            : String(counts[0] ?? 1);
-
-                        const facultyCountTitle =
-                          dropInCount > 0
-                            ? `${1 + dropInCount} drop-in replacements · Click to switch`
-                            : isEmbedded
-                            ? "1 faculty teaching this slot · Click to switch to other slots"
-                            : counts.length === 1 && counts[0] === 1
-                            ? "1 faculty teaching this slot · Click to switch"
-                            : `${facultyCountDisplay} faculties teaching this slot · Click to switch`;
-
-                        const badgeProps = getCourseBadgeProps(c.color, resolvedView !== "classic");
-
-                        return (
-                        <tr key={c.id} className="hover:bg-white/[0.02] transition-colors group">
-                          <td className="py-3 px-2">
-                            <div className="flex items-center gap-3">
-                              <div className={badgeProps.className} style={badgeProps.style}>{c.code}</div>
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <p className="text-muted-foreground text-xs max-w-xs">{c.title}</p>
-                                {c.batches && c.batches.length > 0 && c.batches.map(b => (
-                                  <span key={b} className={`text-xs font-bold px-2 py-0.5 rounded-md border ${getBatchColorClass(b)}`}>
-                                    {b}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="py-3 px-2 text-sm text-text-heading/80">
-                            {renderTypeChips(c.type)}
-                          </td>
-                          <td className="py-3 px-2">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <FacultyAvatar
-                                employeeId={rawHalves[0]?.employeeId || (c as any).employeeId}
-                                name={c.faculty}
-                                size="xs"
-                                tone="blue"
-                              />
-                              <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-                                <button
-                                  type="button"
-                                  onClick={() => setSlotSwapRow({ code: c.code, title: c.title, ids: c.ids ?? [c.id] })}
-                                  title={facultyCountTitle}
-                                  className="flex items-center gap-1.5 text-sm text-text-heading/80 hover:text-blue-500 transition-colors cursor-pointer max-w-full"
-                                >
-                                  <span className="truncate">{c.faculty}</span>
-                                  <span
-                                    className="inline-flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-surface-secondary/70 border border-border-strong/70 text-muted-foreground group-hover:text-blue-500 group-hover:border-blue-500/40 transition-colors shrink-0"
-                                    title={facultyCountTitle}
-                                  >
-                                    <Users className="w-3.5 h-3.5 text-muted-foreground/60 group-hover:text-blue-500 shrink-0" />
-                                    <span>{facultyCountDisplay}</span>
-                                  </span>
-                                </button>
-                                <VitfacReviewPill
-                                  employeeId={rawHalves[0]?.employeeId || (c as any).employeeId}
-                                  name={c.faculty}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setFacultyReviewTarget({
-                                      name: c.faculty,
-                                      employeeId: rawHalves[0]?.employeeId || (c as any).employeeId,
-                                      courseCode: c.code,
-                                    });
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          </td>
-                          <td className="py-3 px-2">
-                            <div className="flex flex-wrap gap-1">
-                              {c.slots.map(s => (
-                                <span key={s} className="bg-accent/50 border border-border-strong text-text-heading/80 text-[10px] px-1.5 py-0.5 rounded-md">
-                                  {s}
-                                </span>
-                              ))}
-                            </div>
-                          </td>
-                          <td className="py-3 px-2 text-sm text-text-heading/80 max-w-xs">{c.venue}</td>
-                          <td className="py-3 px-2 text-sm text-text-heading/80">{c.credits}</td>
-                          <td className="py-3 px-2 text-right print:hidden">
-                            <button 
-                              onClick={() => {
-                                c.ids.forEach(id => handleRemoveCourse(id));
-                              }}
-                              className="text-muted-foreground hover:text-red-400 transition-colors p-2"
-                              title="Remove Course"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                          : `${display} faculties teaching this slot · Click to switch`;
+                    return { display, title };
+                  }}
+                />
               </div>
             ) : (
               <div
@@ -4597,7 +3954,7 @@ export default function FFCSTimetableTab({
               disabled={activeTimetable.courses.length === 0}
               onClick={() => {
                 setIsShareLinkOptionsOpen(false);
-                void handleSharePlan(false);
+                void handleSharePlan("full");
               }}
               className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-surface-secondary/60 disabled:opacity-50"
             >
@@ -4615,7 +3972,7 @@ export default function FFCSTimetableTab({
               disabled={!canShareCompactLink}
               onClick={() => {
                 setIsShareLinkOptionsOpen(false);
-                void handleSharePlan(true);
+                void handleSharePlan("compact");
               }}
               className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-surface-secondary/60 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -4637,7 +3994,7 @@ export default function FFCSTimetableTab({
               disabled={!canShareShapeLink}
               onClick={() => {
                 setIsShareLinkOptionsOpen(false);
-                void handleSharePlan(false, true);
+                void handleSharePlan("shape");
               }}
               className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-surface-secondary/60 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -4649,8 +4006,30 @@ export default function FFCSTimetableTab({
                 titleTag="span"
                 subtitle={
                   canShareShapeLink
-                    ? "Shortest URL: shares only class IDs; the semester is inferred from their prefix."
+                    ? "Name-free URL: shares only class IDs; the semester is inferred from their prefix."
                     : "Available when every course has a unique class ID from a known semester report."
+                }
+              />
+            </button>
+            <button
+              type="button"
+              disabled={!canShareNumericShapeLink}
+              onClick={() => {
+                setIsShareLinkOptionsOpen(false);
+                void handleSharePlan("numeric-shape");
+              }}
+              className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-surface-secondary/60 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-amber-500/10 text-amber-600 border-amber-500/20 dark:text-amber-400">
+                <Share2 className="w-4 h-4" />
+              </span>
+              <ListRowText
+                title="Share TT shape (numeric)"
+                titleTag="span"
+                subtitle={
+                  canShareNumericShapeLink
+                    ? "Smallest URL: a numeric semester code plus delta-packed class IDs."
+                    : "Available when every class has a unique four-digit ID in a supported semester report."
                 }
               />
             </button>
