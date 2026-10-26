@@ -1,5 +1,5 @@
-import React, { memo, useCallback, useState, useMemo, useEffect } from 'react';
-import { X, Wand2, Info, ChevronDown, ChevronUp, Check, Beaker, Play, Lock, Hash, ArrowRight, Search, AlertTriangle, ArrowLeft, Save, Users, Trash2 } from 'lucide-react';
+import React, { memo, useCallback, useState, useMemo, useEffect, useRef, type ReactNode } from 'react';
+import { X, Wand2, Info, ChevronDown, ChevronUp, Check, Beaker, Play, Lock, Hash, ArrowRight, Search, AlertTriangle, ArrowLeft, Save, Users, Trash2, LayoutDashboard, Target, SlidersHorizontal, CalendarDays, Star, PanelsTopLeft } from 'lucide-react';
 import { TimetableState, CourseLock, Friend, FriendGroup, ParsedCourse, AddedCourse } from './types';
 import { getBatchColorClass } from '@/lib/utils';
 import {
@@ -23,11 +23,18 @@ import { offeringId, offeringMatches } from './reports';
 import { splitSlots, HARD_RESULT_LIMIT, sameSlotFacultyAlternatives, expandCourseHalves } from './logic/generate';
 import { TimetableGrid, GapDetail } from './components/TimetableGrid';
 import SlotFacultySwapSheet from './components/SlotFacultySwapSheet';
-import { PageShell, SegmentedControl, RadioGroup, SelectField } from "../../shared/primitives";
+import {
+  getFittingStatTileCount,
+  STAT_TILE_MIN_WIDTH,
+} from './components/FFCSDashboardHeader';
+import { PageShell, RadioGroup, SelectField, SectionHeader, ListShell, ListRowText, StatTile, InsightCarousel, useCarousel, type InsightSlide } from "../../shared/primitives";
 import { AnimatePresence } from 'framer-motion';
 import BottomSheet from "../../shared/BottomSheet";
 import { loadSessionPreferences, saveSessionPreferences } from "@/lib/ffcsGeneratorSessionPrefs";
 import FacultyReviewSheet, { VitfacReviewPill, FacultyAvatar } from './components/FacultyReviewSheet';
+import FFCSGeneratorViewModeModal, {
+  type GeneratorViewMode,
+} from './components/modals/FFCSGeneratorViewModeModal';
 import { loadVitfacRankingData } from "@/lib/vitfacService";
 import type { FacultyRatingLookup } from "@/lib/ffcsFacultyRanking";
 import { DAYS_OF_WEEK, timeToMinutes, type DayId } from "@/lib/slots";
@@ -137,6 +144,7 @@ const RANKING_PRIORITY_LABELS: Record<RankingPriority, string> = {
  */
 const STAGED_RENDER_LIMIT = 60;
 const STAGED_RENDER_STEP = 240;
+type GeneratorSectionKey = "courses" | "ranking" | "schedule" | "constraints" | "social";
 
 const DAY_LABELS: Record<DayId, string> = {
   mon: "Monday",
@@ -207,6 +215,19 @@ export function FFCSGeneratorSubpage({
   error, setError, successMsg, setSuccessMsg, renderTypeChips, getGroupedCourses, generatorDisplayCourses, theoryPeriods, labPeriods, toggleBlockSlot
 }: FFCSGeneratorSubpageProps) {
   const sessionPrefs = useMemo(() => loadSessionPreferences(), []);
+  const [generatorViewMode, setGeneratorViewMode] = useState<GeneratorViewMode>(() =>
+    safeStorage.getItem("ffcs_generator_view_mode") === "classic" ? "classic" : "modern"
+  );
+  const [isViewModeModalOpen, setIsViewModeModalOpen] = useState(false);
+  const [activeGeneratorSection, setActiveGeneratorSection] = useState<GeneratorSectionKey>("courses");
+
+  const selectGeneratorViewMode = (mode: GeneratorViewMode, remember: boolean) => {
+    setGeneratorViewMode(mode);
+    if (remember) safeStorage.setItem("ffcs_generator_view_mode", mode);
+  };
+
+  const generatorViewLabel =
+    generatorViewMode === "modern" ? "Modern dashboard" : "Classic full form";
 
   const [generatorPreference, setGeneratorPreference] = useState<"compact" | "spread" | "morning" | "evening">(
     () => sessionPrefs.preference ?? "compact"
@@ -845,6 +866,134 @@ export function FFCSGeneratorSubpage({
     );
   };
 
+  const generatorSections = [
+    { id: "courses" as const, label: "Target courses", icon: Target, detail: `${generatorTargets.length} selected`, tone: "indigo" },
+    { id: "ranking" as const, label: "Ranking & reviews", icon: Star, detail: rankingMode ? "Profile active" : "Sort and faculty", tone: "violet" },
+    { id: "schedule" as const, label: "Schedule", icon: CalendarDays, detail: `${generatorPreference} · time and labs`, tone: "cyan" },
+    { id: "constraints" as const, label: "Search limits", icon: SlidersHorizontal, detail: `${generatorNoLimit ? "No result cap" : generatorResultCap + " max"} · ${blockedSlots.size} blocked`, tone: "amber" },
+    { id: "social" as const, label: "Social matching", icon: Users, detail: `${generatorMaximizeFreeTimeFriends.length} friends selected`, tone: "pink" },
+  ];
+  const selectGeneratorSection = (section: GeneratorSectionKey) => setActiveGeneratorSection(section);
+  const showGeneratorSection = (section: GeneratorSectionKey) =>
+    generatorViewMode === "classic" || activeGeneratorSection === section;
+  const activeSectionInfo = generatorSections.find((section) => section.id === activeGeneratorSection) ?? generatorSections[0];
+
+  const setupStatTiles = useMemo<GeneratorStatTile[]>(
+    () => [
+      {
+        id: "target-courses",
+        label: "Target courses",
+        value: generatorTargets.length,
+        sub: generatorTargets.length === 1 ? "course selected" : "courses selected",
+        tone: "indigo",
+        icon: <Target className="h-4 w-4 text-indigo-500" />,
+        onClick: () => setActiveGeneratorSection("courses"),
+        ariaLabel: `Target courses: ${generatorTargets.length}. Edit target courses.`,
+        focusRingClass: "focus-visible:ring-indigo-500",
+      },
+      {
+        id: "blocked-slots",
+        label: "Blocked slots",
+        value: blockedSlots.size,
+        sub: "Excluded from results",
+        tone: "amber",
+        icon: <X className="h-4 w-4 text-amber-500" />,
+        onClick: () => setActiveGeneratorSection("constraints"),
+        ariaLabel: `Blocked slots: ${blockedSlots.size}. Edit search limits.`,
+        focusRingClass: "focus-visible:ring-amber-500",
+      },
+      {
+        id: "friend-matches",
+        label: "Friend matches",
+        value: generatorMaximizeFreeTimeFriends.length,
+        sub: `${friends.length} friends available`,
+        tone: "pink",
+        icon: <Users className="h-4 w-4 text-pink-500" />,
+        onClick: () => setActiveGeneratorSection("social"),
+        ariaLabel: `Friend matches: ${generatorMaximizeFreeTimeFriends.length}. Edit social matching.`,
+        focusRingClass: "focus-visible:ring-pink-500",
+      },
+      {
+        id: "options-found",
+        label: "Options found",
+        value: stagedTimetables.length.toLocaleString(),
+        sub: isGenerating ? "Search in progress" : "Conflict-free schedules",
+        badge: isGenerating ? "Live" : undefined,
+        tone: "cyan",
+        icon: isGenerating ? undefined : <CalendarDays className="h-4 w-4 text-cyan-500" />,
+        onClick:
+          stagedTimetables.length > 0
+            ? () => {
+                setIsReviewing(true);
+                setGeneratorPreviewTimetable(null);
+              }
+            : undefined,
+        ariaLabel: `Options found: ${stagedTimetables.length}. ${
+          stagedTimetables.length > 0 ? "View results." : "Conflict-free schedules."
+        }`,
+        focusRingClass: "focus-visible:ring-cyan-500",
+      },
+    ],
+    [
+      blockedSlots.size,
+      friends.length,
+      generatorMaximizeFreeTimeFriends.length,
+      generatorTargets.length,
+      isGenerating,
+      stagedTimetables.length,
+    ]
+  );
+
+  const previewStatTiles = useMemo<GeneratorStatTile[]>(() => {
+    if (!generatorPreviewTimetable) return [];
+    const dashes = generatorPreviewTimetable.metrics?.buildingDashes ?? 0;
+    return [
+      {
+        id: "free-half-days",
+        label: "Free Half-Days",
+        value: generatorPreviewTimetable.metrics?.halfDays ?? 0,
+        sub: "Weekly free mornings / afternoons",
+        tone: (generatorPreviewTimetable.metrics?.halfDays ?? 0) >= 4 ? "emerald" : "blue",
+      },
+      {
+        id: "total-gaps",
+        label: "Total Gaps",
+        value: `${formatHours(generatorPreviewTimetable.metrics?.gaps ?? 0)}h`,
+        sub: "Dead time between classes",
+        tone: "amber",
+        onClick: () => setSelectedGapDetails(generatorPreviewTimetable.metrics?.gapDetails || null),
+        ariaLabel: `Total Gaps: ${formatHours(generatorPreviewTimetable.metrics?.gaps ?? 0)} hours. View gap details.`,
+        focusRingClass: "focus-visible:ring-amber-500",
+        className: "cursor-pointer hover:border-amber-500/40",
+      },
+      {
+        id: "block-dashes",
+        label: "Block Dashes",
+        value: dashes,
+        sub: dashes > 0 ? "Building hops detected" : "No building hops",
+        badge: dashes > 0 ? "Alert" : "Clear",
+        tone: dashes > 0 ? "red" : "emerald",
+        onClick:
+          dashes > 0
+            ? () => setSelectedDashDetails(generatorPreviewTimetable.metrics?.dashDetails || null)
+            : undefined,
+        ariaLabel: `Block Dashes: ${dashes}. ${dashes > 0 ? "View dash details." : "No building hops."}`,
+        focusRingClass: "focus-visible:ring-red-500",
+      },
+      {
+        id: "social-score",
+        label: "Social Score",
+        value: `${generatorPreviewTimetable.metrics?.socialScore ?? 0}%`,
+        sub: "Overlap with selected friends",
+        tone: "pink",
+        onClick: () => alert("Social Matrix is available in the main tab"),
+        ariaLabel: `Social Score: ${generatorPreviewTimetable.metrics?.socialScore ?? 0} percent.`,
+        focusRingClass: "focus-visible:ring-pink-500",
+        className: "cursor-pointer hover:border-pink-500/40",
+      },
+    ];
+  }, [generatorPreviewTimetable]);
+
   const shellEyebrow = "FFCS · Auto-Generator";
   const shellTitle = generatorPreviewTimetable ? (
     <span className="inline-flex items-center gap-2.5 flex-wrap">
@@ -970,7 +1119,7 @@ export function FFCSGeneratorSubpage({
         type="button"
         onClick={generateTimetables}
         disabled={isGenerating || generatorTargets.length === 0}
-        className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-bold py-2 px-4 rounded-xl shadow-md hover:shadow-amber-500/25 transition-all cursor-pointer"
+        className={`flex min-h-11 items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-bold py-2 px-4 rounded-xl transition-all cursor-pointer ${generatorViewMode === "modern" ? "bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-600/20 active:scale-95 font-outfit" : "bg-amber-500 hover:bg-amber-600 shadow-md hover:shadow-amber-500/25"}`}
       >
         {isGenerating ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Wand2 className="w-4 h-4" />}
         <span>{isGenerating ? "Generating…" : "Generate Timetables"}</span>
@@ -1028,6 +1177,16 @@ export function FFCSGeneratorSubpage({
                 </button>
               )}
             </div>
+          )}
+
+          {generatorViewMode === "modern" && !generatorPreviewTimetable && (
+            <ResponsiveStatStrip
+              tiles={setupStatTiles}
+              preferredId="options-found"
+              ariaLabel="Generator statistics"
+              carouselAriaLabel="More generator statistics"
+              testId="ffcs-generator-stat-strip"
+            />
           )}
 
           <div className="flex justify-center">
@@ -1129,51 +1288,13 @@ export function FFCSGeneratorSubpage({
                     </div>
                   </aside>
                 )}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-surface rounded-2xl border border-border-strong p-4 flex flex-col justify-center items-center text-center shadow-sm">
-                    <span className="text-2xl font-black text-text-heading">{generatorPreviewTimetable.metrics?.halfDays}</span>
-                    <span className="text-xs uppercase font-bold text-muted-foreground tracking-wider mt-1">Free Half-Days</span>
-                  </div>
-                  
-                  <div 
-                    className="bg-surface rounded-2xl border border-border-strong p-4 flex flex-col justify-center items-center text-center shadow-sm relative group cursor-pointer hover:bg-surface-secondary/50 transition-colors"
-                    onClick={() => setSelectedGapDetails(generatorPreviewTimetable.metrics?.gapDetails || null)}
-                  >
-                    <span className="text-2xl font-black text-text-heading">{formatHours(generatorPreviewTimetable.metrics?.gaps ?? 0)}h</span>
-                    <span className="text-xs uppercase font-bold text-muted-foreground tracking-wider mt-1">Total Gaps</span>
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max min-w-[200px] bg-slate-900 text-white text-[10px] p-3 rounded-lg opacity-0 group-hover:opacity-100 active:opacity-100 pointer-events-none transition-opacity z-50 shadow-xl grid grid-cols-2 gap-x-4 gap-y-1.5">
-                      {Object.entries(generatorPreviewTimetable.metrics?.gapsPerDay || {}).map(([day, gap]) => (
-                        <div key={day} className="flex justify-between gap-3">
-                          <span className="font-bold text-slate-400 uppercase">{day}</span>
-                          <span>{formatHours(gap)}h</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {(generatorPreviewTimetable.metrics?.buildingDashes ?? 0) > 0 ? (
-                    <div 
-                      className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 flex flex-col justify-center items-center text-center shadow-sm cursor-pointer hover:bg-red-500/20 transition-colors"
-                      onClick={() => setSelectedDashDetails(generatorPreviewTimetable.metrics?.dashDetails || null)}
-                    >
-                      <span className="text-2xl font-black text-red-500">{generatorPreviewTimetable.metrics?.buildingDashes}</span>
-                      <span className="text-xs uppercase font-bold text-red-500/80 tracking-wider mt-1">Block Dashes</span>
-                    </div>
-                  ) : (
-                    <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-4 flex flex-col justify-center items-center text-center shadow-sm">
-                      <span className="text-2xl font-black text-green-500">0</span>
-                      <span className="text-xs uppercase font-bold text-green-500/80 tracking-wider mt-1">Block Dashes</span>
-                    </div>
-                  )}
-
-                  <div 
-                    className="flex flex-col items-center justify-center p-3 bg-card border border-border-strong/50 rounded-xl shadow-sm cursor-pointer hover:bg-surface-secondary/50 transition-colors"
-                    onClick={() => alert("Social Matrix is available in the main tab")}
-                  >
-                    <span className="text-3xl font-black text-pink-500">{generatorPreviewTimetable.metrics?.socialScore}%</span>
-                    <span className="text-xs uppercase font-bold text-pink-500/80 tracking-wider mt-1">Social Score</span>
-                  </div>
-                </div>
+                <ResponsiveStatStrip
+                  tiles={previewStatTiles}
+                  preferredId="free-half-days"
+                  ariaLabel="Preview timetable statistics"
+                  carouselAriaLabel="More preview timetable statistics"
+                  testId="ffcs-generator-preview-stat-strip"
+                />
 
                 {generatorPreviewTimetable.rankingScore !== undefined && (
                   <section className="rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-4 md:p-5 space-y-4">
@@ -1695,17 +1816,118 @@ export function FFCSGeneratorSubpage({
                 )}
               </div>
             ) : (
-            <div className="max-w-none w-full grid grid-cols-1 lg:grid-cols-2 gap-10">
+            <div className={`max-w-none w-full grid ${generatorViewMode === "modern" ? "grid-cols-1 gap-3 lg:gap-3 lg:grid-cols-[minmax(220px,0.8fr)_minmax(0,2fr)] xl:grid-cols-[minmax(220px,0.8fr)_minmax(0,2fr)_minmax(280px,0.9fr)]" : "grid-cols-1 lg:grid-cols-2 gap-10"}`}>
+
+              {generatorViewMode === "modern" && (
+                <nav aria-label="Generator sections" className="min-w-0 space-y-3 lg:sticky lg:top-4 lg:col-start-1 lg:row-span-2 lg:self-start">
+                  <div>
+                    <SectionHeader icon={LayoutDashboard} title="Generator sections" className="mb-2" />
+                    <div role="tablist" aria-label="Auto-generator sections" className="min-w-0">
+                      <ListShell className="grid grid-flow-col auto-cols-max gap-1 divide-y-0 overflow-x-auto p-1 lg:grid-flow-row lg:auto-cols-auto lg:divide-y lg:overflow-visible">
+                        {generatorSections.map(({ id, label, icon: Icon, detail, tone }) => {
+                          const activeTabClass = {
+                            indigo: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/25",
+                            violet: "bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/25",
+                            cyan: "bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border-cyan-500/25",
+                            amber: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/25",
+                            pink: "bg-pink-500/10 text-pink-700 dark:text-pink-300 border-pink-500/25",
+                          }[tone];
+                          return (
+                          <button
+                            key={id}
+                            id={`generator-tab-${id}`}
+                            type="button"
+                            role="tab"
+                            aria-selected={activeGeneratorSection === id}
+                            aria-controls="generator-active-panel"
+                            onClick={() => selectGeneratorSection(id)}
+                            onKeyDown={(event) => {
+                              const direction = event.key === "ArrowRight" || event.key === "ArrowDown"
+                                ? 1
+                                : event.key === "ArrowLeft" || event.key === "ArrowUp"
+                                  ? -1
+                                  : 0;
+                              if (!direction) return;
+                              event.preventDefault();
+                              const currentIndex = generatorSections.findIndex((section) => section.id === id);
+                              const next = generatorSections[(currentIndex + direction + generatorSections.length) % generatorSections.length];
+                              selectGeneratorSection(next.id);
+                              document.getElementById(`generator-tab-${next.id}`)?.focus();
+                            }}
+                            className={`flex min-h-11 shrink-0 items-center gap-2.5 rounded-xl border px-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 lg:w-full ${activeGeneratorSection === id ? activeTabClass : "border-transparent text-text-secondary hover:bg-surface-secondary/70 hover:text-text-heading"}`}
+                          >
+                            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${activeGeneratorSection === id ? "bg-white/70 dark:bg-black/10" : "bg-surface-secondary/70"}`}>
+                              <Icon className="h-4 w-4 shrink-0" />
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block whitespace-nowrap text-xs font-semibold">{label}</span>
+                              <span className="hidden truncate text-[10px] text-muted-foreground lg:block">{detail}</span>
+                            </span>
+                          </button>
+                          );
+                        })}
+                      </ListShell>
+                    </div>
+                  </div>
+                  <section aria-labelledby="generator-views-heading" className="space-y-2">
+                    <h3 id="generator-views-heading" className="px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Views
+                    </h3>
+                    <ListShell>
+                      <button
+                        type="button"
+                        onClick={() => setIsViewModeModalOpen(true)}
+                        className="w-full flex items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-surface-secondary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500"
+                      >
+                        <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border-indigo-500/20">
+                          <PanelsTopLeft className="w-4 h-4" />
+                        </span>
+                        <ListRowText
+                          title="Switch Generator View"
+                          titleTag="span"
+                          subtitle={generatorViewLabel}
+                        />
+                      </button>
+                    </ListShell>
+                  </section>
+                </nav>
+              )}
+
+              {generatorViewMode === "classic" && (
+                <section aria-labelledby="generator-classic-views-heading" className="col-span-full space-y-2">
+                  <h3 id="generator-classic-views-heading" className="px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Views
+                  </h3>
+                  <ListShell>
+                    <button
+                      type="button"
+                      onClick={() => setIsViewModeModalOpen(true)}
+                      className="w-full flex items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-surface-secondary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500"
+                    >
+                      <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/20">
+                        <PanelsTopLeft className="w-4 h-4" />
+                      </span>
+                      <ListRowText
+                        title="Switch Generator View"
+                        titleTag="span"
+                        subtitle={generatorViewLabel}
+                      />
+                    </button>
+                  </ListShell>
+                </section>
+              )}
               
               {/* Left Column: Courses Selection */}
-              <div className="flex flex-col gap-6 min-w-0">
-                <div className="bg-surface rounded-2xl border border-border-strong p-6 shadow-sm">
+              <div id={generatorViewMode === "modern" && activeGeneratorSection === "courses" ? "generator-active-panel" : undefined} role={generatorViewMode === "modern" ? "tabpanel" : undefined} aria-labelledby={generatorViewMode === "modern" ? `generator-tab-${activeGeneratorSection}` : undefined} className={`flex min-w-0 flex-col gap-6 ${generatorViewMode === "modern" ? `row-start-3 lg:row-start-1 lg:col-start-2 ${showGeneratorSection("courses") ? "" : "hidden"}` : ""}`}>
+                <div id="generator-target-courses" className={`scroll-mt-24 bg-surface rounded-2xl border shadow-sm ${generatorViewMode === "modern" ? "border-indigo-500/30 dark:border-indigo-500/40 p-4 sm:p-6" : "border-border-strong p-6"}`}>
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <h3 className="font-semibold text-lg mb-2 text-text-heading flex items-center gap-2">
+                      {generatorViewMode === "modern" ? (
+                        <SectionHeader icon={Target} title="Target courses" count={generatorTargets.length} className="mb-2" />
+                      ) : <h3 className="font-semibold text-lg mb-2 text-text-heading flex items-center gap-2">
                         <span className="bg-amber-500/10 text-amber-500 w-7 h-7 rounded-full flex items-center justify-center text-sm">1</span> 
                         Target Courses
-                      </h3>
+                      </h3>}
                       <p className="text-sm text-muted-foreground">Select the courses you want to take and optionally filter faculties/slots.</p>
                     </div>
                   </div>
@@ -1958,17 +2180,28 @@ export function FFCSGeneratorSubpage({
               </div>
 
               {/* Right Column: Preferences & Social */}
-              <div className="flex flex-col gap-6 min-w-0">
+              <div id={generatorViewMode === "modern" && activeGeneratorSection !== "courses" ? "generator-active-panel" : undefined} role={generatorViewMode === "modern" && activeGeneratorSection !== "courses" ? "tabpanel" : undefined} aria-labelledby={generatorViewMode === "modern" && activeGeneratorSection !== "courses" ? `generator-tab-${activeGeneratorSection}` : undefined} className={`flex min-w-0 flex-col gap-6 ${generatorViewMode === "modern" ? `row-start-3 lg:row-start-2 lg:col-start-2 ${activeGeneratorSection === "courses" ? "hidden" : ""}` : ""}`}>
                 
                 {/* General Preferences */}
-                <div className="bg-surface rounded-2xl border border-border-strong p-6 shadow-sm">
-                  <h3 className="font-semibold text-lg mb-4 text-text-heading flex items-center gap-2">
+                <div id="generator-preferences" className={`scroll-mt-24 rounded-2xl border shadow-sm ${generatorViewMode === "modern" ? `${activeGeneratorSection === "ranking" ? "border-violet-500/30 dark:border-violet-500/40" : activeGeneratorSection === "schedule" ? "border-cyan-500/30 dark:border-cyan-500/40" : "border-amber-500/30 dark:border-amber-500/40"} bg-surface p-4 sm:p-6 ${activeGeneratorSection === "social" || activeGeneratorSection === "courses" ? "hidden" : ""}` : "border-border-strong bg-surface p-6"}`}>
+                  {generatorViewMode === "modern" ? (
+                    <>
+                      <SectionHeader icon={activeSectionInfo.icon} title={activeSectionInfo.label} className="mb-1" />
+                      <p className="mb-5 px-1 text-xs leading-relaxed text-text-secondary dark:text-text-muted">
+                        {activeGeneratorSection === "ranking"
+                          ? "Choose how options are ordered and how faculty review data affects scores."
+                          : activeGeneratorSection === "schedule"
+                            ? "Set acceptable class times, daily end limits, and lab spacing rules."
+                            : "Control search size, unique-faculty results, and unavailable slots."}
+                      </p>
+                    </>
+                  ) : <h3 className="font-semibold text-lg mb-4 text-text-heading flex items-center gap-2">
                     <span className="bg-blue-500/10 text-blue-500 w-7 h-7 rounded-full flex items-center justify-center text-sm">2</span> 
                     Preferences
-                  </h3>
+                  </h3>}
                   
                   <div className="space-y-5">
-                    <div>
+                    <div id="generator-sort-order" className={`scroll-mt-24 ${showGeneratorSection("ranking") ? "" : "hidden"}`}>
                       <label className="text-sm font-medium text-text-heading block mb-2">
                         Sort Timetables By
                       </label>
@@ -1980,7 +2213,7 @@ export function FFCSGeneratorSubpage({
                       />
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${showGeneratorSection("ranking") ? "" : "hidden"}`}>
                       <div>
                         <label className="text-sm font-medium text-text-heading block mb-1.5 flex items-center gap-2">
                           Min Free Half-Days
@@ -2000,7 +2233,7 @@ export function FFCSGeneratorSubpage({
                       </div>
                     </div>
 
-                    <div>
+                    <div className={`${showGeneratorSection("constraints") ? "" : "hidden"}`}>
                       <label className="text-sm font-medium text-text-heading block mb-2">
                         Maximum Timetables to Keep
                       </label>
@@ -2030,7 +2263,7 @@ export function FFCSGeneratorSubpage({
                       </p>
                     </div>
 
-                    <div>
+                    <div id="generator-ranking" className={`scroll-mt-24 ${showGeneratorSection("ranking") ? "" : "hidden"}`}>
                       <label className="text-sm font-medium text-text-heading block mb-2 flex items-center gap-2">
                         Ranking Profile
                         <span className="text-[10px] font-bold uppercase tracking-wider bg-indigo-500/10 text-indigo-500 px-1.5 py-0.5 rounded-md border border-indigo-500/20">
@@ -2047,7 +2280,7 @@ export function FFCSGeneratorSubpage({
                       />
                     </div>
 
-                    <section className="space-y-4 rounded-xl border border-border-strong/70 bg-surface-secondary/20 p-4">
+                    <section id="generator-faculty-reviews" className={`scroll-mt-24 space-y-4 rounded-xl border p-4 ${generatorViewMode === "modern" ? "border-violet-500/20 bg-violet-500/[0.04]" : "border-border-strong/70 bg-surface-secondary/20"} ${showGeneratorSection("ranking") ? "" : "hidden"}`}>
                       <div>
                         <h4 className="text-sm font-semibold text-text-heading">Ranking &amp; Faculty Reviews</h4>
                         <p className="mt-1 text-xs text-muted-foreground">
@@ -2175,7 +2408,7 @@ export function FFCSGeneratorSubpage({
                       </div>
                     </section>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${showGeneratorSection("schedule") ? "" : "hidden"}`}>
                       <SelectField
                         stacked
                         title="Earliest Slot Start"
@@ -2208,7 +2441,7 @@ export function FFCSGeneratorSubpage({
                       />
                     </div>
 
-                    <div className="space-y-3 rounded-xl border border-border-strong/70 bg-surface-secondary/20 p-4">
+                    <div className={`space-y-3 rounded-xl border p-4 ${generatorViewMode === "modern" ? "border-cyan-500/20 bg-cyan-500/[0.04]" : "border-border-strong/70 bg-surface-secondary/20"} ${showGeneratorSection("schedule") ? "" : "hidden"}`}>
                       <div>
                         <h4 className="text-sm font-semibold text-text-heading">Day-specific class end times</h4>
                         <p className="mt-1 text-xs text-muted-foreground">
@@ -2286,7 +2519,7 @@ export function FFCSGeneratorSubpage({
                       </div>
                     </div>
 
-                    <div>
+                    <div id="generator-schedule" className={`scroll-mt-24 ${showGeneratorSection("schedule") ? "" : "hidden"}`}>
                       <label className="text-sm font-medium text-text-heading block mb-2">
                         Time Preference
                       </label>
@@ -2316,7 +2549,7 @@ export function FFCSGeneratorSubpage({
                       )}
                     </div>
 
-                    <fieldset className="space-y-2 rounded-xl border border-border-strong bg-surface-secondary/10 p-3">
+                    <fieldset id="generator-lab-rules" className={`scroll-mt-24 space-y-2 rounded-xl border p-3 ${generatorViewMode === "modern" ? "border-cyan-500/25 bg-cyan-500/[0.04]" : "border-border-strong bg-surface-secondary/10"} ${showGeneratorSection("schedule") ? "" : "hidden"}`}>
                       <legend className="px-1 text-sm font-medium text-text-heading">
                         Lab Scheduling
                       </legend>
@@ -2366,7 +2599,7 @@ export function FFCSGeneratorSubpage({
                       )}
                     </fieldset>
 
-                    <div className="flex flex-col gap-3">
+                    <div className={`flex flex-col gap-3 ${showGeneratorSection("constraints") ? "" : "hidden"}`}>
                       <label className="flex items-center gap-3 cursor-pointer group bg-surface-secondary/20 p-3 rounded-xl border border-transparent hover:border-border-strong transition-all">
                         <div className="relative flex items-center">
                           <input 
@@ -2400,7 +2633,7 @@ export function FFCSGeneratorSubpage({
                       </label>
                     </div>
 
-                    <div>
+                    <div id="generator-blocked-slots" className={`scroll-mt-24 ${showGeneratorSection("constraints") ? "" : "hidden"}`}>
                       <label className="text-sm font-medium text-text-heading flex items-center gap-1.5 mb-2">
                         Blocked Slots Constraint
                         <Info className="w-4 h-4 text-muted-foreground" />
@@ -2434,11 +2667,13 @@ export function FFCSGeneratorSubpage({
                 </div>
 
                 {/* Social Preferences */}
-                <div className="bg-surface rounded-2xl border border-border-strong p-6 shadow-sm">
-                  <h3 className="font-semibold text-lg mb-4 text-text-heading flex items-center gap-2">
+                <div id="generator-social" className={`scroll-mt-24 bg-surface rounded-2xl border shadow-sm ${generatorViewMode === "modern" ? `border-pink-500/30 dark:border-pink-500/40 p-4 sm:p-6 ${activeGeneratorSection === "social" ? "" : "hidden"}` : "border-border-strong p-6"}`}>
+                  {generatorViewMode === "modern" ? (
+                    <SectionHeader icon={Users} title="Social matching" count={friends.length} className="mb-4" />
+                  ) : <h3 className="font-semibold text-lg mb-4 text-text-heading flex items-center gap-2">
                     <span className="bg-pink-500/10 text-pink-500 w-7 h-7 rounded-full flex items-center justify-center text-sm">3</span> 
                     Social Preferences
-                  </h3>
+                  </h3>}
                   
                   {friends.length === 0 ? (
                     <div className="text-sm text-muted-foreground p-4 bg-surface-secondary/20 rounded-xl border border-dashed border-border-strong text-center">
@@ -2489,13 +2724,74 @@ export function FFCSGeneratorSubpage({
                   )}
                 </div>
 
+                {generatorViewMode === "modern" && (
+                  <aside aria-label="Generation summary" className="row-start-2 lg:col-start-2 lg:row-start-3 xl:sticky xl:top-4 xl:col-start-3 xl:row-start-1 xl:row-span-2 xl:self-start">
+                    <div className="space-y-3">
+                      <section className="rounded-2xl border border-indigo-500/25 bg-gradient-to-br from-indigo-500/10 via-surface to-surface p-4 shadow-sm">
+                        <SectionHeader icon={Wand2} title="Run readiness" className="mb-2" />
+                        <p className="text-lg font-bold text-text-heading">{generatorTargets.length ? "Ready to search" : "Choose courses first"}</p>
+                        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                          {generatorTargets.length
+                            ? `${generatorTargets.length} target course${generatorTargets.length === 1 ? "" : "s"} · ${blockedSlots.size} blocked slot${blockedSlots.size === 1 ? "" : "s"}`
+                            : "Pick at least one target course to enable generation."}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={generateTimetables}
+                          disabled={isGenerating || generatorTargets.length === 0}
+                          className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-black font-outfit text-white shadow-md shadow-indigo-600/20 transition-all hover:bg-indigo-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {isGenerating ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : <Wand2 className="h-4 w-4" />}
+                          {isGenerating ? "Searching…" : "Generate timetables"}
+                        </button>
+                        {stagedTimetables.length > 0 && (
+                          <button type="button" onClick={() => setIsReviewing(true)} className="mt-2 inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-border-strong bg-surface px-4 text-sm font-semibold text-text-heading hover:bg-surface-secondary">
+                            View {stagedTimetables.length.toLocaleString()} results
+                          </button>
+                        )}
+                      </section>
+
+                      <section className="rounded-2xl border border-border-strong bg-surface p-4 shadow-sm">
+                        <SectionHeader icon={SlidersHorizontal} title="Search profile" />
+                        <ListShell className="mt-3 space-y-1 p-1">
+                          <button type="button" onClick={() => selectGeneratorSection("constraints")} className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-amber-500/20 bg-amber-500/[0.04] px-3 text-left hover:bg-amber-500/10">
+                            <span className="text-xs text-muted-foreground">Search cap</span><span className="text-xs font-semibold text-text-heading">{generatorNoLimit ? "No cap" : generatorResultCap.toLocaleString()}</span>
+                          </button>
+                          <button type="button" onClick={() => selectGeneratorSection("schedule")} className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-cyan-500/20 bg-cyan-500/[0.04] px-3 text-left hover:bg-cyan-500/10">
+                            <span className="text-xs text-muted-foreground">Time preference</span><span className="text-xs font-semibold capitalize text-text-heading">{generatorPreference}</span>
+                          </button>
+                          <button type="button" onClick={() => selectGeneratorSection("ranking")} className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-violet-500/20 bg-violet-500/[0.04] px-3 text-left hover:bg-violet-500/10">
+                            <span className="text-xs text-muted-foreground">Ranking</span><span className="truncate text-xs font-semibold text-text-heading">{rankingMode ?? generatorSortBy}</span>
+                          </button>
+                          <button type="button" onClick={() => selectGeneratorSection("social")} className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-pink-500/20 bg-pink-500/[0.04] px-3 text-left hover:bg-pink-500/10">
+                            <span className="text-xs text-muted-foreground">Social matching</span><span className="text-xs font-semibold text-text-heading">{generatorMaximizeFreeTimeFriends.length} selected</span>
+                          </button>
+                        </ListShell>
+                      </section>
+
+                      <section className="rounded-2xl border border-border-strong bg-surface p-4 shadow-sm">
+                        <SectionHeader icon={Target} title="Selected courses" count={generatorTargets.length} />
+                        {generatorTargets.length > 0 ? (
+                          <div className="mt-3 flex flex-wrap gap-1.5">
+                            {generatorTargets.slice(0, 6).map((course) => (
+                              <span key={course.code} className="rounded-lg border border-border-strong bg-surface-secondary/40 px-2 py-1 text-[11px] font-semibold text-text-heading">{course.code}</span>
+                            ))}
+                            {generatorTargets.length > 6 && <span className="px-1 py-1 text-[11px] text-muted-foreground">+{generatorTargets.length - 6} more</span>}
+                          </div>
+                        ) : <p className="mt-2 text-xs text-muted-foreground">Your course choices will appear here.</p>}
+                        <button type="button" onClick={() => selectGeneratorSection("courses")} className="mt-3 min-h-11 text-xs font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400">Edit target courses <ArrowRight className="ml-1 inline h-3.5 w-3.5" /></button>
+                      </section>
+                    </div>
+                  </aside>
+                )}
+
                 {/* Bottom CTA to run generator */}
-                <div className="col-span-1 lg:col-span-2 pt-6 pb-12 flex justify-center">
+                <div className={`pt-6 pb-12 flex justify-center ${generatorViewMode === "modern" ? "row-start-4 lg:row-start-4 xl:row-start-3 lg:col-span-2 xl:col-span-3" : "col-span-1 lg:col-span-2"}`}>
                   <button
                     type="button"
                     onClick={generateTimetables}
                     disabled={isGenerating || generatorTargets.length === 0}
-                    className="w-full sm:w-auto min-w-[260px] flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-base font-bold py-3.5 px-8 rounded-2xl shadow-lg hover:shadow-amber-500/25 transition-all cursor-pointer"
+                    className={`w-full sm:w-auto min-w-[260px] min-h-12 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3.5 px-6 sm:px-8 rounded-2xl transition-all cursor-pointer ${generatorViewMode === "modern" ? "bg-indigo-600 hover:bg-indigo-700 text-sm sm:text-base font-black font-outfit tracking-wide shadow-xl shadow-indigo-600/20 active:scale-[0.98]" : "bg-amber-500 hover:bg-amber-600 text-base font-bold shadow-lg hover:shadow-amber-500/25"}`}
                   >
                     {isGenerating ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Wand2 className="w-5 h-5" />}
                     <span>{isGenerating ? "Generating Timetables…" : "Run Timetable Generator"}</span>
@@ -2642,11 +2938,184 @@ export function FFCSGeneratorSubpage({
         employeeId={reviewSheetTarget?.employeeId}
         courseCode={reviewSheetTarget?.courseCode}
       />
+
+      <FFCSGeneratorViewModeModal
+        isOpen={isViewModeModalOpen}
+        onClose={() => setIsViewModeModalOpen(false)}
+        currentMode={generatorViewMode}
+        onSelectMode={selectGeneratorViewMode}
+      />
     </>
   );
 }
 
-/* ── one option card ───────────────────────────────────────────────────── */
+/* ── responsive KPI strip (planner-aligned) ────────────────────────────── */
+
+type GeneratorStatTile = {
+  id: string;
+  label: string;
+  value: ReactNode;
+  sub?: ReactNode;
+  badge?: ReactNode;
+  tone: string;
+  icon?: ReactNode;
+  className?: string;
+  onClick?: () => void;
+  ariaLabel?: string;
+  focusRingClass?: string;
+};
+
+/**
+ * Same fit → overflow → InsightCarousel behaviour as the planner dashboard
+ * strip: measure the row, keep as many 280px tiles as fit, and rotate the rest.
+ */
+function ResponsiveStatStrip({
+  tiles,
+  preferredId,
+  ariaLabel,
+  carouselAriaLabel,
+  testId,
+}: {
+  tiles: GeneratorStatTile[];
+  preferredId: string;
+  ariaLabel: string;
+  carouselAriaLabel: string;
+  testId?: string;
+}) {
+  const statsContainerRef = useRef<HTMLDivElement>(null);
+  const [statTileCount, setStatTileCount] = useState(4);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") {
+      const updateViewport = () => setIsMobileViewport(window.innerWidth < 768);
+      updateViewport();
+      window.addEventListener("resize", updateViewport);
+      return () => window.removeEventListener("resize", updateViewport);
+    }
+    const media = window.matchMedia("(max-width: 767px)");
+    const updateViewport = () => setIsMobileViewport(media.matches);
+    updateViewport();
+    media.addEventListener("change", updateViewport);
+    return () => media.removeEventListener("change", updateViewport);
+  }, []);
+
+  useEffect(() => {
+    const container = statsContainerRef.current;
+    if (!container) return;
+
+    const updateCount = (width: number) => {
+      if (width > 0) setStatTileCount(getFittingStatTileCount(width));
+    };
+
+    updateCount(container.getBoundingClientRect().width);
+    if (typeof ResizeObserver !== "undefined") {
+      const observer = new ResizeObserver(([entry]) => updateCount(entry.contentRect.width));
+      observer.observe(container);
+      return () => observer.disconnect();
+    }
+
+    const handleResize = () => updateCount(container.getBoundingClientRect().width);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const statSlides = useMemo<InsightSlide[]>(
+    () =>
+      tiles.map((tile) => ({
+        id: tile.id,
+        label: tile.label,
+        value: tile.value,
+        sub: tile.sub,
+        badge: tile.badge,
+        tone: tile.tone,
+        onClick: tile.onClick,
+        valueClassName: "text-xl sm:text-2xl leading-tight whitespace-normal break-words",
+      })),
+    [tiles]
+  );
+
+  const hasStatOverflow = tiles.length > statTileCount;
+  const directTileCount = hasStatOverflow
+    ? Math.max(0, statTileCount - 1)
+    : tiles.length;
+  const preferredTile = tiles.find((tile) => tile.id === preferredId);
+  const desktopDirectTiles = hasStatOverflow
+    ? [
+        ...(directTileCount > 0 && preferredTile ? [preferredTile] : []),
+        ...tiles
+          .filter((tile) => tile.id !== preferredId)
+          .slice(0, directTileCount - (directTileCount > 0 && preferredTile ? 1 : 0)),
+      ]
+    : tiles;
+  const mobileDirectTiles = [
+    ...(preferredTile ? [preferredTile] : []),
+    ...tiles.filter((tile) => tile.id !== preferredId),
+  ].slice(0, 1);
+  const directTiles = isMobileViewport ? mobileDirectTiles : desktopDirectTiles;
+  const directStatIds = new Set(directTiles.map((tile) => tile.id));
+  const overflowSlides = statSlides.filter((slide) => !directStatIds.has(slide.id));
+  const statCarousel = useCarousel(overflowSlides.length);
+  const statColumnCount = isMobileViewport
+    ? 2
+    : Math.max(1, directTiles.length + (overflowSlides.length > 0 ? 1 : 0));
+
+  if (tiles.length === 0) return null;
+
+  return (
+    <div
+      ref={statsContainerRef}
+      data-testid={testId}
+      aria-label={ariaLabel}
+      className="grid gap-3"
+      style={{
+        gridTemplateColumns: isMobileViewport
+          ? "repeat(2, minmax(0, 1fr))"
+          : `repeat(${statColumnCount}, minmax(min(100%, ${STAT_TILE_MIN_WIDTH}px), ${STAT_TILE_MIN_WIDTH}px))`,
+      }}
+    >
+      {directTiles.map((tile) => {
+        const statTile = (
+          <StatTile
+            label={tile.label}
+            value={tile.value}
+            sub={tile.sub}
+            badge={tile.badge}
+            icon={tile.icon}
+            tone={tile.tone}
+            height="h-28 sm:h-32"
+            className={tile.onClick ? "" : tile.className ?? ""}
+          />
+        );
+        if (!tile.onClick) {
+          return <React.Fragment key={tile.id}>{statTile}</React.Fragment>;
+        }
+        return (
+          <button
+            key={tile.id}
+            type="button"
+            onClick={tile.onClick}
+            aria-label={tile.ariaLabel ?? tile.label}
+            className={`min-w-0 text-left rounded-2xl focus-visible:outline-none focus-visible:ring-2 ${
+              tile.focusRingClass ?? "focus-visible:ring-indigo-500"
+            }`}
+          >
+            {statTile}
+          </button>
+        );
+      })}
+      {overflowSlides.length > 0 && (
+        <InsightCarousel
+          slides={overflowSlides}
+          carousel={statCarousel}
+          height="h-28 sm:h-32"
+          ariaLabel={carouselAriaLabel}
+          className="min-w-0"
+        />
+      )}
+    </div>
+  );
+}
 
 /**
  * A single staged option card.

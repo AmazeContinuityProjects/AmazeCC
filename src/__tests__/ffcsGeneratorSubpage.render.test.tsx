@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useState } from "react";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import {
   FFCSGeneratorSubpage,
   type FFCSGeneratorSubpageProps,
@@ -123,17 +123,22 @@ const props = (over: Partial<FFCSGeneratorSubpageProps> = {}): FFCSGeneratorSubp
 });
 
 const generateButton = () =>
-  screen.getByRole("button", { name: /generate timetables/i }) as HTMLButtonElement;
+  screen.getAllByRole("button", { name: /generate timetables/i })[0] as HTMLButtonElement;
 
 /**
  * The target-course row's checkbox, without an accessible name of its own.
  *
  * Scoped through the course row itself because the screen carries several
- * other checkboxes (`sr-only` inputs inside its segmented controls).
+ * other checkboxes (`sr-only` inputs inside its segmented controls). Modern
+ * mode also repeats selected codes in the summary pane, so we take the row
+ * that owns a checkbox.
  */
 const courseCheckbox = () =>
   {
-    const row = screen.getByText("BCSE101").closest("label");
+    const row = screen
+      .getAllByText("BCSE101")
+      .map((node) => node.closest("label"))
+      .find((label) => label?.querySelector("input[type='checkbox']"));
     return (row?.querySelector("input[type='checkbox']") ?? null) as HTMLInputElement | null;
   };
 
@@ -148,6 +153,9 @@ describe("FFCSGeneratorSubpage", () => {
     // another test's mount.
     storage.clear();
     clearSessionPreferences();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    cleanup();
   });
 
   it("renders as the tab's screen, with the layout's own back chrome", () => {
@@ -167,14 +175,58 @@ describe("FFCSGeneratorSubpage", () => {
       element.className.includes("!max-w-none")
     );
     const contentGrid = Array.from(container.querySelectorAll("div")).find((element) =>
-      element.className.includes("grid-cols-1 lg:grid-cols-2")
+      element.className.includes("minmax(220px,0.8fr)")
     );
 
     expect(shell).toBeDefined();
     expect(shell?.className).toContain("px-4");
     expect(contentGrid?.className).toContain("w-full");
     expect(contentGrid?.className).toContain("max-w-none");
+    expect(contentGrid?.className).toContain("lg:grid-cols-[minmax(220px,0.8fr)_minmax(0,2fr)]");
     expect(container.querySelector(".max-w-6xl")).toBeNull();
+  });
+
+  it("opens the generator view switcher from the menu entry", () => {
+    render(<FFCSGeneratorSubpage {...props()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Switch Generator View/i }));
+    expect(screen.getByText("Choose Your Generator Experience")).toBeDefined();
+    fireEvent.click(screen.getByRole("radio", { name: /Classic full form/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Switch to Classic full form/ }));
+
+    expect(storage.getItem("ffcs_generator_view_mode")).toBe("classic");
+    expect(screen.getByRole("button", { name: /Switch Generator View/i })).toBeDefined();
+    expect(screen.queryByText("Choose Your Generator Experience")).toBeNull();
+  });
+
+  it("fits generator stats into a planner-style strip with an overflow carousel", async () => {
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor(private callback: ResizeObserverCallback) {}
+        observe(target: Element) {
+          this.callback(
+            [{ target, contentRect: { width: 324 } } as ResizeObserverEntry],
+            this as unknown as ResizeObserver
+          );
+        }
+        unobserve() {}
+        disconnect() {}
+      }
+    );
+
+    render(<FFCSGeneratorSubpage {...props()} />);
+
+    const strip = await screen.findByTestId("ffcs-generator-stat-strip");
+    expect(strip.getAttribute("aria-label")).toBe("Generator statistics");
+    // At ~324px only one 280px track fits, so the planner rule parks every
+    // tile in the overflow carousel (same behaviour as the planner strip).
+    const carousel = await within(strip).findByRole("region", {
+      name: "More generator statistics",
+    });
+    expect(carousel.textContent).toMatch(
+      /Target courses|Blocked slots|Friend matches|Options found/
+    );
   });
 
   it("lets users override faculty ranking settings before generating", () => {
@@ -491,7 +543,7 @@ describe("FFCSGeneratorSubpage", () => {
     fireEvent.click(backToOptionsButtons[0]);
 
     // Options view should now be displayed again with target courses
-    expect(screen.getByText("Target Courses")).toBeTruthy();
+    expect(screen.getAllByText(/target courses/i).length).toBeGreaterThan(0);
     expect(screen.getByText("Results (1)")).toBeTruthy();
 
     // Clicking "Results (1)" brings the user back to the review view

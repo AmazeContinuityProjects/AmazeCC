@@ -729,7 +729,8 @@ function CourseOptionQuality({
   );
 }
 
-const STAT_TILE_MIN_WIDTH = 280;
+/** Shared with the Generator strip so both dashboards size tiles the same way. */
+export const STAT_TILE_MIN_WIDTH = 280;
 const STAT_TILE_GAP = 12;
 const MAX_STAT_TILES = 4;
 

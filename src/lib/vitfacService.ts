@@ -66,16 +66,15 @@ export interface VitfacProfileBundle {
 }
 
 /**
- * Master killswitch to enable or disable the entire vitfac.pages.dev integration.
+ * Master killswitch to enable or disable the entire vitfac integration.
  * Set to `false` to instantly turn off all network calls, review pills, and modals across the application.
  */
 export const ENABLE_VITFAC_INTEGRATION = true;
 
-export const VITFAC_WORKER_BASE = "https://vitfac-cache.vit-fac.workers.dev";
+export const VITFAC_WORKER_BASE = "https://vitfac.amazecc.com";
 const VITFAC_CACHE_KEY = "vitfac_faculty_catalog_v1";
 const VITFAC_CACHE_TIMESTAMP_KEY = "vitfac_faculty_catalog_ts_v1";
 const CATALOG_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
-const CATALOG_FETCH_TIMEOUT_MS = 10_000;
 
 export function decodeVitfacId(base64Id: string): string {
   try {
@@ -162,8 +161,7 @@ function indexCatalog(list: VitfacFaculty[]) {
 }
 
 /**
- * Load the faculty review catalog from vitfac.
- * Uses sessionStorage if fresh (< 24h), otherwise fetches from Cloudflare Worker.
+ * Load the faculty review catalog from the worker.
  */
 export async function loadVitfacCatalog(): Promise<Map<string, VitfacFaculty>> {
   if (!ENABLE_VITFAC_INTEGRATION) {
@@ -196,9 +194,9 @@ export async function loadVitfacCatalog(): Promise<Map<string, VitfacFaculty>> {
       // Fall through to network
     }
 
-    // 2. Fetch from Cloudflare Worker
+    // 2. Fetch from worker
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), CATALOG_FETCH_TIMEOUT_MS);
+    const timeout = setTimeout(() => controller.abort(), 12000);
     try {
       const res = await fetch(`${VITFAC_WORKER_BASE}/faculty`, { signal: controller.signal });
       if (!res.ok) {
@@ -219,11 +217,6 @@ export async function loadVitfacCatalog(): Promise<Map<string, VitfacFaculty>> {
       console.warn("Failed to fetch vitfac faculty catalog:", err);
     } finally {
       clearTimeout(timeout);
-      // A failed or empty response must not pin this rejected attempt for the
-      // rest of the tab session. A later VITFAC lookup can try again.
-      if (byEmployeeId.size === 0) {
-        catalogPromise = null;
-      }
     }
 
     return byEmployeeId;
@@ -234,7 +227,6 @@ export async function loadVitfacCatalog(): Promise<Map<string, VitfacFaculty>> {
 
 /**
  * Synchronous lookup from memory index.
- * If catalog is not loaded yet, triggers background load automatically.
  */
 export function getFacultyReview(params: {
   employeeId?: string | null;
@@ -313,7 +305,6 @@ export function updateFacultyInCatalog(updatedProf: VitfacFaculty) {
 
 /**
  * Fetch detailed profile bundle for a specific professor.
- * Harmonizes worker stats by prioritizing aggregated courseStats.global over stale table columns.
  */
 export async function getFacultyProfileBundle(
   idOrEmpId: string
@@ -331,8 +322,6 @@ export async function getFacultyProfileBundle(
     const bundle: VitfacProfileBundle | null = json?.data || null;
 
     if (bundle && bundle.prof) {
-      // Synchronize prof stats with courseStats.global if present
-      // (Resolves worker discrepancy where bundle.prof has partial/stale counters while courseStats.global has the true aggregated numbers)
       const global = bundle.courseStats?.global;
       if (global) {
         if (typeof global.wPct === "number") bundle.prof.wPct = Math.round(global.wPct);
