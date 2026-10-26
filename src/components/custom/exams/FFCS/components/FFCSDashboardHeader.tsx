@@ -659,24 +659,42 @@ function CourseOptionQuality({
   faculty,
   employeeId,
   clashes,
+  selected,
+  onSelect,
 }: {
   courseCode: string;
   slots: string;
   faculty: string;
   employeeId?: string;
   clashes: string[];
+  selected: boolean;
+  onSelect: () => void;
 }) {
   const { review, loading } = useVitfacReview(employeeId, faculty);
   const lore = review?.lore?.green?.slice(0, 2) ?? [];
   const cautionLore = review?.lore?.red?.slice(0, 2) ?? [];
   return (
-    <div className="rounded-xl border border-border-strong/70 bg-surface p-2.5">
+    <button
+      type="button"
+      aria-pressed={selected}
+      onClick={onSelect}
+      className={`w-full rounded-xl border bg-surface p-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+        selected
+          ? "border-indigo-500/60 bg-indigo-500/5 ring-1 ring-indigo-500/20"
+          : "border-border-strong/70 hover:border-indigo-500/40 hover:bg-surface-secondary/40"
+      }`}
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <FacultyAvatar employeeId={employeeId} name={faculty} size="xs" />
           <span className="text-xs font-semibold text-text-heading truncate">{faculty || "Faculty not listed"}</span>
         </div>
-        <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">{slots || "No slot"}</span>
+        <span className="flex items-center gap-2">
+          <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">{slots || "No slot"}</span>
+          <span className={`text-[9px] font-bold uppercase tracking-wide ${selected ? "text-indigo-600 dark:text-indigo-400" : "text-muted-foreground"}`}>
+            {selected ? "Selected" : "Select"}
+          </span>
+        </span>
       </div>
       <div className="flex flex-wrap items-center gap-1.5 mt-2">
         {loading ? (
@@ -707,7 +725,7 @@ function CourseOptionQuality({
         )}
       </div>
       <span className="sr-only">{courseCode}</span>
-    </div>
+    </button>
   );
 }
 
@@ -816,7 +834,7 @@ export default function FFCSDashboardHeader({
 
   const recommendedSlotOptions = useMemo(() => {
     const schema = getTimetableSchema();
-    return availableSlots.map((option) => {
+    return availableSlots.map((option, index) => {
       const optionSlots = String(option.SLOT ?? "")
         .split("+")
         .map((slot) => slot.trim().toUpperCase())
@@ -834,6 +852,7 @@ export default function FFCSDashboardHeader({
         : null;
       return {
         option,
+        index,
         clashes: [...new Set([...blocked, ...clashes])],
         rating: review && review.reviews > 0 ? review.wPct : null,
         reviews: review?.reviews ?? 0,
@@ -1569,7 +1588,7 @@ export default function FFCSDashboardHeader({
                       Conflict-free options come first, with higher-rated faculty ranked ahead. Search to browse every offering.
                     </p>
                     <div className="space-y-2">
-                      {recommendedSlotOptions.slice(0, 5).map(({ option, clashes }, index) => {
+                      {recommendedSlotOptions.slice(0, 5).map(({ option, index, clashes }) => {
                         return (
                           <CourseOptionQuality
                             key={`${option.ERP_ID ?? option.FACULTY}-${option.SLOT}-${index}`}
@@ -1578,6 +1597,8 @@ export default function FFCSDashboardHeader({
                             faculty={String(option.FACULTY ?? "")}
                             employeeId={option.ERP_ID}
                             clashes={clashes}
+                            selected={selectedSlotIndex === String(index)}
+                            onSelect={() => setSelectedSlotIndex?.(String(index))}
                           />
                         );
                       })}

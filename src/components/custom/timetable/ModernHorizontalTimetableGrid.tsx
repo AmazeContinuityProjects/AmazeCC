@@ -150,11 +150,11 @@ export default function ModernHorizontalTimetableGrid({
           </thead>
 
           {/* Table Body */}
-          <tbody className="divide-y divide-slate-200/60 dark:divide-white/5">
+          <tbody className="divide-y divide-border-muted/80 dark:divide-border-muted/50">
             {days.map((day, dayIdx) => (
               <tr
                 key={day.id}
-                className="border-b border-slate-200/60 dark:border-white/5 hover:bg-slate-50/80 dark:hover:bg-slate-800/20 transition-colors group"
+                className="border-b border-border-muted/80 dark:border-border-muted/50 hover:bg-slate-50/80 dark:hover:bg-slate-800/20 transition-colors group"
               >
                 {/* Sticky Day Column */}
                 <td className="p-3 border-r border-slate-200/80 dark:border-white/10 text-center font-black text-xs text-slate-800 dark:text-white bg-slate-100/95 dark:bg-slate-900/95 sticky left-0 z-20 shadow-[2px_0_10px_rgba(0,0,0,0.06)] dark:shadow-[2px_0_10px_rgba(0,0,0,0.5)] uppercase tracking-wider select-none">
