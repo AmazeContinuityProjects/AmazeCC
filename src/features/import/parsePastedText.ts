@@ -1061,6 +1061,7 @@ export function parsedCoursesToAddedCourses(courses: readonly ParsedCourse[]): A
       faculty: course.FACULTY,
       employeeId: course.ERP_ID,
       classId: course.CLASS_ID,
+      classIds: course.CLASS_IDS?.length ? course.CLASS_IDS : course.CLASS_ID ? [course.CLASS_ID] : undefined,
       venue: course.ROOM || "TBA",
       credits: course.CREDITS || "0",
       type: course.TYPE || "Theory",

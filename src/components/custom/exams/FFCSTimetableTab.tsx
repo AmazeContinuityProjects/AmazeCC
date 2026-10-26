@@ -501,6 +501,7 @@ export const processParsedCourses = (parsed: ParsedCourse[], manualLinks: Manual
                                 Math.max(parseFloat(t.CREDITS || "0"), parseFloat(l.CREDITS || "0")) : 
                                 parseFloat(t.CREDITS || "0") + parseFloat(l.CREDITS || "0")),
                 SLOT: `${t.SLOT}+${l.SLOT}`,
+                CLASS_IDS: Array.from(new Set([t.CLASS_ID, l.CLASS_ID].filter((id): id is string => Boolean(id)))),
                 ROOM: t.ROOM && l.ROOM ? `${t.ROOM} / ${l.ROOM}` : (t.ROOM || l.ROOM),
                 ORIGINAL_CODE: (t as any).ORIGINAL_CODE || t.CODE,
                 FACULTY: combinedFac
@@ -625,6 +626,7 @@ export const processParsedCourses = (parsed: ParsedCourse[], manualLinks: Manual
                                 Math.max(parseFloat(t.CREDITS || "0"), parseFloat(l.CREDITS || "0")) : 
                                 parseFloat(t.CREDITS || "0") + parseFloat(l.CREDITS || "0")),
                 SLOT: `${t.SLOT}+${l.SLOT}`,
+                CLASS_IDS: Array.from(new Set([t.CLASS_ID, l.CLASS_ID].filter((id): id is string => Boolean(id)))),
                 ROOM: t.ROOM && l.ROOM ? `${t.ROOM} / ${l.ROOM}` : (t.ROOM || l.ROOM),
                 ORIGINAL_CODE: (t as any).ORIGINAL_CODE || t.CODE
               } as any);
@@ -1916,6 +1918,7 @@ export default function FFCSTimetableTab({
       faculty: selectedRow.FACULTY,
       venue: selectedRow.ROOM || "TBA",
       classId: selectedRow.CLASS_ID,
+      classIds: selectedRow.CLASS_IDS?.length ? selectedRow.CLASS_IDS : selectedRow.CLASS_ID ? [selectedRow.CLASS_ID] : undefined,
       credits: selectedRow.CREDITS || "0",
       type: selectedRow.TYPE || "Theory",
       color: COLORS[courses.length % COLORS.length],

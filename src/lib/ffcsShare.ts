@@ -80,6 +80,9 @@ function asCourse(raw: unknown): AddedCourse | null {
     slots: c.slots as string[],
     faculty: typeof c.faculty === "string" ? c.faculty : "",
     ...(typeof c.classId === "string" && c.classId ? { classId: c.classId } : {}),
+    ...(Array.isArray(c.classIds) && c.classIds.every((id) => typeof id === "string")
+      ? { classIds: c.classIds as string[] }
+      : {}),
     venue: typeof c.venue === "string" ? c.venue : "",
     credits: typeof c.credits === "string" ? c.credits : "",
     type: typeof c.type === "string" ? c.type : "",
@@ -114,6 +117,74 @@ function normalizedFacultyName(name: string): string {
     .toUpperCase();
 }
 
+function normalizedCourseFamily(code: string): string {
+  return code.trim().toUpperCase().replace(/[LP]$/, "");
+}
+
+function rowSlotSet(course: ParsedCourse): Set<string> {
+  return new Set(normalizedSlots(course.SLOT.split("+")).split("+").filter(Boolean));
+}
+
+/** Find a unique set of report rows that exactly covers one added course. */
+function resolveReportClassIds(
+  course: AddedCourse,
+  reportCourses: readonly ParsedCourse[]
+): string[] | null {
+  const targetSlots = new Set(normalizedSlots(course.slots).split("+").filter(Boolean));
+  if (targetSlots.size === 0) return null;
+
+  const anchoredIds = Array.from(new Set(
+    (course.classIds?.length ? course.classIds : course.classId ? [course.classId] : [])
+      .map((id) => id.trim())
+      .filter(Boolean)
+  ));
+  let candidates = reportCourses.filter((row) => {
+    if (!row.CLASS_ID?.trim()) return false;
+    if (normalizedCourseFamily(row.CODE) !== normalizedCourseFamily(course.code)) return false;
+    const slots = rowSlotSet(row);
+    return slots.size > 0 && [...slots].every((slot) => targetSlots.has(slot));
+  });
+
+  if (anchoredIds.some((id) => !candidates.some((row) => row.CLASS_ID?.trim() === id))) {
+    return null;
+  }
+
+  const facultyParts = course.faculty.split("/").map(normalizedFacultyName).filter(Boolean);
+  if (facultyParts.length > 0) {
+    const facultyMatches = candidates.filter((row) =>
+      facultyParts.includes(normalizedFacultyName(row.FACULTY))
+    );
+    if (facultyMatches.length > 0 && anchoredIds.every((id) =>
+      facultyMatches.some((row) => row.CLASS_ID?.trim() === id)
+    )) candidates = facultyMatches;
+  }
+
+  const covers: string[][] = [];
+  let explored = 0;
+  const visit = (start: number, covered: Set<string>, selected: string[]) => {
+    if (covers.length > 1 || ++explored > 10000) return;
+    if ([...targetSlots].every((slot) => covered.has(slot))) {
+      if (anchoredIds.every((id) => selected.includes(id))) covers.push(selected);
+      return;
+    }
+
+    for (let index = start; index < candidates.length; index++) {
+      const row = candidates[index];
+      const classId = row.CLASS_ID!.trim();
+      if (selected.includes(classId)) continue;
+      const slots = rowSlotSet(row);
+      if ([...slots].some((slot) => covered.has(slot))) continue;
+      const nextCovered = new Set(covered);
+      slots.forEach((slot) => nextCovered.add(slot));
+      visit(index + 1, nextCovered, [...selected, classId]);
+      if (covers.length > 1) return;
+    }
+  };
+  visit(0, new Set(), []);
+
+  return covers.length === 1 ? covers[0] : null;
+}
+
 /**
  * Fill missing/stale class IDs only from a unique exact offering in the
  * currently selected registration report. This lets pasted VTOP courses use
@@ -125,54 +196,13 @@ export function attachReportClassIds(
   reportCourses: readonly ParsedCourse[],
   preserveUnmatchedClassIds = false
 ): Pick<TimetableState, "name" | "courses"> {
-  const reportByClassId = new Map(
-    reportCourses
-      .filter((course) => course.CLASS_ID?.trim())
-      .map((course) => [course.CLASS_ID!.trim(), course])
-  );
-
   return {
     name: timetable.name,
     courses: timetable.courses.map((course) => {
-      const existingId = course.classId?.trim();
-      const slotKey = normalizedSlots(course.slots);
-      const existingReportRow = existingId ? reportByClassId.get(existingId) : undefined;
-      if (
-        existingReportRow &&
-        existingReportRow.CODE.trim().toUpperCase() === course.code.trim().toUpperCase() &&
-        normalizedSlots(existingReportRow.SLOT.split("+")) === slotKey
-      ) return course;
-
-      if (!slotKey) {
-        return { ...course, classId: preserveUnmatchedClassIds ? course.classId : undefined };
-      }
-
-      let candidates = reportCourses.filter((row) =>
-        row.CLASS_ID?.trim() &&
-        row.CODE.trim().toUpperCase() === course.code.trim().toUpperCase() &&
-        normalizedSlots(row.SLOT.split("+")) === slotKey
-      );
-
-      if (course.employeeId) {
-        const employeeMatches = candidates.filter(
-          (row) => row.ERP_ID?.trim() === course.employeeId?.trim()
-        );
-        if (employeeMatches.length > 0) candidates = employeeMatches;
-      }
-      if (course.faculty) {
-        const facultyKey = normalizedFacultyName(course.faculty);
-        const facultyMatches = candidates.filter(
-          (row) => normalizedFacultyName(row.FACULTY) === facultyKey
-        );
-        if (facultyMatches.length > 0) candidates = facultyMatches;
-      }
-
-      const classId = candidates.length === 1
-        ? candidates[0].CLASS_ID?.trim()
-        : preserveUnmatchedClassIds
-          ? course.classId
-          : undefined;
-      return { ...course, classId };
+      const classIds = resolveReportClassIds(course, reportCourses);
+      if (classIds) return { ...course, classId: classIds[0], classIds };
+      if (preserveUnmatchedClassIds) return course;
+      return { ...course, classId: undefined, classIds: undefined };
     }),
   };
 }
@@ -186,8 +216,14 @@ export function encodeCompactTimetableShare(
   timetable: Pick<TimetableState, "name" | "courses">,
   semester: FFCSSemesterId
 ): string | null {
-  const classIds = timetable.courses.map((course) => course.classId?.trim() ?? "");
-  if (classIds.some((id) => !id) || new Set(classIds).size !== classIds.length) return null;
+  const idsByCourse = timetable.courses.map((course) =>
+    (course.classIds?.length ? course.classIds : course.classId ? [course.classId] : [])
+      .map((id) => id.trim())
+      .filter(Boolean)
+  );
+  if (idsByCourse.some((ids) => ids.length === 0)) return null;
+  const classIds = idsByCourse.flat();
+  if (new Set(classIds).size !== classIds.length) return null;
   const prefix = commonPrefix(classIds);
   if (prefix.length < 4) return null;
   const wire: CompactShareWire = {
@@ -212,10 +248,16 @@ export function encodeTimetableShapeShare(
   const reportPrefix = getFFCSSemester(semester).classIdPrefix;
   if (!reportPrefix) return null;
 
-  const classIds = timetable.courses.map((course) => course.classId?.trim() ?? "");
+  const idsByCourse = timetable.courses.map((course) =>
+    (course.classIds?.length ? course.classIds : course.classId ? [course.classId] : [])
+      .map((id) => id.trim())
+      .filter(Boolean)
+  );
+  const classIds = idsByCourse.flat();
   if (
+    idsByCourse.some((ids) => ids.length === 0) ||
     classIds.length === 0 ||
-    classIds.some((id) => !id || !/^[A-Za-z0-9_-]+$/.test(id) || !id.startsWith(reportPrefix)) ||
+    classIds.some((id) => !/^[A-Za-z0-9_-]+$/.test(id) || !id.startsWith(reportPrefix)) ||
     new Set(classIds).size !== classIds.length
   ) return null;
 
