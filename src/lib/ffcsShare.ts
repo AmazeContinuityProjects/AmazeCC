@@ -1,7 +1,11 @@
 import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from "lz-string";
 import type { AddedCourse, ParsedCourse, TimetableState } from "@/components/custom/exams/FFCS/types";
 import { GLOBAL_CAMPUS } from "@/lib/campusSchema";
-import type { FFCSSemesterId } from "@/components/custom/exams/FFCS/reports";
+import {
+  getFFCSSemester,
+  getFFCSSemesterByClassIdPrefix,
+  type FFCSSemesterId,
+} from "@/components/custom/exams/FFCS/reports";
 
 /**
  * Share links: one timetable, compressed into the URL itself.
@@ -55,6 +59,12 @@ export interface CompactShareWire {
   p: string;
   i: string[];
   n: string;
+}
+
+/** Decoded name-free timetable share: semester is inferred from the ID namespace. */
+export interface TimetableShapeShareData {
+  semesterId: FFCSSemesterId;
+  classIds: string[];
 }
 
 /** Known fields only — a course from a future version travels as what it is. */
@@ -190,6 +200,70 @@ export function encodeCompactTimetableShare(
   return compressToEncodedURIComponent(JSON.stringify(wire));
 }
 
+/**
+ * Encode the shortest report-backed form: only the common class-ID prefix and
+ * each ID suffix are carried. The `q` URL parameter identifies this wire shape,
+ * so neither a timetable name, semester key, nor JSON version field is needed.
+ */
+export function encodeTimetableShapeShare(
+  timetable: Pick<TimetableState, "name" | "courses">,
+  semester: FFCSSemesterId
+): string | null {
+  const reportPrefix = getFFCSSemester(semester).classIdPrefix;
+  if (!reportPrefix) return null;
+
+  const classIds = timetable.courses.map((course) => course.classId?.trim() ?? "");
+  if (
+    classIds.length === 0 ||
+    classIds.some((id) => !id || !/^[A-Za-z0-9_-]+$/.test(id) || !id.startsWith(reportPrefix)) ||
+    new Set(classIds).size !== classIds.length
+  ) return null;
+
+  const prefix = commonPrefix(classIds);
+  if (!prefix.startsWith(reportPrefix)) return null;
+  return compressToEncodedURIComponent(JSON.stringify({
+    p: prefix,
+    i: classIds.map((id) => id.slice(prefix.length)),
+  }));
+}
+
+/** Decode a name-free link and infer its report from the class-ID namespace. */
+export function decodeTimetableShapeShare(encoded: string): TimetableShapeShareData | null {
+  if (!encoded) return null;
+  try {
+    const json = decompressFromEncodedURIComponent(encoded);
+    if (!json) return null;
+    const raw: unknown = JSON.parse(json);
+    if (!raw || typeof raw !== "object") return null;
+    const wire = raw as Record<string, unknown>;
+    if (
+      typeof wire.p !== "string" ||
+      wire.p.length < 4 ||
+      wire.p.length > 100 ||
+      !/^[A-Za-z0-9_-]+$/.test(wire.p) ||
+      !Array.isArray(wire.i) ||
+      wire.i.length === 0 ||
+      wire.i.length > 100 ||
+      !wire.i.every((suffix) =>
+        typeof suffix === "string" &&
+        suffix.length <= 100 &&
+        /^[A-Za-z0-9_-]*$/.test(suffix)
+      )
+    ) return null;
+
+    const report = getFFCSSemesterByClassIdPrefix(wire.p);
+    if (!report?.classIdPrefix) return null;
+    const classIds = (wire.i as string[]).map((suffix) => `${wire.p}${suffix}`);
+    if (
+      classIds.some((id) => !id.startsWith(report.classIdPrefix!)) ||
+      new Set(classIds).size !== classIds.length
+    ) return null;
+    return { semesterId: report.id, classIds };
+  } catch {
+    return null;
+  }
+}
+
 /** Decode and validate the compact report-backed payload before fetching its semester data. */
 export function decodeCompactTimetableShare(encoded: string): CompactShareWire | null {
   if (!encoded) return null;
@@ -303,6 +377,13 @@ export function buildCompactShareUrl(encoded: string, origin: string): string {
   const base = (process.env.NEXT_PUBLIC_BASE_PATH ?? "").replace(/\/+$/, "");
   const host = origin.replace(/\/+$/, "");
   return `${host}${base}/share/ffcs/?x=${encodeURIComponent(encoded)}`;
+}
+
+/** URL for the name-free timetable-shape payload. */
+export function buildTimetableShapeShareUrl(encoded: string, origin: string): string {
+  const base = (process.env.NEXT_PUBLIC_BASE_PATH ?? "").replace(/\/+$/, "");
+  const host = origin.replace(/\/+$/, "");
+  return `${host}${base}/share/ffcs/?q=${encodeURIComponent(encoded)}`;
 }
 
 /** Whether a built link is long enough to warn the sender about. */

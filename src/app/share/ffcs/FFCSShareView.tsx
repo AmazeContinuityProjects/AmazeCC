@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { Download, Map as MapIcon, AlertTriangle, CalendarDays, Layers, Clock } from "lucide-react";
 import {
   decodeCompactTimetableShare,
+  decodeTimetableShapeShare,
   decodeTimetableShare,
 } from "@/lib/ffcsShare";
 import { CAMPUS_SCHEMAS, GLOBAL_CAMPUS } from "@/lib/campusSchema";
@@ -40,25 +41,31 @@ export default function FFCSShareView() {
   const searchParams = useSearchParams();
   const encoded = searchParams.get("d") ?? "";
   const compactEncoded = searchParams.get("x") ?? "";
+  const shapeEncoded = searchParams.get("q") ?? "";
   const fullDecoded = useMemo(() => decodeTimetableShare(encoded), [encoded]);
   const compactPayload = useMemo(
     () => decodeCompactTimetableShare(compactEncoded),
     [compactEncoded]
   );
+  const shapePayload = useMemo(
+    () => decodeTimetableShapeShare(shapeEncoded),
+    [shapeEncoded]
+  );
+  const hasReportBackedLink = Boolean(compactEncoded || shapeEncoded);
   const [compactDecoded, setCompactDecoded] = useState<{
     timetable: TimetableState;
     campus: string;
   } | null>(null);
   const [compactLoadState, setCompactLoadState] = useState<"idle" | "loading" | "ready" | "invalid">("idle");
-  const decoded = compactEncoded ? compactDecoded : fullDecoded;
+  const decoded = hasReportBackedLink ? compactDecoded : fullDecoded;
 
   useEffect(() => {
-    if (!compactEncoded) {
+    if (!hasReportBackedLink) {
       setCompactDecoded(null);
       setCompactLoadState("idle");
       return;
     }
-    if (!compactPayload) {
+    if ((shapeEncoded && !shapePayload) || (!shapeEncoded && !compactPayload)) {
       setCompactDecoded(null);
       setCompactLoadState("invalid");
       return;
@@ -69,7 +76,8 @@ export default function FFCSShareView() {
     setCompactLoadState("loading");
     const loadCompactTimetable = async () => {
       try {
-        const semester = getFFCSSemester(compactPayload.s);
+        const semesterId = shapeEncoded ? shapePayload!.semesterId : compactPayload!.s;
+        const semester = getFFCSSemester(semesterId);
         const response = await fetch(getAssetPath(semester.path));
         if (!response.ok) throw new Error(`Failed to fetch ${semester.path}`);
         const XLSX = await import("xlsx");
@@ -77,8 +85,11 @@ export default function FFCSShareView() {
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet);
         const reportCourses = parseReportRows(rows);
-        const selectedCourses = compactPayload.i.map((suffix) =>
-          reportCourses.find((course) => course.CLASS_ID === `${compactPayload.p}${suffix}`)
+        const classIds = shapeEncoded
+          ? shapePayload!.classIds
+          : compactPayload!.i.map((suffix) => `${compactPayload!.p}${suffix}`);
+        const selectedCourses = classIds.map((classId) =>
+          reportCourses.find((course) => course.CLASS_ID?.trim() === classId)
         );
         if (selectedCourses.some((course) => !course)) {
           throw new Error("One or more shared class IDs are not in the selected semester report.");
@@ -89,7 +100,7 @@ export default function FFCSShareView() {
 
         const timetable: TimetableState = {
           id: `share-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
-          name: compactPayload.n,
+          name: shapeEncoded ? "Shared timetable" : compactPayload!.n,
           courses: resolvedCourses.map((course, index) => ({
             id: `share-${course.CLASS_ID}`,
             code: course.CODE,
@@ -118,7 +129,7 @@ export default function FFCSShareView() {
     return () => {
       active = false;
     };
-  }, [compactEncoded, compactPayload]);
+  }, [compactEncoded, compactPayload, hasReportBackedLink, shapeEncoded, shapePayload]);
 
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -183,7 +194,7 @@ export default function FFCSShareView() {
   };
 
   if (!decoded) {
-    if (compactEncoded && (compactLoadState === "idle" || compactLoadState === "loading")) {
+    if (hasReportBackedLink && (compactLoadState === "idle" || compactLoadState === "loading")) {
       return (
         <main className="min-h-screen bg-surface text-text-heading flex items-center justify-center p-4">
           <Card className="max-w-md w-full text-center space-y-3">
@@ -201,7 +212,7 @@ export default function FFCSShareView() {
           <AlertTriangle className="w-8 h-8 text-amber-500 mx-auto" />
           <h1 className="text-lg font-bold">This link isn&rsquo;t a timetable plan</h1>
           <p className="text-sm text-muted-foreground">
-            {compactEncoded
+            {hasReportBackedLink
               ? "The selected semester report could not resolve every class ID in this short link. Ask for a fresh link or use the full timetable link instead."
               : "It may have been cut off in transit, or it was made by a different version of the planner. Ask for the link again, or build one of your own."}
           </p>
@@ -321,8 +332,10 @@ export default function FFCSShareView() {
         </div>
 
         <p className="text-[11px] text-muted-foreground text-center pb-6">
-          {compactEncoded
-            ? "This short link contains the semester and selected class IDs; the matching public semester report supplies the timetable details."
+          {shapeEncoded
+            ? "This TT shape link contains only class IDs. Their shared prefix identifies the semester report used to rebuild the timetable."
+            : compactEncoded
+              ? "This short link contains the semester and selected class IDs; the matching public semester report supplies the timetable details."
             : "Plans travel inside the link itself — nothing was uploaded, and opening one here keeps it on this device."}
         </p>
       </div>
