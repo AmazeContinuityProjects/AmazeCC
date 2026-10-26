@@ -1,5 +1,5 @@
 import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from "lz-string";
-import type { AddedCourse, TimetableState } from "@/components/custom/exams/FFCS/types";
+import type { AddedCourse, ParsedCourse, TimetableState } from "@/components/custom/exams/FFCS/types";
 import { GLOBAL_CAMPUS } from "@/lib/campusSchema";
 import type { FFCSSemesterId } from "@/components/custom/exams/FFCS/reports";
 
@@ -90,6 +90,81 @@ function commonPrefix(values: readonly string[]): string {
     if (!prefix) break;
   }
   return prefix;
+}
+
+function normalizedSlots(slots: readonly string[]): string {
+  return slots.map((slot) => slot.trim().toUpperCase()).filter(Boolean).sort().join("+");
+}
+
+function normalizedFacultyName(name: string): string {
+  return name
+    .trim()
+    .replace(/^(dr|prof|mr|mrs|ms)\.?\s+/i, "")
+    .replace(/[^a-z0-9]/gi, "")
+    .toUpperCase();
+}
+
+/**
+ * Fill missing/stale class IDs only from a unique exact offering in the
+ * currently selected registration report. This lets pasted VTOP courses use
+ * compact links while ensuring the receiver can resolve every ID from the
+ * same semester's public report.
+ */
+export function attachReportClassIds(
+  timetable: Pick<TimetableState, "name" | "courses">,
+  reportCourses: readonly ParsedCourse[],
+  preserveUnmatchedClassIds = false
+): Pick<TimetableState, "name" | "courses"> {
+  const reportByClassId = new Map(
+    reportCourses
+      .filter((course) => course.CLASS_ID?.trim())
+      .map((course) => [course.CLASS_ID!.trim(), course])
+  );
+
+  return {
+    name: timetable.name,
+    courses: timetable.courses.map((course) => {
+      const existingId = course.classId?.trim();
+      const slotKey = normalizedSlots(course.slots);
+      const existingReportRow = existingId ? reportByClassId.get(existingId) : undefined;
+      if (
+        existingReportRow &&
+        existingReportRow.CODE.trim().toUpperCase() === course.code.trim().toUpperCase() &&
+        normalizedSlots(existingReportRow.SLOT.split("+")) === slotKey
+      ) return course;
+
+      if (!slotKey) {
+        return { ...course, classId: preserveUnmatchedClassIds ? course.classId : undefined };
+      }
+
+      let candidates = reportCourses.filter((row) =>
+        row.CLASS_ID?.trim() &&
+        row.CODE.trim().toUpperCase() === course.code.trim().toUpperCase() &&
+        normalizedSlots(row.SLOT.split("+")) === slotKey
+      );
+
+      if (course.employeeId) {
+        const employeeMatches = candidates.filter(
+          (row) => row.ERP_ID?.trim() === course.employeeId?.trim()
+        );
+        if (employeeMatches.length > 0) candidates = employeeMatches;
+      }
+      if (course.faculty) {
+        const facultyKey = normalizedFacultyName(course.faculty);
+        const facultyMatches = candidates.filter(
+          (row) => normalizedFacultyName(row.FACULTY) === facultyKey
+        );
+        if (facultyMatches.length > 0) candidates = facultyMatches;
+      }
+
+      const classId = candidates.length === 1
+        ? candidates[0].CLASS_ID?.trim()
+        : preserveUnmatchedClassIds
+          ? course.classId
+          : undefined;
+      return { ...course, classId };
+    }),
+  };
 }
 
 /**

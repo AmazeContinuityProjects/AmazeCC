@@ -801,6 +801,53 @@ export default function FFCSDashboardHeader({
   const [widgetPreferencesReady, setWidgetPreferencesReady] = useState(false);
   const statsContainerRef = useRef<HTMLDivElement>(null);
   const [statTileCount, setStatTileCount] = useState(MAX_STAT_TILES);
+  const [vitfacCatalogRevision, setVitfacCatalogRevision] = useState(0);
+
+  useEffect(() => {
+    if (!enableVitfacIntegration || !selectedCourseCode || availableSlots.length === 0) return;
+    let active = true;
+    void loadVitfacCatalog().finally(() => {
+      if (active) setVitfacCatalogRevision((revision) => revision + 1);
+    });
+    return () => {
+      active = false;
+    };
+  }, [availableSlots, enableVitfacIntegration, selectedCourseCode]);
+
+  const recommendedSlotOptions = useMemo(() => {
+    const schema = getTimetableSchema();
+    return availableSlots.map((option) => {
+      const optionSlots = String(option.SLOT ?? "")
+        .split("+")
+        .map((slot) => slot.trim().toUpperCase())
+        .filter((slot) => slot && slot !== "NIL");
+      const optionPeriods = optionSlots.flatMap((slot) => periodsForSlot(schema, slot));
+      const clashes = courses
+        .filter((course) => {
+          const coursePeriods = course.slots.flatMap((slot) => periodsForSlot(schema, slot));
+          return findPeriodClash(optionPeriods, coursePeriods);
+        })
+        .map((course) => course.code);
+      const blocked = optionSlots.some((slot) => blockedSlots?.has(slot)) ? ["Blocked slot"] : [];
+      const review = enableVitfacIntegration
+        ? getFacultyReview({ employeeId: option.ERP_ID, name: option.FACULTY })
+        : null;
+      return {
+        option,
+        clashes: [...new Set([...blocked, ...clashes])],
+        rating: review && review.reviews > 0 ? review.wPct : null,
+        reviews: review?.reviews ?? 0,
+      };
+    }).sort((a, b) => {
+      const aConflictFree = a.clashes.length === 0;
+      const bConflictFree = b.clashes.length === 0;
+      if (aConflictFree !== bConflictFree) return aConflictFree ? -1 : 1;
+      if ((a.rating !== null) !== (b.rating !== null)) return a.rating !== null ? -1 : 1;
+      if (a.rating !== null && b.rating !== null && a.rating !== b.rating) return b.rating - a.rating;
+      if (a.reviews !== b.reviews) return b.reviews - a.reviews;
+      return a.option.FACULTY.localeCompare(b.option.FACULTY);
+    });
+  }, [availableSlots, blockedSlots, courses, enableVitfacIntegration, selectedCourseCode, vitfacCatalogRevision]);
 
   useEffect(() => {
     if (typeof window.matchMedia !== "function") {
@@ -1445,25 +1492,18 @@ export default function FFCSDashboardHeader({
                       }}
                       options={[
                         { value: "all", label: "All Slots" },
-                        ...(isGroupingEnabled
+                        ...((!hasLab || hasTheory)
                           ? [
-                              { value: "morning_session", label: "Morning" },
-                              { value: "evening_session", label: "Evening" },
+                              { value: "morning_theory", label: "Morn Theory" },
+                              { value: "evening_theory", label: "Eve Theory" },
                             ]
-                          : [
-                              ...((!hasLab || hasTheory)
-                                ? [
-                                    { value: "morning", label: "Morn Theory" },
-                                    { value: "evening", label: "Eve Theory" },
-                                  ]
-                                : []),
-                              ...((!hasTheory || hasLab)
-                                ? [
-                                    { value: "morning_lab", label: "Morn Lab" },
-                                    { value: "evening_lab", label: "Eve Lab" },
-                                  ]
-                                : []),
-                            ]),
+                          : []),
+                        ...((!hasTheory || hasLab)
+                          ? [
+                              { value: "morning_lab", label: "Morn Lab" },
+                              { value: "evening_lab", label: "Eve Lab" },
+                            ]
+                          : []),
                       ]}
                     />
                   )}
@@ -1519,29 +1559,17 @@ export default function FFCSDashboardHeader({
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                        Faculty, slots & timetable conflicts
+                        Recommended faculty, slots & timetable fit
                       </span>
                       <span className="text-[10px] text-muted-foreground">
-                        {availableSlots.length} options
+                        {availableSlots.length} offerings
                       </span>
                     </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      Conflict-free options come first, with higher-rated faculty ranked ahead. Search to browse every offering.
+                    </p>
                     <div className="space-y-2">
-                      {availableSlots.slice(0, 5).map((option, index) => {
-                        const optionSlots = String(option.SLOT ?? "")
-                          .split("+")
-                          .map((slot: string) => slot.trim())
-                          .filter(Boolean);
-                        const optionPeriods = optionSlots.flatMap((slot: string) =>
-                          periodsForSlot(getTimetableSchema(), slot)
-                        );
-                        const conflictingCourses = courses
-                          .filter((course) => {
-                            const coursePeriods = course.slots.flatMap((slot) =>
-                              periodsForSlot(getTimetableSchema(), slot)
-                            );
-                            return findPeriodClash(optionPeriods, coursePeriods);
-                          })
-                          .map((course) => course.code);
+                      {recommendedSlotOptions.slice(0, 5).map(({ option, clashes }, index) => {
                         return (
                           <CourseOptionQuality
                             key={`${option.ERP_ID ?? option.FACULTY}-${option.SLOT}-${index}`}
@@ -1549,7 +1577,7 @@ export default function FFCSDashboardHeader({
                             slots={String(option.SLOT ?? "")}
                             faculty={String(option.FACULTY ?? "")}
                             employeeId={option.ERP_ID}
-                            clashes={conflictingCourses}
+                            clashes={clashes}
                           />
                         );
                       })}

@@ -75,6 +75,7 @@ export const VITFAC_WORKER_BASE = "https://vitfac-cache.vit-fac.workers.dev";
 const VITFAC_CACHE_KEY = "vitfac_faculty_catalog_v1";
 const VITFAC_CACHE_TIMESTAMP_KEY = "vitfac_faculty_catalog_ts_v1";
 const CATALOG_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const CATALOG_FETCH_TIMEOUT_MS = 10_000;
 
 export function decodeVitfacId(base64Id: string): string {
   try {
@@ -197,7 +198,7 @@ export async function loadVitfacCatalog(): Promise<Map<string, VitfacFaculty>> {
 
     // 2. Fetch from Cloudflare Worker
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 1200);
+    const timeout = setTimeout(() => controller.abort(), CATALOG_FETCH_TIMEOUT_MS);
     try {
       const res = await fetch(`${VITFAC_WORKER_BASE}/faculty`, { signal: controller.signal });
       if (!res.ok) {
@@ -218,6 +219,11 @@ export async function loadVitfacCatalog(): Promise<Map<string, VitfacFaculty>> {
       console.warn("Failed to fetch vitfac faculty catalog:", err);
     } finally {
       clearTimeout(timeout);
+      // A failed or empty response must not pin this rejected attempt for the
+      // rest of the tab session. A later VITFAC lookup can try again.
+      if (byEmployeeId.size === 0) {
+        catalogPromise = null;
+      }
     }
 
     return byEmployeeId;

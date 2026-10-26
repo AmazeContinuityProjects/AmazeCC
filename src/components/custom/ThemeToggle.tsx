@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { motion } from "framer-motion";
 import { Sun, Moon } from "lucide-react";
@@ -61,7 +62,15 @@ interface ThemeToggleProps {
 
 export default function ThemeToggle({ className = "", showLabel = false }: ThemeToggleProps) {
   const { theme, setTheme } = useTheme();
-  const isDark = theme === "dark";
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // next-themes only knows the saved theme in the browser. Keep the first
+  // client render identical to the server render, then show the actual theme.
+  const isDark = mounted && theme === "dark";
 
   const handleToggle = (e: React.MouseEvent<HTMLButtonElement>) => {
     const targetTheme = isDark ? "light" : "dark";
@@ -73,6 +82,7 @@ export default function ThemeToggle({ className = "", showLabel = false }: Theme
       whileTap={{ scale: 0.9 }}
       whileHover={{ scale: 1.05 }}
       onClick={handleToggle}
+      disabled={!mounted}
       className={`relative inline-flex items-center justify-center p-2 rounded-2xl border transition-all cursor-pointer select-none group focus:outline-none ${
         isDark 
           ? "bg-zinc-900/90 border-zinc-800 text-amber-300 shadow-md hover:bg-zinc-800 hover:border-amber-400/40" 
