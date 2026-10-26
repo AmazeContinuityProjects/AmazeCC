@@ -41,6 +41,7 @@ import { useFFCSSettings } from "@/lib/ffcsSettings";
 import {
   encodeTimetableShare,
   encodeCompactTimetableShare,
+  attachReportClassIds,
   buildShareUrl,
   buildCompactShareUrl,
   isOversizedShareLink,
@@ -618,6 +619,8 @@ export default function FFCSTimetableTab({
 
   const [masterCourses, setMasterCourses] = useState<ParsedCourse[]>([]);
   const [rawParsedCourses, setRawParsedCourses] = useState<ParsedCourse[]>([]);
+  const [semesterReportCourses, setSemesterReportCourses] = useState<ParsedCourse[]>([]);
+  const [semesterReportCoursesId, setSemesterReportCoursesId] = useState<FFCSSemesterId | null>(null);
   const courseAlternativesPool = useMemo(() => {
     if (!rawParsedCourses || rawParsedCourses.length === 0) return masterCourses;
     const combinedFaculties = new Set(
@@ -664,18 +667,16 @@ export default function FFCSTimetableTab({
 
   const activeTimetable = timetables.find(t => t.id === activeTimetableId) || timetables[0];
   const courses = generatorPreviewTimetable ? generatorPreviewTimetable.courses : activeTimetable.courses;
-  const canShareCompactLink = useMemo(
-    () => {
-      if (!encodeCompactTimetableShare(activeTimetable, semesterId)) return false;
-      const loadedClassIds = new Set(
-        rawParsedCourses.map((course) => course.CLASS_ID).filter(Boolean)
-      );
-      return activeTimetable.courses.every(
-        (course) => course.classId && loadedClassIds.has(course.classId)
-      );
-    },
-    [activeTimetable, rawParsedCourses, semesterId]
+  const reportCoursesForSharing = semesterReportCoursesId === semesterId ? semesterReportCourses : [];
+  const compactSharePlan = useMemo(
+    () => attachReportClassIds(activeTimetable, reportCoursesForSharing),
+    [activeTimetable, reportCoursesForSharing]
   );
+  const compactShareData = useMemo(
+    () => encodeCompactTimetableShare(compactSharePlan, semesterId),
+    [compactSharePlan, semesterId]
+  );
+  const canShareCompactLink = Boolean(compactShareData);
   
   // Selection states
   const [selectedCourseCode, setSelectedCourseCode] = useState("");
@@ -979,6 +980,9 @@ export default function FFCSTimetableTab({
         return false;
       }
 
+      setSemesterReportCourses(parsed);
+      setSemesterReportCoursesId(nextSemesterId);
+
       const previousReportCodes = reportCodesRef.current;
       setRawParsedCourses((current) =>
         mergeCourses(current.filter((course) => !previousReportCodes.has(course.CODE)), parsed)
@@ -1135,11 +1139,17 @@ export default function FFCSTimetableTab({
   ) => {
     if (addedCourses.length === 0) return;
 
+    const reportMatchedCourses = attachReportClassIds(
+      { name: activeTimetable.name, courses: addedCourses },
+      reportCoursesForSharing,
+      true
+    ).courses;
+
     if (replaceExisting) {
-      updateActiveTimetableCourses(addedCourses);
+      updateActiveTimetableCourses(reportMatchedCourses);
     } else {
       const existing = activeTimetable?.courses || [];
-      const toAdd = addedCourses.filter(
+      const toAdd = reportMatchedCourses.filter(
         (ac) => !existing.some((ec) => ec.code === ac.code && ec.slots.join("+") === ac.slots.join("+"))
       );
       updateActiveTimetableCourses([...existing, ...toAdd]);
@@ -1153,7 +1163,7 @@ export default function FFCSTimetableTab({
       `Loaded ${addedCourses.length} course offering${addedCourses.length === 1 ? "" : "s"} into ${activeTimetable.name}.`
     );
     setTimeout(() => setSuccessMsg(null), 4000);
-  }, [activeTimetable, updateActiveTimetableCourses]);
+  }, [activeTimetable, reportCoursesForSharing, updateActiveTimetableCourses]);
 
   useEffect(() => {
     if (isLoaded) {
@@ -1528,16 +1538,13 @@ export default function FFCSTimetableTab({
 
     let url: string;
     if (compact) {
-      const compactData = encodeCompactTimetableShare(plan, semesterId);
-      const loadedClassIds = new Set(
-        rawParsedCourses.map((course) => course.CLASS_ID).filter(Boolean)
+      const compactData = encodeCompactTimetableShare(
+        attachReportClassIds(plan, reportCoursesForSharing),
+        semesterId
       );
-      if (
-        !compactData ||
-        plan.courses.some((course) => !course.classId || !loadedClassIds.has(course.classId))
-      ) {
+      if (!compactData) {
         setError(
-          "A short link is unavailable because one or more classes do not have a class ID in the selected semester report."
+          "A short link is unavailable because one or more classes could not be matched uniquely in the selected semester's registration list."
         );
         return;
       }
@@ -1575,7 +1582,7 @@ export default function FFCSTimetableTab({
     } catch {
       setError("Could not copy the share link. Try again over https.");
     }
-  }, [activeTimetable, rawParsedCourses, semesterId]);
+  }, [activeTimetable, reportCoursesForSharing, semesterId]);
 
   const handleSharePlanJson = useCallback(async () => {
     if (!activeTimetable || activeTimetable.courses.length === 0) {
@@ -4486,12 +4493,12 @@ export default function FFCSTimetableTab({
                 <Share2 className="w-4 h-4" />
               </span>
               <ListRowText
-                title="Short class-ID link"
+                title="Shorter class-ID link"
                 titleTag="span"
                 subtitle={
                   canShareCompactLink
-                    ? `Shares the ${activeSemester.shortLabel} class-ID prefix and selected class IDs; the receiver loads class details from that semester's report.`
-                    : "Available when every course in this timetable has a class ID from the selected semester."
+                    ? `Creates a shorter URL using the ${activeSemester.shortLabel} class IDs; the receiver looks up course details in that report.`
+                    : "Creates a shorter URL when every course matches a class ID in the selected semester's registration list."
                 }
               />
             </button>
