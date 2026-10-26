@@ -223,6 +223,46 @@ const isEveningSlot = (slot: string) => {
   return periods.some(p => p.startMin >= MORNING_BEFORE_MIN);
 };
 
+function matchesOfferingTimeFilter(slotStr: string, filter: string): boolean {
+  if (filter === "all") return true;
+  const slots = splitSlots(slotStr).filter((slot) => slot !== "NIL");
+  const theorySlots = slots.filter((slot) => !slot.startsWith("L"));
+  const labSlots = slots.filter((slot) => slot.startsWith("L"));
+  const sessionSlots = theorySlots.length > 0 ? theorySlots : labSlots;
+  const allIn = (items: string[], morning: boolean) => items.length > 0 && items.every((slot) => {
+    const periods = getPeriodsForSlotsOuter(slot);
+    return periods.length > 0 && periods.every((period) =>
+      morning ? period.startMin < MORNING_BEFORE_MIN : period.startMin >= MORNING_BEFORE_MIN
+    );
+  });
+
+  switch (filter) {
+    // Session filters describe the theory session for combined offerings;
+    // labs are filtered independently in the slot search sheet.
+    case "morning_session":
+    case "morning":
+    case "morning_theory":
+      return allIn(filter === "morning_session" ? sessionSlots : theorySlots, true);
+    case "evening_session":
+    case "evening":
+    case "evening_theory":
+      return allIn(filter === "evening_session" ? sessionSlots : theorySlots, false);
+    case "morning_lab":
+      return allIn(labSlots, true);
+    case "evening_lab":
+      return allIn(labSlots, false);
+    default:
+      return true;
+  }
+}
+
+function matchesSlotTokenFilter(slotStr: string, selectedToken: string, lab: boolean): boolean {
+  if (!selectedToken) return true;
+  return splitSlots(slotStr).some(
+    (slot) => slot === selectedToken && slot.startsWith("L") === lab
+  );
+}
+
 const isOverlap = (theorySlotStr: string, labSlotStr: string) =>
   slotsOverlap(theorySlotStr, labSlotStr, getTimetableSchema());
 
@@ -933,6 +973,9 @@ export default function FFCSTimetableTab({
   }, [courseLocks.length]);
   const [isSlotSearchOpen, setIsSlotSearchOpen] = useState(false);
   const [slotSearchQuery, setSlotSearchQuery] = useState("");
+  const [slotSearchTimeFilter, setSlotSearchTimeFilter] = useState("all");
+  const [slotSearchTheoryFilter, setSlotSearchTheoryFilter] = useState("");
+  const [slotSearchLabFilter, setSlotSearchLabFilter] = useState("");
   const [generatorCourseSearchQuery, setGeneratorCourseSearchQuery] = useState("");
   const [isVariantSearchOpen, setIsVariantSearchOpen] = useState(false);
   const [variantSearchQuery, setVariantSearchQuery] = useState("");
@@ -1198,6 +1241,9 @@ export default function FFCSTimetableTab({
   useEffect(() => {
     setSlotFilter("all");
     setSelectedSlotIndex("-1");
+    setSlotSearchTimeFilter("all");
+    setSlotSearchTheoryFilter("");
+    setSlotSearchLabFilter("");
   }, [selectedCourseCode, isGroupingEnabled]);
 
   const theoryPeriods = (getTimetableSchema().theory as TimetablePeriod[]).filter(p => !p.lunch);
@@ -1788,6 +1834,33 @@ export default function FFCSTimetableTab({
     }
     return slots;
   }, [masterCourses, selectedCourseCode, courseLocks, isGroupingEnabled]);
+
+  const slotSearchTheoryChoices = useMemo(
+    () => Array.from(new Set(availableSlots.flatMap((row) =>
+      splitSlots(row.SLOT).filter((slot) => slot !== "NIL" && !slot.startsWith("L"))
+    ))).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })),
+    [availableSlots]
+  );
+  const slotSearchLabChoices = useMemo(
+    () => Array.from(new Set(availableSlots.flatMap((row) =>
+      splitSlots(row.SLOT).filter((slot) => slot.startsWith("L"))
+    ))).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })),
+    [availableSlots]
+  );
+  const filteredSlotSearchRows = useMemo(() => {
+    const query = slotSearchQuery.trim().toLocaleLowerCase();
+    return availableSlots
+      .map((row, idx) => ({ row, idx }))
+      .filter(({ row }) => matchesOfferingTimeFilter(row.SLOT, slotFilter))
+      .filter(({ row }) => matchesOfferingTimeFilter(row.SLOT, slotSearchTimeFilter))
+      .filter(({ row }) => matchesSlotTokenFilter(row.SLOT, slotSearchTheoryFilter, false))
+      .filter(({ row }) => matchesSlotTokenFilter(row.SLOT, slotSearchLabFilter, true))
+      .filter(({ row }) =>
+        !query || [row.SLOT, row.FACULTY, row.ROOM].some((value) =>
+          String(value ?? "").toLocaleLowerCase().includes(query)
+        )
+      );
+  }, [availableSlots, slotFilter, slotSearchLabFilter, slotSearchQuery, slotSearchTheoryFilter, slotSearchTimeFilter]);
 
   const handleAddCourse = (e: React.FormEvent) => {
     e.preventDefault();
@@ -2667,25 +2740,18 @@ export default function FFCSTimetableTab({
                               }}
                               options={[
                                 { value: "all", label: "All" },
-                                ...(isGroupingEnabled
+                                ...((!hasLab || hasTheory)
                                   ? [
-                                      { value: "morning_session", label: "Morning Session" },
-                                      { value: "evening_session", label: "Evening Session" },
+                                      { value: "morning_theory", label: "Morning Theory" },
+                                      { value: "evening_theory", label: "Evening Theory" },
                                     ]
-                                  : [
-                                      ...((!hasLab || hasTheory)
-                                        ? [
-                                            { value: "morning", label: "Morning Theory" },
-                                            { value: "evening", label: "Evening Theory" },
-                                          ]
-                                        : []),
-                                      ...((!hasTheory || hasLab)
-                                        ? [
-                                            { value: "morning_lab", label: "Morning Lab" },
-                                            { value: "evening_lab", label: "Evening Lab" },
-                                          ]
-                                        : []),
-                                    ]),
+                                  : []),
+                                ...((!hasTheory || hasLab)
+                                  ? [
+                                      { value: "morning_lab", label: "Morning Lab" },
+                                      { value: "evening_lab", label: "Evening Lab" },
+                                    ]
+                                  : []),
                               ]}
                             />
                           </div>
@@ -3832,31 +3898,76 @@ export default function FFCSTimetableTab({
             <h3 className="font-bold text-lg text-text-heading flex items-center gap-2">
               <Search className="w-5 h-5 text-blue-500" /> Search Slot & Faculty
             </h3>
+            <p className="text-xs text-muted-foreground">
+              Search every faculty offering. Conflicting options stay visible but cannot be selected.
+            </p>
             <SearchInput placeholder="Search by slot, faculty, or room..." value={slotSearchQuery} onChange={e => setSlotSearchQuery(e.target.value)} className="bg-surface-secondary/50 border-border-strong pl-10 pr-4 py-3 focus:border-blue-500/50 placeholder:text-muted-foreground" autoFocus />
+            <ChipTabs
+              size="sm"
+              value={slotSearchTimeFilter}
+              onChange={(value) => {
+                setSlotSearchTimeFilter(value);
+                setSelectedSlotIndex("-1");
+              }}
+              options={[
+                { value: "all", label: "All" },
+                { value: "morning_theory", label: "Morning Theory" },
+                { value: "evening_theory", label: "Evening Theory" },
+                { value: "morning_lab", label: "Morning Lab" },
+                { value: "evening_lab", label: "Evening Lab" },
+              ]}
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <label className="min-w-0 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                Theory slot
+                <select
+                  aria-label="Filter by theory slot"
+                  value={slotSearchTheoryFilter}
+                  onChange={(event) => {
+                    setSlotSearchTheoryFilter(event.target.value);
+                    setSelectedSlotIndex("-1");
+                  }}
+                  className="mt-1 block w-full rounded-lg border border-border-strong bg-surface px-2.5 py-2 text-xs font-semibold normal-case tracking-normal text-text-heading"
+                >
+                  <option value="">All theory slots</option>
+                  {slotSearchTheoryChoices.map((slot) => <option key={slot} value={slot}>{slot}</option>)}
+                </select>
+              </label>
+              <label className="min-w-0 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                Lab slot
+                <select
+                  aria-label="Filter by lab slot"
+                  value={slotSearchLabFilter}
+                  onChange={(event) => {
+                    setSlotSearchLabFilter(event.target.value);
+                    setSelectedSlotIndex("-1");
+                  }}
+                  className="mt-1 block w-full rounded-lg border border-border-strong bg-surface px-2.5 py-2 text-xs font-semibold normal-case tracking-normal text-text-heading"
+                >
+                  <option value="">All lab slots</option>
+                  {slotSearchLabChoices.map((slot) => <option key={slot} value={slot}>{slot}</option>)}
+                </select>
+              </label>
+              {(slotFilter !== "all" || slotSearchTimeFilter !== "all" || slotSearchTheoryFilter || slotSearchLabFilter) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSlotFilter("all");
+                    setSlotSearchTimeFilter("all");
+                    setSlotSearchTheoryFilter("");
+                    setSlotSearchLabFilter("");
+                    setSelectedSlotIndex("-1");
+                  }}
+                  className="col-span-2 justify-self-start text-xs font-semibold text-indigo-600 hover:underline dark:text-indigo-400"
+                >
+                  Show all slots and faculties
+                </button>
+              )}
+            </div>
             {/* Capped, like the course search, so the field stays put while the
                 result list scrolls. */}
             <div className="p-2 overflow-y-auto max-h-[50vh] custom-scrollbar bg-surface-secondary/5 rounded-xl">
-              {availableSlots.map((row, idx) => ({ row, idx })).filter(({ row }) => {
-                if (slotFilter === "all") return true;
-                if (slotFilter === "morning_session") {
-                  const parts = (row?.SLOT || "").split('+').map(s => s.trim()).filter(s => s && s !== 'NIL');
-                  return parts.length > 0 && parts.every(s => isMorningSlot(s));
-                }
-                if (slotFilter === "evening_session") {
-                  const parts = (row?.SLOT || "").split('+').map(s => s.trim()).filter(s => s && s !== 'NIL');
-                  return parts.length > 0 && parts.every(s => isEveningSlot(s));
-                }
-                if (slotFilter === "morning") return isMorningSlot(row?.SLOT || "") && !(row?.SLOT || "").split('+').some(s => s.trim().startsWith('L'));
-                if (slotFilter === "evening") return isEveningSlot(row?.SLOT || "") && !(row?.SLOT || "").split('+').some(s => s.trim().startsWith('L'));
-                if (slotFilter === "morning_lab") return isMorningSlot(row?.SLOT || "") && (row?.SLOT || "").split('+').some(s => s.trim().startsWith('L'));
-                if (slotFilter === "evening_lab") return isEveningSlot(row?.SLOT || "") && (row?.SLOT || "").split('+').some(s => s.trim().startsWith('L'));
-                return true;
-              }).filter(({ row }) => {
-                const query = slotSearchQuery.toLowerCase();
-                return row?.SLOT?.toLowerCase().includes(query) || 
-                       row?.FACULTY?.toLowerCase().includes(query) || 
-                       row?.ROOM?.toLowerCase().includes(query);
-              }).map(({ row, idx }) => {
+              {filteredSlotSearchRows.map(({ row, idx }) => {
                 const slotsArray = row?.SLOT?.split("+").map(s => s.trim().toUpperCase()).filter(s => s && s !== "NIL") || [];
                 const clashError = checkClashes(slotsArray);
                 const isBlocked = !!clashError;
@@ -3962,12 +4073,7 @@ export default function FFCSTimetableTab({
                   </button>
                 );
               })}
-              {availableSlots.filter((row) => {
-                const query = slotSearchQuery.toLowerCase();
-                return row?.SLOT?.toLowerCase().includes(query) || 
-                       row?.FACULTY?.toLowerCase().includes(query) || 
-                       row?.ROOM?.toLowerCase().includes(query);
-              }).length === 0 && (
+              {filteredSlotSearchRows.length === 0 && (
                 <EmptyState
                   icon={<Search className="w-8 h-8" />}
                   title="No slots found"
