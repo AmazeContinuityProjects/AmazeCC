@@ -43,6 +43,8 @@ export type ParsedCourse = {
   BATCH?: string;
   /** The registration list's class/section id, when the report carries one. */
   CLASS_ID?: string;
+  /** Registration IDs represented by a merged theory+lab offering. */
+  CLASS_IDS?: string[];
   /**
    * The employee id behind FACULTY.
    *
@@ -74,6 +76,8 @@ export type AddedCourse = {
   employeeId?: string;
   /** The registration-list class id, when this offering came from a report. */
   classId?: string;
+  /** Report IDs represented by a merged theory+lab timetable course. */
+  classIds?: string[];
   venue: string;
   credits: string;
   type: string;
