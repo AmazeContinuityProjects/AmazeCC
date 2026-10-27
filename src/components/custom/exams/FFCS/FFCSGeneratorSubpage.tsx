@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useState, useMemo, useEffect, useRef, type ReactNode } from 'react';
-import { X, Wand2, Info, ChevronDown, ChevronUp, Check, Beaker, Play, Lock, Hash, ArrowRight, Search, AlertTriangle, ArrowLeft, Save, Users, Trash2, LayoutDashboard, Target, SlidersHorizontal, CalendarDays, Star, PanelsTopLeft } from 'lucide-react';
+import { X, Wand2, Info, ChevronDown, ChevronUp, ChevronRight, Check, Beaker, Play, Lock, Hash, ArrowRight, Search, AlertTriangle, ArrowLeft, Save, Users, Trash2, LayoutDashboard, Target, SlidersHorizontal, CalendarDays, Star, PanelsTopLeft } from 'lucide-react';
 import { TimetableState, CourseLock, Friend, FriendGroup, ParsedCourse, AddedCourse } from './types';
 import { getBatchColorClass } from '@/lib/utils';
 import {
@@ -37,6 +37,7 @@ import { loadSessionPreferences, saveSessionPreferences, type FacultyMetricKey }
 import { VitfacReviewPill, FacultyAvatar } from './components/FacultyReviewSheet';
 import FacultyReviewSheetHost from './components/FacultyReviewSheetHost';
 import { TargetCourseLocker } from './components/TargetCourseLocker';
+import { GeneratorTargetCoursesWidget } from './components/GeneratorTargetCoursesWidget';
 import FFCSGeneratorViewModeModal, {
   type GeneratorViewMode,
 } from './components/modals/FFCSGeneratorViewModeModal';
@@ -184,6 +185,8 @@ export interface FFCSGeneratorSubpageProps {
   setSuccessMsg: (msg: string | null) => void;
   getGroupedCourses: (courseList: AddedCourse[]) => any[];
   generatorDisplayCourses: {code: string, title: string, types: string[]}[];
+  semesterReportCourses: ParsedCourse[];
+  isLoadingCourses: boolean;
   theoryPeriods: any[];
   labPeriods: any[];
   toggleBlockSlot: (slot: string) => void;
@@ -192,7 +195,8 @@ export interface FFCSGeneratorSubpageProps {
 export function FFCSGeneratorSubpage({
   onClose, settings, courseLocks, friends, socialScoreGroupMethod, friendGroups,
   masterCourses, blockedSlots, timetables, setTimetables, setActiveTimetableId,
-  error, setError, successMsg, setSuccessMsg, getGroupedCourses, generatorDisplayCourses, theoryPeriods, labPeriods, toggleBlockSlot
+  error, setError, successMsg, setSuccessMsg, getGroupedCourses, generatorDisplayCourses,
+  semesterReportCourses, isLoadingCourses, theoryPeriods, labPeriods, toggleBlockSlot
 }: FFCSGeneratorSubpageProps) {
   const sessionPrefs = useMemo(() => loadSessionPreferences(), []);
   const [generatorViewMode, setGeneratorViewMode] = useState<GeneratorViewMode>(() =>
@@ -365,6 +369,10 @@ export function FFCSGeneratorSubpage({
     safeStorage.setItem(TARGETS_STORAGE_KEY, JSON.stringify(generatorTargets));
   }, [generatorTargets, seededFromLocks]);
   const [activeLockerCode, setActiveLockerCode] = useState<string | null>(null);
+  const removeGeneratorTarget = (code: string) => {
+    setGeneratorTargets((previous) => previous.filter((target) => target.code !== code));
+    setActiveLockerCode((current) => (current === code ? null : current));
+  };
   // The desktop locker renders inline in the main column; the sheet is the
   // mobile-only fallback. BottomSheet portals to <body>, so a `lg:hidden`
   // wrapper cannot hide it — it must not be mounted on desktop at all.
@@ -386,7 +394,8 @@ export function FFCSGeneratorSubpage({
   // desktop restores the always-visible side nav.
   useEffect(() => {
     if (isDesktopViewport) setMobileSectionOpen(false);
-  }, [isDesktopViewport]);
+    else if (activeLockerCode) setMobileSectionOpen(true);
+  }, [isDesktopViewport, activeLockerCode]);
   const [generatorSyncFriendsClasses, setGeneratorSyncFriendsClasses] = useState<boolean>(
     () => sessionPrefs.syncFriendsClasses ?? sessionPrefs.syncFriendClasses ?? false
   );
@@ -531,6 +540,13 @@ export function FFCSGeneratorSubpage({
     }
     if (isReviewing && stagedTimetables.length > 0) {
       setIsReviewing(false);
+      return true;
+    }
+    // A mobile menu selection is a page inside the generator. The shell back
+    // control and system gesture return to the menu before leaving the screen.
+    if (generatorViewMode === "modern" && !isDesktopViewport && mobileSectionOpen) {
+      setMobileSectionOpen(false);
+      setActiveLockerCode(null);
       return true;
     }
     onClose();
@@ -1137,6 +1153,7 @@ export function FFCSGeneratorSubpage({
   ];
   const selectGeneratorSection = (section: GeneratorSectionKey) => {
     setActiveGeneratorSection(section);
+    setActiveLockerCode(null);
     if (typeof window !== "undefined" && window.innerWidth < 1024) {
       setMobileSectionOpen(true);
       // Land on the section, not on the gap where the menu used to be.
@@ -1145,9 +1162,20 @@ export function FFCSGeneratorSubpage({
       );
     }
   };
+  const selectGeneratorCourse = (code: string) => {
+    setActiveGeneratorSection("courses");
+    setActiveLockerCode(code);
+    if (typeof window !== "undefined" && window.innerWidth < 1024) {
+      setMobileSectionOpen(true);
+      requestAnimationFrame(() =>
+        document.getElementById("generator-active-panel")?.scrollIntoView?.({ block: "start" })
+      );
+    }
+  };
   const showGeneratorSection = (section: GeneratorSectionKey) =>
-    generatorViewMode === "classic" || activeGeneratorSection === section;
+    generatorViewMode === "classic" || (!activeLockerCode && activeGeneratorSection === section);
   const activeSectionInfo = generatorSections.find((section) => section.id === activeGeneratorSection) ?? generatorSections[0];
+  const activeGeneratorCourse = generatorTargets.find((target) => target.code === activeLockerCode);
 
   const setupStatTiles = useMemo<GeneratorStatTile[]>(
     () => [
@@ -1279,6 +1307,10 @@ export function FFCSGeneratorSubpage({
     "Compare Timetables"
   ) : isReviewing && stagedTimetables.length > 0 ? (
     "Review Timetables"
+  ) : generatorViewMode === "modern" && activeGeneratorCourse ? (
+    activeGeneratorCourse.code
+  ) : generatorViewMode === "modern" && mobileSectionOpen ? (
+    activeSectionInfo.label
   ) : (
     "Advanced Timetable Generator"
   );
@@ -1291,6 +1323,10 @@ export function FFCSGeneratorSubpage({
     ? "Side-by-side comparison of selected schedules"
     : isReviewing && stagedTimetables.length > 0
     ? `${stagedTimetables.length} conflict-free timetable${stagedTimetables.length === 1 ? "" : "s"} found`
+    : generatorViewMode === "modern" && activeGeneratorCourse
+    ? activeGeneratorCourse.title
+    : generatorViewMode === "modern" && mobileSectionOpen
+    ? activeSectionInfo.detail
     : "Rank, compare and save conflict-free weeks";
 
   const shellActions = generatorPreviewTimetable ? (
@@ -1390,7 +1426,7 @@ export function FFCSGeneratorSubpage({
         type="button"
         onClick={generateTimetables}
         disabled={isGenerating || generatorTargets.length === 0}
-        className={`flex min-h-11 items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-bold py-2 px-4 rounded-xl transition-all cursor-pointer ${generatorViewMode === "modern" ? "bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-600/20 active:scale-95 font-outfit" : "bg-amber-500 hover:bg-amber-600 shadow-md hover:shadow-amber-500/25"}`}
+        className={`flex min-h-11 items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-bold py-2 px-4 rounded-xl transition-all cursor-pointer ${generatorViewMode === "modern" ? "hidden lg:flex bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-600/20 active:scale-95 font-outfit" : "bg-amber-500 hover:bg-amber-600 shadow-md hover:shadow-amber-500/25"}`}
       >
         {isGenerating ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Wand2 className="w-4 h-4" />}
         <span>{isGenerating ? "Generating…" : "Generate Timetables"}</span>
@@ -1411,7 +1447,7 @@ export function FFCSGeneratorSubpage({
         onBack={handleBack}
         className="!max-w-none px-4 sm:px-6"
       >
-        <div className="space-y-4">
+        <div className={`space-y-4 ${generatorViewMode === "modern" ? "pb-[calc(7rem+env(safe-area-inset-bottom,0px))] lg:pb-0" : ""}`}>
           {isGenerating && (
             <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-medium" aria-live="polite">
               <div className="w-3.5 h-3.5 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin shrink-0" />
@@ -2084,7 +2120,7 @@ export function FFCSGeneratorSubpage({
                     <div role="tablist" aria-label="Auto-generator sections" className="min-w-0">
                       <ListShell>
                         {generatorSections.map(({ id, label, icon: Icon, detail, tone }) => {
-                          const isActive = activeGeneratorSection === id;
+                          const isActive = !activeLockerCode && activeGeneratorSection === id;
                           // Per-tone tile + active tint, same recipe as the
                           // target-course menu entries below.
                           const tileClass = {
@@ -2142,10 +2178,11 @@ export function FFCSGeneratorSubpage({
                               wrapSubtitle
                             />
                             {isActive && (
-                              <span className={`w-5 h-5 rounded text-white flex items-center justify-center shrink-0 ${activeTickClass}`}>
+                              <span className={`hidden lg:flex w-5 h-5 rounded text-white items-center justify-center shrink-0 ${activeTickClass}`}>
                                 <Check className="w-3.5 h-3.5" strokeWidth={3} />
                               </span>
                             )}
+                            <ChevronRight className="h-5 w-5 shrink-0 text-text-muted lg:hidden" aria-hidden="true" />
                           </button>
                           );
                         })}
@@ -2175,16 +2212,19 @@ export function FFCSGeneratorSubpage({
                   </section>
 
                   {generatorTargets.length > 0 && (
-                    <section aria-labelledby="generator-locked-courses-heading" className="space-y-2">
-                      <h3 id="generator-locked-courses-heading" className="px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                        Target courses
+                    <section aria-labelledby="generator-focused-courses-heading" className="space-y-2">
+                      <h3 id="generator-focused-courses-heading" className="px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Focused courses
                       </h3>
                       <ListShell>
                         {generatorTargets.map((t) => (
                           <button
                             key={t.code}
+                            id={`generator-course-tab-${t.code}`}
                             type="button"
-                            onClick={() => { selectGeneratorSection("courses"); setActiveLockerCode(t.code); }}
+                            aria-current={activeLockerCode === t.code ? "page" : undefined}
+                            aria-controls="generator-active-panel"
+                            onClick={() => selectGeneratorCourse(t.code)}
                             className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-surface-secondary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${activeLockerCode === t.code ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" : "text-text-secondary hover:text-text-heading"}`}
                           >
                             <span className="w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/20 text-[10px] font-bold">
@@ -2197,28 +2237,18 @@ export function FFCSGeneratorSubpage({
                                 {t.offerings?.length ? `${t.offerings.length} offering${t.offerings.length === 1 ? "" : "s"}` : "any faculty/slot"}
                               </span>
                             </span>
+                            {activeLockerCode === t.code && (
+                              <span className="hidden h-5 w-5 shrink-0 items-center justify-center rounded bg-amber-500 text-white lg:flex">
+                                <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                              </span>
+                            )}
+                            <ChevronRight className="h-5 w-5 shrink-0 text-text-muted lg:hidden" aria-hidden="true" />
                           </button>
                         ))}
                       </ListShell>
                     </section>
                   )}
                 </nav>
-              )}
-
-              {/* Mobile drill-in back control: the menu list is hidden while a
-                  section is open, so this is the only way back to it. */}
-              {generatorViewMode === "modern" && mobileSectionOpen && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMobileSectionOpen(false);
-                    document.getElementById("generator-sections-nav")?.scrollIntoView?.({ block: "start" });
-                  }}
-                  className="row-start-1 lg:hidden flex w-fit items-center gap-1.5 rounded-xl border border-border-strong bg-surface px-3 py-2 text-xs sm:text-sm font-semibold text-text-heading shadow-xs transition-colors hover:bg-surface-secondary"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  All sections
-                </button>
               )}
 
               {generatorViewMode === "classic" && (
@@ -2245,31 +2275,43 @@ export function FFCSGeneratorSubpage({
                 </section>
               )}
               
-              {/* Locker view: on desktop, opening a target course swaps the main
-                  column to its faculty/slot picker. Mobile still uses the sheet. */}
+              {/* A focused course is its own menu page in modern mode. */}
               {activeLockerCode && (() => {
                 const lkCourse = generatorDisplayCourses.find(c => c.code === activeLockerCode) || generatorTargets.find(t => t.code === activeLockerCode);
                 const lkSelection = generatorTargets.find(t => t.code === activeLockerCode);
                 if (!lkCourse || !lkSelection) return null;
                 return (
-                  <div className={`hidden lg:flex min-w-0 flex-col gap-4 ${generatorViewMode === "modern" ? "row-start-3 lg:row-start-1 lg:col-start-2" : ""}`}>
+                  <div
+                    id={generatorViewMode === "modern" ? "generator-active-panel" : undefined}
+                    role={generatorViewMode === "modern" ? "tabpanel" : undefined}
+                    aria-labelledby={generatorViewMode === "modern" ? `generator-course-tab-${activeLockerCode}` : undefined}
+                    className={`min-w-0 flex-col gap-4 ${generatorViewMode === "modern" ? `${mobileSectionOpen ? "flex" : "hidden"} lg:flex row-start-1 lg:row-start-1 lg:col-start-2` : "hidden lg:flex"}`}
+                  >
                     <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-bold text-lg text-text-heading">{lkCourse.code}</span>
-                          <span className="text-sm text-muted-foreground truncate">{lkCourse.title}</span>
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-1">
+                      {generatorViewMode === "modern" ? (
+                        <p className="text-sm text-muted-foreground">
                           Pick the slots and faculties the generator should focus on for this course.
                         </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setActiveLockerCode(null)}
-                        className="shrink-0 min-h-11 px-3 text-xs font-semibold rounded-xl border border-border-strong text-text-secondary hover:text-text-heading hover:bg-surface-secondary/60 transition-colors"
-                      >
-                        Back to courses
-                      </button>
+                      ) : (
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-lg text-text-heading">{lkCourse.code}</span>
+                            <span className="text-sm text-muted-foreground truncate">{lkCourse.title}</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Pick the slots and faculties the generator should focus on for this course.
+                          </p>
+                        </div>
+                      )}
+                      {generatorViewMode === "classic" && (
+                        <button
+                          type="button"
+                          onClick={() => setActiveLockerCode(null)}
+                          className="shrink-0 min-h-11 px-3 text-xs font-semibold rounded-xl border border-border-strong text-text-secondary hover:text-text-heading hover:bg-surface-secondary/60 transition-colors"
+                        >
+                          Back to courses
+                        </button>
+                      )}
                     </div>
                     <TargetCourseLocker
                       course={{ code: lkCourse.code, title: lkCourse.title }}
@@ -2282,19 +2324,38 @@ export function FFCSGeneratorSubpage({
               })()}
 
               {/* Left Column: Courses Selection */}
-              <div id={generatorViewMode === "modern" && activeGeneratorSection === "courses" ? "generator-active-panel" : undefined} role={generatorViewMode === "modern" ? "tabpanel" : undefined} aria-labelledby={generatorViewMode === "modern" ? `generator-tab-${activeGeneratorSection}` : undefined} className={`flex min-w-0 flex-col gap-6 ${generatorViewMode === "modern" ? `row-start-3 lg:row-start-1 lg:col-start-2 ${showGeneratorSection("courses") ? "" : "hidden"}` : ""} ${activeLockerCode ? "lg:hidden" : ""}`}>
+              <div id={generatorViewMode === "modern" && activeGeneratorSection === "courses" && !activeLockerCode ? "generator-active-panel" : undefined} role={generatorViewMode === "modern" && !activeLockerCode ? "tabpanel" : undefined} aria-labelledby={generatorViewMode === "modern" && !activeLockerCode ? `generator-tab-${activeGeneratorSection}` : undefined} className={`flex min-w-0 flex-col gap-6 ${generatorViewMode === "modern" ? `${mobileSectionOpen ? "flex row-start-1" : "hidden"} ${showGeneratorSection("courses") && !activeLockerCode ? "lg:flex lg:row-start-1 lg:col-start-2" : "lg:hidden"}` : ""}`}>
                 {/* The panel is a plain region, not a card: every widget inside
                     (list shells, course cards, schedule blocks) is the card
                     level, so a card here would be a card in a card. */}
-                <div id="generator-target-courses" className="scroll-mt-24">
+                <div id="generator-target-courses" className="w-full min-w-0 scroll-mt-24">
+                  {generatorViewMode === "modern" ? (
+                    <GeneratorTargetCoursesWidget
+                      reportCourses={semesterReportCourses}
+                      isLoadingReport={isLoadingCourses}
+                      targets={generatorTargets}
+                      onSelectionChange={(course, selection) => {
+                        if (!selection) {
+                          removeGeneratorTarget(course.code);
+                          return;
+                        }
+                        setGeneratorTargets((previous) => {
+                          const index = previous.findIndex((target) => target.code === course.code);
+                          if (index === -1) return [...previous, selection];
+                          return previous.map((target, targetIndex) =>
+                            targetIndex === index ? selection : target
+                          );
+                        });
+                      }}
+                    />
+                  ) : (
+                    <>
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      {generatorViewMode === "modern" ? (
-                        <SectionHeader icon={Target} title="Target courses" count={generatorTargets.length} className="mb-2" />
-                      ) : <h3 className="font-semibold text-lg mb-2 text-text-heading flex items-center gap-2">
+                      <h3 className="font-semibold text-lg mb-2 text-text-heading flex items-center gap-2">
                         <span className="bg-amber-500/10 text-amber-500 w-7 h-7 rounded-full flex items-center justify-center text-sm">1</span> 
                         Target Courses
-                      </h3>}
+                      </h3>
                       <p className="text-sm text-muted-foreground">Select the courses you want to take and optionally filter faculties/slots.</p>
                     </div>
                   </div>
@@ -2322,7 +2383,7 @@ export function FFCSGeneratorSubpage({
                               </button>
                               <button
                                 type="button"
-                                onClick={() => setGeneratorTargets(prev => prev.filter(p => p.code !== t.code))}
+                                onClick={() => removeGeneratorTarget(t.code)}
                                 className="text-xs text-muted-foreground hover:text-red-500"
                                 aria-label={`Remove ${t.code}`}
                               >
@@ -2416,8 +2477,7 @@ export function FFCSGeneratorSubpage({
                                       // faculty/slots — open its pane right away.
                                       setActiveLockerCode(c.code);
                                     } else {
-                                      setGeneratorTargets(prev => prev.filter(s => s.code !== c.code));
-                                      setActiveLockerCode(prev => (prev === c.code ? null : prev));
+                                      removeGeneratorTarget(c.code);
                                     }
                                   }}
                                 />
@@ -2473,11 +2533,13 @@ export function FFCSGeneratorSubpage({
                       </span>
                     )}
                   </div>
+                    </>
+                  )}
                 </div>
               </div>
 
               {/* Right Column: Preferences & Social */}
-              <div id={generatorViewMode === "modern" && activeGeneratorSection !== "courses" ? "generator-active-panel" : undefined} role={generatorViewMode === "modern" && activeGeneratorSection !== "courses" ? "tabpanel" : undefined} aria-labelledby={generatorViewMode === "modern" && activeGeneratorSection !== "courses" ? `generator-tab-${activeGeneratorSection}` : undefined} className={`flex min-w-0 flex-col gap-6 ${generatorViewMode === "modern" ? `row-start-3 lg:row-start-1 lg:col-start-2 ${activeGeneratorSection === "courses" ? "hidden" : ""}` : ""}`}>
+              <div id={generatorViewMode === "modern" && activeGeneratorSection !== "courses" ? "generator-active-panel" : undefined} role={generatorViewMode === "modern" && activeGeneratorSection !== "courses" ? "tabpanel" : undefined} aria-labelledby={generatorViewMode === "modern" && activeGeneratorSection !== "courses" ? `generator-tab-${activeGeneratorSection}` : undefined} className={`flex min-w-0 flex-col gap-6 ${generatorViewMode === "modern" ? `${mobileSectionOpen ? "flex row-start-1" : "hidden"} ${activeGeneratorSection === "courses" ? "lg:hidden" : "lg:flex lg:row-start-1 lg:col-start-2"}` : ""}`}>
                 
                 {/* General Preferences */}
                 {/* Plain region on the page background — the list shells and
@@ -2486,8 +2548,8 @@ export function FFCSGeneratorSubpage({
                 <div id="generator-preferences" className={`scroll-mt-24 ${generatorViewMode === "modern" ? `${activeGeneratorSection === "social" || activeGeneratorSection === "courses" ? "hidden" : ""}` : ""}`}>
                   {generatorViewMode === "modern" ? (
                     <>
-                      <SectionHeader icon={activeSectionInfo.icon} title={activeSectionInfo.label} className="mb-1" />
-                      <p className="mb-5 px-1 text-xs leading-relaxed text-text-secondary dark:text-text-muted">
+                      <SectionHeader icon={activeSectionInfo.icon} title={activeSectionInfo.label} className="mb-1 hidden lg:flex" />
+                      <p className="mb-5 hidden px-1 text-xs leading-relaxed text-text-secondary dark:text-text-muted lg:block">
                         {activeGeneratorSection === "ranking"
                           ? "Choose how options are ordered and how faculty review data affects scores."
                           : activeGeneratorSection === "schedule"
@@ -3021,7 +3083,7 @@ export function FFCSGeneratorSubpage({
                 </div>
 
                 {/* Bottom CTA to run generator */}
-                <div className={`pt-6 pb-12 flex justify-center ${generatorViewMode === "modern" ? "row-start-4 lg:row-start-2 lg:col-span-2" : "col-span-1 lg:col-span-2"}`}>
+                <div className={`pt-6 pb-12 flex justify-center ${generatorViewMode === "modern" ? "hidden lg:flex row-start-4 lg:row-start-2 lg:col-span-2" : "col-span-1 lg:col-span-2"}`}>
                   <button
                     type="button"
                     onClick={() => setIsRunSummaryOpen(true)}
@@ -3037,10 +3099,23 @@ export function FFCSGeneratorSubpage({
             </div>
             )}
           </div>
+          {generatorViewMode === "modern" && !isReviewing && !isCompareModalOpen && !generatorPreviewTimetable && (
+            <div className="fixed inset-x-0 bottom-0 z-[240] px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] bg-surface/95 backdrop-blur-xl border-t border-border-strong/70 shadow-[0_-12px_28px_-16px_rgba(15,23,42,0.4)] lg:hidden">
+              <button
+                type="button"
+                onClick={() => setIsRunSummaryOpen(true)}
+                disabled={isGenerating || generatorTargets.length === 0}
+                className="mx-auto flex min-h-12 w-full max-w-xl items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-6 py-3 text-sm font-black tracking-wide text-white shadow-xl shadow-indigo-600/20 transition-all hover:bg-indigo-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 font-outfit"
+              >
+                {isGenerating ? <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Wand2 className="h-5 w-5" />}
+                <span>{isGenerating ? "Generating Timetables…" : "Generate Timetables"}</span>
+              </button>
+            </div>
+          )}
         </div>
       </PageShell>
 
-      {activeLockerCode && !isDesktopViewport && (() => {
+      {generatorViewMode === "classic" && activeLockerCode && !isDesktopViewport && (() => {
         const lkCourse = generatorDisplayCourses.find(c => c.code === activeLockerCode) || generatorTargets.find(t => t.code === activeLockerCode);
         const lkSelection = generatorTargets.find(t => t.code === activeLockerCode);
         if (!lkCourse || !lkSelection) return null;

@@ -1,9 +1,5 @@
-import Main from "../components/custom/Main";
+import HomeEntryController from "../components/custom/app/HomeEntryController";
 
 export default function Home() {
-  return (
-    <div>
-      <Main />
-    </div>
-  );
+  return <HomeEntryController />;
 }

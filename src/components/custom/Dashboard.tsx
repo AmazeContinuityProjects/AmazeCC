@@ -1,365 +1,140 @@
 "use client";
-import { getAssetPath } from "@/lib/utils";
 import NavigationTabs from "./header/NavigationTabs";
-import StatsCards from "./StatCards";
-import GradesModal from "./exams/GradesModal";
-import AttendanceTabs from "./attendance/AttendanceTabs";
-import MarksHistoryTab from "./exams/MarksHistoryTab";
-import CurriculumPage from "./exams/CurriculumPage";
-import MarksPredictorTab from "./exams/MarksPredictorTab";
-import ExamSchedule from "./exams/ScheduleDisplay";
-import MessDisplay from "./hostel/MessDisplay";
-import LaundryDisplay from "./hostel/LaundryDisplay";
-import CalendarSubpage from "./attendance/CalendarSubpage";
-import { useState, useEffect, useRef, useCallback, memo } from "react";
-import LeaveDisplay from "./hostel/LeaveDisplay";
-import HostelOverview from "./hostel/HostelOverview";
-import HostelCounsellingView from "./hostel/HostelCounsellingView";
-import CabShareTab from "./hostel/CabShare/CabShareTab";
-import CabShareMatchCard from "./hostel/CabShare/CabShareMatchCard";
-import BusFinder from "./dayscholar/BusFinder";
-import MobileHome from "./mobile/MobileHome";
-import SimplifiedMobileHome from "./mobile/SimplifiedMobileHome";
-import AmazeOnboardingFlow, { InterfaceOptionId } from "./onboarding/AmazeOnboardingFlow";
-import AboutTab from "./AboutTab";
-
-import { api, syncEngine } from "@/lib/sync-engine";
-import CourseDashboard from "./exams/CourseDashboard";
-import SimplifiedAcademicsPage from "./exams/SimplifiedAcademicsPage";
-import ToolsTab from "./tools/ToolsTab";
+import { useState, useEffect, useCallback, memo } from "react";
+import { useAtom } from "jotai";
+import {
+  attendanceDataAtom,
+  attendancePercentageAtom,
+  calendarDataAtom,
+  credentialsAtom,
+  gradesDataAtom,
+  gradesDisplayIsOpenAtom,
+  hostelDataAtom,
+  marksDataAtom,
+  marksStatsAtom,
+  moodleDataAtom,
+  odHoursDataAtom,
+  odHoursIsOpenAtom,
+  registeredEventsAtom,
+  scheduleDataAtom,
+  settingsAtom,
+  isReloadingAtom,
+} from "@/store";
 import SubpageLayout from "./shared/SubpageLayout";
-import { RefreshCcw, Calendar, MapPin, WifiOff } from "lucide-react";
-import { useSyncTrigger } from "./shared/useSyncTrigger";
-import MoreTab from "./more/MoreTab";
 import dynamic from "next/dynamic";
-import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import { AnimatePresence } from "framer-motion";
 
-import PaymentsTab from "./PaymentsTab";
-import LibrariesTab from "./libraries/LibrariesTab";
-import EventHubTab from "./events/EventHubTab";
-import ClubHubTab from "./clubs/ClubHubTab";
-import CommunityFeed from "./clubs/CommunityFeed";
-import { loadFrozenPastSemesters } from "@/lib/pastDataSync";
-import FreeClassroomsTab from "./exams/FreeClassroomsTab";
-import FacultyScheduleTab from "./exams/FacultyScheduleTab";
-import CircularsTab from "./exams/CircularsTab";
-import FacultyInfoTab from "./exams/FacultyInfoTab";
-
-import ProfileTab from "./profile/ProfileTab";
 import PushPromptModal from "./PushPromptModal";
 import PwaInstallCard from "./shared/PwaInstallCard";
-import FresherWelcomePage from "./FresherWelcomePage";
-import FeedbackStatusModal from "./profile/FeedbackStatusModal";
-import ODTrackerSubpage from "./attendance/ODTrackerSubpage";
-import OverallAttendancePredictor from "./attendance/OverallAttendancePredictor";
-import { buildAttendanceDayCardsMap } from "@/lib/attendanceTimetable";
-import { buildMilestoneDates } from "@/lib/milestoneDates";
-import { useMemo } from "react";
-import {
-  appendSyncLine,
-} from "@/lib/sync-engine/sync-session";
-import { runPageSync } from "@/lib/sync-engine/single-sync";
+import { useDashboardWelcomeState } from "./dashboard/useDashboardWelcomeState";
+import { DashboardRoute, useDashboardNavigator } from "./dashboard/DashboardNavigator";
+import { useDashboardDataActions } from "./dashboard/useDashboardDataActions";
+import { useDashboardTransportState } from "./dashboard/useDashboardTransportState";
+
+function FeatureLoading() {
+  return (
+    <div
+      className="min-h-40 w-full rounded-2xl border border-slate-200/70 bg-white/70 p-5 dark:border-white/[0.08] dark:bg-zinc-950/40"
+      role="status"
+      aria-label="Loading section"
+      aria-busy="true"
+    >
+      <div className="h-5 w-36 animate-pulse rounded-lg bg-slate-200 dark:bg-zinc-800" />
+      <div className="mt-4 h-24 animate-pulse rounded-xl bg-slate-100 dark:bg-zinc-900" />
+    </div>
+  );
+}
+
+// Keep the app chrome in the dashboard chunk; feature screens are fetched only
+// when their tab/subtab is selected. This keeps a signed-in home visit from
+// paying the parse/execute cost for every other product area up front.
+const GradesModal = dynamic(() => import("./exams/GradesModal"), { loading: FeatureLoading });
+const DashboardAttendanceFeature = dynamic(() => import("./dashboard/DashboardAttendanceFeature"), { loading: FeatureLoading });
+const DashboardAcademicsFeature = dynamic(() => import("./dashboard/DashboardAcademicsFeature"), { loading: FeatureLoading });
+const DashboardHomeFeature = dynamic(() => import("./dashboard/DashboardHomeFeature"), { loading: FeatureLoading });
+const AmazeOnboardingFlow = dynamic(() => import("./onboarding/AmazeOnboardingFlow"), { loading: FeatureLoading });
+const DashboardToolsFeature = dynamic(() => import("./dashboard/DashboardToolsFeature"), { loading: FeatureLoading });
+const DashboardHostelFeature = dynamic(() => import("./dashboard/DashboardHostelFeature"), { loading: FeatureLoading });
+const DashboardProfileFeature = dynamic(() => import("./dashboard/DashboardProfileFeature"), { loading: FeatureLoading });
+const DashboardUtilityRoutes = dynamic(() => import("./dashboard/DashboardUtilityRoutes"), { loading: FeatureLoading });
+const FresherWelcomePage = dynamic(() => import("./FresherWelcomePage"), { loading: FeatureLoading });
+const FeedbackStatusModal = dynamic(() => import("./profile/FeedbackStatusModal"));
 
 function DashboardContent({
   demoMode = false,
-  activeTab,
-  setActiveTab,
   handleLogOutRequest,
   handleReloadRequest,
-  GradesData,
-  allGradesData,
-  attendancePercentage,
-  ODhoursData,
-  ODhoursIsOpen,
-  setODhoursIsOpen,
-  GradesDisplayIsOpen,
-  setGradesDisplayIsOpen,
-  attendanceData,
-  activeDay,
-  setActiveDay,
-  marksData,
-  marksStats,
-  activeSubTab,
-  setActiveSubTab,
-  ScheduleData,
-  hostelData,
-  HostelActiveSubTab,
-  setHostelActiveSubTab,
-  activeAttendanceSubTab,
-  setActiveAttendanceSubTab,
-  activeToolsSubTab = "overview",
-  setActiveToolsSubTab,
-  activeDayscholarSubTab,
-  setActiveDayscholarSubTab,
-  activeMoreSubTab,
-  setActiveMoreSubTab,
-  activeProfileSubTab,
-  setActiveProfileSubTab,
-  calendarData,
-  setCalender,
-  setIsReloading,
-  setProgressBar,
-  setMessage,
   loginToVTOP,
-  setAllGradesData,
-  sethostelData,
-  setGradesData,
-  setScheduleData,
   handleLogin,
-  moodleData,
-  setMoodleData,
-  IDs,
-  setIDs,
-  registeredEvents,
-  setRegisteredEvents,
-  vitolData: _vitolData,
-  setVitolData: _setVitolData,
-  settings,
-  setSettings,
   onOpenCommandPalette,
   onOpenShortcutsHelp,
   onSystemBack,
   onCollapseScreenChange,
   onRunSyncMode
 }) {
-  const [showFresherWelcome, setShowFresherWelcome] = useState(false);
-  const [fresherEptData, setFresherEptData] = useState<any>(null);
-  const [fresherAckData, setFresherAckData] = useState<any>(null);
-  const [fresherResources, setFresherResources] = useState<any[]>([]);
-  const [showInterfaceOnboarding, setShowInterfaceOnboarding] = useState(false);
+  const [IDs, setIDs] = useAtom(credentialsAtom);
+  const [attendanceData] = useAtom(attendanceDataAtom);
+  const [attendancePercentage] = useAtom(attendancePercentageAtom);
+  const [marksData] = useAtom(marksDataAtom);
+  const [marksStats] = useAtom(marksStatsAtom);
+  const [GradesData] = useAtom(gradesDataAtom);
+  const [ScheduleData] = useAtom(scheduleDataAtom);
+  const [hostelData] = useAtom(hostelDataAtom);
+  const [calendarData] = useAtom(calendarDataAtom);
+  const [moodleData] = useAtom(moodleDataAtom);
+  const [registeredEvents, setRegisteredEvents] = useAtom(registeredEventsAtom);
+  const [settings, setSettings] = useAtom(settingsAtom);
+  const [ODhoursData] = useAtom(odHoursDataAtom);
+  const [ODhoursIsOpen, setODhoursIsOpen] = useAtom(odHoursIsOpenAtom);
+  const [GradesDisplayIsOpen, setGradesDisplayIsOpen] = useAtom(gradesDisplayIsOpenAtom);
+  const [, setIsReloading] = useAtom(isReloadingAtom);
+  const {
+    allGradesData,
+    pastSemesterData,
+    handleAllGradesFetch,
+    handleCalendarFetch,
+    handleFetchGrades,
+    handleFetchSchedule,
+    handleHostelDetailsFetch,
+    handleFetchMoodle,
+  } = useDashboardDataActions();
+  const {
+    dayscholarBuses,
+    transportBuses,
+    transportData,
+    transportLoading,
+    transportBusesLoading,
+    refreshTransportBuses,
+  } = useDashboardTransportState();
+  const {
+    courseDashboardTarget,
+    setCourseDashboardTarget,
+    activePageResetKey,
+    selectTab,
+    activeTab, setActiveTab, activeSubTab, setActiveSubTab,
+    activeAttendanceSubTab, setActiveAttendanceSubTab,
+    activeToolsSubTab, setActiveToolsSubTab,
+    activeDayscholarSubTab, setActiveDayscholarSubTab,
+    activeMoreSubTab, setActiveMoreSubTab,
+    activeProfileSubTab, setActiveProfileSubTab,
+    hostelActiveSubTab: HostelActiveSubTab, setHostelActiveSubTab,
+    activeDay, setActiveDay,
+  } = useDashboardNavigator();
+  const {
+    showFresherWelcome,
+    setShowFresherWelcome,
+    fresherEptData,
+    fresherAckData,
+    fresherResources,
+    showInterfaceOnboarding,
+    setShowInterfaceOnboarding,
+  } = useDashboardWelcomeState({ demoMode, interfaceChosen: settings?.interfaceChosen });
 
-  // Check if user has chosen an interface option yet (for new and existing users)
-  useEffect(() => {
-    try {
-      const hasChosen = localStorage.getItem("has_selected_interface") === "true" || settings?.interfaceChosen === true;
-      if (!hasChosen) {
-        setShowInterfaceOnboarding(true);
-      }
-    } catch {}
-  }, [settings?.interfaceChosen]);
-
-  // Listen for global open-interface-selector events from Profile or switchers
-  useEffect(() => {
-    const handleOpen = () => setShowInterfaceOnboarding(true);
-    window.addEventListener("open-interface-selector", handleOpen);
-    return () => window.removeEventListener("open-interface-selector", handleOpen);
-  }, []);
-
-  // Honor preferred default landing tab (e.g. direct attendance)
-  useEffect(() => {
-    if (settings?.defaultLandingTab === "attendance") {
-      setActiveTab("attendance");
-      setActiveAttendanceSubTab("attendance");
-    }
-  }, []);
-
-  const results = useMemo(() => buildMilestoneDates(calendarData).results, [calendarData]);
-
-  useEffect(() => {
-    if (demoMode) {
-      setShowFresherWelcome(true);
-      return;
-    }
-
-    try {
-      const ept = localStorage.getItem("cache_ept_schedule");
-      const ack = localStorage.getItem("cache_acknowledgement");
-      const dismissed = localStorage.getItem("fresherWelcomeDismissed");
-      
-      let hasFresherData = false;
-      if (ept) {
-        const parsedEpt = JSON.parse(ept);
-        setFresherEptData(parsedEpt);
-        if (parsedEpt.tables?.[0]?.rows?.length > 0) {
-          hasFresherData = true;
-        }
-      }
-      if (ack) {
-        const parsedAck = JSON.parse(ack);
-        setFresherAckData(parsedAck);
-        if (parsedAck.tables?.[1]?.rows?.length > 0) {
-          hasFresherData = true;
-        }
-      }
-
-      if (hasFresherData && dismissed !== "true") {
-        setShowFresherWelcome(true);
-      }
-    } catch (e) {
-      console.error("Failed to load fresher data from localStorage", e);
-    }
-  }, [demoMode]);
-
-  useEffect(() => {
-    api("fresher-resources")
-      .then((data: any) => { if (data?.success && data.resources) setFresherResources(data.resources); })
-      .catch(() => {});
-  }, []);
-
-  const touchStartX = useRef(0);
-  const touchStartY = useRef(0);
-  const touchEndX = useRef(0);
-  const touchEndY = useRef(0);
-  const [isSpinning, setIsSpinning] = useState(false);
-  const [currentIcon, setCurrentIcon] = useState(getAssetPath("/logo.png"));
-
-  const handleReloadClick = useCallback(async () => {
-    setIsSpinning(true);
-    await handleReloadRequest();
-    try {
-      const updatedGrades = JSON.parse(localStorage.getItem("allGrades") || "{}");
-      setPastSemesterData(loadFrozenPastSemesters(updatedGrades));
-    } catch (e) {}
-    setResetKey(k => k + 1);
-    setTimeout(() => setIsSpinning(false), 600);
-  }, [handleReloadRequest]);
-
-  const { isOffline, triggerSync: handleSyncClick } = useSyncTrigger(handleReloadClick);
-
-  useEffect(() => {
-    const updateIcon = () => {
-      const savedIcon = localStorage.getItem("app-icon") || "default";
-      setCurrentIcon(getAssetPath(savedIcon === "fire" ? "/images/icons/fire.png" : "/logo.png"));
-    };
-    updateIcon();
-    window.addEventListener("app-icon-changed", updateIcon);
-    return () => window.removeEventListener("app-icon-changed", updateIcon);
-  }, []);
   const [isSubpageOpen, setIsSubpageOpen] = useState(false);
-  const hasMoved = useRef(false);
-  const [resetKey, setResetKey] = useState(0);
   const [showFeedbackStatus, setShowFeedbackStatus] = useState(false);
 
   // Grades + feedback dialogs register themselves for system back via
   // BottomSheet; nothing to do here.
-
-  const [hostelCounsellingRefreshKey, setHostelCounsellingRefreshKey] = useState(0);
-  const [pastSemesterData, setPastSemesterData] = useState<any>(null);
-  const [courseDashboardTarget, setCourseDashboardTarget] = useState<{ courseCode: string; targetTab?: string } | null>(null);
-
-  useEffect(() => {
-    if (allGradesData) {
-      setPastSemesterData(loadFrozenPastSemesters(allGradesData));
-    }
-  }, [allGradesData]);
-
-  useEffect(() => {
-    // Tools is its own section. Academics used to bounce `qbank`, `faculty` and
-    // `free-class` over to Tools from here, which meant tapping an Academics icon
-    // could silently land you in a different section, and made Tools reachable
-    // only through a hidden redirect. Nothing renders those under Academics any
-    // more, so a stale value (an old history entry, a bookmark) snaps to the
-    // Academics home instead of bouncing sections.
-    //
-    // The CGPA predictor is separate: it lives in the Curriculum page's planner,
-    // and `cgpa-predictor` is rendered by Academics below.
-    //
-    // Keep this in step with the `activeSubTab === ...` screens below - a new
-    // Academics screen that is not listed here will snap back to the home.
-    const ACADEMICS_HOME = "courses-simplified";
-    const ACADEMIC_SCREENS = new Set([
-      ACADEMICS_HOME,
-      "simplified-academics",
-      "overview",
-      "course-dashboard",
-      "grades",
-      "curriculum",
-      "cgpa-predictor",
-      "schedule",
-      "marks-predictor",
-    ]);
-
-    if (activeTab === "academics" && !ACADEMIC_SCREENS.has(activeSubTab)) {
-      setActiveSubTab(ACADEMICS_HOME);
-    }
-
-    if (activeTab === "more" && activeMoreSubTab === "qbank") {
-      setActiveTab("tools");
-      if (setActiveToolsSubTab) setActiveToolsSubTab("qbank");
-    }
-
-    if (activeTab === "hostel" && HostelActiveSubTab === "payment") {
-      setActiveTab("payments");
-    }
-
-    if (activeTab === "profile" && activeProfileSubTab === "preferences") {
-      setActiveProfileSubTab("settings");
-    }
-  }, [
-    activeTab,
-    activeSubTab,
-    activeMoreSubTab,
-    HostelActiveSubTab,
-    activeProfileSubTab,
-    setActiveSubTab,
-    setActiveTab,
-    setActiveProfileSubTab,
-  ]);
-
-  const [dayscholarBuses, setDayscholarBuses] = useState([]);
-  const [transportData, setTransportData] = useState<any>(null);
-  const [transportLoading, setTransportLoading] = useState(true);
-
-  const loadTransportData = useCallback(() => {
-    const cached = localStorage.getItem("transportData");
-    if (cached) {
-      try {
-        const parsed = JSON.parse(cached);
-        setTransportData(parsed);
-      } catch (e) {
-        localStorage.removeItem("transportData");
-      }
-    }
-    setTransportLoading(false);
-  }, []);
-
-  useEffect(() => {
-    const cachedBuses = localStorage.getItem("cache_buses");
-    if (cachedBuses) {
-      try { setDayscholarBuses(JSON.parse(cachedBuses)); } catch {}
-    }
-    loadTransportData();
-  }, [loadTransportData]);
-
-  const [transportBuses, setTransportBuses] = useState<any[]>([]);
-  const [transportBusesLoading, setTransportBusesLoading] = useState(false);
-
-  useEffect(() => {
-    const cached = localStorage.getItem("cache_buses");
-    if (cached) {
-      try { setTransportBuses(JSON.parse(cached)); } catch {}
-    }
-  }, []);
-
-  const refreshTransportBuses = useCallback(async () => {
-    setTransportBusesLoading(true);
-    try {
-      // Engine `buses` op: public endpoint with retry, cached + logged, and
-      // the sheet always reaches 100 and closes.
-      const buses = await runPageSync<any[]>({
-        title: "Bus Routes",
-        steps: [{ op: "buses" }],
-        doneLine: "Bus routes fetched",
-      });
-      if (Array.isArray(buses) && buses.length > 0) {
-        setTransportBuses(buses);
-        setDayscholarBuses(buses);
-      }
-    } catch (e) {
-      console.error("Failed to fetch transport buses:", e);
-    } finally {
-      setTransportBusesLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (activeTab === "transport") {
-      loadTransportData();
-    }
-  }, [activeTab, loadTransportData]);
-
-  const tabsOrder = ["home", "attendance", "academics", "tools", "payments", "libraries", "events", "clubs", "community", "free-class", "faculty-schedule", "more", "profile"];
 
   const [profileData, setProfileData] = useState<any>(null);
   useEffect(() => {
@@ -368,199 +143,6 @@ function DashboardContent({
       if (stored) setProfileData(JSON.parse(stored));
     } catch(e){}
   }, []);
-
-  const isHosteller = profileData?.isHosteller;
-  const residentialStatus = settings?.residentialStatus;
-
-  if (isHosteller === true || residentialStatus === "hosteller") tabsOrder.push("hostel");
-  else if (isHosteller === false || residentialStatus === "dayscholar") {
-    /* no separate dayscholar tab — transport covers it */
-  }
-
-  tabsOrder.push("cabshare", "transport");
-
-  const handleTouchStart = (e) => {
-    const touch = e.touches[0];
-    touchStartX.current = touch.clientX;
-    touchStartY.current = touch.clientY;
-    hasMoved.current = false;
-  };
-
-  const handleTouchMove = (e) => {
-    const touch = e.touches[0];
-    touchEndX.current = touch.clientX;
-    touchEndY.current = touch.clientY;
-
-    const diffX = Math.abs(touchStartX.current - touchEndX.current);
-    const diffY = Math.abs(touchStartY.current - touchEndY.current);
-
-    if (diffX > diffY && diffX > 10) hasMoved.current = true;
-  };
-
-  const handleTouchEnd = (e) => {
-    if (!hasMoved.current) return;
-
-    const diffX = touchStartX.current - touchEndX.current;
-    const diffY = touchStartY.current - touchEndY.current;
-
-    if (Math.abs(diffY) > Math.abs(diffX)) return;
-
-    const target = e.target.closest("button, a, input, textarea, select, [data-prevent-swipe]");
-    if (target) return;
-
-    const scrollable = e.target.closest("[data-scrollable], [style*='overflow-x']");
-    if (scrollable) return;
-
-    if (Math.abs(diffX) < 75) return;
-
-    const currentIndex = tabsOrder.indexOf(activeTab);
-    if (diffX > 0 && currentIndex < tabsOrder.length - 1) {
-      setActiveTab(tabsOrder[currentIndex + 1]);
-    } else if (diffX < 0 && currentIndex > 0) {
-      setActiveTab(tabsOrder[currentIndex - 1]);
-    }
-  };
-
-  const handleAllGradesFetch = async () => {
-    setIsReloading(true);
-    try {
-      // Single-op engine sync: credentials, retry and the session log come
-      // free, and the sheet always reaches 100 and closes. The op persists +
-      // publishes atoms itself; only the frozen past-semester view needs a
-      // refresh here.
-      const AllGradesData = await runPageSync<any>({
-        title: "All Grades",
-        steps: [{ op: "all-grades", apply: setAllGradesData }],
-        doneLine: "All grades reloaded successfully",
-      });
-      if (!AllGradesData) return;
-
-      appendSyncLine("Loading past semester data from cache…", "info");
-      setPastSemesterData(loadFrozenPastSemesters(AllGradesData));
-
-      // Fetch missing past semesters and update cache
-      syncEngine
-        .sync("pastAttendance", {
-          semesterId: settings.currSemesterID,
-          allGradesRes: AllGradesData,
-        })
-        .then(() => {
-          setPastSemesterData(loadFrozenPastSemesters(AllGradesData));
-        })
-        .catch(() => {});
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsReloading(false);
-    }
-  };
-
-  const handleCalendarFetch = async (FncalendarType) => {
-    setIsReloading(true);
-    try {
-      await runPageSync({
-        title: "Academic Calendar",
-        steps: [
-          {
-            op: "calendar",
-            args: {
-              type: FncalendarType || "ALL",
-              calendarType: FncalendarType || "ALL",
-              semesterId: settings.currSemesterID,
-            },
-            apply: setCalender,
-          },
-        ],
-        doneLine: "Calendar reloaded successfully",
-      });
-      setSettings(prev => ({ ...prev, calendarType: FncalendarType || "ALL" }))
-      localStorage.setItem("settings", JSON.stringify({ ...settings, calendarType: FncalendarType }));
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsReloading(false);
-    }
-  };
-
-  const handleFetchGrades = async () => {
-    setIsReloading(true);
-    try {
-      await runPageSync({
-        title: "Grades",
-        steps: [
-          {
-            op: "grades",
-            args: { semesterId: settings.currSemesterID },
-            apply: setGradesData,
-          },
-        ],
-        doneLine: "Grades reloaded successfully",
-      });
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsReloading(false);
-    }
-  };
-
-  const handleFetchSchedule = async () => {
-    setIsReloading(true);
-    try {
-      await runPageSync({
-        title: "Exam Schedule",
-        steps: [
-          {
-            op: "schedule",
-            args: { semesterId: settings.currSemesterID },
-            apply: setScheduleData,
-          },
-        ],
-        doneLine: "Exam schedule reloaded successfully",
-      });
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsReloading(false);
-    }
-  };
-
-  const handleHostelDetailsFetch = async () => {
-    setIsReloading(true);
-    try {
-      await runPageSync({
-        title: "Hostel Details",
-        steps: [{ op: "hostel", apply: sethostelData }],
-        doneLine: "Hostel details reloaded successfully",
-      });
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsReloading(false);
-    }
-  };
-
-
-
-  const handleFetchMoodle = async (username = IDs.MoodleUsername, pass = IDs.MoodlePassword) => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    setIsReloading(true);
-    try {
-      // The `lms` op merges `hidden` flags and persists itself; the result is
-      // already the merged list.
-      const mergedData = await runPageSync<any>({
-        title: "Moodle Data",
-        steps: [{ op: "lms", args: { username, pass }, apply: setMoodleData }],
-        doneLine: "Moodle data fetched successfully",
-      });
-      if (mergedData && !Array.isArray(mergedData)) {
-        throw new Error("Moodle data came back in an unexpected shape");
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsReloading(false);
-    }
-  };
 
   if (showFresherWelcome) {
     return (
@@ -614,12 +196,7 @@ function DashboardContent({
       <NavigationTabs
         activeTab={activeTab}
         onCollapseScreenChange={onCollapseScreenChange}
-        setActiveTab={(newTab) => {
-          if (newTab === activeTab) {
-            setResetKey(k => k + 1);
-          }
-          setActiveTab(newTab);
-        }}
+        setActiveTab={selectTab}
         handleLogOutRequest={handleLogOutRequest}
         handleReloadRequest={handleReloadRequest}
         currSemesterID={settings.currSemesterID}
@@ -645,7 +222,7 @@ function DashboardContent({
         marksData={marksData}
         ODhoursData={ODhoursData}
         setODhoursIsOpen={setODhoursIsOpen}
-        feedbackStatus={GradesData.feedback}
+        feedbackStatus={(GradesData as any).feedback}
         setGradesDisplayIsOpen={setGradesDisplayIsOpen}
         activeAttendanceSubTab={activeAttendanceSubTab}
         setActiveAttendanceSubTab={setActiveAttendanceSubTab}
@@ -674,64 +251,6 @@ function DashboardContent({
           <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-info-surface blur-[120px]" />
           <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-emerald-400/10  dark:bg-emerald-500/5 blur-[120px]" />
         </div>
-        <div className="hidden">
-          <div className="px-6 pt-6 pb-2 flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <img src={currentIcon} alt="Logo" className="w-10 h-10 rounded-xl object-contain shadow-xs" />
-              <div>
-                <h2 className="text-xl font-black text-gray-900  dark:text-white tracking-tight leading-tight">AmazeCC</h2>
-                <p className="text-xs text-gray-500  dark:text-gray-400 truncate max-w-[180px] font-semibold mt-0.5">
-                  {new Date().getHours() < 12 ? "Good Morning" : new Date().getHours() < 18 ? "Good Afternoon" : "Good Evening"}, {settings.friendlyName || IDs.VtopUsername}
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={handleSyncClick}
-              className={`p-2.5 rounded-full transition-colors shadow-sm ${
-                isOffline
-                  ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30"
-                  : "bg-info-surface text-info hover:bg-info-surface"
-              }`}
-              title={isOffline ? "You're offline — tap for details" : "Reload Data"}
-              aria-label={isOffline ? "Offline — tap for details" : "Reload Data"}
-            >
-              {isOffline ? (
-                <WifiOff className="w-5 h-5" />
-              ) : (
-                <RefreshCcw className={`w-5 h-5 ${isSpinning ? "animate-spin" : ""}`} />
-              )}
-            </button>
-          </div>
-          <CabShareMatchCard />
-          <StatsCards
-            attendancePercentage={attendancePercentage}
-          ODhoursData={ODhoursData}
-          setODhoursIsOpen={setODhoursIsOpen}
-          feedbackStatus={GradesData.feedback}
-          marksData={marksData}
-          setGradesDisplayIsOpen={setGradesDisplayIsOpen}
-          CGPAHidden={settings.CGPAHidden}
-          setCGPAHidden={(val: boolean) => {
-            setSettings(prev => {
-              const next = { ...prev, CGPAHidden: val };
-              localStorage.setItem("settings", JSON.stringify(next));
-              return next;
-            });
-          }}
-          attendancePercentageOrString={settings.attendancePercentageOrString}
-          setAttendancePercentageOrString={(val: string) => {
-            setSettings(prev => {
-              const next = { ...prev, attendancePercentageOrString: val };
-              localStorage.setItem("settings", JSON.stringify(next));
-              return next;
-            });
-          }}
-          onOpenFeedbackStatus={() => setShowFeedbackStatus(true)}
-        />
-        </div>
-
-
-
         <AnimatePresence>
           {GradesDisplayIsOpen && (
             <GradesModal
@@ -749,258 +268,90 @@ function DashboardContent({
         <PwaInstallCard />
         <FeedbackStatusModal isOpen={showFeedbackStatus} onClose={() => setShowFeedbackStatus(false)} loginToVTOP={loginToVTOP} />
         <div className="px-6 py-4 md:p-6 lg:p-10 max-w-7xl mx-auto w-full">
-          {activeTab === "home" && (
-            <div>
-              {settings?.dashboardViewMode === "classic" ? (
-                <MobileHome
-                  attendanceData={attendanceData}
-                  marksData={marksData}
-                  scheduleData={ScheduleData}
-                  handleScheduleFetch={handleFetchSchedule}
-                  hostelData={hostelData}
-                  registeredEvents={registeredEvents}
-                  moodleData={moodleData}
-                  settings={settings}
-                  setSettings={setSettings}
-                  IDs={IDs}
-                  setActiveTab={setActiveTab}
-                  setActiveSubTab={setActiveSubTab}
-                  setHostelActiveSubTab={setHostelActiveSubTab}
-                  setActiveAttendanceSubTab={setActiveAttendanceSubTab}
-                  setActiveProfileSubTab={setActiveProfileSubTab}
-                  handleReloadRequest={handleReloadRequest}
-                  onOpenCommandPalette={onOpenCommandPalette}
-                  profileData={profileData}
-                  ODhoursData={ODhoursData}
-                />
-              ) : (
-                <SimplifiedMobileHome
-                  attendanceData={attendanceData}
-                  marksData={marksData}
-                  hostelData={hostelData}
-                  registeredEvents={registeredEvents}
-                  moodleData={moodleData}
-                  settings={settings}
-                  setSettings={setSettings}
-                  IDs={IDs}
-                  setActiveTab={setActiveTab}
-                  setActiveSubTab={setActiveSubTab}
-                  setHostelActiveSubTab={setHostelActiveSubTab}
-                  setActiveAttendanceSubTab={setActiveAttendanceSubTab}
-                  setActiveProfileSubTab={setActiveProfileSubTab}
-                  setActiveToolsSubTab={setActiveToolsSubTab}
-                  handleReloadRequest={handleReloadRequest}
-                  onOpenCommandPalette={onOpenCommandPalette}
-                  profileData={profileData}
-                  ODhoursData={ODhoursData}
-                  calendarData={calendarData}
-                  ScheduleData={ScheduleData}
-                  setGradesDisplayIsOpen={setGradesDisplayIsOpen}
-                  setODhoursIsOpen={setODhoursIsOpen}
-                />
-              )}
-            </div>
-          )}
+          <DashboardRoute route="home">
+            <DashboardHomeFeature
+              attendanceData={attendanceData}
+              marksData={marksData}
+              scheduleData={ScheduleData}
+              handleScheduleFetch={handleFetchSchedule}
+              hostelData={hostelData}
+              registeredEvents={registeredEvents}
+              moodleData={moodleData}
+              settings={settings}
+              setSettings={setSettings}
+              IDs={IDs}
+              setActiveTab={setActiveTab}
+              setActiveSubTab={setActiveSubTab}
+              setHostelActiveSubTab={setHostelActiveSubTab}
+              setActiveAttendanceSubTab={setActiveAttendanceSubTab}
+              setActiveProfileSubTab={setActiveProfileSubTab}
+              setActiveToolsSubTab={setActiveToolsSubTab}
+              handleReloadRequest={handleReloadRequest}
+              onOpenCommandPalette={onOpenCommandPalette}
+              profileData={profileData}
+              ODhoursData={ODhoursData as any}
+              calendarData={calendarData}
+              ScheduleData={ScheduleData}
+              setGradesDisplayIsOpen={setGradesDisplayIsOpen}
+              setODhoursIsOpen={setODhoursIsOpen}
+            />
+          </DashboardRoute>
 
-          {activeTab === "attendance" && attendanceData?.attendance && (
+          <DashboardRoute route="attendance" enabled={Boolean(attendanceData?.attendance)}>
+            <DashboardAttendanceFeature
+              activeSubTab={activeAttendanceSubTab}
+              setActiveSubTab={setActiveAttendanceSubTab}
+              attendanceData={attendanceData}
+              activeDay={activeDay}
+              setActiveDay={setActiveDay}
+              calendarData={calendarData}
+              scheduleData={ScheduleData}
+              moodleData={moodleData}
+              IDs={IDs}
+              settings={settings}
+              ODhoursData={ODhoursData as any}
+              ODhoursIsOpen={ODhoursIsOpen}
+              setODhoursIsOpen={setODhoursIsOpen}
+              setIsSubpageOpen={setIsSubpageOpen}
+              allGradesData={allGradesData}
+              handleCalendarFetch={handleCalendarFetch}
+              handleFetchMoodle={handleFetchMoodle}
+              setActiveTab={setActiveTab}
+              onOpenCourse={(courseCode) => {
+                setCourseDashboardTarget({ courseCode, targetTab: "overview" });
+                setActiveTab("academics");
+                setActiveSubTab("course-dashboard");
+              }}
+              onSystemBack={onSystemBack}
+              loginToVTOP={loginToVTOP}
+              resetKey={activePageResetKey}
+            />
+          </DashboardRoute>
+
+          <DashboardRoute route="academics">
+            <DashboardAcademicsFeature
+              activeSubTab={activeSubTab}
+              setActiveSubTab={setActiveSubTab}
+              marksData={marksData}
+              marksStats={marksStats}
+              allGradesData={allGradesData}
+              gradesData={GradesData}
+              attendanceData={attendanceData}
+              pastSemesterData={pastSemesterData}
+              calendarData={calendarData}
+              scheduleData={ScheduleData}
+              settings={settings}
+              loginToVTOP={loginToVTOP}
+              handleFetchGrades={handleAllGradesFetch}
+              handleScheduleFetch={handleFetchSchedule}
+              courseDashboardTarget={courseDashboardTarget}
+              onClearCourseTarget={() => setCourseDashboardTarget(null)}
+            />
+          </DashboardRoute>
+
+          <DashboardRoute route="tools">
             <div className="animate-fadeIn">
-
-
-
-              {activeAttendanceSubTab === "attendance" && (
-                <>
-                  <AttendanceTabs
-                    key={`attendance-tabs-${resetKey}`}
-                    data={attendanceData}
-                    activeDay={activeDay}
-                    setActiveDay={setActiveDay}
-                    calendars={calendarData.calendars}
-                    decimalValues={settings.decimalValues}
-                    isDayscholarWithBus={settings.isDayscholarWithBus}
-                    setIsSubpageOpen={setIsSubpageOpen}
-                    ODhoursData={ODhoursData}
-                    ODhoursIsOpen={ODhoursIsOpen}
-                    setODhoursIsOpen={setODhoursIsOpen}
-                    setActiveTab={setActiveTab}
-                    setActiveSubTab={setActiveSubTab}
-                  />
-                </>
-              )}
-
-              {activeAttendanceSubTab === "calendar" && (
-                <div className="animate-fadeIn">
-                  <CalendarSubpage
-                    calendars={calendarData?.calendars}
-                    calendarType={settings.calendarType}
-                    handleCalendarFetch={handleCalendarFetch}
-                    moodleData={moodleData}
-                    scheduleData={ScheduleData}
-                    attendanceData={attendanceData}
-                    ODhoursData={ODhoursData}
-                    handleFetchMoodle={handleFetchMoodle}
-                    IDs={IDs}
-                    currSemesterID={settings.currSemesterID}
-                    targetAttendance={settings.targetAttendance}
-                    onOpenCirculars={() => setActiveAttendanceSubTab("circulars")}
-                    onOpenCourse={(courseCode) => {
-                      // The same target mechanism `CourseDashboard` already reads,
-                      // and the one the other attendance screens use. It lands on
-                      // the course's overview, which is that course's own page and
-                      // already carries its marks and attendance as carousels.
-                      // `"attendance"` looks like the obvious value but is a
-                      // legacy deep-link that remaps to a log *inside* the
-                      // overview, not a page of its own.
-                      setCourseDashboardTarget({ courseCode, targetTab: "overview" });
-                      setActiveTab("academics");
-                      setActiveSubTab("course-dashboard");
-                    }}
-                    onBack={onSystemBack}
-                  />
-                </div>
-              )}
-
-              {activeAttendanceSubTab === "circulars" && (
-                <div className="animate-fadeIn">
-                  <CircularsTab loginToVTOP={loginToVTOP} onBack={() => setActiveAttendanceSubTab("calendar")} />
-                </div>
-              )}
-
-              {activeAttendanceSubTab === "predictor" && (
-                <div className="animate-fadeIn">
-                  {(() => {
-                    const { results, impDates } = buildMilestoneDates(calendarData);
-                    return (
-                      <OverallAttendancePredictor
-                        attendanceData={attendanceData.attendance}
-                        analyzeCalendars={results}
-                        dayCardsMap={buildAttendanceDayCardsMap(
-                          attendanceData.attendance,
-                          undefined,
-                          (typeof window !== "undefined" ? localStorage.getItem("saturday_timetable_override") : null) || "SAT"
-                        )}
-                        impDates={impDates}
-                        isDayscholarWithBus={settings.isDayscholarWithBus}
-                        decimalValues={settings.decimalValues}
-                        // `onSystemBack`, not a subtab setter. Setting the state
-                        // directly changes `screenKey`, which makes Main push a
-                        // *new* history entry instead of consuming the one the
-                        // predictor arrived on — so the next system-back landed on
-                        // the predictor again, and the stack mirror drifted until
-                        // the app let go of the history and exited.
-                        onBack={onSystemBack}
-                      />
-                    );
-                  })()}
-                </div>
-              )}
-
-              {activeAttendanceSubTab === "od" && (
-                <div className="animate-fadeIn">
-                  <ODTrackerSubpage
-                    ODhoursData={ODhoursData}
-                    attendanceData={attendanceData?.attendance}
-                    onBack={onSystemBack}
-                    currSemesterID={settings?.currSemesterID}
-                    allGradesData={allGradesData}
-                  />
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === "academics" && (
-            <div className="animate-fadeIn">
-              {(activeSubTab === "courses-simplified" || activeSubTab === "simplified-academics" || activeSubTab === "overview" || activeSubTab === "course-dashboard") && (
-                marksData ? (
-                  <CourseDashboard
-                    marksData={marksData}
-                    allGradesData={allGradesData}
-                    pastSemesterData={pastSemesterData}
-                    attendanceData={attendanceData}
-                    loginToVTOP={loginToVTOP}
-                    setActiveSubTab={setActiveSubTab}
-                    calendars={calendarData?.calendars}
-                    decimalValues={settings.decimalValues}
-                    isDayscholarWithBus={settings.isDayscholarWithBus}
-                    targetCourseCode={courseDashboardTarget?.courseCode}
-                    targetTab={courseDashboardTarget?.targetTab}
-                    onClearTarget={() => setCourseDashboardTarget(null)}
-                  />
-                ) : (
-                  <div className="space-y-4 p-4">
-                    <div className="h-6 w-32 bg-slate-200 dark:bg-neutral-800 rounded-lg animate-pulse" />
-                    <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
-                    <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
-                  </div>
-                )
-              )}
-              {activeSubTab === "grades" && (
-                marksData ? (
-                  <MarksHistoryTab
-                    data={allGradesData}
-                    marksData={marksData}
-                    gradesData={GradesData}
-                    pastSemesters={pastSemesterData}
-                    onRefresh={handleAllGradesFetch}
-                    onBack={() => setActiveSubTab("overview")}
-                  />
-                ) : (
-                  <div className="space-y-4 p-4">
-                    <div className="h-6 w-32 bg-slate-200 dark:bg-neutral-800 rounded-lg animate-pulse" />
-                    <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
-                    <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
-                  </div>
-                )
-              )}
-              {(activeSubTab === "curriculum" || activeSubTab === "cgpa-predictor") && (
-                marksData ? (
-                  <CurriculumPage
-                    marksData={marksData}
-                    allGradesData={allGradesData}
-                    gradesData={GradesData}
-                    attendance={attendanceData.attendance}
-                    handleFetchGrades={handleAllGradesFetch}
-                    setActiveSubTab={setActiveSubTab}
-                    loginToVTOP={loginToVTOP}
-                    /* Same page, opened drilled in. The CGPA predictor used to be
-                       a standalone Tools subpage with its own route; the planner
-                       screen is that feature now, so anything that still asks for
-                       it by subtab lands straight on it. */
-                    initialScreen={activeSubTab === "cgpa-predictor" ? "planner" : undefined}
-                  />
-                ) : (
-                  <div className="space-y-4 p-4">
-                    <div className="h-6 w-32 bg-slate-200 dark:bg-neutral-800 rounded-lg animate-pulse" />
-                    <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
-                    <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
-                  </div>
-                )
-              )}
-              {activeSubTab === "schedule" && (
-                <div className="animate-fadeIn">
-                  <ExamSchedule
-                    data={ScheduleData}
-                    handleScheduleFetch={handleFetchSchedule}
-                    onBack={() => setActiveSubTab("courses-simplified")}
-                  />
-                </div>
-              )}
-              {activeSubTab === "marks-predictor" && (
-                <div className="animate-fadeIn">
-                  <MarksPredictorTab
-                    marksData={marksData}
-                    marksStats={marksStats}
-                    attendance={attendanceData?.attendance}
-                    setActiveSubTab={setActiveSubTab}
-                  />
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === "tools" && (
-            <div className="animate-fadeIn">
-              <ToolsTab
+              <DashboardToolsFeature
 marksData={marksData}
                 marksStats={marksStats}
                 allGradesData={allGradesData}
@@ -1016,226 +367,49 @@ marksData={marksData}
                 isDayscholarWithBus={settings.isDayscholarWithBus}
               />
             </div>
-          )}
+          </DashboardRoute>
 
-          {activeTab === "hostel" && (
-            <div className="animate-fadeIn">
-
-              {HostelActiveSubTab === "overview" && (
-                <HostelOverview hostelData={hostelData} setHostelActiveSubTab={setHostelActiveSubTab} />
-              )}
-              {HostelActiveSubTab === "mess" && (
-                <MessDisplay hostelData={hostelData} handleHostelDetailsFetch={handleHostelDetailsFetch} />
-              )}
-              {HostelActiveSubTab === "laundry" && (
-                <LaundryDisplay hostelData={hostelData} handleHostelDetailsFetch={handleHostelDetailsFetch} />
-              )}
-              {HostelActiveSubTab === "leave" && (
-                <LeaveDisplay leaveData={hostelData.leaveHistory} handleHostelDetailsFetch={handleHostelDetailsFetch} />
-              )}
-              {HostelActiveSubTab === "payment" && (
-                <PaymentsTab loginToVTOP={loginToVTOP} onBack={onSystemBack} />
-              )}
-              {HostelActiveSubTab === "counselling" && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Hostel Counselling</h2>
-                    <button
-                      onClick={() => { setHostelCounsellingRefreshKey(k => k + 1); }}
-                      className="p-2.5 rounded-full bg-info-surface text-info hover:bg-info-surface transition-colors"
-                      title="Reload"
-                    >
-                      <RefreshCcw className="w-5 h-5" />
-                    </button>
-                  </div>
-                  <HostelCounsellingView loginToVTOP={loginToVTOP} refreshKey={hostelCounsellingRefreshKey} />
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === "cabshare" && (
-            <CabShareTab onBack={onSystemBack} />
-          )}
-
-          {/* BusFinder owns its own page chrome now, so the header and the
-              refresh button it used to duplicate here are gone — the refresh is
-              the shell's action slot. */}
-          {activeTab === "dayscholar" && (
-            <BusFinder
-              buses={dayscholarBuses}
-              transportData={transportData}
-              transportLoading={transportLoading}
-              onRefresh={refreshTransportBuses}
-              refreshing={transportBusesLoading}
-              onBack={onSystemBack}
+          <DashboardRoute route="hostel">
+            <DashboardHostelFeature
+              activeSubTab={HostelActiveSubTab}
+              setActiveSubTab={setHostelActiveSubTab}
+              hostelData={hostelData}
+              onFetchHostelDetails={handleHostelDetailsFetch}
+              loginToVTOP={loginToVTOP}
+              onSystemBack={onSystemBack}
             />
-          )}
+          </DashboardRoute>
 
-          {activeTab === "transport" && (
-            <BusFinder
-              buses={transportBuses}
-              transportData={transportData}
-              transportLoading={transportLoading}
-              onRefresh={refreshTransportBuses}
-              refreshing={transportBusesLoading}
-              onBack={onSystemBack}
+          <DashboardUtilityRoutes
+            onSystemBack={onSystemBack}
+            dayscholarBuses={dayscholarBuses}
+            transportBuses={transportBuses}
+            transportData={transportData}
+            transportLoading={transportLoading}
+            refreshTransportBuses={refreshTransportBuses}
+            transportBusesLoading={transportBusesLoading}
+            IDs={IDs}
+            loginToVTOP={loginToVTOP}
+            setIsSubpageOpen={setIsSubpageOpen}
+            registeredEvents={registeredEvents}
+            setRegisteredEvents={setRegisteredEvents}
+            attendanceData={attendanceData}
+            isSubpageOpen={isSubpageOpen}
+          />
+          <DashboardRoute route="profile">
+            <DashboardProfileFeature
+              onOpenShortcutsHelp={onOpenShortcutsHelp}
+              loginToVTOP={loginToVTOP}
+              handleLogin={handleLogin}
+              setIsReloading={setIsReloading}
+              handleLogOutRequest={handleLogOutRequest}
+              onRunSyncMode={onRunSyncMode}
+              settings={settings}
+              setSettings={setSettings}
+              IDs={IDs}
+              setIDs={setIDs}
             />
-          )}
-
-              {activeTab === "payments" && (
-                <div className="animate-fadeIn">
-                  <PaymentsTab loginToVTOP={loginToVTOP} onBack={onSystemBack} />
-                </div>
-              )}
-
-          {activeTab === "libraries" && (
-            <div className="animate-fadeIn">
-              <LibrariesTab loginToVTOP={loginToVTOP} onBack={onSystemBack} />
-            </div>
-          )}
-
-          {activeTab === "events" && (
-            <div className="animate-fadeIn">
-              <EventHubTab
-                IDs={IDs}
-                onBack={onSystemBack}
-                setIsSubpageOpen={setIsSubpageOpen}
-                registeredEvents={registeredEvents}
-                setRegisteredEvents={setRegisteredEvents}
-              />
-            </div>
-          )}
-
-          {activeTab === "clubs" && (
-            <div className="animate-fadeIn">
-              <ClubHubTab IDs={IDs} loginToVTOP={loginToVTOP} onBack={onSystemBack} />
-            </div>
-          )}
-
-          {activeTab === "community" && (
-            <div className="animate-fadeIn">
-              <CommunityFeed IDs={IDs} loginToVTOP={loginToVTOP} onBack={onSystemBack} />
-            </div>
-          )}
-
-          {activeTab === "free-class" && (
-            <div className="animate-fadeIn">
-              <FreeClassroomsTab onBack={onSystemBack} />
-            </div>
-          )}
-
-          {activeTab === "faculty-schedule" && (
-            <div className="animate-fadeIn">
-              <FacultyScheduleTab onBack={onSystemBack} />
-            </div>
-          )}
-
-          {activeTab === "more" && (
-            <div className="animate-fadeIn">
-              <MoreTab
-                attendanceData={attendanceData}
-                activeMoreSubTab={activeMoreSubTab}
-                setActiveMoreSubTab={setActiveMoreSubTab}
-                IDs={IDs}
-                loginToVTOP={loginToVTOP}
-                isSubpageOpen={isSubpageOpen}
-                setIsSubpageOpen={setIsSubpageOpen}
-              />
-            </div>
-          )}
-
-
-
-          {activeTab === "profile" && (
-            <div className="animate-fadeIn">
-              <ProfileTab
-                onOpenShortcutsHelp={onOpenShortcutsHelp}
-                activeProfileSubTab={activeProfileSubTab}
-                setActiveProfileSubTab={setActiveProfileSubTab}
-                isLoggedIn={true}
-                loginToVTOP={loginToVTOP}
-                currSemesterID={settings.currSemesterID}
-                setCurrSemesterID={(val: string) => {
-                  setSettings(prev => {
-                    const next = { ...prev, currSemesterID: val };
-                    localStorage.setItem("settings", JSON.stringify(next));
-                    return next;
-                  });
-                }}
-                handleLogin={handleLogin}
-                setIsReloading={setIsReloading}
-                handleLogOutRequest={handleLogOutRequest}
-                password={IDs.VtopPassword}
-                username={IDs.VtopUsername}
-                setPassword={(val: string[]) =>{
-                  setIDs(prev => {
-                    const next = { ...prev, VtopUsername: val[0], VtopPassword: val[1] };
-                    localStorage.setItem("IDs", JSON.stringify(next));
-                    return next;
-                  });
-                }}
-                decimalValues={settings.decimalValues}
-                setDecimalValues={(val: boolean) => {
-                  setSettings(prev => {
-                    const next = { ...prev, decimalValues: val };
-                    localStorage.setItem("settings", JSON.stringify(next));
-                    return next;
-                  });
-                }}
-
-                isDayscholarWithBus={settings.isDayscholarWithBus}
-                setIsDayscholarWithBus={(val: boolean) => {
-                  setSettings(prev => {
-                    const next = { ...prev, isDayscholarWithBus: val };
-                    localStorage.setItem("settings", JSON.stringify(next));
-                    return next;
-                  });
-                }}
-                residentialStatus={settings.residentialStatus || "hosteller"}
-                setResidentialStatus={(val: "hosteller" | "dayscholar") => {
-                  setSettings(prev => {
-                    const next = { ...prev, residentialStatus: val };
-                    localStorage.setItem("settings", JSON.stringify(next));
-                    return next;
-                  });
-                }}
-                friendlyName={settings.friendlyName}
-                setFriendlyName={(val: string) => {
-                  setSettings(prev => {
-                    const next = { ...prev, friendlyName: val };
-                    localStorage.setItem("settings", JSON.stringify(next));
-                    return next;
-                  });
-                }}
-                calendarType={settings.calendarType}
-                setCalendarType={(val: any) => {
-                  setSettings(prev => {
-                    const next = { ...prev, calendarType: val };
-                    localStorage.setItem("settings", JSON.stringify(next));
-                    return next;
-                  });
-                }}
-                reloadAllData={settings.reloadAllData}
-                setReloadAllData={(val: boolean) => {
-                  setSettings(prev => {
-                    const next = { ...prev, reloadAllData: val };
-                    localStorage.setItem("settings", JSON.stringify(next));
-                    return next;
-                  });
-                }}
-                settings={settings}
-                setSettings={setSettings}
-                onRunSyncMode={onRunSyncMode}
-              />
-            </div>
-          )}
-
-          {activeTab === "about" && (
-            <div className="animate-fadeIn">
-              <AboutTab />
-            </div>
-          )}
+          </DashboardRoute>
         </div>
       </div>
     </div>

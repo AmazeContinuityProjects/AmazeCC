@@ -19,6 +19,7 @@ import SelectField from "./shared/primitives/SelectField";
 import BottomSheet from "./shared/BottomSheet";
 
 interface LoginFormProps {
+  initialLoginOpen?: boolean;
   username: any;
   setUsername: any;
   password: any;
@@ -67,6 +68,7 @@ function Tilt3DCard({ children, className = "" }: { children: React.ReactNode; c
 }
 
 export default function LoginForm({
+  initialLoginOpen = false,
   username,
   setUsername,
   password,
@@ -141,7 +143,7 @@ export default function LoginForm({
 
   const [activeApi, setActiveApi] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [showLoginCard, setShowLoginCard] = useState(false);
+  const [showLoginCard, setShowLoginCard] = useState(initialLoginOpen);
   const [isScrolled, setIsScrolled] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 

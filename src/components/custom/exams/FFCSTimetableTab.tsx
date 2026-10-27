@@ -1786,6 +1786,8 @@ export default function FFCSTimetableTab({
           setSuccessMsg={setSuccessMsg}
           getGroupedCourses={groupSelectedCourses}
           generatorDisplayCourses={generatorDisplayCourses}
+          semesterReportCourses={reportCoursesForSharing}
+          isLoadingCourses={isLoadingCourses}
           theoryPeriods={theoryPeriods}
           labPeriods={labPeriods}
           toggleBlockSlot={toggleBlockSlot}

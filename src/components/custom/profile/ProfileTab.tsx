@@ -15,7 +15,7 @@ interface ProfileTabProps {
   handleLogin: any;
   setIsReloading: any;
   handleLogOutRequest: any;
-  password: string[];
+  password: string | string[];
   username: string;
   setPassword: (val: string[]) => void;
   decimalValues: boolean;

@@ -115,6 +115,8 @@ const props = (over: Partial<FFCSGeneratorSubpageProps> = {}): FFCSGeneratorSubp
   setSuccessMsg: vi.fn(),
   getGroupedCourses: () => [],
   generatorDisplayCourses: [],
+  semesterReportCourses: [],
+  isLoadingCourses: false,
   theoryPeriods: [],
   labPeriods: [],
   toggleBlockSlot: vi.fn(),
@@ -455,6 +457,34 @@ describe("FFCSGeneratorSubpage", () => {
     unmount();
     expect(hasOpenOverlays()).toBe(false);
     expect(closeTopOverlayFromPop()).toBe(false);
+  });
+
+  it("uses the separate searchable focus widget in modern mode", () => {
+    const previousMode = storage.getItem("ffcs_generator_view_mode");
+    storage.setItem("ffcs_generator_view_mode", "modern");
+
+    render(
+      <FFCSGeneratorSubpage
+        {...props({
+          courseLocks: [],
+          semesterReportCourses: [
+            courseRow("BCSE101", "A1", "A-101"),
+            courseRow("BCSE101", "B1", "B-102"),
+          ],
+        })}
+      />
+    );
+
+    expect(screen.getByRole("region", { name: "Autogenerator target courses" })).toBeDefined();
+    expect(screen.getByRole("textbox", { name: "Search current semester courses" })).toBeDefined();
+    fireEvent.click(screen.getByRole("checkbox", { name: /BCSE101/ }));
+    expect(screen.getByRole("button", { name: "Remove BCSE101 from generator targets" })).toBeDefined();
+    expect(screen.getByText("Filter Slots (Optional)")).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: "Remove BCSE101 from generator targets" }));
+    expect(screen.queryByRole("button", { name: "Remove BCSE101 from generator targets" })).toBeNull();
+
+    if (previousMode === null) storage.removeItem("ffcs_generator_view_mode");
+    else storage.setItem("ffcs_generator_view_mode", previousMode);
   });
 
   it("renders the faculty count badge next to faculty name in preview mode", async () => {
