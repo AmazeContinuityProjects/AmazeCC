@@ -51,9 +51,13 @@ import {
   type SortBy,
 } from "@/lib/timetableMetrics";
 import {
+  combineFactorScores,
   combineRankingScores,
+  rankingFactorScores,
   rankingInputs,
   rankCourses,
+  type RankingFactor,
+  type RankingInputs,
   type RankingMode,
   type RankingPriority,
   type RankingScore,
@@ -169,6 +173,19 @@ export interface GenerateParams {
   facultyMetricWeights?: FacultyMetricWeights;
   facultyScoreFilters?: FacultyScoreFilters;
   rankingPriorityOrder?: readonly RankingPriority[];
+  /**
+   * The generator's ranked factor list: position among the enabled factors is
+   * the weight, `disabled` factors are excluded from the score entirely.
+   *
+   * Optional and **unset by default** — when present it supersedes the
+   * `rankingMode` / `rankingPriorityOrder` blend above (which stays exactly as
+   * it was for the guided selector, settings, and every existing caller). One
+   * kind of ranking runs per call, never both stacked.
+   */
+  rankingFactors?: {
+    order: readonly RankingFactor[];
+    disabled?: readonly RankingFactor[];
+  };
   /**
    * Keep every lab on its own day.
    *
@@ -1174,7 +1191,56 @@ function scoreCombination(
   const hasTimePreference =
     params.preference !== "none" ||
     Boolean(params.minStartTime || params.maxEndTime || Object.keys(params.maxEndTimeByDay ?? {}).length);
-  if (hasProfile || hasFacultyData || hasSoftTheoryPreference) {
+
+  // One read of the week's ranking inputs, shared by whichever ranking path runs.
+  let cachedRankingInputs: RankingInputs | null = null;
+  const getRankingInputs = (): RankingInputs =>
+    (cachedRankingInputs ??= rankingInputs(courses, params.schema));
+
+  // Preference fit, 0–100. Shared by both paths so the "time" factor and the
+  // legacy `time` component measure the same thing.
+  const timeScoreFrom = (timeInputs: RankingInputs | null): number | null => {
+    if (!timeInputs) return null;
+    const bounded = (value: number) => Math.max(0, Math.min(1, value));
+    const earlyStart = 1 - bounded((timeInputs.averageDayStartMinutes - 8 * 60) / (6 * 60));
+    const lateFinish = bounded((timeInputs.averageDayEndMinutes - 12 * 60) / (7 * 60));
+    switch (params.preference) {
+      case "morning":
+        return hasSoftTheoryPreference
+          ? preferredTheoryScore(courses, params.schema, "morning")
+          : earlyStart * 100;
+      case "evening":
+        return hasSoftTheoryPreference
+          ? preferredTheoryScore(courses, params.schema, "evening")
+          : lateFinish * 100;
+      case "compact":
+        return timeInputs.activeDays
+          ? (timeInputs.compactDays / timeInputs.activeDays) * 100
+          : 0;
+      case "spread":
+        return (timeInputs.activeDays / 6) * 100;
+      default:
+        return ((earlyStart + (1 - lateFinish)) / 2) * 100;
+    }
+  };
+
+  if (params.rankingFactors) {
+    const inputs = getRankingInputs();
+    const scores = rankingFactorScores({
+      inputs,
+      halfDays: timetable.metrics.halfDays,
+      socialScore: timetable.metrics.socialScore,
+      facultyQuality: facultySummary?.facultyScore ?? null,
+      // No preference set → nothing to fit, so the factor is absent rather
+      // than a made-up "balance" score (same rule the legacy path uses).
+      timeScore: hasTimePreference ? timeScoreFrom(inputs) : null,
+    });
+    const off = new Set(params.rankingFactors.disabled ?? []);
+    const active = params.rankingFactors.order.filter((factor) => !off.has(factor));
+    const composite = combineFactorScores(scores, active);
+    timetable.rankingScore = composite.score;
+    timetable.rankingBreakdown = composite.breakdown;
+  } else if (hasProfile || hasFacultyData || hasSoftTheoryPreference) {
     const ranked: RankingScore | null = params.rankingMode
       ? rankCourses(
           courses,
@@ -1184,31 +1250,7 @@ function scoreCombination(
         )
       : null;
     const metrics = timetable.metrics;
-    const timeInputs = hasTimePreference ? rankingInputs(courses, params.schema) : null;
-    const timeScore = (() => {
-      if (!timeInputs) return null;
-      const bounded = (value: number) => Math.max(0, Math.min(1, value));
-      const earlyStart = 1 - bounded((timeInputs.averageDayStartMinutes - 8 * 60) / (6 * 60));
-      const lateFinish = bounded((timeInputs.averageDayEndMinutes - 12 * 60) / (7 * 60));
-      switch (params.preference) {
-        case "morning":
-          return hasSoftTheoryPreference
-            ? preferredTheoryScore(courses, params.schema, "morning")
-            : earlyStart * 100;
-        case "evening":
-          return hasSoftTheoryPreference
-            ? preferredTheoryScore(courses, params.schema, "evening")
-            : lateFinish * 100;
-        case "compact":
-          return timeInputs.activeDays
-            ? (timeInputs.compactDays / timeInputs.activeDays) * 100
-            : 0;
-        case "spread":
-          return (timeInputs.activeDays / 6) * 100;
-        default:
-          return ((earlyStart + (1 - lateFinish)) / 2) * 100;
-      }
-    })();
+    const timeScore = timeScoreFrom(hasTimePreference ? getRankingInputs() : null);
     const sortScore = (() => {
       if (!metrics) return 0;
       switch (params.sortBy) {

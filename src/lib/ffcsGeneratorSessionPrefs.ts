@@ -1,9 +1,12 @@
 import type { CourseLock } from "@/components/custom/exams/FFCS/types";
-import type { RankingMode } from "@/lib/ffcsRanking";
+import type { RankingFactor, RankingMode } from "@/lib/ffcsRanking";
 import type { FacultyMetricWeights, FacultyScoreFilters } from "@/lib/ffcsFacultyRanking";
 import type { RankingPriority } from "@/lib/ffcsSettings";
 import type { DayId } from "@/lib/slots";
 import type { SortBy } from "@/lib/timetableMetrics";
+
+/** The four Vitfac metrics a faculty score can be built from. */
+export type FacultyMetricKey = "wPct" | "lecture" | "da" | "vibe";
 
 export interface GeneratorSessionPreferences {
   preference?: "compact" | "spread" | "morning" | "evening";
@@ -16,6 +19,12 @@ export interface GeneratorSessionPreferences {
   resultCap?: number;
   rankingMode?: RankingMode | null;
   rankingPriorityOrder?: RankingPriority[];
+  /** The generator's ranked factor list: priority order + per-factor off switch. */
+  rankingFactorOrder?: RankingFactor[];
+  rankingFactorDisabled?: RankingFactor[];
+  /** Faculty sub-list (metric priorities), same recipe as the factor list. */
+  facultyMetricOrder?: FacultyMetricKey[];
+  facultyMetricDisabled?: FacultyMetricKey[];
   facultyMetricWeights?: FacultyMetricWeights;
   facultyScoreFilters?: FacultyScoreFilters;
   minHalfDays?: number;

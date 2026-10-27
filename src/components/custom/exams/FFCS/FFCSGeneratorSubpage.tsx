@@ -13,9 +13,9 @@ import { periodsForSlot } from '@/lib/slots';
 import { useOverlayBack } from '@/lib/overlayStack';
 import { type GeneratorErrorCode } from './logic/generator';
 import { useGenerationRun } from './hooks/useGenerationRun';
-import { RANKING_MODES, type RankingMode } from '@/lib/ffcsRanking';
+import { RANKING_FACTORS, type RankingFactor } from '@/lib/ffcsRanking';
 import { track } from '@/lib/analytics';
-import type { FFCSSettings, RankingPriority } from '@/lib/ffcsSettings';
+import type { FFCSSettings } from '@/lib/ffcsSettings';
 import SearchInput from "../../shared/SearchInput";
 import { GLOBAL_CAMPUS, getTimetableSchema, calculatePairwiseSocialScore, safeStorage } from '../FFCSTimetableTab';
 import { COLORS, DAYS } from './constants';
@@ -27,10 +27,10 @@ import {
   getFittingStatTileCount,
   STAT_TILE_MIN_WIDTH,
 } from './components/FFCSDashboardHeader';
-import { PageShell, RadioGroup, SelectField, SectionHeader, ListShell, ListRowText, StatTile, InsightCarousel, useCarousel, type InsightSlide } from "../../shared/primitives";
+import { PageShell, RadioGroup, SelectField, SectionHeader, ListShell, ListRowText, StatTile, InsightCarousel, useCarousel, ToggleRow, SettingRow, SegmentedControl, Switch, type InsightSlide } from "../../shared/primitives";
 import { AnimatePresence } from 'framer-motion';
 import BottomSheet from "../../shared/BottomSheet";
-import { loadSessionPreferences, saveSessionPreferences } from "@/lib/ffcsGeneratorSessionPrefs";
+import { loadSessionPreferences, saveSessionPreferences, type FacultyMetricKey } from "@/lib/ffcsGeneratorSessionPrefs";
 import FacultyReviewSheet, { VitfacReviewPill, FacultyAvatar } from './components/FacultyReviewSheet';
 import { TargetCourseLocker } from './components/TargetCourseLocker';
 import FFCSGeneratorViewModeModal, {
@@ -40,34 +40,6 @@ import FFCSGeneratorRunSummaryModal from './components/modals/FFCSGeneratorRunSu
 import { loadVitfacRankingData } from "@/lib/vitfacService";
 import type { FacultyRatingLookup } from "@/lib/ffcsFacultyRanking";
 import { DAYS_OF_WEEK, timeToMinutes, type DayId } from "@/lib/slots";
-
-const GENERATOR_SORT_OPTIONS = [
-  {
-    value: "balanced" as const,
-    label: "Balanced (All Metrics)",
-    description: "Best overall blend of gaps, free time, and friends.",
-  },
-  {
-    value: "compactness" as const,
-    label: "Max Compactness (Fewer Gaps)",
-    description: "Minimizes dead waiting time between classes.",
-  },
-  {
-    value: "halfdays" as const,
-    label: "Max Free Half-Days",
-    description: "Packs classes together to free whole mornings or afternoons.",
-  },
-  {
-    value: "social" as const,
-    label: "Max Social Score",
-    description: "Maximizes overlapping class hours with friends.",
-  },
-  {
-    value: "faculty" as const,
-    label: "Highest Faculty Score",
-    description: "Prioritizes reviewed faculty using their overall and metric scores.",
-  },
-] as const;
 
 const GENERATOR_TIME_PREFERENCE_OPTIONS = [
   {
@@ -87,50 +59,44 @@ const GENERATOR_TIME_PREFERENCE_OPTIONS = [
   },
 ] as const;
 
-const GENERATOR_RANKING_OPTIONS = [
-  {
-    value: "default" as const,
-    label: "Sort Order Only (Off)",
-    description: "No weighted profile — options are ordered purely by the sort order above.",
-  },
-  {
-    value: "Best Faculty" as const,
-    label: "Best Faculty",
-    description: "Prioritizes the selected faculty's Vitfac review scores and ratings coverage.",
-  },
-  {
-    value: "Balanced" as const,
-    label: "Balanced",
-    description: "Overall balance across gaps, early finishes, and daily workload.",
-  },
-  {
-    value: "Half Days" as const,
-    label: "Half Days",
-    description: "Maximizes 4-hour compact days and whole mornings or afternoons off.",
-  },
-  {
-    value: "Minimize Gaps" as const,
-    label: "Minimize Gaps",
-    description: "Minimizes dead waiting time between classes throughout the day.",
-  },
-  {
-    value: "Early Finish" as const,
-    label: "Early Finish",
-    description: "Prioritizes classes that end earlier so your afternoons/evenings are free.",
-  },
-  {
-    value: "Late Start" as const,
-    label: "Late Start",
-    description: "Prioritizes classes that start later in the morning.",
-  },
-] as const;
-
-const RANKING_PRIORITY_LABELS: Record<RankingPriority, string> = {
-  profile: "Ranking profile",
-  faculty: "Faculty reviews",
-  sort: "Selected sort order",
-  time: "Time preference",
+/**
+ * The generator's single ranked list, one row per thing a student can care
+ * about — the overlap between the old five sort options and six ranking
+ * profiles collapsed into eight concrete factors. Position is priority (the
+ * top enabled factor weighs most); the per-row switch excludes a factor from
+ * the score entirely. See `RANKING_FACTORS` in `ffcsRanking` for the scoring.
+ */
+const RANKING_FACTOR_META: Record<RankingFactor, { label: string; description: string }> = {
+  gaps: { label: "Fewer gaps", description: "Less dead waiting time between classes." },
+  halfdays: { label: "Free half-days", description: "Whole mornings or afternoons off." },
+  balancedLoad: { label: "Balanced days", description: "An even class load across the week." },
+  faculty: { label: "Faculty quality", description: "Vitfac review scores of the assigned faculty." },
+  social: { label: "Time with friends", description: "Overlapping class hours with your friends." },
+  earlyFinish: { label: "Early finishes", description: "Days that end sooner — free evenings." },
+  lateStart: { label: "Late starts", description: "Mornings that start later." },
+  time: { label: "Time preference fit", description: "Match to your morning/evening theory preference." },
 };
+
+/** What most students want first; every factor starts enabled. */
+const DEFAULT_RANKING_FACTOR_ORDER: RankingFactor[] = [
+  "gaps",
+  "halfdays",
+  "balancedLoad",
+  "faculty",
+  "social",
+  "earlyFinish",
+  "lateStart",
+  "time",
+];
+
+const FACULTY_METRIC_LABELS: Record<FacultyMetricKey, string> = {
+  wPct: "Overall W %",
+  lecture: "Lecture",
+  da: "DA",
+  vibe: "Vibe",
+};
+
+const DEFAULT_FACULTY_METRIC_ORDER: FacultyMetricKey[] = ["wPct", "lecture", "da", "vibe"];
 
 /**
  * How many option cards the review grid paints before it pauses for a
@@ -263,20 +229,40 @@ export function FFCSGeneratorSubpage({
   // have interrupted.
   const generation = useGenerationRun();
   const { isGenerating } = generation;
-  // Seeded from the planner's defaults on mount (the subpage remounts each
-  // open, so "on mount" is "each time the student opens the generator"), and
-  // edited here only — this run's controls never write back to settings.
-  const [rankingMode, setRankingMode] = useState<RankingMode | null>(
-    () => sessionPrefs.rankingMode !== undefined
-      ? sessionPrefs.rankingMode
-      : (settings.rankingMode === "none" ? null : settings.rankingMode)
+  // The ranked factor list: position among the enabled factors is the weight,
+  // a switched-off factor is excluded from the score entirely. Seeded from the
+  // session (or the shared default order) and edited here only — like the rest
+  // of this run's controls it never writes back to Planner Settings.
+  const [rankingFactorOrder, setRankingFactorOrder] = useState<RankingFactor[]>(
+    () => [...(sessionPrefs.rankingFactorOrder ?? DEFAULT_RANKING_FACTOR_ORDER)]
   );
-  const [rankingPriorityOrder, setRankingPriorityOrder] = useState<RankingPriority[]>(() => [
-    ...(sessionPrefs.rankingPriorityOrder ?? settings.rankingPriorityOrder),
-  ]);
-  const [facultyMetricWeights, setFacultyMetricWeights] = useState<FFCSSettings["facultyMetricWeights"]>(
-    () => ({ ...(sessionPrefs.facultyMetricWeights ?? settings.facultyMetricWeights) })
+  const [rankingFactorDisabled, setRankingFactorDisabled] = useState<RankingFactor[]>(
+    () => [...(sessionPrefs.rankingFactorDisabled ?? [])]
   );
+  // The Faculty quality sub-list, same recipe. An older session that tuned the
+  // numeric weights still seeds the order (highest first, ties in the default
+  // order); after that the list order IS the weights, derived below.
+  const [facultyMetricOrder, setFacultyMetricOrder] = useState<FacultyMetricKey[]>(() => {
+    if (sessionPrefs.facultyMetricOrder) return [...sessionPrefs.facultyMetricOrder];
+    const weights = sessionPrefs.facultyMetricWeights ?? settings.facultyMetricWeights;
+    return [...DEFAULT_FACULTY_METRIC_ORDER].sort((a, b) => (weights[b] ?? 0) - (weights[a] ?? 0));
+  });
+  const [facultyMetricDisabled, setFacultyMetricDisabled] = useState<FacultyMetricKey[]>(() => {
+    if (sessionPrefs.facultyMetricDisabled) return [...sessionPrefs.facultyMetricDisabled];
+    const weights = sessionPrefs.facultyMetricWeights ?? settings.facultyMetricWeights;
+    return DEFAULT_FACULTY_METRIC_ORDER.filter((key) => (weights[key] ?? 0) <= 0);
+  });
+  // Position among the enabled metrics → importance 5, 4, 3, 2 top-down; a
+  // switched-off metric gets 0. Same "order is the weight" scheme as the
+  // factor list, and the shape the engine consumes.
+  const facultyMetricWeights = useMemo<FFCSSettings["facultyMetricWeights"]>(() => {
+    const weights = { wPct: 0, lecture: 0, da: 0, vibe: 0 };
+    let weight = 5;
+    facultyMetricOrder.forEach((key) => {
+      if (!facultyMetricDisabled.includes(key)) weights[key] = weight--;
+    });
+    return weights;
+  }, [facultyMetricOrder, facultyMetricDisabled]);
   const [facultyScoreFilters, setFacultyScoreFilters] = useState<FFCSSettings["facultyScoreFilters"]>(
     () => ({ ...(sessionPrefs.facultyScoreFilters ?? settings.facultyScoreFilters) })
   );
@@ -382,8 +368,10 @@ export function FFCSGeneratorSubpage({
       uniqueFaculties: generatorUniqueFaculties,
       noLimit: generatorNoLimit,
       resultCap: generatorResultCap,
-      rankingMode,
-      rankingPriorityOrder,
+      rankingFactorOrder,
+      rankingFactorDisabled,
+      facultyMetricOrder,
+      facultyMetricDisabled,
       facultyMetricWeights,
       facultyScoreFilters,
       minHalfDays: generatorMinHalfDays,
@@ -406,8 +394,10 @@ export function FFCSGeneratorSubpage({
     generatorUniqueFaculties,
     generatorNoLimit,
     generatorResultCap,
-    rankingMode,
-    rankingPriorityOrder,
+    rankingFactorOrder,
+    rankingFactorDisabled,
+    facultyMetricOrder,
+    facultyMetricDisabled,
     facultyMetricWeights,
     facultyScoreFilters,
     generatorMinHalfDays,
@@ -421,26 +411,36 @@ export function FFCSGeneratorSubpage({
     isReviewing,
   ]);
 
-  const moveRankingPriority = (index: number, direction: -1 | 1) => {
-    const next = [...rankingPriorityOrder];
+  const moveRankingFactor = (index: number, direction: -1 | 1) => {
+    const next = [...rankingFactorOrder];
     const target = index + direction;
     if (target < 0 || target >= next.length) return;
     [next[index], next[target]] = [next[target], next[index]];
-    setRankingPriorityOrder(next);
+    setRankingFactorOrder(next);
   };
 
-  const updateFacultyWeight = (
-    key: keyof FFCSSettings["facultyMetricWeights"],
-    value: string
-  ) => {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed)) {
-      setFacultyMetricWeights((previous) => ({
-        ...previous,
-        [key]: Math.max(0, Math.min(5, parsed)),
-      }));
-    }
+  const toggleRankingFactor = (factor: RankingFactor) => {
+    setRankingFactorDisabled((previous) =>
+      previous.includes(factor) ? previous.filter((f) => f !== factor) : [...previous, factor]
+    );
   };
+
+  const moveFacultyMetric = (index: number, direction: -1 | 1) => {
+    const next = [...facultyMetricOrder];
+    const target = index + direction;
+    if (target < 0 || target >= next.length) return;
+    [next[index], next[target]] = [next[target], next[index]];
+    setFacultyMetricOrder(next);
+  };
+
+  const toggleFacultyMetric = (key: FacultyMetricKey) => {
+    setFacultyMetricDisabled((previous) =>
+      previous.includes(key) ? previous.filter((k) => k !== key) : [...previous, key]
+    );
+  };
+
+  /** Factors that actually score this run — the nav chip, analytics, and the summary read this. */
+  const enabledFactors = rankingFactorOrder.filter((f) => !rankingFactorDisabled.includes(f));
 
   const updateFacultyFilter = (
     key: keyof FFCSSettings["facultyScoreFilters"],
@@ -721,7 +721,7 @@ export function FFCSGeneratorSubpage({
     // everything" click has no claim on a run whose options have not been
     // found yet, and the bounded paint is the point of the feature.
     setStagedVisibleCount(STAGED_RENDER_LIMIT);
-    track("generation_started", { courses: generatorTargets.length, ranking: rankingMode ?? "none" });
+    track("generation_started", { courses: generatorTargets.length, ranking: `${enabledFactors.length} factors` });
     const startedAt = performance.now();
     let facultyRatings: FacultyRatingLookup = {};
     let facultyRatingsAvailable = false;
@@ -767,10 +767,10 @@ export function FFCSGeneratorSubpage({
         facultyRatingsAvailable,
         facultyMetricWeights,
         facultyScoreFilters,
-        rankingPriorityOrder,
-        // Only sent when one is picked: with no profile the solver does no
-        // extra work and ranks exactly as it did before the profiles existed.
-        ...(rankingMode ? { rankingMode } : {}),
+        // The ranked factor list always ships and supersedes the legacy
+        // profile blend for this page: order among the enabled factors is the
+        // weight. All factors off → every option ties and `sortBy` decides.
+        rankingFactors: { order: rankingFactorOrder, disabled: rankingFactorDisabled },
       },
       (batch) => {
         const labelled = batch.map((tt, i) => ({ ...tt, name: `Option ${shown + i + 1}` }));
@@ -998,7 +998,7 @@ export function FFCSGeneratorSubpage({
 
   const generatorSections = [
     { id: "courses" as const, label: "Target courses", icon: Target, detail: `${generatorTargets.length} selected`, tone: "indigo" },
-    { id: "ranking" as const, label: "Ranking & reviews", icon: Star, detail: rankingMode ? "Profile active" : "Sort and faculty", tone: "violet" },
+    { id: "ranking" as const, label: "Ranking & reviews", icon: Star, detail: `${enabledFactors.length} of ${RANKING_FACTORS.length} factors`, tone: "violet" },
     { id: "schedule" as const, label: "Schedule", icon: CalendarDays, detail: `${generatorPreference} · ${blockedSlots.size} blocked`, tone: "cyan" },
     { id: "constraints" as const, label: "Search limits", icon: SlidersHorizontal, detail: `${generatorNoLimit ? "No result cap" : generatorResultCap + " max"}`, tone: "amber" },
     { id: "social" as const, label: "Social matching", icon: Users, detail: `${generatorMaximizeFreeTimeFriends.length} friends selected`, tone: "pink" },
@@ -1451,13 +1451,9 @@ export function FFCSGeneratorSubpage({
                             className="rounded-xl bg-surface/80 border border-border-strong/60 px-3 py-2"
                           >
                             <span className="block text-[10px] uppercase tracking-wide text-muted-foreground">
-                              {key === "profile"
-                                ? rankingMode ?? "Profile"
-                                : key === "sort"
-                                  ? "Sort order"
-                                  : key === "time"
-                                    ? "Time preference"
-                                    : "Faculty reviews"}
+                              {key in RANKING_FACTOR_META
+                                ? RANKING_FACTOR_META[key as RankingFactor].label
+                                : key}
                             </span>
                             <span className="font-bold text-text-heading">{points.toFixed(1)} pts</span>
                           </div>
@@ -1531,18 +1527,10 @@ export function FFCSGeneratorSubpage({
                       </>
                     )}
                     <p className="text-[11px] text-muted-foreground">
-                      Priority: {rankingPriorityOrder.map((priority, index) => (
-                        <React.Fragment key={priority}>
-                          {index > 0 ? " → " : ""}
-                          {priority === "profile"
-                            ? "profile"
-                            : priority === "faculty"
-                              ? "faculty reviews"
-                              : priority === "sort"
-                                ? "sort order"
-                                : "time"}
-                        </React.Fragment>
-                      ))}
+                      Ranking priority:{" "}
+                      {enabledFactors.length
+                        ? enabledFactors.map((factor) => RANKING_FACTOR_META[factor].label).join(" → ")
+                        : "all factors off — ties broken by sort order"}
                     </p>
                   </section>
                 )}
@@ -2341,7 +2329,7 @@ export function FFCSGeneratorSubpage({
                           ? "Choose how options are ordered and how faculty review data affects scores."
                           : activeGeneratorSection === "schedule"
                             ? "Set acceptable class times, daily end limits, and lab spacing rules."
-                            : "Control search size, unique-faculty results, and unavailable slots."}
+                            : "Set the result cap and how tightly each timetable is constrained."}
                       </p>
                     </>
                   ) : <h3 className="font-semibold text-lg mb-4 text-text-heading flex items-center gap-2">
@@ -2350,209 +2338,236 @@ export function FFCSGeneratorSubpage({
                   </h3>}
                   
                   <div className="space-y-5">
-                    <div id="generator-sort-order" className={`scroll-mt-24 ${showGeneratorSection("ranking") ? "" : "hidden"}`}>
-                      <label className="text-sm font-medium text-text-heading block mb-2">
-                        Sort Timetables By
-                      </label>
-                      <RadioGroup
-                        name="generatorSortBy"
-                        options={GENERATOR_SORT_OPTIONS}
-                        value={generatorSortBy}
-                        onChange={setGeneratorSortBy}
-                      />
-                    </div>
-
-                    <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${showGeneratorSection("ranking") ? "" : "hidden"}`}>
-                      <div>
-                        <label className="text-sm font-medium text-text-heading block mb-1.5 flex items-center gap-2">
-                          Min Free Half-Days
-                        </label>
-                        <input 
-                          type="number"
-                          min="0"
-                          max="10"
-                          step="1"
-                          value={generatorMinHalfDays}
-                          onChange={(e) => {
-                            const val = parseInt(e.target.value);
-                            setGeneratorMinHalfDays(isNaN(val) ? 0 : Math.max(0, Math.min(10, val)));
-                          }}
-                          className="w-full bg-surface-secondary/30 border border-border-strong rounded-xl px-4 py-3 text-sm text-text-heading focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-all"
-                        />
-                      </div>
-                    </div>
-
                     <div className={`${showGeneratorSection("constraints") ? "" : "hidden"}`}>
-                      <label className="text-sm font-medium text-text-heading block mb-2">
-                        Maximum Timetables to Keep
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {[...new Set([50, 100, 250, 500, generatorResultCap])]
-                          .sort((a, b) => a - b)
-                          .map((cap) => (
-                            <button
-                              key={cap}
-                              type="button"
-                              aria-pressed={generatorResultCap === cap}
-                              onClick={() => setGeneratorResultCap(cap)}
-                              className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                                generatorResultCap === cap
-                                  ? "border-indigo-500 bg-indigo-500/15 text-indigo-600 dark:text-indigo-300"
-                                  : "border-border-strong bg-surface text-text-secondary hover:text-text-heading"
-                              }`}
-                            >
-                              {cap}
-                            </button>
-                          ))}
-                      </div>
-                      <p className="mt-1.5 text-xs text-muted-foreground">
-                        {generatorNoLimit
-                          ? "The cap is ignored while Remove Result Cap is enabled."
-                          : "Search stops after this many timetable options."}
-                      </p>
-                    </div>
-
-                    <div id="generator-ranking" className={`scroll-mt-24 ${showGeneratorSection("ranking") ? "" : "hidden"}`}>
-                      <label className="text-sm font-medium text-text-heading block mb-2 flex items-center gap-2">
-                        Ranking Profile
-                        <span className="text-[10px] font-bold uppercase tracking-wider bg-indigo-500/10 text-indigo-500 px-1.5 py-0.5 rounded-md border border-indigo-500/20">
-                          Optional
-                        </span>
-                      </label>
-                      <RadioGroup
-                        name="generatorRankingProfile"
-                        options={GENERATOR_RANKING_OPTIONS}
-                        value={rankingMode ?? "default"}
-                        onChange={(val) =>
-                          setRankingMode(val === "default" ? null : (val as RankingMode))
-                        }
-                      />
-                    </div>
-
-                    <section id="generator-faculty-reviews" className={`scroll-mt-24 space-y-4 rounded-xl border p-4 ${generatorViewMode === "modern" ? "border-violet-500/20 bg-violet-500/[0.04]" : "border-border-strong/70 bg-surface-secondary/20"} ${showGeneratorSection("ranking") ? "" : "hidden"}`}>
-                      <div>
-                        <h4 className="text-sm font-semibold text-text-heading">Ranking &amp; Faculty Reviews</h4>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          Tune this run independently from your saved Planner Settings.
-                        </p>
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-xs font-medium text-text-heading block">
-                          Combined Ranking Priority
-                        </label>
-                        <p className="text-[11px] text-muted-foreground">
-                          Move the factor that matters most to the top.
-                        </p>
-                        <div className="space-y-1.5">
-                          {rankingPriorityOrder.map((priority, index) => (
-                            <div
-                              key={priority}
-                              className="flex items-center justify-between gap-2 rounded-lg border border-border-strong/50 bg-surface px-3 py-1.5 text-xs"
-                            >
-                              <span className="font-medium text-text-heading">
-                                {index + 1}. {RANKING_PRIORITY_LABELS[priority]}
-                              </span>
-                              <span className="flex">
-                                <button
-                                  type="button"
-                                  aria-label={`Move ${RANKING_PRIORITY_LABELS[priority]} up`}
-                                  disabled={index === 0}
-                                  onClick={() => moveRankingPriority(index, -1)}
-                                  className="rounded p-1 text-muted-foreground hover:text-text-heading disabled:opacity-30"
+                      <ListShell>
+                        <ToggleRow
+                          title="Remove result cap"
+                          description={
+                            generatorNoLimit
+                              ? settings.removeHardResultLimit
+                                ? "No cap — the search keeps every conflict-free option it finds."
+                                : "Search keeps going past the cap, up to the 30,000 hard limit."
+                              : "Search stops once the result cap below is reached."
+                          }
+                          checked={generatorNoLimit}
+                          onCheckedChange={setGeneratorNoLimit}
+                        />
+                        <SettingRow
+                          stacked
+                          title="Result cap"
+                          description={
+                            generatorNoLimit
+                              ? "Paused while Remove result cap is on."
+                              : "Search stops after this many conflict-free timetable options."
+                          }
+                          className={generatorNoLimit ? "opacity-50" : ""}
+                          control={
+                            <SegmentedControl
+                              grow
+                              options={[...new Set([50, 100, 250, 500, generatorResultCap])]
+                                .sort((a, b) => a - b)
+                                .map((cap) => ({ value: String(cap), label: String(cap) }))}
+                              value={String(generatorResultCap)}
+                              onChange={(val) => setGeneratorResultCap(Number(val))}
+                              className="[&>button]:min-h-10 [&>button]:text-xs"
+                            />
+                          }
+                        />
+                        <ToggleRow
+                          title="Unique faculties"
+                          description="No two courses in one timetable share a faculty member (master-timetable style)."
+                          checked={generatorUniqueFaculties}
+                          onCheckedChange={setGeneratorUniqueFaculties}
+                        />
+                        <SettingRow
+                          stacked
+                          title="Minimum free half-days"
+                          description="Reject timetables with fewer free half-days than this. 0 accepts anything."
+                          control={
+                            <input
+                              type="number"
+                              min="0"
+                              max="10"
+                              step="1"
+                              aria-label="Minimum free half-days"
+                              value={generatorMinHalfDays}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value);
+                                setGeneratorMinHalfDays(isNaN(val) ? 0 : Math.max(0, Math.min(10, val)));
+                              }}
+                              className="w-20 min-h-11 rounded-lg border border-border-strong bg-surface px-3 text-right text-sm font-semibold text-text-heading"
+                            />
+                          }
+                        />
+                        <SettingRow
+                          stacked
+                          title="Minimum faculty review scores"
+                          description="Hard filters on the assigned faculty. 0 disables a filter; unrated faculty are not rejected."
+                          control={
+                            <div className="grid grid-cols-2 gap-2">
+                              {(
+                                [
+                                  ["minWPct", "Overall W %", 100, 5],
+                                  ["minLecture", "Lecture / 5", 5, 0.5],
+                                  ["minDa", "DA / 5", 5, 0.5],
+                                  ["minVibe", "Vibe / 5", 5, 0.5],
+                                ] as const
+                              ).map(([key, label, max, step]) => (
+                                <label
+                                  key={key}
+                                  className="flex items-center justify-between gap-2 text-xs text-text-primary"
                                 >
-                                  <ChevronUp className="h-4 w-4" />
-                                </button>
-                                <button
-                                  type="button"
-                                  aria-label={`Move ${RANKING_PRIORITY_LABELS[priority]} down`}
-                                  disabled={index === rankingPriorityOrder.length - 1}
-                                  onClick={() => moveRankingPriority(index, 1)}
-                                  className="rounded p-1 text-muted-foreground hover:text-text-heading disabled:opacity-30"
-                                >
-                                  <ChevronDown className="h-4 w-4" />
-                                </button>
-                              </span>
+                                  <span>{label}</span>
+                                  <input
+                                    aria-label={`Minimum ${label}`}
+                                    type="number"
+                                    min={0}
+                                    max={max}
+                                    step={step}
+                                    value={facultyScoreFilters[key]}
+                                    onChange={(event) => updateFacultyFilter(key, event.target.value)}
+                                    className="w-16 min-h-11 rounded-lg border border-border-strong bg-surface px-2 text-right text-sm font-semibold text-text-heading"
+                                  />
+                                </label>
+                              ))}
                             </div>
-                          ))}
-                        </div>
+                          }
+                        />
+                      </ListShell>
+                    </div>
+
+                    <section id="generator-ranking" className={`scroll-mt-24 space-y-4 rounded-xl border p-4 ${generatorViewMode === "modern" ? "border-violet-500/20 bg-violet-500/[0.04]" : "border-border-strong/70 bg-surface-secondary/20"} ${showGeneratorSection("ranking") ? "" : "hidden"}`}>
+                      <div>
+                        <h4 className="text-sm font-semibold text-text-heading">What matters most</h4>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          One ranked list for this run — order decides priority (the top factor weighs most); switch a factor off to ignore it. Tuned here only, independent from your saved Planner Settings.
+                        </p>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <div>
-                            <label className="text-xs font-medium text-text-heading block">
-                              Faculty Score Priorities
-                            </label>
-                            <p className="text-[11px] text-muted-foreground">
-                              0 ignores a metric; maximum importance is 5.
-                            </p>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            {(
-                              [
-                                ["wPct", "Overall W %"],
-                                ["lecture", "Lecture"],
-                                ["da", "DA"],
-                                ["vibe", "Vibe"],
-                              ] as const
-                            ).map(([key, label]) => (
-                              <label
-                                key={key}
-                                className="flex items-center justify-between gap-2 text-xs text-text-primary"
-                              >
-                                <span>{label}</span>
-                                <input
-                                  aria-label={`${label} importance`}
-                                  type="number"
-                                  min={0}
-                                  max={5}
-                                  step={1}
-                                  value={facultyMetricWeights[key]}
-                                  onChange={(event) => updateFacultyWeight(key, event.target.value)}
-                                  className="w-16 rounded-lg border border-border-strong bg-surface px-2 py-1 text-right text-text-heading"
-                                />
-                              </label>
-                            ))}
-                          </div>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+                        <div>
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
+                            Ranking factors
+                          </p>
+                          <ListShell>
+                            {rankingFactorOrder.map((factor, index) => {
+                              const enabled = !rankingFactorDisabled.includes(factor);
+                              const rank = enabled
+                                ? rankingFactorOrder
+                                    .slice(0, index + 1)
+                                    .filter((f) => !rankingFactorDisabled.includes(f)).length
+                                : null;
+                              return (
+                                <div
+                                  key={factor}
+                                  className={`flex items-center gap-2 px-3 py-2 ${enabled ? "" : "opacity-60"}`}
+                                >
+                                  <span
+                                    aria-hidden
+                                    className={`w-6 shrink-0 text-center text-xs font-bold ${enabled ? "text-indigo-500" : "text-muted-foreground"}`}
+                                  >
+                                    {rank ?? "–"}
+                                  </span>
+                                  <ListRowText
+                                    title={RANKING_FACTOR_META[factor].label}
+                                    subtitle={RANKING_FACTOR_META[factor].description}
+                                  />
+                                  <div className="flex shrink-0">
+                                    <button
+                                      type="button"
+                                      aria-label={`Move ${RANKING_FACTOR_META[factor].label} up`}
+                                      disabled={index === 0}
+                                      onClick={() => moveRankingFactor(index, -1)}
+                                      className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground hover:text-text-heading disabled:opacity-30"
+                                    >
+                                      <ChevronUp className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      aria-label={`Move ${RANKING_FACTOR_META[factor].label} down`}
+                                      disabled={index === rankingFactorOrder.length - 1}
+                                      onClick={() => moveRankingFactor(index, 1)}
+                                      className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground hover:text-text-heading disabled:opacity-30"
+                                    >
+                                      <ChevronDown className="h-4 w-4" />
+                                    </button>
+                                  </div>
+                                  <Switch
+                                    size="md"
+                                    label={`${RANKING_FACTOR_META[factor].label} enabled`}
+                                    checked={enabled}
+                                    onCheckedChange={() => toggleRankingFactor(factor)}
+                                  />
+                                </div>
+                              );
+                            })}
+                          </ListShell>
                         </div>
 
-                        <div className="space-y-2">
-                          <div>
-                            <label className="text-xs font-medium text-text-heading block">
-                              Minimum Faculty Review Scores
-                            </label>
-                            <p className="text-[11px] text-muted-foreground">
-                              0 disables a filter; unrated faculty are not rejected.
-                            </p>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            {(
-                              [
-                                ["minWPct", "Overall W %", 100, 5],
-                                ["minLecture", "Lecture / 5", 5, 0.5],
-                                ["minDa", "DA / 5", 5, 0.5],
-                                ["minVibe", "Vibe / 5", 5, 0.5],
-                              ] as const
-                            ).map(([key, label, max, step]) => (
-                              <label
-                                key={key}
-                                className="flex items-center justify-between gap-2 text-xs text-text-primary"
-                              >
-                                <span>{label}</span>
-                                <input
-                                  aria-label={`Minimum ${label}`}
-                                  type="number"
-                                  min={0}
-                                  max={max}
-                                  step={step}
-                                  value={facultyScoreFilters[key]}
-                                  onChange={(event) => updateFacultyFilter(key, event.target.value)}
-                                  className="w-16 rounded-lg border border-border-strong bg-surface px-2 py-1 text-right text-text-heading"
-                                />
-                              </label>
-                            ))}
-                          </div>
+                        <div className={enabledFactors.includes("faculty") ? "" : "opacity-60"}>
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            Faculty score priorities
+                          </p>
+                          <p className="mt-0.5 mb-1.5 text-[11px] text-muted-foreground">
+                            Sub-list for Faculty quality: which Vitfac metric weighs most. Only used while that factor is on.
+                          </p>
+                          <ListShell>
+                            {facultyMetricOrder.map((key, index) => {
+                              const enabled = !facultyMetricDisabled.includes(key);
+                              const rank = enabled
+                                ? facultyMetricOrder
+                                    .slice(0, index + 1)
+                                    .filter((k) => !facultyMetricDisabled.includes(k)).length
+                                : null;
+                              return (
+                                <div
+                                  key={key}
+                                  className={`flex items-center gap-2 px-3 py-2 ${enabled ? "" : "opacity-60"}`}
+                                >
+                                  <span
+                                    aria-hidden
+                                    className={`w-6 shrink-0 text-center text-xs font-bold ${enabled ? "text-violet-500" : "text-muted-foreground"}`}
+                                  >
+                                    {rank ?? "–"}
+                                  </span>
+                                  <ListRowText
+                                    title={FACULTY_METRIC_LABELS[key]}
+                                    subtitle={
+                                      enabled
+                                        ? `Importance ${facultyMetricWeights[key]} of 5`
+                                        : "Off"
+                                    }
+                                  />
+                                  <div className="flex shrink-0">
+                                    <button
+                                      type="button"
+                                      aria-label={`Move ${FACULTY_METRIC_LABELS[key]} up`}
+                                      disabled={index === 0}
+                                      onClick={() => moveFacultyMetric(index, -1)}
+                                      className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground hover:text-text-heading disabled:opacity-30"
+                                    >
+                                      <ChevronUp className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      aria-label={`Move ${FACULTY_METRIC_LABELS[key]} down`}
+                                      disabled={index === facultyMetricOrder.length - 1}
+                                      onClick={() => moveFacultyMetric(index, 1)}
+                                      className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground hover:text-text-heading disabled:opacity-30"
+                                    >
+                                      <ChevronDown className="h-4 w-4" />
+                                    </button>
+                                  </div>
+                                  <Switch
+                                    size="md"
+                                    label={`${FACULTY_METRIC_LABELS[key]} enabled`}
+                                    checked={enabled}
+                                    onCheckedChange={() => toggleFacultyMetric(key)}
+                                  />
+                                </div>
+                              );
+                            })}
+                          </ListShell>
                         </div>
                       </div>
                     </section>
@@ -2777,40 +2792,6 @@ export function FFCSGeneratorSubpage({
                           })}
                         </div>
                       </div>
-                    </div>
-
-                    <div className={`flex flex-col gap-3 ${showGeneratorSection("constraints") ? "" : "hidden"}`}>
-                      <label className="flex items-center gap-3 cursor-pointer group bg-surface-secondary/20 p-3 rounded-xl border border-transparent hover:border-border-strong transition-all">
-                        <div className="relative flex items-center">
-                          <input 
-                            type="checkbox" 
-                            checked={generatorUniqueFaculties}
-                            onChange={e => setGeneratorUniqueFaculties(e.target.checked)}
-                            className="peer sr-only"
-                          />
-                          <div className="w-10 h-6 bg-surface-secondary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
-                        </div>
-                        <span className="text-sm font-medium text-text-heading">Master Timetables <span className="text-muted-foreground font-normal">(Unique Faculties)</span></span>
-                      </label>
-
-                      <label className="flex items-center gap-3 cursor-pointer group bg-surface-secondary/20 p-3 rounded-xl border border-transparent hover:border-border-strong transition-all">
-                        <div className="relative flex items-center">
-                          <input 
-                            type="checkbox" 
-                            checked={generatorNoLimit}
-                            onChange={e => setGeneratorNoLimit(e.target.checked)}
-                            className="peer sr-only"
-                          />
-                          <div className="w-10 h-6 bg-surface-secondary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
-                        </div>
-                        <span className="text-sm font-medium text-text-heading">
-                          {generatorNoLimit
-                            ? settings.removeHardResultLimit
-                              ? "Unlimited Search"
-                              : "Unlimited Search (30,000 max)"
-                            : `Limit to ${generatorResultCap} results`}
-                        </span>
-                      </label>
                     </div>
 
                   </div>
@@ -3072,7 +3053,11 @@ export function FFCSGeneratorSubpage({
         noResultCap={generatorNoLimit}
         resultCap={generatorResultCap}
         preference={generatorPreference}
-        rankingLabel={rankingMode ?? generatorSortBy}
+        rankingLabel={
+          enabledFactors.length
+            ? RANKING_FACTOR_META[enabledFactors[0]].label
+            : `Tie-break: ${generatorSortBy}`
+        }
         friendsSelected={generatorMaximizeFreeTimeFriends.length}
         syncFriendsClasses={generatorSyncFriendsClasses}
       />

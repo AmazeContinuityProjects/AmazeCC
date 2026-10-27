@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   RANKING_MODES,
   asRankingMode,
+  combineFactorScores,
   combineRankingScores,
   profileFor,
   rankCourses,
@@ -349,5 +350,28 @@ describe("ranking profiles inside the generator", () => {
     if (result.kind !== "ok") return;
     expect(result.timetables.length).toBeGreaterThan(0);
     expect(result.timetables[0].facultySummary).toBeUndefined();
+  });
+});
+
+describe("combineFactorScores (the generator's ranked list)", () => {
+  const scores = { gaps: 80, halfdays: 50, social: 20 };
+
+  it("weights enabled factors by list position and drops disabled or data-less ones", () => {
+    // Position weights 3, 2, 1 → (80*3 + 50*2 + 20*1) / 6 = 60.
+    expect(combineFactorScores(scores, ["gaps", "halfdays", "social"])).toEqual({
+      score: 60,
+      breakdown: { gaps: 40, halfdays: 16.7, social: 3.3 },
+    });
+    // Reordering flips the weights: (50*3 + 80*2 + 20*1) / 6 = 55.
+    expect(combineFactorScores(scores, ["halfdays", "gaps", "social"]).score).toBe(55);
+    // A data-less factor is absent, not zero, so it takes no weight:
+    // (80*2 + 50*1) / 3 = 70.
+    expect(
+      combineFactorScores({ gaps: 80, halfdays: 50 }, ["gaps", "halfdays", "social"]).score
+    ).toBe(70);
+  });
+
+  it("scores an all-off list as zero — every option ties and sortBy decides", () => {
+    expect(combineFactorScores({}, ["gaps", "faculty"])).toEqual({ score: 0, breakdown: {} });
   });
 });

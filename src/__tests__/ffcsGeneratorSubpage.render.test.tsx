@@ -229,28 +229,42 @@ describe("FFCSGeneratorSubpage", () => {
     );
   });
 
-  it("lets users override faculty ranking settings before generating", () => {
+  it("lets users re-rank factors and override boundary filters before generating", () => {
     render(<FFCSGeneratorSubpage {...props()} />);
 
-    expect(screen.getByText("Combined Ranking Priority")).toBeDefined();
-    fireEvent.click(screen.getByRole("button", { name: "Move Faculty reviews up" }));
+    // One ranked list replaces the old sort/profile pickers.
+    expect(screen.getByText("What matters most")).toBeDefined();
+    expect(screen.queryByText("Sort Timetables By")).toBeNull();
+    expect(screen.queryByText("Combined Ranking Priority")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Move Faculty quality up" }));
+    fireEvent.click(screen.getByRole("switch", { name: "Time with friends enabled" }));
+    fireEvent.click(screen.getByRole("button", { name: "Move DA up" }));
     fireEvent.change(screen.getByRole("spinbutton", { name: "Minimum Overall W %" }), {
       target: { value: "80" },
     });
-    fireEvent.change(screen.getByRole("spinbutton", { name: "DA importance" }), {
-      target: { value: "4" },
-    });
     fireEvent.click(screen.getByRole("button", { name: /^250$/ }));
 
-    expect(screen.getByText("1. Faculty reviews")).toBeDefined();
+    expect(screen.getByRole("switch", { name: "Time with friends enabled" }).getAttribute("aria-checked")).toBe("false");
     expect(screen.getByRole("spinbutton", { name: "Minimum Overall W %" })).toHaveProperty(
       "value",
       "80"
     );
     expect(loadSessionPreferences()).toMatchObject({
-      rankingPriorityOrder: ["faculty", "profile", "sort", "time"],
-      facultyScoreFilters: { minWPct: 80 },
+      rankingFactorOrder: [
+        "gaps",
+        "halfdays",
+        "faculty",
+        "balancedLoad",
+        "social",
+        "earlyFinish",
+        "lateStart",
+        "time",
+      ],
+      rankingFactorDisabled: ["social"],
+      facultyMetricOrder: ["wPct", "da", "lecture", "vibe"],
       facultyMetricWeights: { da: 4 },
+      facultyScoreFilters: { minWPct: 80 },
       resultCap: 250,
     });
   });
@@ -562,9 +576,14 @@ describe("FFCSGeneratorSubpage", () => {
 
     const { unmount } = render(<FFCSGeneratorSubpage {...props()} />);
 
-    // Unique faculties switch should be checked
-    const uniqueSwitch = screen.getByRole("checkbox", { name: /unique faculties/i }) as HTMLInputElement;
-    expect(uniqueSwitch.checked).toBe(true);
+    // Search limits is a ListShell of ToggleRows: the row button carries the
+    // name, the nested switch carries aria-checked.
+    const uniqueRow = screen.getByRole("button", { name: /unique faculties/i });
+    expect(within(uniqueRow).getByRole("switch").getAttribute("aria-checked")).toBe("true");
+
+    // The redesigned search-limit rows both render self-explanatory copy.
+    expect(screen.getByRole("button", { name: /remove result cap/i })).toBeTruthy();
+    expect(screen.getByText("Result cap")).toBeTruthy();
 
     // Min half days should be 3
     expect(screen.getByDisplayValue("3")).toBeTruthy();
