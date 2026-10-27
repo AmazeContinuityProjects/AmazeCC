@@ -28,6 +28,7 @@ import {
   STAT_TILE_MIN_WIDTH,
 } from './components/FFCSDashboardHeader';
 import { PageShell, RadioGroup, SelectField, SectionHeader, ListShell, ListRowText, StatTile, InsightCarousel, useCarousel, ToggleRow, SettingRow, SegmentedControl, Switch, type InsightSlide } from "../../shared/primitives";
+import { TimetableView } from "../../timetable";
 import { AnimatePresence } from 'framer-motion';
 import BottomSheet from "../../shared/BottomSheet";
 import { loadSessionPreferences, saveSessionPreferences, type FacultyMetricKey } from "@/lib/ffcsGeneratorSessionPrefs";
@@ -580,6 +581,61 @@ export function FFCSGeneratorSubpage({
       DAYS_OF_WEEK.map((day) => [day, buildSlotTimeOptions(boundaries[day])])
     ) as Record<DayId, { value: string; label: string }[]>;
   }, [allAvailableSlots, getPeriodsForSlot]);
+
+  /**
+   * Slots the time-window limits rule out, independent of manual blocks.
+   *
+   * A slot is out when *any* of its periods starts before the earliest-start
+   * limit or ends after the global or day-specific end limit — the same rule
+   * the generator applies to an offering, expressed per slot so the slot map
+   * can paint it. These are red for the same reason a blocked slot is: the
+   * search will never use them.
+   */
+  const timeExcludedSlots = useMemo(() => {
+    const minStart = timeToMinutes(generatorMinStartTime);
+    const maxEnd = timeToMinutes(generatorMaxEndTime);
+    const excluded = new Set<string>();
+    allAvailableSlots.forEach((slot) => {
+      const out = getPeriodsForSlot(slot).some((period) => {
+        const start = timeToMinutes(period.start);
+        const end = timeToMinutes(period.end);
+        const dayEnd = generatorMaxEndTimeByDay[period.day]
+          ? timeToMinutes(generatorMaxEndTimeByDay[period.day])
+          : null;
+        if (minStart !== null && start !== null && start < minStart) return true;
+        if (maxEnd !== null && end !== null && end > maxEnd) return true;
+        if (dayEnd !== null && end !== null && end > dayEnd) return true;
+        return false;
+      });
+      if (out) excluded.add(slot);
+    });
+    return excluded;
+  }, [allAvailableSlots, getPeriodsForSlot, generatorMinStartTime, generatorMaxEndTime, generatorMaxEndTimeByDay]);
+
+  /** What the slot map paints red: manual blocks plus everything the time limits rule out. */
+  const displayedBlockedSlots = useMemo(() => {
+    if (!timeExcludedSlots.size) return blockedSlots;
+    return new Set([...blockedSlots, ...timeExcludedSlots]);
+  }, [blockedSlots, timeExcludedSlots]);
+
+  /** Map-header chips: manual blocks and limit exclusions counted apart, free = the rest. */
+  const scheduleSlotCounts = useMemo(() => {
+    const blocked = allAvailableSlots.filter((slot) => blockedSlots.has(slot)).length;
+    const limited = allAvailableSlots.filter(
+      (slot) => timeExcludedSlots.has(slot) && !blockedSlots.has(slot)
+    ).length;
+    return { free: allAvailableSlots.length - blocked - limited, blocked, limited };
+  }, [allAvailableSlots, blockedSlots, timeExcludedSlots]);
+
+  /**
+   * Tap-to-block for the slot map. Time-limited slots stay red regardless —
+   * they are ruled out by the pickers, not by hand, so a tap on one is a no-op
+   * (the map's caption says as much).
+   */
+  const toggleBlockedFromMap = (slot: string) => {
+    if (timeExcludedSlots.has(slot)) return;
+    toggleBlockSlot(slot);
+  };
   const uniqueCourseCodes = Array.from(new Set(masterCourses.map(c => c.CODE)));
 
   /**
@@ -2572,7 +2628,58 @@ export function FFCSGeneratorSubpage({
                       </div>
                     </section>
 
-                    <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${showGeneratorSection("schedule") ? "" : "hidden"}`}>
+                    <section
+                      id="generator-blocked-slots"
+                      className={`scroll-mt-24 space-y-3 rounded-xl border p-4 ${generatorViewMode === "modern" ? "border-cyan-500/20 bg-cyan-500/[0.04]" : "border-border-strong/70 bg-surface-secondary/20"} ${showGeneratorSection("schedule") ? "" : "hidden"}`}
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <h4 className="text-sm font-semibold text-text-heading">Slot map</h4>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Tap a slot to block or unblock it. Red slots are out — blocked by hand or outside your time limits (tuned below).
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+                          <span className="rounded-md bg-emerald-500/10 px-2 py-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                            {scheduleSlotCounts.free} free
+                          </span>
+                          <span className="rounded-md bg-red-500/10 px-2 py-1 text-[11px] font-bold text-red-600 dark:text-red-400">
+                            {scheduleSlotCounts.blocked} blocked
+                          </span>
+                          <span className="rounded-md bg-amber-500/10 px-2 py-1 text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                            {scheduleSlotCounts.limited} by limits
+                          </span>
+                          {blockedSlots.size > 0 && (
+                            <button
+                              type="button"
+                              aria-label="Reset blocked slots"
+                              onClick={() => [...blockedSlots].forEach((slot) => toggleBlockSlot(slot))}
+                              className="rounded-md border border-border-strong px-2 py-1 text-[11px] font-semibold text-text-secondary hover:text-text-heading"
+                            >
+                              Reset
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <TimetableView
+                        courses={[]}
+                        theoryPeriods={theoryPeriods}
+                        labPeriods={labPeriods}
+                        blockedSlots={displayedBlockedSlots}
+                        onToggleBlockSlot={toggleBlockedFromMap}
+                        showSlotNames
+                        title="Your week"
+                      />
+                    </section>
+
+                    <div className={`space-y-4 rounded-xl border p-4 ${generatorViewMode === "modern" ? "border-cyan-500/20 bg-cyan-500/[0.04]" : "border-border-strong/70 bg-surface-secondary/20"} ${showGeneratorSection("schedule") ? "" : "hidden"}`}>
+                      <div>
+                        <h4 className="text-sm font-semibold text-text-heading">Time windows</h4>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Earliest start, global end, and per-day end limits. Slots outside these windows show red on the map above and never appear in a generated timetable.
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <SelectField
                         stacked
                         title="Earliest Slot Start"
@@ -2681,6 +2788,7 @@ export function FFCSGeneratorSubpage({
                           );
                         })}
                       </div>
+                      </div>
                     </div>
 
                     <div id="generator-schedule" className={`scroll-mt-24 ${showGeneratorSection("schedule") ? "" : "hidden"}`}>
@@ -2762,37 +2870,6 @@ export function FFCSGeneratorSubpage({
                         </label>
                       )}
                     </fieldset>
-
-                    <div id="generator-blocked-slots" className={`scroll-mt-24 ${showGeneratorSection("schedule") ? "" : "hidden"}`}>
-                      <label className="text-sm font-medium text-text-heading flex items-center gap-1.5 mb-2">
-                        Blocked Slots Constraint
-                        <Info className="w-4 h-4 text-muted-foreground" />
-                      </label>
-                      <div className="bg-surface-secondary/10 border border-border-strong p-4 rounded-xl">
-                        <p className="text-xs text-muted-foreground mb-4 flex items-center gap-2">
-                          Click slots below to block them.
-                          <span className="bg-red-500/10 text-red-500 px-2 py-0.5 rounded-md font-bold ml-auto">{blockedSlots.size} Blocked</span>
-                        </p>
-                        <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto custom-scrollbar pr-1">
-                          {allAvailableSlots.map(slot => {
-                            const isBlocked = blockedSlots.has(slot);
-                            return (
-                              <button
-                                key={slot}
-                                onClick={() => toggleBlockSlot(slot)}
-                                className={`px-2 py-1.5 text-xs font-bold rounded-lg transition-colors border ${
-                                  isBlocked 
-                                    ? 'bg-red-500 text-white border-red-600 shadow-sm' 
-                                    : 'bg-surface text-text-heading/70 border-border-strong hover:bg-surface-secondary hover:text-text-heading'
-                                }`}
-                              >
-                                {slot}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
 
                   </div>
                 </div>

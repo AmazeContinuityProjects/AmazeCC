@@ -576,13 +576,13 @@ describe("FFCSGeneratorSubpage", () => {
 
     const { unmount } = render(<FFCSGeneratorSubpage {...props()} />);
 
-    // Search limits is a ListShell of ToggleRows: the row button carries the
-    // name, the nested switch carries aria-checked.
-    const uniqueRow = screen.getByRole("button", { name: /unique faculties/i });
-    expect(within(uniqueRow).getByRole("switch").getAttribute("aria-checked")).toBe("true");
+    // Search-limit ToggleRows are a single control: the row button IS the
+    // switch (role="switch" + aria-checked); no nested button inside.
+    const uniqueRow = screen.getByRole("switch", { name: /unique faculties/i });
+    expect(uniqueRow.getAttribute("aria-checked")).toBe("true");
 
     // The redesigned search-limit rows both render self-explanatory copy.
-    expect(screen.getByRole("button", { name: /remove result cap/i })).toBeTruthy();
+    expect(screen.getByRole("switch", { name: /remove result cap/i })).toBeTruthy();
     expect(screen.getByText("Result cap")).toBeTruthy();
 
     // Min half days should be 3

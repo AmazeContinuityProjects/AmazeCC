@@ -29,6 +29,13 @@ export interface SettingRowProps {
   control?: ReactNode;
   /** Marks the whole row as a hit target. Use for rows whose control toggles. */
   onRowClick?: () => void;
+  /**
+   * With `onRowClick`, makes the row button *be* the switch: it gets
+   * `role="switch"` + `aria-checked` and the trailing control should be a
+   * decorative track (`SwitchTrack`), not a real `<button>` — a nested button
+   * is invalid HTML and would double-announce the state.
+   */
+  switchChecked?: boolean;
   /** Control below the copy instead of beside it. */
   stacked?: boolean;
   /** Rendered between the copy and the control, e.g. a status dot. */
@@ -41,6 +48,7 @@ export default function SettingRow({
   description,
   control,
   onRowClick,
+  switchChecked,
   stacked = false,
   badge,
   className = "",
@@ -49,7 +57,15 @@ export default function SettingRow({
 
   return (
     <Tag
-      {...(onRowClick ? { type: "button" as const, onClick: onRowClick } : {})}
+      {...(onRowClick
+        ? {
+            type: "button" as const,
+            onClick: onRowClick,
+            ...(switchChecked !== undefined
+              ? ({ role: "switch", "aria-checked": switchChecked } as const)
+              : {}),
+          }
+        : {})}
       className={`${ROW_BASE} ${stacked ? ROW_STACKED : ""} ${
         onRowClick ? ROW_TAPPABLE : ""
       } ${className}`.trim()}

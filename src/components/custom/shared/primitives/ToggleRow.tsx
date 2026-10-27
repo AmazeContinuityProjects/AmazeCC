@@ -1,15 +1,19 @@
 "use client";
 
 import type { ReactNode } from "react";
-import Switch from "./Switch";
+import { SwitchTrack } from "./Switch";
 import SettingRow from "./SettingRow";
 
 /**
- * `SettingRow` + `Switch`, with the row wired as the hit target.
+ * `SettingRow` whose row button *is* the switch.
  *
- * This is the shape 14 of the 14 settings switches want, so the switch does not
- * take an accessible name: the row already provides the label, and giving both
- * one makes the control announce its title twice.
+ * This is the shape 14 of the 14 settings switches want, and the reason the
+ * trailing control is a decorative `SwitchTrack` rather than a real `Switch`:
+ * `<button>` inside `<button>` is invalid HTML (a hydration error waiting to
+ * happen), and one control with one name and one state is the better screen
+ * reader story anyway — the row carries `role="switch"` + `aria-checked`, and
+ * the switch takes no accessible name of its own so the title is not
+ * announced twice.
  */
 export default function ToggleRow({
   title,
@@ -34,10 +38,9 @@ export default function ToggleRow({
       description={description}
       stacked={stacked}
       onRowClick={() => !disabled && onCheckedChange(!checked)}
+      switchChecked={checked}
       className={className}
-      control={
-        <Switch checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} />
-      }
+      control={<SwitchTrack checked={checked} disabled={disabled} />}
     />
   );
 }

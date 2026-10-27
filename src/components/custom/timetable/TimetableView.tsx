@@ -101,6 +101,12 @@ export interface TimetableViewProps {
   horizontalClassName?: string;
   /** Attendance figures, so the vertical sheet can show them. */
   attendanceByCourse?: Record<string, AttendanceTone>;
+  /**
+   * Slot-map mode (vertical view): paint a tappable slot-name chip on every
+   * cell — empty, blocked, or course — so a week with no courses is still an
+   * interactive blocking map. Used by the generator's Schedule section.
+   */
+  showSlotNames?: boolean;
   /** Rendered under whichever view is active — e.g. the course reference table. */
   children?: ReactNode;
 }
@@ -120,6 +126,7 @@ export default function TimetableView({
   cellDensity,
   horizontalClassName,
   attendanceByCourse,
+  showSlotNames,
   children,
 }: TimetableViewProps) {
   const { mode, setMode, density, setDensity, resolved, isMobile } =
@@ -196,6 +203,7 @@ export default function TimetableView({
           selectedGapDetails={selectedGapDetails}
           onToggleBlockSlot={onToggleBlockSlot}
           attendanceByCourse={attendanceByCourse}
+          showSlotNames={showSlotNames}
           compact={activeDensity === "compact"}
         />
       ) : (

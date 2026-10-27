@@ -47,6 +47,39 @@ export interface SwitchProps {
   className?: string;
 }
 
+/**
+ * The track alone, with no button around it — for rows whose button *is* the
+ * switch (`SettingRow`'s `switchChecked`): a real `<button>` switch nested in
+ * the row button would be invalid HTML, so the row carries the role/state and
+ * this is the picture of it. Always decorative; aria-hidden.
+ */
+export function SwitchTrack({
+  checked,
+  size = "lg",
+  disabled = false,
+  className = "",
+}: {
+  checked: boolean;
+  size?: keyof typeof TRACK;
+  disabled?: boolean;
+  className?: string;
+}) {
+  return (
+    <span
+      aria-hidden
+      className={`relative block shrink-0 rounded-full transition-colors duration-200 ${
+        disabled ? "opacity-50" : ""
+      } ${TRACK[size]} ${checked ? TRACK_ON : TRACK_OFF} ${className}`.trim()}
+    >
+      <span
+        className={`absolute top-0.5 left-0.5 rounded-full bg-white shadow-sm ring-0 transition-transform duration-200 ${
+          THUMB[size]
+        } ${checked ? THUMB_ON[size] : "translate-x-0"}`}
+      />
+    </span>
+  );
+}
+
 export default function Switch({
   checked,
   onCheckedChange,
