@@ -282,11 +282,18 @@ describe("FFCSGeneratorSubpage", () => {
     expect(screen.queryByLabelText("Min Start Time")).toBeNull();
     expect(screen.queryByLabelText("Max End Time")).toBeNull();
 
-    // Extramural-hours exclusion ships as a toggle above the slot map.
+    // Extramural-hours exclusion ships as a toggle inside the slot-map card.
     const extramural = screen.getByRole("switch", { name: /block extramural hours/i });
     expect(extramural.getAttribute("aria-checked")).toBe("false");
     fireEvent.click(extramural);
     expect(extramural.getAttribute("aria-checked")).toBe("true");
+
+    // Day end limits hide behind a disclosure — open it before querying rows.
+    const disclosure = screen.getByRole("button", { name: /Day-specific class end times/i });
+    expect(disclosure.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(disclosure);
+    expect(disclosure.getAttribute("aria-expanded")).toBe("true");
+
     const mondayLimit = screen.getByRole("switch", { name: "Monday end-time limit" });
     expect(mondayLimit.getAttribute("aria-checked")).toBe("false");
     fireEvent.click(mondayLimit);
@@ -297,9 +304,10 @@ describe("FFCSGeneratorSubpage", () => {
   it("offers and remembers per-run lab scheduling rules", () => {
     render(<FFCSGeneratorSubpage {...props()} />);
 
-    fireEvent.click(screen.getByRole("checkbox", { name: /At most one lab class per day/i }));
-    fireEvent.click(screen.getByRole("checkbox", { name: /Avoid consecutive lab slots/i }));
-    fireEvent.click(screen.getByRole("checkbox", { name: /Treat lunch as a break/i }));
+    fireEvent.click(screen.getByRole("switch", { name: /At most one lab class per day/i }));
+    fireEvent.click(screen.getByRole("switch", { name: /Avoid consecutive lab slots/i }));
+    // The lunch sub-row only exists while "avoid consecutive" is on.
+    fireEvent.click(screen.getByRole("switch", { name: /Treat lunch as a break/i }));
 
     expect(loadSessionPreferences()).toMatchObject({
       separateLabDays: true,

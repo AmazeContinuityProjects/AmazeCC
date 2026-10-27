@@ -47,7 +47,7 @@ import {
   LayoutDashboard,
 } from "lucide-react";
 import { Switch, SegmentedControl } from "../../../shared/primitives";
-import { FacultyAvatar, VitfacReviewPill } from "./FacultyReviewSheet";
+import { FacultyAvatar, VitfacReviewPill } from "./FacultyAvatar";
 import { ParsedCourse, AddedCourse, TimetableState, CourseLock, Friend, FriendGroup, TimetablePeriod } from "../types";
 import { COLORS, DAYS } from "../constants";
 import { splitSlots, sameSlotFacultyAlternatives } from "../logic/generate";
@@ -64,10 +64,14 @@ import {
   type RankingPriority,
 } from "@/lib/ffcsSettings";
 import type { FacultyRatingLookup } from "@/lib/ffcsFacultyRanking";
-import SlotFacultySwapSheet from "./SlotFacultySwapSheet";
+import dynamic from "next/dynamic";
 import VerticalTimetableGrid from "@/components/custom/timetable/VerticalTimetableGrid";
 import { toMinutes } from "@/lib/social/schedule";
 import { ensureLunchPeriod } from "@/lib/slots";
+
+// Fetched only when the student actually opens the swap sheet, not when the
+// guided flow itself loads.
+const SlotFacultySwapSheet = dynamic(() => import("./SlotFacultySwapSheet"), { ssr: false });
 
 export function requestNativeFullscreen(element?: HTMLElement): Promise<void> {
   if (typeof document === "undefined") return Promise.resolve();

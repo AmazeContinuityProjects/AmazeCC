@@ -1,5 +1,4 @@
-import * as htmlToImage from "html-to-image";
-import { jsPDF } from "jspdf";
+import type { jsPDF } from "jspdf";
 import type { AddedCourse } from "@/components/custom/exams/FFCS/types";
 import { COLOR_HEX_MAP, typeLabels } from "@/components/custom/exams/FFCS/constants";
 import { expandCourseHalves, sameSlotFacultyAlternatives } from "@/components/custom/exams/FFCS/logic/generate";
@@ -112,6 +111,7 @@ function makeGridHtml(params: ModernPrintableReportParams, theme: Palette): stri
 }
 
 async function gridImage(params: ModernPrintableReportParams, theme: Palette): Promise<string> {
+  const htmlToImage = await import("html-to-image");
   const node = document.createElement("div");
   node.style.cssText = "position:fixed;left:-20000px;top:0;width:1080px;z-index:-1";
   node.innerHTML = makeGridHtml(params, theme);
@@ -249,6 +249,7 @@ function drawVectorGrid(pdf: jsPDF, params: ModernPrintableReportParams, theme: 
 export async function createPortraitDossierPdf(params: ModernPrintableReportParams & { theme?: "light" | "dark"; gridMode?: DossierGridMode }): Promise<ArrayBuffer> {
   const light = params.theme === "light" || (!params.theme && Boolean(params.themeHtmlClass?.includes("light") && !params.themeHtmlClass?.includes("dark")));
   const theme = palette(light);
+  const { jsPDF } = await import("jspdf");
   const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
   pdf.setProperties({ title: `${params.timetableName} - FFCS Registration Dossier`, subject: "Portrait A4 timetable dossier", creator: "AmazeCC" });
   const groups = groupCourses(params.courses);

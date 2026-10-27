@@ -64,7 +64,7 @@ import {
 import { dayOccupancy, freeHalfDays, timetableMetrics } from "@/lib/timetableMetrics";
 import { getTimetableSchema } from "@/lib/campusSchema";
 import { sameSlotFacultyAlternatives } from "../logic/generate";
-import { FacultyAvatar, VitfacReviewPill } from "./FacultyReviewSheet";
+import { FacultyAvatar, VitfacReviewPill } from "./FacultyAvatar";
 import { getFacultyReview, loadVitfacCatalog, useVitfacReview } from "@/lib/vitfacService";
 import type { TourStep } from "../features/tour/tourSteps";
 

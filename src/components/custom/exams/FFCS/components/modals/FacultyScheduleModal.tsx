@@ -16,10 +16,18 @@ import {
 } from "../../logic/facultyGroups";
 import { sameSlotFacultyAlternatives, splitSlots } from "../../logic/generate";
 import type { ParsedCourse } from "../../types";
-import SlotFacultySwapSheet from "../SlotFacultySwapSheet";
 import { EmptyPanel, IconButton, ListSkeleton } from "../../../../shared/primitives";
-import FacultyReviewSheet, { VitfacReviewPill, FacultyAvatar } from "../FacultyReviewSheet";
+import { VitfacReviewPill, FacultyAvatar } from "../FacultyAvatar";
 import { ENABLE_VITFAC_INTEGRATION } from "@/lib/vitfacService";
+import dynamic from "next/dynamic";
+
+/*
+ * Both sheets are interaction-only, so their code stays out of this modal's
+ * own chunk and downloads the moment the student actually opens one —
+ * instead of riding along the moment the modal itself loads.
+ */
+const FacultyReviewSheet = dynamic(() => import("../FacultyReviewSheet"), { ssr: false });
+const SlotFacultySwapSheet = dynamic(() => import("../SlotFacultySwapSheet"), { ssr: false });
 
 /**
  * The faculty schedule browser.

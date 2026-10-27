@@ -17,7 +17,6 @@
 
 import React, { useMemo, useState } from "react";
 import { Search, Users, Download, Loader2, Sparkles, AlertCircle, X } from "lucide-react";
-import * as htmlToImage from "html-to-image";
 import BottomSheet from "../../../shared/BottomSheet";
 import SearchInput from "../../../shared/SearchInput";
 import { sameSlotFacultyAlternatives, expandCourseHalves, allCourseOfferings } from "../logic/generate";
@@ -502,7 +501,9 @@ export default function SlotFacultySwapSheet({
     setDownloadError(null);
     let container: HTMLElement | null = null;
     try {
-      const toJpegFn = htmlToImage?.toJpeg;
+      // Lazy: the sheet ships in the planner bundle, html-to-image only needs
+      // to exist once someone actually asks for the JPEG.
+      const toJpegFn = (await import("html-to-image"))?.toJpeg;
       if (typeof toJpegFn !== "function") {
         throw new Error("htmlToImage is not available");
       }

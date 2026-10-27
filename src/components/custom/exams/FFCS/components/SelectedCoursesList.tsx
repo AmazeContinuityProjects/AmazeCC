@@ -4,41 +4,14 @@ import { Trash2, Users } from "lucide-react";
 import type { AddedCourse } from "../types";
 import { defaultColor, getCourseBadgeProps, typeColors, typeLabels } from "../constants";
 import { getBatchColorClass } from "@/lib/utils";
-import { FacultyAvatar, VitfacReviewPill } from "./FacultyReviewSheet";
+import { FacultyAvatar, VitfacReviewPill } from "./FacultyAvatar";
+import { groupSelectedCourses, type SelectedCourseGroup } from "../logic/groupSelectedCourses";
 
-export type SelectedCourseGroup = AddedCourse & {
-  ids: string[];
-  batches: string[];
-};
-
-export function groupSelectedCourses(courseList: AddedCourse[]): SelectedCourseGroup[] {
-  const groups = new Map<string, SelectedCourseGroup>();
-  courseList.forEach((course) => {
-    if (groups.has(course.code)) {
-      const group = groups.get(course.code)!;
-      group.ids.push(course.id);
-      if (!group.faculty.includes(course.faculty)) group.faculty += ` / ${course.faculty}`;
-      if (!group.venue.includes(course.venue)) group.venue += ` / ${course.venue}`;
-      if (!group.type.includes(course.type)) group.type += ` + ${course.type}`;
-      course.slots.forEach((slot) => {
-        if (!group.slots.includes(slot)) group.slots.push(slot);
-      });
-      if (course.batch) {
-        course.batch.split(",").map((batch) => batch.trim()).forEach((batch) => {
-          if (batch && !group.batches.includes(batch)) group.batches.push(batch);
-        });
-      }
-      group.credits = String(parseFloat(group.credits || "0") + parseFloat(course.credits || "0"));
-    } else {
-      groups.set(course.code, {
-        ...course,
-        ids: [course.id],
-        batches: course.batch ? course.batch.split(",").map((batch) => batch.trim()).filter(Boolean) : [],
-      });
-    }
-  });
-  return Array.from(groups.values());
-}
+// Re-exported for existing importers; the definitions live in their own
+// modules so neither the list component nor these get dragged into a
+// route's initial bundle by accident.
+export { groupSelectedCourses };
+export type { SelectedCourseGroup };
 
 type FacultyInfo = { display: string; title: string };
 

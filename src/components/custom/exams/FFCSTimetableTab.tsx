@@ -10,8 +10,6 @@ import { useTheme } from "next-themes";
 import ThemeToggle from "@/components/custom/ThemeToggle";
 import { AnimatePresence } from "framer-motion";
 import BottomSheet from "../shared/BottomSheet";
-import FFCSGuideModal from "./FFCSGuideModal";
-import FFCSLayoutModeModal from "./FFCS/components/modals/FFCSLayoutModeModal";
 import FFCSDashboardHeader from "./FFCS/components/FFCSDashboardHeader";
 import { downloadTimetableImage, downloadModernTimetableImage, downloadModernCourseListImage, openTimetablePrintablePage, openModernPrintableDossier, downloadModernDossierHtml } from "@/lib/exportTimetable";
 import { GLOBAL_CAMPUS, getTimetableSchema } from "@/lib/campusSchema";
@@ -21,19 +19,11 @@ import { GLOBAL_CAMPUS, getTimetableSchema } from "@/lib/campusSchema";
 // plan without importing this component.
 export { GLOBAL_CAMPUS, getTimetableSchema };
 
-import { FFCSGeneratorSubpage } from './FFCS/FFCSGeneratorSubpage';
-import { FriendTimetableViewModal, SelectedFriendTimetableData } from './FFCS/components/modals/FriendTimetableViewModal';
-import { SocialMatrixModal } from './FFCS/components/modals/SocialMatrixModal';
-import { TargetCoursesModal } from './FFCS/components/modals/TargetCoursesModal';
-import PasteRegisteredCoursesModal from './FFCS/components/modals/PasteRegisteredCoursesModal';
-import FacultyScheduleModal from './FFCS/components/modals/FacultyScheduleModal';
-import SlotFacultySwapSheet from './FFCS/components/SlotFacultySwapSheet';
-import FFCSDossierSubpage from './FFCS/components/FFCSDossierSubpage';
-import SelectedCoursesList, { groupSelectedCourses } from './FFCS/components/SelectedCoursesList';
-import PdfGenerationBadge from './FFCS/components/PdfGenerationBadge';
+import type { SelectedFriendTimetableData } from './FFCS/components/modals/FriendTimetableViewModal';
+import { groupSelectedCourses } from './FFCS/logic/groupSelectedCourses';
 import { sameSlotFacultyAlternatives, expandCourseHalves } from './FFCS/logic/generate';
-import FacultyReviewSheet, { VitfacReviewPill, FacultyAvatar } from './FFCS/components/FacultyReviewSheet';
-import FFCSGuidedSelector, { type GuidedPhase } from './FFCS/components/FFCSGuidedSelector';
+import { VitfacReviewPill, FacultyAvatar } from './FFCS/components/FacultyAvatar';
+import type { GuidedPhase } from './FFCS/components/FFCSGuidedSelector';
 import { ENABLE_VITFAC_INTEGRATION } from '@/lib/vitfacService';
 import { buildFacultyNameGroups } from './FFCS/logic/facultyGroups';
 import { mergeCourses } from '@/features/import/importFile';
@@ -53,7 +43,7 @@ import {
   buildNumericTimetableShapeShareUrl,
   isOversizedShareLink,
 } from "@/lib/ffcsShare";
-import { FFCSSettingsModal, type FFCSSettingsModalProps } from "./FFCS/components/modals/FFCSSettingsModal";
+import type { FFCSSettingsModalProps } from "./FFCS/components/modals/FFCSSettingsModal";
 import { TourProvider, useTour } from "./FFCS/features/tour/TourProvider";
 import type { TourStep } from "./FFCS/features/tour/tourSteps";
 import { useTips } from "./FFCS/features/tour/useTips";
@@ -85,6 +75,57 @@ import {
 import { exportTimetableIcal } from "@/lib/exportIcal";
 import { getBatchColorClass, getAssetPath } from "@/lib/utils";
 import { TimetableView, useTimetableViewMode } from "../timetable";
+import dynamic from "next/dynamic";
+
+/**
+ * Everything below is interaction-only: the guided hero, the generator and
+ * dossier subpages, and the modals/sheets. None of it is on screen when the
+ * planner first paints, so each is split into its own chunk and loaded on
+ * first use — the route's initial JS stays the planner itself instead of
+ * growing by every feature the student may never open. `ssr: false` is safe
+ * here: every one of these is rendered behind an interaction (or a
+ * localStorage-backed layout mode the server cannot know about anyway).
+ */
+const FFCSGeneratorSubpage = dynamic(
+  () => import("./FFCS/FFCSGeneratorSubpage").then((m) => m.FFCSGeneratorSubpage),
+  { ssr: false }
+);
+const FFCSDossierSubpage = dynamic(() => import("./FFCS/components/FFCSDossierSubpage"), { ssr: false });
+const FFCSGuidedSelector = dynamic(() => import("./FFCS/components/FFCSGuidedSelector"), { ssr: false });
+const SlotFacultySwapSheet = dynamic(() => import("./FFCS/components/SlotFacultySwapSheet"), { ssr: false });
+const FFCSLayoutModeModal = dynamic(() => import("./FFCS/components/modals/FFCSLayoutModeModal"), { ssr: false });
+const FFCSSettingsModal = dynamic(
+  () => import("./FFCS/components/modals/FFCSSettingsModal").then((m) => m.FFCSSettingsModal),
+  { ssr: false }
+);
+const TargetCoursesModal = dynamic(
+  () => import("./FFCS/components/modals/TargetCoursesModal").then((m) => m.TargetCoursesModal),
+  { ssr: false }
+);
+const PasteRegisteredCoursesModal = dynamic(() => import("./FFCS/components/modals/PasteRegisteredCoursesModal"), { ssr: false });
+const FacultyScheduleModal = dynamic(
+  () => import("./FFCS/components/modals/FacultyScheduleModal").then((m) => m.FacultyScheduleModal),
+  { ssr: false }
+);
+const FriendTimetableViewModal = dynamic(
+  () => import("./FFCS/components/modals/FriendTimetableViewModal").then((m) => m.FriendTimetableViewModal),
+  { ssr: false }
+);
+const SocialMatrixModal = dynamic(
+  () => import("./FFCS/components/modals/SocialMatrixModal").then((m) => m.SocialMatrixModal),
+  { ssr: false }
+);
+
+/*
+ * The remaining always-mounted panels get the same treatment: the course
+ * table only appears once the fetched CSV lands, and the review sheet,
+ * guide modal, and export badge render behind interactions or transient
+ * state — none of them belong to the first paint.
+ */
+const FFCSGuideModal = dynamic(() => import("./FFCSGuideModal"), { ssr: false });
+const FacultyReviewSheet = dynamic(() => import("./FFCS/components/FacultyReviewSheet"), { ssr: false });
+const SelectedCoursesList = dynamic(() => import("./FFCS/components/SelectedCoursesList"), { ssr: false });
+const PdfGenerationBadge = dynamic(() => import("./FFCS/components/PdfGenerationBadge"), { ssr: false });
 
 /**
  * localStorage with the SSR guard and the quota throw handled once. The
@@ -606,9 +647,10 @@ export default function FFCSTimetableTab({
     setError(null);
 
     try {
-      const XLSX = await import("xlsx");
       const assetPath = getAssetPath(semester.path);
-      const response = await fetch(assetPath);
+      // The xlsx parser chunk and the report itself are independent — fetch
+      // both together instead of paying for them one round trip at a time.
+      const [XLSX, response] = await Promise.all([import("xlsx"), fetch(assetPath)]);
       if (!response.ok) throw new Error(`Failed to fetch ${assetPath}`);
 
       const workbook = XLSX.read(new Uint8Array(await response.arrayBuffer()), { type: "array" });

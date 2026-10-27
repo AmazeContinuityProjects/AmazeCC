@@ -201,6 +201,14 @@ export function FFCSGeneratorSubpage({
   // the search blind — it gathers the whole run profile onto one page.
   const [isRunSummaryOpen, setIsRunSummaryOpen] = useState(false);
   const [activeGeneratorSection, setActiveGeneratorSection] = useState<GeneratorSectionKey>("courses");
+  /**
+   * Mobile drill-in: on narrow viewports the nav list is a menu, so picking an
+   * entry hides it and shows a back control — the section opens as a subpage
+   * instead of a panel appearing under a list that is still on screen. Desktop
+   * never sets it (the click handler checks the viewport) and a resize into
+   * desktop clears it.
+   */
+  const [mobileSectionOpen, setMobileSectionOpen] = useState(false);
 
   const selectGeneratorViewMode = (mode: GeneratorViewMode, remember: boolean) => {
     setGeneratorViewMode(mode);
@@ -298,6 +306,10 @@ export function FFCSGeneratorSubpage({
   const [blockExtramuralSlots, setBlockExtramuralSlots] = useState<boolean>(
     () => sessionPrefs.blockExtramuralSlots ?? false
   );
+  /** Day-limit rows hide behind a disclosure; saved limits open it on mount. */
+  const [dayLimitsOpen, setDayLimitsOpen] = useState<boolean>(
+    () => Object.keys(sessionPrefs.maxEndTimeByDay ?? {}).length > 0
+  );
   const [generatorSortBy, setGeneratorSortBy] = useState<SortBy>(
     () => sessionPrefs.sortBy ?? settings.defaultSortBy
   );
@@ -364,6 +376,11 @@ export function FFCSGeneratorSubpage({
     media.addEventListener("change", updateViewport);
     return () => media.removeEventListener("change", updateViewport);
   }, []);
+  // A drill-in only makes sense while the menu can be hidden — resizing into
+  // desktop restores the always-visible side nav.
+  useEffect(() => {
+    if (isDesktopViewport) setMobileSectionOpen(false);
+  }, [isDesktopViewport]);
   const [generatorSyncFriendsClasses, setGeneratorSyncFriendsClasses] = useState<boolean>(
     () => sessionPrefs.syncFriendsClasses ?? sessionPrefs.syncFriendClasses ?? false
   );
@@ -670,6 +687,21 @@ export function FFCSGeneratorSubpage({
     if (timeExcludedSlots.has(slot) || extramuralBlockedSlots.has(slot)) return;
     toggleBlockSlot(slot);
   };
+
+  /**
+   * One card recipe for every Schedule block. Before the declutter each block
+   * restyled the same border/tint trio inline (and two variants had drifted a
+   * shade apart); one source keeps the section reading as a set.
+   */
+  const scheduleCardClass = `rounded-xl border p-4 ${
+    generatorViewMode === "modern"
+      ? "border-cyan-500/20 bg-cyan-500/[0.04]"
+      : "border-border-strong/70 bg-surface-secondary/20"
+  }`;
+
+  /** Days that carry their own end limit — feeds the disclosure's summary. */
+  const dayLimitCount = Object.keys(generatorMaxEndTimeByDay).length;
+
   const uniqueCourseCodes = Array.from(new Set(masterCourses.map(c => c.CODE)));
 
   /**
@@ -1096,7 +1128,16 @@ export function FFCSGeneratorSubpage({
     { id: "constraints" as const, label: "Search limits", icon: SlidersHorizontal, detail: `${generatorNoLimit ? "No result cap" : generatorResultCap + " max"}`, tone: "amber" },
     { id: "social" as const, label: "Social matching", icon: Users, detail: `${generatorMaximizeFreeTimeFriends.length} friends selected`, tone: "pink" },
   ];
-  const selectGeneratorSection = (section: GeneratorSectionKey) => setActiveGeneratorSection(section);
+  const selectGeneratorSection = (section: GeneratorSectionKey) => {
+    setActiveGeneratorSection(section);
+    if (typeof window !== "undefined" && window.innerWidth < 1024) {
+      setMobileSectionOpen(true);
+      // Land on the section, not on the gap where the menu used to be.
+      requestAnimationFrame(() =>
+        document.getElementById("generator-active-panel")?.scrollIntoView?.({ block: "start" })
+      );
+    }
+  };
   const showGeneratorSection = (section: GeneratorSectionKey) =>
     generatorViewMode === "classic" || activeGeneratorSection === section;
   const activeSectionInfo = generatorSections.find((section) => section.id === activeGeneratorSection) ?? generatorSections[0];
@@ -1110,7 +1151,7 @@ export function FFCSGeneratorSubpage({
         sub: generatorTargets.length === 1 ? "course selected" : "courses selected",
         tone: "indigo",
         icon: <Target className="h-4 w-4 text-indigo-500" />,
-        onClick: () => setActiveGeneratorSection("courses"),
+        onClick: () => selectGeneratorSection("courses"),
         ariaLabel: `Target courses: ${generatorTargets.length}. Edit target courses.`,
         focusRingClass: "focus-visible:ring-indigo-500",
       },
@@ -1121,7 +1162,7 @@ export function FFCSGeneratorSubpage({
         sub: "Excluded from results",
         tone: "amber",
         icon: <X className="h-4 w-4 text-amber-500" />,
-        onClick: () => setActiveGeneratorSection("schedule"),
+        onClick: () => selectGeneratorSection("schedule"),
         ariaLabel: `Blocked slots: ${blockedSlots.size}. Edit schedule.`,
         focusRingClass: "focus-visible:ring-amber-500",
       },
@@ -1132,7 +1173,7 @@ export function FFCSGeneratorSubpage({
         sub: `${friends.length} friends available`,
         tone: "pink",
         icon: <Users className="h-4 w-4 text-pink-500" />,
-        onClick: () => setActiveGeneratorSection("social"),
+        onClick: () => selectGeneratorSection("social"),
         ariaLabel: `Friend matches: ${generatorMaximizeFreeTimeFriends.length}. Edit social matching.`,
         focusRingClass: "focus-visible:ring-pink-500",
       },
@@ -2030,7 +2071,7 @@ export function FFCSGeneratorSubpage({
             <div className={`max-w-none w-full grid ${generatorViewMode === "modern" ? "grid-cols-1 gap-3 lg:gap-3 lg:grid-cols-[minmax(220px,0.8fr)_minmax(0,2fr)]" : "grid-cols-1 lg:grid-cols-2 gap-10"}`}>
 
               {generatorViewMode === "modern" && (
-                <nav aria-label="Generator sections" className="min-w-0 space-y-3 lg:sticky lg:top-4 lg:col-start-1 lg:row-start-1 lg:self-start">
+                <nav id="generator-sections-nav" aria-label="Generator sections" className={`min-w-0 space-y-3 lg:sticky lg:top-4 lg:col-start-1 lg:row-start-1 lg:self-start ${mobileSectionOpen ? "hidden lg:block" : ""}`}>
                   <div>
                     <SectionHeader icon={LayoutDashboard} title="Generator sections" className="mb-2" />
                     <div role="tablist" aria-label="Auto-generator sections" className="min-w-0">
@@ -2136,7 +2177,7 @@ export function FFCSGeneratorSubpage({
                           <button
                             key={t.code}
                             type="button"
-                            onClick={() => { setActiveGeneratorSection("courses"); setActiveLockerCode(t.code); }}
+                            onClick={() => { selectGeneratorSection("courses"); setActiveLockerCode(t.code); }}
                             className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-surface-secondary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${activeLockerCode === t.code ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" : "text-text-secondary hover:text-text-heading"}`}
                           >
                             <span className="w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/20 text-[10px] font-bold">
@@ -2155,6 +2196,22 @@ export function FFCSGeneratorSubpage({
                     </section>
                   )}
                 </nav>
+              )}
+
+              {/* Mobile drill-in back control: the menu list is hidden while a
+                  section is open, so this is the only way back to it. */}
+              {generatorViewMode === "modern" && mobileSectionOpen && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileSectionOpen(false);
+                    document.getElementById("generator-sections-nav")?.scrollIntoView?.({ block: "start" });
+                  }}
+                  className="row-start-1 lg:hidden flex w-fit items-center gap-1.5 rounded-xl border border-border-strong bg-surface px-3 py-2 text-xs sm:text-sm font-semibold text-text-heading shadow-xs transition-colors hover:bg-surface-secondary"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  All sections
+                </button>
               )}
 
               {generatorViewMode === "classic" && (
@@ -2188,7 +2245,7 @@ export function FFCSGeneratorSubpage({
                 const lkSelection = generatorTargets.find(t => t.code === activeLockerCode);
                 if (!lkCourse || !lkSelection) return null;
                 return (
-                  <div className={`hidden lg:flex min-w-0 flex-col gap-4 bg-surface rounded-2xl border border-indigo-500/30 dark:border-indigo-500/40 shadow-sm p-4 sm:p-6 ${generatorViewMode === "modern" ? "row-start-3 lg:row-start-1 lg:col-start-2" : ""}`}>
+                  <div className={`hidden lg:flex min-w-0 flex-col gap-4 ${generatorViewMode === "modern" ? "row-start-3 lg:row-start-1 lg:col-start-2" : ""}`}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -2219,7 +2276,10 @@ export function FFCSGeneratorSubpage({
 
               {/* Left Column: Courses Selection */}
               <div id={generatorViewMode === "modern" && activeGeneratorSection === "courses" ? "generator-active-panel" : undefined} role={generatorViewMode === "modern" ? "tabpanel" : undefined} aria-labelledby={generatorViewMode === "modern" ? `generator-tab-${activeGeneratorSection}` : undefined} className={`flex min-w-0 flex-col gap-6 ${generatorViewMode === "modern" ? `row-start-3 lg:row-start-1 lg:col-start-2 ${showGeneratorSection("courses") ? "" : "hidden"}` : ""} ${activeLockerCode ? "lg:hidden" : ""}`}>
-                <div id="generator-target-courses" className={`scroll-mt-24 bg-surface rounded-2xl border shadow-sm ${generatorViewMode === "modern" ? "border-indigo-500/30 dark:border-indigo-500/40 p-4 sm:p-6" : "border-border-strong p-6"}`}>
+                {/* The panel is a plain region, not a card: every widget inside
+                    (list shells, course cards, schedule blocks) is the card
+                    level, so a card here would be a card in a card. */}
+                <div id="generator-target-courses" className="scroll-mt-24">
                   <div className="flex justify-between items-start mb-4">
                     <div>
                       {generatorViewMode === "modern" ? (
@@ -2306,7 +2366,7 @@ export function FFCSGeneratorSubpage({
                     ))}
                   </div>
 
-                  <div className="border border-border-strong rounded-xl max-h-[60vh] overflow-y-auto bg-surface-secondary/10 p-3 flex flex-col gap-3 custom-scrollbar">
+                  <div className="max-h-[60vh] overflow-y-auto flex flex-col gap-3 custom-scrollbar">
                     {generatorCourseGroups.reduce((n, g) => n + g.courses.length, 0) === 0 && uniqueCourseCodes.length > 0 && (
                       <div className="text-center py-8 text-muted-foreground text-sm">
                         No courses found matching "{generatorCourseSearchQuery}"
@@ -2413,7 +2473,10 @@ export function FFCSGeneratorSubpage({
               <div id={generatorViewMode === "modern" && activeGeneratorSection !== "courses" ? "generator-active-panel" : undefined} role={generatorViewMode === "modern" && activeGeneratorSection !== "courses" ? "tabpanel" : undefined} aria-labelledby={generatorViewMode === "modern" && activeGeneratorSection !== "courses" ? `generator-tab-${activeGeneratorSection}` : undefined} className={`flex min-w-0 flex-col gap-6 ${generatorViewMode === "modern" ? `row-start-3 lg:row-start-1 lg:col-start-2 ${activeGeneratorSection === "courses" ? "hidden" : ""}` : ""}`}>
                 
                 {/* General Preferences */}
-                <div id="generator-preferences" className={`scroll-mt-24 rounded-2xl border shadow-sm ${generatorViewMode === "modern" ? `${activeGeneratorSection === "ranking" ? "border-violet-500/30 dark:border-violet-500/40" : activeGeneratorSection === "schedule" ? "border-cyan-500/30 dark:border-cyan-500/40" : "border-amber-500/30 dark:border-amber-500/40"} bg-surface p-4 sm:p-6 ${activeGeneratorSection === "social" || activeGeneratorSection === "courses" ? "hidden" : ""}` : "border-border-strong bg-surface p-6"}`}>
+                {/* Plain region on the page background — the list shells and
+                    tinted blocks inside are the cards; framing them again was
+                    the card-in-card this replaced. */}
+                <div id="generator-preferences" className={`scroll-mt-24 ${generatorViewMode === "modern" ? `${activeGeneratorSection === "social" || activeGeneratorSection === "courses" ? "hidden" : ""}` : ""}`}>
                   {generatorViewMode === "modern" ? (
                     <>
                       <SectionHeader icon={activeSectionInfo.icon} title={activeSectionInfo.label} className="mb-1" />
@@ -2665,18 +2728,17 @@ export function FFCSGeneratorSubpage({
                       </div>
                     </section>
 
-                    <div className={`space-y-4 rounded-xl border p-4 ${generatorViewMode === "modern" ? "border-cyan-500/20 bg-cyan-500/[0.04]" : "border-border-strong/70 bg-surface-secondary/20"} ${showGeneratorSection("schedule") ? "" : "hidden"}`}>
+                    <div id="generator-schedule" className={`scroll-mt-24 space-y-3 ${scheduleCardClass} ${showGeneratorSection("schedule") ? "" : "hidden"}`}>
                       <div>
                         <h4 className="text-sm font-semibold text-text-heading">Time windows</h4>
                         <p className="mt-1 text-xs text-muted-foreground">
-                          Earliest start, global end, and per-day end limits. Slots outside these windows show red on the map below and never appear in a generated timetable.
+                          Earliest start and latest end. Slots outside these windows never appear in a generated timetable.
                         </p>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <SelectField
                         stacked
                         title="Earliest Slot Start"
-                        description="Only allow classes starting at or after this slot time."
                         value={generatorMinStartTime}
                         options={[
                           { value: "", label: "Any start time" },
@@ -2703,16 +2765,29 @@ export function FFCSGeneratorSubpage({
                         onChange={setGeneratorMaxEndTime}
                         searchable={false}
                       />
-                    </div>
-
-                    <div className={`space-y-3 rounded-xl border p-4 ${generatorViewMode === "modern" ? "border-cyan-500/20 bg-cyan-500/[0.04]" : "border-border-strong/70 bg-surface-secondary/20"} ${showGeneratorSection("schedule") ? "" : "hidden"}`}>
-                      <div>
-                        <h4 className="text-sm font-semibold text-text-heading">Day-specific class end times</h4>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          Turn on a day to set its own latest slot end. Off days have no extra end limit.
-                        </p>
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+
+                      <button
+                        type="button"
+                        aria-expanded={dayLimitsOpen}
+                        aria-controls="generator-day-limits"
+                        onClick={() => setDayLimitsOpen((open) => !open)}
+                        className="flex w-full items-center justify-between gap-2 rounded-lg border border-border-strong/50 bg-surface px-3 py-2 text-left"
+                      >
+                        <span className="text-xs font-semibold text-text-heading">
+                          Day-specific class end times
+                        </span>
+                        <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                          {dayLimitCount === 0
+                            ? "Off"
+                            : `${dayLimitCount} of ${DAYS_OF_WEEK.length} days`}
+                          <ChevronDown
+                            className={`h-4 w-4 shrink-0 transition-transform ${dayLimitsOpen ? "rotate-180" : ""}`}
+                          />
+                        </span>
+                      </button>
+                      {dayLimitsOpen && (
+                      <div id="generator-day-limits" className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {DAYS_OF_WEEK.map((day) => {
                           const dayLimit = generatorMaxEndTimeByDay[day];
                           const options = slotEndOptionsByDay[day];
@@ -2764,20 +2839,15 @@ export function FFCSGeneratorSubpage({
                                   aria-label={`${DAY_LABELS[day]} latest class end`}
                                 />
                               )}
-                              {dayLimit === undefined && (
-                                <span className="text-[11px] text-muted-foreground">No day limit</span>
-                              )}
                             </div>
                           );
                         })}
                       </div>
-                      </div>
+                      )}
                     </div>
 
-                    <div id="generator-schedule" className={`scroll-mt-24 ${showGeneratorSection("schedule") ? "" : "hidden"}`}>
-                      <label className="text-sm font-medium text-text-heading block mb-2">
-                        Time Preference
-                      </label>
+                    <div className={`space-y-2.5 ${scheduleCardClass} ${showGeneratorSection("schedule") ? "" : "hidden"}`}>
+                      <h4 className="text-sm font-semibold text-text-heading">Time preference</h4>
                       <RadioGroup
                         name="generatorPreference"
                         options={GENERATOR_TIME_PREFERENCE_OPTIONS}
@@ -2785,95 +2855,55 @@ export function FFCSGeneratorSubpage({
                         onChange={(val) => setGeneratorPreference(val as any)}
                       />
                       {(generatorPreference === "morning" || generatorPreference === "evening") && (
-                        <label className="mt-3 flex items-start gap-2.5 rounded-xl border border-border-strong bg-surface-secondary/20 p-3 text-sm text-text-heading">
-                          <input
-                            type="checkbox"
+                        <ListShell>
+                          <ToggleRow
+                            title={`Strictly ${generatorPreference} theory only`}
+                            description={`Off = some ${generatorPreference === "morning" ? "evening" : "morning"} theory allowed, ranked lower. Labs unaffected.`}
                             checked={strictTheoryPreference}
-                            onChange={(event) => setStrictTheoryPreference(event.target.checked)}
-                            className="mt-0.5 accent-indigo-500"
+                            onCheckedChange={setStrictTheoryPreference}
                           />
-                          <span>
-                            <span className="block font-medium">
-                              Strictly {generatorPreference} theory only
-                            </span>
-                            <span className="mt-0.5 block text-xs text-muted-foreground">
-                              Turn this off to allow some {generatorPreference === "morning" ? "evening" : "morning"} theory classes and rank schedules with more preferred-time theory higher. Labs are not restricted.
-                            </span>
-                          </span>
-                        </label>
+                        </ListShell>
                       )}
                     </div>
 
-                    <fieldset id="generator-lab-rules" className={`scroll-mt-24 space-y-2 rounded-xl border p-3 ${generatorViewMode === "modern" ? "border-cyan-500/25 bg-cyan-500/[0.04]" : "border-border-strong bg-surface-secondary/10"} ${showGeneratorSection("schedule") ? "" : "hidden"}`}>
-                      <legend className="px-1 text-sm font-medium text-text-heading">
-                        Lab Scheduling
-                      </legend>
-                      <label className="flex items-start gap-2 text-sm text-text-heading">
-                        <input
-                          type="checkbox"
-                          checked={separateLabDays}
-                          onChange={(event) => setSeparateLabDays(event.target.checked)}
-                          className="mt-0.5 accent-indigo-500"
-                        />
-                        <span>
-                          <span className="block font-medium">At most one lab class per day</span>
-                          <span className="block text-xs text-muted-foreground">
-                            Multiple slots within one lab class still count as one class.
-                          </span>
-                        </span>
-                      </label>
-                      <label className="flex items-start gap-2 text-sm text-text-heading">
-                        <input
-                          type="checkbox"
-                          checked={avoidConsecutiveLabs}
-                          onChange={(event) => setAvoidConsecutiveLabs(event.target.checked)}
-                          className="mt-0.5 accent-indigo-500"
-                        />
-                        <span>
-                          <span className="block font-medium">Avoid consecutive lab slots</span>
-                          <span className="block text-xs text-muted-foreground">
-                            Uses actual timed lab periods; consecutive slots across lunch are included by default.
-                          </span>
-                        </span>
-                      </label>
-                      {avoidConsecutiveLabs && (
-                        <label className="ml-6 flex items-start gap-2 text-sm text-text-heading">
-                          <input
-                            type="checkbox"
-                            checked={lunchBreakSeparatesLabs}
-                            onChange={(event) => setLunchBreakSeparatesLabs(event.target.checked)}
-                            className="mt-0.5 accent-indigo-500"
-                          />
-                          <span>
-                            <span className="block font-medium">Treat lunch as a break</span>
-                            <span className="block text-xs text-muted-foreground">
-                              Lab slots immediately before and after a schema-defined lunch break will not count as consecutive.
-                            </span>
-                          </span>
-                        </label>
-                      )}
-                    </fieldset>
-
-                    <div className={showGeneratorSection("schedule") ? "" : "hidden"}>
+                    <div id="generator-lab-rules" role="group" aria-labelledby="generator-lab-rules-heading" className={`scroll-mt-24 space-y-2.5 ${scheduleCardClass} ${showGeneratorSection("schedule") ? "" : "hidden"}`}>
+                      <h4 id="generator-lab-rules-heading" className="text-sm font-semibold text-text-heading">
+                        Lab rules
+                      </h4>
                       <ListShell>
                         <ToggleRow
-                          title="Block extramural hours"
-                          description="Never schedule TBB1, L17, L18 — slots the college holds for extramural hours. They show red on the map below."
-                          checked={blockExtramuralSlots}
-                          onCheckedChange={setBlockExtramuralSlots}
+                          title="At most one lab class per day"
+                          description="Multi-slot labs still count as one class."
+                          checked={separateLabDays}
+                          onCheckedChange={setSeparateLabDays}
                         />
+                        <ToggleRow
+                          title="Avoid consecutive lab slots"
+                          description="Uses actual timed periods; slots across lunch count too."
+                          checked={avoidConsecutiveLabs}
+                          onCheckedChange={setAvoidConsecutiveLabs}
+                        />
+                        {avoidConsecutiveLabs && (
+                          <ToggleRow
+                            className="pl-8"
+                            title="Treat lunch as a break"
+                            description="Slots on either side of lunch aren't consecutive."
+                            checked={lunchBreakSeparatesLabs}
+                            onCheckedChange={setLunchBreakSeparatesLabs}
+                          />
+                        )}
                       </ListShell>
                     </div>
 
                     <section
                       id="generator-blocked-slots"
-                      className={`scroll-mt-24 space-y-3 rounded-xl border p-4 ${generatorViewMode === "modern" ? "border-cyan-500/20 bg-cyan-500/[0.04]" : "border-border-strong/70 bg-surface-secondary/20"} ${showGeneratorSection("schedule") ? "" : "hidden"}`}
+                      className={`scroll-mt-24 space-y-3 ${scheduleCardClass} ${showGeneratorSection("schedule") ? "" : "hidden"}`}
                     >
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div className="min-w-0">
                           <h4 className="text-sm font-semibold text-text-heading">Slot map</h4>
                           <p className="mt-1 text-xs text-muted-foreground">
-                            Your week at a glance. Tap a slot to block or unblock it. Red slots are out — blocked by hand, extramural, or outside the time windows above.
+                            Tap a slot to block or unblock it. Red = out: hand-blocked, extramural, or past your time windows.
                           </p>
                         </div>
                         <div className="flex shrink-0 flex-wrap items-center gap-1.5">
@@ -2903,6 +2933,14 @@ export function FFCSGeneratorSubpage({
                           )}
                         </div>
                       </div>
+                      <ListShell>
+                        <ToggleRow
+                          title="Block extramural hours"
+                          description="Never schedule TBB1, L17, L18 — the college's extramural slots."
+                          checked={blockExtramuralSlots}
+                          onCheckedChange={setBlockExtramuralSlots}
+                        />
+                      </ListShell>
                       <TimetableView
                         courses={[]}
                         theoryPeriods={theoryPeriods}
@@ -2918,7 +2956,7 @@ export function FFCSGeneratorSubpage({
                 </div>
 
                 {/* Social Preferences */}
-                <div id="generator-social" className={`scroll-mt-24 bg-surface rounded-2xl border shadow-sm ${generatorViewMode === "modern" ? `border-pink-500/30 dark:border-pink-500/40 p-4 sm:p-6 ${activeGeneratorSection === "social" ? "" : "hidden"}` : "border-border-strong p-6"}`}>
+                <div id="generator-social" className={`scroll-mt-24 ${generatorViewMode === "modern" ? `${activeGeneratorSection === "social" ? "" : "hidden"}` : ""}`}>
                   {generatorViewMode === "modern" ? (
                     <SectionHeader icon={Users} title="Social matching" count={friends.length} className="mb-4" />
                   ) : <h3 className="font-semibold text-lg mb-4 text-text-heading flex items-center gap-2">

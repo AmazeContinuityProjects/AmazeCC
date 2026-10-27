@@ -33,6 +33,7 @@
 
 import {
   MORNING_BEFORE_MIN,
+  expandSlotSpellings,
   periodsForSlot,
   slotSpellings,
   splitSlots,
@@ -190,12 +191,14 @@ export interface GenerateParams {
    * Keep every lab on its own day.
    *
    * A week that books two labs onto one day — even in adjacent periods, which
-   * the overlap rule rightly allows — is dropped after the search, like the
-   * half-days floor. One lab that runs several lab periods, even across two
-   * days, is still one lab and never trips this. Optional and unset by
-   * default: with no value the pipeline is exactly the one it has always
-   * been. When the whole search space fails the rule, the run fails with
-   * `no_separate_labs`, an emptiness worded for the toggle that caused it.
+   * the overlap rule rightly allows — never reaches the result: with the
+   * option on, the walk declines the partial week that puts the second lab on
+   * the day, and the after-the-search check remains as the guard behind it.
+   * One lab that runs several lab periods, even across two days, is still one
+   * lab and never trips this. Optional and unset by default: with no value the
+   * pipeline is exactly the one it has always been. When the whole search
+   * space fails the rule, the run fails with `no_separate_labs`, an emptiness
+   * worded for the toggle that caused it.
    */
   separateLabDays?: boolean;
   /** Reject two different lab classes that occupy consecutive lab periods on one day. */
@@ -254,7 +257,15 @@ export type GenerateResult =
 export interface GenerateProgress {
   /** Nodes visited in the search tree. Grows faster than `found`, by design. */
   nodes: number;
-  /** Conflict-free combinations reached, before any filtering. */
+  /**
+   * Combinations reached that no active rule had already ruled out, before
+   * scoring and the remaining result filters.
+   *
+   * With the lab rules or a half-days floor on, that is fewer than the
+   * conflict-free total — the walk never descends into a week they have
+   * already disqualified — and with none of them on it is exactly the
+   * conflict-free total, as it has always been.
+   */
   found: number;
   /** Timetables that survived every filter — what a UI can actually show. */
   accepted: number;
@@ -554,7 +565,15 @@ function labPeriodPairKey(day: DayId, firstIndex: number, secondIndex: number): 
   return `${day}:${Math.min(firstIndex, secondIndex)}:${Math.max(firstIndex, secondIndex)}`;
 }
 
-function consecutiveLabPeriodPairs(
+/**
+ * Every pair of lab periods on one day that count as consecutive.
+ *
+ * Keyed `day:min:max` by raw `schema.lab` index. Exported because the pruning
+ * test builds its oracle from the same pair set the walk prunes on: a
+ * bitmask implementation that disagreed with *this* would be a bug in one of
+ * them, and the test is what says which.
+ */
+export function consecutiveLabPeriodPairs(
   schema: CampusSchema,
   lunchBreakSeparatesLabs: boolean
 ): Set<string> {
@@ -606,6 +625,202 @@ function labsAreConsecutive(
   return false;
 }
 
+/* ── pruning on the rules, inside the walk ─────────────────────────────── */
+
+/**
+ * The number of set bits in `value`.
+ *
+ * Kernighan's loop — one iteration per set bit — and the masks this runs on
+ * hold at most ten, so a de Bruijn table would be longer than the function.
+ */
+function popcount(value: number): number {
+  let bits = 0;
+  for (let rest = value; rest !== 0; rest &= rest - 1) bits++;
+  return bits;
+}
+
+/** Half-day cells in a week: one per day, split at `MORNING_BEFORE_MIN`. */
+const HALF_DAY_CELLS = DAYS_OF_WEEK.length * 2;
+
+/** One half-day cell, and the slot strings that would occupy it. */
+interface HalfDayCell {
+  /** The bit this cell owns in a half-day mask: `dayIndex * 2 + evening`. */
+  bit: number;
+  /** The cell counts as occupied when an offering's spellings hold any of these. */
+  slots: string[];
+}
+
+/**
+ * Every half-day cell of a schema, as `(bit, slot strings)` pairs.
+ *
+ * Cell identity is `dayOccupancy`'s, because the floor this bounds is that
+ * function's count: a mask that disagreed with it would either prune weeks
+ * the metrics liked (unsound — a student's good week never shown) or keep
+ * weeks they would reject (weak, but safe). So: theory periods with lunch
+ * markers removed, paired index-wise with the lab list filtered the same way,
+ * a lab half judged on the paired *theory* period's clock rather than its own,
+ * and the half chosen by `MORNING_BEFORE_MIN` — exactly what `dayOccupancy`
+ * does. Two cells can share a bit (six of chennai's Monday periods are all
+ * morning), which is the same collapse that function performs when it reports
+ * a day as a whole.
+ */
+function halfDayCells(schema: CampusSchema): HalfDayCell[] {
+  const theory = (schema.theory ?? []).filter((period) => !period?.lunch);
+  const lab = (schema.lab ?? []).filter((period) => !period?.lunch);
+  const cells: HalfDayCell[] = [];
+
+  theory.forEach((period, index) => {
+    // An unreadable period contributes nothing — not even its lab half — for
+    // the same reason `dayOccupancy` skips it.
+    if (!period?.start || !period?.end) return;
+    const startMin = timeToMinutes(period.start);
+    const endMin = timeToMinutes(period.end);
+    if (startMin === null || endMin === null) return;
+    const evening = startMin >= MORNING_BEFORE_MIN ? 1 : 0;
+
+    for (let dayIndex = 0; dayIndex < DAYS_OF_WEEK.length; dayIndex++) {
+      const slots: string[] = [];
+      const theorySlot = period.days?.[DAYS_OF_WEEK[dayIndex]];
+      if (theorySlot) slots.push(theorySlot);
+      const labSlot = lab[index]?.days?.[DAYS_OF_WEEK[dayIndex]];
+      if (labSlot) slots.push(labSlot);
+      if (slots.length) cells.push({ bit: dayIndex * 2 + evening, slots });
+    }
+  });
+
+  return cells;
+}
+
+/** One lab period of one offering, reduced to the two bit questions. */
+interface LabSite {
+  /** `DAYS_OF_WEEK` index — the day a threat has to share to count. */
+  day: number;
+  /** This site's own raw `schema.lab` index, as a bit. */
+  own: number;
+  /** Raw lab indices consecutive to `own` *on the same day*, as bits. */
+  threat: number;
+}
+
+/**
+ * Per-offering bit facts the walk prunes on, precomputed once per run.
+ *
+ * Every array is parallel to `options` — `[courseIndex][offeringIndex]` — so
+ * the walk's inner loop reads numbers instead of walking the schema, which is
+ * the whole reason these rules can be a filter rather than an objection. A
+ * rule the run did not ask for has no array, and `null` here means the walk is
+ * byte-for-byte the one it was before pruning existed.
+ *
+ * ## Why rejecting at first break is safe
+ *
+ * All three rules are *monotone* over partial combinations: a shared lab day,
+ * a consecutive pair and an occupied half-day cell can each be added by a
+ * later offering and none can ever be removed, so a partial that already
+ * breaks a rule has no legal completion. Pruning it drops exactly the subtrees
+ * that hold no leaf the old post-search filter would have kept — and the
+ * leaves that survive are visited in the order they had without pruning,
+ * which is what lets `limit`, the batches and the sorted output mean what
+ * they always meant, over a set that is rule-legal rather than merely
+ * conflict-free. (The half-days bound is optimistic rather than exact on a
+ * partial — cells still fill as offerings join — so it prunes when the bound
+ * itself is already below the floor, never when a completion could clear it.)
+ */
+interface WalkRules {
+  /** 5 bits per offering: the days this offering runs a lab on. */
+  labDayMasks?: number[][];
+  /** `[course][offering]` → that offering's lab periods, one site each. */
+  labSites?: LabSite[][][];
+  /** 10 bits per offering: the half-day cells this offering fills. */
+  halfDayMasks?: number[][];
+  /** Prune any partial whose optimistic free-half-day count falls below this. */
+  minHalfDays: number;
+}
+
+/**
+ * Precompute whatever rules this run asked for, or `null` if it asked for none.
+ *
+ * The consecutive rule falls back to the visit-time check when the schema has
+ * more lab periods than fit in a positive 32-bit mask — index 31 would be the
+ * sign bit. The shipped schemas have thirteen at most, so this guards a future
+ * schema rather than a path anything here walks today.
+ */
+function buildWalkRules(
+  params: GenerateParams,
+  schema: CampusSchema,
+  optionsPerCourse: ParsedCourse[][],
+  labPeriodsByOffering: ReadonlyMap<ParsedCourse, readonly SlotPeriod[]>,
+  consecutiveLabPairs: ReadonlySet<string>
+): WalkRules | null {
+  const rules: WalkRules = { minHalfDays: params.minHalfDays > 0 ? params.minHalfDays : 0 };
+
+  if (params.separateLabDays) {
+    rules.labDayMasks = optionsPerCourse.map((options) =>
+      options.map((offering) => {
+        let mask = 0;
+        for (const period of labPeriodsByOffering.get(offering) ?? []) {
+          mask |= 1 << DAYS_OF_WEEK.indexOf(period.day);
+        }
+        return mask;
+      })
+    );
+  }
+
+  if (params.avoidConsecutiveLabs && (schema.lab ?? []).length <= 31) {
+    // The pair set is keyed `day:min:max`; turn it into per-period neighbours
+    // once, so an offering's threat is a lookup rather than a set scan per node.
+    const neighbours = new Map<string, number[]>();
+    for (const key of consecutiveLabPairs) {
+      const [day, first, second] = key.split(":");
+      for (const [self, other] of [
+        [first, second],
+        [second, first],
+      ] as const) {
+        const at = `${day}:${self}`;
+        const list = neighbours.get(at);
+        if (list) list.push(Number(other));
+        else neighbours.set(at, [Number(other)]);
+      }
+    }
+
+    rules.labSites = optionsPerCourse.map((options) =>
+      options.map((offering) => {
+        const sites: LabSite[] = [];
+        for (const period of labPeriodsByOffering.get(offering) ?? []) {
+          let threat = 0;
+          for (const other of neighbours.get(`${period.day}:${period.index}`) ?? []) {
+            threat |= 1 << other;
+          }
+          sites.push({ day: DAYS_OF_WEEK.indexOf(period.day), own: 1 << period.index, threat });
+        }
+        return sites;
+      })
+    );
+  }
+
+  if (rules.minHalfDays > 0) {
+    const cells = halfDayCells(schema);
+    rules.halfDayMasks = optionsPerCourse.map((options) =>
+      options.map((offering) => {
+        // The same spellings set `dayOccupancy` builds from the scored week's
+        // split tokens: the mask has to answer `owned.has(cellSlot)` the same
+        // way or the bound drifts from the metric it bounds.
+        const owned = expandSlotSpellings(splitSlots(offering.SLOT));
+        let mask = 0;
+        for (const cell of cells) {
+          for (const slot of cell.slots) {
+            if (owned.has(slot)) {
+              mask |= 1 << cell.bit;
+              break;
+            }
+          }
+        }
+        return mask;
+      })
+    );
+  }
+
+  return rules.labDayMasks || rules.labSites || rules.halfDayMasks ? rules : null;
+}
+
 /**
  * How often the walk checks whether its caller wants to stop.
  *
@@ -624,19 +839,45 @@ interface WalkHooks {
 }
 
 interface WalkOutcome {
-  /** Complete combinations reached, before any filtering. */
+  /**
+   * Complete combinations reached, before scoring and the result filters —
+   * and, when `rules` pruned, only ones no active rule had already ruled out.
+   * That re-aim is what makes `limit` a ceiling on weeks worth showing rather
+   * than on weeks the walk merely survived.
+   */
   found: number;
   /** `tick` asked to stop, so the remaining tree was never walked. */
   cancelled: boolean;
+  /**
+   * Whether in-tree pruning stopped at least one partial week, per rule.
+   *
+   * The caller turns these into the same rejection flags the visit-time
+   * filters raise on their own, so a search cut down by a rule is worded as
+   * that rule's failure and not as `no_conflict_free`.
+   */
+  labDayPruned: boolean;
+  consecutivePruned: boolean;
+  halfDaysPruned: boolean;
 }
 
 /**
- * Every combination of one offering per course that does not collide.
+ * Every combination of one offering per course that does not collide — and,
+ * when the run asked for it, that no rule has already disqualified.
  *
  * Depth-first, in the report's order, stopping once `limit` have been found.
  * `options` is pre-indexed by slot string so the conflict test is a lookup
  * rather than a schema walk on every node — which is the difference between this
  * running at all on a wide selection and not.
+ *
+ * ## What `rules` changes
+ *
+ * With `rules` present the walk is also a filter: each partial week carries
+ * bitmask state for the three monotone rules (see `WalkRules` for why cutting
+ * at first break is safe) and an offering that would break one is skipped
+ * without descending. `found` then counts rule-legal weeks rather than every
+ * conflict-free one, and the visit order of everything that survives is the
+ * order it had without pruning. With `rules` null every check below is a no-op
+ * and the walk is byte-for-byte the one it was before pruning existed.
  *
  * ## Why this is a visitor rather than a collector
  *
@@ -650,7 +891,8 @@ function walkCombinations(
   options: ParsedCourse[][],
   windows: SlotPeriod[][][],
   limit: number,
-  hooks: WalkHooks
+  hooks: WalkHooks,
+  rules: WalkRules | null = null
 ): WalkOutcome {
   const chosen: ParsedCourse[] = [];
   const chosenWindows: SlotPeriod[] = [];
@@ -658,6 +900,26 @@ function walkCombinations(
   let nodes = 0;
   let cancelled = false;
   let halted = false;
+  let labDayPruned = false;
+  let consecutivePruned = false;
+  let halfDaysPruned = false;
+  // Bit state for the partial week at the cursor.
+  //
+  // The lab-day and lab-site claims clear with `&= ~` because pushes are
+  // guarded: a lab-day bit is only taken when no chosen offering holds that
+  // day, and a site's day only when no chosen offering holds that period (two
+  // offerings in the same period on the same day would clash, which the check
+  // above already refused) — so an offering's bits are its own alone and
+  // clearing them leaves everyone else's standing.
+  //
+  // Half-day cells are *not* disjoint — two labs can both fill Monday
+  // morning — so that mask is saved before each push and restored after,
+  // never cleared by mask arithmetic.
+  let claimedLabDays = 0;
+  const claimedLabSites = new Int32Array(DAYS_OF_WEEK.length);
+  let claimedHalfDays = 0;
+  const halfDayHistory: number[] = [];
+  const minHalfDays = rules?.minHalfDays ?? 0;
 
   const walk = (index: number): void => {
     if (halted) return;
@@ -678,6 +940,9 @@ function walkCombinations(
       return;
     }
     const offeringWindows = windows[index];
+    const labDayMasks = rules?.labDayMasks?.[index];
+    const labSites = rules?.labSites?.[index];
+    const halfDayMasks = rules?.halfDayMasks?.[index];
     for (let i = 0; i < options[index].length; i++) {
       // Per offering, not per course. A course offered on two slots offers two
       // *choices*; only the one actually taken can clash with what is already
@@ -686,9 +951,49 @@ function walkCombinations(
       // silently dropping the alternatives that had never been tried.
       const periods = offeringWindows[i];
       if (clashes(periods, chosenWindows)) continue;
+      // The rules, after the clash check — which the no-rules path has always
+      // run here and still runs alone when `rules` is null.
+      if (labDayMasks !== undefined && (claimedLabDays & labDayMasks[i]) !== 0) {
+        labDayPruned = true;
+        continue;
+      }
+      if (labSites !== undefined) {
+        const sites = labSites[i];
+        let consecutiveHit = false;
+        for (let s = 0; s < sites.length; s++) {
+          if ((claimedLabSites[sites[s].day] & sites[s].threat) !== 0) {
+            consecutiveHit = true;
+            break;
+          }
+        }
+        if (consecutiveHit) {
+          consecutivePruned = true;
+          continue;
+        }
+      }
+      if (
+        halfDayMasks !== undefined &&
+        HALF_DAY_CELLS - popcount(claimedHalfDays | halfDayMasks[i]) < minHalfDays
+      ) {
+        halfDaysPruned = true;
+        continue;
+      }
       chosen.push(options[index][i]);
       chosenWindows.push(...periods);
+      if (labDayMasks !== undefined) claimedLabDays |= labDayMasks[i];
+      if (labSites !== undefined) {
+        for (const site of labSites[i]) claimedLabSites[site.day] |= site.own;
+      }
+      if (halfDayMasks !== undefined) {
+        halfDayHistory.push(claimedHalfDays);
+        claimedHalfDays |= halfDayMasks[i];
+      }
       walk(index + 1);
+      if (halfDayMasks !== undefined) claimedHalfDays = halfDayHistory.pop() ?? 0;
+      if (labSites !== undefined) {
+        for (const site of labSites[i]) claimedLabSites[site.day] &= ~site.own;
+      }
+      if (labDayMasks !== undefined) claimedLabDays &= ~labDayMasks[i];
       chosenWindows.length = chosenWindows.length - periods.length;
       chosen.pop();
       if (halted) return;
@@ -696,7 +1001,7 @@ function walkCombinations(
   };
 
   walk(0);
-  return { found, cancelled };
+  return { found, cancelled, labDayPruned, consecutivePruned, halfDaysPruned };
 }
 
 /* ── scoring ────────────────────────────────────────────────────────────── */
@@ -1297,13 +1602,20 @@ function scoreCombination(
  *
  * ## Order of operations, and why it must not change
  *
- * The pipeline is filter options → backtrack → score → drop weeks that put
- * two labs on one day (only when the run asked for that) → drop under the
- * half-days minimum → sort → dedupe faculty → group variants. That order is the
- * product's behaviour: an earlier stage's contract is only meaningful relative
- * to the ones around it. Adding hooks does not reorder it — hooks only observe.
- * The batches a streaming caller sees are the scored-and-half-days-filtered
- * list mid-flight; the `GenerateResult` that ends the run is the settled one.
+ * The pipeline is filter options → backtrack → score → result filters → sort
+ * → dedupe faculty → group variants. That order is the product's behaviour:
+ * an earlier stage's contract is only meaningful relative to the ones around
+ * it. Adding hooks does not reorder it — hooks only observe. What changed is
+ * where the three monotone result filters run: when the run asks for separate
+ * lab days, no consecutive labs, or a half-days floor, the backtrack declines
+ * a partial week the moment it breaks one — the same rules, mid-search, as
+ * bitmasks — so `found` and `limit` count weeks that could pass rather than
+ * weeks that merely do not collide. The visit-time checks still run
+ * unchanged: they are still the whole of each rule for a run without the
+ * option, and the belt under the pruning's braces should a mask ever
+ * disagree with the rule it mirrors. The batches a streaming caller sees are
+ * the scored-and-filtered list mid-flight; the `GenerateResult` that ends the
+ * run is the settled one.
  *
  * ## What `hooks` does not affect
  *
@@ -1365,6 +1677,16 @@ export function generateTimetablesStream(
     );
   }
 
+  // The monotone rules, as bit facts, computed once — from here the walk
+  // prunes on them instead of meeting them again at every leaf.
+  const walkRules = buildWalkRules(
+    params,
+    schema,
+    optionsPerCourse,
+    labPeriodsByOffering,
+    consecutiveLabPairs
+  );
+
   const limit = params.noLimit
     ? params.removeHardResultLimit
       ? Number.POSITIVE_INFINITY
@@ -1377,9 +1699,10 @@ export function generateTimetablesStream(
     : [];
 
   const accepted: TimetableState[] = [];
-  // Whether any complete, conflict-free combination was rejected by the lab
-  // rules. Only read when the run ends with nothing accepted, to report which
-  // result filter ate the search.
+  // Whether the lab rules and the half-days floor rejected a week — a
+  // complete one at `visit`, or a partial one the walk declined because it
+  // could never become legal. Only read when the run ends with nothing
+  // accepted, to report which result filter ate the search.
   let labDayRejected = false;
   let consecutiveLabsRejected = false;
   let facultyScoreRejected = false;
@@ -1394,11 +1717,13 @@ export function generateTimetablesStream(
 
   const walk = walkCombinations(optionsPerCourse, windowsPerCourse, limit, {
     visit: (combination) => {
-      // A week that puts two labs on one day is dropped before it is scored:
-      // the rule is about the shape of the week, so scoring it for the bin is
-      // money spent for nothing. It is a filter on the *result*, not on the
-      // search — the walk's own `found` keeps counting all conflict-free
-      // combinations, exactly as it does for the half-days floor.
+      // The post-search form of the lab-day rule. With in-tree pruning on,
+      // the walk has already guaranteed this week is legal, so this is a
+      // no-op; without pruning it is the rule itself, exactly as it always
+      // was. Either way it stays: it costs nothing at the limits a run
+      // actually reaches, and it keeps a pruning bug from either shipping a
+      // week the student asked to exclude or wording the failure
+      // `no_conflict_free`.
       if (params.separateLabDays && labsShareADay(combination, labPeriodsByOffering)) {
         labDayRejected = true;
         return;
@@ -1428,9 +1753,12 @@ export function generateTimetablesStream(
         facultyScoreRejected = true;
         return;
       }
-      // The half-days floor is a filter on the *result*, not on the search: a
-      // combination can be perfectly conflict-free and still be a week the
-      // student did not ask for.
+      // The half-days floor, as a result filter. When the walk pruned on the
+      // floor too, this is the exact re-check of its optimistic bound — a
+      // backstop rather than the primary decision — and when no floor was
+      // active in-tree it is the whole of the rule, exactly as it always
+      // was. Either way the check runs *after* scoring, because the number
+      // it compares is the metrics' own half-days count.
       if ((timetable.metrics?.halfDays ?? 0) < params.minHalfDays) {
         halfDaysRejected = true;
         return;
@@ -1442,7 +1770,14 @@ export function generateTimetablesStream(
       hooks.onProgress?.({ nodes, found, accepted: accepted.length });
       return hooks.shouldStop ? hooks.shouldStop() : false;
     },
-  });
+  }, walkRules);
+
+  // A partial the walk declined is one the old walk would have enumerated
+  // and then rejected at `visit`, so it raises the same flags: where the rule
+  // ran is invisible in the failure a student sees.
+  if (walk.labDayPruned) labDayRejected = true;
+  if (walk.consecutivePruned) consecutiveLabsRejected = true;
+  if (walk.halfDaysPruned) halfDaysRejected = true;
 
   // Whatever the last partial batch was, plus everything a cancelled run had
   // not reached a batch boundary for. A UI that is watching must not be left
@@ -1454,10 +1789,19 @@ export function generateTimetablesStream(
   }
 
   // Deliberately in the original order: `found` is "the search never produced
-  // a conflict-free week at all", which is a different failure from "it
-  // produced weeks, none of which met the floor", and a student can act on the
-  // distinction.
-  if (!walk.found) {
+  // a week that could have been shown at all", which is a different failure
+  // from "it produced weeks, none of which met the floor", and a student can
+  // act on the distinction. In-tree pruning blurs one edge of it — a tree
+  // with no legal leaf may have been cut before its first leaf, and then the
+  // rule that cut it is named rather than `no_conflict_free` — the same trade
+  // the rule-aimed `limit` makes: the answer names the constraint that
+  // actually shaped it.
+  if (
+    !walk.found &&
+    !labDayRejected &&
+    !consecutiveLabsRejected &&
+    !halfDaysRejected
+  ) {
     return { kind: "error", code: "no_conflict_free" };
   }
   if (!accepted.length) {

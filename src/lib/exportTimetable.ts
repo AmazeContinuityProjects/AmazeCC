@@ -1,5 +1,3 @@
-import * as htmlToImage from "html-to-image";
-import { jsPDF } from "jspdf";
 import type { AddedCourse, TimetablePeriod, ParsedCourse } from "@/components/custom/exams/FFCS/types";
 import { buildVerticalGrid } from "@/components/custom/timetable";
 import { COLOR_HEX_MAP, typeLabels } from "@/components/custom/exams/FFCS/constants";
@@ -8,6 +6,17 @@ import { ensureLunchPeriod, hasSlot } from "./slots";
 import { sameSlotFacultyAlternatives, expandCourseHalves } from "@/components/custom/exams/FFCS/logic/generate";
 
 export { createPortraitDossierPdf } from "./portraitDossier";
+
+/**
+ * `html-to-image` and `jspdf` together are a few hundred KB — an export the
+ * user may never click does not belong in the planner's first paint. Both are
+ * pulled on first use and memoized, so the second export costs nothing.
+ */
+let htmlToImageModule: Promise<typeof import("html-to-image")> | undefined;
+const loadHtmlToImage = () => (htmlToImageModule ??= import("html-to-image"));
+
+let jsPdfModule: Promise<typeof import("jspdf")> | undefined;
+const loadJsPdf = () => (jsPdfModule ??= import("jspdf"));
 
 /**
  * Modern Timetable Export Parameters
@@ -624,6 +633,7 @@ export async function downloadModernTimetableImage(
   const html = generateModernTimetableHtml(params);
   let container: HTMLElement | null = null;
   try {
+    const htmlToImage = await loadHtmlToImage();
     const toImageFn = params.format === "png" ? htmlToImage.toPng : htmlToImage.toJpeg;
     if (typeof toImageFn !== "function") {
       throw new Error("htmlToImage export function is not available");
@@ -673,6 +683,7 @@ export async function downloadModernCourseListImage(
   params: ModernCourseListImageExportParams
 ): Promise<void> {
   const format = params.format || "jpg";
+  const htmlToImage = await loadHtmlToImage();
   const toImageFn = format === "png" ? htmlToImage.toPng : htmlToImage.toJpeg;
   if (typeof toImageFn !== "function") {
     throw new Error("htmlToImage export function is not available");
@@ -761,6 +772,7 @@ export async function downloadTimetableImage(
   themeBgColor: string,
   format: "jpg" | "png" = "jpg"
 ): Promise<void> {
+  const htmlToImage = await loadHtmlToImage();
   const originalStyle = element.style.cssText;
 
   const tableContainers = element.querySelectorAll(".overflow-x-auto");
@@ -1939,6 +1951,7 @@ export async function compileDossierPdfInline(params: {
     img.onerror = () => reject(new Error("Failed to load captured timetable image"));
   });
 
+  const { jsPDF } = await loadJsPdf();
   const pdf = new jsPDF({
     orientation: "landscape",
     unit: "mm",
@@ -2076,6 +2089,7 @@ export async function downloadModernTimetablePdf(
   let container: HTMLElement | null = null;
 
   try {
+    const htmlToImage = await loadHtmlToImage();
     if (typeof htmlToImage.toPng !== "function") {
       throw new Error("htmlToImage export function is not available");
     }
