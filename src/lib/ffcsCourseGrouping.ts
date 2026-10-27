@@ -35,34 +35,22 @@ const LATE_EVENING_LABS = new Set([
 ]);
 
 const isCoreMorningLab = (slotStr: string) => {
-  const parts = String(slotStr ?? "")
-    .split("+")
-    .map(s => s.trim().toUpperCase())
-    .filter(Boolean);
+  const parts = splitSlots(slotStr).filter(Boolean);
   return parts.length > 0 && parts.every(s => CORE_MORNING_LABS.has(s));
 };
 
 const isCoreEveningLab = (slotStr: string) => {
-  const parts = String(slotStr ?? "")
-    .split("+")
-    .map(s => s.trim().toUpperCase())
-    .filter(Boolean);
+  const parts = splitSlots(slotStr).filter(Boolean);
   return parts.length > 0 && parts.every(s => CORE_EVENING_LABS.has(s));
 };
 
 const isLateMorningLab = (slotStr: string) => {
-  const parts = String(slotStr ?? "")
-    .split("+")
-    .map(s => s.trim().toUpperCase())
-    .filter(Boolean);
+  const parts = splitSlots(slotStr).filter(Boolean);
   return parts.length > 0 && parts.every(s => LATE_MORNING_LABS.has(s));
 };
 
 const isLateEveningLab = (slotStr: string) => {
-  const parts = String(slotStr ?? "")
-    .split("+")
-    .map(s => s.trim().toUpperCase())
-    .filter(Boolean);
+  const parts = splitSlots(slotStr).filter(Boolean);
   return parts.length > 0 && parts.every(s => LATE_EVENING_LABS.has(s));
 };
 
@@ -75,8 +63,7 @@ const computePairScore = (t: ParsedCourse, l: ParsedCourse): number => {
   const tEvening = tPeriods.some(p => p.startMin >= MORNING_BEFORE_MIN);
 
   // Analyze whether the lab tokens are below 30 (morning) or above 30 (evening)
-  const labParts = String(l.SLOT ?? "")
-    .split("+")
+  const labParts = splitSlots(l.SLOT)
     .map(s => parseInt(s.replace(/[^0-9]/g, ""), 10))
     .filter(n => !isNaN(n));
   const hasBelow30 = labParts.some(n => n <= 30);

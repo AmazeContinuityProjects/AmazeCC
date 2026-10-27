@@ -54,6 +54,8 @@ docs/
 │   ├── environment-variables.md # All env vars reference
 │   ├── dependencies.md         # Key dependencies
 │   └── glossary.md             # Project glossary
+├── historical/                 # Archived analyses and superseded plans
+│   └── speed/                 # Archived frontend performance audit
 └── security/                   # Security documentation
     ├── overview.md             # Security overview
     ├── authentication.md       # Auth security
@@ -69,6 +71,7 @@ docs/
 - [API Reference](../api/overview.md)
 - [Deployment Guide](../deployment/overview.md)
 - [Contributing](../contributing/pull-request-guide.md)
+- [Main/Dashboard decoupling plan](../../docs/main-dashboard-decoupling-plan.md)
 
 ## Documentation Standards
 

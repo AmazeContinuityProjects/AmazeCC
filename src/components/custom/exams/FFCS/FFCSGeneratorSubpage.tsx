@@ -9,8 +9,9 @@ import {
   formatHours,
   type SortBy,
 } from '@/lib/timetableMetrics';
-import { periodsForSlot } from '@/lib/slots';
+import { periodsForSlot, splitSlots } from '@/lib/slots';
 import { useOverlayBack } from '@/lib/overlayStack';
+import { useFacultyReviewSheet } from './hooks/useFacultyReviewSheet';
 import { type GeneratorErrorCode } from './logic/generator';
 import { useGenerationRun } from './hooks/useGenerationRun';
 import { RANKING_FACTORS, type RankingFactor } from '@/lib/ffcsRanking';
@@ -20,7 +21,7 @@ import SearchInput from "../../shared/SearchInput";
 import { GLOBAL_CAMPUS, getTimetableSchema, calculatePairwiseSocialScore, safeStorage } from '../FFCSTimetableTab';
 import { COLORS, DAYS } from './constants';
 import { offeringId, offeringMatches } from './reports';
-import { splitSlots, HARD_RESULT_LIMIT, sameSlotFacultyAlternatives, expandCourseHalves } from './logic/generate';
+import { HARD_RESULT_LIMIT, sameSlotFacultyAlternatives, expandCourseHalves } from './logic/generate';
 import { TimetableGrid, GapDetail } from './components/TimetableGrid';
 import SlotFacultySwapSheet from './components/SlotFacultySwapSheet';
 import {
@@ -31,8 +32,10 @@ import { PageShell, RadioGroup, SelectField, SectionHeader, ListShell, ListRowTe
 import { TimetableView } from "../../timetable";
 import { AnimatePresence } from 'framer-motion';
 import BottomSheet from "../../shared/BottomSheet";
+import { renderCourseTypeChips } from "./components/CourseTypeChips";
 import { loadSessionPreferences, saveSessionPreferences, type FacultyMetricKey } from "@/lib/ffcsGeneratorSessionPrefs";
-import FacultyReviewSheet, { VitfacReviewPill, FacultyAvatar } from './components/FacultyReviewSheet';
+import { VitfacReviewPill, FacultyAvatar } from './components/FacultyReviewSheet';
+import FacultyReviewSheetHost from './components/FacultyReviewSheetHost';
 import { TargetCourseLocker } from './components/TargetCourseLocker';
 import FFCSGeneratorViewModeModal, {
   type GeneratorViewMode,
@@ -179,7 +182,6 @@ export interface FFCSGeneratorSubpageProps {
   setError: (msg: string | null) => void;
   successMsg: string | null;
   setSuccessMsg: (msg: string | null) => void;
-  renderTypeChips: (types?: string | string[], size?: 'sm' | 'md' | 'default') => React.ReactNode;
   getGroupedCourses: (courseList: AddedCourse[]) => any[];
   generatorDisplayCourses: {code: string, title: string, types: string[]}[];
   theoryPeriods: any[];
@@ -190,7 +192,7 @@ export interface FFCSGeneratorSubpageProps {
 export function FFCSGeneratorSubpage({
   onClose, settings, courseLocks, friends, socialScoreGroupMethod, friendGroups,
   masterCourses, blockedSlots, timetables, setTimetables, setActiveTimetableId,
-  error, setError, successMsg, setSuccessMsg, renderTypeChips, getGroupedCourses, generatorDisplayCourses, theoryPeriods, labPeriods, toggleBlockSlot
+  error, setError, successMsg, setSuccessMsg, getGroupedCourses, generatorDisplayCourses, theoryPeriods, labPeriods, toggleBlockSlot
 }: FFCSGeneratorSubpageProps) {
   const sessionPrefs = useMemo(() => loadSessionPreferences(), []);
   const [generatorViewMode, setGeneratorViewMode] = useState<GeneratorViewMode>(() =>
@@ -320,7 +322,11 @@ export function FFCSGeneratorSubpage({
   // The Selected-Courses row whose Faculty cell was tapped — drives the
   // same-slot faculty swap sheet below.
   const [slotSwapRow, setSlotSwapRow] = useState<{ code: string; title: string; ids: string[] } | null>(null);
-  const [reviewSheetTarget, setReviewSheetTarget] = useState<{ name: string; employeeId?: string; courseCode?: string } | null>(null);
+  const {
+    target: reviewSheetTarget,
+    open: openFacultyReview,
+    close: closeFacultyReview,
+  } = useFacultyReviewSheet();
   /*
     The generator's picks are its own, not the planner's course locks.
 
@@ -508,26 +514,27 @@ export function FFCSGeneratorSubpage({
   // gesture still dismisses them first.
   const handleBack = () => {
     if (reviewSheetTarget) {
-      setReviewSheetTarget(null);
-      return;
+      closeFacultyReview();
+      return true;
     }
     if (slotSwapRow) {
       setSlotSwapRow(null);
-      return;
+      return true;
     }
     if (generatorPreviewTimetable) {
       setGeneratorPreviewTimetable(null);
-      return;
+      return true;
     }
     if (isCompareModalOpen) {
       setIsCompareModalOpen(false);
-      return;
+      return true;
     }
     if (isReviewing && stagedTimetables.length > 0) {
       setIsReviewing(false);
-      return;
+      return true;
     }
     onClose();
+    return false;
   };
 
   useOverlayBack("ffcs-auto-generator", true, handleBack);
@@ -776,7 +783,7 @@ export function FFCSGeneratorSubpage({
       const groupsSeen = new Set<string>();
       const offerings = offeringsFor(c.code);
       for (const o of offerings) {
-        const first = (o.SLOT || "").split("+")[0].trim().toUpperCase();
+        const first = splitSlots(o.SLOT)[0] ?? "";
         const seriesMatch = first.match(/^[T]?([A-G])/);
         if (!seriesMatch) continue;
         const series = seriesMatch[1];
@@ -1782,7 +1789,7 @@ export function FFCSGeneratorSubpage({
                                   </div>
                                 </td>
                                 <td className="py-3 px-2 text-sm text-text-heading/80">
-                                  {renderTypeChips(c.type)}
+                                  {renderCourseTypeChips(c.type)}
                                 </td>
                                 <td className="py-3 px-2">
                                   <div className="flex items-center gap-2 flex-wrap">
@@ -1813,7 +1820,7 @@ export function FFCSGeneratorSubpage({
                                         name={c.faculty}
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          setReviewSheetTarget({
+                                          openFacultyReview({
                                             name: c.faculty,
                                             employeeId: halves[0]?.employeeId || (c as any).employeeId,
                                             courseCode: c.code,
@@ -2420,7 +2427,7 @@ export function FFCSGeneratorSubpage({
                                 <span className="flex flex-col flex-1 min-w-0">
                                   <span className="flex items-center gap-2 flex-wrap">
                                     <span className="font-bold text-base text-text-heading">{c.code}</span>
-                                    {renderTypeChips(c.types || [], 'sm')}
+                                    {renderCourseTypeChips(c.types || [], 'sm')}
                                   </span>
                                   <span className="text-xs text-muted-foreground line-clamp-1">{c.title}</span>
                                 </span>
@@ -3145,7 +3152,7 @@ export function FFCSGeneratorSubpage({
                                     name={c.faculty}
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      setReviewSheetTarget({
+                                      openFacultyReview({
                                         name: c.faculty,
                                         employeeId: c.employeeId,
                                         courseCode: code,
@@ -3182,12 +3189,9 @@ export function FFCSGeneratorSubpage({
         />
       )}</AnimatePresence>
 
-      <FacultyReviewSheet
-        open={!!reviewSheetTarget}
-        onClose={() => setReviewSheetTarget(null)}
-        facultyName={reviewSheetTarget?.name || ""}
-        employeeId={reviewSheetTarget?.employeeId}
-        courseCode={reviewSheetTarget?.courseCode}
+      <FacultyReviewSheetHost
+        target={reviewSheetTarget}
+        onClose={closeFacultyReview}
       />
 
       <FFCSGeneratorViewModeModal

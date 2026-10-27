@@ -8,9 +8,7 @@ import {
   Copy,
   Trash2,
   Check,
-  Download,
   Users,
-  Save,
   Upload,
   Lock,
   Wand2,
@@ -60,11 +58,13 @@ import type {
 import {
   periodsForSlot,
   findPeriodClash,
+  splitSlots,
 } from "@/lib/slots";
 import { dayOccupancy, freeHalfDays, timetableMetrics } from "@/lib/timetableMetrics";
 import { getTimetableSchema } from "@/lib/campusSchema";
 import { sameSlotFacultyAlternatives } from "../logic/generate";
 import { FacultyAvatar, VitfacReviewPill } from "./FacultyAvatar";
+import ExportDossierWidget from "./ExportDossierWidget";
 import { getFacultyReview, loadVitfacCatalog, useVitfacReview } from "@/lib/vitfacService";
 import type { TourStep } from "../features/tour/tourSteps";
 
@@ -123,8 +123,6 @@ export interface FFCSDashboardHeaderProps {
   onAddCourse?: (e: React.FormEvent) => void;
   courseAlternativesPool?: any[];
   onOpenFacultyReview?: (target: { name: string; employeeId?: string; courseCode?: string }) => void;
-  renderTypeChips?: (types: string[] | string, size?: "sm" | "md") => React.ReactNode;
-  getBatchColorClass?: (batch: string) => string;
 
   // Social & Friends
   friends?: Friend[];
@@ -785,8 +783,6 @@ export default function FFCSDashboardHeader({
   onAddCourse,
   courseAlternativesPool = [],
   onOpenFacultyReview,
-  renderTypeChips,
-  getBatchColorClass,
   friends = [],
   friendGroups = [],
   socialTargetId = "",
@@ -836,10 +832,7 @@ export default function FFCSDashboardHeader({
   const recommendedSlotOptions = useMemo(() => {
     const schema = getTimetableSchema();
     return availableSlots.map((option, index) => {
-      const optionSlots = String(option.SLOT ?? "")
-        .split("+")
-        .map((slot) => slot.trim().toUpperCase())
-        .filter((slot) => slot && slot !== "NIL");
+      const optionSlots = splitSlots(option.SLOT).filter((slot) => slot !== "NIL");
       const optionPeriods = optionSlots.flatMap((slot) => periodsForSlot(schema, slot));
       const clashes = courses
         .filter((course) => {
@@ -900,6 +893,7 @@ export default function FFCSDashboardHeader({
   // Inline rename state
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameInput, setRenameInput] = useState(activeTimetable?.name || "");
+  const restoreTimetablesInputRef = useRef<HTMLInputElement>(null);
 
   /*
     The guided tour targets `ffcs-social` and `ffcs-export`, which live inside
@@ -1706,8 +1700,8 @@ export default function FFCSDashboardHeader({
                 </button>
               </div>
 
-              {/* Active Plan Actions: Rename, Duplicate, Delete */}
-              <div className="grid grid-cols-3 gap-2">
+              {/* Active Plan Actions */}
+              <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-2">
                 <button
                   type="button"
                   onClick={handleStartRename}
@@ -1736,6 +1730,23 @@ export default function FFCSDashboardHeader({
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   <span>Delete</span>
+                </button>
+
+                <input
+                  ref={restoreTimetablesInputRef}
+                  type="file"
+                  accept=".json"
+                  onChange={onImportTimetablesJson}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => restoreTimetablesInputRef.current?.click()}
+                  className="min-h-[44px] flex items-center justify-center gap-1.5 py-2 px-3 text-xs text-text-heading bg-surface hover:bg-surface-secondary border border-border-strong/70 rounded-xl transition-all font-semibold cursor-pointer shadow-2xs"
+                  title="Restore timetables from backup JSON"
+                >
+                  <Upload className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>Restore JSON</span>
                 </button>
               </div>
 
@@ -1773,42 +1784,6 @@ export default function FFCSDashboardHeader({
                 </div>
               )}
 
-              {/* Backup, Restore & iCal Row */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-border-strong/40">
-                <button
-                  type="button"
-                  onClick={onExportIcal}
-                  className="min-h-[44px] flex items-center justify-center gap-2 p-2 bg-surface hover:bg-surface-secondary border border-border-strong/70 rounded-xl text-xs font-semibold text-text-heading transition-all shadow-2xs cursor-pointer"
-                  title="Export to Apple / Google Calendar"
-                >
-                  <Download className="w-4 h-4 text-blue-500" />
-                  <span>iCal Export</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={onExportTimetablesJson}
-                  className="min-h-[44px] flex items-center justify-center gap-2 p-2 bg-surface hover:bg-surface-secondary border border-border-strong/70 rounded-xl text-xs font-semibold text-text-heading transition-all shadow-2xs cursor-pointer"
-                  title="Export complete backup as JSON"
-                >
-                  <Save className="w-4 h-4 text-indigo-500" />
-                  <span>Backup JSON</span>
-                </button>
-
-                <label
-                  className="min-h-[44px] flex items-center justify-center gap-2 p-2 bg-surface hover:bg-surface-secondary border border-border-strong/70 rounded-xl text-xs font-semibold text-text-heading transition-all shadow-2xs cursor-pointer"
-                  title="Restore timetables from backup JSON"
-                >
-                  <input
-                    type="file"
-                    accept=".json"
-                    onChange={onImportTimetablesJson}
-                    className="hidden"
-                  />
-                  <Upload className="w-4 h-4 text-emerald-500" />
-                  <span>Restore JSON</span>
-                </label>
-              </div>
             </section>
           )}
 
@@ -1969,118 +1944,16 @@ export default function FFCSDashboardHeader({
           {/* Export Dossier */}
           {enabledWidgets.includes("export") &&
             (!isMobileViewport || mobileWidget === "export") && (
-            <section aria-label="Export Dossier widget" className="min-w-0 space-y-4 rounded-2xl border border-border-strong dark:border-border card-surface p-4 sm:p-5 shadow-xs" data-tour-id="ffcs-export">
-              <div>
-                <h4 className="text-sm font-bold text-text-heading mb-1">
-                  Export Timetable Dossier
-                </h4>
-                <p className="text-xs text-muted-foreground">
-                  Download a standalone HTML dossier with course breakdowns, or export high-resolution PNG/JPG graphics.
-                </p>
-              </div>
-
-              {/* Dossier downloads */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => onDownloadHtmlDossier?.()}
-                  disabled={isDownloading || courses.length === 0}
-                  className="min-h-[44px] bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer active:scale-95"
-                  title="Download HTML dossier with current theme"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Download HTML Dossier</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => onDownloadHtmlDossier?.("light")}
-                  disabled={isDownloading || courses.length === 0}
-                  className="min-h-[44px] bg-surface hover:bg-surface-secondary border border-border-strong disabled:opacity-50 text-text-heading px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 shadow-2xs cursor-pointer active:scale-95"
-                  title="Download light theme HTML dossier"
-                >
-                  <span>☀️ Light HTML</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => onDownloadHtmlDossier?.("dark")}
-                  disabled={isDownloading || courses.length === 0}
-                  className="min-h-[44px] bg-surface hover:bg-surface-secondary border border-border-strong disabled:opacity-50 text-text-heading px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 shadow-2xs cursor-pointer active:scale-95"
-                  title="Download dark theme HTML dossier"
-                >
-                  <span>🌙 Dark HTML</span>
-                </button>
-              </div>
-
-              {/* Image & Web Preview Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-border-strong/40">
-                <button
-                  type="button"
-                  onClick={() => onDownloadImage?.("jpg")}
-                  disabled={isDownloading || courses.length === 0}
-                  className="min-h-[44px] px-3 py-2 bg-surface hover:bg-surface-secondary border border-border-strong/70 text-text-heading text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
-                >
-                  <FileDown className="w-3.5 h-3.5 text-blue-500" />
-                  <span>JPG (Active)</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => onDownloadImage?.("jpg", "horizontal")}
-                  disabled={isDownloading || courses.length === 0}
-                  className="min-h-[44px] px-3 py-2 bg-surface hover:bg-surface-secondary border border-border-strong/70 text-text-heading text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
-                >
-                  <FileDown className="w-3.5 h-3.5 text-blue-500" />
-                  <span>JPG (Grid)</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => onDownloadImage?.("jpg", "vertical")}
-                  disabled={isDownloading || courses.length === 0}
-                  className="min-h-[44px] px-3 py-2 bg-surface hover:bg-surface-secondary border border-border-strong/70 text-text-heading text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
-                >
-                  <FileDown className="w-3.5 h-3.5 text-blue-500" />
-                  <span>JPG (Vertical)</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => onDownloadImage?.("png")}
-                  disabled={isDownloading || courses.length === 0}
-                  className="min-h-[44px] px-3 py-2 bg-surface hover:bg-surface-secondary border border-border-strong/70 text-text-heading text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
-                >
-                  <FileDown className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>PNG Image</span>
-                </button>
-              </div>
-
-              {/* Web preview row: the in-app dossier is a view, not a
-                  download, so it sits beside the standalone print tab rather
-                  than in the format grid above. */}
-              <div className="flex items-center justify-between gap-2 pt-2 border-t border-border-strong/40 flex-wrap">
-                <button
-                  type="button"
-                  onClick={onOpenPrintablePage}
-                  className="min-h-[44px] px-3.5 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
-                >
-                  <FileText className="w-3.5 h-3.5" />
-                  <span>In-App Dossier</span>
-                </button>
-
-                {onOpenDetachedPrintablePage && (
-                  <button
-                    type="button"
-                    onClick={onOpenDetachedPrintablePage}
-                    className="text-xs text-muted-foreground hover:text-text-heading flex items-center gap-1 font-medium transition-colors cursor-pointer"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    <span>Open Standalone Print Tab</span>
-                  </button>
-                )}
-              </div>
-            </section>
+            <ExportDossierWidget
+              courseCount={courses.length}
+              isDownloading={isDownloading}
+              onDownloadHtmlDossier={onDownloadHtmlDossier}
+              onDownloadImage={onDownloadImage}
+              onExportIcal={onExportIcal}
+              onExportTimetablesJson={onExportTimetablesJson}
+              onOpenPrintablePage={onOpenPrintablePage}
+              onOpenDetachedPrintablePage={onOpenDetachedPrintablePage}
+            />
           )}
           {enabledWidgets.length === 0 && !isMobileViewport && (
             <div className="xl:col-span-2 min-h-40 rounded-2xl border border-dashed border-border-strong flex flex-col items-center justify-center text-center p-6">

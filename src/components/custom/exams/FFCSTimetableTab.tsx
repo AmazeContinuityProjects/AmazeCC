@@ -61,8 +61,10 @@ import {
   parseReportRows,
   type FFCSSemesterId,
 } from "./FFCS/reports";
-import { DAYS, COLORS, typeLabels, typeColors, defaultColor, getCourseBadgeProps } from "./FFCS/constants";
+import { DAYS, COLORS, getCourseBadgeProps } from "./FFCS/constants";
+import { renderCourseTypeChips } from "./FFCS/components/CourseTypeChips";
 import { isCourseFullyAdded } from "./FFCS/utils";
+import { useFacultyReviewSheet } from "./FFCS/hooks/useFacultyReviewSheet";
 import { freeHalfDays, pairwiseSocialScore } from "@/lib/timetableMetrics";
 import {
   MORNING_BEFORE_MIN,
@@ -123,7 +125,10 @@ const SocialMatrixModal = dynamic(
  * state — none of them belong to the first paint.
  */
 const FFCSGuideModal = dynamic(() => import("./FFCSGuideModal"), { ssr: false });
-const FacultyReviewSheet = dynamic(() => import("./FFCS/components/FacultyReviewSheet"), { ssr: false });
+const FacultyReviewSheetHost = dynamic(
+  () => import("./FFCS/components/FacultyReviewSheetHost"),
+  { ssr: false }
+);
 const SelectedCoursesList = dynamic(() => import("./FFCS/components/SelectedCoursesList"), { ssr: false });
 const PdfGenerationBadge = dynamic(() => import("./FFCS/components/PdfGenerationBadge"), { ssr: false });
 
@@ -154,42 +159,6 @@ export const safeStorage = {
 
 
 
-
-const renderTypeChips = (typesInput: string | string[], size: 'sm' | 'md' = 'md') => {
-  if (!typesInput) return null;
-  let types = Array.isArray(typesInput) 
-    ? [...typesInput] 
-    : typesInput.split("+").map(t => t.trim().toUpperCase());
-  
-  types = types.map(t => t.trim().toUpperCase()).filter(Boolean);
-
-  if (types.includes("ETH") && types.includes("ELA")) {
-    types = types.filter(t => t !== "ETH" && t !== "ELA");
-    types.push("ETH+ELA");
-  }
-  if (types.includes("TH") && types.includes("LO")) {
-    types = types.filter(t => t !== "TH" && t !== "LO");
-    types.push("TH+LO");
-  }
-
-  const px = size === 'sm' ? 'px-1.5' : 'px-2';
-  const py = size === 'sm' ? 'py-0.5' : 'py-0.5';
-  const text = size === 'sm' ? 'text-[9px]' : 'text-[10px]';
-
-  return (
-    <span className="flex flex-wrap gap-1">
-      {types.map(t => {
-        const color = typeColors[t] || defaultColor;
-        const displayName = typeLabels[t] || t;
-        return (
-          <span key={t} className={`inline-flex items-center font-bold rounded-md border ${px} ${py} ${text} ${color.bg} ${color.text} ${color.border}`} title={displayName}>
-            {displayName}
-          </span>
-        );
-      })}
-    </span>
-  );
-};
 
 /**
  * `timeToMinutes` and `parse24HourToMinutes` used to sit here as well.
@@ -627,7 +596,11 @@ export default function FFCSTimetableTab({
   const [manualLinks, setManualLinks] = useState<ManualLink[]>([]);
   const [isManualLinkerOpen, setIsManualLinkerOpen] = useState(false);
   const [manualLinkCsvText, setManualLinkCsvText] = useState("");
-  const [facultyReviewTarget, setFacultyReviewTarget] = useState<{ name: string; employeeId?: string; courseCode?: string } | null>(null);
+  const {
+    target: facultyReviewTarget,
+    open: openFacultyReview,
+    close: closeFacultyReview,
+  } = useFacultyReviewSheet();
 
   const captureRef = useRef<HTMLDivElement>(null);
 
@@ -1500,7 +1473,7 @@ export default function FFCSTimetableTab({
       if (lock) {
         if (lock.allowedSlots && lock.allowedSlots.length > 0) {
           slots = slots.filter(s => {
-            const individualSlots = s.SLOT.split('+').map(sl => sl.trim());
+            const individualSlots = splitSlots(s.SLOT);
             return individualSlots.some(sl => lock.allowedSlots.includes(sl));
           });
         }
@@ -1549,7 +1522,7 @@ export default function FFCSTimetableTab({
     const selectedRow = availableSlots[parseInt(selectedSlotIndex, 10)];
     if (!selectedRow) return;
 
-    const slotsArray = selectedRow.SLOT.split("+").map(s => s.trim().toUpperCase()).filter(s => s && s !== "NIL");
+    const slotsArray = splitSlots(selectedRow.SLOT).filter((slot) => slot !== "NIL");
     
     const clashError = checkClashes(slotsArray);
     if (clashError) {
@@ -1811,7 +1784,6 @@ export default function FFCSTimetableTab({
           setError={setError}
           successMsg={successMsg}
           setSuccessMsg={setSuccessMsg}
-          renderTypeChips={renderTypeChips}
           getGroupedCourses={groupSelectedCourses}
           generatorDisplayCourses={generatorDisplayCourses}
           theoryPeriods={theoryPeriods}
@@ -2064,10 +2036,8 @@ export default function FFCSTimetableTab({
             checkClashes={checkClashes}
             isGroupingEnabled={isGroupingEnabled}
             setIsGroupingEnabled={setIsGroupingEnabled}
-            renderTypeChips={renderTypeChips}
-            getBatchColorClass={getBatchColorClass}
             courseAlternativesPool={courseAlternativesPool}
-            onOpenFacultyReview={(target) => setFacultyReviewTarget(target)}
+            onOpenFacultyReview={openFacultyReview}
             onOpenPasteRegistered={() => setIsPasteRegisteredModalOpen(true)}
             onOpenManualLinker={() => setIsManualLinkerOpen(true)}
             onViewTimetable={() => handleSelectLayoutMode("modern", true)}
@@ -2389,7 +2359,7 @@ export default function FFCSTimetableTab({
                             ? (
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-semibold text-text-heading">{selectedCourseCode} - {uniqueCourses.find(c => c.code === selectedCourseCode)?.title}</span>
-                                 {renderTypeChips(uniqueCourses.find(c => c.code === selectedCourseCode)?.types || [], 'sm')}
+                                 {renderCourseTypeChips(uniqueCourses.find(c => c.code === selectedCourseCode)?.types || [], 'sm')}
                                  {(uniqueCourses.find(c => c.code === selectedCourseCode)?.batches || []).map(b => (
                                    <span key={b} className={`text-xs font-bold px-2 py-0.5 rounded-md border ${getBatchColorClass(b)}`}>
                                      {b}
@@ -2443,7 +2413,7 @@ export default function FFCSTimetableTab({
                               {selectedSlotIndex !== "-1" && availableSlots[parseInt(selectedSlotIndex)]
                                 ? (() => {
                                     const row = availableSlots[parseInt(selectedSlotIndex)];
-                                    const rowSlots = row?.SLOT?.split("+").map(s => s.trim().toUpperCase()).filter(s => s && s !== "NIL") || [];
+                                    const rowSlots = splitSlots(row?.SLOT ?? "").filter((slot) => slot !== "NIL");
                                     const theorySlots = rowSlots.filter(s => !s.startsWith("L"));
                                     const labSlots = rowSlots.filter(s => s.startsWith("L"));
                                     let facultyCountDisplay = "1";
@@ -2503,7 +2473,7 @@ export default function FFCSTimetableTab({
                                           name={row.FACULTY}
                                           onClick={(e) => {
                                             e.stopPropagation();
-                                            setFacultyReviewTarget({
+                                            openFacultyReview({
                                               name: row.FACULTY,
                                               employeeId: row.ERP_ID,
                                               courseCode: selectedCourseCode || undefined,
@@ -2584,9 +2554,7 @@ export default function FFCSTimetableTab({
             onOpenSlotSearch={() => setIsSlotSearchOpen(true)}
             onAddCourse={handleAddCourse}
             courseAlternativesPool={courseAlternativesPool}
-            onOpenFacultyReview={(target) => setFacultyReviewTarget(target)}
-            renderTypeChips={renderTypeChips}
-            getBatchColorClass={getBatchColorClass}
+            onOpenFacultyReview={openFacultyReview}
             friends={friends}
             friendGroups={friendGroups}
             socialTargetId={socialTargetId}
@@ -2804,7 +2772,7 @@ export default function FFCSTimetableTab({
                   onClear={handleClearTimetable}
                   onRemove={(ids) => ids.forEach(handleRemoveCourse)}
                   onFacultyClick={(course) => setSlotSwapRow({ code: course.code, title: course.title, ids: course.ids })}
-                  onReviewClick={(faculty) => setFacultyReviewTarget(faculty)}
+                  onReviewClick={openFacultyReview}
                   getFacultyInfo={(course, rawHalves) => {
                     const allSlots = Array.from(new Set(rawHalves.flatMap((half) => half.slots)));
                     const theorySlots = allSlots.filter((slot) => !slot.startsWith("L") && slot !== "NIL");
@@ -2878,7 +2846,6 @@ export default function FFCSTimetableTab({
         setCourseLocks={setCourseLocks}
         masterCourses={masterCourses}
         uniqueCourseCodes={uniqueCourseCodes}
-        renderTypeChips={renderTypeChips}
         onImportCourses={handleImportCourses}
         onImportToTimetable={(added) => handleLoadRegisteredCourses(added, [], false)}
       />
@@ -2900,12 +2867,9 @@ export default function FFCSTimetableTab({
         masterCourses={masterCourses}
       />
 
-      <FacultyReviewSheet
-        open={!!facultyReviewTarget}
-        onClose={() => setFacultyReviewTarget(null)}
-        facultyName={facultyReviewTarget?.name || ""}
-        employeeId={facultyReviewTarget?.employeeId}
-        courseCode={facultyReviewTarget?.courseCode}
+      <FacultyReviewSheetHost
+        target={facultyReviewTarget}
+        onClose={closeFacultyReview}
       />
 
       <AnimatePresence>
@@ -3158,7 +3122,6 @@ export default function FFCSTimetableTab({
         setData={setSelectedFriendTimetablesData}
         theoryPeriods={theoryPeriods}
         labPeriods={labPeriods}
-        renderTypeChips={renderTypeChips}
       />
       {/* Social Matrix Modal */}
       {/* Social Matrix Modal */}
@@ -3245,7 +3208,7 @@ export default function FFCSTimetableTab({
                     <div className="flex flex-col gap-1 min-w-0">
                       <span className={`font-bold text-sm ${fullyAdded ? 'text-muted-foreground' : 'text-text-heading'}`}>{c.code}</span>
                       <div className="flex items-center gap-1 flex-wrap">
-                        {renderTypeChips(c.types || [], 'sm')}
+                        {renderCourseTypeChips(c.types || [], 'sm')}
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 flex-wrap sm:shrink-0">
@@ -3391,7 +3354,7 @@ export default function FFCSTimetableTab({
                 result list scrolls. */}
             <div className="p-2 overflow-y-auto max-h-[50vh] custom-scrollbar bg-surface-secondary/5 rounded-xl">
               {filteredSlotSearchRows.map(({ row, idx }) => {
-                const slotsArray = row?.SLOT?.split("+").map(s => s.trim().toUpperCase()).filter(s => s && s !== "NIL") || [];
+                const slotsArray = splitSlots(row?.SLOT ?? "").filter((slot) => slot !== "NIL");
                 const clashError = checkClashes(slotsArray);
                 const isBlocked = !!clashError;
                 const theorySlots = slotsArray.filter(s => !s.startsWith("L"));
@@ -3483,7 +3446,7 @@ export default function FFCSTimetableTab({
                           name={row?.FACULTY}
                           onClick={(e) => {
                             e.stopPropagation();
-                            setFacultyReviewTarget({
+                            openFacultyReview({
                               name: row?.FACULTY || "",
                               employeeId: row?.ERP_ID,
                               courseCode: selectedCourseCode || undefined,
@@ -3726,7 +3689,7 @@ export default function FFCSTimetableTab({
                                     name={c.faculty}
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      setFacultyReviewTarget({
+                                      openFacultyReview({
                                         name: c.faculty,
                                         employeeId: c.employeeId,
                                         courseCode: code,

@@ -7,6 +7,8 @@ import { CourseLock, ParsedCourse, AddedCourse } from "../../types";
 import { getBatchColorClass } from "@/lib/utils";
 import { SegmentedControl } from "@/components/custom/shared/primitives";
 import { CourseImportPanel, type ImportMode } from "../CourseImportPanel";
+import { renderCourseTypeChips } from "../CourseTypeChips";
+import { splitSlots } from "@/lib/slots";
 
 interface TargetCoursesModalProps {
   isOpen: boolean;
@@ -15,7 +17,6 @@ interface TargetCoursesModalProps {
   setCourseLocks: React.Dispatch<React.SetStateAction<CourseLock[]>>;
   masterCourses: ParsedCourse[];
   uniqueCourseCodes: { code: string; title: string; types?: string[]; batches?: string[] }[];
-  renderTypeChips: (typesInput: string | string[], size?: 'sm' | 'md') => React.ReactNode;
   /** Adds rows to the master list. Owns merging; this modal does not mutate it. */
   onImportCourses: (courses: ParsedCourse[]) => void;
   /** Optional callback to also load imported courses directly into active timetable */
@@ -41,7 +42,6 @@ export const TargetCoursesModal: React.FC<TargetCoursesModalProps> = ({
   setCourseLocks,
   masterCourses,
   uniqueCourseCodes,
-  renderTypeChips,
   onImportCourses,
   onImportToTimetable,
 }) => {
@@ -128,7 +128,7 @@ export const TargetCoursesModal: React.FC<TargetCoursesModalProps> = ({
               
               const courseOpts = masterCourses.filter(mc => mc.CODE === c.code);
               const uniqueSlots = Array.from(new Set(courseOpts.map(opt => {
-                return opt.SLOT.split('+').map(s => s.trim());
+                return splitSlots(opt.SLOT);
               }).flat())).sort();
 
               return (
@@ -148,7 +148,7 @@ export const TargetCoursesModal: React.FC<TargetCoursesModalProps> = ({
                         <div className="flex flex-col gap-1 min-w-0">
                           <span className="font-bold text-base text-text-heading">{c.code}</span>
                           <div className="flex items-center gap-1 flex-wrap">
-                            {renderTypeChips(c.types || [], 'sm')}
+                            {renderCourseTypeChips(c.types || [], 'sm')}
                           </div>
                         </div>
                         <div className="flex items-center gap-1.5 flex-wrap sm:shrink-0">

@@ -6,8 +6,10 @@ import { LogIn } from "lucide-react";
 import ThemeToggle from "@/components/custom/ThemeToggle";
 import FFCSTimetableTab from "@/components/custom/exams/FFCSTimetableTab";
 import { getAssetPath } from "@/lib/utils";
+import { useOverlayBackBoundary } from "@/lib/overlayStack";
 
 export default function FFCSPageView() {
+  useOverlayBackBoundary("ffcs-route");
   const [mounted, setMounted] = useState(false);
   const [plannerLayoutMode, setPlannerLayoutMode] = useState<"guided" | "modern" | "classic">("modern");
 

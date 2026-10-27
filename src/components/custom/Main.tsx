@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useAtom, useSetAtom } from "jotai";
 import {
   credentialsAtom, messageAtom, attendanceDataAtom, marksDataAtom, marksStatsAtom, gradesDataAtom,
@@ -17,9 +18,6 @@ import {
 } from "@/store";
 import LoginForm from "./LoginForm";
 import IntroSong from "@/lib/introSong/IntroSong";
-import CredentialEditorModal from "./CredentialEditorModal";
-import DashboardContent from "./Dashboard";
-import AmazeOnboardingFlow from "./onboarding/AmazeOnboardingFlow";
 import config from "../../../config.json";
 import { attendanceRes, ODListItem, ODListRaw } from "@/types/data/attendance";
 import { loadActivityTree, saveActivityTree } from "@/lib/activity-tree";
@@ -43,7 +41,10 @@ import {
   resolveMode,
   type SyncMode,
 } from "@/lib/sync-engine/sync-modes";
-import SyncModeEditor from "@/components/custom/shared/SyncModeEditor";
+const CredentialEditorModal = dynamic(() => import("./CredentialEditorModal"));
+const DashboardContent = dynamic(() => import("./Dashboard"));
+const AmazeOnboardingFlow = dynamic(() => import("./onboarding/AmazeOnboardingFlow"));
+const SyncModeEditor = dynamic(() => import("@/components/custom/shared/SyncModeEditor"));
 import {
   openSyncSession,
   appendSyncLine,
@@ -116,6 +117,7 @@ export default function LoginPage() {
   const [commandPaletteOpen, setCommandPaletteOpen] = useAtom(commandPaletteOpenAtom);
   const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useAtom(isShortcutsHelpOpenAtom);
   const [credEditorOpen, setCredEditorOpen] = useState(false);
+  const [appHydrated, setAppHydrated] = useState(false);
   // Custom sync modes (built-ins come from the engine). Refreshed whenever the
   // editor reports a change, so the sheet picker and palette stay current.
   const [customModes, setCustomModes] = useState<SyncMode[]>(() => loadCustomModes());
@@ -129,7 +131,7 @@ export default function LoginPage() {
   // Credential editor + shortcuts sheet register themselves via BottomSheet.
 
   // Task reminders are app-wide (not tied to the Tasks tab being open)
-  useTaskReminderScheduler();
+  useTaskReminderScheduler(isLoggedIn || demoMode);
 
   // Engine op feed -> sync session, so the sheet logs what actually fetched
   // (success or failure) per module instead of manual string appends.
@@ -146,6 +148,7 @@ export default function LoginPage() {
   }, [session, setMessage, setProgressBar]);
 
   useEffect(() => {
+    if (!isLoggedIn && !demoMode) return;
     const day = new Date().toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
     setActiveDay(day);
       const checkAPIStatus = async () => {
@@ -157,7 +160,7 @@ export default function LoginPage() {
         }
       };
     checkAPIStatus();
-  }, []);
+  }, [isLoggedIn, demoMode, setActiveDay]);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -374,22 +377,45 @@ export default function LoginPage() {
 
   // --- Effects ---
   useEffect(() => {
+    const storedUsername = storage.username.get();
+    const storedPassword = storage.password.get();
+    const settingsRaw = storage.settings.get();
+    const IDsRaw = storage.ids.get();
+    const isDemoStored = storage.demoMode.get();
+    const hasVtop = Boolean(
+      (IDsRaw?.VtopUsername && IDsRaw?.VtopPassword) || (storedUsername && storedPassword)
+    );
+
+    setIDs({
+      VtopUsername: storedUsername || "",
+      VtopPassword: storedPassword || "",
+      MoodleUsername: storage.moodleUsername.get() || "",
+      MoodlePassword: storage.moodlePassword.get() || "",
+      ...(IDsRaw || {}),
+    });
+    if (settingsRaw) setSettings({ ...defaultSettings, ...settingsRaw });
+    setShowIntro(!localStorage.getItem("introDone"));
+    setDemoMode(Boolean(isDemoStored));
+    setIsLoggedIn(Boolean(isDemoStored || hasVtop));
+
+    // The public landing page does not need cached academic records. Avoid
+    // parsing potentially large attendance/grade/calendar payloads on every
+    // signed-out visit; restore those only for a real or demo session.
+    if (!isDemoStored && !hasVtop) {
+      setAppHydrated(true);
+      return;
+    }
+
     const storedAttendance = storage.attendance.get();
     const storedMarks = storage.marks.get();
     const storedMarksStats = storage.marksStats.get();
     const storedGrades = storage.grades.get();
     const storedAllGrades = storage.allGrades.get();
-    const storedUsername = storage.username.get();
-    const storedPassword = storage.password.get();
-    const storedMoodleUsername = storage.moodleUsername.get();
-    const storedMoodlePassword = storage.moodlePassword.get();
     const storedSchedule = storage.schedule.get();
     const storedHoste = storage.hostel.get();
     const calendar = storage.calendar.get();
     const MoodleData = storage.moodleData.get();
     const VitolData = storage.vitolData.get();
-    const settingsRaw = storage.settings.get();
-    const IDsRaw = storage.ids.get();
     const storedRegisteredEvents = storage.registeredEvents.get();
 
     if (storedAttendance?.attendance) {
@@ -417,34 +443,10 @@ export default function LoginPage() {
       }
     } catch {}
     
-    setIDs({
-      VtopUsername: storedUsername || "",
-      VtopPassword: storedPassword || "",
-      MoodleUsername: storedMoodleUsername || "",
-      MoodlePassword: storedMoodlePassword || ""
-    })
-    if (IDsRaw) setIDs(IDsRaw);
-    if (settingsRaw) {
-      setSettings({
-        ...defaultSettings,
-        ...settingsRaw
-      });
-    }
-    const introDone = localStorage.getItem("introDone");
-    setShowIntro(!introDone);
-    const isDemoStored = storage.demoMode.get();
-    if (isDemoStored) {
-      setDemoMode(true);
-      setIsLoggedIn(true);
-    } else {
-      let hasVtop = false;
-      try {
-        if (IDsRaw?.VtopUsername && IDsRaw?.VtopPassword) {
-          hasVtop = true;
-        }
-      } catch (e) {}
-      setIsLoggedIn((storedUsername && storedPassword) || hasVtop ? true : false);
-    }
+    // Auth and dashboard data are restored from localStorage above. Keep the
+    // unauthenticated controls hidden until that decision is final to avoid a
+    // one-frame login/FFCS flash for returning users.
+    setAppHydrated(true);
   }, []);
 
   const loginToVTOP = useCallback(async () => {
@@ -1417,6 +1419,7 @@ export default function LoginPage() {
 
   const cmds = useMemo(() => {
     const result: any[] = [];
+    if (!isLoggedIn && !demoMode) return result;
 
     // ── Detail helper components (used by data commands) ──
     const attDetail = (course: any) => {
@@ -2543,7 +2546,7 @@ export default function LoginPage() {
     setActiveTab, setActiveSubTab, setHostelActiveSubTab, setActiveAttendanceSubTab, setActiveDayscholarSubTab, setActiveMoreSubTab,
     attendanceData, marksData, GradesData, AllGradesData, registeredEvents, eventHubEvents, ScheduleData, Calender, hostelData, moodleData, settings, config,
     ODhoursData, setGradesDisplayIsOpen, setSettings, handleReloadRequest, handleLogOutRequest, theme, setTheme,
-    setTasksQuickAddRequest, customModes
+    setTasksQuickAddRequest, customModes, isLoggedIn, demoMode
   ]);
 
   return (
@@ -2622,7 +2625,6 @@ export default function LoginPage() {
       </AnimatePresence>
 
       {(!isLoggedIn && !demoMode) && (
-        <>
         <LoginForm
           username={IDs.VtopUsername}
           setUsername={(val: string) =>
@@ -2646,6 +2648,10 @@ export default function LoginPage() {
             localStorage.setItem("settings", JSON.stringify({ ...settings, isDayscholarWithBus: val }));
           }}
         />
+      )}
+
+      {appHydrated && (!isLoggedIn && !demoMode) && (
+        <>
           <div style={{ textAlign: "center", marginTop: 12 }}>
             <button
               type="button"
@@ -2666,7 +2672,7 @@ export default function LoginPage() {
         </>
       )}
 
-      <CredentialEditorModal
+      {credEditorOpen && <CredentialEditorModal
         open={credEditorOpen}
         onClose={() => setCredEditorOpen(false)}
         onSaved={(ids) => {
@@ -2674,9 +2680,9 @@ export default function LoginPage() {
           setCredEditorOpen(false);
           handleLogin(undefined, ids as Ids);
         }}
-      />
+      />}
 
-      <SyncModeEditor
+      {modeEditorOpen && <SyncModeEditor
         open={modeEditorOpen}
         onClose={() => setModeEditorOpen(false)}
         onChanged={setCustomModes}
@@ -2686,7 +2692,7 @@ export default function LoginPage() {
           setModeEditorOpen(false);
           selectSyncMode(id);
         }}
-      />
+      />}
 
       {(isLoggedIn || demoMode) && (
         <>

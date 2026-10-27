@@ -48,6 +48,11 @@ import {
 } from "lucide-react";
 import { Switch, SegmentedControl } from "../../../shared/primitives";
 import { FacultyAvatar, VitfacReviewPill } from "./FacultyAvatar";
+import { GuidedStepFooter } from "./GuidedStepFooter";
+import { renderCourseTypeChips } from "./CourseTypeChips";
+import { GuidedPhaseHeading } from "./GuidedPhaseHeading";
+import { useOverlayBack } from "@/lib/overlayStack";
+import { getBatchColorClass } from "@/lib/utils";
 import { ParsedCourse, AddedCourse, TimetableState, CourseLock, Friend, FriendGroup, TimetablePeriod } from "../types";
 import { COLORS, DAYS } from "../constants";
 import { splitSlots, sameSlotFacultyAlternatives } from "../logic/generate";
@@ -174,8 +179,6 @@ export interface FFCSGuidedSelectorProps {
   checkClashes?: (slots: string[], excludeCourseCode?: string) => string | null;
   isGroupingEnabled?: boolean;
   setIsGroupingEnabled?: (enabled: boolean) => void;
-  renderTypeChips?: (types: string[] | string, size?: "sm" | "md") => React.ReactNode;
-  getBatchColorClass?: (batch: string) => string;
   courseAlternativesPool?: ParsedCourse[];
   onOpenFacultyReview?: (target: { name: string; employeeId?: string; courseCode?: string }) => void;
   onOpenPasteRegistered?: () => void;
@@ -546,8 +549,6 @@ export default function FFCSGuidedSelector({
   checkClashes = () => null,
   isGroupingEnabled = true,
   setIsGroupingEnabled,
-  renderTypeChips = () => null,
-  getBatchColorClass = () => "bg-zinc-800 text-zinc-300",
   courseAlternativesPool,
   onOpenFacultyReview,
   onOpenPasteRegistered,
@@ -1394,6 +1395,16 @@ export default function FFCSGuidedSelector({
     }
   };
 
+  // Guided phases behave like nested pages: predictive back walks through
+  // them one step at a time, then returns from guided layout to the timetable.
+  const handleSystemBack = () => {
+    const hasPreviousStep = guidedPhase !== "setup_mode";
+    handlePrevStep();
+    return hasPreviousStep;
+  };
+
+  useOverlayBack("ffcs-guided-flow", true, handleSystemBack);
+
   const handleNextStep = () => {
     if (guidedPhase === "builder") {
       if (currentStep === 1 && selectedCourseCode) setCurrentStep(2);
@@ -2087,7 +2098,7 @@ export default function FFCSGuidedSelector({
                       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1">
                         <div className="flex flex-col gap-1 min-w-0">
                           <span className="font-black text-sm sm:text-base text-white font-outfit">{c.code}</span>
-                          <div className="flex items-center gap-1 flex-wrap">{renderTypeChips(c.types || [], "sm")}</div>
+                          <div className="flex items-center gap-1 flex-wrap">{renderCourseTypeChips(c.types || [], "sm")}</div>
                         </div>
                         <div className="flex items-center gap-1.5 flex-wrap sm:shrink-0">
                           {c.batches &&
@@ -2328,7 +2339,7 @@ export default function FFCSGuidedSelector({
                           Theory + Lab
                         </span>
                       )}
-                      {renderTypeChips(c.types || [], "sm")}
+                      {renderCourseTypeChips(c.types || [], "sm")}
                     </div>
                     <p className="text-xs text-zinc-400 font-medium truncate">{c.title}</p>
 
@@ -4031,7 +4042,7 @@ export default function FFCSGuidedSelector({
                     </span>
                   </div>
                   <div className="flex items-center gap-1 my-1 flex-wrap">
-                    {renderTypeChips(course.type, "sm")}
+                    {renderCourseTypeChips(course.type, "sm")}
                   </div>
                   <p className="text-xs text-zinc-400 truncate">{course.title}</p>
                 </div>
@@ -4549,7 +4560,7 @@ export default function FFCSGuidedSelector({
                         Theory + Lab
                       </span>
                     )}
-                    {renderTypeChips(c.types || [], "sm")}
+                    {renderCourseTypeChips(c.types || [], "sm")}
                   </div>
                   <p className="text-xs text-zinc-400 font-medium truncate">{c.title}</p>
                 </div>
@@ -4584,7 +4595,7 @@ export default function FFCSGuidedSelector({
             </div>
             {selectedCourseMeta && (
               <div className="flex items-center gap-1 flex-wrap">
-                {renderTypeChips(selectedCourseMeta.types || [], "sm")}
+                {renderCourseTypeChips(selectedCourseMeta.types || [], "sm")}
               </div>
             )}
           </div>
@@ -4710,7 +4721,7 @@ export default function FFCSGuidedSelector({
           </h2>
           {selectedCourseMeta && (
             <div className="flex items-center gap-1 mt-1.5 flex-wrap">
-              {renderTypeChips(selectedCourseMeta.types || [], "sm")}
+              {renderCourseTypeChips(selectedCourseMeta.types || [], "sm")}
             </div>
           )}
         </div>
@@ -4897,15 +4908,7 @@ export default function FFCSGuidedSelector({
 
     if (guidedPhase === "setup_timetable") {
       return (
-        <div className="flex items-center gap-2 w-full">
-          <button
-            type="button"
-            onClick={handlePrevStep}
-            aria-label="Previous Step"
-            className="w-12 h-12 rounded-2xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 text-white flex items-center justify-center shadow-lg transition-all active:scale-90 hover:scale-105 cursor-pointer shrink-0"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
+        <GuidedStepFooter onPrevious={handlePrevStep}>
           <button
             type="button"
             onClick={() => setGuidedPhase("setup_strategy")}
@@ -4914,21 +4917,13 @@ export default function FFCSGuidedSelector({
             <span>Continue to Course Strategy</span>
             <ArrowRight className="w-4 h-4 shrink-0" />
           </button>
-        </div>
+        </GuidedStepFooter>
       );
     }
 
     if (guidedPhase === "setup_strategy") {
       return (
-        <div className="flex items-center gap-2 w-full">
-          <button
-            type="button"
-            onClick={handlePrevStep}
-            aria-label="Previous Step"
-            className="w-12 h-12 rounded-2xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 text-white flex items-center justify-center shadow-lg transition-all active:scale-90 hover:scale-105 cursor-pointer shrink-0"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
+        <GuidedStepFooter onPrevious={handlePrevStep}>
           <button
             type="button"
             onClick={() => {
@@ -4954,21 +4949,13 @@ export default function FFCSGuidedSelector({
             </span>
             <ArrowRight className="w-4 h-4 shrink-0" />
           </button>
-        </div>
+        </GuidedStepFooter>
       );
     }
 
     if (guidedPhase === "setup_locks") {
       return (
-        <div className="flex items-center gap-2 w-full">
-          <button
-            type="button"
-            onClick={handlePrevStep}
-            aria-label="Previous Step"
-            className="w-12 h-12 rounded-2xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 text-white flex items-center justify-center shadow-lg transition-all active:scale-90 hover:scale-105 cursor-pointer shrink-0"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
+        <GuidedStepFooter onPrevious={handlePrevStep}>
           <button
             type="button"
             onClick={() => {
@@ -4997,22 +4984,14 @@ export default function FFCSGuidedSelector({
             </span>
             <ArrowRight className="w-4 h-4 shrink-0" />
           </button>
-        </div>
+        </GuidedStepFooter>
       );
     }
 
     // Auto phases bottom actions
     if (guidedPhase === "auto_courses") {
       return (
-        <div className="flex items-center gap-2 w-full">
-          <button
-            type="button"
-            onClick={handlePrevStep}
-            aria-label="Previous Step"
-            className="w-12 h-12 rounded-2xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 text-white flex items-center justify-center shadow-lg transition-all active:scale-90 hover:scale-105 cursor-pointer shrink-0"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
+        <GuidedStepFooter onPrevious={handlePrevStep}>
           <button
             type="button"
             disabled={effectiveCourseLocks.length === 0}
@@ -5029,21 +5008,13 @@ export default function FFCSGuidedSelector({
             <span>Configure Slots &amp; Faculty ({effectiveCourseLocks.length})</span>
             <ArrowRight className="w-4 h-4 shrink-0" />
           </button>
-        </div>
+        </GuidedStepFooter>
       );
     }
 
     if (guidedPhase === "auto_slots_faculty") {
       return (
-        <div className="flex items-center gap-2 w-full">
-          <button
-            type="button"
-            onClick={handlePrevStep}
-            aria-label="Previous Step"
-            className="w-12 h-12 rounded-2xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 text-white flex items-center justify-center shadow-lg transition-all active:scale-90 hover:scale-105 cursor-pointer shrink-0"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
+        <GuidedStepFooter onPrevious={handlePrevStep}>
           <button
             type="button"
             onClick={() => setGuidedPhase("auto_timings")}
@@ -5052,21 +5023,13 @@ export default function FFCSGuidedSelector({
             <span>Continue to Class Timings</span>
             <ArrowRight className="w-4 h-4 shrink-0" />
           </button>
-        </div>
+        </GuidedStepFooter>
       );
     }
 
     if (guidedPhase === "auto_timings") {
       return (
-        <div className="flex items-center gap-2 w-full">
-          <button
-            type="button"
-            onClick={handlePrevStep}
-            aria-label="Previous Step"
-            className="w-12 h-12 rounded-2xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 text-white flex items-center justify-center shadow-lg transition-all active:scale-90 hover:scale-105 cursor-pointer shrink-0"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
+        <GuidedStepFooter onPrevious={handlePrevStep}>
           <button
             type="button"
             onClick={() => {
@@ -5078,21 +5041,13 @@ export default function FFCSGuidedSelector({
             <span>Continue to Day &amp; Slot Blocking</span>
             <ArrowRight className="w-4 h-4 shrink-0" />
           </button>
-        </div>
+        </GuidedStepFooter>
       );
     }
 
     if (guidedPhase === "auto_blocking") {
       return (
-        <div className="flex items-center gap-2 w-full">
-          <button
-            type="button"
-            onClick={handlePrevStep}
-            aria-label="Previous Step"
-            className="w-12 h-12 rounded-2xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 text-white flex items-center justify-center shadow-lg transition-all active:scale-90 hover:scale-105 cursor-pointer shrink-0"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
+        <GuidedStepFooter onPrevious={handlePrevStep}>
           <button
             type="button"
             onClick={() => setGuidedPhase("auto_half_days")}
@@ -5101,21 +5056,13 @@ export default function FFCSGuidedSelector({
             <span>Continue to Half-Days &amp; Limits</span>
             <ArrowRight className="w-4 h-4 shrink-0" />
           </button>
-        </div>
+        </GuidedStepFooter>
       );
     }
 
     if (guidedPhase === "auto_half_days") {
       return (
-        <div className="flex items-center gap-2 w-full">
-          <button
-            type="button"
-            onClick={handlePrevStep}
-            aria-label="Previous Step"
-            className="w-12 h-12 rounded-2xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 text-white flex items-center justify-center shadow-lg transition-all active:scale-90 hover:scale-105 cursor-pointer shrink-0"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
+        <GuidedStepFooter onPrevious={handlePrevStep}>
           <button
             type="button"
             onClick={() => {
@@ -5127,21 +5074,13 @@ export default function FFCSGuidedSelector({
             <span>{friends && friends.length > 0 ? "Continue to Friends Sync" : "Review Generation Blueprint"}</span>
             <ArrowRight className="w-4 h-4 shrink-0" />
           </button>
-        </div>
+        </GuidedStepFooter>
       );
     }
 
     if (guidedPhase === "auto_social") {
       return (
-        <div className="flex items-center gap-2 w-full">
-          <button
-            type="button"
-            onClick={handlePrevStep}
-            aria-label="Previous Step"
-            className="w-12 h-12 rounded-2xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 text-white flex items-center justify-center shadow-lg transition-all active:scale-90 hover:scale-105 cursor-pointer shrink-0"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
+        <GuidedStepFooter onPrevious={handlePrevStep}>
           <button
             type="button"
             onClick={() => setGuidedPhase("auto_summary")}
@@ -5150,22 +5089,13 @@ export default function FFCSGuidedSelector({
             <span>Review Generation Blueprint</span>
             <ArrowRight className="w-4 h-4 shrink-0" />
           </button>
-        </div>
+        </GuidedStepFooter>
       );
     }
 
     if (guidedPhase === "auto_summary") {
       return (
-        <div className="flex items-center gap-2 w-full">
-          <button
-            type="button"
-            disabled={generation.isGenerating}
-            onClick={handlePrevStep}
-            aria-label="Previous Step"
-            className="w-12 h-12 rounded-2xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 text-white flex items-center justify-center shadow-lg transition-all active:scale-90 hover:scale-105 cursor-pointer shrink-0 disabled:opacity-40"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
+        <GuidedStepFooter onPrevious={handlePrevStep} previousDisabled={generation.isGenerating}>
           <button
             type="button"
             disabled={generation.isGenerating || effectiveCourseLocks.length === 0}
@@ -5184,7 +5114,7 @@ export default function FFCSGuidedSelector({
               </>
             )}
           </button>
-        </div>
+        </GuidedStepFooter>
       );
     }
 
@@ -5737,591 +5667,430 @@ export default function FFCSGuidedSelector({
             <div className="flex-1 flex flex-col justify-center space-y-4 my-auto py-4">
               {guidedPhase === "setup_mode" && (
                 <>
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-lg">
-                    <Sparkles className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400 font-outfit">
-                      Phase 1 · Mode
-                    </span>
-                    <h1 className="text-2xl lg:text-3xl font-black text-white font-outfit tracking-tight">
-                      Choose Creation Mode
-                    </h1>
-                  </div>
-                  <p className="text-xs text-zinc-400 font-medium leading-relaxed">
-                    Choose between automated algorithmic generation or building your timetable step-by-step with real-time clash checking.
-                  </p>
-                </>
-              )}
-
-              {guidedPhase === "setup_timetable" && (
-                <>
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-lg">
-                    <CalendarDays className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400 font-outfit">
-                      Phase 2 · Timetable
-                    </span>
-                    <h1 className="text-2xl lg:text-3xl font-black text-white font-outfit tracking-tight">
-                      Select Target Timetable
-                    </h1>
-                  </div>
-                  <p className="text-xs text-zinc-400 font-medium leading-relaxed">
-                    Choose which timetable to edit, create a new variant, or rename your existing schedules.
-                  </p>
-                </>
-              )}
-
-              {guidedPhase === "setup_strategy" && (
-                <>
-                  <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shadow-lg">
-                    <Sliders className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-purple-400 font-outfit">
-                      Phase 3 · Strategy
-                    </span>
-                    <h1 className="text-2xl lg:text-3xl font-black text-white font-outfit tracking-tight">
-                      Course Strategy
-                    </h1>
-                  </div>
-                  <p className="text-xs text-zinc-400 font-medium leading-relaxed">
-                    Decide whether to lock mandatory target courses in advance or explore offerings one by one.
-                  </p>
-                </>
-              )}
-
-              {guidedPhase === "setup_locks" && (
-                <>
-                  <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shadow-lg">
-                    <Lock className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-purple-400 font-outfit">
-                      Phase 4 · Lock Target Courses
-                    </span>
-                    <h1 className="text-2xl lg:text-3xl font-black text-white font-outfit tracking-tight">
-                      Lock Courses &amp; Slots
-                    </h1>
-                  </div>
-                  <p className="text-xs text-zinc-400 font-medium leading-relaxed">
-                    Select mandatory courses and optionally lock specific slot clusters (like A1 or B1 slots) or faculties.
-                  </p>
-                </>
-              )}
-
-              {guidedPhase === "auto_courses" && (
-                <>
-                  <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shadow-lg">
-                    <BookOpen className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 font-outfit">
-                      Auto Step 1 · Courses
-                    </span>
-                    <h1 className="text-2xl lg:text-3xl font-black text-white font-outfit tracking-tight">
-                      Choose Courses
-                    </h1>
-                  </div>
-                  <p className="text-xs text-zinc-400 font-medium leading-relaxed">
-                    Select all courses you want the generator to find combinations for.
-                  </p>
-                </>
-              )}
-
-              {guidedPhase === "auto_slots_faculty" && (
-                <>
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-lg">
-                    <Sliders className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400 font-outfit">
-                      Auto Step 2 · Slots &amp; Faculty
-                    </span>
-                    <h1 className="text-2xl lg:text-3xl font-black text-white font-outfit tracking-tight">
-                      Slots &amp; Faculty
-                    </h1>
-                  </div>
-                  <p className="text-xs text-zinc-400 font-medium leading-relaxed">
-                    Optionally pick preferred slot bundles (like A1 or B1 slots) or specific professors for your selected courses.
-                  </p>
-                </>
-              )}
-
-              {guidedPhase === "auto_timings" && (
-                <>
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-lg">
-                    <Clock className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400 font-outfit">
-                      Auto Step 3 · Day Timings
-                    </span>
-                    <h1 className="text-2xl lg:text-3xl font-black text-white font-outfit tracking-tight">
-                      Class Timings
-                    </h1>
-                  </div>
-                  <p className="text-xs text-zinc-400 font-medium leading-relaxed">
-                    Set earliest start times and latest wrap-up hours using period-aligned chips.
-                  </p>
-                </>
-              )}
-
-              {guidedPhase === "auto_blocking" && (
-                <>
-                  <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shadow-lg">
-                    <LayoutGrid className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-rose-400 font-outfit">
-                      Auto Step 4 · Day &amp; Slot Blocking
-                    </span>
-                    <h1 className="text-2xl lg:text-3xl font-black text-white font-outfit tracking-tight">
-                      Block Slots
-                    </h1>
-                  </div>
-                  <p className="text-xs text-zinc-400 font-medium leading-relaxed">
-                    Rule out whole days, mornings, or tap individual periods directly on the vertical grid.
-                  </p>
-                </>
-              )}
-
-              {guidedPhase === "auto_half_days" && (
-                <>
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shadow-lg">
-                    <Sliders className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 font-outfit">
-                      Auto Step 5 · Half-Days &amp; Limits
-                    </span>
-                    <h1 className="text-2xl lg:text-3xl font-black text-white font-outfit tracking-tight">
-                      Half-Days &amp; Limits
-                    </h1>
-                  </div>
-                  <p className="text-xs text-zinc-400 font-medium leading-relaxed">
-                    Set target free half-days, search depth limits, and class distribution pacing style.
-                  </p>
-                </>
-              )}
-
-              {guidedPhase === "auto_social" && (
-                <>
-                  <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shadow-lg">
-                    <Users className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-purple-400 font-outfit">
-                      Auto Step 6 · Friends
-                    </span>
-                    <h1 className="text-2xl lg:text-3xl font-black text-white font-outfit tracking-tight">
-                      Peer Alignment
-                    </h1>
-                  </div>
-                  <p className="text-xs text-zinc-400 font-medium leading-relaxed">
-                    Coordinate class timings and shared break slots with your friends.
-                  </p>
-                </>
-              )}
-
-              {guidedPhase === "auto_summary" && (
-                <>
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-lg">
-                    <Wand2 className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400 font-outfit">
-                      Auto Step 7 · Summary
-                    </span>
-                    <h1 className="text-2xl lg:text-3xl font-black text-white font-outfit tracking-tight">
-                      Ready to Solve
-                    </h1>
-                  </div>
-                  <p className="text-xs text-zinc-400 font-medium leading-relaxed">
-                    Review your constraints and launch the algorithmic backtracking generator.
-                  </p>
-                </>
-              )}
-
-              {guidedPhase === "auto_results" && (
-                <>
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shadow-lg">
-                    <Award className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 font-outfit">
-                      Auto Step 8 · Results
-                    </span>
-                    <h1 className="text-2xl lg:text-3xl font-black text-white font-outfit tracking-tight">
-                      Recommendations
-                    </h1>
-                  </div>
-                  <p className="text-xs text-zinc-400 font-medium leading-relaxed">
-                    Explore top-ranked conflict-free timetables, view semester faculty schedules, swap instructors, and apply to your schedule.
-                  </p>
-                </>
-              )}
-
-              {guidedPhase === "auto_timetable_view" && (
-                <>
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-lg">
-                    <LayoutGrid className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400 font-outfit">
-                      Auto Step 8 · Grid Counterpart
-                    </span>
-                    <h1 className="text-2xl lg:text-3xl font-black text-white font-outfit tracking-tight">
-                      Timetable Grid View
-                    </h1>
-                  </div>
-                  <p className="text-xs text-zinc-400 font-medium leading-relaxed">
-                    Inspect this generated variant in full vertical timetable format and cycle through variants.
-                  </p>
-                </>
-              )}
-
-              {guidedPhase === "manual_timetable_view" && (
-                <>
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-lg">
-                    <LayoutGrid className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400 font-outfit">
-                      Phase {getPillsList().indexOf("manual_timetable_view") + 1} of {getPillsList().length} · Timetable Browser
-                    </span>
-                    <h1 className="text-2xl lg:text-3xl font-black text-white font-outfit tracking-tight">
-                      {(effectiveTimetables[browsingTimetableIndex] || activeTimetable)?.name || "Timetable"}
-                    </h1>
-                  </div>
-                  <p className="text-xs text-zinc-400 font-medium leading-relaxed">
-                    Browse and cycle through all your saved timetables, review slot allocations, and inspect metrics directly inside the hero.
-                  </p>
-                </>
-              )}
-
-              {guidedPhase === "builder" && currentStep === 1 && (
-                <>
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-lg">
-                    <BookOpen className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400 font-outfit">
-                      Phase {getPillsList().indexOf("builder_course") + 1} of {getPillsList().length} · Choose Course
-                    </span>
-                    <h1 className="text-2xl lg:text-3xl font-black text-white font-outfit tracking-tight">
-                      Choose Course for {activeTimetable.name}
-                    </h1>
-                  </div>
-                  <p className="text-xs text-zinc-400 font-medium leading-relaxed">
-                    Browse the university catalogue or filter by your pre-locked courses for <strong className="text-white">{activeTimetable.name}</strong>.
-                  </p>
-                </>
-              )}
-
-              {guidedPhase === "builder" && currentStep === 2 && (
-                <>
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-lg">
-                    <Users className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400 font-outfit">
-                      Phase {getPillsList().indexOf("builder_slot") + 1} of {getPillsList().length} · Timings &amp; Profs
-                    </span>
-                    <h1 className="text-2xl lg:text-3xl font-black text-white font-outfit tracking-tight">
-                      Pick Faculty &amp; Slot
-                    </h1>
-                  </div>
-                  <p className="text-xs text-zinc-400 font-medium leading-relaxed">
-                    Choose your preferred instructor and slot timing for <strong className="text-white">{selectedCourseCode}</strong> into <strong className="text-white">{activeTimetable.name}</strong>.
-                  </p>
-                </>
-              )}
-
-              {guidedPhase === "builder" && currentStep === 3 && (
-                <>
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shrink-0 ${
-                    isReplacingSlot ? "bg-amber-500/10 border border-amber-500/20 text-amber-400" : "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
-                  }`}>
-                    {isReplacingSlot ? <RotateCcw className="w-6 h-6" /> : <CheckCircle2 className="w-6 h-6" />}
-                  </div>
-                  <div>
-                    <span className={`text-[10px] font-black uppercase tracking-wider font-outfit ${isReplacingSlot ? "text-amber-400" : "text-emerald-400"}`}>
-                      Phase {getPillsList().indexOf("builder_review") + 1} of {getPillsList().length} · {isReplacingSlot ? "Replace Slot" : "Review & Place"}
-                    </span>
-                    <h1 className="text-2xl lg:text-3xl font-black text-white font-outfit tracking-tight">
-                      {isReplacingSlot ? "Replace Slot" : "Review & Place"}
-                    </h1>
-                  </div>
-                  <p className="text-xs text-zinc-400 font-medium leading-relaxed">
-                    {isReplacingSlot ? (
-                      <>This course is currently in <strong className="text-white">{activeTimetable.name}</strong>. Confirm to replace the existing slot.</>
-                    ) : (
-                      <>Confirm placement into <strong className="text-white">{activeTimetable.name}</strong> with community ratings and clash detection.</>
+                  <GuidedPhaseHeading
+                    tone="indigo"
+                    icon={<Sparkles className="w-6 h-6" />}
+                    eyebrow={<>Phase 1 · Mode</>}
+                    title={<>Choose Creation Mode</>}
+                    description={<>Choose between automated algorithmic generation or building your timetable step-by-step with real-time clash checking.</>}
+                    />
+                    </>
                     )}
-                  </p>
-                </>
-              )}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 w-full">
-              {renderBottomActions()}
-            </div>
-          </div>
-
-          {/* Right Pane (~58%) */}
-          <div className="w-[58%] flex-1 flex items-center justify-center h-full min-h-0 pl-2 lg:pl-6 overflow-hidden">
-            {guidedPhase === "setup_mode" && renderSetupModeCard(true)}
-            {guidedPhase === "setup_timetable" && renderSetupTimetableCard(true)}
-            {guidedPhase === "setup_strategy" && renderSetupStrategyCard(true)}
-            {guidedPhase === "setup_locks" && renderSetupLocksCard(true)}
-            {guidedPhase === "auto_courses" && renderAutoCoursesCard(true)}
-            {guidedPhase === "auto_slots_faculty" && renderAutoSlotsFacultyCard(true)}
-            {guidedPhase === "auto_timings" && renderAutoTimingsCard(true)}
-            {guidedPhase === "auto_blocking" && renderAutoBlockingCard(true)}
-            {guidedPhase === "auto_half_days" && renderAutoHalfDaysCard(true)}
-            {guidedPhase === "auto_social" && renderAutoSocialCard(true)}
-            {guidedPhase === "auto_summary" && renderAutoSummaryCard(true)}
-            {guidedPhase === "auto_results" && renderAutoResultsCard(true)}
-            {guidedPhase === "auto_timetable_view" && renderAutoTimetableViewCard(true)}
-            {guidedPhase === "manual_timetable_view" && renderManualTimetableViewCard(true)}
-            {guidedPhase === "builder" && currentStep === 1 && renderCourseListCard(true)}
-            {guidedPhase === "builder" && currentStep === 2 && renderSlotOfferingsCard(true)}
-            {guidedPhase === "builder" && currentStep === 3 && renderReviewCard(true)}
-          </div>
-        </div>
-      ) : (
-        /* Vertical Portrait Layout */
-        <>
-          {renderHeader()}
-
-          <main className="relative z-20 w-full max-w-md sm:max-w-2xl mx-auto flex-1 flex flex-col justify-center min-h-0 my-auto py-2 sm:py-3">
-            {isMobileViewport && !hasLaunchedHero ? (
-              renderMobilePreflightCard()
-            ) : (
-              <>
-            {guidedPhase === "setup_mode" && (
-              <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
-                <div className="flex flex-col items-center gap-2 shrink-0">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-lg">
-                    <Sparkles className="w-6 h-6" />
-                  </div>
-                  <h1 className="text-2xl sm:text-3xl font-black text-white font-outfit tracking-tight">Choose Creation Mode</h1>
-                  <p className="text-xs text-zinc-400 font-medium max-w-xs sm:max-w-md">
-                    Choose between automated algorithmic generation or building your timetable step-by-step.
-                  </p>
-                </div>
+                    {guidedPhase === "setup_timetable" && (
+                    <>
+                    <GuidedPhaseHeading
+                    tone="indigo"
+                    icon={<CalendarDays className="w-6 h-6" />}
+                    eyebrow={<>Phase 2 · Timetable</>}
+                    title={<>Select Target Timetable</>}
+                    description={<>Choose which timetable to edit, create a new variant, or rename your existing schedules.</>}
+                    />
+                    </>
+                    )}
+                    {guidedPhase === "setup_strategy" && (
+                    <>
+                    <GuidedPhaseHeading
+                    tone="purple"
+                    icon={<Sliders className="w-6 h-6" />}
+                    eyebrow={<>Phase 3 · Strategy</>}
+                    title={<>Course Strategy</>}
+                    description={<>Decide whether to lock mandatory target courses in advance or explore offerings one by one.</>}
+                    />
+                    </>
+                    )}
+                    {guidedPhase === "setup_locks" && (
+                    <>
+                    <GuidedPhaseHeading
+                    tone="purple"
+                    icon={<Lock className="w-6 h-6" />}
+                    eyebrow={<>Phase 4 · Lock Target Courses</>}
+                    title={<>Lock Courses &amp; Slots</>}
+                    description={<>Select mandatory courses and optionally lock specific slot clusters (like A1 or B1 slots) or faculties.</>}
+                    />
+                    </>
+                    )}
+                    {guidedPhase === "auto_courses" && (
+                    <>
+                    <GuidedPhaseHeading
+                    tone="amber"
+                    icon={<BookOpen className="w-6 h-6" />}
+                    eyebrow={<>Auto Step 1 · Courses</>}
+                    title={<>Choose Courses</>}
+                    description={<>Select all courses you want the generator to find combinations for.</>}
+                    />
+                    </>
+                    )}
+                    {guidedPhase === "auto_slots_faculty" && (
+                    <>
+                    <GuidedPhaseHeading
+                    tone="indigo"
+                    icon={<Sliders className="w-6 h-6" />}
+                    eyebrow={<>Auto Step 2 · Slots &amp; Faculty</>}
+                    title={<>Slots &amp; Faculty</>}
+                    description={<>Optionally pick preferred slot bundles (like A1 or B1 slots) or specific professors for your selected courses.</>}
+                    />
+                    </>
+                    )}
+                    {guidedPhase === "auto_timings" && (
+                    <>
+                    <GuidedPhaseHeading
+                    tone="indigo"
+                    icon={<Clock className="w-6 h-6" />}
+                    eyebrow={<>Auto Step 3 · Day Timings</>}
+                    title={<>Class Timings</>}
+                    description={<>Set earliest start times and latest wrap-up hours using period-aligned chips.</>}
+                    />
+                    </>
+                    )}
+                    {guidedPhase === "auto_blocking" && (
+                    <>
+                    <GuidedPhaseHeading
+                    tone="rose"
+                    icon={<LayoutGrid className="w-6 h-6" />}
+                    eyebrow={<>Auto Step 4 · Day &amp; Slot Blocking</>}
+                    title={<>Block Slots</>}
+                    description={<>Rule out whole days, mornings, or tap individual periods directly on the vertical grid.</>}
+                    />
+                    </>
+                    )}
+                    {guidedPhase === "auto_half_days" && (
+                    <>
+                    <GuidedPhaseHeading
+                    tone="emerald"
+                    icon={<Sliders className="w-6 h-6" />}
+                    eyebrow={<>Auto Step 5 · Half-Days &amp; Limits</>}
+                    title={<>Half-Days &amp; Limits</>}
+                    description={<>Set target free half-days, search depth limits, and class distribution pacing style.</>}
+                    />
+                    </>
+                    )}
+                    {guidedPhase === "auto_social" && (
+                    <>
+                    <GuidedPhaseHeading
+                    tone="purple"
+                    icon={<Users className="w-6 h-6" />}
+                    eyebrow={<>Auto Step 6 · Friends</>}
+                    title={<>Peer Alignment</>}
+                    description={<>Coordinate class timings and shared break slots with your friends.</>}
+                    />
+                    </>
+                    )}
+                    {guidedPhase === "auto_summary" && (
+                    <>
+                    <GuidedPhaseHeading
+                    tone="indigo"
+                    icon={<Wand2 className="w-6 h-6" />}
+                    eyebrow={<>Auto Step 7 · Summary</>}
+                    title={<>Ready to Solve</>}
+                    description={<>Review your constraints and launch the algorithmic backtracking generator.</>}
+                    />
+                    </>
+                    )}
+                    {guidedPhase === "auto_results" && (
+                    <>
+                    <GuidedPhaseHeading
+                    tone="emerald"
+                    icon={<Award className="w-6 h-6" />}
+                    eyebrow={<>Auto Step 8 · Results</>}
+                    title={<>Recommendations</>}
+                    description={<>Explore top-ranked conflict-free timetables, view semester faculty schedules, swap instructors, and apply to your schedule.</>}
+                    />
+                    </>
+                    )}
+                    {guidedPhase === "auto_timetable_view" && (
+                    <>
+                    <GuidedPhaseHeading
+                    tone="indigo"
+                    icon={<LayoutGrid className="w-6 h-6" />}
+                    eyebrow={<>Auto Step 8 · Grid Counterpart</>}
+                    title={<>Timetable Grid View</>}
+                    description={<>Inspect this generated variant in full vertical timetable format and cycle through variants.</>}
+                    />
+                    </>
+                    )}
+                    {guidedPhase === "manual_timetable_view" && (
+                    <>
+                    <GuidedPhaseHeading
+                    tone="indigo"
+                    icon={<LayoutGrid className="w-6 h-6" />}
+                    eyebrow={<>Phase {getPillsList().indexOf("manual_timetable_view") + 1} of {getPillsList().length} · Timetable Browser</>}
+                    title={<>{(effectiveTimetables[browsingTimetableIndex] || activeTimetable)?.name || "Timetable"}</>}
+                    description={<>Browse and cycle through all your saved timetables, review slot allocations, and inspect metrics directly inside the hero.</>}
+                    />
+                    </>
+                    )}
+                    {guidedPhase === "builder" && currentStep === 1 && (
+                    <>
+                    <GuidedPhaseHeading
+                    tone="indigo"
+                    icon={<BookOpen className="w-6 h-6" />}
+                    eyebrow={<>Phase {getPillsList().indexOf("builder_course") + 1} of {getPillsList().length} · Choose Course</>}
+                    title={<>Choose Course for {activeTimetable.name}</>}
+                    description={<>Browse the university catalogue or filter by your pre-locked courses for <strong className="text-white">{activeTimetable.name}</strong>.</>}
+                    />
+                    </>
+                    )}
+                    {guidedPhase === "builder" && currentStep === 2 && (
+                    <>
+                    <GuidedPhaseHeading
+                    tone="indigo"
+                    icon={<Users className="w-6 h-6" />}
+                    eyebrow={<>Phase {getPillsList().indexOf("builder_slot") + 1} of {getPillsList().length} · Timings &amp; Profs</>}
+                    title={<>Pick Faculty &amp; Slot</>}
+                    description={<>Choose your preferred instructor and slot timing for <strong className="text-white">{selectedCourseCode}</strong> into <strong className="text-white">{activeTimetable.name}</strong>.</>}
+                    />
+                    </>
+                    )}
+                    {guidedPhase === "builder" && currentStep === 3 && (
+                    <>
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shrink-0 ${
+                    isReplacingSlot ? "bg-amber-500/10 border border-amber-500/20 text-amber-400" : "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
+                    }`}>
+                    {isReplacingSlot ? <RotateCcw className="w-6 h-6" /> : <CheckCircle2 className="w-6 h-6" />}
+                    </div>
+                    <div>
+                    <span className={`text-[10px] font-black uppercase tracking-wider font-outfit ${isReplacingSlot ? "text-amber-400" : "text-emerald-400"}`}>
+                    Phase {getPillsList().indexOf("builder_review") + 1} of {getPillsList().length} · {isReplacingSlot ? "Replace Slot" : "Review & Place"}
+                    </span>
+                    <h1 className="text-2xl lg:text-3xl font-black text-white font-outfit tracking-tight">
+                    {isReplacingSlot ? "Replace Slot" : "Review & Place"}
+                    </h1>
+                    </div>
+                    <p className="text-xs text-zinc-400 font-medium leading-relaxed">
+                    {isReplacingSlot ? (
+                    <>This course is currently in <strong className="text-white">{activeTimetable.name}</strong>. Confirm to replace the existing slot.</>
+                    ) : (
+                    <>Confirm placement into <strong className="text-white">{activeTimetable.name}</strong> with community ratings and clash detection.</>
+                    )}
+                    </p>
+                    </>
+                    )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 w-full">
+                    {renderBottomActions()}
+                    </div>
+                    </div>
+                    {/* Right Pane (~58%) */}
+                    <div className="w-[58%] flex-1 flex items-center justify-center h-full min-h-0 pl-2 lg:pl-6 overflow-hidden">
+                    {guidedPhase === "setup_mode" && renderSetupModeCard(true)}
+                    {guidedPhase === "setup_timetable" && renderSetupTimetableCard(true)}
+                    {guidedPhase === "setup_strategy" && renderSetupStrategyCard(true)}
+                    {guidedPhase === "setup_locks" && renderSetupLocksCard(true)}
+                    {guidedPhase === "auto_courses" && renderAutoCoursesCard(true)}
+                    {guidedPhase === "auto_slots_faculty" && renderAutoSlotsFacultyCard(true)}
+                    {guidedPhase === "auto_timings" && renderAutoTimingsCard(true)}
+                    {guidedPhase === "auto_blocking" && renderAutoBlockingCard(true)}
+                    {guidedPhase === "auto_half_days" && renderAutoHalfDaysCard(true)}
+                    {guidedPhase === "auto_social" && renderAutoSocialCard(true)}
+                    {guidedPhase === "auto_summary" && renderAutoSummaryCard(true)}
+                    {guidedPhase === "auto_results" && renderAutoResultsCard(true)}
+                    {guidedPhase === "auto_timetable_view" && renderAutoTimetableViewCard(true)}
+                    {guidedPhase === "manual_timetable_view" && renderManualTimetableViewCard(true)}
+                    {guidedPhase === "builder" && currentStep === 1 && renderCourseListCard(true)}
+                    {guidedPhase === "builder" && currentStep === 2 && renderSlotOfferingsCard(true)}
+                    {guidedPhase === "builder" && currentStep === 3 && renderReviewCard(true)}
+                    </div>
+                    </div>
+                    ) : (
+                    /* Vertical Portrait Layout */
+                    <>
+                    {renderHeader()}
+                    <main className="relative z-20 w-full max-w-md sm:max-w-2xl mx-auto flex-1 flex flex-col justify-center min-h-0 my-auto py-2 sm:py-3">
+                    {isMobileViewport && !hasLaunchedHero ? (
+                    renderMobilePreflightCard()
+                    ) : (
+                    <>
+                    {guidedPhase === "setup_mode" && (
+                    <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
+                    <GuidedPhaseHeading
+                    variant="portrait"
+                    tone="indigo"
+                    icon={<Sparkles className="w-6 h-6" />}
+                    title={<>Choose Creation Mode</>}
+                    description={<>Choose between automated algorithmic generation or building your timetable step-by-step.</>}
+                  />
                 {renderSetupModeCard(false)}
               </div>
             )}
 
             {guidedPhase === "setup_timetable" && (
               <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
-                <div className="flex flex-col items-center gap-2 shrink-0">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-lg">
-                    <CalendarDays className="w-6 h-6" />
-                  </div>
-                  <h1 className="text-2xl sm:text-3xl font-black text-white font-outfit tracking-tight">Select Target Timetable</h1>
-                  <p className="text-xs text-zinc-400 font-medium max-w-xs sm:max-w-md">
-                    Pick which timetable you want to edit and save courses into.
-                  </p>
-                </div>
+                <GuidedPhaseHeading
+                  variant="portrait"
+                  tone="indigo"
+                  icon={<CalendarDays className="w-6 h-6" />}
+                  title={<>Select Target Timetable</>}
+                  description={<>Pick which timetable you want to edit and save courses into.</>}
+                />
                 {renderSetupTimetableCard(false)}
               </div>
             )}
 
             {guidedPhase === "setup_strategy" && (
               <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
-                <div className="flex flex-col items-center gap-2 shrink-0">
-                  <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shadow-lg">
-                    <Sliders className="w-6 h-6" />
-                  </div>
-                  <h1 className="text-2xl sm:text-3xl font-black text-white font-outfit tracking-tight">Course Strategy</h1>
-                  <p className="text-xs text-zinc-400 font-medium max-w-xs sm:max-w-md">
-                    Choose whether to lock mandatory target courses in advance or pick courses dynamically.
-                  </p>
-                </div>
+                <GuidedPhaseHeading
+                  variant="portrait"
+                  tone="purple"
+                  icon={<Sliders className="w-6 h-6" />}
+                  title={<>Course Strategy</>}
+                  description={<>Choose whether to lock mandatory target courses in advance or pick courses dynamically.</>}
+                />
                 {renderSetupStrategyCard(false)}
               </div>
             )}
 
             {guidedPhase === "setup_locks" && (
               <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
-                <div className="flex flex-col items-center gap-2 shrink-0">
-                  <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shadow-lg">
-                    <Lock className="w-6 h-6" />
-                  </div>
-                  <h1 className="text-2xl sm:text-3xl font-black text-white font-outfit tracking-tight">Lock Target Courses</h1>
-                  <p className="text-xs text-zinc-400 font-medium max-w-xs sm:max-w-md">
-                    Pre-select mandatory courses and slot filters directly in this view.
-                  </p>
-                </div>
+                <GuidedPhaseHeading
+                  variant="portrait"
+                  tone="purple"
+                  icon={<Lock className="w-6 h-6" />}
+                  title={<>Lock Target Courses</>}
+                  description={<>Pre-select mandatory courses and slot filters directly in this view.</>}
+                />
                 {renderSetupLocksCard(false)}
               </div>
             )}
 
             {guidedPhase === "auto_courses" && (
               <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
-                <div className="flex flex-col items-center gap-2 shrink-0">
-                  <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shadow-lg">
-                    <BookOpen className="w-6 h-6" />
-                  </div>
-                  <h1 className="text-2xl sm:text-3xl font-black text-white font-outfit tracking-tight">Select Target Courses</h1>
-                  <p className="text-xs text-zinc-400 font-medium max-w-xs sm:max-w-md">
-                    Pick the courses you want to take this semester.
-                  </p>
-                </div>
+                <GuidedPhaseHeading
+                  variant="portrait"
+                  tone="amber"
+                  icon={<BookOpen className="w-6 h-6" />}
+                  title={<>Select Target Courses</>}
+                  description={<>Pick the courses you want to take this semester.</>}
+                />
                 {renderAutoCoursesCard(false)}
               </div>
             )}
 
             {guidedPhase === "auto_slots_faculty" && (
               <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
-                <div className="flex flex-col items-center gap-2 shrink-0">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-lg">
-                    <Sliders className="w-6 h-6" />
-                  </div>
-                  <h1 className="text-2xl sm:text-3xl font-black text-white font-outfit tracking-tight">Slots &amp; Faculty Options</h1>
-                  <p className="text-xs text-zinc-400 font-medium max-w-xs sm:max-w-md">
-                    Customize slot timings and faculty preferences for your selected courses.
-                  </p>
-                </div>
+                <GuidedPhaseHeading
+                  variant="portrait"
+                  tone="indigo"
+                  icon={<Sliders className="w-6 h-6" />}
+                  title={<>Slots &amp; Faculty Options</>}
+                  description={<>Customize slot timings and faculty preferences for your selected courses.</>}
+                />
                 {renderAutoSlotsFacultyCard(false)}
               </div>
             )}
 
             {guidedPhase === "auto_timings" && (
               <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
-                <div className="flex flex-col items-center gap-2 shrink-0">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-lg">
-                    <Clock className="w-6 h-6" />
-                  </div>
-                  <h1 className="text-2xl sm:text-3xl font-black text-white font-outfit tracking-tight">Day Timings</h1>
-                  <p className="text-xs text-zinc-400 font-medium max-w-xs sm:max-w-md">
-                    Set earliest class starts and latest wrap-up hours.
-                  </p>
-                </div>
+                <GuidedPhaseHeading
+                  variant="portrait"
+                  tone="indigo"
+                  icon={<Clock className="w-6 h-6" />}
+                  title={<>Day Timings</>}
+                  description={<>Set earliest class starts and latest wrap-up hours.</>}
+                />
                 {renderAutoTimingsCard(false)}
               </div>
             )}
 
             {guidedPhase === "auto_blocking" && (
               <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
-                <div className="flex flex-col items-center gap-2 shrink-0">
-                  <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shadow-lg">
-                    <LayoutGrid className="w-6 h-6" />
-                  </div>
-                  <h1 className="text-2xl sm:text-3xl font-black text-white font-outfit tracking-tight">Day &amp; Slot Blocking</h1>
-                  <p className="text-xs text-zinc-400 font-medium max-w-xs sm:max-w-md">
-                    Rule out days or tap slots in the vertical timetable to block them.
-                  </p>
-                </div>
+                <GuidedPhaseHeading
+                  variant="portrait"
+                  tone="rose"
+                  icon={<LayoutGrid className="w-6 h-6" />}
+                  title={<>Day &amp; Slot Blocking</>}
+                  description={<>Rule out days or tap slots in the vertical timetable to block them.</>}
+                />
                 {renderAutoBlockingCard(false)}
               </div>
             )}
 
             {guidedPhase === "auto_half_days" && (
               <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
-                <div className="flex flex-col items-center gap-2 shrink-0">
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shadow-lg">
-                    <Sliders className="w-6 h-6" />
-                  </div>
-                  <h1 className="text-2xl sm:text-3xl font-black text-white font-outfit tracking-tight">Half-Days &amp; Limits</h1>
-                  <p className="text-xs text-zinc-400 font-medium max-w-xs sm:max-w-md">
-                    Set free half-days goals, generation limits, and pacing rules.
-                  </p>
-                </div>
+                <GuidedPhaseHeading
+                  variant="portrait"
+                  tone="emerald"
+                  icon={<Sliders className="w-6 h-6" />}
+                  title={<>Half-Days &amp; Limits</>}
+                  description={<>Set free half-days goals, generation limits, and pacing rules.</>}
+                />
                 {renderAutoHalfDaysCard(false)}
               </div>
             )}
 
             {guidedPhase === "auto_social" && (
               <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
-                <div className="flex flex-col items-center gap-2 shrink-0">
-                  <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shadow-lg">
-                    <Users className="w-6 h-6" />
-                  </div>
-                  <h1 className="text-2xl sm:text-3xl font-black text-white font-outfit tracking-tight">Friends &amp; Peer Sync</h1>
-                  <p className="text-xs text-zinc-400 font-medium max-w-xs sm:max-w-md">
-                    Sync class hours and shared break slots with your peers.
-                  </p>
-                </div>
+                <GuidedPhaseHeading
+                  variant="portrait"
+                  tone="purple"
+                  icon={<Users className="w-6 h-6" />}
+                  title={<>Friends &amp; Peer Sync</>}
+                  description={<>Sync class hours and shared break slots with your peers.</>}
+                />
                 {renderAutoSocialCard(false)}
               </div>
             )}
 
             {guidedPhase === "auto_summary" && (
               <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
-                <div className="flex flex-col items-center gap-2 shrink-0">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-lg">
-                    <Wand2 className="w-6 h-6" />
-                  </div>
-                  <h1 className="text-2xl sm:text-3xl font-black text-white font-outfit tracking-tight">Generation Blueprint</h1>
-                  <p className="text-xs text-zinc-400 font-medium max-w-xs sm:max-w-md">
-                    Review your parameters and launch the timetable solver.
-                  </p>
-                </div>
+                <GuidedPhaseHeading
+                  variant="portrait"
+                  tone="indigo"
+                  icon={<Wand2 className="w-6 h-6" />}
+                  title={<>Generation Blueprint</>}
+                  description={<>Review your parameters and launch the timetable solver.</>}
+                />
                 {renderAutoSummaryCard(false)}
               </div>
             )}
 
             {guidedPhase === "auto_results" && (
               <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
-                <div className="flex flex-col items-center gap-2 shrink-0">
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shadow-lg">
-                    <Award className="w-6 h-6" />
-                  </div>
-                  <h1 className="text-2xl sm:text-3xl font-black text-white font-outfit tracking-tight">Recommended Timetables</h1>
-                  <p className="text-xs text-zinc-400 font-medium max-w-xs sm:max-w-md">
-                    Inspect recommended variants, view faculty schedules, and apply to your schedule.
-                  </p>
-                </div>
+                <GuidedPhaseHeading
+                  variant="portrait"
+                  tone="emerald"
+                  icon={<Award className="w-6 h-6" />}
+                  title={<>Recommended Timetables</>}
+                  description={<>Inspect recommended variants, view faculty schedules, and apply to your schedule.</>}
+                />
                 {renderAutoResultsCard(false)}
               </div>
             )}
 
             {guidedPhase === "auto_timetable_view" && (
               <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
-                <div className="flex flex-col items-center gap-2 shrink-0">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-lg">
-                    <LayoutGrid className="w-6 h-6" />
-                  </div>
-                  <h1 className="text-2xl sm:text-3xl font-black text-white font-outfit tracking-tight">Timetable Grid View</h1>
-                  <p className="text-xs text-zinc-400 font-medium max-w-xs sm:max-w-md">
-                    Inspect this generated timetable variant in full vertical timetable layout.
-                  </p>
-                </div>
+                <GuidedPhaseHeading
+                  variant="portrait"
+                  tone="indigo"
+                  icon={<LayoutGrid className="w-6 h-6" />}
+                  title={<>Timetable Grid View</>}
+                  description={<>Inspect this generated timetable variant in full vertical timetable layout.</>}
+                />
                 {renderAutoTimetableViewCard(false)}
               </div>
             )}
 
             {guidedPhase === "builder" && currentStep === 1 && (
               <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
-                <div className="flex flex-col items-center gap-2 shrink-0">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-lg">
-                    <BookOpen className="w-6 h-6" />
-                  </div>
-                  <h1 className="text-2xl sm:text-3xl font-black text-white font-outfit tracking-tight">Choose a Course</h1>
-                  <p className="text-xs text-zinc-400 font-medium max-w-xs sm:max-w-md">
-                    Search the master course catalogue or browse by discipline.
-                  </p>
-                </div>
+                <GuidedPhaseHeading
+                  variant="portrait"
+                  tone="indigo"
+                  icon={<BookOpen className="w-6 h-6" />}
+                  title={<>Choose a Course</>}
+                  description={<>Search the master course catalogue or browse by discipline.</>}
+                />
                 {renderCourseListCard(false)}
               </div>
             )}
 
             {guidedPhase === "builder" && currentStep === 2 && (
               <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
-                <div className="flex flex-col items-center gap-2 shrink-0">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-lg">
-                    <Users className="w-6 h-6" />
-                  </div>
-                  <h1 className="text-2xl sm:text-3xl font-black text-white font-outfit tracking-tight">Pick Faculty &amp; Slot</h1>
-                  <p className="text-xs text-zinc-400 font-medium max-w-xs sm:max-w-md">
-                    Choose your preferred instructor and timing for {selectedCourseCode}.
-                  </p>
-                </div>
+                <GuidedPhaseHeading
+                  variant="portrait"
+                  tone="indigo"
+                  icon={<Users className="w-6 h-6" />}
+                  title={<>Pick Faculty &amp; Slot</>}
+                  description={<>Choose your preferred instructor and timing for {selectedCourseCode}.</>}
+                />
                 {renderSlotOfferingsCard(false)}
               </div>
             )}

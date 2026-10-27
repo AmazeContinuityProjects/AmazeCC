@@ -34,7 +34,7 @@ interface TargetCourseLockerProps {
  * slot is `A1` and the lab tag rides along. Slot grouping buckets on this, so
  * every embedded variant of a theory slot lands under one header.
  */
-const theorySlotOf = (slot: string) => slot.split("+")[0].trim().toUpperCase();
+const theorySlotOf = (slot: string) => splitSlots(slot)[0] ?? "";
 
 export const TargetCourseLocker: React.FC<TargetCourseLockerProps> = ({
   course,

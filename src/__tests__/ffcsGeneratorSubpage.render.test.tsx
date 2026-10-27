@@ -113,7 +113,6 @@ const props = (over: Partial<FFCSGeneratorSubpageProps> = {}): FFCSGeneratorSubp
   setError: vi.fn(),
   successMsg: null,
   setSuccessMsg: vi.fn(),
-  renderTypeChips: () => null,
   getGroupedCourses: () => [],
   generatorDisplayCourses: [],
   theoryPeriods: [],

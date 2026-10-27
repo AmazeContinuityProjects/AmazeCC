@@ -2,9 +2,10 @@
 
 import { Trash2, Users } from "lucide-react";
 import type { AddedCourse } from "../types";
-import { defaultColor, getCourseBadgeProps, typeColors, typeLabels } from "../constants";
+import { getCourseBadgeProps } from "../constants";
 import { getBatchColorClass } from "@/lib/utils";
 import { FacultyAvatar, VitfacReviewPill } from "./FacultyAvatar";
+import { CourseTypeChips } from "./CourseTypeChips";
 import { groupSelectedCourses, type SelectedCourseGroup } from "../logic/groupSelectedCourses";
 
 // Re-exported for existing importers; the definitions live in their own
@@ -25,34 +26,6 @@ type SelectedCoursesListProps = {
   getFacultyInfo?: (course: SelectedCourseGroup, rawHalves: AddedCourse[]) => FacultyInfo;
   onClear?: () => void;
 };
-
-function TypeChips({ typesInput, size = "md" }: { typesInput: string; size?: "sm" | "md" }) {
-  if (!typesInput) return null;
-  let types = typesInput.split("+").map((type) => type.trim().toUpperCase()).filter(Boolean);
-  if (types.includes("ETH") && types.includes("ELA")) {
-    types = [...types.filter((type) => type !== "ETH" && type !== "ELA"), "ETH+ELA"];
-  }
-  if (types.includes("TH") && types.includes("LO")) {
-    types = [...types.filter((type) => type !== "TH" && type !== "LO"), "TH+LO"];
-  }
-  const padding = size === "sm" ? "px-1.5" : "px-2";
-  return (
-    <span className="flex flex-wrap gap-1">
-      {types.map((type) => {
-        const color = typeColors[type] || defaultColor;
-        return (
-          <span
-            key={type}
-            title={typeLabels[type] || type}
-            className={`inline-flex items-center font-bold rounded-md border ${padding} py-0.5 text-[10px] ${color.bg} ${color.text} ${color.border}`}
-          >
-            {typeLabels[type] || type}
-          </span>
-        );
-      })}
-    </span>
-  );
-}
 
 export default function SelectedCoursesList({
   courses,
@@ -146,7 +119,7 @@ export default function SelectedCoursesList({
                 <div className="flex flex-col gap-1 min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <div className={badgeProps.className} style={badgeProps.style}>{course.code}</div>
-                    <TypeChips typesInput={course.type} size="sm" />
+                    <CourseTypeChips typesInput={course.type} size="sm" compactText />
                     <span className="text-[10px] text-muted-foreground font-semibold bg-surface-secondary/70 px-1.5 py-0.5 rounded border border-border-strong/50">
                       {course.credits} cr
                     </span>
@@ -209,7 +182,7 @@ export default function SelectedCoursesList({
                       </div>
                     </div>
                   </td>
-                  <td className="py-3 px-2 text-sm text-text-heading/80"><TypeChips typesInput={course.type} /></td>
+                  <td className="py-3 px-2 text-sm text-text-heading/80"><CourseTypeChips typesInput={course.type} /></td>
                   <td className="py-3 px-2">{renderFaculty(course, rawHalves)}</td>
                   <td className="py-3 px-2">
                     <div className="flex flex-wrap gap-1">

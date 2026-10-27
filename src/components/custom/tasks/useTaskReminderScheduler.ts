@@ -16,7 +16,7 @@ import {
  * Mounted once from Main so reminders keep firing while the user is on any
  * tab, not just the Tasks hub.
  */
-export function useTaskReminderScheduler() {
+export function useTaskReminderScheduler(enabled = true) {
   const tasks = useAtomValue(tasksAtom);
   const settings = useAtomValue(settingsAtom);
   const setMessage = useSetAtom(messageAtom);
@@ -33,6 +33,8 @@ export function useTaskReminderScheduler() {
   );
 
   useEffect(() => {
+    if (!enabled) return;
+
     // Ask once; if denied, the in-app banner is the only delivery channel
     if (typeof window !== "undefined" && "Notification" in window) {
       try {
@@ -56,5 +58,5 @@ export function useTaskReminderScheduler() {
       document.removeEventListener("visibilitychange", onVisibility);
       stopReminderScheduler();
     };
-  }, [tasks, settings, notify]);
+  }, [enabled, tasks, settings, notify]);
 }

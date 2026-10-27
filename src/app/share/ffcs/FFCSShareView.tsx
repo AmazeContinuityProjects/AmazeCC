@@ -17,7 +17,7 @@ import { storage } from "@/lib/storage";
 import { track } from "@/lib/analytics";
 import { TimetableGrid } from "@/components/custom/exams/FFCS/components/TimetableGrid";
 import SelectedCoursesList from "@/components/custom/exams/FFCS/components/SelectedCoursesList";
-import FacultyReviewSheet from "@/components/custom/exams/FFCS/components/FacultyReviewSheet";
+import FacultyReviewSheetHost from "@/components/custom/exams/FFCS/components/FacultyReviewSheetHost";
 import { DAYS } from "@/components/custom/exams/FFCS/constants";
 import type { ParsedCourse, TimetablePeriod, TimetableState } from "@/components/custom/exams/FFCS/types";
 import { getFFCSSemester, parseReportRows } from "@/components/custom/exams/FFCS/reports";
@@ -25,6 +25,8 @@ import { groupSharedReportCourses } from "@/lib/ffcsCourseGrouping";
 import { COLORS } from "@/components/custom/exams/FFCS/constants";
 import { splitSlots } from "@/components/custom/exams/FFCS/logic/generate";
 import { getAssetPath } from "@/lib/utils";
+import { useOverlayBackBoundary } from "@/lib/overlayStack";
+import { useFacultyReviewSheet } from "@/components/custom/exams/FFCS/hooks/useFacultyReviewSheet";
 
 /**
  * The receiver's side of a share link: the plan, read-only, plus the two
@@ -42,6 +44,7 @@ function Card({ children, className = "" }: { children: React.ReactNode; classNa
 }
 
 export default function FFCSShareView() {
+  useOverlayBackBoundary("ffcs-share-route");
   const searchParams = useSearchParams();
   const encoded = searchParams.get("d") ?? "";
   const compactEncoded = searchParams.get("x") ?? "";
@@ -168,11 +171,11 @@ export default function FFCSShareView() {
   ]);
 
   const [isDownloading, setIsDownloading] = useState(false);
-  const [facultyReviewTarget, setFacultyReviewTarget] = useState<{
-    name: string;
-    employeeId?: string;
-    courseCode: string;
-  } | null>(null);
+  const {
+    target: facultyReviewTarget,
+    open: openFacultyReview,
+    close: closeFacultyReview,
+  } = useFacultyReviewSheet();
 
   useEffect(() => {
     if (decoded) {
@@ -323,7 +326,7 @@ export default function FFCSShareView() {
           <SelectedCoursesList
             courses={timetable.courses}
             title="The courses in this plan"
-            onReviewClick={setFacultyReviewTarget}
+            onReviewClick={openFacultyReview}
           />
         </Card>
 
@@ -364,12 +367,9 @@ export default function FFCSShareView() {
               ? "This short link contains the semester and selected class IDs; the matching public semester report supplies the timetable details."
             : "Plans travel inside the link itself — nothing was uploaded, and opening one here keeps it on this device."}
         </p>
-        <FacultyReviewSheet
-          open={!!facultyReviewTarget}
-          onClose={() => setFacultyReviewTarget(null)}
-          facultyName={facultyReviewTarget?.name || ""}
-          employeeId={facultyReviewTarget?.employeeId}
-          courseCode={facultyReviewTarget?.courseCode}
+        <FacultyReviewSheetHost
+          target={facultyReviewTarget}
+          onClose={closeFacultyReview}
         />
       </div>
     </main>

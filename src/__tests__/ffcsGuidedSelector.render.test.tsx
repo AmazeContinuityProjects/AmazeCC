@@ -2,6 +2,7 @@ import React from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import FFCSGuidedSelector from "../components/custom/exams/FFCS/components/FFCSGuidedSelector";
+import { closeTopOverlayFromPop, hasOpenOverlays } from "../lib/overlayStack";
 import type { ParsedCourse, AddedCourse, TimetableState } from "../components/custom/exams/FFCS/types";
 
 const mockMasterCourses: ParsedCourse[] = [
@@ -60,6 +61,33 @@ const mockTimetables: TimetableState[] = [
 ];
 
 describe("FFCSGuidedSelector", () => {
+  it("uses system back for guided steps before leaving the guided layout", () => {
+    const onViewTimetable = vi.fn();
+    render(
+      <FFCSGuidedSelector
+        masterCourses={mockMasterCourses}
+        activeTimetable={mockTimetables[0]}
+        onAddCourse={vi.fn()}
+        onViewTimetable={onViewTimetable}
+        initialGuidedPhase="setup_timetable"
+      />
+    );
+
+    expect(hasOpenOverlays()).toBe(true);
+    act(() => {
+      expect(closeTopOverlayFromPop()).toBe(true);
+    });
+
+    expect(screen.getAllByText("Choose Creation Mode").length).toBeGreaterThan(0);
+    expect(hasOpenOverlays()).toBe(true);
+
+    act(() => {
+      expect(closeTopOverlayFromPop()).toBe(true);
+    });
+    expect(onViewTimetable).toHaveBeenCalledTimes(1);
+    expect(hasOpenOverlays()).toBe(false);
+  });
+
   it("renders the mode selection screen and allows choosing Custom vs Auto", () => {
     render(
       <FFCSGuidedSelector

@@ -37,7 +37,8 @@ import {
   TONE_ICON_TILE,
 } from "@/lib/uiTokens";
 import FacultyScheduleModal from "./FFCS/components/modals/FacultyScheduleModal";
-import FacultyReviewSheet, { VitfacReviewPill, FacultyAvatar } from "./FFCS/components/FacultyReviewSheet";
+import { VitfacReviewPill, FacultyAvatar } from "./FFCS/components/FacultyReviewSheet";
+import FacultyReviewSheetHost from "./FFCS/components/FacultyReviewSheetHost";
 import {
   buildFacultyNameGroups,
   loadFacultyOfferings,
@@ -616,11 +617,9 @@ export default function FacultyInfoTab({
         initialFaculty={scheduleFaculty ?? undefined}
       />
 
-      <FacultyReviewSheet
-        open={reviewFaculty !== null}
+      <FacultyReviewSheetHost
+        target={reviewFaculty}
         onClose={() => setReviewFaculty(null)}
-        facultyName={reviewFaculty?.name || ""}
-        employeeId={reviewFaculty?.employeeId}
       />
     </>
   );
