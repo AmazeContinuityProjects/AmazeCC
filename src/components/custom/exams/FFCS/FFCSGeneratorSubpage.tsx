@@ -100,6 +100,15 @@ const FACULTY_METRIC_LABELS: Record<FacultyMetricKey, string> = {
 const DEFAULT_FACULTY_METRIC_ORDER: FacultyMetricKey[] = ["wPct", "lecture", "da", "vibe"];
 
 /**
+ * Slots held for extramural hours (sports, NCC, cultural blocks) — no
+ * academic offering can sit in them, so the toggle rules them out of every
+ * run. The spellings exist in the campus schemas (Chennai `wed`, AP `thu`,
+ * where the labs arrive as the combined `L17+L18`); a schema without them
+ * simply has the toggle change nothing.
+ */
+const EXTRAMURAL_SLOTS = ["TBB1", "L17", "L18"] as const;
+
+/**
  * How many option cards the review grid paints before it pauses for a
  * "Show more".
  *
@@ -286,6 +295,9 @@ export function FFCSGeneratorSubpage({
   const [generatorMaxEndTimeByDay, setGeneratorMaxEndTimeByDay] = useState<
     Partial<Record<DayId, string>>
   >(() => ({ ...(sessionPrefs.maxEndTimeByDay ?? {}) }));
+  const [blockExtramuralSlots, setBlockExtramuralSlots] = useState<boolean>(
+    () => sessionPrefs.blockExtramuralSlots ?? false
+  );
   const [generatorSortBy, setGeneratorSortBy] = useState<SortBy>(
     () => sessionPrefs.sortBy ?? settings.defaultSortBy
   );
@@ -379,6 +391,7 @@ export function FFCSGeneratorSubpage({
       minStartTime: generatorMinStartTime,
       maxEndTime: generatorMaxEndTime,
       maxEndTimeByDay: generatorMaxEndTimeByDay,
+      blockExtramuralSlots,
       sortBy: generatorSortBy,
       syncFriendsClasses: generatorSyncFriendsClasses,
       syncFriendClasses: generatorSyncFriendsClasses,
@@ -405,6 +418,7 @@ export function FFCSGeneratorSubpage({
     generatorMinStartTime,
     generatorMaxEndTime,
     generatorMaxEndTimeByDay,
+    blockExtramuralSlots,
     generatorSortBy,
     generatorSyncFriendsClasses,
     generatorMaximizeFreeTimeFriends,
@@ -612,28 +626,48 @@ export function FFCSGeneratorSubpage({
     return excluded;
   }, [allAvailableSlots, getPeriodsForSlot, generatorMinStartTime, generatorMaxEndTime, generatorMaxEndTimeByDay]);
 
-  /** What the slot map paints red: manual blocks plus everything the time limits rule out. */
-  const displayedBlockedSlots = useMemo(() => {
-    if (!timeExcludedSlots.size) return blockedSlots;
-    return new Set([...blockedSlots, ...timeExcludedSlots]);
-  }, [blockedSlots, timeExcludedSlots]);
+  /** Extramural slots as a blocked set, when the toggle is on. */
+  const extramuralBlockedSlots = useMemo(() => {
+    if (!blockExtramuralSlots) return new Set<string>();
+    return new Set(EXTRAMURAL_SLOTS.filter((slot) => allAvailableSlots.includes(slot)));
+  }, [blockExtramuralSlots, allAvailableSlots]);
 
-  /** Map-header chips: manual blocks and limit exclusions counted apart, free = the rest. */
+  /** What the slot map paints red: manual blocks, extramural hours, and everything the time limits rule out. */
+  const displayedBlockedSlots = useMemo(() => {
+    if (!timeExcludedSlots.size && !extramuralBlockedSlots.size) return blockedSlots;
+    return new Set([...blockedSlots, ...extramuralBlockedSlots, ...timeExcludedSlots]);
+  }, [blockedSlots, extramuralBlockedSlots, timeExcludedSlots]);
+
+  /**
+   * Map-header chips: manual blocks, extramural slots, and limit exclusions
+   * counted apart (a slot counted in one bucket only), free = the rest.
+   */
   const scheduleSlotCounts = useMemo(() => {
     const blocked = allAvailableSlots.filter((slot) => blockedSlots.has(slot)).length;
     const limited = allAvailableSlots.filter(
       (slot) => timeExcludedSlots.has(slot) && !blockedSlots.has(slot)
     ).length;
-    return { free: allAvailableSlots.length - blocked - limited, blocked, limited };
-  }, [allAvailableSlots, blockedSlots, timeExcludedSlots]);
+    const extramural = allAvailableSlots.filter(
+      (slot) =>
+        extramuralBlockedSlots.has(slot) &&
+        !blockedSlots.has(slot) &&
+        !timeExcludedSlots.has(slot)
+    ).length;
+    return {
+      free: allAvailableSlots.length - blocked - limited - extramural,
+      blocked,
+      limited,
+      extramural,
+    };
+  }, [allAvailableSlots, blockedSlots, timeExcludedSlots, extramuralBlockedSlots]);
 
   /**
-   * Tap-to-block for the slot map. Time-limited slots stay red regardless —
-   * they are ruled out by the pickers, not by hand, so a tap on one is a no-op
-   * (the map's caption says as much).
+   * Tap-to-block for the slot map. Extramural and time-limited slots stay red
+   * regardless — they are ruled out by the toggle and the pickers, not by
+   * hand, so a tap on one is a no-op (the map's caption says as much).
    */
   const toggleBlockedFromMap = (slot: string) => {
-    if (timeExcludedSlots.has(slot)) return;
+    if (timeExcludedSlots.has(slot) || extramuralBlockedSlots.has(slot)) return;
     toggleBlockSlot(slot);
   };
   const uniqueCourseCodes = Array.from(new Set(masterCourses.map(c => c.CODE)));
@@ -799,7 +833,10 @@ export function FFCSGeneratorSubpage({
         schema: getTimetableSchema(),
         masterCourses,
         courseLocks: generatorTargets,
-        blockedSlots: [...blockedSlots],
+        blockedSlots: [
+          ...blockedSlots,
+          ...(blockExtramuralSlots ? EXTRAMURAL_SLOTS : []),
+        ],
         friends,
         preference: generatorPreference,
         strictTheoryPreference,
@@ -2628,55 +2665,11 @@ export function FFCSGeneratorSubpage({
                       </div>
                     </section>
 
-                    <section
-                      id="generator-blocked-slots"
-                      className={`scroll-mt-24 space-y-3 rounded-xl border p-4 ${generatorViewMode === "modern" ? "border-cyan-500/20 bg-cyan-500/[0.04]" : "border-border-strong/70 bg-surface-secondary/20"} ${showGeneratorSection("schedule") ? "" : "hidden"}`}
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <h4 className="text-sm font-semibold text-text-heading">Slot map</h4>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            Tap a slot to block or unblock it. Red slots are out — blocked by hand or outside your time limits (tuned below).
-                          </p>
-                        </div>
-                        <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-                          <span className="rounded-md bg-emerald-500/10 px-2 py-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-                            {scheduleSlotCounts.free} free
-                          </span>
-                          <span className="rounded-md bg-red-500/10 px-2 py-1 text-[11px] font-bold text-red-600 dark:text-red-400">
-                            {scheduleSlotCounts.blocked} blocked
-                          </span>
-                          <span className="rounded-md bg-amber-500/10 px-2 py-1 text-[11px] font-bold text-amber-600 dark:text-amber-400">
-                            {scheduleSlotCounts.limited} by limits
-                          </span>
-                          {blockedSlots.size > 0 && (
-                            <button
-                              type="button"
-                              aria-label="Reset blocked slots"
-                              onClick={() => [...blockedSlots].forEach((slot) => toggleBlockSlot(slot))}
-                              className="rounded-md border border-border-strong px-2 py-1 text-[11px] font-semibold text-text-secondary hover:text-text-heading"
-                            >
-                              Reset
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                      <TimetableView
-                        courses={[]}
-                        theoryPeriods={theoryPeriods}
-                        labPeriods={labPeriods}
-                        blockedSlots={displayedBlockedSlots}
-                        onToggleBlockSlot={toggleBlockedFromMap}
-                        showSlotNames
-                        title="Your week"
-                      />
-                    </section>
-
                     <div className={`space-y-4 rounded-xl border p-4 ${generatorViewMode === "modern" ? "border-cyan-500/20 bg-cyan-500/[0.04]" : "border-border-strong/70 bg-surface-secondary/20"} ${showGeneratorSection("schedule") ? "" : "hidden"}`}>
                       <div>
                         <h4 className="text-sm font-semibold text-text-heading">Time windows</h4>
                         <p className="mt-1 text-xs text-muted-foreground">
-                          Earliest start, global end, and per-day end limits. Slots outside these windows show red on the map above and never appear in a generated timetable.
+                          Earliest start, global end, and per-day end limits. Slots outside these windows show red on the map below and never appear in a generated timetable.
                         </p>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -2742,22 +2735,12 @@ export function FFCSGeneratorSubpage({
                               key={day}
                               className="flex items-center gap-3 rounded-lg border border-border-strong/50 bg-surface px-3 py-2"
                             >
-                              <button
-                                type="button"
-                                role="switch"
-                                aria-checked={dayLimit !== undefined}
-                                aria-label={`${DAY_LABELS[day]} end-time limit`}
-                                onClick={toggleDayLimit}
-                                className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${
-                                  dayLimit !== undefined ? "bg-indigo-500" : "bg-surface-secondary"
-                                }`}
-                              >
-                                <span
-                                  className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${
-                                    dayLimit !== undefined ? "translate-x-4" : "translate-x-0.5"
-                                  }`}
-                                />
-                              </button>
+                              <Switch
+                                size="md"
+                                checked={dayLimit !== undefined}
+                                onCheckedChange={toggleDayLimit}
+                                label={`${DAY_LABELS[day]} end-time limit`}
+                              />
                               <span className="w-20 shrink-0 text-xs font-medium text-text-heading">
                                 {DAY_LABELS[day]}
                               </span>
@@ -2871,6 +2854,66 @@ export function FFCSGeneratorSubpage({
                       )}
                     </fieldset>
 
+                    <div className={showGeneratorSection("schedule") ? "" : "hidden"}>
+                      <ListShell>
+                        <ToggleRow
+                          title="Block extramural hours"
+                          description="Never schedule TBB1, L17, L18 — slots the college holds for extramural hours. They show red on the map below."
+                          checked={blockExtramuralSlots}
+                          onCheckedChange={setBlockExtramuralSlots}
+                        />
+                      </ListShell>
+                    </div>
+
+                    <section
+                      id="generator-blocked-slots"
+                      className={`scroll-mt-24 space-y-3 rounded-xl border p-4 ${generatorViewMode === "modern" ? "border-cyan-500/20 bg-cyan-500/[0.04]" : "border-border-strong/70 bg-surface-secondary/20"} ${showGeneratorSection("schedule") ? "" : "hidden"}`}
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <h4 className="text-sm font-semibold text-text-heading">Slot map</h4>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Your week at a glance. Tap a slot to block or unblock it. Red slots are out — blocked by hand, extramural, or outside the time windows above.
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+                          <span className="rounded-md bg-emerald-500/10 px-2 py-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                            {scheduleSlotCounts.free} free
+                          </span>
+                          <span className="rounded-md bg-red-500/10 px-2 py-1 text-[11px] font-bold text-red-600 dark:text-red-400">
+                            {scheduleSlotCounts.blocked} blocked
+                          </span>
+                          <span className="rounded-md bg-amber-500/10 px-2 py-1 text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                            {scheduleSlotCounts.limited} by limits
+                          </span>
+                          {scheduleSlotCounts.extramural > 0 && (
+                            <span className="rounded-md bg-violet-500/10 px-2 py-1 text-[11px] font-bold text-violet-600 dark:text-violet-400">
+                              {scheduleSlotCounts.extramural} extramural
+                            </span>
+                          )}
+                          {blockedSlots.size > 0 && (
+                            <button
+                              type="button"
+                              aria-label="Reset blocked slots"
+                              onClick={() => [...blockedSlots].forEach((slot) => toggleBlockSlot(slot))}
+                              className="rounded-md border border-border-strong px-2 py-1 text-[11px] font-semibold text-text-secondary hover:text-text-heading"
+                            >
+                              Reset
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <TimetableView
+                        courses={[]}
+                        theoryPeriods={theoryPeriods}
+                        labPeriods={labPeriods}
+                        blockedSlots={displayedBlockedSlots}
+                        onToggleBlockSlot={toggleBlockedFromMap}
+                        showSlotNames
+                        title="Your week"
+                      />
+                    </section>
+
                   </div>
                 </div>
 
@@ -2897,7 +2940,7 @@ export function FFCSGeneratorSubpage({
                             onChange={e => setGeneratorSyncFriendsClasses(e.target.checked)}
                             className="peer sr-only"
                           />
-                          <div className="w-10 h-6 bg-surface-secondary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-500"></div>
+                          <div className="w-10 h-6 bg-surface-secondary rounded-full peer peer-checked:after:translate-x-4 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-500"></div>
                         </div>
                         <div className="flex flex-col">
                           <span className="text-sm font-bold text-text-heading">Auto-Sync Shared Classes</span>

@@ -25,6 +25,8 @@ export interface GeneratorSessionPreferences {
   /** Faculty sub-list (metric priorities), same recipe as the factor list. */
   facultyMetricOrder?: FacultyMetricKey[];
   facultyMetricDisabled?: FacultyMetricKey[];
+  /** Exclude the extramural-hours slots (TBB1, L17, L18) from every run. */
+  blockExtramuralSlots?: boolean;
   facultyMetricWeights?: FacultyMetricWeights;
   facultyScoreFilters?: FacultyScoreFilters;
   minHalfDays?: number;

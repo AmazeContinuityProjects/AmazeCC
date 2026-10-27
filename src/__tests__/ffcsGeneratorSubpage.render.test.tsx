@@ -281,6 +281,12 @@ describe("FFCSGeneratorSubpage", () => {
 
     expect(screen.queryByLabelText("Min Start Time")).toBeNull();
     expect(screen.queryByLabelText("Max End Time")).toBeNull();
+
+    // Extramural-hours exclusion ships as a toggle above the slot map.
+    const extramural = screen.getByRole("switch", { name: /block extramural hours/i });
+    expect(extramural.getAttribute("aria-checked")).toBe("false");
+    fireEvent.click(extramural);
+    expect(extramural.getAttribute("aria-checked")).toBe("true");
     const mondayLimit = screen.getByRole("switch", { name: "Monday end-time limit" });
     expect(mondayLimit.getAttribute("aria-checked")).toBe("false");
     fireEvent.click(mondayLimit);
