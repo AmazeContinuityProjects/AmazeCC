@@ -1,4 +1,7 @@
 import type { Metadata, Viewport } from "next";
+import { DEFAULT_FFCS_SEMESTER, getFFCSSemester } from "@/components/custom/exams/FFCS/reports";
+import { getAssetPath } from "@/lib/utils";
+import PreloadReportCsv from "./PreloadReportCsv";
 
 export const viewport: Viewport = {
   themeColor: [
@@ -49,5 +52,15 @@ export const metadata: Metadata = {
 };
 
 export default function FFCSLayout({ children }: { children: React.ReactNode }) {
-  return children;
+  // The planner's first act after hydration is fetching the default
+  // semester's report (~300 KB). Preloading it from the document head starts
+  // that download alongside the route's JS instead of after it, so the course
+  // list is ready the moment the effect runs.
+  const defaultReportPath = getAssetPath(getFFCSSemester(DEFAULT_FFCS_SEMESTER).path);
+  return (
+    <>
+      <PreloadReportCsv href={defaultReportPath} />
+      {children}
+    </>
+  );
 }

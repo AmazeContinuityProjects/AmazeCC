@@ -2,12 +2,13 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import FFCSDossierSubpage from "../components/custom/exams/FFCS/components/FFCSDossierSubpage";
 import type { AddedCourse, TimetablePeriod, ParsedCourse, TimetableState } from "../components/custom/exams/FFCS/types";
+import { closeTopOverlayFromPop, hasOpenOverlays } from "../lib/overlayStack";
 
 vi.mock("@/lib/exportTimetable", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/exportTimetable")>();
   return {
     ...actual,
-    downloadModernTimetablePdf: vi.fn().mockResolvedValue(undefined),
+    downloadModernDossierHtml: vi.fn().mockResolvedValue(undefined),
   };
 });
 
@@ -147,6 +148,28 @@ describe("FFCSDossierSubpage Component", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it("closes the dossier page from system back", () => {
+    const onClose = vi.fn();
+    const { unmount } = render(
+      <FFCSDossierSubpage
+        timetable={mockTimetable}
+        courses={mockCourses}
+        theoryPeriods={mockTheoryPeriods}
+        labPeriods={mockLabPeriods}
+        days={mockDays}
+        masterCourses={mockMasterCourses}
+        onClose={onClose}
+      />
+    );
+
+    expect(hasOpenOverlays()).toBe(true);
+    expect(closeTopOverlayFromPop()).toBe(true);
+    expect(onClose).toHaveBeenCalledTimes(1);
+
+    unmount();
+    expect(hasOpenOverlays()).toBe(false);
+  });
+
   it("handles theme toggle and print triggers", () => {
     const printSpy = vi.spyOn(window, "print").mockImplementation(() => {});
     render(
@@ -167,10 +190,10 @@ describe("FFCSDossierSubpage Component", () => {
     fireEvent.click(themeBtn);
     expect(themeBtn.textContent).toContain("Dark Theme");
 
-    // Download PDF button
-    const downloadPdfBtn = screen.getByText("Download PDF");
-    expect(downloadPdfBtn).toBeDefined();
-    fireEvent.click(downloadPdfBtn);
+    // Standalone HTML dossier download
+    const downloadHtmlBtn = screen.getByText("Download HTML Dossier");
+    expect(downloadHtmlBtn).toBeDefined();
+    fireEvent.click(downloadHtmlBtn);
 
     // Print button
     const printBtn = screen.getByText("Print");

@@ -17,16 +17,17 @@
 
 import React, { useMemo, useState } from "react";
 import { Search, Users, Download, Loader2, Sparkles, AlertCircle, X } from "lucide-react";
-import * as htmlToImage from "html-to-image";
 import BottomSheet from "../../../shared/BottomSheet";
 import SearchInput from "../../../shared/SearchInput";
 import { sameSlotFacultyAlternatives, expandCourseHalves, allCourseOfferings } from "../logic/generate";
 import { offeringId } from "../reports";
 import type { AddedCourse, ParsedCourse } from "../types";
-import FacultyReviewSheet, { VitfacReviewPill, FacultyAvatar } from "./FacultyReviewSheet";
+import { VitfacReviewPill, FacultyAvatar } from "./FacultyReviewSheet";
+import FacultyReviewSheetHost from "./FacultyReviewSheetHost";
 import { getFacultyReview, ENABLE_VITFAC_INTEGRATION } from "@/lib/vitfacService";
 import { getTimetableSchema } from "@/lib/campusSchema";
 import { periodsForSlot, findPeriodClash, splitSlots } from "@/lib/slots";
+import { useFacultyReviewSheet } from "../hooks/useFacultyReviewSheet";
 
 export interface SlotFacultySwapSheetProps {
   /** The clicked row's course code. */
@@ -307,7 +308,11 @@ export default function SlotFacultySwapSheet({
   const [query, setQuery] = useState("");
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
-  const [selectedReview, setSelectedReview] = useState<{ name: string; employeeId?: string } | null>(null);
+  const {
+    target: selectedReview,
+    open: openFacultyReview,
+    close: closeFacultyReview,
+  } = useFacultyReviewSheet();
   const [showTutorial, setShowTutorial] = useState(() => {
     try {
       if (typeof window !== "undefined") {
@@ -502,7 +507,9 @@ export default function SlotFacultySwapSheet({
     setDownloadError(null);
     let container: HTMLElement | null = null;
     try {
-      const toJpegFn = htmlToImage?.toJpeg;
+      // Lazy: the sheet ships in the planner bundle, html-to-image only needs
+      // to exist once someone actually asks for the JPEG.
+      const toJpegFn = (await import("html-to-image"))?.toJpeg;
       if (typeof toJpegFn !== "function") {
         throw new Error("htmlToImage is not available");
       }
@@ -701,7 +708,7 @@ export default function SlotFacultySwapSheet({
                         name={off.FACULTY}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setSelectedReview({ name: off.FACULTY, employeeId: off.ERP_ID });
+                          openFacultyReview({ name: off.FACULTY, employeeId: off.ERP_ID });
                         }}
                       />
                     </div>
@@ -751,7 +758,7 @@ export default function SlotFacultySwapSheet({
                       name={half.faculty}
                       onClick={(e) => {
                         e.stopPropagation();
-                        setSelectedReview({ name: half.faculty, employeeId: half.employeeId });
+                        openFacultyReview({ name: half.faculty, employeeId: half.employeeId });
                       }}
                     />
                   </div>
@@ -794,7 +801,7 @@ export default function SlotFacultySwapSheet({
                           name={off.FACULTY}
                           onClick={(e) => {
                             e.stopPropagation();
-                            setSelectedReview({ name: off.FACULTY, employeeId: off.ERP_ID });
+                            openFacultyReview({ name: off.FACULTY, employeeId: off.ERP_ID });
                           }}
                         />
                       </div>
@@ -885,7 +892,7 @@ export default function SlotFacultySwapSheet({
                             name={off.FACULTY}
                             onClick={(e) => {
                               e.stopPropagation();
-                              setSelectedReview({ name: off.FACULTY, employeeId: off.ERP_ID });
+                              openFacultyReview({ name: off.FACULTY, employeeId: off.ERP_ID });
                             }}
                           />
                         </div>
@@ -978,12 +985,9 @@ export default function SlotFacultySwapSheet({
       </div>
     </BottomSheet>
 
-    <FacultyReviewSheet
-      open={!!selectedReview}
-      onClose={() => setSelectedReview(null)}
-      facultyName={selectedReview?.name || ""}
-      employeeId={selectedReview?.employeeId}
-      courseCode={code}
+    <FacultyReviewSheetHost
+      target={selectedReview ? { ...selectedReview, courseCode: code } : null}
+      onClose={closeFacultyReview}
     />
     </>
   );

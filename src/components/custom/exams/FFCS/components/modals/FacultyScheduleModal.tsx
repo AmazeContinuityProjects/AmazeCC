@@ -16,10 +16,19 @@ import {
 } from "../../logic/facultyGroups";
 import { sameSlotFacultyAlternatives, splitSlots } from "../../logic/generate";
 import type { ParsedCourse } from "../../types";
-import SlotFacultySwapSheet from "../SlotFacultySwapSheet";
 import { EmptyPanel, IconButton, ListSkeleton } from "../../../../shared/primitives";
-import FacultyReviewSheet, { VitfacReviewPill, FacultyAvatar } from "../FacultyReviewSheet";
+import { VitfacReviewPill, FacultyAvatar } from "../FacultyAvatar";
+import FacultyReviewSheetHost from "../FacultyReviewSheetHost";
 import { ENABLE_VITFAC_INTEGRATION } from "@/lib/vitfacService";
+import dynamic from "next/dynamic";
+import { useFacultyReviewSheet } from "../../hooks/useFacultyReviewSheet";
+
+/*
+ * Both sheets are interaction-only, so their code stays out of this modal's
+ * own chunk and downloads the moment the student actually opens one —
+ * instead of riding along the moment the modal itself loads.
+ */
+const SlotFacultySwapSheet = dynamic(() => import("../SlotFacultySwapSheet"), { ssr: false });
 
 /**
  * The faculty schedule browser.
@@ -59,7 +68,11 @@ export function FacultyScheduleModal({
 }: FacultyScheduleModalProps) {
   const [query, setQuery] = useState("");
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const [reviewTarget, setReviewTarget] = useState<{ name: string; employeeId?: string } | null>(null);
+  const {
+    target: reviewTarget,
+    open: openFacultyReview,
+    close: closeFacultyReview,
+  } = useFacultyReviewSheet();
   const [selectedSwapOffering, setSelectedSwapOffering] = useState<FacultyOffering | null>(null);
   const autoSelectedRef = useRef(false);
 
@@ -164,7 +177,7 @@ export function FacultyScheduleModal({
                         name={selected.canonical}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setReviewTarget({
+                          openFacultyReview({
                             name: selected.canonical,
                             employeeId: selected.offerings.find((o) => o.ERP_ID)?.ERP_ID,
                           });
@@ -349,7 +362,7 @@ export function FacultyScheduleModal({
                             name={group.canonical}
                             onClick={(e) => {
                               e.stopPropagation();
-                              setReviewTarget({
+                              openFacultyReview({
                                 name: group.canonical,
                                 employeeId: empId,
                               });
@@ -388,11 +401,9 @@ export function FacultyScheduleModal({
             )}
           </div>
 
-          <FacultyReviewSheet
-            open={!!reviewTarget}
-            onClose={() => setReviewTarget(null)}
-            facultyName={reviewTarget?.name || ""}
-            employeeId={reviewTarget?.employeeId}
+          <FacultyReviewSheetHost
+            target={reviewTarget}
+            onClose={closeFacultyReview}
           />
 
           <AnimatePresence>

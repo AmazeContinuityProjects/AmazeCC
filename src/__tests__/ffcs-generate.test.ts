@@ -1,8 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { generateTimetables } from "../components/custom/exams/FFCS/logic/generate";
-import type { GenerateParams } from "../components/custom/exams/FFCS/logic/generate";
-import type { ParsedCourse, CourseLock, Friend } from "../components/custom/exams/FFCS/types";
+import { consecutiveLabPeriodPairs, generateTimetables } from "../components/custom/exams/FFCS/logic/generate";
+import type { GenerateParams, GenerateResult } from "../components/custom/exams/FFCS/logic/generate";
+import type {
+  ParsedCourse,
+  CourseLock,
+  Friend,
+  AddedCourse,
+  TimetableState,
+} from "../components/custom/exams/FFCS/types";
+import { periodsForSlot, type SlotPeriod } from "../lib/slots";
 import chennai from "../data/campus/chennai.json";
 
 /**
@@ -883,5 +890,175 @@ describe("labs on separate days", () => {
       })
     );
     expect(r.kind).toBe("ok");
+  });
+});
+
+describe("in-tree pruning on the monotone rules", () => {
+  /**
+   * The three monotone result filters — separate lab days, no consecutive
+   * labs, the half-days floor — used to run only after the walk, on every
+   * conflict-free week it produced. They now also run *inside* it: the walk
+   * carries bitmasks for the partial week and declines an offering the moment
+   * it would break a rule, which is what lets `limit` count weeks worth
+   * showing rather than every week that merely does not collide.
+   *
+   * Pruning is only sound if it drops exactly what enumerating-then-filtering
+   * would have dropped, and in the same order. This asserts that directly:
+   * enumerate the whole tree with every rule off (the pipeline as it was, one
+   * flag away), filter that list here with plain implementations of the two
+   * lab rules and the metrics' own half-days number, and require the pruned
+   * run's output to be that list — element for element, in order.
+   *
+   * The fixture is five courses chosen so the three kinds of pruning meet
+   * each other in one tree: L1 and L2 are adjacent Monday lab periods (a
+   * same-day and a consecutive violation in one pair), L7 and L8 the same on
+   * Tuesday, F1 collides with L2 and G1 with L8 so clash-pruning and
+   * rule-pruning interleave, and E1 clashes with nothing so every surviving
+   * subtree reaches a leaf. Four weeks survive the clash check; the lab rules
+   * keep two of them.
+   */
+  const fixture = (): Partial<GenerateParams> => ({
+    masterCourses: [
+      row({ CODE: "BCSE101", SLOT: "L1", ROOM: "AB1-101" }),
+      row({ CODE: "BCSE102", SLOT: "L2", ROOM: "AB2-101" }),
+      row({ CODE: "BCSE102", SLOT: "L7", ROOM: "AB2-102" }),
+      row({ CODE: "BCSE103", SLOT: "L8", ROOM: "AB3-101" }),
+      row({ CODE: "BCSE103", SLOT: "L13", ROOM: "AB3-102" }),
+      row({ CODE: "BCSE104", SLOT: "F1", ROOM: "AB4-101" }),
+      row({ CODE: "BCSE104", SLOT: "G1", ROOM: "AB4-102" }),
+      row({ CODE: "BCSE105", SLOT: "E1", ROOM: "AB5-101" }),
+    ],
+    courseLocks: ["BCSE101", "BCSE102", "BCSE103", "BCSE104", "BCSE105"].map((code) =>
+      lock({ code })
+    ),
+    noLimit: true,
+    removeHardResultLimit: true,
+  });
+
+  const labPeriodsOf = (course: AddedCourse): SlotPeriod[] =>
+    course.slots.flatMap((slot) =>
+      periodsForSlot(chennai as never, slot).filter((period) => period.type === "lab")
+    );
+
+  /** The lab-day rule, read straight off the week: two courses, one day. */
+  const twoLabsOnADay = (timetable: TimetableState): boolean => {
+    const days = timetable.courses.flatMap(
+      (course) => [...new Set(labPeriodsOf(course).map((period) => period.day))]
+    );
+    return new Set(days).size !== days.length;
+  };
+
+  /** The pair key the walk uses, rebuilt here rather than shared with it. */
+  const pairKey = (day: string, first: number, second: number): string =>
+    `${day}:${Math.min(first, second)}:${Math.max(first, second)}`;
+
+  const labsAreConsecutive = (
+    timetable: TimetableState,
+    pairs: ReadonlySet<string>
+  ): boolean => {
+    const perCourse = timetable.courses.map(labPeriodsOf);
+    for (let i = 0; i < perCourse.length; i++) {
+      for (let j = i + 1; j < perCourse.length; j++) {
+        for (const first of perCourse[i]) {
+          for (const second of perCourse[j]) {
+            if (
+              first.day === second.day &&
+              pairs.has(pairKey(first.day, first.index, second.index))
+            ) {
+              return true;
+            }
+          }
+        }
+      }
+    }
+    return false;
+  };
+
+  /** One week's identity: what it makes a week, with nothing meta included. */
+  const weekId = (timetable: TimetableState): string =>
+    JSON.stringify(
+      timetable.courses.map((course) => [course.code, course.slots, course.faculty])
+    );
+
+  /** Grouped options flattened to one id per real week, in list order. */
+  const weekIds = (timetables: readonly TimetableState[]): string[] =>
+    timetables.flatMap((t) => [t, ...(t.variants ?? [])]).map(weekId);
+
+  interface Case {
+    name: string;
+    over: Partial<GenerateParams>;
+    /** How many of the four conflict-free weeks pass this case's rules. */
+    expected: number;
+    /** The failure code, for the cases that end in nothing at all. */
+    code?: string;
+  }
+
+  const CASES: Case[] = [
+    { name: "separate lab days", over: { separateLabDays: true }, expected: 2 },
+    { name: "no consecutive labs", over: { avoidConsecutiveLabs: true }, expected: 2 },
+    {
+      name: "both lab rules",
+      over: { separateLabDays: true, avoidConsecutiveLabs: true },
+      expected: 2,
+    },
+    {
+      name: "lunch keeps its gap",
+      over: { avoidConsecutiveLabs: true, lunchBreakSeparatesLabs: true },
+      expected: 2,
+    },
+    // The two surviving weeks fill four morning cells each (six free); the
+    // two that carry G1 — which names both Tuesday 08:55 *and* Thursday 09:50
+    // — fill five, so a floor of six keeps exactly the F1 pair. Partial weeks
+    // dip below it only if the mask marks cells `dayOccupancy` would not.
+    { name: "floor of six", over: { minHalfDays: 6 }, expected: 2 },
+    // …and a floor of seven is one too many for every leaf: each is pruned
+    // before any leaf exists, which must still read as a half-days failure
+    // rather than "no conflict-free week".
+    { name: "floor of seven", over: { minHalfDays: 7 }, expected: 0, code: "below_min_half_days" },
+    { name: "floor of nine", over: { minHalfDays: 9 }, expected: 0, code: "below_min_half_days" },
+    {
+      name: "everything at once",
+      over: { separateLabDays: true, avoidConsecutiveLabs: true, minHalfDays: 6 },
+      // Lab rules keep the F1 and G1 weeks; the floor then drops the G1 one.
+      expected: 1,
+    },
+  ];
+
+  it("drops exactly what enumerating-then-filtering drops, in order", () => {
+    const plain = generateTimetables(params(fixture()));
+    if (plain.kind !== "ok") throw new Error(`the fixture must enumerate, got ${plain.kind}`);
+    // Pin the fixture itself: four conflict-free weeks, all distinct enough
+    // to survive grouping one per option.
+    expect(plain.timetables).toHaveLength(4);
+
+    for (const testCase of CASES) {
+      const pairs = consecutiveLabPeriodPairs(
+        chennai as never,
+        testCase.over.lunchBreakSeparatesLabs ?? false
+      );
+      const oracle = plain.timetables.filter((timetable) => {
+        if (testCase.over.separateLabDays && twoLabsOnADay(timetable)) return false;
+        if (testCase.over.avoidConsecutiveLabs && labsAreConsecutive(timetable, pairs)) {
+          return false;
+        }
+        const floor = testCase.over.minHalfDays ?? 0;
+        if (floor > 0 && (timetable.metrics?.halfDays ?? 0) < floor) return false;
+        return true;
+      });
+      expect(oracle, testCase.name).toHaveLength(testCase.expected);
+
+      const pruned = generateTimetables(params({ ...fixture(), ...testCase.over }));
+      if (testCase.expected === 0) {
+        expect(pruned.kind, testCase.name).toBe("error");
+        if (pruned.kind === "error" && testCase.code) {
+          expect(pruned.code, testCase.name).toBe(testCase.code);
+        }
+      } else {
+        expect(pruned.kind, testCase.name).toBe("ok");
+      }
+      expect(weekIds(pruned.kind === "ok" ? pruned.timetables : []), testCase.name).toEqual(
+        weekIds(oracle)
+      );
+    }
   });
 });

@@ -55,7 +55,7 @@ export interface AnalyticsEventMap {
   /** A solve settled, however it ended. `capped` true when stopped early. */
   generation_done: { found: number; capped: boolean; ms: number };
   /** A share link was built. `bytes` is the encoded payload length. */
-  share_created: { courses: number; bytes: number };
+  share_created: { courses: number; bytes: number; format?: "full" | "compact" | "shape" | "numeric-shape" };
   /** The share page successfully decoded a link. */
   share_opened: { courses: number };
   /** A timetable was saved from the generator into the planner. */

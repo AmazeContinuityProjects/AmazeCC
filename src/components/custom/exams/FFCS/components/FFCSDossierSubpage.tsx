@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import { useOverlayBack } from "@/lib/overlayStack";
 import {
   ArrowLeft,
   Printer,
@@ -55,6 +56,8 @@ export default function FFCSDossierSubpage({
 }: FFCSDossierSubpageProps) {
   const [isLightMode, setIsLightMode] = useState(false);
   const [viewMode, setViewMode] = useState<"horizontal" | "vertical">(initialViewMode);
+
+  useOverlayBack("ffcs-dossier", true, onClose);
 
   // Group courses by course code
   const groupedCourses = useMemo(() => {

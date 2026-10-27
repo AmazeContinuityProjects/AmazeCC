@@ -143,10 +143,12 @@ In [`src/components/custom/exams/FFCS/logic/generate.ts`](file:///C:/Users/sugee
      chosenWindows.length = chosenWindows.length - periods.length;
      chosen.pop();
      ```
+   - When the run enables `separateLabDays`, `avoidConsecutiveLabs`, or a `minHalfDays` floor, the same step also declines an offering whose bitmask would break that rule mid-week. All three rules are *monotone* over partial weeks (a shared lab day, a consecutive pair, and an occupied half-day cell can each only be added, never removed), so cutting at first break drops exactly the sub-trees with no legal leaf — and `limit` then counts rule-legal combinations rather than every conflict-free one.
    - Only combinations with **zero period clashes across all courses** reach the leaf node and are emitted as candidate timetables.
 
 4. **Post-Search Constraints**:
-   - If `separateLabDays` is enabled, any candidate timetable placing two different lab courses on the same day is discarded via `labsShareADay`.
+   - The same three rules remain as visit-time checks (`labsShareADay`, `labsAreConsecutive`, and the `timetableMetrics.halfDays` floor). With in-tree pruning active they are a guard behind it; without it — no rule flag set — they are the whole of the rule, as they were before pruning existed.
+   - `facultyScoreFilters` is still only a post-search filter: it aggregates over the whole week's faculty and cannot be decided from a partial one.
 
 ---
 

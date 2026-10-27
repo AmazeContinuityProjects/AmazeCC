@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fireEvent, render } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import FacultyScheduleModal from "../components/custom/exams/FFCS/components/modals/FacultyScheduleModal";
 import {
   buildFacultyNameGroups,
@@ -78,7 +78,7 @@ describe("FacultyScheduleModal", () => {
     expect(document.body.textContent).toContain("AB3-101");
   });
 
-  it("renders the faculty count badge next to slot and opens SlotFacultySwapSheet with Download JPEG", () => {
+  it("renders the faculty count badge next to slot and opens SlotFacultySwapSheet with Download JPEG", async () => {
     const offering1 = offering({ FACULTY: "PARTHIBAN V", SLOT: "A1", ERP_ID: "1001" });
     const offering2 = offering({ FACULTY: "SURESH K", SLOT: "A1", ERP_ID: "1002" });
     const groups = buildFacultyNameGroups([offering1, offering2]);
@@ -102,10 +102,15 @@ describe("FacultyScheduleModal", () => {
     // Click the badge to open SlotFacultySwapSheet
     fireEvent.click(countBadge!);
 
-    // Should open sheet and display download button and guide
-    expect(document.body.textContent).toContain("Faculty in this Slot");
+    // The swap sheet is a lazily-loaded chunk, so await its content instead
+    // of asserting synchronously.
+    expect(
+      await screen.findByText("Faculty in this Slot", {}, { timeout: 10000 })
+    ).toBeTruthy();
     expect(document.body.textContent).toContain("How to Pick It Out in FFCS");
-    expect(document.body.querySelector("[data-testid='download-faculty-jpeg-btn']")).toBeTruthy();
+    expect(
+      await screen.findByTestId("download-faculty-jpeg-btn", {}, { timeout: 10000 })
+    ).toBeTruthy();
     expect(document.body.textContent).toContain("SURESH K");
   });
 });

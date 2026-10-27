@@ -201,7 +201,7 @@ describe("FFCSTimetableTab", () => {
     expect(carouselValue.parentElement?.style.opacity).toBe("");
   }, 30_000);
 
-  it("matches the Selected Courses credit total and opens the timetable switcher from its stat", () => {
+  it("matches the Selected Courses credit total and opens the timetable switcher from its stat", async () => {
     storage.setItem(
       "ffcs_timetables",
       JSON.stringify([
@@ -237,7 +237,10 @@ describe("FFCSTimetableTab", () => {
     );
     render(<FFCSTimetableTab />);
 
-    expect(screen.getByText("Total Credits: 4")).toBeDefined();
+    // The course list is a lazily-loaded chunk now — await it.
+    expect(
+      await screen.findByText("Total Credits: 4", {}, { timeout: 10000 })
+    ).toBeDefined();
     expect(screen.getByText("4 / 27")).toBeDefined();
     const statStrip = screen.getByTestId("ffcs-stat-strip").textContent ?? "";
     expect(statStrip.indexOf("Total Credits")).toBeLessThan(
@@ -587,19 +590,24 @@ describe("FFCSTimetableTab", () => {
     expect(targetCourses.firstElementChild?.className).toContain("text-purple-600");
   }, 30_000);
 
-  it("opens planner settings from the planner menu", () => {
+  it("opens planner settings from the planner menu", async () => {
     render(<FFCSTimetableTab />);
 
     const plannerMenu = within(screen.getByRole("navigation", { name: "Planner menu" }));
     fireEvent.click(plannerMenu.getByRole("button", { name: /Planner Settings/ }));
+    // The settings modal is a lazy chunk now — wait for its distinctive
+    // content before counting the headings (findAll* resolves at ≥1 match,
+    // which is not enough here).
+    expect(await screen.findByText("Ranking profile", {}, { timeout: 10000 })).toBeDefined();
     expect(screen.getAllByRole("heading", { name: "Planner Settings" })).toHaveLength(2);
-    expect(screen.getByText("Ranking profile")).toBeDefined();
 
     fireEvent.click(screen.getByRole("button", { name: /Target Courses/ }));
-    expect(screen.getByText(/Select the courses you intend to take/)).toBeDefined();
+    expect(
+      await screen.findByText(/Select the courses you intend to take/, {}, { timeout: 10000 })
+    ).toBeDefined();
   }, 30_000);
 
-  it("opens view and course-list switching from Modern menu rows", () => {
+  it("opens view and course-list switching from Modern menu rows", async () => {
     render(<FFCSTimetableTab />);
 
     expect(screen.queryByTitle("Load the Winter Semester 2026-2027 slot timetable")).toBeNull();
@@ -610,8 +618,11 @@ describe("FFCSTimetableTab", () => {
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
 
     fireEvent.click(plannerMenu.getByRole("button", { name: /Switch Planner View/ }));
-    expect(screen.getByText("Choose Your Planner Experience")).toBeDefined();
-    expect(screen.getByRole("radio", { name: /Guided Hero/ })).toBeDefined();
+    // The layout-mode modal is a lazy chunk — await its contents.
+    expect(
+      await screen.findByText("Choose Your Planner Experience", {}, { timeout: 10000 })
+    ).toBeDefined();
+    expect(await screen.findByRole("radio", { name: /Guided Hero/ }, { timeout: 10000 })).toBeDefined();
   }, 30_000);
 
   it("renames and deletes timetables inside the Select Timetable sheet", () => {
@@ -730,11 +741,11 @@ describe("FFCSTimetableTab", () => {
     expect(badges.length).toBeGreaterThan(0);
     expect(badges[0].textContent).toContain("2");
 
-    // Click the badge to open SlotFacultySwapSheet
+    // Click the badge to open SlotFacultySwapSheet (a lazy chunk now)
     fireEvent.click(badges[0]);
 
     // Should open sheet and display download button and guide
-    expect(screen.getByText("Switch Faculty")).toBeTruthy();
+    expect(await screen.findByText("Switch Faculty", {}, { timeout: 10000 })).toBeTruthy();
     expect(screen.getByText("How to Pick It Out in FFCS:")).toBeTruthy();
     expect(screen.getByTestId("download-faculty-jpeg-btn")).toBeTruthy();
     expect(screen.getAllByText("SURESH K").length).toBeGreaterThan(0);
@@ -831,11 +842,11 @@ describe("FFCSTimetableTab", () => {
     expect(badges.length).toBeGreaterThan(0);
     expect(badges[0].textContent).toContain("2");
 
-    // Click the badge to open SlotFacultySwapSheet
+    // Click the badge to open SlotFacultySwapSheet (a lazy chunk now)
     fireEvent.click(badges[0]);
 
     // Should open sheet and display DR BOB as alternative
-    expect(screen.getByText("Switch Faculty")).toBeTruthy();
+    expect(await screen.findByText("Switch Faculty", {}, { timeout: 10000 })).toBeTruthy();
     expect(screen.getAllByText("DR BOB").length).toBeGreaterThan(0);
 
     // Click DR BOB to swap faculty
@@ -857,12 +868,14 @@ describe("FFCSTimetableTab", () => {
         name: /Switch Planner View/,
       })
     );
-    fireEvent.click(screen.getByRole("radio", { name: /Guided Hero/ }));
+    // The layout-mode modal and the guided hero are both lazy chunks now —
+    // each appears a tick after the click that mounts it.
+    fireEvent.click(await screen.findByRole("radio", { name: /Guided Hero/ }, { timeout: 10000 }));
     fireEvent.click(screen.getByRole("button", { name: "Switch to Guided Hero Mode" }));
     expect(storage.getItem("ffcs_layout_mode")).toBe("guided");
 
     // Should display Guided Hero with full-screen exit button and mode selection
-    expect(screen.getByTitle("Exit Fullscreen")).toBeDefined();
+    expect(await screen.findByTitle("Exit Fullscreen", {}, { timeout: 10000 })).toBeDefined();
     expect(screen.getByText("Choose Creation Mode")).toBeDefined();
 
     // Legacy banner card and controls must NOT be present

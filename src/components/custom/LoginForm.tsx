@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import { m, useMotionValue, useScroll, useSpring, useTransform } from "framer-motion";
 import { 
-  Eye, EyeOff, ArrowRight, Shield, Zap, Sparkles, ChevronLeft, Plus, 
+  Eye, EyeOff, ArrowRight, Shield, Zap, Sparkles, Plus,
   RotateCcw, Minus, Sun, Moon, Loader2, Server, ShieldAlert, 
   MessageSquareWarning, Lock, BookOpen, CreditCard, Activity, 
   GraduationCap, TrendingUp, UserCheck, Home, FileText, Heart, 
@@ -16,8 +16,10 @@ import { getActiveApiUrl, setActiveApiUrl, PRIMARY_API_URL, BACKUP_API_URL, hasB
 import { UNICC_API_URL } from "@/lib/unicc-fallback";
 import { useUniccTarget, setUniccTarget, isUniccFallbackEnabled } from "@/lib/useUniccTarget";
 import SelectField from "./shared/primitives/SelectField";
+import BottomSheet from "./shared/BottomSheet";
 
 interface LoginFormProps {
+  initialLoginOpen?: boolean;
   username: any;
   setUsername: any;
   password: any;
@@ -66,6 +68,7 @@ function Tilt3DCard({ children, className = "" }: { children: React.ReactNode; c
 }
 
 export default function LoginForm({
+  initialLoginOpen = false,
   username,
   setUsername,
   password,
@@ -79,7 +82,6 @@ export default function LoginForm({
   setIsDayscholarWithBus
 }: LoginFormProps) {
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
   const isLoading = message && typeof message === "string" && message.startsWith("Logging");
   
   const { scrollY } = useScroll();
@@ -141,7 +143,7 @@ export default function LoginForm({
 
   const [activeApi, setActiveApi] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [showLoginCard, setShowLoginCard] = useState(false);
+  const [showLoginCard, setShowLoginCard] = useState(initialLoginOpen);
   const [isScrolled, setIsScrolled] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
@@ -203,7 +205,6 @@ export default function LoginForm({
 
 
   useEffect(() => {
-    setMounted(true);
     setActiveApi(getActiveApiUrl());
     
     // Clear any active color palette overrides on document root for the landing page 
@@ -228,17 +229,6 @@ export default function LoginForm({
       ];
       vars.forEach((name) => root.style.removeProperty(name));
       
-      // Also clean up local storage settings if they contain colorPalette override
-      try {
-        const rawSettings = localStorage.getItem("settings");
-        if (rawSettings) {
-          const parsed = JSON.parse(rawSettings);
-          if (parsed.colorPalette && parsed.colorPalette !== "default") {
-            parsed.colorPalette = "default";
-            localStorage.setItem("settings", JSON.stringify(parsed));
-          }
-        }
-      } catch (e) {}
     }
 
     const handleScroll = () => {
@@ -310,8 +300,6 @@ export default function LoginForm({
     { q: "Does it store passwords?", a: "No. All authentication occurs directly on your client browser. Credentials and sessions are preserved in your local browser cache securely." },
     { q: "Can alumni use it?", a: "Yes. Any student with active credentials can synchronize history and inspect catalogs." }
   ];
-
-  if (!mounted) return null;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-850 dark:bg-[#03060F] dark:text-gray-100 flex flex-col justify-between selection:bg-indigo-500/30 overflow-x-hidden relative font-sans transition-colors duration-300">
@@ -974,15 +962,17 @@ export default function LoginForm({
           </div>
         ) : (
           /* Login Credentials Form View */
-          <div className="max-w-4xl mx-auto px-6 pt-32 pb-24 w-full animate-scaleIn">
-            <button
-              onClick={() => setShowLoginCard(false)}
-              className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-900 dark:text-gray-450 dark:hover:text-white mb-6 transition-colors cursor-pointer select-none"
-            >
-              <ChevronLeft size={14} /> Back to product info
-            </button>
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+          <BottomSheet
+            overlayId="landing-login"
+            onClose={() => setShowLoginCard(false)}
+            title="Welcome to AmazeCC"
+            subtitle="Sign in securely with your VTOP credentials"
+            icon={<Shield size={18} />}
+            avoidKeyboard
+            maxWidth="max-w-2xl"
+          >
+            <div className="w-full px-1 pb-4 animate-scaleIn">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
               
               {/* Security column (Left side) */}
               <div className="lg:col-span-5 bg-slate-100 border border-slate-200 dark:bg-[#050814]/40 dark:border-neutral-900 p-6 rounded-[24px] flex flex-col justify-between space-y-6">
@@ -1199,7 +1189,8 @@ export default function LoginForm({
               </div>
 
             </div>
-          </div>
+            </div>
+          </BottomSheet>
         )}
       </main>
 

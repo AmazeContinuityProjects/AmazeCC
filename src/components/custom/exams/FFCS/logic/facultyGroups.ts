@@ -3,6 +3,7 @@ import type { TimetablePeriod } from "@amazecontinuityprojects/amazeui";
 import { parseCachedCourses, parseCourseRows } from "@/lib/freeClassrooms";
 import { COLORS } from "../constants";
 import type { AddedCourse } from "../types";
+import { splitSlots } from "@/lib/slots";
 
 /**
  * Faculty name groups, and the schedule built from one group.
@@ -192,10 +193,7 @@ export function facultyGroupToAddedCourses(group: FacultyNameGroup): AddedCourse
     id: `${group.key}::${index}`,
     code: offering.CODE,
     title: offering.TITLE,
-    slots: String(offering.SLOT ?? "")
-      .split("+")
-      .map((slot) => slot.trim().toUpperCase())
-      .filter((slot) => slot && slot !== "NIL"),
+    slots: splitSlots(offering.SLOT).filter((slot) => slot !== "NIL"),
     faculty: offering.FACULTY,
     venue: offering.ROOM || offering.VENUE || "TBA",
     credits: offering.CREDITS || "0",

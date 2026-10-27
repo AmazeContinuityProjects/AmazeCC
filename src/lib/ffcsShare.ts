@@ -4,6 +4,7 @@ import { GLOBAL_CAMPUS } from "@/lib/campusSchema";
 import {
   getFFCSSemester,
   getFFCSSemesterByClassIdPrefix,
+  getFFCSSemesterByClassIdPrefixCode,
   type FFCSSemesterId,
 } from "@/components/custom/exams/FFCS/reports";
 
@@ -125,7 +126,13 @@ function rowSlotSet(course: ParsedCourse): Set<string> {
   return new Set(normalizedSlots(course.SLOT.split("+")).split("+").filter(Boolean));
 }
 
-/** Find a unique set of report rows that exactly covers one added course. */
+/**
+ * Find report rows that exactly cover one added course.
+ *
+ * If multiple class IDs describe rows that are otherwise identical, any one
+ * rebuilds the same timetable shape. Keep the lexically first ID as a stable
+ * representative. Distinct course/faculty/slot rows remain ambiguous.
+ */
 function resolveReportClassIds(
   course: AddedCourse,
   reportCourses: readonly ParsedCourse[]
@@ -159,12 +166,40 @@ function resolveReportClassIds(
     )) candidates = facultyMatches;
   }
 
-  const covers: string[][] = [];
+  const coversByShape = new Map<string, string[]>();
   let explored = 0;
+  let exceededSearchLimit = false;
+  const rowById = new Map(candidates.map((row) => [row.CLASS_ID!.trim(), row]));
   const visit = (start: number, covered: Set<string>, selected: string[]) => {
-    if (covers.length > 1 || ++explored > 10000) return;
+    if (coversByShape.size > 1) return;
+    if (++explored > 10000) {
+      exceededSearchLimit = true;
+      return;
+    }
     if ([...targetSlots].every((slot) => covered.has(slot))) {
-      if (anchoredIds.every((id) => selected.includes(id))) covers.push(selected);
+      if (!anchoredIds.every((id) => selected.includes(id))) return;
+      const shape = selected
+        .map((id) => {
+          const row = rowById.get(id)!;
+          return JSON.stringify([
+            row.CODE.trim(),
+            row.TITLE.trim(),
+            row.TYPE.trim(),
+            row.CREDITS.trim(),
+            normalizedSlots(row.SLOT.split("+")),
+            row.FACULTY.trim(),
+            row.ROOM.trim(),
+            row.ERP_ID?.trim() ?? "",
+            row.BATCH?.trim() ?? "",
+          ]);
+        })
+        .sort()
+        .join("|");
+      const canonicalIds = [...selected].sort();
+      const existing = coversByShape.get(shape);
+      if (!existing || canonicalIds.join("|") < existing.join("|")) {
+        coversByShape.set(shape, canonicalIds);
+      }
       return;
     }
 
@@ -177,12 +212,14 @@ function resolveReportClassIds(
       const nextCovered = new Set(covered);
       slots.forEach((slot) => nextCovered.add(slot));
       visit(index + 1, nextCovered, [...selected, classId]);
-      if (covers.length > 1) return;
+      if (coversByShape.size > 1) return;
     }
   };
   visit(0, new Set(), []);
 
-  return covers.length === 1 ? covers[0] : null;
+  return !exceededSearchLimit && coversByShape.size === 1
+    ? Array.from(coversByShape.values())[0]
+    : null;
 }
 
 /**
@@ -300,6 +337,111 @@ export function decodeTimetableShapeShare(encoded: string): TimetableShapeShareD
       classIds.some((id) => !id.startsWith(report.classIdPrefix!)) ||
       new Set(classIds).size !== classIds.length
     ) return null;
+    return { semesterId: report.id, classIds };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Encode the smallest report-backed shape form: a short numeric semester code
+ * followed by Base64URL-encoded unsigned LEB128 deltas of sorted four-digit
+ * class-ID suffixes. For example: `1.<payload>`.
+ *
+ * This deliberately targets the current report's four-digit ID suffix format.
+ * It returns null for reports or IDs that do not satisfy that contract.
+ */
+export function encodeNumericTimetableShapeShare(
+  timetable: Pick<TimetableState, "name" | "courses">,
+  semester: FFCSSemesterId
+): string | null {
+  const report = getFFCSSemester(semester);
+  if (!report.classIdPrefix || !report.classIdPrefixCode) return null;
+
+  const classIds = timetable.courses.flatMap((course) =>
+    (course.classIds?.length ? course.classIds : course.classId ? [course.classId] : [])
+      .map((id) => id.trim())
+      .filter(Boolean)
+  );
+  if (
+    classIds.length === 0 ||
+    classIds.length > 100 ||
+    new Set(classIds).size !== classIds.length
+  ) return null;
+
+  const suffixes = classIds.map((id) => {
+    if (!id.startsWith(report.classIdPrefix!)) return null;
+    const suffix = id.slice(report.classIdPrefix!.length);
+    return /^\d{4}$/.test(suffix) ? Number(suffix) : null;
+  });
+  if (suffixes.some((suffix) => suffix === null)) return null;
+
+  const sorted = (suffixes as number[]).sort((a, b) => a - b);
+  const bytes: number[] = [];
+  let previous = 0;
+  for (const suffix of sorted) {
+    let delta = suffix - previous;
+    do {
+      const data = delta & 0x7f;
+      delta = Math.floor(delta / 128);
+      bytes.push(data | (delta > 0 ? 0x80 : 0));
+    } while (delta > 0);
+    previous = suffix;
+  }
+
+  try {
+    let binary = "";
+    for (const byte of bytes) binary += String.fromCharCode(byte);
+    const encodedBytes = btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+    return `${report.classIdPrefixCode}.${encodedBytes}`;
+  } catch {
+    return null;
+  }
+}
+
+/** Decode a numeric-prefix shape link and restore its full registration IDs. */
+export function decodeNumericTimetableShapeShare(encoded: string): TimetableShapeShareData | null {
+  if (!encoded) return null;
+  try {
+    const separator = encoded.indexOf(".");
+    if (separator < 1 || separator === encoded.length - 1) return null;
+    const code = encoded.slice(0, separator);
+    const data = encoded.slice(separator + 1);
+    const report = getFFCSSemesterByClassIdPrefixCode(code);
+    if (!report?.classIdPrefix) return null;
+    if (!/^[A-Za-z0-9_-]+$/.test(data)) return null;
+
+    const base64 = data.replace(/-/g, "+").replace(/_/g, "/");
+    const binary = atob(base64 + "=".repeat((4 - (base64.length % 4)) % 4));
+    if (binary.length === 0 || binary.length > 200) return null;
+    const bytes = Array.from(binary, (character) => character.charCodeAt(0));
+
+    const classIds: string[] = [];
+    let currentSuffix = 0;
+    let value = 0;
+    let multiplier = 1;
+    let varintBytes = 0;
+    for (const byte of bytes) {
+      varintBytes++;
+      if (varintBytes > 2) return null;
+      value += (byte & 0x7f) * multiplier;
+      if (value > 9999) return null;
+
+      if (byte & 0x80) {
+        multiplier *= 128;
+        continue;
+      }
+      if (varintBytes > 1 && value < 128) return null; // reject non-canonical encodings
+      if (classIds.length > 0 && value === 0) return null; // deltas must be strictly increasing
+      currentSuffix += value;
+      if (currentSuffix > 9999) return null;
+      classIds.push(`${report.classIdPrefix}${String(currentSuffix).padStart(4, "0")}`);
+      if (classIds.length > 100) return null;
+      value = 0;
+      multiplier = 1;
+      varintBytes = 0;
+    }
+    if (varintBytes !== 0 || classIds.length === 0) return null;
     return { semesterId: report.id, classIds };
   } catch {
     return null;
@@ -426,6 +568,13 @@ export function buildTimetableShapeShareUrl(encoded: string, origin: string): st
   const base = (process.env.NEXT_PUBLIC_BASE_PATH ?? "").replace(/\/+$/, "");
   const host = origin.replace(/\/+$/, "");
   return `${host}${base}/share/ffcs/?q=${encodeURIComponent(encoded)}`;
+}
+
+/** URL for numeric-prefix, delta-coded, name-free timetable shapes. */
+export function buildNumericTimetableShapeShareUrl(encoded: string, origin: string): string {
+  const base = (process.env.NEXT_PUBLIC_BASE_PATH ?? "").replace(/\/+$/, "");
+  const host = origin.replace(/\/+$/, "");
+  return `${host}${base}/share/ffcs/?r=${encodeURIComponent(encoded)}`;
 }
 
 /** Whether a built link is long enough to warn the sender about. */

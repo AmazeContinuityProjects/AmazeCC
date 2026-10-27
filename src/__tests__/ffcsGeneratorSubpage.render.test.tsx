@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useState } from "react";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import {
   FFCSGeneratorSubpage,
   type FFCSGeneratorSubpageProps,
@@ -113,9 +113,10 @@ const props = (over: Partial<FFCSGeneratorSubpageProps> = {}): FFCSGeneratorSubp
   setError: vi.fn(),
   successMsg: null,
   setSuccessMsg: vi.fn(),
-  renderTypeChips: () => null,
   getGroupedCourses: () => [],
   generatorDisplayCourses: [],
+  semesterReportCourses: [],
+  isLoadingCourses: false,
   theoryPeriods: [],
   labPeriods: [],
   toggleBlockSlot: vi.fn(),
@@ -123,17 +124,22 @@ const props = (over: Partial<FFCSGeneratorSubpageProps> = {}): FFCSGeneratorSubp
 });
 
 const generateButton = () =>
-  screen.getByRole("button", { name: /generate timetables/i }) as HTMLButtonElement;
+  screen.getAllByRole("button", { name: /generate timetables/i })[0] as HTMLButtonElement;
 
 /**
  * The target-course row's checkbox, without an accessible name of its own.
  *
  * Scoped through the course row itself because the screen carries several
- * other checkboxes (`sr-only` inputs inside its segmented controls).
+ * other checkboxes (`sr-only` inputs inside its segmented controls). Modern
+ * mode also repeats selected codes in the summary pane, so we take the row
+ * that owns a checkbox.
  */
 const courseCheckbox = () =>
   {
-    const row = screen.getByText("BCSE101").closest("label");
+    const row = screen
+      .getAllByText("BCSE101")
+      .map((node) => node.closest("label"))
+      .find((label) => label?.querySelector("input[type='checkbox']"));
     return (row?.querySelector("input[type='checkbox']") ?? null) as HTMLInputElement | null;
   };
 
@@ -148,6 +154,9 @@ describe("FFCSGeneratorSubpage", () => {
     // another test's mount.
     storage.clear();
     clearSessionPreferences();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    cleanup();
   });
 
   it("renders as the tab's screen, with the layout's own back chrome", () => {
@@ -167,38 +176,96 @@ describe("FFCSGeneratorSubpage", () => {
       element.className.includes("!max-w-none")
     );
     const contentGrid = Array.from(container.querySelectorAll("div")).find((element) =>
-      element.className.includes("grid-cols-1 lg:grid-cols-2")
+      element.className.includes("minmax(220px,0.8fr)")
     );
 
     expect(shell).toBeDefined();
     expect(shell?.className).toContain("px-4");
     expect(contentGrid?.className).toContain("w-full");
     expect(contentGrid?.className).toContain("max-w-none");
+    expect(contentGrid?.className).toContain("lg:grid-cols-[minmax(220px,0.8fr)_minmax(0,2fr)]");
     expect(container.querySelector(".max-w-6xl")).toBeNull();
   });
 
-  it("lets users override faculty ranking settings before generating", () => {
+  it("opens the generator view switcher from the menu entry", () => {
     render(<FFCSGeneratorSubpage {...props()} />);
 
-    expect(screen.getByText("Combined Ranking Priority")).toBeDefined();
-    fireEvent.click(screen.getByRole("button", { name: "Move Faculty reviews up" }));
+    fireEvent.click(screen.getByRole("button", { name: /Switch Generator View/i }));
+    expect(screen.getByText("Choose Your Generator Experience")).toBeDefined();
+    fireEvent.click(screen.getByRole("radio", { name: /Classic full form/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Switch to Classic full form/ }));
+
+    expect(storage.getItem("ffcs_generator_view_mode")).toBe("classic");
+    expect(screen.getByRole("button", { name: /Switch Generator View/i })).toBeDefined();
+    expect(screen.queryByText("Choose Your Generator Experience")).toBeNull();
+  });
+
+  it("fits generator stats into a planner-style strip with an overflow carousel", async () => {
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor(private callback: ResizeObserverCallback) {}
+        observe(target: Element) {
+          this.callback(
+            [{ target, contentRect: { width: 324 } } as ResizeObserverEntry],
+            this as unknown as ResizeObserver
+          );
+        }
+        unobserve() {}
+        disconnect() {}
+      }
+    );
+
+    render(<FFCSGeneratorSubpage {...props()} />);
+
+    const strip = await screen.findByTestId("ffcs-generator-stat-strip");
+    expect(strip.getAttribute("aria-label")).toBe("Generator statistics");
+    // At ~324px only one 280px track fits, so the planner rule parks every
+    // tile in the overflow carousel (same behaviour as the planner strip).
+    const carousel = await within(strip).findByRole("region", {
+      name: "More generator statistics",
+    });
+    expect(carousel.textContent).toMatch(
+      /Target courses|Blocked slots|Friend matches|Options found/
+    );
+  });
+
+  it("lets users re-rank factors and override boundary filters before generating", () => {
+    render(<FFCSGeneratorSubpage {...props()} />);
+
+    // One ranked list replaces the old sort/profile pickers.
+    expect(screen.getByText("What matters most")).toBeDefined();
+    expect(screen.queryByText("Sort Timetables By")).toBeNull();
+    expect(screen.queryByText("Combined Ranking Priority")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Move Faculty quality up" }));
+    fireEvent.click(screen.getByRole("switch", { name: "Time with friends enabled" }));
+    fireEvent.click(screen.getByRole("button", { name: "Move DA up" }));
     fireEvent.change(screen.getByRole("spinbutton", { name: "Minimum Overall W %" }), {
       target: { value: "80" },
     });
-    fireEvent.change(screen.getByRole("spinbutton", { name: "DA importance" }), {
-      target: { value: "4" },
-    });
     fireEvent.click(screen.getByRole("button", { name: /^250$/ }));
 
-    expect(screen.getByText("1. Faculty reviews")).toBeDefined();
+    expect(screen.getByRole("switch", { name: "Time with friends enabled" }).getAttribute("aria-checked")).toBe("false");
     expect(screen.getByRole("spinbutton", { name: "Minimum Overall W %" })).toHaveProperty(
       "value",
       "80"
     );
     expect(loadSessionPreferences()).toMatchObject({
-      rankingPriorityOrder: ["faculty", "profile", "sort", "time"],
-      facultyScoreFilters: { minWPct: 80 },
+      rankingFactorOrder: [
+        "gaps",
+        "halfdays",
+        "faculty",
+        "balancedLoad",
+        "social",
+        "earlyFinish",
+        "lateStart",
+        "time",
+      ],
+      rankingFactorDisabled: ["social"],
+      facultyMetricOrder: ["wPct", "da", "lecture", "vibe"],
       facultyMetricWeights: { da: 4 },
+      facultyScoreFilters: { minWPct: 80 },
       resultCap: 250,
     });
   });
@@ -215,6 +282,19 @@ describe("FFCSGeneratorSubpage", () => {
 
     expect(screen.queryByLabelText("Min Start Time")).toBeNull();
     expect(screen.queryByLabelText("Max End Time")).toBeNull();
+
+    // Extramural-hours exclusion ships as a toggle inside the slot-map card.
+    const extramural = screen.getByRole("switch", { name: /block extramural hours/i });
+    expect(extramural.getAttribute("aria-checked")).toBe("false");
+    fireEvent.click(extramural);
+    expect(extramural.getAttribute("aria-checked")).toBe("true");
+
+    // Day end limits hide behind a disclosure — open it before querying rows.
+    const disclosure = screen.getByRole("button", { name: /Day-specific class end times/i });
+    expect(disclosure.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(disclosure);
+    expect(disclosure.getAttribute("aria-expanded")).toBe("true");
+
     const mondayLimit = screen.getByRole("switch", { name: "Monday end-time limit" });
     expect(mondayLimit.getAttribute("aria-checked")).toBe("false");
     fireEvent.click(mondayLimit);
@@ -225,9 +305,10 @@ describe("FFCSGeneratorSubpage", () => {
   it("offers and remembers per-run lab scheduling rules", () => {
     render(<FFCSGeneratorSubpage {...props()} />);
 
-    fireEvent.click(screen.getByRole("checkbox", { name: /At most one lab class per day/i }));
-    fireEvent.click(screen.getByRole("checkbox", { name: /Avoid consecutive lab slots/i }));
-    fireEvent.click(screen.getByRole("checkbox", { name: /Treat lunch as a break/i }));
+    fireEvent.click(screen.getByRole("switch", { name: /At most one lab class per day/i }));
+    fireEvent.click(screen.getByRole("switch", { name: /Avoid consecutive lab slots/i }));
+    // The lunch sub-row only exists while "avoid consecutive" is on.
+    fireEvent.click(screen.getByRole("switch", { name: /Treat lunch as a break/i }));
 
     expect(loadSessionPreferences()).toMatchObject({
       separateLabDays: true,
@@ -378,6 +459,34 @@ describe("FFCSGeneratorSubpage", () => {
     expect(closeTopOverlayFromPop()).toBe(false);
   });
 
+  it("uses the separate searchable focus widget in modern mode", () => {
+    const previousMode = storage.getItem("ffcs_generator_view_mode");
+    storage.setItem("ffcs_generator_view_mode", "modern");
+
+    render(
+      <FFCSGeneratorSubpage
+        {...props({
+          courseLocks: [],
+          semesterReportCourses: [
+            courseRow("BCSE101", "A1", "A-101"),
+            courseRow("BCSE101", "B1", "B-102"),
+          ],
+        })}
+      />
+    );
+
+    expect(screen.getByRole("region", { name: "Autogenerator target courses" })).toBeDefined();
+    expect(screen.getByRole("textbox", { name: "Search current semester courses" })).toBeDefined();
+    fireEvent.click(screen.getByRole("checkbox", { name: /BCSE101/ }));
+    expect(screen.getByRole("button", { name: "Remove BCSE101 from generator targets" })).toBeDefined();
+    expect(screen.getByText("Filter Slots (Optional)")).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: "Remove BCSE101 from generator targets" }));
+    expect(screen.queryByRole("button", { name: "Remove BCSE101 from generator targets" })).toBeNull();
+
+    if (previousMode === null) storage.removeItem("ffcs_generator_view_mode");
+    else storage.setItem("ffcs_generator_view_mode", previousMode);
+  });
+
   it("renders the faculty count badge next to faculty name in preview mode", async () => {
     const pool = nonClashingSlots(3);
     const masterCourses: ParsedCourse[] = [
@@ -491,7 +600,7 @@ describe("FFCSGeneratorSubpage", () => {
     fireEvent.click(backToOptionsButtons[0]);
 
     // Options view should now be displayed again with target courses
-    expect(screen.getByText("Target Courses")).toBeTruthy();
+    expect(screen.getAllByText(/target courses/i).length).toBeGreaterThan(0);
     expect(screen.getByText("Results (1)")).toBeTruthy();
 
     // Clicking "Results (1)" brings the user back to the review view
@@ -510,9 +619,14 @@ describe("FFCSGeneratorSubpage", () => {
 
     const { unmount } = render(<FFCSGeneratorSubpage {...props()} />);
 
-    // Unique faculties switch should be checked
-    const uniqueSwitch = screen.getByRole("checkbox", { name: /unique faculties/i }) as HTMLInputElement;
-    expect(uniqueSwitch.checked).toBe(true);
+    // Search-limit ToggleRows are a single control: the row button IS the
+    // switch (role="switch" + aria-checked); no nested button inside.
+    const uniqueRow = screen.getByRole("switch", { name: /unique faculties/i });
+    expect(uniqueRow.getAttribute("aria-checked")).toBe("true");
+
+    // The redesigned search-limit rows both render self-explanatory copy.
+    expect(screen.getByRole("switch", { name: /remove result cap/i })).toBeTruthy();
+    expect(screen.getByText("Result cap")).toBeTruthy();
 
     // Min half days should be 3
     expect(screen.getByDisplayValue("3")).toBeTruthy();

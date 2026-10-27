@@ -1,6 +1,11 @@
-import { describe, expect, it, afterEach } from "vitest";
-import { cleanup, render } from "@testing-library/react";
-import { useOverlayBack } from "../lib/overlayStack";
+import { describe, expect, it, afterEach, vi } from "vitest";
+import { cleanup, render, waitFor } from "@testing-library/react";
+import {
+  closeTopOverlayFromPop,
+  hasOpenOverlays,
+  useOverlayBack,
+  useOverlayBackBoundary,
+} from "../lib/overlayStack";
 
 /**
  * Overlay history entries.
@@ -16,6 +21,17 @@ afterEach(cleanup);
 
 function Harness({ open }: { open: boolean }) {
   useOverlayBack("test-overlay", open, () => {});
+  return null;
+}
+
+function RetainingHarness({ onBack }: { onBack: () => boolean }) {
+  useOverlayBack("retaining-overlay", true, onBack);
+  return null;
+}
+
+function StandaloneRouteHarness({ onClose }: { onClose: () => void }) {
+  useOverlayBackBoundary("standalone-route");
+  useOverlayBack("route-overlay", true, onClose);
   return null;
 }
 
@@ -46,5 +62,34 @@ describe("overlay history entries", () => {
     rerender(<Harness open />);
 
     expect(window.history.length).toBe(before + 2);
+  });
+
+  it("re-registers an overlay when it consumes system back internally", () => {
+    const onBack = vi.fn(() => true);
+    render(<RetainingHarness onBack={onBack} />);
+
+    expect(closeTopOverlayFromPop()).toBe(true);
+    expect(onBack).toHaveBeenCalledTimes(1);
+    expect(hasOpenOverlays()).toBe(true);
+    expect(window.history.state).toMatchObject({
+      op: { kind: "overlay", id: "retaining-overlay" },
+      __NA: true,
+    });
+  });
+
+  it("closes route overlays on browser back outside Main", async () => {
+    const onClose = vi.fn();
+    window.history.replaceState({}, "", "/standalone-route");
+    render(<StandaloneRouteHarness onClose={onClose} />);
+
+    expect(window.history.state).toMatchObject({
+      op: { kind: "overlay", id: "route-overlay" },
+      __NA: true,
+    });
+    window.history.back();
+
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+    expect(hasOpenOverlays()).toBe(false);
+    expect(window.location.pathname).toBe("/standalone-route");
   });
 });

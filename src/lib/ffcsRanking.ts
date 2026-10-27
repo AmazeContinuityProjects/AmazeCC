@@ -258,6 +258,118 @@ export function rankCourses(
 
 export type RankingPriority = "profile" | "faculty" | "sort" | "time";
 
+/* ── factor ranking (the generator's rank list) ────────────────────────── */
+
+/**
+ * The generator's single ranked list, as concrete scoring factors.
+ *
+ * The old UI offered two separate pickers — five `SortBy` options and six
+ * ranking profiles — whose concerns overlapped almost one-for-one (both had a
+ * gaps answer, a half-days answer, a faculty answer…). This list is that
+ * overlap collapsed: one row per thing a student can care about, ordered by
+ * priority and individually switchable. The pickers are gone from the
+ * generator; `sortBy` / `rankingMode` remain for other callers and the legacy
+ * scoring path, which is untouched.
+ */
+export const RANKING_FACTORS = [
+  "gaps",
+  "halfdays",
+  "social",
+  "faculty",
+  "earlyFinish",
+  "lateStart",
+  "balancedLoad",
+  "time",
+] as const;
+
+export type RankingFactor = (typeof RANKING_FACTORS)[number];
+
+/** Raw inputs for one timetable, plus the two metric-derived scores. */
+export interface RankingFactorInputs {
+  inputs: RankingInputs;
+  /** Free half-days over the week (the `timetableMetrics` measure, 0–12 used). */
+  halfDays: number;
+  /** Overlap-with-friends score, 0–100. */
+  socialScore: number;
+  /** Vitfac aggregate, 0–100; null when no faculty in the week is rated. */
+  facultyQuality: number | null;
+  /** Preference-fit score, 0–100; null when there is nothing to fit. */
+  timeScore: number | null;
+}
+
+const clamp100 = (value: number): number =>
+  Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : 0;
+
+/**
+ * Each enabled factor's score, 0–100.
+ *
+ * The same expressions `scoreRanking` uses for its profile factors, so the
+ * two paths rank a week identically factor-for-factor — only the weighting
+ * differs (profiles use fixed weights; the factor list uses order).
+ * A factor with no data (unrated faculty, no time preference) is omitted
+ * rather than zeroed, exactly like `combineRankingScores` treats missing
+ * components: absent data must not out-rank present data.
+ */
+export function rankingFactorScores(f: RankingFactorInputs): Partial<Record<RankingFactor, number>> {
+  const perDay = f.inputs.activeDays > 0 ? f.inputs.totalGapSlots / f.inputs.activeDays : 0;
+  const scores: Partial<Record<RankingFactor, number>> = {
+    gaps: clamp100(inverted(perDay, 6) * 100),
+    halfdays: clamp100((f.halfDays / 12) * 100),
+    social: clamp100(f.socialScore),
+    earlyFinish: clamp100(inverted(f.inputs.averageDayEndMinutes - 12 * 60, 7 * 60) * 100),
+    lateStart: clamp100(normalize(f.inputs.averageDayStartMinutes - 8 * 60, 6 * 60) * 100),
+    balancedLoad: clamp100(inverted(f.inputs.dailyLoadVariance, 4) * 100),
+  };
+  if (f.facultyQuality !== null) scores.faculty = clamp100(f.facultyQuality);
+  if (f.timeScore !== null) scores.time = clamp100(f.timeScore);
+  return scores;
+}
+
+/**
+ * Combine enabled factors by list position: the top enabled factor weighs
+ * `n`, the next `n-1`, and so on — the same linear scheme
+ * `combineRankingScores` uses for the four legacy components. Disabled or
+ * data-less factors contribute nothing and take no weight, so turning one off
+ * redistributes rather than zeroing.
+ *
+ * All factors off (or none carrying data) scores 0 — every option ties and
+ * the caller's `sortBy` order decides, which is the honest answer for a
+ * student who has switched everything off.
+ */
+export function combineFactorScores(
+  scores: Partial<Record<RankingFactor, number>>,
+  order: readonly RankingFactor[]
+): CompositeRankingResult {
+  const seen = new Set<RankingFactor>();
+  const active = order.filter(
+    (factor) =>
+      (RANKING_FACTORS as readonly string[]).includes(factor) &&
+      !seen.has(factor) &&
+      (seen.add(factor), true)
+  );
+  const present = active.filter((factor) => {
+    const value = scores[factor];
+    return value !== null && value !== undefined && Number.isFinite(value);
+  });
+
+  const breakdown: Record<string, number> = {};
+  let totalWeight = 0;
+  present.forEach((_, index) => {
+    totalWeight += present.length - index;
+  });
+  if (!totalWeight) return { score: 0, breakdown };
+
+  let score = 0;
+  present.forEach((factor, index) => {
+    const weight = present.length - index;
+    const points = (Math.max(0, Math.min(100, scores[factor] as number)) * weight) / totalWeight;
+    breakdown[factor] = Number(points.toFixed(1));
+    score += points;
+  });
+
+  return { score: Number(score.toFixed(1)), breakdown };
+}
+
 export interface CompositeRankingComponents {
   profile?: number | null;
   faculty?: number | null;

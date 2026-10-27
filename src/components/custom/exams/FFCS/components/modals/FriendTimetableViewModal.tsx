@@ -6,6 +6,7 @@ import { getBatchColorClass } from '@/lib/utils';
 import { TimetableGrid } from '../TimetableGrid';
 import { CourseListTable } from '@amazecontinuityprojects/amazeui';
 import BottomSheet from '../../../../shared/BottomSheet';
+import { renderCourseTypeChips } from '../CourseTypeChips';
 
 export interface SelectedFriendTimetableData {
   name: string;
@@ -18,12 +19,11 @@ export interface FriendTimetableViewModalProps {
   setData: React.Dispatch<React.SetStateAction<SelectedFriendTimetableData | null>>;
   theoryPeriods: any[];
   labPeriods: any[];
-  renderTypeChips: (types?: string | string[], size?: 'sm' | 'md' | 'default') => React.ReactNode;
 }
 
 
 export function FriendTimetableViewModal({
-  data, setData, theoryPeriods, labPeriods, renderTypeChips
+  data, setData, theoryPeriods, labPeriods
 }: FriendTimetableViewModalProps) {
   /**
    * A sheet now, and deliberately without `if (!data) return null`: the closed
@@ -105,7 +105,7 @@ export function FriendTimetableViewModal({
 
               <CourseListTable
                 courses={getGroupedCourses(data.timetables[data.currentIndex].courses as AddedCourse[])}
-                renderTypeChips={renderTypeChips}
+                renderTypeChips={renderCourseTypeChips}
                 getBatchBadgeClass={getBatchColorClass}
               />
             </div>

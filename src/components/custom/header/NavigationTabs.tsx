@@ -30,7 +30,6 @@ import {
   Home,
   Library,
   LayoutGrid,
-  Lock,
   Menu,
   RefreshCcw,
   Settings,
@@ -51,6 +50,7 @@ import {
   Info,
   Link2,
   ChevronDown,
+  LogOut,
   Car,
   CarTaxiFront,
   MoreHorizontal,
@@ -192,7 +192,6 @@ export default function NavigationTabs({
   const [profileData, setProfileData] = useState<any>(null);
   
   // Progressive disclosure
-  const [expandedGroup, setExpandedGroup] = useState<string>("study");
   const [showAcademicsPanel, setShowAcademicsPanel] = useState(activeTab === "academics");
   const [showToolsPanel, setShowToolsPanel] = useState(activeTab === "tools");
   const [showHostelPanel, setShowHostelPanel] = useState(activeTab === "hostel");
@@ -241,36 +240,24 @@ export default function NavigationTabs({
   // No swipe-up gesture — App Library is opened only via the Modules button
 
 
-  // Update expandedGroup and subpanels when activeTab changes
+  // Keep the matching drill-in panel open for section-level destinations.
   useEffect(() => {
     if (activeTab === "academics") {
       setShowAcademicsPanel(true);
       setShowToolsPanel(false);
       setShowHostelPanel(false);
-      setExpandedGroup("study");
     } else if (activeTab === "tools") {
       setShowToolsPanel(true);
       setShowAcademicsPanel(false);
       setShowHostelPanel(false);
-      setExpandedGroup("tools");
     } else if (activeTab === "hostel") {
       setShowHostelPanel(true);
       setShowToolsPanel(false);
       setShowAcademicsPanel(false);
-      setExpandedGroup("campus");
     } else {
       setShowAcademicsPanel(false);
       setShowToolsPanel(false);
       setShowHostelPanel(false);
-      if (activeTab === "home" || activeTab === "attendance") {
-        setExpandedGroup("study");
-      } else if (["payments", "libraries", "events", "clubs", "community", "free-class", "faculty-schedule", "transport", "cabshare"].includes(activeTab)) {
-        setExpandedGroup("campus");
-      } else if (activeTab === "more") {
-        setExpandedGroup("tools");
-      } else if (activeTab === "profile") {
-        setExpandedGroup("account");
-      }
     }
   }, [activeTab]);
 
@@ -339,10 +326,6 @@ export default function NavigationTabs({
   }, [setActiveTab]);
 
 
-
-  const toggleGroup = useCallback((groupId: string) => {
-    setExpandedGroup(current => (current === groupId ? "" : groupId));
-  }, []);
 
   const toggleRailPopover = useCallback((groupId: string) => {
     setActiveRailGroup(current => (current === groupId ? null : groupId));
@@ -559,8 +542,7 @@ export default function NavigationTabs({
         id: "free-class",
         label: "Free Classrooms",
         icon: DoorOpen,
-        // Reachable as its own tab and as a Tools sub-tab, so the rail lights up
-        // for both. The same shape Cab Share uses.
+        // Preserve highlighting for older saved navigation state.
         isActive:
           activeTab === "free-class" ||
           (activeTab === "tools" && activeToolsSubTab === "free-class"),
@@ -591,19 +573,9 @@ export default function NavigationTabs({
     }
 
     return items;
-  }, [activeTab, activeToolsSubTab, isHosteller, residentialStatus, selectTab, HostelActiveSubTab, setHostelActiveSubTab]);
+  }, [activeTab, activeToolsSubTab, isHosteller, residentialStatus, selectTab, setActiveToolsSubTab, HostelActiveSubTab, setHostelActiveSubTab]);
 
   const toolsItems = useMemo<NavItem[]>(() => [
-    {
-      id: "social",
-      label: "Timetable Sharing",
-      icon: Users,
-      isActive: (activeTab === "more" && activeMoreSubTab === "social") || (activeTab === "tools" && activeToolsSubTab === "social"),
-      onSelect: () => {
-        selectTab("tools");
-        setActiveToolsSubTab?.("social");
-      },
-    },
     {
       id: "ffcs",
       label: "FFCS Planner",
@@ -619,54 +591,11 @@ export default function NavigationTabs({
       isExpandable: true,
       onSelect: () => {
         selectTab("tools");
-        if (!activeToolsSubTab) setActiveToolsSubTab?.("overview");
+        setActiveToolsSubTab?.("overview");
         setShowToolsPanel(true);
       },
     },
-    {
-      id: "tasks",
-      label: "Tasks & Schedule",
-      icon: CheckSquare,
-      isActive: activeTab === "tools" && activeToolsSubTab === "tasks",
-      onSelect: () => {
-        selectTab("tools");
-        setActiveToolsSubTab?.("tasks");
-      },
-    },
-    {
-      id: "qbank",
-      label: "Question Bank",
-      icon: Database,
-      isActive: activeTab === "tools" && activeToolsSubTab === "qbank",
-      onSelect: () => {
-        selectTab("tools");
-        setActiveToolsSubTab?.("qbank");
-      },
-    },
-    {
-      id: "faculty-info",
-      label: "Faculty Explorer",
-      icon: UserCheck,
-      isActive: activeTab === "tools" && activeToolsSubTab === "faculty-info",
-      onSelect: () => {
-        selectTab("tools");
-        setActiveToolsSubTab?.("faculty-info");
-      },
-    },
-    {
-      id: "cabshare",
-      label: "Cab Share",
-      icon: CarTaxiFront,
-      isActive: (activeTab === "cabshare") || (activeTab === "tools" && activeToolsSubTab === "cabshare"),
-      onSelect: () => {
-        selectTab("tools");
-        setActiveToolsSubTab?.("cabshare");
-      },
-    },
-    // Free Classrooms is a top-level tab now, so it lives in the Campus group
-    // rather than here. `toolsSubItems` still lists it below, so it is
-    // reachable from the Tools flyout too.
-  ], [activeTab, activeMoreSubTab, activeToolsSubTab, selectTab, setActiveToolsSubTab]);
+  ], [activeTab, activeToolsSubTab, selectTab, setActiveToolsSubTab]);
 
   const accountItems = useMemo<NavItem[]>(() => [
     {
@@ -691,16 +620,7 @@ export default function NavigationTabs({
         selectTab("about");
       },
     },
-    {
-      id: "logout",
-      label: "Logout",
-      icon: Lock,
-      onSelect: () => {
-        handleLogOutRequest();
-      },
-      isActive: false,
-    },
-  ], [activeTab, selectTab, setActiveProfileSubTab, handleLogOutRequest]);
+  ], [activeTab, selectTab, setActiveProfileSubTab]);
 
   const groups = useMemo<Group[]>(() => [
     { id: "study", label: "Study", icon: BookOpen, items: studyItems },
@@ -808,6 +728,7 @@ export default function NavigationTabs({
     {
       id: "courses-simplified",
       label: "My Courses & Marks",
+      icon: Sparkles,
       isActive: activeTab === "academics" && (activeSubTab === "courses-simplified" || activeSubTab === "simplified-academics" || activeSubTab === "overview"),
       onSelect: () => {
         selectTab("academics");
@@ -817,6 +738,7 @@ export default function NavigationTabs({
     {
       id: "course-dashboard",
       label: "Course Dashboard",
+      icon: LayoutGrid,
       isActive: activeTab === "academics" && activeSubTab === "course-dashboard",
       onSelect: () => {
         selectTab("academics");
@@ -826,6 +748,7 @@ export default function NavigationTabs({
     {
       id: "schedule",
       label: "Exam Schedule",
+      icon: Calendar,
       isActive: activeTab === "academics" && activeSubTab === "schedule",
       onSelect: () => {
         selectTab("academics");
@@ -835,6 +758,7 @@ export default function NavigationTabs({
     {
       id: "grades",
       label: "Grade History",
+      icon: GraduationCap,
       isActive: activeTab === "academics" && activeSubTab === "grades",
       onSelect: () => {
         selectTab("academics");
@@ -844,6 +768,7 @@ export default function NavigationTabs({
     {
       id: "curriculum",
       label: "Curriculum",
+      icon: BookOpen,
       isActive: activeTab === "academics" && activeSubTab === "curriculum",
       onSelect: () => {
         selectTab("academics");
@@ -855,7 +780,8 @@ export default function NavigationTabs({
   const toolsSubItems = useMemo(() => [
     {
       id: "overview",
-      label: "Tools Hub",
+      label: "Overview",
+      icon: Layers,
       isActive: activeTab === "tools" && (activeToolsSubTab === "overview" || !activeToolsSubTab),
       onSelect: () => {
         selectTab("tools");
@@ -865,6 +791,7 @@ export default function NavigationTabs({
     {
       id: "qbank",
       label: "Question Bank",
+      icon: Database,
       isActive: activeTab === "tools" && activeToolsSubTab === "qbank",
       onSelect: () => {
         selectTab("tools");
@@ -874,6 +801,7 @@ export default function NavigationTabs({
     {
       id: "faculty-info",
       label: "Faculty Explorer",
+      icon: UserCheck,
       isActive: activeTab === "tools" && activeToolsSubTab === "faculty-info",
       onSelect: () => {
         selectTab("tools");
@@ -882,7 +810,8 @@ export default function NavigationTabs({
     },
     {
       id: "social",
-      label: "Social Timetable",
+      label: "Timetable Sharing",
+      icon: Users,
       isActive: activeTab === "tools" && activeToolsSubTab === "social",
       onSelect: () => {
         selectTab("tools");
@@ -892,26 +821,22 @@ export default function NavigationTabs({
     {
       id: "cabshare",
       label: "Cab Share",
-      isActive: activeTab === "tools" && activeToolsSubTab === "cabshare",
+      icon: CarTaxiFront,
+      isActive: activeTab === "cabshare" || (activeTab === "tools" && activeToolsSubTab === "cabshare"),
       onSelect: () => {
         selectTab("tools");
         setActiveToolsSubTab?.("cabshare");
       },
     },
     {
-      id: "free-class",
-      label: "Free Classrooms",
-      isActive: activeTab === "tools" && activeToolsSubTab === "free-class",
+      id: "tasks",
+      label: "Tasks & Schedule",
+      icon: CheckSquare,
+      isActive: activeTab === "tools" && activeToolsSubTab === "tasks",
       onSelect: () => {
         selectTab("tools");
-        setActiveToolsSubTab?.("free-class");
+        setActiveToolsSubTab?.("tasks");
       },
-    },
-    {
-      id: "ffcs",
-      label: "FFCS Planner",
-      isActive: activeTab === "tools" && activeToolsSubTab === "ffcs",
-      onSelect: navigateToFFCSPlanner,
     },
   ], [activeTab, activeToolsSubTab, selectTab, setActiveToolsSubTab]);
 
@@ -919,6 +844,7 @@ export default function NavigationTabs({
     {
       id: "overview",
       label: "Overview",
+      icon: Building,
       isActive: activeTab === "hostel" && HostelActiveSubTab === "overview",
       onSelect: () => {
         selectTab("hostel");
@@ -928,6 +854,7 @@ export default function NavigationTabs({
     {
       id: "mess",
       label: "Mess Menu",
+      icon: Coffee,
       isActive: activeTab === "hostel" && HostelActiveSubTab === "mess",
       onSelect: () => {
         selectTab("hostel");
@@ -937,6 +864,7 @@ export default function NavigationTabs({
     {
       id: "laundry",
       label: "Laundry",
+      icon: Wrench,
       isActive: activeTab === "hostel" && HostelActiveSubTab === "laundry",
       onSelect: () => {
         selectTab("hostel");
@@ -946,6 +874,7 @@ export default function NavigationTabs({
     {
       id: "leave",
       label: "Leave Management",
+      icon: Compass,
       isActive: activeTab === "hostel" && HostelActiveSubTab === "leave",
       onSelect: () => {
         selectTab("hostel");
@@ -955,6 +884,7 @@ export default function NavigationTabs({
     {
       id: "counselling",
       label: "Counselling",
+      icon: User,
       isActive: activeTab === "hostel" && HostelActiveSubTab === "counselling",
       onSelect: () => {
         selectTab("hostel");
@@ -1286,6 +1216,14 @@ export default function NavigationTabs({
         {/* Navigation Content (Expanded Mode vs Compact Rail) */}
         {isOpen ? (
           <SidebarContent>
+            <AnimatePresence mode="wait" initial={false}>
+            <m.div
+              key={showAcademicsPanel ? "academics" : showToolsPanel ? "tools" : showHostelPanel ? "hostel" : "primary"}
+              initial={{ opacity: 0, x: 6 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -4 }}
+              transition={{ duration: 0.16, ease: "easeOut" }}
+            >
             {!showAcademicsPanel && !showToolsPanel && !showHostelPanel ? (
               <div className="space-y-4">
                 {pinnedItems.length > 0 && (
@@ -1295,8 +1233,12 @@ export default function NavigationTabs({
                       {pinnedItems.map((item) => (
                         <SidebarItem
                           key={item.id}
+                          icon={<item.icon className="h-4 w-4 stroke-[1.9]" aria-hidden="true" />}
                           label={item.label}
                           isActive={item.isActive}
+                          aria-current={item.isActive ? "page" : undefined}
+                          data-sidebar-nav="true"
+                          className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-info"
                           onClick={item.onSelect}
                           onKeyDown={(event) => handleNavKeyDown(event, item.onSelect)}
                         />
@@ -1312,8 +1254,12 @@ export default function NavigationTabs({
                       {group.items.map((item) => (
                         <SidebarItem
                           key={item.id}
+                          icon={<item.icon className="h-4 w-4 stroke-[1.9]" aria-hidden="true" />}
                           label={item.label}
                           isActive={item.isActive}
+                          aria-current={item.isActive ? "page" : undefined}
+                          data-sidebar-nav="true"
+                          className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-info"
                           rightElement={item.isExpandable ? <ChevronRight className="h-3.5 w-3.5 shrink-0" /> : undefined}
                           onClick={item.onSelect}
                           onKeyDown={(event) => handleNavKeyDown(event, item.onSelect)}
@@ -1339,8 +1285,12 @@ export default function NavigationTabs({
                     {academicsItems.map((item) => (
                       <SidebarItem
                         key={item.id}
+                        icon={<item.icon className="h-4 w-4 stroke-[1.9]" aria-hidden="true" />}
                         label={item.label}
                         isActive={item.isActive}
+                        aria-current={item.isActive ? "page" : undefined}
+                        data-sidebar-nav="true"
+                        className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-info"
                         onClick={item.onSelect}
                         onKeyDown={(event) => handleNavKeyDown(event, item.onSelect)}
                       />
@@ -1364,8 +1314,12 @@ export default function NavigationTabs({
                     {toolsSubItems.map((item) => (
                       <SidebarItem
                         key={item.id}
+                        icon={<item.icon className="h-4 w-4 stroke-[1.9]" aria-hidden="true" />}
                         label={item.label}
                         isActive={item.isActive}
+                        aria-current={item.isActive ? "page" : undefined}
+                        data-sidebar-nav="true"
+                        className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-info"
                         onClick={item.onSelect}
                         onKeyDown={(event) => handleNavKeyDown(event, item.onSelect)}
                       />
@@ -1389,8 +1343,12 @@ export default function NavigationTabs({
                     {hostelSubItems.map((item) => (
                       <SidebarItem
                         key={item.id}
+                        icon={<item.icon className="h-4 w-4 stroke-[1.9]" aria-hidden="true" />}
                         label={item.label}
                         isActive={item.isActive}
+                        aria-current={item.isActive ? "page" : undefined}
+                        data-sidebar-nav="true"
+                        className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-info"
                         onClick={item.onSelect}
                         onKeyDown={(event) => handleNavKeyDown(event, item.onSelect)}
                       />
@@ -1399,6 +1357,8 @@ export default function NavigationTabs({
                 </SidebarGroup>
               </div>
             )}
+            </m.div>
+            </AnimatePresence>
           </SidebarContent>
         ) : (
           /* Compact Mode Rail Content */
@@ -1415,7 +1375,7 @@ export default function NavigationTabs({
                       <div key={item.id} className="relative flex justify-center group/rail">
                         <button
                           onClick={item.onSelect}
-                          className={`flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-300 hover:scale-110 ${
+                          className={`flex h-10 w-10 items-center justify-center rounded-xl transition-[transform,color,background-color,border-color,box-shadow] duration-200 hover:scale-105 ${
                             item.isActive
                               ? railActiveStyles
                               : "text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground border border-transparent"
@@ -1443,20 +1403,21 @@ export default function NavigationTabs({
                   : group.id === "campus"
                   ? ["payments", "libraries", "events", "clubs", "community", "free-class", "faculty-schedule", "hostel", "transport"].includes(activeTab)
                   : group.id === "tools"
-                  ? activeTab === "more"
-                  : activeTab === "profile";
+                  ? activeTab === "tools" || activeTab === "more" || activeTab === "cabshare"
+                  : activeTab === "profile" || activeTab === "about";
 
                 return (
                   <div key={group.id} className="relative flex justify-center group/rail">
                     <button
                       onClick={() => toggleRailPopover(group.id)}
-                      className={`flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-300 hover:scale-110 ${
+                      className={`flex h-10 w-10 items-center justify-center rounded-xl transition-[transform,color,background-color,border-color,box-shadow] duration-200 hover:scale-105 ${
                         isActive
                           ? railActiveStyles
                           : "text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground border border-transparent"
                       } ${navButtonBase}`}
                       title={group.label}
                       aria-label={`Open ${group.label} menu`}
+                      aria-expanded={activeRailGroup === group.id}
                     >
                       <GroupIcon className={`h-5 w-5 transition-transform duration-300 ${isActive ? 'scale-110 text-info' : ''}`} />
                     </button>
@@ -1477,7 +1438,7 @@ export default function NavigationTabs({
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.18 }}
-              className="shrink-0 px-4 py-3 rounded-b-[24px] space-y-2.5"
+              className="shrink-0 space-y-2.5"
             >
               <SidebarProfile
                 name={profileName}
@@ -1497,7 +1458,7 @@ export default function NavigationTabs({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex flex-col items-center gap-3 pb-4 w-full shrink-0"
+              className="flex flex-col items-center gap-3 w-full shrink-0"
             >
               {/* Expand Toggle Button */}
               <SidebarExpandButton onClick={() => persistSidebarState(!settings.isSidebarCollapsed)} />
@@ -1604,7 +1565,7 @@ export default function NavigationTabs({
                       }}
                       className="group relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground mt-1.5 border-t border-sidebar-border pt-1.5"
                     >
-                      <Lock className="h-4 w-4 shrink-0 text-sidebar-foreground/" />
+                      <LogOut className="h-4 w-4 shrink-0 text-sidebar-foreground/" />
                       <span className="truncate">Log out</span>
                     </button>
                   </div>
@@ -1637,6 +1598,7 @@ export default function NavigationTabs({
                                 : "text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground"
                             }`}
                           >
+                            <item.icon className={`h-4 w-4 shrink-0 ${item.isActive ? "text-info" : "text-sidebar-foreground/70"}`} />
                             <span className="truncate">{item.label}</span>
                           </button>
                         </div>
@@ -1667,6 +1629,32 @@ export default function NavigationTabs({
                             : "text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground"
                         }`}
                       >
+                        <item.icon className={`h-4 w-4 shrink-0 ${item.isActive ? "text-info" : "text-sidebar-foreground/70"}`} />
+                        <span className="truncate">{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : activeRailGroup === "tools-sub" ? (
+                <div>
+                  <button
+                    onClick={() => setActiveRailGroup("tools")}
+                    className="flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold text-sidebar-foreground/ hover:text-sidebar-foreground transition-colors border-b border-sidebar-border pb-1.5 mb-1.5 w-full text-left"
+                  >
+                    <ArrowLeft className="h-3 w-3" />
+                    <span>Back to Tools</span>
+                  </button>
+                  <div className="space-y-0.5 overflow-y-auto max-h-[60vh]" style={{ scrollbarWidth: "none" }}>
+                    {toolsSubItems.map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          item.onSelect();
+                          setActiveRailGroup(null);
+                        }}
+                        className={`group relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} ${item.isActive ? sidebarActiveStyles : "text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground"}`}
+                      >
+                        <item.icon className={`h-4 w-4 shrink-0 ${item.isActive ? "text-info" : "text-sidebar-foreground/70"}`} />
                         <span className="truncate">{item.label}</span>
                       </button>
                     ))}
@@ -1691,6 +1679,8 @@ export default function NavigationTabs({
                               setActiveRailGroup("academics");
                             } else if (item.id === "hostel") {
                               setActiveRailGroup("hostel-sub");
+                            } else if (item.id === "tools") {
+                              setActiveRailGroup("tools-sub");
                             } else {
                               item.onSelect();
                               setActiveRailGroup(null);
@@ -1774,6 +1764,7 @@ const AppLibraryPortal = memo(({
     { label: "Tools Hub", group: "Tools", icon: Layers, action: () => { selectTab("tools"); setActiveToolsSubTab?.("overview"); } },
     { label: "Question Bank", group: "Tools", icon: Database, action: () => { selectTab("tools"); setActiveToolsSubTab?.("qbank"); } },
     { label: "Faculty Explorer", group: "Tools", icon: UserCheck, action: () => { selectTab("tools"); setActiveToolsSubTab?.("faculty-info"); } },
+    { label: "Tasks & Schedule", group: "Tools", icon: CheckSquare, action: () => { selectTab("tools"); setActiveToolsSubTab?.("tasks"); } },
     { label: "Cab Share", group: "Tools", icon: CarTaxiFront, action: () => { selectTab("tools"); setActiveToolsSubTab?.("cabshare"); } },
     { label: "Free Classrooms", group: "Campus", icon: DoorOpen, action: () => { selectTab("free-class"); } },
     { label: "Faculty Schedule", group: "Campus", icon: UserSearch, action: () => { selectTab("faculty-schedule"); } },
@@ -1786,7 +1777,7 @@ const AppLibraryPortal = memo(({
     
     { label: "Settings & Profile", group: "Account", icon: User, action: () => { selectTab("profile"); setActiveProfileSubTab("settings"); } },
     { label: "About & Resources", group: "Account", icon: Info, action: () => { selectTab("about"); } },
-    { label: "Logout", group: "Account", icon: Lock, action: () => { handleLogOutRequest(); } }
+    { label: "Logout", group: "Account", icon: LogOut, action: () => { handleLogOutRequest(); } }
   ], [selectTab, setActiveAttendanceSubTab, setActiveToolsSubTab, setActiveSubTab, setHostelActiveSubTab, setActiveProfileSubTab, handleLogOutRequest]);
 
   const primaryGroups = useMemo(() => [
@@ -1803,6 +1794,8 @@ const AppLibraryPortal = memo(({
         { label: "Payments", icon: CreditCard, type: "link", action: () => selectTab("payments") },
         { label: "Libraries", icon: Library, type: "link", action: () => selectTab("libraries") },
         { label: "Transport", icon: Bus, type: "link", action: () => selectTab("transport") },
+        { label: "Free Classrooms", icon: DoorOpen, type: "link", action: () => { selectTab("free-class"); } },
+        { label: "Faculty Schedule", icon: UserSearch, type: "link", action: () => { selectTab("faculty-schedule"); } },
         { label: "Event Hub", icon: Calendar, type: "link", action: () => { selectTab("events"); } },
         { label: "Club Hub", icon: LayoutGrid, type: "link", action: () => { selectTab("clubs"); } },
         { label: "Announcements", icon: Rss, type: "link", action: () => { selectTab("community"); } },
@@ -1819,9 +1812,8 @@ const AppLibraryPortal = memo(({
         { label: "Tools Hub", icon: Layers, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("overview"); } },
         { label: "Question Bank", icon: Database, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("qbank"); } },
         { label: "Faculty Explorer", icon: UserCheck, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("faculty-info"); } },
+        { label: "Tasks & Schedule", icon: CheckSquare, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("tasks"); } },
         { label: "Cab Share", icon: CarTaxiFront, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("cabshare"); } },
-        { label: "Free Classrooms", icon: DoorOpen, type: "link", action: () => { selectTab("free-class"); } },
-        { label: "Faculty Schedule", icon: UserSearch, type: "link", action: () => { selectTab("faculty-schedule"); } },
       ]
     },
     {
@@ -1829,7 +1821,7 @@ const AppLibraryPortal = memo(({
       items: [
         { label: "Settings & Profile", icon: User, type: "link", action: () => { selectTab("profile"); setActiveProfileSubTab("settings"); } },
         { label: "About & Resources", icon: Info, type: "link", action: () => { selectTab("about"); } },
-        { label: "Logout", icon: Lock, type: "link", action: () => { handleLogOutRequest(); } }
+        { label: "Logout", icon: LogOut, type: "link", action: () => { handleLogOutRequest(); } }
       ]
     }
   ], [selectTab, setActiveAttendanceSubTab, setMobilePanel, isHosteller, residentialStatus, setActiveToolsSubTab, setActiveProfileSubTab, handleLogOutRequest]);

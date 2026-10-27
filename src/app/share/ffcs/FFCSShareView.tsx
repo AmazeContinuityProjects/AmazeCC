@@ -7,6 +7,7 @@ import { Download, Map as MapIcon, AlertTriangle, CalendarDays, Layers, Clock } 
 import {
   decodeCompactTimetableShare,
   decodeTimetableShapeShare,
+  decodeNumericTimetableShapeShare,
   decodeTimetableShare,
 } from "@/lib/ffcsShare";
 import { CAMPUS_SCHEMAS, GLOBAL_CAMPUS } from "@/lib/campusSchema";
@@ -15,12 +16,17 @@ import { downloadModernTimetableImage } from "@/lib/exportTimetable";
 import { storage } from "@/lib/storage";
 import { track } from "@/lib/analytics";
 import { TimetableGrid } from "@/components/custom/exams/FFCS/components/TimetableGrid";
+import SelectedCoursesList from "@/components/custom/exams/FFCS/components/SelectedCoursesList";
+import FacultyReviewSheetHost from "@/components/custom/exams/FFCS/components/FacultyReviewSheetHost";
 import { DAYS } from "@/components/custom/exams/FFCS/constants";
 import type { ParsedCourse, TimetablePeriod, TimetableState } from "@/components/custom/exams/FFCS/types";
 import { getFFCSSemester, parseReportRows } from "@/components/custom/exams/FFCS/reports";
+import { groupSharedReportCourses } from "@/lib/ffcsCourseGrouping";
 import { COLORS } from "@/components/custom/exams/FFCS/constants";
 import { splitSlots } from "@/components/custom/exams/FFCS/logic/generate";
 import { getAssetPath } from "@/lib/utils";
+import { useOverlayBackBoundary } from "@/lib/overlayStack";
+import { useFacultyReviewSheet } from "@/components/custom/exams/FFCS/hooks/useFacultyReviewSheet";
 
 /**
  * The receiver's side of a share link: the plan, read-only, plus the two
@@ -38,10 +44,12 @@ function Card({ children, className = "" }: { children: React.ReactNode; classNa
 }
 
 export default function FFCSShareView() {
+  useOverlayBackBoundary("ffcs-share-route");
   const searchParams = useSearchParams();
   const encoded = searchParams.get("d") ?? "";
   const compactEncoded = searchParams.get("x") ?? "";
   const shapeEncoded = searchParams.get("q") ?? "";
+  const numericShapeEncoded = searchParams.get("r") ?? "";
   const fullDecoded = useMemo(() => decodeTimetableShare(encoded), [encoded]);
   const compactPayload = useMemo(
     () => decodeCompactTimetableShare(compactEncoded),
@@ -51,7 +59,11 @@ export default function FFCSShareView() {
     () => decodeTimetableShapeShare(shapeEncoded),
     [shapeEncoded]
   );
-  const hasReportBackedLink = Boolean(compactEncoded || shapeEncoded);
+  const numericShapePayload = useMemo(
+    () => decodeNumericTimetableShapeShare(numericShapeEncoded),
+    [numericShapeEncoded]
+  );
+  const hasReportBackedLink = Boolean(compactEncoded || shapeEncoded || numericShapeEncoded);
   const [compactDecoded, setCompactDecoded] = useState<{
     timetable: TimetableState;
     campus: string;
@@ -65,7 +77,11 @@ export default function FFCSShareView() {
       setCompactLoadState("idle");
       return;
     }
-    if ((shapeEncoded && !shapePayload) || (!shapeEncoded && !compactPayload)) {
+    if (
+      (shapeEncoded && !shapePayload) ||
+      (numericShapeEncoded && !numericShapePayload) ||
+      (!shapeEncoded && !numericShapeEncoded && !compactPayload)
+    ) {
       setCompactDecoded(null);
       setCompactLoadState("invalid");
       return;
@@ -76,7 +92,11 @@ export default function FFCSShareView() {
     setCompactLoadState("loading");
     const loadCompactTimetable = async () => {
       try {
-        const semesterId = shapeEncoded ? shapePayload!.semesterId : compactPayload!.s;
+        const isShapeLink = Boolean(shapeEncoded || numericShapeEncoded);
+        const semesterId =
+          shapePayload?.semesterId ??
+          numericShapePayload?.semesterId ??
+          compactPayload!.s;
         const semester = getFFCSSemester(semesterId);
         const response = await fetch(getAssetPath(semester.path));
         if (!response.ok) throw new Error(`Failed to fetch ${semester.path}`);
@@ -85,9 +105,10 @@ export default function FFCSShareView() {
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet);
         const reportCourses = parseReportRows(rows);
-        const classIds = shapeEncoded
-          ? shapePayload!.classIds
-          : compactPayload!.i.map((suffix) => `${compactPayload!.p}${suffix}`);
+        const classIds =
+          shapePayload?.classIds ??
+          numericShapePayload?.classIds ??
+          compactPayload!.i.map((suffix) => `${compactPayload!.p}${suffix}`);
         const selectedCourses = classIds.map((classId) =>
           reportCourses.find((course) => course.CLASS_ID?.trim() === classId)
         );
@@ -97,24 +118,34 @@ export default function FFCSShareView() {
         const resolvedCourses = selectedCourses.filter(
           (course): course is ParsedCourse => Boolean(course)
         );
+        const groupedCourses = groupSharedReportCourses(resolvedCourses);
 
         const timetable: TimetableState = {
           id: `share-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
-          name: shapeEncoded ? "Shared timetable" : compactPayload!.n,
-          courses: resolvedCourses.map((course, index) => ({
-            id: `share-${course.CLASS_ID}`,
-            code: course.CODE,
-            title: course.TITLE,
-            slots: splitSlots(course.SLOT),
-            faculty: course.FACULTY,
-            employeeId: course.ERP_ID,
-            classId: course.CLASS_ID,
-            venue: course.ROOM,
-            credits: course.CREDITS,
-            type: course.TYPE || (course.SLOT.includes("L") ? "Lab" : "Theory"),
-            color: COLORS[index % COLORS.length],
-            batch: course!.BATCH,
-          })),
+          name: isShapeLink ? "Shared timetable" : compactPayload!.n,
+          courses: groupedCourses.map((course, index) => {
+            const classIds = course.CLASS_IDS?.length
+              ? course.CLASS_IDS
+              : course.CLASS_ID
+                ? [course.CLASS_ID]
+                : [];
+            const isSoftSkill = course.CODE.trim().toUpperCase().startsWith("BASTS");
+            return {
+              id: `share-${classIds.join("-") || course.CLASS_ID || index}`,
+              code: course.CODE,
+              title: course.TITLE,
+              slots: splitSlots(course.SLOT),
+              faculty: course.FACULTY,
+              employeeId: course.ERP_ID,
+              classId: course.CLASS_ID,
+              classIds,
+              venue: course.ROOM,
+              credits: course.CREDITS,
+              type: isSoftSkill ? "SS" : course.TYPE || (course.SLOT.includes("L") ? "Lab" : "Theory"),
+              color: COLORS[index % COLORS.length],
+              batch: course.BATCH,
+            };
+          }),
         };
         if (!active) return;
         setCompactDecoded({ timetable, campus: GLOBAL_CAMPUS });
@@ -129,9 +160,22 @@ export default function FFCSShareView() {
     return () => {
       active = false;
     };
-  }, [compactEncoded, compactPayload, hasReportBackedLink, shapeEncoded, shapePayload]);
+  }, [
+    compactEncoded,
+    compactPayload,
+    hasReportBackedLink,
+    numericShapeEncoded,
+    numericShapePayload,
+    shapeEncoded,
+    shapePayload,
+  ]);
 
   const [isDownloading, setIsDownloading] = useState(false);
+  const {
+    target: facultyReviewTarget,
+    open: openFacultyReview,
+    close: closeFacultyReview,
+  } = useFacultyReviewSheet();
 
   useEffect(() => {
     if (decoded) {
@@ -279,28 +323,11 @@ export default function FFCSShareView() {
         </Card>
 
         <Card>
-          <h2 className="font-bold text-sm mb-3">The courses in this plan</h2>
-          <ul className="divide-y divide-border/40">
-            {timetable.courses.map((course) => (
-              <li key={course.id} className="py-2.5 flex items-start justify-between gap-3 text-sm">
-                <div className="min-w-0">
-                  <p className="font-semibold truncate">
-                    {course.code}
-                    <span className="ml-2 font-normal text-muted-foreground truncate">
-                      {course.title}
-                    </span>
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {course.faculty || "Faculty unstated"}
-                    {course.venue ? ` · ${course.venue}` : ""}
-                  </p>
-                </div>
-                <span className="text-xs font-mono text-muted-foreground shrink-0">
-                  {course.slots.join(" + ")}
-                </span>
-              </li>
-            ))}
-          </ul>
+          <SelectedCoursesList
+            courses={timetable.courses}
+            title="The courses in this plan"
+            onReviewClick={openFacultyReview}
+          />
         </Card>
 
         <div className="flex flex-col sm:flex-row gap-3">
@@ -332,12 +359,18 @@ export default function FFCSShareView() {
         </div>
 
         <p className="text-[11px] text-muted-foreground text-center pb-6">
-          {shapeEncoded
-            ? "This TT shape link contains only class IDs. Their shared prefix identifies the semester report used to rebuild the timetable."
+          {shapeEncoded || numericShapeEncoded
+            ? numericShapeEncoded
+              ? "This numeric TT shape link contains delta-packed class IDs. Its numeric code selects the semester report used to rebuild the timetable."
+              : "This TT shape link contains only class IDs. Their shared prefix identifies the semester report used to rebuild the timetable."
             : compactEncoded
               ? "This short link contains the semester and selected class IDs; the matching public semester report supplies the timetable details."
             : "Plans travel inside the link itself — nothing was uploaded, and opening one here keeps it on this device."}
         </p>
+        <FacultyReviewSheetHost
+          target={facultyReviewTarget}
+          onClose={closeFacultyReview}
+        />
       </div>
     </main>
   );
