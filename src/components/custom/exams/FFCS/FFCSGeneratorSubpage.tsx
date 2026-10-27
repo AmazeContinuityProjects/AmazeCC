@@ -32,9 +32,11 @@ import { AnimatePresence } from 'framer-motion';
 import BottomSheet from "../../shared/BottomSheet";
 import { loadSessionPreferences, saveSessionPreferences } from "@/lib/ffcsGeneratorSessionPrefs";
 import FacultyReviewSheet, { VitfacReviewPill, FacultyAvatar } from './components/FacultyReviewSheet';
+import { TargetCourseLocker } from './components/TargetCourseLocker';
 import FFCSGeneratorViewModeModal, {
   type GeneratorViewMode,
 } from './components/modals/FFCSGeneratorViewModeModal';
+import FFCSGeneratorRunSummaryModal from './components/modals/FFCSGeneratorRunSummaryModal';
 import { loadVitfacRankingData } from "@/lib/vitfacService";
 import type { FacultyRatingLookup } from "@/lib/ffcsFacultyRanking";
 import { DAYS_OF_WEEK, timeToMinutes, type DayId } from "@/lib/slots";
@@ -219,6 +221,9 @@ export function FFCSGeneratorSubpage({
     safeStorage.getItem("ffcs_generator_view_mode") === "classic" ? "classic" : "modern"
   );
   const [isViewModeModalOpen, setIsViewModeModalOpen] = useState(false);
+  // Both "Generate" buttons open this confirmation sheet rather than starting
+  // the search blind — it gathers the whole run profile onto one page.
+  const [isRunSummaryOpen, setIsRunSummaryOpen] = useState(false);
   const [activeGeneratorSection, setActiveGeneratorSection] = useState<GeneratorSectionKey>("courses");
 
   const selectGeneratorViewMode = (mode: GeneratorViewMode, remember: boolean) => {
@@ -342,6 +347,24 @@ export function FFCSGeneratorSubpage({
     if (seededFromLocks) return;
     safeStorage.setItem(TARGETS_STORAGE_KEY, JSON.stringify(generatorTargets));
   }, [generatorTargets, seededFromLocks]);
+  const [activeLockerCode, setActiveLockerCode] = useState<string | null>(null);
+  // The desktop locker renders inline in the main column; the sheet is the
+  // mobile-only fallback. BottomSheet portals to <body>, so a `lg:hidden`
+  // wrapper cannot hide it — it must not be mounted on desktop at all.
+  const [isDesktopViewport, setIsDesktopViewport] = useState(false);
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") {
+      const updateViewport = () => setIsDesktopViewport(window.innerWidth >= 1024);
+      updateViewport();
+      window.addEventListener("resize", updateViewport);
+      return () => window.removeEventListener("resize", updateViewport);
+    }
+    const media = window.matchMedia("(min-width: 1024px)");
+    const updateViewport = () => setIsDesktopViewport(media.matches);
+    updateViewport();
+    media.addEventListener("change", updateViewport);
+    return () => media.removeEventListener("change", updateViewport);
+  }, []);
   const [generatorSyncFriendsClasses, setGeneratorSyncFriendsClasses] = useState<boolean>(
     () => sessionPrefs.syncFriendsClasses ?? sessionPrefs.syncFriendClasses ?? false
   );
@@ -434,6 +457,11 @@ export function FFCSGeneratorSubpage({
   };
 
   const [generatorCourseSearchQuery, setGeneratorCourseSearchQuery] = useState("");
+  // How the target-course list buckets its rows: flat, by how many faculties
+  // offer the course (rank of choice), or by slot series split morning/evening.
+  const [generatorCourseGroupBy, setGeneratorCourseGroupBy] = useState<"none" | "facultyRank" | "slot">("none");
+  // Sort order applied to the (possibly grouped) target-course list.
+  const [generatorCourseSortBy, setGeneratorCourseSortBy] = useState<"code" | "title" | "faculty" | "offerings">("code");
   const [isVariantSearchOpen, setIsVariantSearchOpen] = useState(false);
   const [variantSearchQuery, setVariantSearchQuery] = useState("");
   const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
@@ -553,6 +581,108 @@ export function FFCSGeneratorSubpage({
     ) as Record<DayId, { value: string; label: string }[]>;
   }, [allAvailableSlots, getPeriodsForSlot]);
   const uniqueCourseCodes = Array.from(new Set(masterCourses.map(c => c.CODE)));
+
+  /**
+   * The target-course list, bucketed by the chosen grouping.
+   *
+   * - `none` — one flat bucket, the original list.
+   * - `facultyRank` — one bucket per number of distinct faculties offering the
+   *   course ("3 faculties", "1 faculty"), richest choice first; within a
+   *   bucket courses sort by their earliest slot, then by code.
+   * - `slot` — buckets per (half-day, series): a course lands in every group
+   *   one of its offerings touches, since it can span both a morning A and an
+   *   evening C. Morning groups come first, then series A→G. A trailing `1`
+   *   on the first slot is a morning period and a `2` an evening one (law
+   *   slots carry no digit and count as morning).
+   */
+  const generatorCourseGroups = useMemo(() => {
+    const query = generatorCourseSearchQuery.trim().toLowerCase();
+    const filtered = generatorDisplayCourses.filter(
+      c =>
+        c.code.toLowerCase().includes(query) ||
+        c.title.toLowerCase().includes(query)
+    );
+
+    const offeringsFor = (code: string) => masterCourses.filter(mc => mc.CODE === code);
+    const facultyCountFor = (code: string) =>
+      new Set(offeringsFor(code).map(o => o.FACULTY)).size;
+
+    // Sort order shared by every grouping; falls back to code for ties.
+    const compareCourses = (
+      a: (typeof filtered)[number],
+      b: (typeof filtered)[number]
+    ): number => {
+      switch (generatorCourseSortBy) {
+        case "title":
+          return a.title.localeCompare(b.title) || a.code.localeCompare(b.code);
+        case "faculty":
+          return facultyCountFor(b.code) - facultyCountFor(a.code) ||
+            a.code.localeCompare(b.code);
+        case "offerings":
+          return offeringsFor(b.code).length - offeringsFor(a.code).length ||
+            a.code.localeCompare(b.code);
+        default:
+          return a.code.localeCompare(b.code);
+      }
+    };
+    const sorted = [...filtered].sort(compareCourses);
+
+    if (generatorCourseGroupBy === "none") {
+      return [{ label: null, courses: sorted }];
+    }
+
+    if (generatorCourseGroupBy === "facultyRank") {
+      const tiers = new Map<number, typeof filtered>();
+      for (const c of sorted) {
+        const facultyCount = facultyCountFor(c.code);
+        const tier = tiers.get(facultyCount) ?? [];
+        tier.push(c);
+        tiers.set(facultyCount, tier);
+      }
+      return Array.from(tiers.entries())
+        .sort(([a], [b]) => b - a)
+        .map(([count, courses]) => ({
+          label: `${count} ${count === 1 ? "faculty" : "faculties"}`,
+          courses: [...courses].sort(compareCourses),
+        }));
+    }
+
+    // Group by slot: (half, series) per distinct first-slot of each offering.
+    const buckets = new Map<string, { half: 0 | 1; series: string; courses: typeof filtered }>();
+    const ungrouped: typeof filtered = [];
+    for (const c of sorted) {
+      const groupsSeen = new Set<string>();
+      const offerings = offeringsFor(c.code);
+      for (const o of offerings) {
+        const first = (o.SLOT || "").split("+")[0].trim().toUpperCase();
+        const seriesMatch = first.match(/^[T]?([A-G])/);
+        if (!seriesMatch) continue;
+        const series = seriesMatch[1];
+        const half: 0 | 1 = first.endsWith("2") ? 1 : 0;
+        const key = `${half}-${series}`;
+        groupsSeen.add(key);
+        const bucket = buckets.get(key) ?? { half, series, courses: [] };
+        bucket.courses.push(c);
+        buckets.set(key, bucket);
+      }
+      if (groupsSeen.size === 0) ungrouped.push(c);
+    }
+
+    const grouped = Array.from(buckets.values())
+      .sort((a, b) => a.half - b.half || a.series.localeCompare(b.series))
+      .map(b => ({
+        label: `${b.half === 0 ? "Morning" : "Evening"} · ${b.series} series`,
+        courses: [...b.courses].sort(compareCourses),
+      }));
+    if (ungrouped.length > 0) grouped.push({ label: "Other slots", courses: ungrouped });
+    return grouped;
+  }, [
+    generatorCourseSearchQuery,
+    generatorCourseGroupBy,
+    generatorCourseSortBy,
+    generatorDisplayCourses,
+    masterCourses,
+  ]);
 
 
   /**
@@ -869,8 +999,8 @@ export function FFCSGeneratorSubpage({
   const generatorSections = [
     { id: "courses" as const, label: "Target courses", icon: Target, detail: `${generatorTargets.length} selected`, tone: "indigo" },
     { id: "ranking" as const, label: "Ranking & reviews", icon: Star, detail: rankingMode ? "Profile active" : "Sort and faculty", tone: "violet" },
-    { id: "schedule" as const, label: "Schedule", icon: CalendarDays, detail: `${generatorPreference} · time and labs`, tone: "cyan" },
-    { id: "constraints" as const, label: "Search limits", icon: SlidersHorizontal, detail: `${generatorNoLimit ? "No result cap" : generatorResultCap + " max"} · ${blockedSlots.size} blocked`, tone: "amber" },
+    { id: "schedule" as const, label: "Schedule", icon: CalendarDays, detail: `${generatorPreference} · ${blockedSlots.size} blocked`, tone: "cyan" },
+    { id: "constraints" as const, label: "Search limits", icon: SlidersHorizontal, detail: `${generatorNoLimit ? "No result cap" : generatorResultCap + " max"}`, tone: "amber" },
     { id: "social" as const, label: "Social matching", icon: Users, detail: `${generatorMaximizeFreeTimeFriends.length} friends selected`, tone: "pink" },
   ];
   const selectGeneratorSection = (section: GeneratorSectionKey) => setActiveGeneratorSection(section);
@@ -898,8 +1028,8 @@ export function FFCSGeneratorSubpage({
         sub: "Excluded from results",
         tone: "amber",
         icon: <X className="h-4 w-4 text-amber-500" />,
-        onClick: () => setActiveGeneratorSection("constraints"),
-        ariaLabel: `Blocked slots: ${blockedSlots.size}. Edit search limits.`,
+        onClick: () => setActiveGeneratorSection("schedule"),
+        ariaLabel: `Blocked slots: ${blockedSlots.size}. Edit schedule.`,
         focusRingClass: "focus-visible:ring-amber-500",
       },
       {
@@ -1816,21 +1946,38 @@ export function FFCSGeneratorSubpage({
                 )}
               </div>
             ) : (
-            <div className={`max-w-none w-full grid ${generatorViewMode === "modern" ? "grid-cols-1 gap-3 lg:gap-3 lg:grid-cols-[minmax(220px,0.8fr)_minmax(0,2fr)] xl:grid-cols-[minmax(220px,0.8fr)_minmax(0,2fr)_minmax(280px,0.9fr)]" : "grid-cols-1 lg:grid-cols-2 gap-10"}`}>
+            <div className={`max-w-none w-full grid ${generatorViewMode === "modern" ? "grid-cols-1 gap-3 lg:gap-3 lg:grid-cols-[minmax(220px,0.8fr)_minmax(0,2fr)]" : "grid-cols-1 lg:grid-cols-2 gap-10"}`}>
 
               {generatorViewMode === "modern" && (
-                <nav aria-label="Generator sections" className="min-w-0 space-y-3 lg:sticky lg:top-4 lg:col-start-1 lg:row-span-2 lg:self-start">
+                <nav aria-label="Generator sections" className="min-w-0 space-y-3 lg:sticky lg:top-4 lg:col-start-1 lg:row-start-1 lg:self-start">
                   <div>
                     <SectionHeader icon={LayoutDashboard} title="Generator sections" className="mb-2" />
                     <div role="tablist" aria-label="Auto-generator sections" className="min-w-0">
-                      <ListShell className="grid grid-flow-col auto-cols-max gap-1 divide-y-0 overflow-x-auto p-1 lg:grid-flow-row lg:auto-cols-auto lg:divide-y lg:overflow-visible">
+                      <ListShell>
                         {generatorSections.map(({ id, label, icon: Icon, detail, tone }) => {
-                          const activeTabClass = {
-                            indigo: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/25",
-                            violet: "bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/25",
-                            cyan: "bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border-cyan-500/25",
-                            amber: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/25",
-                            pink: "bg-pink-500/10 text-pink-700 dark:text-pink-300 border-pink-500/25",
+                          const isActive = activeGeneratorSection === id;
+                          // Per-tone tile + active tint, same recipe as the
+                          // target-course menu entries below.
+                          const tileClass = {
+                            indigo: "bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
+                            violet: "bg-violet-500/10 dark:bg-violet-500/20 text-violet-600 dark:text-violet-400 border-violet-500/20",
+                            cyan: "bg-cyan-500/10 dark:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 border-cyan-500/20",
+                            amber: "bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/20",
+                            pink: "bg-pink-500/10 dark:bg-pink-500/20 text-pink-600 dark:text-pink-400 border-pink-500/20",
+                          }[tone];
+                          const activeClass = {
+                            indigo: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300",
+                            violet: "bg-violet-500/10 text-violet-700 dark:text-violet-300",
+                            cyan: "bg-cyan-500/10 text-cyan-700 dark:text-cyan-300",
+                            amber: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
+                            pink: "bg-pink-500/10 text-pink-700 dark:text-pink-300",
+                          }[tone];
+                          const activeTickClass = {
+                            indigo: "bg-indigo-500",
+                            violet: "bg-violet-500",
+                            cyan: "bg-cyan-500",
+                            amber: "bg-amber-500",
+                            pink: "bg-pink-500",
                           }[tone];
                           return (
                           <button
@@ -1838,7 +1985,7 @@ export function FFCSGeneratorSubpage({
                             id={`generator-tab-${id}`}
                             type="button"
                             role="tab"
-                            aria-selected={activeGeneratorSection === id}
+                            aria-selected={isActive}
                             aria-controls="generator-active-panel"
                             onClick={() => selectGeneratorSection(id)}
                             onKeyDown={(event) => {
@@ -1854,15 +2001,22 @@ export function FFCSGeneratorSubpage({
                               selectGeneratorSection(next.id);
                               document.getElementById(`generator-tab-${next.id}`)?.focus();
                             }}
-                            className={`flex min-h-11 shrink-0 items-center gap-2.5 rounded-xl border px-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 lg:w-full ${activeGeneratorSection === id ? activeTabClass : "border-transparent text-text-secondary hover:bg-surface-secondary/70 hover:text-text-heading"}`}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${isActive ? `${activeClass} text-text-heading` : "text-text-secondary hover:bg-surface-secondary/60 hover:text-text-heading"}`}
                           >
-                            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${activeGeneratorSection === id ? "bg-white/70 dark:bg-black/10" : "bg-surface-secondary/70"}`}>
-                              <Icon className="h-4 w-4 shrink-0" />
+                            <span className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${tileClass}`}>
+                              <Icon className="w-4 h-4" />
                             </span>
-                            <span className="min-w-0 flex-1">
-                              <span className="block whitespace-nowrap text-xs font-semibold">{label}</span>
-                              <span className="hidden truncate text-[10px] text-muted-foreground lg:block">{detail}</span>
-                            </span>
+                            <ListRowText
+                              title={label}
+                              titleTag="span"
+                              subtitle={detail}
+                              wrapSubtitle
+                            />
+                            {isActive && (
+                              <span className={`w-5 h-5 rounded text-white flex items-center justify-center shrink-0 ${activeTickClass}`}>
+                                <Check className="w-3.5 h-3.5" strokeWidth={3} />
+                              </span>
+                            )}
                           </button>
                           );
                         })}
@@ -1890,6 +2044,35 @@ export function FFCSGeneratorSubpage({
                       </button>
                     </ListShell>
                   </section>
+
+                  {generatorTargets.length > 0 && (
+                    <section aria-labelledby="generator-locked-courses-heading" className="space-y-2">
+                      <h3 id="generator-locked-courses-heading" className="px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Target courses
+                      </h3>
+                      <ListShell>
+                        {generatorTargets.map((t) => (
+                          <button
+                            key={t.code}
+                            type="button"
+                            onClick={() => { setActiveGeneratorSection("courses"); setActiveLockerCode(t.code); }}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-surface-secondary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${activeLockerCode === t.code ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" : "text-text-secondary hover:text-text-heading"}`}
+                          >
+                            <span className="w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/20 text-[10px] font-bold">
+                              {t.code.slice(0, 2)}
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-xs font-semibold">{t.code}</span>
+                              <span className="block truncate text-[10px] text-muted-foreground" title={t.title}>{t.title}</span>
+                              <span className="hidden truncate text-[10px] text-muted-foreground/70 lg:block">
+                                {t.offerings?.length ? `${t.offerings.length} offering${t.offerings.length === 1 ? "" : "s"}` : "any faculty/slot"}
+                              </span>
+                            </span>
+                          </button>
+                        ))}
+                      </ListShell>
+                    </section>
+                  )}
                 </nav>
               )}
 
@@ -1917,8 +2100,44 @@ export function FFCSGeneratorSubpage({
                 </section>
               )}
               
+              {/* Locker view: on desktop, opening a target course swaps the main
+                  column to its faculty/slot picker. Mobile still uses the sheet. */}
+              {activeLockerCode && (() => {
+                const lkCourse = generatorDisplayCourses.find(c => c.code === activeLockerCode) || generatorTargets.find(t => t.code === activeLockerCode);
+                const lkSelection = generatorTargets.find(t => t.code === activeLockerCode);
+                if (!lkCourse || !lkSelection) return null;
+                return (
+                  <div className={`hidden lg:flex min-w-0 flex-col gap-4 bg-surface rounded-2xl border border-indigo-500/30 dark:border-indigo-500/40 shadow-sm p-4 sm:p-6 ${generatorViewMode === "modern" ? "row-start-3 lg:row-start-1 lg:col-start-2" : ""}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold text-lg text-text-heading">{lkCourse.code}</span>
+                          <span className="text-sm text-muted-foreground truncate">{lkCourse.title}</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Pick the slots and faculties the generator should focus on for this course.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setActiveLockerCode(null)}
+                        className="shrink-0 min-h-11 px-3 text-xs font-semibold rounded-xl border border-border-strong text-text-secondary hover:text-text-heading hover:bg-surface-secondary/60 transition-colors"
+                      >
+                        Back to courses
+                      </button>
+                    </div>
+                    <TargetCourseLocker
+                      course={{ code: lkCourse.code, title: lkCourse.title }}
+                      masterCourses={masterCourses}
+                      selection={lkSelection}
+                      onChange={(next) => setGeneratorTargets(prev => prev.map(p => (p.code === lkCourse.code ? next : p)))}
+                    />
+                  </div>
+                );
+              })()}
+
               {/* Left Column: Courses Selection */}
-              <div id={generatorViewMode === "modern" && activeGeneratorSection === "courses" ? "generator-active-panel" : undefined} role={generatorViewMode === "modern" ? "tabpanel" : undefined} aria-labelledby={generatorViewMode === "modern" ? `generator-tab-${activeGeneratorSection}` : undefined} className={`flex min-w-0 flex-col gap-6 ${generatorViewMode === "modern" ? `row-start-3 lg:row-start-1 lg:col-start-2 ${showGeneratorSection("courses") ? "" : "hidden"}` : ""}`}>
+              <div id={generatorViewMode === "modern" && activeGeneratorSection === "courses" ? "generator-active-panel" : undefined} role={generatorViewMode === "modern" ? "tabpanel" : undefined} aria-labelledby={generatorViewMode === "modern" ? `generator-tab-${activeGeneratorSection}` : undefined} className={`flex min-w-0 flex-col gap-6 ${generatorViewMode === "modern" ? `row-start-3 lg:row-start-1 lg:col-start-2 ${showGeneratorSection("courses") ? "" : "hidden"}` : ""} ${activeLockerCode ? "lg:hidden" : ""}`}>
                 <div id="generator-target-courses" className={`scroll-mt-24 bg-surface rounded-2xl border shadow-sm ${generatorViewMode === "modern" ? "border-indigo-500/30 dark:border-indigo-500/40 p-4 sm:p-6" : "border-border-strong p-6"}`}>
                   <div className="flex justify-between items-start mb-4">
                     <div>
@@ -1932,241 +2151,171 @@ export function FFCSGeneratorSubpage({
                     </div>
                   </div>
                   
+                  {generatorTargets.length > 0 && (
+                    <div className="mb-4 space-y-2">
+                      <div className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Locked target courses</div>
+                      <div className="flex flex-col gap-2">
+                        {generatorTargets.map((t) => (
+                          <div key={t.code} className="flex items-center justify-between gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 px-3 py-2">
+                            <div className="min-w-0">
+                              <div className="text-sm font-bold text-text-heading truncate">{t.code}</div>
+                              <div className="text-[11px] text-muted-foreground truncate">{t.title}</div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                                {t.offerings?.length ? `${t.offerings.length} offering${t.offerings.length === 1 ? "" : "s"}` : "any"}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setActiveLockerCode(t.code)}
+                                className="text-xs font-semibold text-amber-600 hover:text-amber-700 dark:text-amber-400 hover:underline"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setGeneratorTargets(prev => prev.filter(p => p.code !== t.code))}
+                                className="text-xs text-muted-foreground hover:text-red-500"
+                                aria-label={`Remove ${t.code}`}
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <SearchInput placeholder="Search by course code or title..." value={generatorCourseSearchQuery} onChange={e => setGeneratorCourseSearchQuery(e.target.value)} containerClassName="mb-3" />
 
-                  <div className="border border-border-strong rounded-xl max-h-[60vh] overflow-y-auto bg-surface-secondary/10 p-3 grid grid-cols-1 gap-2 custom-scrollbar">
-                    {generatorDisplayCourses.filter(c => 
-                      c.code.toLowerCase().includes(generatorCourseSearchQuery.toLowerCase()) || 
-                      c.title.toLowerCase().includes(generatorCourseSearchQuery.toLowerCase())
-                    ).length === 0 && (
+                  <div className="flex flex-wrap items-center gap-1.5 mb-3">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mr-1">Group by</span>
+                    {([
+                      { id: "none", label: "None" },
+                      { id: "facultyRank", label: "Faculty rank" },
+                      { id: "slot", label: "Slot" },
+                    ] as const).map(opt => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        aria-pressed={generatorCourseGroupBy === opt.id}
+                        onClick={() => setGeneratorCourseGroupBy(opt.id)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors ${generatorCourseGroupBy === opt.id ? "bg-amber-500 text-white shadow-sm" : "bg-surface-secondary hover:bg-surface-secondary/80 text-text-heading/70"}`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground ml-2 mr-1">Sort</span>
+                    {([
+                      { id: "code", label: "Code" },
+                      { id: "title", label: "Title" },
+                      { id: "faculty", label: "Most faculties" },
+                      { id: "offerings", label: "Most offerings" },
+                    ] as const).map(opt => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        aria-pressed={generatorCourseSortBy === opt.id}
+                        onClick={() => setGeneratorCourseSortBy(opt.id)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors ${generatorCourseSortBy === opt.id ? "bg-indigo-500 text-white shadow-sm" : "bg-surface-secondary hover:bg-surface-secondary/80 text-text-heading/70"}`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="border border-border-strong rounded-xl max-h-[60vh] overflow-y-auto bg-surface-secondary/10 p-3 flex flex-col gap-3 custom-scrollbar">
+                    {generatorCourseGroups.reduce((n, g) => n + g.courses.length, 0) === 0 && uniqueCourseCodes.length > 0 && (
                       <div className="text-center py-8 text-muted-foreground text-sm">
                         No courses found matching "{generatorCourseSearchQuery}"
                       </div>
                     )}
-                    {generatorDisplayCourses.filter(c => 
-                      c.code.toLowerCase().includes(generatorCourseSearchQuery.toLowerCase()) || 
-                      c.title.toLowerCase().includes(generatorCourseSearchQuery.toLowerCase())
-                    ).map(c => {
-                      const sel = generatorTargets.find(s => s.code === c.code);
+                    {generatorCourseGroups.map(group => (
+                      <div key={group.label ?? "all"} className="flex flex-col gap-2">
+                        {group.label && (
+                          <div className="sticky top-0 z-10 bg-surface-secondary/95 backdrop-blur px-2 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                            {group.label}
+                          </div>
+                        )}
+                        {group.courses.map(c => {
+                          const sel = generatorTargets.find(s => s.code === c.code);
                           const isSelected = !!sel;
-                          
-                          const courseOpts = masterCourses.filter(mc => mc.CODE === c.code);
-                          const uniqueOfferings = Array.from(new Map(courseOpts.map(opt => {
-                            const legacyId = `${opt.FACULTY}|${opt.SLOT}|${opt.ROOM}`;
-                            const id = offeringId(opt);
-                            return [id, {
-                              faculty: opt.FACULTY,
-                              slot: opt.SLOT,
-                              venue: opt.ROOM,
-                              employeeId: opt.ERP_ID || "",
-                              classId: opt.CLASS_ID || "",
-                              legacyId,
-                              id,
-                            }];
-                          })).values()).sort((a, b) =>
-                            a.faculty.localeCompare(b.faculty) ||
-                            a.slot.localeCompare(b.slot) ||
-                            a.employeeId.localeCompare(b.employeeId)
-                          );
-
-                          const offeringsByFac = uniqueOfferings.reduce((acc, curr) => {
-                            if (!acc[curr.faculty]) acc[curr.faculty] = [];
-                            acc[curr.faculty].push(curr);
-                            return acc;
-                          }, {} as Record<string, typeof uniqueOfferings>);
-
-                          const sortedFacs = Object.keys(offeringsByFac).sort();
 
                           return (
-                            <div key={c.code} className={`flex flex-col gap-2 p-3 rounded-xl border transition-colors ${isSelected ? 'bg-surface-secondary/30 border-amber-500/50 shadow-sm' : 'bg-transparent border-transparent hover:border-border-strong hover:bg-surface-secondary/50'}`}>
-                              <label className="flex items-start gap-3 cursor-pointer">
-                                <input 
-                                  type="checkbox" 
-                                  className="mt-1 rounded bg-surface border-border-strong text-amber-500 focus:ring-amber-500/30"
+                            <div key={c.code} className={`rounded-xl border transition-colors ${isSelected ? "bg-amber-500/5 border-amber-500/50 shadow-sm" : "bg-surface border-border-strong hover:border-amber-500/30 hover:bg-surface-secondary/40"}`}>
+                              <label
+                                className="flex items-center gap-3 p-3 cursor-pointer"
+                                onClick={(e) => {
+                                  // A selected course's card is the entry to its
+                                  // pane; a click on it opens the pane rather
+                                  // than unchecking (prevent the label's own
+                                  // activation of the checkbox).
+                                  if (isSelected && activeLockerCode !== c.code && (e.target as HTMLElement).tagName !== "INPUT") {
+                                    e.preventDefault();
+                                    setActiveLockerCode(c.code);
+                                  }
+                                }}
+                              >
+                                <input
+                                  type="checkbox"
+                                  className="peer sr-only"
                                   checked={isSelected}
                                   onChange={(e) => {
-                                    if (e.target.checked) setGeneratorTargets(prev => [...prev, { code: c.code, title: c.title, allowedSlots: [], allowedFaculty: [], offerings: [] }]);
-                                    else setGeneratorTargets(prev => prev.filter(s => s.code !== c.code));
+                                    if (e.target.checked) {
+                                      setGeneratorTargets(prev => [...prev, { code: c.code, title: c.title, allowedSlots: [], allowedFaculty: [], offerings: [] }]);
+                                      // Ticking a course is a request to pick its
+                                      // faculty/slots — open its pane right away.
+                                      setActiveLockerCode(c.code);
+                                    } else {
+                                      setGeneratorTargets(prev => prev.filter(s => s.code !== c.code));
+                                      setActiveLockerCode(prev => (prev === c.code ? null : prev));
+                                    }
                                   }}
                                 />
-                                <div className="flex flex-col flex-1">
-                                  <div className="flex items-center gap-2 flex-wrap">
+                                <span className={`shrink-0 w-5 h-5 rounded border flex items-center justify-center transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-amber-500/40 ${isSelected ? "bg-amber-500 border-amber-500 text-white" : "bg-surface border-border-strong text-transparent"}`}>
+                                  <Check className="w-3.5 h-3.5" strokeWidth={3} />
+                                </span>
+                                <span className="flex flex-col flex-1 min-w-0">
+                                  <span className="flex items-center gap-2 flex-wrap">
                                     <span className="font-bold text-base text-text-heading">{c.code}</span>
-                                     {renderTypeChips(c.types || [], 'sm')}
-                                  </div>
+                                    {renderTypeChips(c.types || [], 'sm')}
+                                  </span>
                                   <span className="text-xs text-muted-foreground line-clamp-1">{c.title}</span>
-                                </div>
+                                </span>
+                                {isSelected && (
+                                  <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400 shrink-0 hidden sm:inline">
+                                    {activeLockerCode === c.code ? "Editing…" : "Open ›"}
+                                  </span>
+                                )}
                               </label>
 
-                              {isSelected && uniqueOfferings.length > 1 && (() => {
-                                const availableSeries = Array.from(new Set(
-                                  uniqueOfferings.map(o => {
-                                    const firstSlot = o.slot.split('+')[0].trim().toUpperCase();
-                                    const match = firstSlot.match(/^[T]?([A-G])/);
-                                    return match ? match[1] : null;
-                                  }).filter(Boolean) as string[]
-                                )).sort();
-
-                                return (
-                                  <div className="pl-8 mt-2">
-                                    <div className="text-[11px] font-bold text-muted-foreground mb-2 uppercase tracking-wider">Filter Offerings (Optional)</div>
-                                    
-                                    {availableSeries.length > 0 && (
-                                      <div className="mb-3">
-                                        <div className="text-[10px] font-bold text-text-heading/70 mb-1.5 uppercase">Quick Select Series</div>
-                                        <div className="flex flex-wrap gap-1.5">
-                                          {availableSeries.map(series => {
-                                            const seriesOfferings = uniqueOfferings.filter(o => {
-                                              const firstSlot = o.slot.split('+')[0].trim().toUpperCase();
-                                              const match = firstSlot.match(/^[T]?([A-G])/);
-                                              return match && match[1] === series;
-                                            });
-                                            const allSelected = seriesOfferings.every(o =>
-                                              offeringMatches(
-                                                { FACULTY: o.faculty, SLOT: o.slot, ROOM: o.venue, ERP_ID: o.employeeId },
-                                                sel.offerings || []
-                                              )
-                                            );
-                                            
-                                            return (
-                                              <button
-                                                key={series}
-                                                type="button"
-                                                onClick={(e) => {
-                                                  e.preventDefault();
-                                                  e.stopPropagation();
-                                                  setGeneratorTargets(prev => prev.map(p => {
-                                                    if (p.code !== c.code) return p;
-                                                    let newOfferings = [...(p.offerings || [])];
-                                                    if (allSelected) {
-                                                      const removing = new Set(seriesOfferings.flatMap(o => [o.id, o.legacyId]));
-                                                      newOfferings = newOfferings.filter(id => !removing.has(id));
-                                                    } else {
-                                                      seriesOfferings.forEach(o => {
-                                                        if (!newOfferings.includes(o.id)) newOfferings.push(o.id);
-                                                      });
-                                                    }
-                                                    return { ...p, offerings: newOfferings };
-                                                  }));
-                                                }}
-                                                className={`px-2 py-1 rounded text-xs font-bold transition-colors ${
-                                                  allSelected 
-                                                    ? 'bg-amber-500 text-white shadow-sm' 
-                                                    : 'bg-surface-secondary hover:bg-surface-secondary/80 text-text-heading/70'
-                                                }`}
-                                              >
-                                                {series} Series
-                                              </button>
-                                            );
-                                          })}
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    <div className="flex flex-col gap-2 max-h-60 overflow-y-auto custom-scrollbar pr-1 bg-surface/50 border border-border-strong/50 rounded-lg p-3">
-                                    {sortedFacs.map(fac => (
-                                      <div key={fac} className="flex flex-col gap-1.5">
-                                        <div className="text-xs font-semibold text-text-heading/90 pb-1 border-b border-border-strong/50 flex items-center justify-between gap-2">
-                                          <div className="flex items-center gap-1.5 min-w-0">
-                                            <FacultyAvatar
-                                              employeeId={offeringsByFac[fac][0]?.employeeId}
-                                              name={fac}
-                                              size="xs"
-                                              tone="amber"
-                                            />
-                                            <span className="truncate">{fac}</span>
-                                          </div>
-                                          <VitfacReviewPill
-                                            employeeId={offeringsByFac[fac][0]?.employeeId}
-                                            name={fac}
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setReviewSheetTarget({
-                                                name: fac,
-                                                employeeId: offeringsByFac[fac][0]?.employeeId,
-                                                courseCode: c.code,
-                                              });
-                                            }}
-                                          />
-                                        </div>
-                                        {offeringsByFac[fac].map(offering => {
-                                          const isOffChecked = offeringMatches(
-                                            { FACULTY: offering.faculty, SLOT: offering.slot, ROOM: offering.venue, ERP_ID: offering.employeeId },
-                                            sel.offerings || []
-                                          );
-                                          return (
-                                            <label
-                                              key={offering.id}
-                                              className="flex items-start gap-2 cursor-pointer hover:bg-surface-secondary/50 p-1.5 rounded-md transition-colors"
-                                              title={offering.classId ? `Class ${offering.classId}` : undefined}
-                                            >
-                                              <input 
-                                                type="checkbox" 
-                                                className="mt-0.5 rounded w-3.5 h-3.5 border-border-strong text-amber-500 focus:ring-amber-500/30"
-                                                checked={isOffChecked}
-                                                onChange={(e) => {
-                                                  setGeneratorTargets(prev => prev.map(p => {
-                                                    if (p.code !== c.code) return p;
-                                                    if (e.target.checked) {
-                                                      const next = (p.offerings || []).filter(id => id !== offering.id);
-                                                      return { ...p, offerings: [...next, offering.id] };
-                                                    }
-                                                    return {
-                                                      ...p,
-                                                      offerings: (p.offerings || []).filter(
-                                                        id => id !== offering.id && id !== offering.legacyId
-                                                      ),
-                                                    };
-                                                  }));
-                                                }}
-                                              />
-                                              <div className="flex flex-col">
-                                                <div className="flex items-center gap-1.5">
-                                                  <span className={`text-[11px] font-medium ${isOffChecked ? 'text-amber-500' : 'text-text-heading/80'}`}>{offering.slot}</span>
-                                                  {(() => {
-                                                    const alts = sameSlotFacultyAlternatives(
-                                                      c.code,
-                                                      splitSlots(offering.slot),
-                                                      { faculty: offering.faculty, employeeId: offering.employeeId },
-                                                      masterCourses
-                                                    );
-                                                    const count = 1 + alts.length;
-                                                    return (
-                                                      <span
-                                                        className="inline-flex items-center gap-1 text-[10px] font-semibold px-1 py-0.2 rounded bg-surface-secondary/70 border border-border-strong/70 text-muted-foreground shrink-0"
-                                                        title={`${count} ${count === 1 ? 'faculty' : 'faculties'} teaching this slot`}
-                                                      >
-                                                        <Users className="w-2.5 h-2.5 text-muted-foreground/60 shrink-0" />
-                                                        <span>{count}</span>
-                                                      </span>
-                                                    );
-                                                  })()}
-                                                </div>
-                                                <span className="text-[10px] text-muted-foreground">
-                                                  {offering.venue || (offering.employeeId ? `ERP ${offering.employeeId}` : "TBA")}
-                                                </span>
-                                              </div>
-                                            </label>
-                                          );
-                                        })}
-                                      </div>
-                                    ))}
-                                  </div>
+                              {isSelected && (
+                                <div className="px-3 pb-3 pl-11 flex items-center gap-2 flex-wrap">
+                                  <button
+                                    type="button"
+                                    onClick={() => setActiveLockerCode(c.code)}
+                                    className="text-xs font-semibold text-amber-600 hover:text-amber-700 dark:text-amber-400 hover:underline"
+                                  >
+                                    Edit faculty &amp; slots
+                                  </button>
                                   {sel.offerings && sel.offerings.length > 0 && (
-                                    <div className="text-xs text-amber-500 mt-2 font-medium">
-                                       Filtering by {sel.offerings.length} selected offering{sel.offerings.length === 1 ? '' : 's'}
-                                    </div>
+                                    <span className="text-xs text-amber-500 font-medium">
+                                      Filtering by {sel.offerings.length} offering{sel.offerings.length === 1 ? "" : "s"}
+                                    </span>
                                   )}
-                                  </div>
-                                )})()}
+                                </div>
+                              )}
                             </div>
                           );
                         })}
-                        {uniqueCourseCodes.length === 0 && (
-                          <div className="col-span-full p-10 text-center text-sm text-muted-foreground bg-surface-secondary/20 rounded-xl border border-dashed border-border-strong">
-                            Please upload a master course list first.
-                          </div>
-                        )}
+                      </div>
+                    ))}
+                    {uniqueCourseCodes.length === 0 && (
+                      <div className="p-10 text-center text-sm text-muted-foreground bg-surface-secondary/20 rounded-xl border border-dashed border-border-strong">
+                        Please upload a master course list first.
+                      </div>
+                    )}
                   </div>
                   <div className="mt-4 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-sm bg-amber-500/10 text-amber-600 dark:text-amber-400 py-2.5 px-4 rounded-xl w-fit max-w-full min-w-0 border border-amber-500/20 leading-relaxed">
                     <span className="font-bold whitespace-nowrap shrink-0">Selected: {generatorTargets.length} target courses</span>
@@ -2180,7 +2329,7 @@ export function FFCSGeneratorSubpage({
               </div>
 
               {/* Right Column: Preferences & Social */}
-              <div id={generatorViewMode === "modern" && activeGeneratorSection !== "courses" ? "generator-active-panel" : undefined} role={generatorViewMode === "modern" && activeGeneratorSection !== "courses" ? "tabpanel" : undefined} aria-labelledby={generatorViewMode === "modern" && activeGeneratorSection !== "courses" ? `generator-tab-${activeGeneratorSection}` : undefined} className={`flex min-w-0 flex-col gap-6 ${generatorViewMode === "modern" ? `row-start-3 lg:row-start-2 lg:col-start-2 ${activeGeneratorSection === "courses" ? "hidden" : ""}` : ""}`}>
+              <div id={generatorViewMode === "modern" && activeGeneratorSection !== "courses" ? "generator-active-panel" : undefined} role={generatorViewMode === "modern" && activeGeneratorSection !== "courses" ? "tabpanel" : undefined} aria-labelledby={generatorViewMode === "modern" && activeGeneratorSection !== "courses" ? `generator-tab-${activeGeneratorSection}` : undefined} className={`flex min-w-0 flex-col gap-6 ${generatorViewMode === "modern" ? `row-start-3 lg:row-start-1 lg:col-start-2 ${activeGeneratorSection === "courses" ? "hidden" : ""}` : ""}`}>
                 
                 {/* General Preferences */}
                 <div id="generator-preferences" className={`scroll-mt-24 rounded-2xl border shadow-sm ${generatorViewMode === "modern" ? `${activeGeneratorSection === "ranking" ? "border-violet-500/30 dark:border-violet-500/40" : activeGeneratorSection === "schedule" ? "border-cyan-500/30 dark:border-cyan-500/40" : "border-amber-500/30 dark:border-amber-500/40"} bg-surface p-4 sm:p-6 ${activeGeneratorSection === "social" || activeGeneratorSection === "courses" ? "hidden" : ""}` : "border-border-strong bg-surface p-6"}`}>
@@ -2599,6 +2748,37 @@ export function FFCSGeneratorSubpage({
                       )}
                     </fieldset>
 
+                    <div id="generator-blocked-slots" className={`scroll-mt-24 ${showGeneratorSection("schedule") ? "" : "hidden"}`}>
+                      <label className="text-sm font-medium text-text-heading flex items-center gap-1.5 mb-2">
+                        Blocked Slots Constraint
+                        <Info className="w-4 h-4 text-muted-foreground" />
+                      </label>
+                      <div className="bg-surface-secondary/10 border border-border-strong p-4 rounded-xl">
+                        <p className="text-xs text-muted-foreground mb-4 flex items-center gap-2">
+                          Click slots below to block them.
+                          <span className="bg-red-500/10 text-red-500 px-2 py-0.5 rounded-md font-bold ml-auto">{blockedSlots.size} Blocked</span>
+                        </p>
+                        <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto custom-scrollbar pr-1">
+                          {allAvailableSlots.map(slot => {
+                            const isBlocked = blockedSlots.has(slot);
+                            return (
+                              <button
+                                key={slot}
+                                onClick={() => toggleBlockSlot(slot)}
+                                className={`px-2 py-1.5 text-xs font-bold rounded-lg transition-colors border ${
+                                  isBlocked 
+                                    ? 'bg-red-500 text-white border-red-600 shadow-sm' 
+                                    : 'bg-surface text-text-heading/70 border-border-strong hover:bg-surface-secondary hover:text-text-heading'
+                                }`}
+                              >
+                                {slot}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+
                     <div className={`flex flex-col gap-3 ${showGeneratorSection("constraints") ? "" : "hidden"}`}>
                       <label className="flex items-center gap-3 cursor-pointer group bg-surface-secondary/20 p-3 rounded-xl border border-transparent hover:border-border-strong transition-all">
                         <div className="relative flex items-center">
@@ -2633,36 +2813,6 @@ export function FFCSGeneratorSubpage({
                       </label>
                     </div>
 
-                    <div id="generator-blocked-slots" className={`scroll-mt-24 ${showGeneratorSection("constraints") ? "" : "hidden"}`}>
-                      <label className="text-sm font-medium text-text-heading flex items-center gap-1.5 mb-2">
-                        Blocked Slots Constraint
-                        <Info className="w-4 h-4 text-muted-foreground" />
-                      </label>
-                      <div className="bg-surface-secondary/10 border border-border-strong p-4 rounded-xl">
-                        <p className="text-xs text-muted-foreground mb-4 flex items-center gap-2">
-                          Click slots below to block them.
-                          <span className="bg-red-500/10 text-red-500 px-2 py-0.5 rounded-md font-bold ml-auto">{blockedSlots.size} Blocked</span>
-                        </p>
-                        <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto custom-scrollbar pr-1">
-                          {allAvailableSlots.map(slot => {
-                            const isBlocked = blockedSlots.has(slot);
-                            return (
-                              <button
-                                key={slot}
-                                onClick={() => toggleBlockSlot(slot)}
-                                className={`px-2 py-1.5 text-xs font-bold rounded-lg transition-colors border ${
-                                  isBlocked 
-                                    ? 'bg-red-500 text-white border-red-600 shadow-sm' 
-                                    : 'bg-surface text-text-heading/70 border-border-strong hover:bg-surface-secondary hover:text-text-heading'
-                                }`}
-                              >
-                                {slot}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 </div>
 
@@ -2724,72 +2874,11 @@ export function FFCSGeneratorSubpage({
                   )}
                 </div>
 
-                {generatorViewMode === "modern" && (
-                  <aside aria-label="Generation summary" className="row-start-2 lg:col-start-2 lg:row-start-3 xl:sticky xl:top-4 xl:col-start-3 xl:row-start-1 xl:row-span-2 xl:self-start">
-                    <div className="space-y-3">
-                      <section className="rounded-2xl border border-indigo-500/25 bg-gradient-to-br from-indigo-500/10 via-surface to-surface p-4 shadow-sm">
-                        <SectionHeader icon={Wand2} title="Run readiness" className="mb-2" />
-                        <p className="text-lg font-bold text-text-heading">{generatorTargets.length ? "Ready to search" : "Choose courses first"}</p>
-                        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                          {generatorTargets.length
-                            ? `${generatorTargets.length} target course${generatorTargets.length === 1 ? "" : "s"} · ${blockedSlots.size} blocked slot${blockedSlots.size === 1 ? "" : "s"}`
-                            : "Pick at least one target course to enable generation."}
-                        </p>
-                        <button
-                          type="button"
-                          onClick={generateTimetables}
-                          disabled={isGenerating || generatorTargets.length === 0}
-                          className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-black font-outfit text-white shadow-md shadow-indigo-600/20 transition-all hover:bg-indigo-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {isGenerating ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : <Wand2 className="h-4 w-4" />}
-                          {isGenerating ? "Searching…" : "Generate timetables"}
-                        </button>
-                        {stagedTimetables.length > 0 && (
-                          <button type="button" onClick={() => setIsReviewing(true)} className="mt-2 inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-border-strong bg-surface px-4 text-sm font-semibold text-text-heading hover:bg-surface-secondary">
-                            View {stagedTimetables.length.toLocaleString()} results
-                          </button>
-                        )}
-                      </section>
-
-                      <section className="rounded-2xl border border-border-strong bg-surface p-4 shadow-sm">
-                        <SectionHeader icon={SlidersHorizontal} title="Search profile" />
-                        <ListShell className="mt-3 space-y-1 p-1">
-                          <button type="button" onClick={() => selectGeneratorSection("constraints")} className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-amber-500/20 bg-amber-500/[0.04] px-3 text-left hover:bg-amber-500/10">
-                            <span className="text-xs text-muted-foreground">Search cap</span><span className="text-xs font-semibold text-text-heading">{generatorNoLimit ? "No cap" : generatorResultCap.toLocaleString()}</span>
-                          </button>
-                          <button type="button" onClick={() => selectGeneratorSection("schedule")} className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-cyan-500/20 bg-cyan-500/[0.04] px-3 text-left hover:bg-cyan-500/10">
-                            <span className="text-xs text-muted-foreground">Time preference</span><span className="text-xs font-semibold capitalize text-text-heading">{generatorPreference}</span>
-                          </button>
-                          <button type="button" onClick={() => selectGeneratorSection("ranking")} className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-violet-500/20 bg-violet-500/[0.04] px-3 text-left hover:bg-violet-500/10">
-                            <span className="text-xs text-muted-foreground">Ranking</span><span className="truncate text-xs font-semibold text-text-heading">{rankingMode ?? generatorSortBy}</span>
-                          </button>
-                          <button type="button" onClick={() => selectGeneratorSection("social")} className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-pink-500/20 bg-pink-500/[0.04] px-3 text-left hover:bg-pink-500/10">
-                            <span className="text-xs text-muted-foreground">Social matching</span><span className="text-xs font-semibold text-text-heading">{generatorMaximizeFreeTimeFriends.length} selected</span>
-                          </button>
-                        </ListShell>
-                      </section>
-
-                      <section className="rounded-2xl border border-border-strong bg-surface p-4 shadow-sm">
-                        <SectionHeader icon={Target} title="Selected courses" count={generatorTargets.length} />
-                        {generatorTargets.length > 0 ? (
-                          <div className="mt-3 flex flex-wrap gap-1.5">
-                            {generatorTargets.slice(0, 6).map((course) => (
-                              <span key={course.code} className="rounded-lg border border-border-strong bg-surface-secondary/40 px-2 py-1 text-[11px] font-semibold text-text-heading">{course.code}</span>
-                            ))}
-                            {generatorTargets.length > 6 && <span className="px-1 py-1 text-[11px] text-muted-foreground">+{generatorTargets.length - 6} more</span>}
-                          </div>
-                        ) : <p className="mt-2 text-xs text-muted-foreground">Your course choices will appear here.</p>}
-                        <button type="button" onClick={() => selectGeneratorSection("courses")} className="mt-3 min-h-11 text-xs font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400">Edit target courses <ArrowRight className="ml-1 inline h-3.5 w-3.5" /></button>
-                      </section>
-                    </div>
-                  </aside>
-                )}
-
                 {/* Bottom CTA to run generator */}
-                <div className={`pt-6 pb-12 flex justify-center ${generatorViewMode === "modern" ? "row-start-4 lg:row-start-4 xl:row-start-3 lg:col-span-2 xl:col-span-3" : "col-span-1 lg:col-span-2"}`}>
+                <div className={`pt-6 pb-12 flex justify-center ${generatorViewMode === "modern" ? "row-start-4 lg:row-start-2 lg:col-span-2" : "col-span-1 lg:col-span-2"}`}>
                   <button
                     type="button"
-                    onClick={generateTimetables}
+                    onClick={() => setIsRunSummaryOpen(true)}
                     disabled={isGenerating || generatorTargets.length === 0}
                     className={`w-full sm:w-auto min-w-[260px] min-h-12 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3.5 px-6 sm:px-8 rounded-2xl transition-all cursor-pointer ${generatorViewMode === "modern" ? "bg-indigo-600 hover:bg-indigo-700 text-sm sm:text-base font-black font-outfit tracking-wide shadow-xl shadow-indigo-600/20 active:scale-[0.98]" : "bg-amber-500 hover:bg-amber-600 text-base font-bold shadow-lg hover:shadow-amber-500/25"}`}
                   >
@@ -2804,6 +2893,29 @@ export function FFCSGeneratorSubpage({
           </div>
         </div>
       </PageShell>
+
+      {activeLockerCode && !isDesktopViewport && (() => {
+        const lkCourse = generatorDisplayCourses.find(c => c.code === activeLockerCode) || generatorTargets.find(t => t.code === activeLockerCode);
+        const lkSelection = generatorTargets.find(t => t.code === activeLockerCode);
+        if (!lkCourse || !lkSelection) return null;
+        return (
+          <BottomSheet
+            onClose={() => setActiveLockerCode(null)}
+            overlayId="generator-target-locker"
+            maxWidth="max-w-2xl"
+            panelZIndex={300}
+            backdropZIndex={295}
+            title={`Faculty & slots - ${lkCourse.code}`}
+          >
+            <TargetCourseLocker
+              course={{ code: lkCourse.code, title: lkCourse.title }}
+              masterCourses={masterCourses}
+              selection={lkSelection}
+              onChange={(next) => setGeneratorTargets(prev => prev.map(p => (p.code === lkCourse.code ? next : p)))}
+            />
+          </BottomSheet>
+        );
+      })()}
 
       {/* Variant picker: a sheet inside the subpage, one level deeper in the
           overlay stack than the generator's own back entry. */}
@@ -2944,6 +3056,25 @@ export function FFCSGeneratorSubpage({
         onClose={() => setIsViewModeModalOpen(false)}
         currentMode={generatorViewMode}
         onSelectMode={selectGeneratorViewMode}
+      />
+
+      <FFCSGeneratorRunSummaryModal
+        isOpen={isRunSummaryOpen}
+        onClose={() => setIsRunSummaryOpen(false)}
+        onConfirm={generateTimetables}
+        isGenerating={isGenerating}
+        courses={generatorTargets.map(t => ({
+          code: t.code,
+          title: t.title,
+          offeringCount: t.offerings?.length ?? 0,
+        }))}
+        blockedSlotCount={blockedSlots.size}
+        noResultCap={generatorNoLimit}
+        resultCap={generatorResultCap}
+        preference={generatorPreference}
+        rankingLabel={rankingMode ?? generatorSortBy}
+        friendsSelected={generatorMaximizeFreeTimeFriends.length}
+        syncFriendsClasses={generatorSyncFriendsClasses}
       />
     </>
   );
