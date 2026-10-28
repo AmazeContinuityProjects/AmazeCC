@@ -159,7 +159,7 @@ export default function VerticalTimetableGrid({
             <span className="font-black text-[10px] leading-tight truncate w-full text-center">
               {cell.course.code}
             </span>
-            <span className="font-mono text-[8.5px] opacity-90 font-bold leading-tight truncate">
+            <span className="font-mono text-[9px] opacity-90 font-bold leading-tight truncate">
               {cell.slots.join("+")}
             </span>
           </div>
@@ -192,7 +192,7 @@ export default function VerticalTimetableGrid({
                   }}
                   className={cn(
                     "font-mono font-black tracking-tight rounded px-1 transition-all inline-block",
-                    cell.slots.length === 1 ? "text-[10px]" : i === 0 ? "text-[9px]" : "text-[8px]",
+                    cell.slots.length === 1 ? "text-[10px]" : "text-[9px]",
                     onToggleBlockSlot && "cursor-pointer active:scale-90 hover:ring-1 hover:ring-zinc-400",
                     isSlotBlocked
                       ? "text-rose-300 line-through bg-rose-500/20 border border-rose-500/30"
@@ -258,12 +258,12 @@ export default function VerticalTimetableGrid({
           </span>
         )}
         {!compact && cell.blocked && (
-          <span className="text-[8px] font-black uppercase leading-tight tracking-wider">
+          <span className="text-[9px] font-black uppercase leading-tight tracking-wider">
             Blocked
           </span>
         )}
         {!compact && !cell.blocked && cell.partiallyBlocked && (
-          <span className="text-[8px] font-bold uppercase leading-tight tracking-wider opacity-80">
+          <span className="text-[9px] font-bold uppercase leading-tight tracking-wider opacity-80">
             Partly blocked
           </span>
         )}

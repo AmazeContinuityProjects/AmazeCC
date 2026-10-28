@@ -316,7 +316,7 @@ export default function SyncNotification({
               {/* Pinned Info Labels */}
               <div className="min-w-0 flex-1">
                 <h4 className="text-[10px] font-extrabold text-slate-800 dark:text-white leading-none font-outfit">Syncing VTOP</h4>
-                <p className="text-[8.5px] text-slate-400 dark:text-gray-500 font-bold truncate mt-1 leading-tight max-w-[130px]">
+                <p className="text-[10px] text-slate-400 dark:text-gray-500 font-bold truncate mt-1 leading-tight max-w-[130px]">
                   {cleanLogLine(logLines[logLines.length - 1] || "Syncing records...")}
                 </p>
               </div>

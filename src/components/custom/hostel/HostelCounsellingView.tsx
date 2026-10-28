@@ -44,7 +44,7 @@ export default function HostelCounsellingView({ loginToVTOP, refreshKey }: Couns
 
       {/* Info card */}
       <div className="bg-sky-500/10 border border-sky-400/20 rounded-2xl p-5 flex items-start gap-4">
-        <div className="p-3 bg-sky-500/10 text-sky-400 rounded-full shrink-0">
+        <div className="p-3 bg-sky-500/10 text-sky-600 dark:text-sky-400 rounded-full shrink-0">
           <Sparkles size={20} />
         </div>
         <div className="space-y-1 text-xs">

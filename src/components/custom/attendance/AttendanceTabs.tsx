@@ -429,7 +429,7 @@ export default function AttendanceTabs({
                     } ${todayBorder} ${dividerClass}`}
                   >
                     <div className="flex flex-col items-center w-full">
-                      <span className={`${isMobile ? "text-[8px]" : "text-[9px]"} tracking-wider uppercase flex items-center justify-center gap-1 ${dayStyle}`}>
+                      <span className={`${isMobile ? "text-[10px]" : "text-[9px]"} tracking-wider uppercase flex items-center justify-center gap-1 ${dayStyle}`}>
                         {isMobile ? info.dayName.slice(0, 3) : info.dayName}
                         {info.isToday && !isSelected && <span className="w-1 h-1 rounded-full bg-blue-605 dark:bg-blue-400" />}
                         {!details.isHoliday && !details.isWeekend && dayHasCriticalCourse(info.dayName) && (
@@ -439,11 +439,11 @@ export default function AttendanceTabs({
 
                       <div className="flex flex-col items-center mt-0.5 sm:mt-1">
                         <span className={`${isMobile ? "text-base" : "text-xl sm:text-2xl"} leading-none ${numStyle}`}>{dayNum}</span>
-                        <span className={`${isMobile ? "text-[6px]" : "text-[8px]"} tracking-widest mt-0.5 ${monthStyle}`}>{monthName}</span>
+                        <span className={`${isMobile ? "text-[10px]" : "text-[10px]"} tracking-widest mt-0.5 ${monthStyle}`}>{monthName}</span>
                       </div>
                     </div>
                     <div className="w-full flex justify-center mt-1 sm:mt-1.5 px-0.5">
-                      <span className={`${isMobile ? "flex min-h-[20px] w-full max-w-[44px] items-center justify-center text-[7.5px] leading-none" : "text-[9px]"} font-semibold px-1 sm:px-1.5 py-0.5 rounded border ${badgeClass}`}>
+                      <span className={`${isMobile ? "flex min-h-[20px] w-full max-w-[44px] items-center justify-center text-[10px] leading-none" : "text-[9px]"} font-semibold px-1 sm:px-1.5 py-0.5 rounded border ${badgeClass}`}>
                         {isMobile ? mobileBadgeLabel : badgeLabel}
                       </span>
                     </div>

@@ -79,6 +79,77 @@
   --color-zinc-655: var(--neutral-600);
   --color-zinc-750: var(--neutral-700);
   --color-zinc-850: var(--neutral-800);
+
+  /* gray / slate / neutral — same silent-hole story as zinc above: Tailwind
+   * emits nothing for `gray-150` or `slate-850`, so 100+ call sites across
+   * the hostel, laundry, leave, attendance and landing views were painting
+   * transparent backgrounds and over-dark borders. Aliased to the same
+   * `--neutral-*` vars amazeui maps the stock gray/slate steps to, so dark
+   * mode follows for free. */
+  --color-gray-55: var(--neutral-50);
+  --color-gray-150: var(--neutral-100);
+  --color-gray-205: var(--neutral-200);
+  --color-gray-250: var(--neutral-200);
+  --color-gray-350: var(--neutral-300);
+  --color-gray-405: var(--neutral-400);
+  --color-gray-450: var(--neutral-400);
+  --color-gray-455: var(--neutral-400);
+  --color-gray-550: var(--neutral-500);
+  --color-gray-555: var(--neutral-500);
+  --color-gray-650: var(--neutral-600);
+  --color-gray-655: var(--neutral-600);
+  --color-gray-750: var(--neutral-700);
+  --color-gray-850: var(--neutral-800);
+  --color-gray-955: var(--neutral-950);
+  --color-slate-205: var(--neutral-200);
+  --color-slate-405: var(--neutral-400);
+  --color-slate-455: var(--neutral-400);
+  --color-slate-650: var(--neutral-600);
+  --color-slate-655: var(--neutral-600);
+  --color-slate-850: var(--neutral-800);
+  --color-slate-855: var(--neutral-800);
+  --color-neutral-850: var(--neutral-800);
+
+  /* Accent families: off-scale steps aliased to the nearest stock step
+   * below, never above, so nothing renders darker than written. These
+   * reference the stock scale vars, so they stay palette-following if the
+   * accent is ever redefined. (amazeui itself ships `emerald-450`; it is
+   * deliberately absent here.) */
+  --color-indigo-505: var(--color-indigo-500);
+  --color-indigo-550: var(--color-indigo-500);
+  --color-indigo-605: var(--color-indigo-600);
+  --color-indigo-650: var(--color-indigo-600);
+  --color-indigo-655: var(--color-indigo-600);
+  --color-indigo-750: var(--color-indigo-700);
+  --color-indigo-850: var(--color-indigo-800);
+  --color-blue-105: var(--color-blue-100);
+  --color-blue-550: var(--color-blue-500);
+  --color-blue-605: var(--color-blue-600);
+  --color-blue-650: var(--color-blue-600);
+  --color-blue-655: var(--color-blue-600);
+  --color-blue-955: var(--color-blue-950);
+  --color-red-450: var(--color-red-400);
+  --color-red-455: var(--color-red-400);
+  --color-red-505: var(--color-red-500);
+  --color-red-550: var(--color-red-500);
+  --color-red-650: var(--color-red-600);
+  --color-red-655: var(--color-red-600);
+  --color-rose-450: var(--color-rose-400);
+  --color-rose-455: var(--color-rose-400);
+  --color-amber-450: var(--color-amber-400);
+  --color-amber-455: var(--color-amber-400);
+  --color-amber-605: var(--color-amber-600);
+  --color-amber-650: var(--color-amber-600);
+  --color-amber-655: var(--color-amber-600);
+  --color-amber-955: var(--color-amber-950);
+  --color-emerald-55: var(--color-emerald-50);
+  --color-emerald-550: var(--color-emerald-500);
+  --color-emerald-605: var(--color-emerald-600);
+  --color-emerald-650: var(--color-emerald-600);
+  --color-emerald-655: var(--color-emerald-600);
+  --color-sky-450: var(--color-sky-400);
+  --color-sky-605: var(--color-sky-600);
+  --color-purple-650: var(--color-purple-600);
 }
 
 /*

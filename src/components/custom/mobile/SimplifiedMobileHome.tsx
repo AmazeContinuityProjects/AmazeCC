@@ -1320,7 +1320,7 @@ export default function SimplifiedMobileHome({
                           : "hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
                     )}
                   >
-                    <span className="text-[8.5px] font-bold uppercase tracking-wider leading-none text-zinc-400 dark:text-zinc-500">
+                    <span className="text-[10px] font-bold uppercase tracking-wider leading-none text-zinc-400 dark:text-zinc-500">
                       {item.dayCode}
                     </span>
                     <span
@@ -1622,7 +1622,7 @@ export default function SimplifiedMobileHome({
                             {cls.courseTitle}
                           </h3>
                           {isLive && (
-                            <span className="inline-flex items-center gap-1 text-[8.5px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500 text-white shrink-0 shadow-2xs animate-pulse [animation-duration:2.5s]">
+                            <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500 text-white shrink-0 shadow-2xs animate-pulse [animation-duration:2.5s]">
                               <span className="w-1 h-1 rounded-full bg-white animate-ping [animation-duration:2.5s]" />
                               Live ({minutesLeft}m)
                             </span>

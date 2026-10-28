@@ -701,7 +701,7 @@ export default function AmazeOnboardingFlow({
       <div className="p-2.5 rounded-2xl bg-zinc-950/60 border border-zinc-800 flex items-center justify-around">
         <div className="flex flex-col items-center gap-0.5 opacity-60">
           <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-          <span className="text-[8px] font-bold text-zinc-400">Home</span>
+          <span className="text-[10px] font-bold text-zinc-400">Home</span>
         </div>
         {(temp.pinnedNavTabs || []).map((tId: string) => {
           const found = AVAILABLE_NAV_TABS.find((x) => x.id === tId);
@@ -710,13 +710,13 @@ export default function AmazeOnboardingFlow({
           return (
             <div key={tId} className="flex flex-col items-center gap-0.5 animate-in fade-in zoom-in duration-150">
               <Icon className="w-3.5 h-3.5 text-white" />
-              <span className="text-[8px] font-extrabold text-white truncate max-w-[48px]">{found.label}</span>
+              <span className="text-[10px] font-extrabold text-white truncate max-w-[48px]">{found.label}</span>
             </div>
           );
         })}
         <div className="flex flex-col items-center gap-0.5 opacity-60">
           <LayoutGrid className="w-3.5 h-3.5 text-zinc-400" />
-          <span className="text-[8px] font-bold text-zinc-400">Apps</span>
+          <span className="text-[10px] font-bold text-zinc-400">Apps</span>
         </div>
       </div>
 
@@ -795,7 +795,7 @@ export default function AmazeOnboardingFlow({
       {/* Fresher Specific Callout if detected */}
       {eptData?.tables?.[0]?.rows?.length > 0 && (
         <div className="p-3 rounded-2xl bg-indigo-950/30 border border-indigo-900/40 space-y-0.5 mt-2">
-          <span className="text-[8.5px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-400">
+          <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-400">
             Fresher Schedule Active
           </span>
           <p className="text-[11px] font-bold text-zinc-300">EPT & Orientation Schedule integrated into your calendar.</p>

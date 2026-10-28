@@ -468,14 +468,14 @@ export default function LandingSections() {
                       <span className="text-[9px] text-indigo-600 dark:text-indigo-400 font-bold font-mono">22BCE1234</span>
                     </div>
                     <div className="bg-slate-50 dark:bg-neutral-900 p-2.5 rounded-xl space-y-2">
-                      <span className="text-[8px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
                         <CheckCircle2 size={10} className="text-emerald-500 shrink-0" /> Attendance Safe
                       </span>
                       <div className="h-1 bg-indigo-500 rounded w-full" />
                     </div>
                     <div className="bg-slate-50/50 border border-slate-100 dark:bg-[#050711] dark:border-neutral-900 p-2.5 rounded-xl space-y-2">
-                      <span className="text-[8px] text-slate-500 dark:text-gray-400 font-bold block">Hostel Laundry</span>
-                      <span className="text-[7px] text-slate-405 dark:text-gray-500 block">D-Block Slot #03 locked</span>
+                      <span className="text-[10px] text-slate-500 dark:text-gray-400 font-bold block">Hostel Laundry</span>
+                      <span className="text-[10px] text-slate-405 dark:text-gray-500 block">D-Block Slot #03 locked</span>
                     </div>
                   </div>
                 </m.div>

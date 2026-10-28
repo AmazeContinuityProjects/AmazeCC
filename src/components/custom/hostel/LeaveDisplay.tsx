@@ -129,7 +129,7 @@ export default function LeaveDisplay({ leaveData, handleHostelDetailsFetch }: Le
               <div className="space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-2.5">
                   <div className="flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-sky-400" />
+                    <Calendar className="w-5 h-5 text-sky-600 dark:text-sky-400" />
                     <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{activeLeaves[0].leaveType}</span>
                   </div>
                   <span className={`text-[10px] font-bold border px-2.5 py-0.5 rounded-full uppercase ${getStatusColor(activeLeaves[0].status)}`}>
@@ -201,7 +201,7 @@ export default function LeaveDisplay({ leaveData, handleHostelDetailsFetch }: Le
           
           {/* Outing Guidelines */}
           <div className="bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-5 shadow-2xs space-y-3">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400 block">Outing Rules & Deadlines</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400 block">Outing Rules & Deadlines</span>
             <div className="space-y-2 text-xs text-gray-650 dark:text-gray-300">
               <div className="flex gap-2">
                 <Clock size={14} className="text-sky-450 shrink-0 mt-0.5" />
@@ -220,15 +220,15 @@ export default function LeaveDisplay({ leaveData, handleHostelDetailsFetch }: Le
 
           {/* Emergency contacts */}
           <div className="bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-5 shadow-2xs space-y-3">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400 block">Outing Emergency Contacts</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400 block">Outing Emergency Contacts</span>
             <div className="space-y-2 text-xs text-gray-750 dark:text-gray-300">
               <div className="flex items-center justify-between">
                 <span>Gate Outing Desk:</span>
-                <a href="tel:+914439931555" className="font-semibold text-sky-400 hover:underline">+91 44 3993 1555</a>
+                <a href="tel:+914439931555" className="font-semibold text-sky-600 dark:text-sky-400 hover:underline">+91 44 3993 1555</a>
               </div>
               <div className="flex items-center justify-between">
                 <span>Warden Outing Cell:</span>
-                <a href="tel:+914439931666" className="font-semibold text-sky-400 hover:underline">+91 44 3993 1666</a>
+                <a href="tel:+914439931666" className="font-semibold text-sky-600 dark:text-sky-400 hover:underline">+91 44 3993 1666</a>
               </div>
             </div>
           </div>
@@ -323,8 +323,8 @@ export default function LeaveDisplay({ leaveData, handleHostelDetailsFetch }: Le
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="font-semibold text-gray-300">From Date / Time</label>
-                  <input
+                  <label htmlFor="leave-from" className="font-semibold text-gray-300">From Date / Time</label>
+                  <input id="leave-from"
                     type="datetime-local"
                     value={applyForm.from}
                     onChange={e => setApplyForm(prev => ({ ...prev, from: e.target.value }))}
@@ -333,8 +333,8 @@ export default function LeaveDisplay({ leaveData, handleHostelDetailsFetch }: Le
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="font-semibold text-gray-300">To Date / Time</label>
-                  <input
+                  <label htmlFor="leave-to" className="font-semibold text-gray-300">To Date / Time</label>
+                  <input id="leave-to"
                     type="datetime-local"
                     value={applyForm.to}
                     onChange={e => setApplyForm(prev => ({ ...prev, to: e.target.value }))}

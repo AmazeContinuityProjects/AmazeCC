@@ -371,11 +371,11 @@ export function SyncModeEditorContent({
                             <span className="text-[11px] font-bold text-slate-800 dark:text-zinc-200 truncate">
                               {o.label}
                             </span>
-                            <code className="text-[8px] font-mono px-1 py-px rounded bg-slate-200/70 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 shrink-0">
+                            <code className="text-[10px] font-mono px-1 py-px rounded bg-slate-200/70 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 shrink-0">
                               {o.name}
                             </code>
                             <span
-                              className={`text-[8px] font-black px-1 py-px rounded shrink-0 ${AUTH_BADGE[o.auth]}`}
+                              className={`text-[10px] font-black px-1 py-px rounded shrink-0 ${AUTH_BADGE[o.auth]}`}
                             >
                               {AUTH_LABEL[o.auth]}
                             </span>
@@ -385,7 +385,7 @@ export function SyncModeEditorContent({
                           </span>
                         </span>
                         <span
-                          className={`text-[8px] font-black uppercase tracking-wide px-1.5 py-0.5 rounded-md shrink-0 ${COST_CHIP[o.cost]}`}
+                          className={`text-[10px] font-black uppercase tracking-wide px-1.5 py-0.5 rounded-md shrink-0 ${COST_CHIP[o.cost]}`}
                         >
                           {o.cost}
                         </span>
@@ -444,7 +444,7 @@ export function SyncModeEditorContent({
                             <span className="text-[11px] font-bold text-slate-800 dark:text-zinc-200 truncate">
                               {m.label}
                             </span>
-                            <code className="text-[8px] font-mono px-1 py-px rounded bg-slate-200/70 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 shrink-0">
+                            <code className="text-[10px] font-mono px-1 py-px rounded bg-slate-200/70 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 shrink-0">
                               bulk:{m.endpoint}
                             </code>
                           </span>
@@ -477,7 +477,7 @@ export function SyncModeEditorContent({
                       <span className="text-[11px] font-bold text-slate-700 dark:text-zinc-300 flex-1 truncate">
                         Additional records ({draft.bulkSel.length} endpoints)
                       </span>
-                      <span className="text-[8px] font-bold text-slate-400 uppercase">bg</span>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">bg</span>
                       <Switch checked={draft.bulkBg} onCheckedChange={(v) => setDraft({ ...draft, bulkBg: !!v })} />
                       <button
                         onClick={() => moveRow(i, -1)}
@@ -505,7 +505,7 @@ export function SyncModeEditorContent({
                       <span className="text-[11px] font-bold text-slate-700 dark:text-zinc-300 flex-1 truncate">
                         {getOpLabel(row.step!.op)}
                       </span>
-                      <span className="text-[8px] font-bold text-slate-400 uppercase">bg</span>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">bg</span>
                       <Switch
                         checked={!!row.step!.background}
                         onCheckedChange={(v) => {

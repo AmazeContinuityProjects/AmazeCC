@@ -157,7 +157,7 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
           <h1 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Laundry Hub</h1>
           <div className="flex flex-wrap items-center gap-2 mt-1">
             <span className="text-xs text-gray-550 dark:text-gray-400 font-semibold">Block {hostel} Schedule</span>
-            <span className="text-[9px] bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+            <span className="text-[9px] bg-sky-500/10 text-sky-600 dark:text-sky-400 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
               <Sparkles size={10} /> Data from unmessify
             </span>
           </div>
@@ -177,7 +177,7 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
                   }}
                   className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
                     gender === g
-                      ? "bg-white dark:bg-slate-700 text-sky-400 shadow-xs"
+                      ? "bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-xs"
                       : "text-gray-500 dark:text-gray-455 hover:text-gray-700 dark:hover:text-gray-300"
                   }`}
                 >
@@ -194,7 +194,7 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
                   onClick={() => setHostel(h)}
                   className={`px-3.5 py-1.5 text-xs font-semibold rounded-md transition-all ${
                     hostel === h
-                      ? "bg-white dark:bg-slate-700 text-sky-400 shadow-xs"
+                      ? "bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-xs"
                       : "text-gray-500 dark:text-gray-455 hover:text-gray-700 dark:hover:text-gray-300"
                   }`}
                 >
@@ -212,7 +212,7 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
         {/* Slot Quick Finder panel */}
         <div className="bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-5 shadow-2xs space-y-4">
           <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400 block">Personal Slot Finder</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400 block">Personal Slot Finder</span>
             <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">Find slots by Room</h3>
           </div>
 
@@ -237,7 +237,7 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
                 <p className="text-[10px] text-gray-500">You can drop off clothes for room range {matchingSlots.find(s => parseInt(s.Date, 10) === today)?.RoomNumber} today.</p>
               </div>
             ) : nextSlot ? (
-              <div className="bg-sky-500/10 border border-sky-400/20 p-4 rounded-xl space-y-2 text-xs text-sky-400">
+              <div className="bg-sky-500/10 border border-sky-400/20 p-4 rounded-xl space-y-2 text-xs text-sky-600 dark:text-sky-400">
                 <div className="flex items-center gap-2 font-bold">
                   <Clock size={16} />
                   <span>Next Slot: Day {nextSlot.Date}</span>
@@ -255,7 +255,7 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
         {/* Dynamic slots preview */}
         <div className="lg:col-span-2 bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-5 shadow-2xs flex flex-col justify-between">
           <div className="space-y-3">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400 block">Your Scheduled Dates</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400 block">Your Scheduled Dates</span>
             <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">All matching dates for Room {searchRoom || "—"}</h3>
             
             {matchingSlots.length > 0 ? (
@@ -273,7 +273,7 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
                     >
                       <span className="block text-[10px] text-gray-400 font-semibold mb-0.5">Date</span>
                       <span className="text-sm">{slot.Date}</span>
-                      {isCurrentDay && <span className="block text-[8px] uppercase tracking-wider text-emerald-400 mt-0.5">Today</span>}
+                      {isCurrentDay && <span className="block text-[10px] uppercase tracking-wider text-emerald-400 mt-0.5">Today</span>}
                     </div>
                   );
                 })}
@@ -284,7 +284,7 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
           </div>
 
           <div className="flex items-center gap-2 text-[10px] text-gray-400 border-t border-gray-150 dark:border-gray-800/80 pt-3 mt-4">
-            <Info size={12} className="text-sky-400" />
+            <Info size={12} className="text-sky-600 dark:text-sky-400" />
             <span>Slots are mapped automatically from block records. Each room range is granted two drop-off days per month.</span>
           </div>
         </div>
@@ -298,7 +298,7 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
         <div className="bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-4 shadow-2xs space-y-3">
           <div className="flex items-center justify-between border-b border-gray-150 dark:border-gray-800 pb-2">
             <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
-              <CalendarDays size={13} className="text-sky-400" /> Slot Calendar
+              <CalendarDays size={13} className="text-sky-600 dark:text-sky-400" /> Slot Calendar
             </h3>
             <div className="flex items-center gap-2 text-[9px] font-semibold">
               <div className="flex items-center gap-1 text-emerald-400">
@@ -338,7 +338,7 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
                   if (isToday) {
                     cellStyle = "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-bold";
                   } else if (isUserSlot) {
-                    cellStyle = "bg-sky-500/10 text-sky-400 border border-sky-500/20 font-bold";
+                    cellStyle = "bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 font-bold";
                   } else if (slot) {
                     cellStyle = "bg-gray-100/50 dark:bg-slate-850/30 text-gray-900 dark:text-gray-100 border border-gray-150/40 dark:border-gray-800/40";
                   }
@@ -371,7 +371,7 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
         {/* Right: Selected Day details card */}
         <div className="bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-5 shadow-2xs flex flex-col justify-between">
           <div className="space-y-4">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400 block">Selected Slot Details</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400 block">Selected Slot Details</span>
             
             {selectedDay ? (
               <div className="space-y-3">
@@ -393,7 +393,7 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
                       <div className="pt-2 border-t border-gray-150 dark:border-gray-800/80 flex items-center justify-between text-[10px]">
                         <span>Status:</span>
                         {isSelectedUserSlot ? (
-                          <span className="font-bold text-sky-400 uppercase">Your Laundry Slot</span>
+                          <span className="font-bold text-sky-600 dark:text-sky-400 uppercase">Your Laundry Slot</span>
                         ) : selectedDay === today ? (
                           <span className="font-bold text-emerald-450 uppercase">Active Today</span>
                         ) : (
@@ -414,7 +414,7 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
           </div>
 
           <div className="flex items-start gap-2 text-[10px] text-gray-405 border-t border-gray-150 dark:border-gray-800/80 pt-3 mt-4">
-            <Info size={12} className="text-sky-400 shrink-0 mt-0.5" />
+            <Info size={12} className="text-sky-600 dark:text-sky-400 shrink-0 mt-0.5" />
             <span>Select the date matching your room range, take your bag to the laundry drop counter before 5:00 PM.</span>
           </div>
         </div>

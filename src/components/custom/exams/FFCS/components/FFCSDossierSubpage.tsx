@@ -732,7 +732,7 @@ export default function FFCSDossierSubpage({
                             isLightMode ? "bg-white border-slate-200" : "bg-slate-900/50 border-white/5"
                           }`}
                         >
-                          <div className="text-[8.5px] font-bold uppercase text-slate-500">🎓 Teaching</div>
+                          <div className="text-[10px] font-bold uppercase text-slate-500">🎓 Teaching</div>
                           <div className="text-xs font-black text-blue-600 dark:text-blue-400">
                             {rev.metrics.lecture.toFixed(1)}/5
                           </div>
@@ -742,7 +742,7 @@ export default function FFCSDossierSubpage({
                             isLightMode ? "bg-white border-slate-200" : "bg-slate-900/50 border-white/5"
                           }`}
                         >
-                          <div className="text-[8.5px] font-bold uppercase text-slate-500">📝 DA Score</div>
+                          <div className="text-[10px] font-bold uppercase text-slate-500">📝 DA Score</div>
                           <div className="text-xs font-black text-purple-600 dark:text-purple-400">
                             {rev.metrics.da.toFixed(1)}/5
                           </div>
@@ -752,7 +752,7 @@ export default function FFCSDossierSubpage({
                             isLightMode ? "bg-white border-slate-200" : "bg-slate-900/50 border-white/5"
                           }`}
                         >
-                          <div className="text-[8.5px] font-bold uppercase text-slate-500">✨ Vibe</div>
+                          <div className="text-[10px] font-bold uppercase text-slate-500">✨ Vibe</div>
                           <div className="text-xs font-black text-emerald-600 dark:text-emerald-400">
                             {rev.metrics.vibe.toFixed(1)}/5
                           </div>
