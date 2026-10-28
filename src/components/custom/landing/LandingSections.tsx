@@ -1,37 +1,37 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useTheme } from "next-themes";
-import { m, useMotionValue, useScroll, useSpring, useTransform } from "framer-motion";
-import { 
-  Eye, EyeOff, ArrowRight, Shield, Zap, Sparkles, Plus,
-  RotateCcw, Minus, Sun, Moon, Loader2, Server, ShieldAlert, 
-  MessageSquareWarning, Lock, BookOpen, CreditCard, Activity, 
-  GraduationCap, TrendingUp, UserCheck, Home, FileText, Heart, 
-  Calendar, CheckCircle2, Bus, Check, ChevronDown, AlertCircle
-} from "lucide-react";
-import { Input, Button } from "@amazecontinuityprojects/amazeui";
-import ThemeToggle from "./ThemeToggle";
-import { getActiveApiUrl, setActiveApiUrl, PRIMARY_API_URL, BACKUP_API_URL, hasBackupApi } from "@/lib/fetch-utils";
-import { UNICC_API_URL } from "@/lib/unicc-fallback";
-import { useUniccTarget, setUniccTarget, isUniccFallbackEnabled } from "@/lib/useUniccTarget";
-import SelectField from "./shared/primitives/SelectField";
-import BottomSheet from "./shared/BottomSheet";
+/**
+ * The marketing/feature sections that sit under the guest hero.
+ *
+ * Split out of `LoginForm` when the landing moved into `GuestExperience`, and
+ * kept behind a dynamic import so the guest route paints its hero without
+ * paying for ~480 lines of below-the-fold markup (and framer-motion's
+ * `whileInView` work).
+ */
 
-interface LoginFormProps {
-  initialLoginOpen?: boolean;
-  username: any;
-  setUsername: any;
-  password: any;
-  setPassword: any;
-  message: any;
-  handleFormSubmit: any;
-  handleDemoClick: any;
-  residentialStatus: any;
-  setResidentialStatus: any;
-  isDayscholarWithBus: any;
-  setIsDayscholarWithBus: any;
-}
+import { useState } from "react";
+import { m, useMotionValue, useTransform, useSpring } from "framer-motion";
+import {
+  Activity,
+  BookOpen,
+  Calendar,
+  CheckCircle2,
+  ChevronDown,
+  CreditCard,
+  FileText,
+  GraduationCap,
+  Heart,
+  Home,
+  Lock,
+  MessageSquareWarning,
+  Minus,
+  Plus,
+  RotateCcw,
+  ShieldAlert,
+  Sparkles,
+  TrendingUp,
+  UserCheck,
+} from "lucide-react";
 
 function Tilt3DCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   const mx = useMotionValue(0);
@@ -66,197 +66,6 @@ function Tilt3DCard({ children, className = "" }: { children: React.ReactNode; c
     </m.div>
   );
 }
-
-export default function LoginForm({
-  initialLoginOpen = false,
-  username,
-  setUsername,
-  password,
-  setPassword,
-  message,
-  handleFormSubmit,
-  handleDemoClick,
-  residentialStatus,
-  setResidentialStatus,
-  isDayscholarWithBus,
-  setIsDayscholarWithBus
-}: LoginFormProps) {
-  const { theme, setTheme } = useTheme();
-  const isLoading = message && typeof message === "string" && message.startsWith("Logging");
-  
-  const { scrollY } = useScroll();
-  const backgroundY = useTransform(scrollY, [0, 600], [0, 180]);
-  const backgroundScale = useTransform(scrollY, [0, 600], [1, 1.1]);
-  const textY = useTransform(scrollY, [0, 600], [0, -40]);
-  
-  const [isDesktop, setIsDesktop] = useState(false);
-  const rawMouseX = useMotionValue(0);
-  const rawMouseY = useMotionValue(0);
-  const spotlightX = useMotionValue(-1000);
-  const spotlightY = useMotionValue(-1000);
-
-  const smoothSpotlightX = useSpring(spotlightX, { stiffness: 250, damping: 25 });
-  const smoothSpotlightY = useSpring(spotlightY, { stiffness: 250, damping: 25 });
-
-  const spotlightBg = useTransform(
-    [smoothSpotlightX, smoothSpotlightY],
-    ([x, y]) => `radial-gradient(650px circle at ${x}px ${y}px, rgba(99, 102, 241, 0.25), rgba(168, 85, 247, 0.15), transparent 70%)`
-  );
-
-  const heroRotateX = useSpring(useTransform(rawMouseY, [-0.5, 0.5], [4, -4]), { stiffness: 140, damping: 20 });
-  const heroRotateY = useSpring(useTransform(rawMouseX, [-0.5, 0.5], [-4, 4]), { stiffness: 140, damping: 20 });
-
-  const orbX1 = useSpring(useTransform(rawMouseX, [-0.5, 0.5], [-30, 30]), { stiffness: 100, damping: 22 });
-  const orbY1 = useSpring(useTransform(rawMouseY, [-0.5, 0.5], [-30, 30]), { stiffness: 100, damping: 22 });
-  const orbX2 = useSpring(useTransform(rawMouseX, [-0.5, 0.5], [25, -25]), { stiffness: 100, damping: 22 });
-  const orbY2 = useSpring(useTransform(rawMouseY, [-0.5, 0.5], [25, -25]), { stiffness: 100, damping: 22 });
-
-  useEffect(() => {
-    const checkDesktop = () => {
-      setIsDesktop(window.innerWidth >= 1024 && window.matchMedia("(hover: hover) and (pointer: fine)").matches);
-    };
-    checkDesktop();
-    window.addEventListener("resize", checkDesktop);
-    return () => window.removeEventListener("resize", checkDesktop);
-  }, []);
-
-  useEffect(() => {
-    if (!isDesktop) return;
-    const handleGlobalMouseMove = (e: MouseEvent) => {
-      const normX = (e.clientX - window.innerWidth / 2) / window.innerWidth;
-      const normY = (e.clientY - window.innerHeight / 2) / window.innerHeight;
-      rawMouseX.set(normX);
-      rawMouseY.set(normY);
-      spotlightX.set(e.clientX);
-      spotlightY.set(e.clientY);
-    };
-    window.addEventListener("mousemove", handleGlobalMouseMove);
-    return () => window.removeEventListener("mousemove", handleGlobalMouseMove);
-  }, [isDesktop, rawMouseX, rawMouseY, spotlightX, spotlightY]);
-
-  const scrollToSection = (sectionId: string) => {
-    const el = document.getElementById(sectionId);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth" });
-    }
-  };
-
-  const [activeApi, setActiveApi] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [showLoginCard, setShowLoginCard] = useState(initialLoginOpen);
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
-
-  // Which server to ask first. Read live rather than lifted into a prop, so the
-  // selector and the request layer cannot disagree about what is selected.
-  const uniccTarget = useUniccTarget();
-  const uniccAvailable = isUniccFallbackEnabled();
-
-  // The select shows UniCC when it is the preference, even though the *active
-  // URL* is still AmazeCC — the two are different things and conflating them
-  // would make the control lie about what the app is doing.
-  const targetValue = uniccTarget === "unicc" ? UNICC_API_URL : activeApi;
-
-  // Simulator State
-  const [mockAttended, setMockAttended] = useState(17);
-  const [mockTotal, setMockTotal] = useState(20);
-  const mockPercent = mockTotal > 0 ? (mockAttended / mockTotal) * 100 : 0;
-
-  const handleSimulateAttend = () => {
-    setMockAttended((prev) => prev + 1);
-    setMockTotal((prev) => prev + 1);
-  };
-
-  const handleSimulateSkip = () => {
-    setMockTotal((prev) => prev + 1);
-  };
-
-  const handleSimulateReset = () => {
-    setMockAttended(17);
-    setMockTotal(20);
-  };
-
-  const getSkipStatus = () => {
-    if (mockPercent < 75) {
-      return { 
-        text: "Critical: Attendance below 75% limit!", 
-        color: "text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-500/20" 
-      };
-    }
-    const maxTotal = Math.floor(mockAttended / 0.75);
-    const skipCount = maxTotal - mockTotal;
-    if (skipCount > 0) {
-      return { 
-        text: `Safe to skip: Yes (${skipCount} class${skipCount > 1 ? "es" : ""})`, 
-        color: "text-emerald-650 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20" 
-      };
-    }
-    return { 
-      text: "Borderline: Exactly 75%. Do not skip.", 
-      color: "text-amber-600 dark:text-amber-450 bg-amber-500/10 border border-amber-500/20" 
-    };
-  };
-
-  const skipStatus = getSkipStatus();
-  const radius = 24;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (Math.min(mockPercent, 100) / 100) * circumference;
-
-
-
-  useEffect(() => {
-    setActiveApi(getActiveApiUrl());
-    
-    // Clear any active color palette overrides on document root for the landing page 
-    // to ensure no orange or rose tint breaks the default light/dark theme.
-    if (typeof document !== "undefined") {
-      const root = document.documentElement;
-      delete root.dataset.colorPalette;
-      
-      const vars = [
-        "--theme-accent", "--background", "--foreground", "--text-heading",
-        "--text-primary", "--text-secondary", "--text-muted", "--surface",
-        "--surface-raised", "--surface-secondary", "--surface-tertiary",
-        "--surface-hover", "--border-muted", "--border-strong", "--card",
-        "--card-foreground", "--popover", "--popover-foreground", "--primary",
-        "--primary-foreground", "--secondary", "--secondary-foreground",
-        "--muted", "--muted-foreground", "--accent", "--accent-foreground",
-        "--border", "--input", "--info", "--info-foreground", "--info-surface",
-        "--ring", "--chart-1", "--chart-2", "--chart-3", "--sidebar",
-        "--sidebar-foreground", "--sidebar-primary", "--sidebar-primary-foreground",
-        "--sidebar-accent", "--sidebar-accent-foreground", "--sidebar-border",
-        "--sidebar-ring"
-      ];
-      vars.forEach((name) => root.style.removeProperty(name));
-      
-    }
-
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 40);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  const isDark = theme === "dark";
-  const toggleTheme = () => {
-    setTheme(isDark ? "light" : "dark");
-  };
-
-  const handleApiChange = (newUrl: string) => {
-    if (newUrl === UNICC_API_URL) {
-      // UniCC is a routing preference, not a new global host. It is tried first
-      // for the routes it implements, and the AmazeCC hosts keep serving
-      // everything else — so the active URL is deliberately left alone here.
-      setUniccTarget("unicc");
-      setActiveApi(PRIMARY_API_URL);
-    } else {
-      setUniccTarget("amazecc");
-      setActiveApiUrl(newUrl);
-      setActiveApi(newUrl);
-    }
-  };
-
   const features = [
     { icon: Activity, iconColor: "text-indigo-500", title: "Attendance Tracker", desc: "Predict safety margins and skip lists instantly with an offline-first calculator." },
     { icon: GraduationCap, iconColor: "text-purple-500", title: "Academics Hub", desc: "Access courses, grade lists, schedules, and active curriculum structures." },
@@ -301,180 +110,56 @@ export default function LoginForm({
     { q: "Can alumni use it?", a: "Yes. Any student with active credentials can synchronize history and inspect catalogs." }
   ];
 
+export default function LandingSections() {
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+
+  // Attendance predictor sandbox — a live toy, so it owns its own counts.
+  const [mockAttended, setMockAttended] = useState(17);
+  const [mockTotal, setMockTotal] = useState(20);
+  const mockPercent = mockTotal > 0 ? (mockAttended / mockTotal) * 100 : 0;
+
+  const handleSimulateAttend = () => {
+    setMockAttended((prev) => prev + 1);
+    setMockTotal((prev) => prev + 1);
+  };
+
+  const handleSimulateSkip = () => {
+    setMockTotal((prev) => prev + 1);
+  };
+
+  const handleSimulateReset = () => {
+    setMockAttended(17);
+    setMockTotal(20);
+  };
+
+  const getSkipStatus = () => {
+    if (mockPercent < 75) {
+      return {
+        text: "Critical: Attendance below 75% limit!",
+        color: "text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-500/20",
+      };
+    }
+    const maxTotal = Math.floor(mockAttended / 0.75);
+    const skipCount = maxTotal - mockTotal;
+    if (skipCount > 0) {
+      return {
+        text: `Safe to skip: Yes (${skipCount} class${skipCount > 1 ? "es" : ""})`,
+        color: "text-emerald-650 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20",
+      };
+    }
+    return {
+      text: "Borderline: Exactly 75%. Do not skip.",
+      color: "text-amber-600 dark:text-amber-450 bg-amber-500/10 border border-amber-500/20",
+    };
+  };
+
+  const skipStatus = getSkipStatus();
+  const radius = 24;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (Math.min(mockPercent, 100) / 100) * circumference;
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-850 dark:bg-[#03060F] dark:text-gray-100 flex flex-col justify-between selection:bg-indigo-500/30 overflow-x-hidden relative font-sans transition-colors duration-300">
-      <style>{`
-        @keyframes float {
-          0% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-8px) rotate(0.2deg); }
-          100% { transform: translateY(0px) rotate(0deg); }
-        }
-        .animate-float {
-          animation: float 6s ease-in-out infinite;
-        }
-      `}</style>
-      
-      {/* Background grids */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f060_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f060_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#1f293708_1px,transparent_1px),linear-gradient(to_bottom,#1f293708_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none -z-10" />
-
-      {/* Navigation */}
-      <nav className={`fixed top-0 left-0 right-0 z-50 border-b transition-all duration-300 ${isScrolled ? "bg-white/90 border-slate-200/80 dark:bg-[#03060Fd0] dark:border-neutral-900 backdrop-blur-md" : "bg-transparent border-transparent"}`} style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <div className="flex items-center gap-2.5 cursor-pointer select-none" onClick={() => setShowLoginCard(false)}>
-              <img 
-                src="/logo.png" 
-                alt="AmazeCC Logo" 
-                decoding="async"
-                className="h-7 w-7 rounded-lg object-contain shadow-sm" 
-                onError={(e: any) => {
-                  e.target.src = "/images/icons/logo.png";
-                }} 
-              />
-              <span className="font-bold text-sm tracking-tight text-slate-900 dark:text-white font-[family-name:var(--font-outfit)]">AmazeCC</span>
-            </div>
-            {!showLoginCard && (
-              <div className="hidden md:flex items-center gap-6 text-xs font-semibold text-slate-500 dark:text-gray-400">
-                <button onClick={() => scrollToSection("sec-problem")} className="hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer">The Challenge</button>
-                <button onClick={() => scrollToSection("sec-features")} className="hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer font-bold text-slate-800 dark:text-gray-200">Modules</button>
-                <button onClick={() => scrollToSection("sec-timeline")} className="hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer">Timeline</button>
-                <button onClick={() => scrollToSection("sec-roadmap")} className="hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer">Roadmap</button>
-                <button onClick={() => scrollToSection("sec-faq")} className="hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer">FAQ</button>
-              </div>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            <a
-              href="/ffcs"
-              className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/40"
-              title="Open FFCS Planner without login"
-            >
-              <Calendar size={13} />
-              <span>FFCS Planner</span>
-            </a>
-            <ThemeToggle />
-            <button
-              onClick={handleDemoClick}
-              className="text-xs font-semibold text-slate-600 hover:text-slate-950 dark:text-gray-300 dark:hover:text-white transition-colors cursor-pointer"
-            >
-              Try Demo
-            </button>
-            {!showLoginCard && (
-              <button
-                onClick={() => setShowLoginCard(true)}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs px-4 py-2 rounded-xl transition-all cursor-pointer shadow-md shadow-indigo-600/20"
-              >
-                Get Started
-              </button>
-            )}
-          </div>
-        </div>
-      </nav>
-
-      {/* Main body wrapper */}
-      <main className="flex-grow">
-        {!showLoginCard ? (
-          /* Landing Page View */
-          <div className="w-full">
-            {/* Hero Section */}
-            <section className="relative w-full min-h-[calc(100vh-4rem)] flex items-center justify-center overflow-hidden px-6 pt-32 pb-20 lg:pt-40 lg:pb-28 cursor-default">
-              {/* Creative 3D Interactive Aurora Orbs */}
-              <m.div 
-                style={{ x: orbX1, y: orbY1 }}
-                className="absolute top-1/4 left-1/3 w-96 h-96 rounded-full bg-gradient-to-tr from-indigo-600/20 via-purple-500/20 to-pink-500/15 blur-[110px] pointer-events-none"
-              />
-              <m.div 
-                style={{ x: orbX2, y: orbY2 }}
-                className="absolute bottom-1/4 right-1/4 w-[28rem] h-[28rem] rounded-full bg-gradient-to-br from-cyan-500/15 via-indigo-600/15 to-purple-600/20 blur-[130px] pointer-events-none"
-              />
-
-              {/* Dynamic Hardware-Accelerated Spotlight Glow (PC Only) */}
-              {isDesktop && (
-                <m.div 
-                  className="absolute inset-0 pointer-events-none z-1"
-                  style={{ background: spotlightBg }}
-                />
-              )}
-
-              {/* Interactive 3D Mesh Grid with Soft Edge Fade */}
-              <m.div 
-                style={{ rotateX: heroRotateX, rotateY: heroRotateY, transformStyle: "preserve-3d", perspective: 1000 }}
-                className="absolute -inset-16 bg-[radial-gradient(#6366f1_1.2px,transparent_1.2px)] [background-size:28px_28px] opacity-20 dark:opacity-25 pointer-events-none [mask-image:radial-gradient(ellipse_90%_90%_at_50%_50%,black_40%,transparent_100%)]"
-              />
-
-              {/* Oversized Parallax Background Image (No Hard Edges) */}
-              <m.div 
-                style={{ y: backgroundY, scale: backgroundScale, x: orbX1, backgroundImage: "url('/campus-twilight.webp')" }}
-                className="absolute -inset-16 scale-110 bg-cover bg-center bg-no-repeat opacity-[0.55] dark:opacity-[0.25] pointer-events-none [mask-image:radial-gradient(ellipse_95%_95%_at_50%_50%,black_50%,transparent_100%)]"
-              />
-              
-              {/* Overlay Gradients */}
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-50 via-slate-50/20 to-transparent dark:from-[#03060F] dark:via-[#03060F]/30 dark:to-transparent pointer-events-none" />
-              <div className="absolute inset-0 bg-gradient-to-b from-slate-50/10 via-transparent to-slate-50 dark:from-[#03060F]/10 dark:via-transparent dark:to-[#03060F] pointer-events-none" />
-
-              {/* Centered Hero Content with Hardware 3D Mouse Tilt */}
-              <m.div 
-                style={{ y: textY, rotateX: heroRotateX, rotateY: heroRotateY }}
-                className="max-w-4xl mx-auto text-center space-y-6 relative z-10 animate-fadeIn"
-              >
-                <div>
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400">
-                    <Sparkles size={11} /> Next-Generation Portal Dashboard
-                  </span>
-                </div>
-                
-                <h1 className="text-4xl md:text-7xl font-black tracking-tight leading-[1.05] text-slate-900 dark:text-white font-[family-name:var(--font-outfit)]">
-                  Your Entire VIT Life.
-                  <br />
-                  <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
-                    One Dashboard.
-                  </span>
-                </h1>
-                
-                <p className="text-sm md:text-base text-slate-600 dark:text-gray-300 leading-relaxed max-w-2xl mx-auto font-medium">
-                  AmazeCC brings everything a VIT student needs into one beautifully designed platform. Stop opening ten different portals. Track attendance, marks, room counselling, and mess menus instantly.
-                </p>
-                
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-                  <button
-                    onClick={() => setShowLoginCard(true)}
-                    className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-6 py-4 rounded-xl transition-all duration-150 active:scale-[0.98] shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2 cursor-pointer group"
-                  >
-                    <span>Get Started</span>
-                    <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                  </button>
-                  <button
-                    onClick={handleDemoClick}
-                    className="w-full sm:w-auto bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-black text-xs px-6 py-4 rounded-xl transition-all duration-150 active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer text-center"
-                  >
-                    <Zap size={14} />
-                    <span>Try Instant Demo</span>
-                  </button>
-                  <button
-                    onClick={() => scrollToSection("sec-features")}
-                    className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 border border-slate-200 hover:border-slate-300 dark:bg-neutral-900/60 dark:hover:bg-neutral-900 dark:border-neutral-800 dark:hover:border-neutral-700 text-slate-700 dark:text-gray-300 font-black text-xs px-6 py-4 rounded-xl transition-all duration-150 active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer text-center"
-                  >
-                    Explore Features
-                  </button>
-                </div>
-                
-                {/* Stats counters */}
-                <div className="grid grid-cols-3 gap-6 pt-8 max-w-xl mx-auto border-t border-slate-200/50 dark:border-neutral-900/50">
-                  <div>
-                    <h4 className="text-xl font-black text-slate-900 dark:text-white">30+</h4>
-                    <p className="text-[10px] text-slate-500 dark:text-gray-500 font-bold uppercase mt-1">Student Tools</p>
-                  </div>
-                  <div>
-                    <h4 className="text-xl font-black text-slate-900 dark:text-white">10+</h4>
-                    <p className="text-[10px] text-slate-500 dark:text-gray-500 font-bold uppercase mt-1">Modules</p>
-                  </div>
-                  <div>
-                    <h4 className="text-xl font-black text-indigo-600 dark:text-indigo-400">100%</h4>
-                    <p className="text-[10px] text-slate-500 dark:text-gray-500 font-bold uppercase mt-1">Free & Local</p>
-                  </div>
-                </div>
-              </m.div>
-            </section>
+    <>
 
             {/* Problem Section (Emojis Replaced with Lucide Icons) */}
             <section id="sec-problem" className="bg-slate-100/50 border-y border-slate-200 dark:bg-[#02040a]/40 dark:border-neutral-900 py-20 px-6">
@@ -959,261 +644,6 @@ export default function LoginForm({
                 })}
               </div>
             </section>
-          </div>
-        ) : (
-          /* Login Credentials Form View */
-          <BottomSheet
-            overlayId="landing-login"
-            onClose={() => setShowLoginCard(false)}
-            title="Welcome to AmazeCC"
-            subtitle="Sign in securely with your VTOP credentials"
-            icon={<Shield size={18} />}
-            avoidKeyboard
-            maxWidth="max-w-2xl"
-          >
-            <div className="w-full px-1 pb-4 animate-scaleIn">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-              
-              {/* Security column (Left side) */}
-              <div className="lg:col-span-5 bg-slate-100 border border-slate-200 dark:bg-[#050814]/40 dark:border-neutral-900 p-6 rounded-[24px] flex flex-col justify-between space-y-6">
-                <div className="space-y-4">
-                  <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-[family-name:var(--font-outfit)]">Security & Privacy</h3>
-                  <div className="space-y-4 text-left">
-                    <div className="flex gap-3">
-                      <div className="p-2 bg-indigo-500/10 text-indigo-650 dark:text-indigo-400 rounded-lg shrink-0 h-fit">
-                        <Shield size={14} />
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-bold text-slate-900 dark:text-white">Client-Side Only</h4>
-                        <p className="text-[10px] text-slate-500 dark:text-gray-400 mt-0.5 leading-relaxed font-medium">
-                          Authentication details and cookie stores stay strictly local. We never host database storage.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex gap-3">
-                      <div className="p-2 bg-indigo-500/10 text-indigo-650 dark:text-indigo-400 rounded-lg shrink-0 h-fit">
-                        <Zap size={14} />
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-bold text-slate-900 dark:text-white">Direct verify</h4>
-                        <p className="text-[10px] text-slate-500 dark:text-gray-400 mt-0.5 leading-relaxed font-medium">
-                          Secure verification directly with VTOP servers to pull schedules.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="pt-4 border-t border-slate-200 dark:border-neutral-900 text-[10px] text-slate-500 dark:text-gray-500 font-semibold text-left">
-                  Secured by standard TLS encryption directly to the VIT gateway.
-                </div>
-              </div>
-
-              {/* Login form fields column (Right side) */}
-              <div className="lg:col-span-7 bg-white border border-slate-200 dark:bg-[#050814]/60 dark:border-neutral-900 backdrop-blur-2xl rounded-[24px] p-7 flex flex-col justify-between shadow-2xl relative overflow-hidden">
-                {isLoading && (
-                  <div className="absolute inset-0 bg-white/85 dark:bg-[#050814]/95 backdrop-blur-md rounded-[24px] flex flex-col items-center justify-center z-20 space-y-4 animate-fadeIn">
-                    <div className="relative flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
-                      <Loader2 className="w-8 h-8 animate-spin" />
-                    </div>
-                    <div className="text-center space-y-1">
-                      <p className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white font-[family-name:var(--font-outfit)]">VTOP Authentication</p>
-                      <p className="text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider animate-pulse">Establishing secure gateway...</p>
-                    </div>
-                  </div>
-                )}
-
-                <form onSubmit={handleFormSubmit} className="space-y-6">
-                  {/* Form Header */}
-                  <div className="flex items-center gap-2.5 border-b border-slate-100 dark:border-neutral-900 pb-4 mb-2">
-                    <div className="p-2 bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-indigo-605 dark:text-indigo-400 rounded-lg">
-                      <Shield size={16} />
-                    </div>
-                    <div className="text-left">
-                      <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">VTOP Verification</h2>
-                      <p className="text-[10px] text-slate-500 dark:text-gray-450 mt-0.5">Secure authentication via VIT database</p>
-                    </div>
-                  </div>
-
-                  {/* Feedback Message */}
-                  {message && (message.toLowerCase().includes("failed") || message.toLowerCase().includes("invalid") || message.toLowerCase().includes("wrong") || message.toLowerCase().includes("incorrect") || message.toLowerCase().includes("captcha") || message.toLowerCase().includes("error") || message.toLowerCase().includes("reason")) && (
-                    <div className="p-2.5 rounded-xl border text-[11px] font-medium bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400 flex flex-col gap-1 text-left">
-                      <div className="font-semibold flex items-center gap-1.5 text-xs">
-                        <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-500" />
-                        <span>{message}</span>
-                      </div>
-                      <div className="text-[10px] text-slate-500 dark:text-gray-400 pl-5">
-                        Frequent logins? <a href="https://vtopcc.vit.ac.in" target="_blank" rel="noreferrer" className="underline font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500">Reset on VTOP Portal ↗</a>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Target server: which API to ask first. */}
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200 dark:bg-neutral-950 dark:border-neutral-900">
-                      <div className="flex items-center gap-2">
-                        <Server size={14} className="text-slate-500" />
-                        <span className="text-xs font-bold text-slate-600 dark:text-gray-300">Target Server</span>
-                      </div>
-                      <SelectField
-                        value={targetValue}
-                        onChange={handleApiChange}
-                        options={[
-                          { value: PRIMARY_API_URL, label: "AmazeCC" },
-                          ...(hasBackupApi()
-                            ? [{ value: BACKUP_API_URL, label: "AmazeCC (Backup)" }]
-                            : []),
-                          ...(uniccAvailable ? [{ value: UNICC_API_URL, label: "UniCC" }] : []),
-                        ]}
-                        searchable={false}
-                        size="sm"
-                        role="group"
-                        aria-label="Target server"
-                        className="w-auto shrink-0 [&>button:first-child]:border-none [&>button:first-child]:bg-transparent [&>button:first-child]:px-0 [&>button:first-child]:text-indigo-600 dark:[&>button:first-child]:text-indigo-400"
-                      />
-                    </div>
-
-                    {/* Saying what the choice actually does. UniCC is a third-party
-                        server that would receive the VTOP password, and it serves
-                        nine of the routes the app calls — both facts matter more
-                        than the convenience, so neither is left implicit. */}
-                    {uniccTarget === "unicc" ? (
-                      <p className="text-[10px] leading-relaxed text-amber-700 dark:text-amber-400/90 bg-amber-500/10 border border-amber-500/20 rounded-lg px-2.5 py-2 text-left">
-                        Your VTOP password is sent to <span className="font-bold">api.uni-cc.site</span>, a third-party
-                        service, to sign you in. It covers login, grades, attendance, calendar, hostel and
-                        schedule &mdash; everything else still comes from AmazeCC.
-                      </p>
-                    ) : (
-                      <p className="text-[10px] leading-relaxed text-slate-500 dark:text-gray-400 pl-0.5 text-left">
-                        AmazeCC is used first. If it is unreachable, UniCC is tried automatically for the
-                        endpoints it supports.
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Credentials fields */}
-                  <div className="space-y-4 text-left">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider pl-0.5">VTop Username</label>
-                      <Input
-                        className="uppercase"
-                        value={username}
-                        onChange={(e: any) => setUsername(e.target.value)}
-                        placeholder="E.g., VITUSER12345"
-                        disabled={isLoading}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider pl-0.5">VTOP Password</label>
-                      <div className="relative">
-                        <Input
-                          type={showPassword ? "text" : "password"}
-                          value={password}
-                          onChange={(e: any) => setPassword(e.target.value)}
-                          placeholder="••••••••"
-                          disabled={isLoading}
-                          required
-                        />
-                        <button
-                          type="button"
-                          className="hit-expand absolute right-2 top-1/2 transform -translate-y-1/2 p-2 rounded text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
-                          onClick={() => setShowPassword(!showPassword)}
-                        >
-                          {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Settings toggles */}
-                  {!isLoading && (
-                    <>
-                      <div className="space-y-3 text-left">
-                        <p className="text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider pl-0.5">Residential Status</p>
-                        <div className="flex gap-2.5">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setResidentialStatus("hosteller");
-                              setIsDayscholarWithBus(false);
-                            }}
-                            className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
-                              residentialStatus === "hosteller" 
-                                ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-600/10" 
-                                : "bg-slate-50 text-slate-500 border-slate-200 dark:bg-neutral-950 dark:text-gray-400 dark:border-neutral-900 hover:border-indigo-500/30"
-                            }`}
-                          >
-                            <Home size={12} className="inline mr-1 stroke-[2.2]" /> Hosteller
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setResidentialStatus("dayscholar")}
-                            className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
-                              residentialStatus === "dayscholar" 
-                                ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-600/10" 
-                                : "bg-slate-50 text-slate-500 border-slate-200 dark:bg-neutral-950 dark:text-gray-400 dark:border-neutral-900 hover:border-indigo-500/30"
-                            }`}
-                          >
-                            <Bus size={12} className="inline mr-1 stroke-[2.2]" /> Dayscholar
-                          </button>
-                        </div>
-                        
-                        {residentialStatus === "dayscholar" && (
-                          <label className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 dark:bg-neutral-950 dark:border-neutral-900 cursor-pointer transition-all hover:border-indigo-500/30 select-none">
-                            <button
-                              type="button"
-                              onClick={() => setIsDayscholarWithBus(!isDayscholarWithBus)}
-                              className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all ${
-                                isDayscholarWithBus 
-                                  ? "bg-indigo-600 border-indigo-600 text-white" 
-                                  : "bg-white border-slate-250 dark:bg-neutral-900 dark:border-neutral-800 text-transparent"
-                              }`}
-                            >
-                              {isDayscholarWithBus && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                            </button>
-                            <span className="text-xs font-bold text-slate-600 dark:text-gray-300">I have registered transport (bus)</span>
-                          </label>
-                        )}
-                      </div>
-
-                      <Button
-                        type="submit"
-                        className="w-full text-xs font-extrabold cursor-pointer"
-                        size="lg"
-                      >
-                        Authenticate
-                      </Button>
-                    </>
-                  )}
-                </form>
-              </div>
-
-            </div>
-            </div>
-          </BottomSheet>
-        )}
-      </main>
-
-      {/* Footer */}
-      <footer className="px-6 py-8 border-t border-slate-200 dark:border-neutral-900 bg-slate-100 dark:bg-[#020409]/60 text-center space-y-3 transition-colors">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500 dark:text-gray-500">
-          <div>
-            <span className="font-bold text-slate-900 dark:text-white font-[family-name:var(--font-outfit)]">AmazeCC</span>
-          </div>
-          <div className="flex gap-4">
-            <a href="/ffcs" className="hover:text-slate-900 dark:hover:text-white transition-colors">FFCS Planner</a>
-            <span className="text-slate-300 dark:text-neutral-800">•</span>
-            <a href="/privacy" className="hover:text-slate-900 dark:hover:text-white transition-colors">Privacy</a>
-            <span className="text-slate-300 dark:text-neutral-800">•</span>
-            <a href="/terms" className="hover:text-slate-900 dark:hover:text-white transition-colors">Terms</a>
-            <span className="text-slate-300 dark:text-neutral-800">•</span>
-            <a href="https://github.com/AmazeContinuityProjects/AmazeCC" target="_blank" rel="noopener noreferrer" className="hover:text-slate-900 dark:hover:text-white transition-colors">GitHub</a>
-          </div>
-          <p className="text-[10px] font-semibold flex items-center gap-1.5">
-            Made with <Heart size={10} className="text-rose-500 fill-rose-500 inline shrink-0" /> by students. Not affiliated with VIT or VTOP.
-          </p>
-        </div>
-      </footer>
-    </div>
+    </>
   );
 }

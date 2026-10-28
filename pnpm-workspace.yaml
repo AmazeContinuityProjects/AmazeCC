@@ -1,0 +1,22 @@
+allowBuilds:
+  '@swc/core': true
+  canvas: true
+  core-js: true
+  esbuild: true
+  sharp: true
+  unrs-resolver: true
+  workerd: true
+overrides:
+  proxy-addr: 2.0.8
+  shell-quote: 1.11.0
+  undici: 7.29.1
+  js-yaml: 4.3.2
+  source-map-js: 1.2.2
+  qs: 6.16.0
+  dompurify: 3.4.16
+  sharp: 0.35.5
+  browserslist: 4.28.7
+  baseline-browser-mapping: 2.11.0
+permissions:
+  dotenv:
+    skills: true

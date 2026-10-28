@@ -7,14 +7,23 @@ import { hasStoredAppSession } from "./readBootstrapSnapshot";
 
 type EntryIntent = "login" | "demo" | null;
 
-const AuthenticatedRuntime = dynamic(() => import("../Main"), {
-  loading: () => (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-600 dark:bg-[#03060f] dark:text-slate-300" role="status" aria-label="Opening your workspace">
-      <span className="mr-3 h-5 w-5 animate-spin rounded-full border-2 border-current border-r-transparent" />
-      <span>Opening your workspace…</span>
-    </div>
-  ),
-});
+/**
+ * The signed-in runtime is the app's biggest chunk, so it is only fetched once
+ * a guest actually asks for it ("Get Started" / "Try the demo") or a saved
+ * session exists. Until it lands this is the whole visible surface.
+ */
+const OpeningScreen = () => (
+  <div
+    className="flex min-h-screen items-center justify-center gap-3 bg-slate-50 text-slate-600 dark:bg-[#03060f] dark:text-slate-300"
+    role="status"
+    aria-label="Opening your workspace"
+  >
+    <span className="h-5 w-5 animate-spin rounded-full border-2 border-current border-r-transparent" />
+    <span className="text-sm font-semibold">Opening your workspace…</span>
+  </div>
+);
+
+const AuthenticatedRuntime = dynamic(() => import("../Main"), { loading: OpeningScreen });
 
 export default function HomeEntryController() {
   const [hasSession, setHasSession] = useState<boolean | null>(null);
@@ -30,9 +39,10 @@ export default function HomeEntryController() {
     }
   }, []);
 
-  if (hasSession === null) {
-    return <div className="min-h-screen bg-slate-50 dark:bg-black" aria-busy="true" />;
-  }
+  // The check is one synchronous read, but it cannot run during SSR — showing
+  // the branded opening screen rather than an empty frame keeps the hand-off
+  // to the guest hero seamless.
+  if (hasSession === null) return <OpeningScreen />;
 
   if (hasSession || intent) {
     return (
@@ -48,7 +58,7 @@ export default function HomeEntryController() {
 
   return (
     <GuestExperience
-      onSignIn={() => setIntent("login")}
+      onGetStarted={() => setIntent("login")}
       onTryDemo={() => setIntent("demo")}
     />
   );

@@ -3,17 +3,26 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { 
   Sparkles, LayoutGrid, CheckCircle2, ArrowRight, ChevronLeft, ChevronRight, 
-  Check, GraduationCap, Bus, Bell, Palette, ShieldCheck, 
-  Sliders, User, Calendar, CalendarCheck, Car, CreditCard, Key, Smartphone
+  Check, GraduationCap, Bus, Bell, Palette, ShieldCheck, Loader2, 
+  Sliders, User, Calendar, CalendarCheck, Car, CreditCard, Key, Smartphone,
+  Download, Share, Plus
 } from "lucide-react";
 import { AnimatePresence, m } from "framer-motion";
 import { getAssetPath } from "@/lib/utils";
+import { usePwaInstall } from "@/lib/pwaInstall";
 import config from "../../../../config.json";
 import { api } from "@/lib/sync-engine";
 import SimplifiedMobileHome from "../mobile/SimplifiedMobileHome";
 import MobileHome from "../mobile/MobileHome";
 import AttendanceTabs from "../attendance/AttendanceTabs";
 import SelectField from "../shared/primitives/SelectField";
+import OnboardingIntro, { type IntroPhase } from "./OnboardingIntro";
+import {
+  dismissSyncSession,
+  isSyncSessionOpen,
+  setSyncPresentation,
+  useSyncSession,
+} from "@/lib/sync-engine/sync-session";
 
 export type InterfaceOptionId = "simplified" | "classic" | "attendance";
 
@@ -37,6 +46,15 @@ const AVAILABLE_NAV_TABS: Array<{ id: string; label: string; icon: any; desc: st
 interface AmazeOnboardingFlowProps {
   initialStep?: number;
   isStandaloneInterfacePicker?: boolean;
+  /**
+   * First-run entry: sign-in → full-sync progress → welcome, drawn in this
+   * hero's own design language before the numbered steps. Absent for the
+   * standalone interface picker (Dashboard), which has nothing to sign in to.
+   */
+  intro?: {
+    initialPhase: Exclude<IntroPhase, "sync">;
+    login: import("./OnboardingIntro").IntroLogin;
+  };
   settings: any;
   setSettings: (fn: any) => void;
   username?: string;
@@ -74,6 +92,21 @@ function formatSemesterName(semId: string): string {
   return `${termName} ${year1}-${year2}`;
 }
 
+// iOS Safari never fires `beforeinstallprompt`, so there the install step
+// falls back to the manual Share → Add to Home Screen instructions instead.
+function isIosSafari(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /iphone|ipad|ipod/i.test(navigator.userAgent) && !/crios|fxios/i.test(navigator.userAgent);
+}
+
+function isRunningStandalone(): boolean {
+  if (typeof window === "undefined") return false;
+  return (
+    !!window.matchMedia?.("(display-mode: standalone)").matches ||
+    (navigator as unknown as { standalone?: boolean }).standalone === true
+  );
+}
+
 function urlBase64ToUint8Array(base64String: string) {
   if (!base64String) return new Uint8Array(0);
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -85,6 +118,7 @@ function urlBase64ToUint8Array(base64String: string) {
 export default function AmazeOnboardingFlow({
   initialStep = 0,
   isStandaloneInterfacePicker = false,
+  intro,
   settings,
   setSettings,
   username = "",
@@ -107,6 +141,10 @@ export default function AmazeOnboardingFlow({
   acknowledgementData,
 }: AmazeOnboardingFlowProps) {
   const [step, setStep] = useState(initialStep);
+  // Sign-in + the first full sync + the welcome beat live in front of the
+  // numbered steps; the standalone interface picker has none of them.
+  const [introDone, setIntroDone] = useState(!intro);
+  const syncSession = useSyncSession();
   const [temp, setTemp] = useState({
     ...settings,
     pinnedNavTabs: settings?.pinnedNavTabs || ["attendance", "academics", "cabshare"],
@@ -117,6 +155,12 @@ export default function AmazeOnboardingFlow({
   const [notifEnabled, setNotifEnabled] = useState(() => {
     return typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted";
   });
+
+  // Install-as-web step: reads the globally captured `beforeinstallprompt`
+  // (see lib/pwaInstall) so the hero itself is the only install surface.
+  const { canInstall, promptInstall } = usePwaInstall();
+  const [installLoading, setInstallLoading] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(false);
 
   // Dynamic Viewport Dimensions & Aspect Ratio for responsive horizontal dual-pane layout
   const [viewportDimensions, setViewportDimensions] = useState<{ width: number; height: number }>({
@@ -148,6 +192,15 @@ export default function AmazeOnboardingFlow({
     window.addEventListener("resize", updateDimensionsAndRatio);
     return () => window.removeEventListener("resize", updateDimensionsAndRatio);
   }, []);
+
+  // The first login must not pop the sync sheet over this hero — the intro
+  // draws the run itself from the same session store. Restoring "sheet" on
+  // unmount puts every later sync back behind the normal floating notification.
+  useEffect(() => {
+    if (isStandaloneInterfacePicker) return;
+    setSyncPresentation("inline");
+    return () => setSyncPresentation("sheet");
+  }, [isStandaloneInterfacePicker]);
 
   const isHorizontal = isMounted && viewportDimensions.width > viewportDimensions.height;
 
@@ -196,7 +249,7 @@ export default function AmazeOnboardingFlow({
   };
 
   const nextStep = () => {
-    if (step < 4) setStep(step + 1);
+    if (step < 5) setStep(step + 1);
     else finish();
   };
 
@@ -219,6 +272,12 @@ export default function AmazeOnboardingFlow({
       localStorage.setItem("push_prompt_dismissed", "true");
       localStorage.setItem("busPromptDismissed", "true");
     } catch {}
+
+    // Launch is not the moment for a progress modal: if the first full sync is
+    // still sweeping in the background, let it finish silently instead of
+    // opening the sheet the intro deliberately avoided.
+    setSyncPresentation("sheet");
+    if (isSyncSessionOpen()) dismissSyncSession();
 
     setSettings(() => finalSettings);
     onComplete(finalSettings.currSemesterID);
@@ -264,6 +323,22 @@ export default function AmazeOnboardingFlow({
     }
   };
 
+  // Already-installed windows (installed PWA opened from the home screen)
+  // don't need an install offer — say so instead of showing a dead button.
+  useEffect(() => {
+    setIsInstalled(isRunningStandalone());
+  }, []);
+
+  const installApp = async () => {
+    setInstallLoading(true);
+    try {
+      const accepted = await promptInstall();
+      if (accepted) setIsInstalled(true);
+    } finally {
+      setInstallLoading(false);
+    }
+  };
+
   // Preview settings proxy for live dashboard render
   const previewSettings = {
     ...temp,
@@ -272,7 +347,7 @@ export default function AmazeOnboardingFlow({
     timetablePillStyle: temp.timetablePillStyle || "compact",
   };
 
-  const totalSteps = 5;
+  const totalSteps = 6;
 
   // Render Helpers for shared cards across vertical & horizontal dual-pane layouts
   const renderProfileCard = () => (
@@ -729,14 +804,103 @@ export default function AmazeOnboardingFlow({
     </div>
   );
 
+  const renderInstallCard = () => {
+    const showManualSteps = !canInstall && !isInstalled && isIosSafari();
+    return (
+      <div className="p-5 sm:p-6 rounded-[28px] sm:rounded-[32px] bg-zinc-900/80 border border-zinc-800/80 backdrop-blur-xl shadow-2xl space-y-3 text-left">
+        {[
+          { title: "Full-Screen App", desc: "Opens like a native app, no browser chrome", icon: "📱" },
+          { title: "Works Offline", desc: "Your dashboard loads even on patchy campus wifi", icon: "📶" },
+          { title: "Push Notifications", desc: "Class alerts keep flowing outside the tab", icon: "🔔" },
+        ].map((perk, i) => (
+          <div key={i} className="flex items-center gap-3 p-2.5 rounded-2xl bg-zinc-950/40 border border-zinc-800/60">
+            <span className="text-base">{perk.icon}</span>
+            <div>
+              <p className="text-xs font-bold text-white">{perk.title}</p>
+              <p className="text-[10px] text-zinc-500">{perk.desc}</p>
+            </div>
+          </div>
+        ))}
+
+        {isInstalled ? (
+          <button
+            type="button"
+            disabled
+            className="w-full py-3 rounded-xl font-black text-xs transition-all flex items-center justify-center gap-2 mt-2 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30"
+          >
+            <Check className="w-4 h-4" />
+            <span>AmazeCC Is Installed</span>
+          </button>
+        ) : canInstall ? (
+          <button
+            type="button"
+            onClick={installApp}
+            disabled={installLoading}
+            className="w-full py-3 rounded-xl font-black text-xs transition-all flex items-center justify-center gap-2 mt-2 bg-indigo-600 hover:bg-indigo-700 text-white shadow-md cursor-pointer disabled:opacity-70"
+          >
+            {installLoading ? (
+              <span>Opening Install Prompt...</span>
+            ) : (
+              <>
+                <Download className="w-4 h-4" />
+                <span>Install AmazeCC</span>
+              </>
+            )}
+          </button>
+        ) : showManualSteps ? (
+          <ol className="space-y-2.5 text-xs font-medium text-zinc-300 pt-1">
+            <li className="flex items-start gap-2.5">
+              <Share className="w-4 h-4 mt-0.5 shrink-0 text-indigo-400" />
+              <span>
+                Tap the <strong className="text-white">Share</strong> button in Safari&apos;s toolbar.
+              </span>
+            </li>
+            <li className="flex items-start gap-2.5">
+              <Plus className="w-4 h-4 mt-0.5 shrink-0 text-indigo-400" />
+              <span>
+                Choose <strong className="text-white">Add to Home Screen</strong>, then confirm.
+              </span>
+            </li>
+          </ol>
+        ) : (
+          <p className="text-[11px] text-zinc-500 leading-relaxed pt-1">
+            Use your browser&apos;s menu to add AmazeCC to your home screen for the full app experience.
+          </p>
+        )}
+      </div>
+    );
+  };
+
+  if (!introDone && intro) {
+    return (
+      <OnboardingIntro
+        initialPhase={intro.initialPhase}
+        login={intro.login}
+        onDone={() => setIntroDone(true)}
+      />
+    );
+  }
+
   return (
-    <div className="fixed inset-0 z-50 bg-zinc-950 text-zinc-100 flex flex-col justify-between overflow-hidden select-none px-5 sm:px-8 py-4 sm:py-6 animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-50 bg-zinc-950 text-zinc-100 flex flex-col justify-between overflow-hidden select-none px-5 sm:px-8 pt-[calc(env(safe-area-inset-top,0px)+1rem)] pb-[calc(env(safe-area-inset-bottom,0px)+1rem)] sm:pt-[calc(env(safe-area-inset-top,0px)+1.5rem)] sm:pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)] animate-in fade-in duration-300">
       
       {/* Background ambient lighting */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[550px] h-[550px] rounded-full bg-indigo-600/10 blur-[150px]" />
         <div className="absolute -bottom-40 left-1/2 -translate-x-1/2 w-[550px] h-[550px] rounded-full bg-violet-600/10 blur-[150px]" />
       </div>
+
+      {/* First-login sync still sweeping? Keep the percentage visible in the
+          hero instead of opening the sheet it was deliberately suppressed for. */}
+      {!isStandaloneInterfacePicker && syncSession.open && (
+        <div
+          role="status"
+          className="fixed left-1/2 top-[calc(env(safe-area-inset-top,0px)+0.75rem)] z-30 flex -translate-x-1/2 items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/90 px-3.5 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-zinc-300 shadow-xl backdrop-blur-md font-outfit"
+        >
+          <Loader2 size={12} className="animate-spin text-indigo-400" />
+          Syncing {Math.round(syncSession.progress)}%
+        </div>
+      )}
 
       {/* ── RESPONSIVE DUAL PANE LAYOUT (WHEN VIEWPORT IS HORIZONTAL > VERTICAL) ── */}
       {isHorizontal ? (
@@ -783,8 +947,13 @@ export default function AmazeOnboardingFlow({
               )}
             </div>
 
-            {/* Center: Heading, Header, Icon, Description */}
-            <div className="flex flex-col items-start text-left space-y-4 my-auto py-2">
+            {/* Center: Heading, Header, Icon, Description.
+                min-h-0 + overflow-y-auto lets this middle section scroll when the
+                viewport is short (landscape phones get ~350px of height, less than
+                one step's content) — the shell is overflow-hidden, so without a
+                scroll container here the Continue button gets clipped and the step
+                becomes un-completable. Header and actions above/below stay pinned. */}
+            <div className="flex flex-col items-start text-left space-y-4 my-auto min-h-0 overflow-y-auto py-2">
               {(step === 1 || isStandaloneInterfacePicker) ? (
                 <>
                   <div className="flex items-center gap-3">
@@ -909,7 +1078,7 @@ export default function AmazeOnboardingFlow({
                     Pin up to 4 quick-access tabs for your mobile dock.
                   </p>
                 </>
-              ) : (
+              ) : step === 4 ? (
                 <>
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
@@ -926,6 +1095,25 @@ export default function AmazeOnboardingFlow({
                   </div>
                   <p className="text-xs text-zinc-400 font-medium leading-relaxed">
                     Instant class alerts and low attendance safeguards.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
+                      <Download className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400 font-outfit">
+                        Install
+                      </span>
+                      <h2 className="text-2xl lg:text-3xl font-black text-white font-outfit tracking-tight">
+                        AmazeCC on Your Device
+                      </h2>
+                    </div>
+                  </div>
+                  <p className="text-xs text-zinc-400 font-medium leading-relaxed">
+                    Add AmazeCC as a web app for a full-screen, offline-ready experience.
                   </p>
                 </>
               )}
@@ -952,7 +1140,7 @@ export default function AmazeOnboardingFlow({
                 <span className="truncate">
                   {isStandaloneInterfacePicker
                     ? `Select ${currentOption.title}`
-                    : step === 4
+                    : step === 5
                     ? "Launch AmazeCC"
                     : step === 1
                     ? `Continue with ${currentOption.title}`
@@ -984,8 +1172,10 @@ export default function AmazeOnboardingFlow({
               <div className="w-full max-w-md py-4">{renderDisplayCard()}</div>
             ) : step === 3 ? (
               <div className="w-full max-w-md py-4">{renderBottomNavCard()}</div>
-            ) : (
+            ) : step === 4 ? (
               <div className="w-full max-w-md py-4">{renderNotificationsCard()}</div>
+            ) : (
+              <div className="w-full max-w-md py-4">{renderInstallCard()}</div>
             )}
           </div>
         </div>
@@ -1030,8 +1220,15 @@ export default function AmazeOnboardingFlow({
             )}
           </header>
 
-          {/* ── MAIN STEP CONTENT (SPACIOUS & CENTERED) ── */}
-          <main className="relative z-20 w-full max-w-md sm:max-w-lg mx-auto flex-1 flex flex-col items-center justify-center my-auto min-h-0 py-2">
+          {/* ── MAIN STEP CONTENT (SPACIOUS & CENTERED) ──
+              overflow-y-auto: on short viewports (or when the keyboard eats half
+              the screen) a step's card can exceed the space between the top bar
+              and the footer actions; without a scroll container the shell's
+              overflow-hidden would clip it with no way to reach the rest.
+              Each step child carries `my-auto` so overflowing content anchors to
+              the top (auto margins collapse to 0 in negative free space) instead
+              of being centred — centred overflow leaves the top unreachable. */}
+          <main className="relative z-20 w-full max-w-md sm:max-w-lg mx-auto flex-1 flex flex-col items-center justify-center my-auto min-h-0 overflow-y-auto py-2">
             <AnimatePresence mode="wait">
               
               {/* ──── STEP 0: WELCOME, SEMESTER & CAMPUS/BUS RESIDENCY ──── */}
@@ -1042,7 +1239,7 @@ export default function AmazeOnboardingFlow({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -12 }}
                   transition={{ duration: 0.2 }}
-                  className="w-full space-y-4 sm:space-y-5 text-center"
+                  className="my-auto w-full space-y-4 sm:space-y-5 text-center"
                 >
                   <div className="flex flex-col items-center gap-2.5">
                     <img
@@ -1072,7 +1269,7 @@ export default function AmazeOnboardingFlow({
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.98 }}
                   transition={{ duration: 0.2 }}
-                  className="w-full flex-1 flex flex-col items-center justify-center my-auto min-h-0 space-y-3"
+                  className="w-full shrink-0 flex flex-col items-center justify-center my-auto space-y-3"
                 >
                   {/* Header inside interface picker */}
                   <div className="flex flex-col items-center text-center space-y-2 shrink-0">
@@ -1122,7 +1319,7 @@ export default function AmazeOnboardingFlow({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -12 }}
                   transition={{ duration: 0.2 }}
-                  className="w-full space-y-4 sm:space-y-5 text-center"
+                  className="my-auto w-full space-y-4 sm:space-y-5 text-center"
                 >
                   <div className="flex flex-col items-center gap-2">
                     <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
@@ -1149,7 +1346,7 @@ export default function AmazeOnboardingFlow({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -12 }}
                   transition={{ duration: 0.2 }}
-                  className="w-full space-y-4 sm:space-y-5 text-center"
+                  className="my-auto w-full space-y-4 sm:space-y-5 text-center"
                 >
                   <div className="flex flex-col items-center gap-2">
                     <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
@@ -1176,7 +1373,7 @@ export default function AmazeOnboardingFlow({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -12 }}
                   transition={{ duration: 0.2 }}
-                  className="w-full space-y-4 sm:space-y-5 text-center"
+                  className="my-auto w-full space-y-4 sm:space-y-5 text-center"
                 >
                   <div className="flex flex-col items-center gap-2">
                     <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
@@ -1192,6 +1389,33 @@ export default function AmazeOnboardingFlow({
 
                   {/* Notification & Launch Card */}
                   {renderNotificationsCard()}
+                </m.div>
+              )}
+
+              {/* ──── STEP 5: INSTALL AS A WEB APP ──── */}
+              {step === 5 && !isStandaloneInterfacePicker && (
+                <m.div
+                  key="step-install"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -12 }}
+                  transition={{ duration: 0.2 }}
+                  className="my-auto w-full space-y-4 sm:space-y-5 text-center"
+                >
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                      <Download className="w-6 h-6" />
+                    </div>
+                    <h2 className="text-2xl sm:text-3xl font-black text-white font-outfit tracking-tight">
+                      Install AmazeCC
+                    </h2>
+                    <p className="text-xs text-zinc-400 font-medium max-w-xs">
+                      Add it as a web app for a full-screen, offline-ready experience.
+                    </p>
+                  </div>
+
+                  {/* Install Card & Launch */}
+                  {renderInstallCard()}
                 </m.div>
               )}
             </AnimatePresence>
@@ -1220,7 +1444,7 @@ export default function AmazeOnboardingFlow({
               <span className="truncate">
                 {isStandaloneInterfacePicker
                   ? `Select ${currentOption.title}`
-                  : step === 4
+                  : step === 5
                   ? "Launch AmazeCC"
                   : step === 1
                   ? `Continue with ${currentOption.title}`
