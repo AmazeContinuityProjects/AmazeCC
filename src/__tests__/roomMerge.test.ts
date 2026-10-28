@@ -207,6 +207,46 @@ describe("mergeDay", () => {
     expect(occupants[0].source).toBe("report");
   });
 
+  /**
+   * The room inspector's bug, in one test.
+   *
+   * The report branch used to read `index.courses`, which is the room's whole
+   * day, so a room booked in two periods listed *both* classes on each of
+   * them — and the inspector, reading the first occupant, showed the same
+   * wrong class all day. Each period must name only its own class.
+   */
+  it("names only the classes actually booked in that period", () => {
+    // AB2-301 has a class in each of the two periods, which is the shape that
+    // used to break: the whole-day list was stamped onto every busy period.
+    const spanning = buildDayIndex(
+      [
+        course({ CODE: "BCSE201", TITLE: "Algorithms", VENUE: "AB2-301", SLOT: "A1", FACULTY: "Faculty One" }),
+        course({ CODE: "BCSE202", TITLE: "Compilers", VENUE: "AB2-301", SLOT: "F1", FACULTY: "Faculty Two" }),
+      ],
+      periods,
+      slots
+    );
+    const merged = mergeDay({ index: spanning, periodKeys, live: null, runLength: 2 });
+
+    const first = merged.periods.get(periodKeys[0])!.occupants.get("AB2-301")!;
+    expect(first.map((o) => o.courseCode)).toEqual(["BCSE201"]);
+
+    const second = merged.periods.get(periodKeys[1])!.occupants.get("AB2-301")!;
+    expect(second.map((o) => o.courseCode)).toEqual(["BCSE202"]);
+  });
+
+  it("keeps a room out of a period it has no class in", () => {
+    const merged = mergeDay({ index, periodKeys, live: null, runLength: 2 });
+
+    // AB1-102 runs in the second period only, so the first must not claim it.
+    expect(merged.periods.get(periodKeys[0])!.occupants.has("AB1-102")).toBe(false);
+    expect(merged.periods.get(periodKeys[1])!.occupants.get("AB1-102")![0].courseCode).toBe("BCSE102");
+
+    // AB1-103's slot runs in neither period, so it is in no period at all.
+    expect(merged.periods.get(periodKeys[0])!.occupants.has("AB1-103")).toBe(false);
+    expect(merged.periods.get(periodKeys[1])!.occupants.has("AB1-103")).toBe(false);
+  });
+
   it("holds a run to the shorter of the two sources", () => {
     // The report says AB1-102 is taken in the second period of the run, so it
     // holds out for one period; the server says it is free for both. The

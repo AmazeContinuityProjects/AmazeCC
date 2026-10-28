@@ -183,7 +183,11 @@ function mergePeriod(
       );
       continue;
     }
-    const reportCourses = index.courses.get(code) ?? [];
+    // The report's courses for *this* period. `index.courses` is the room's
+    // whole day, so reading it here listed every class the room has that day
+    // on every period it is busy — the room inspector then showed the same
+    // wrong class all day. `coursesInPeriod` is the period-scoped answer.
+    const reportCourses = index.coursesInPeriod.get(periodKey)?.get(code) ?? [];
     if (reportCourses.length > 0) {
       occupants.set(
         code,
