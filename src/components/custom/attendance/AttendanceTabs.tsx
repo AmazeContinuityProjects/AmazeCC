@@ -443,7 +443,7 @@ export default function AttendanceTabs({
                       </div>
                     </div>
                     <div className="w-full flex justify-center mt-1 sm:mt-1.5 px-0.5">
-                      <span className={`${isMobile ? "flex min-h-[20px] w-full max-w-[44px] items-center justify-center text-[10px] leading-none" : "text-[9px]"} font-semibold px-1 sm:px-1.5 py-0.5 rounded border ${badgeClass}`}>
+                      <span className={`${isMobile ? "flex min-h-[20px] w-full max-w-[44px] items-center justify-center text-[9px] leading-none" : "text-[9px]"} font-semibold px-1 sm:px-1.5 py-0.5 rounded border ${badgeClass}`}>
                         {isMobile ? mobileBadgeLabel : badgeLabel}
                       </span>
                     </div>
