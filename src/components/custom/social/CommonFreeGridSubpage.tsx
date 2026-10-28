@@ -36,7 +36,7 @@ export default function CommonFreeGridSubpage({
   subTitle?: string;
 }) {
   const { ownBusyMap } = useSocialData();
-  const { peers } = usePeerTimetables();
+  const { peers, loading } = usePeerTimetables();
 
   const scoped = useMemo(() => {
     if (!onlyHandles) return peers;
@@ -61,7 +61,11 @@ export default function CommonFreeGridSubpage({
 
       <SectionHeader icon={CalendarRange} title={subTitle} />
 
-      {scoped.length === 0 ? (
+      {loading ? (
+        <p className="px-1 text-sm text-zinc-500 dark:text-zinc-400" aria-busy="true">
+          Loading peer timetables…
+        </p>
+      ) : scoped.length === 0 ? (
         <p className="px-1 text-sm text-zinc-500 dark:text-zinc-400">
           Nobody in this group has published a timetable yet.
         </p>

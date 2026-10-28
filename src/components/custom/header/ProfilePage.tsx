@@ -1506,7 +1506,7 @@ export default function ProfilePage({
               onClick={() => handleThemeChange("light")}
               className={`flex-1 py-1.5 text-xs font-black rounded-lg transition-all cursor-pointer ${
                 theme === "light"
-                  ? "bg-white text-indigo-600 shadow-xs"
+                  ? "bg-white dark:bg-zinc-700 text-indigo-600 dark:text-indigo-300 shadow-xs"
                   : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400"
               }`}
             >
@@ -1832,7 +1832,7 @@ export default function ProfilePage({
             <img
               src={getAssetPath("/logo.png")}
               alt="Default Icon"
-              className="w-12 h-12 rounded-xl shadow-xs"
+              className="w-12 h-12 rounded-xl shadow-xs object-cover"
             />
             <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">Default</span>
           </button>
@@ -1847,7 +1847,7 @@ export default function ProfilePage({
             <img
               src={getAssetPath("/images/icons/fire.png")}
               alt="Fire Icon"
-              className="w-12 h-12 rounded-xl shadow-xs"
+              className="w-12 h-12 rounded-xl shadow-xs object-cover"
             />
             <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">Fire</span>
           </button>
@@ -1968,10 +1968,11 @@ export default function ProfilePage({
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
-            <label className="block text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-1">
+            <label htmlFor="pomodoro-focus" className="block text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-1">
               Focus Duration (min)
             </label>
             <input
+              id="pomodoro-focus"
               type="number"
               min="5"
               max="120"
@@ -1982,10 +1983,11 @@ export default function ProfilePage({
           </div>
 
           <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
-            <label className="block text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-1">
+            <label htmlFor="pomodoro-break" className="block text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-1">
               Break Duration (min)
             </label>
             <input
+              id="pomodoro-break"
               type="number"
               min="1"
               max="60"
@@ -1996,10 +1998,11 @@ export default function ProfilePage({
           </div>
 
           <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
-            <label className="block text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-1">
+            <label htmlFor="pomodoro-rounds" className="block text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-1">
               Default Rounds
             </label>
             <input
+              id="pomodoro-rounds"
               type="number"
               min="1"
               max="16"
@@ -2033,7 +2036,7 @@ export default function ProfilePage({
               }}
               className={`flex-1 py-1.5 text-xs font-black rounded-lg transition-all cursor-pointer ${
                 residentialStatus === "hosteller"
-                  ? "bg-white text-indigo-600 shadow-xs"
+                  ? "bg-white dark:bg-zinc-700 text-indigo-600 dark:text-indigo-300 shadow-xs"
                   : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400"
               }`}
             >
@@ -2043,7 +2046,7 @@ export default function ProfilePage({
               onClick={() => setResidentialStatus("dayscholar")}
               className={`flex-1 py-1.5 text-xs font-black rounded-lg transition-all cursor-pointer ${
                 residentialStatus === "dayscholar"
-                  ? "bg-white text-indigo-600 shadow-xs"
+                  ? "bg-white dark:bg-zinc-700 text-indigo-600 dark:text-indigo-300 shadow-xs"
                   : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400"
               }`}
             >
@@ -2499,7 +2502,10 @@ export default function ProfilePage({
 
         {/* Backup Settings */}
         <div
+          role="button"
+          tabIndex={0}
           onClick={handleExportSettings}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleExportSettings(); } }}
           className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-3.5 min-w-0 pr-4">
@@ -2520,7 +2526,10 @@ export default function ProfilePage({
 
         {/* Restore Settings */}
         <div
+          role="button"
+          tabIndex={0}
           onClick={handleImportSettings}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleImportSettings(); } }}
           className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-3.5 min-w-0 pr-4">
@@ -2541,7 +2550,10 @@ export default function ProfilePage({
 
         {/* Keyboard Shortcuts */}
         <div
+          role="button"
+          tabIndex={0}
           onClick={onOpenShortcutsHelp}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpenShortcutsHelp(); } }}
           className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-3.5 min-w-0 pr-4">
@@ -2562,7 +2574,10 @@ export default function ProfilePage({
 
         {/* Reset Cache */}
         <div
+          role="button"
+          tabIndex={0}
           onClick={handleResetCache}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleResetCache(); } }}
           className="flex items-center justify-between p-4 hover:bg-red-500/5 transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-3.5 min-w-0 pr-4">
@@ -2583,7 +2598,10 @@ export default function ProfilePage({
 
         {/* Log Out */}
         <div
+          role="button"
+          tabIndex={0}
           onClick={handleLogOutRequest}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleLogOutRequest(); } }}
           className="flex items-center justify-between p-4 hover:bg-red-500/5 transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-3.5 min-w-0 pr-4">
@@ -2865,7 +2883,7 @@ export default function ProfilePage({
                 </ListShell>
               ) : (
                 <EmptyPanel
-                  icon={<Search className="w-7 w-7" />}
+                  icon={<Search className="h-7 w-7" />}
                   title="No settings match"
                   description={`Nothing matches "${searchQuery}". Try a different word.`}
                 />

@@ -311,7 +311,7 @@ export default function ClubHubTab({
       title="Clubs & Chapters"
       subtitle="Every student organisation at VIT, and how to join each one."
       actions={
-        <IconButton title="Reload clubs" onClick={load}>
+        <IconButton title="Reload clubs" onClick={load} disabled={loading}>
           <RefreshCcw className={loading ? "animate-spin" : ""} />
         </IconButton>
       }

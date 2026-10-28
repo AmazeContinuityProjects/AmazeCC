@@ -711,7 +711,7 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
       title="Find an empty room"
       subtitle="Every room on campus, from the FFCS report and the live timetable."
       actions={
-        <IconButton title="Reload timetable" onClick={() => load(true)}>
+        <IconButton title="Reload timetable" onClick={() => load(true)} disabled={loading}>
           <RefreshCcw className={loading ? "animate-spin" : ""} />
         </IconButton>
       }

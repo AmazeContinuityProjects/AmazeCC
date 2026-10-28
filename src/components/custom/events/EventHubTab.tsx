@@ -559,11 +559,11 @@ export default function EventHubTab({
   return (
     <PageShell
       onBack={onBack}
-      eyebrow="Event Hub"
+      eyebrow="Campus · Events"
       title="Event Hub"
       subtitle="Clubs, chapters and technical events at VIT."
       actions={
-        <IconButton title="Reload events" onClick={fetchEvents}>
+        <IconButton title="Reload events" onClick={fetchEvents} disabled={loading}>
           <RefreshCcw className={loading ? "animate-spin" : ""} />
         </IconButton>
       }

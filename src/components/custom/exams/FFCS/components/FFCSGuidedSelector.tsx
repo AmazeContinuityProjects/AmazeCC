@@ -3046,6 +3046,7 @@ export default function FFCSGuidedSelector({
               </div>
               <input
                 type="time"
+                aria-label="Earliest class start time"
                 value={autoMinStartTime}
                 onChange={(e) => {
                   const val = e.target.value;
@@ -3094,6 +3095,7 @@ export default function FFCSGuidedSelector({
               </div>
               <input
                 type="time"
+                aria-label="Latest class end time"
                 value={autoMaxEndTime}
                 onChange={(e) => {
                   const val = e.target.value;

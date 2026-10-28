@@ -371,10 +371,10 @@ export default function TaskEditSheet({
 
           {/* Due Date */}
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-400 mb-1.5">
+            <label htmlFor="task-due" className="block text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-400 mb-1.5">
               Due Date & Time
             </label>
-            <input
+            <input id="task-due"
               type="datetime-local"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
@@ -603,10 +603,10 @@ export default function TaskEditSheet({
 
           {/* Notes */}
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-400 mb-1.5">
+            <label htmlFor="task-notes" className="block text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-400 mb-1.5">
               Notes / Instructions
             </label>
-            <textarea
+            <textarea id="task-notes"
               rows={3}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}

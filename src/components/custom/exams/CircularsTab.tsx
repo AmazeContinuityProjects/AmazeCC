@@ -213,11 +213,8 @@ export default function CircularsTab({ loginToVTOP, onBack, setActiveTab }: Circ
         return fetchData(c);
       })
       .catch((e) => {
-        setError(
-          e?.message
-            ? `Could not reach VTOP: ${e.message}`
-            : "Could not reach VTOP to load circulars."
-        );
+        console.error("Circulars fetch failed:", e);
+        setError("Could not reach VTOP to load circulars. Check your connection and try again.");
         setLoading(false);
       });
   }, []);

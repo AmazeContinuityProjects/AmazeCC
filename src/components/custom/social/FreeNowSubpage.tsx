@@ -35,7 +35,7 @@ export default function FreeNowSubpage({
   onOpenPeer: (handle: string) => void;
 }) {
   const { ownBusyMap } = useSocialData();
-  const { peers } = usePeerTimetables();
+  const { peers, loading } = usePeerTimetables();
   const overlap = useOverlap(ownBusyMap, peers);
   const now = useMemo(() => currentSlotLabel(), []);
 
@@ -73,7 +73,16 @@ export default function FreeNowSubpage({
         count={freeNow.length}
       />
 
-      {freeNow.length === 0 ? (
+      {loading ? (
+        <div className={EMPTY_STATE} aria-busy="true">
+          <span className="w-10 h-10 rounded-2xl mx-auto flex items-center justify-center border border-zinc-200 dark:border-zinc-800">
+            <Clock className="w-4.5 h-4.5 text-zinc-400 animate-pulse" />
+          </span>
+          <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 mt-3">
+            Checking who is free…
+          </p>
+        </div>
+      ) : freeNow.length === 0 ? (
         <div className={EMPTY_STATE}>
           <span className="w-10 h-10 rounded-2xl mx-auto flex items-center justify-center border border-zinc-200 dark:border-zinc-800">
             <Clock className="w-4.5 h-4.5 text-zinc-400" />
