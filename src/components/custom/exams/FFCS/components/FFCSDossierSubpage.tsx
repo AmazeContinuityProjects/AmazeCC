@@ -313,7 +313,7 @@ export default function FFCSDossierSubpage({
 
       {/* Floating In-App Toolbar */}
       <div
-        className={`sticky top-0 z-50 dossier-no-print backdrop-blur-md px-4 md:px-8 py-3.5 border-b flex flex-wrap items-center justify-between gap-3 shadow-md ${
+        className={`sticky top-0 z-50 dossier-no-print backdrop-blur-md px-4 md:px-8 pb-3.5 pt-[calc(env(safe-area-inset-top,0px)+0.875rem)] border-b flex flex-wrap items-center justify-between gap-3 shadow-md ${
           isLightMode
             ? "bg-white/90 border-slate-200"
             : "bg-[#0f172a]/90 border-white/10"

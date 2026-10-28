@@ -524,7 +524,7 @@ export default function MobileHome({
           </div>
           <button 
             onClick={() => { setActiveTab("attendance"); setActiveAttendanceSubTab("attendance"); }}
-            className="mt-3.5 flex items-center gap-1.5 text-[10px] font-black text-indigo-600 dark:text-indigo-400 bg-white/50 dark:bg-zinc-900/50 border border-indigo-100/50 dark:border-indigo-900/20 px-3.5 py-1.5 rounded-xl w-fit active:scale-95 transition-all shadow-2xs hover:shadow-xs uppercase tracking-wider cursor-pointer font-outfit"
+            className="relative hit-expand mt-3.5 flex items-center gap-1.5 text-[10px] font-black text-indigo-600 dark:text-indigo-400 bg-white/50 dark:bg-zinc-900/50 border border-indigo-100/50 dark:border-indigo-900/20 px-3.5 py-1.5 rounded-xl w-fit active:scale-95 transition-all shadow-2xs hover:shadow-xs uppercase tracking-wider cursor-pointer font-outfit"
           >
             Predict Attendance <ChevronRight className="w-3.5 h-3.5 shrink-0" />
           </button>
@@ -1544,7 +1544,7 @@ export default function MobileHome({
           </button>
           <button
             onClick={handleSyncClick}
-            className={`px-3.5 py-2.5 rounded-2xl border transition-all active:scale-95 cursor-pointer flex items-center gap-1.5 text-xs font-bold ${
+            className={`relative hit-expand px-3.5 py-2.5 rounded-2xl border transition-all active:scale-95 cursor-pointer flex items-center gap-1.5 text-xs font-bold ${
               isOffline
                 ? "bg-amber-50 dark:bg-amber-950/30 border-amber-200/70 dark:border-amber-500/30 text-amber-700 dark:text-amber-400"
                 : "bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-200 shadow-xs"

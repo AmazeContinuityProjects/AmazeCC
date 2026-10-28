@@ -879,7 +879,7 @@ export default function SimplifiedMobileHome({
           {/* Sync Button */}
           <button
             onClick={handleSyncClick}
-            className={`px-2.5 py-2.5 rounded-xl transition-all active:scale-95 cursor-pointer shadow-2xs flex items-center gap-1.5 text-xs font-bold ${
+            className={`relative hit-expand px-2.5 py-2.5 rounded-xl transition-all active:scale-95 cursor-pointer shadow-2xs flex items-center gap-1.5 text-xs font-bold ${
               isOffline
                 ? "bg-amber-50 hover:bg-amber-100/80 dark:bg-amber-950/30 dark:hover:bg-amber-900/30 border border-amber-200/70 dark:border-amber-500/30 text-amber-700 dark:text-amber-400"
                 : "bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300"

@@ -351,7 +351,7 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
                     <button
                       key={`day-${dayNum}`}
                       onClick={() => setSelectedDay(dayNum)}
-                      className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex flex-col items-center justify-center text-xs transition-all relative ${cellStyle}`}
+                      className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex flex-col items-center justify-center text-xs transition-all relative hit-expand ${cellStyle}`}
                     >
                       <span>{dayNum}</span>
                       {/* Optional slot indicator dot */}

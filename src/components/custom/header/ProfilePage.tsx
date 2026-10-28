@@ -2791,7 +2791,7 @@ export default function ProfilePage({
               <button
                 onClick={() => setSearchQuery("")}
                 aria-label="Clear search"
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-zinc-600 text-xs"
+                className="absolute right-3 top-1/2 -translate-y-1/2 hit-expand p-1 text-zinc-400 hover:text-zinc-600 text-xs"
               >
                 <X size={14} />
               </button>

@@ -96,7 +96,7 @@ const DEFAULT_VAPID_PUBLIC_KEY =
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 30, scale: 0.92 }}
                     transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                    className="fixed bottom-24 md:bottom-6 right-4 left-4 md:left-auto md:w-[350px] bg-white/95 dark:bg-black/95 backdrop-blur-md border border-gray-250 dark:border-gray-850 rounded-2xl p-5 shadow-2xl z-[120] pointer-events-auto"
+                    className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+6rem)] md:bottom-6 right-4 left-4 md:left-auto md:w-[350px] bg-white/95 dark:bg-black/95 backdrop-blur-md border border-gray-250 dark:border-gray-850 rounded-2xl p-5 shadow-2xl z-[120] pointer-events-auto"
                 >
                     <button 
                         onClick={handleClose}

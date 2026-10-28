@@ -237,6 +237,53 @@ input, textarea, [contenteditable] {
 }
 
 /*
+ * 16px font floor on touch devices.
+ *
+ * iOS Safari (and Android Chrome) zoom the viewport into any focused editable
+ * field whose computed font-size is under 16px — the page then stays zoomed
+ * and the layout looks broken until the user pinches out. Our shared form
+ * tokens (`FIELD_INPUT`, `SEARCH_FIELD`) and many local fields are `text-sm`
+ * (14px) or `text-xs` (12px), so without this rule almost every form zoomed
+ * on first tap.
+ *
+ * Scoped to `pointer: coarse` so desktop keeps its smaller type exactly as
+ * designed; on phones/tablets every text field renders at 16px instead.
+ * Checkboxes, radios, sliders and colour pickers are excluded — their
+ * font-size doesn't drive the zoom but does drive their box size.
+ * This rule is unlayered, so it wins over Tailwind's utility layer without
+ * `!important` (same mechanism as the reduced-motion opt-out below).
+ */
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+/*
+ * Bottom-nav coordination for embedded FFCS inside the dashboard (<md only).
+ *
+ * The floating nav pill (`mobile-bottom-nav-bar`) and FFCS's fixed bottom
+ * action bars (`.ffcs-bottom-bar`: the planner's sticky action row and the
+ * generator's fixed CTA, z-240) both live at the bottom of the screen. When
+ * FFCS mounts, the z-240 CTA buries the z-40 pill — the nav becomes visible
+ * but untappable. Instead of hiding the nav (the pill is the only way out of
+ * FFCS on a phone — subpages only navigate deeper), lift the pill above the
+ * FFCS bar and deepen the content's bottom reservation to match, so both stay
+ * tappable and the last content row still clears them. On the standalone
+ * /ffcs route there is no pill, so none of this applies.
+ */
+@media (max-width: 767px) {
+  .dashboard-shell:has(.ffcs-bottom-bar) .mobile-bottom-nav-bar {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 80px);
+  }
+  .dashboard-shell:has(.ffcs-bottom-bar) .dashboard-content {
+    padding-bottom: calc(9rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/*
  * Autofill repaint.
  *
  * Chrome paints its own background and text colour on an autofilled field, which
@@ -585,5 +632,23 @@ input[type="range"].m3-range::-moz-range-track {
   }
   .touch-press:active {
     transform: scale(0.97);
+  }
+
+  /*
+   * Universal pressed feedback.
+   *
+   * The blue tap highlight is removed globally (see the `*` rule above) and
+   * most interactive elements only style `hover:` — invisible on touch — so a
+   * tap on many buttons produced zero feedback, which reads as "the tap didn't
+   * register". Apple HIG expects an immediate state change on touch-down; a
+   * momentary opacity dip supplies it for every button/link without touching
+   * individual components. Scoped to `hover: none` so mouse users keep their
+   * existing hover/active styling exactly as designed, and `transform` is left
+   * alone so it can't clobber `active:scale-*` utilities.
+   */
+  button:not(:disabled):active,
+  a:active,
+  [role="button"]:not([aria-disabled="true"]):active {
+    opacity: 0.75;
   }
 }

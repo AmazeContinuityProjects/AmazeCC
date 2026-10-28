@@ -18,7 +18,7 @@ export default function FFCSPageView() {
   }, []);
 
   return (
-    <div className="min-h-[100dvh] w-full max-w-full overflow-x-hidden bg-slate-50 text-slate-850 dark:bg-[#03060F] dark:text-gray-100 flex flex-col font-sans transition-colors duration-300">
+    <div className="min-h-[100dvh] w-full max-w-full overflow-x-clip bg-slate-50 text-slate-850 dark:bg-[#03060F] dark:text-gray-100 flex flex-col font-sans transition-colors duration-300">
       {/* Top Navigation Bar - non-sticky so it scrolls with the page */}
       <nav
         hidden={plannerLayoutMode === "modern"}
@@ -61,7 +61,7 @@ export default function FFCSPageView() {
       </nav>
 
       {/* Main Content Area */}
-      <main className="flex-1 w-full px-3 sm:px-6 py-4 sm:py-6 overflow-x-hidden">
+      <main className="flex-1 w-full px-3 sm:px-6 py-4 sm:py-6 overflow-x-clip">
         <FFCSTimetableTab onLayoutModeChange={setPlannerLayoutMode} />
       </main>
 

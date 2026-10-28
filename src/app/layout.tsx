@@ -17,7 +17,19 @@ export const viewport: Viewport = {
     { media: "(prefers-color-scheme: dark)", color: "#020617" },
   ],
   width: "device-width",
-  initialScale: 1.0,
+  // The whole UI renders at 85% on mobile — phones show ~17% more of the app
+  // per screen, which is the density we want. This is a starting zoom level,
+  // not a lock: pinch (and browser zoom) still work from here, so WCAG 1.4.4
+  // is unaffected. Desktop browsers ignore the viewport meta tag entirely, so
+  // large screens stay at 100%.
+  //
+  // Doing it at the viewport level (rather than `zoom: 0.85` on body) keeps a
+  // single coordinate space: fixed overlays, `100dvh` sheets, `env(safe-area-*)
+  // and every `window.innerWidth` / rect measurement keep agreeing with each
+  // other, because the browser simply renders those CSS pixels smaller instead
+  // of scaling a subtree. A component-level `zoom: 0.85` was tried before and
+  // reverted (see FFCSGuidedSelector's guided hero) for overzoom/snapping bugs.
+  initialScale: 0.85,
   // Pinching/zooming is left enabled on purpose: locking it (maximumScale 1 /
   // userScalable false) fails WCAG 1.4.4 and iOS ignores the lock anyway —
   // it only ever disabled zoom for Android users.

@@ -315,7 +315,7 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
                                                             if (isOverall) toggleNotes(exactDateStr, entry.missedClasses, e);
                                                             else toggleNotes(exactDateStr);
                                                         }}
-                                                        className={`flex items-center justify-center gap-1 p-1 sm:px-2 sm:py-1 rounded-md border text-[9px] sm:text-[10px] font-semibold transition-all shrink-0 mt-auto ${
+                                                        className={`relative hit-expand flex items-center justify-center gap-1 p-1 sm:px-2 sm:py-1 rounded-md border text-[9px] sm:text-[10px] font-semibold transition-all shrink-0 mt-auto ${
                                                             hasNotes
                                                                 ? "bg-emerald-50 border border-emerald-200 text-emerald-700    dark:bg-emerald-900/20 dark:border-emerald-800/50 dark:text-emerald-400"
                                                                 : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50    dark:bg-gray-900 dark:border-gray-800 dark:text-gray-300 dark:hover:bg-gray-800"

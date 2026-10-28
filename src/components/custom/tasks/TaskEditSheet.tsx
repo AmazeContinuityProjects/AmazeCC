@@ -400,21 +400,21 @@ export default function TaskEditSheet({
                 <button
                   type="button"
                   onClick={() => addLeadReminder(15)}
-                  className="px-2 py-1 rounded-md text-[10px] font-bold bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:text-indigo-600 cursor-pointer"
+                  className="relative hit-expand px-2 py-1 rounded-md text-[10px] font-bold bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:text-indigo-600 cursor-pointer"
                 >
                   15m before
                 </button>
                 <button
                   type="button"
                   onClick={() => addLeadReminder(60)}
-                  className="px-2 py-1 rounded-md text-[10px] font-bold bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:text-indigo-600 cursor-pointer"
+                  className="relative hit-expand px-2 py-1 rounded-md text-[10px] font-bold bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:text-indigo-600 cursor-pointer"
                 >
                   1h before
                 </button>
                 <button
                   type="button"
                   onClick={() => addLeadReminder(1440)}
-                  className="px-2 py-1 rounded-md text-[10px] font-bold bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:text-indigo-600 cursor-pointer"
+                  className="relative hit-expand px-2 py-1 rounded-md text-[10px] font-bold bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:text-indigo-600 cursor-pointer"
                 >
                   1 day before
                 </button>

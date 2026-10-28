@@ -1055,7 +1055,7 @@ export default function CurriculumPage({
               type="button"
               onClick={() => setSearchQuery("")}
               aria-label="Clear search"
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full bg-surface-tertiary dark:bg-surface-secondary text-text-secondary hover:text-text-heading cursor-pointer"
+              className="absolute right-3 top-1/2 -translate-y-1/2 hit-expand p-1 rounded-full bg-surface-tertiary dark:bg-surface-secondary text-text-secondary hover:text-text-heading cursor-pointer"
             >
               <X className="w-3 h-3" />
             </button>

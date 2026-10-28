@@ -279,7 +279,7 @@ export default function CatalogSearch({
             inputRef.current?.focus();
           }}
           aria-label="Clear search"
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 cursor-pointer"
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 hit-expand p-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 cursor-pointer"
         >
           <X className="w-3 h-3" />
         </button>
