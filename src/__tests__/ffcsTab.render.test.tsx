@@ -777,7 +777,7 @@ describe("FFCSTimetableTab", () => {
     const courseOption = await screen.findByText("BCSE101", {}, { timeout: 5000 });
     fireEvent.click(courseOption);
     expect(screen.getByRole("region", { name: "Configure Selected Course widget" })).toBeDefined();
-    expect(screen.getByText("Faculty, slots & timetable conflicts")).toBeDefined();
+    expect(screen.getByText("Recommended faculty, slots & timetable fit")).toBeDefined();
     expect(screen.getAllByText(/A1/).length).toBeGreaterThan(0);
 
     // Step 2 appears, open Slot Search

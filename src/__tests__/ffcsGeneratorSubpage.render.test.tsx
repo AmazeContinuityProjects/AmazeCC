@@ -328,6 +328,12 @@ describe("FFCSGeneratorSubpage", () => {
   });
 
   it("holds generate back until a course is picked, and keeps the pick private", () => {
+    // This asserts the classic full-form markup — the labelled checkbox list
+    // and the "Selected:" counter live in the non-modern branch, and the
+    // default view is now the modern widget. Pin the view rather than chase
+    // the default; the modern target widget has its own case further down.
+    storage.setItem("ffcs_generator_view_mode", "classic");
+
     const courses = [{ code: "BCSE101", title: "Structured Programming", types: [] as string[] }];
     const { unmount } = render(<FFCSGeneratorSubpage {...props({ generatorDisplayCourses: courses })} />);
 
@@ -350,6 +356,10 @@ describe("FFCSGeneratorSubpage", () => {
   });
 
   it("seeds this run from the planner's locked targets, and never writes back", () => {
+    // Classic view again: the ticked checkbox and the "from your locked
+    // Target Courses" note are both in the non-modern branch.
+    storage.setItem("ffcs_generator_view_mode", "classic");
+
     render(
       <FFCSGeneratorSubpage
         {...props({
