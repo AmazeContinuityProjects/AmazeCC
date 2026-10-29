@@ -30,6 +30,7 @@ import {
 } from "@/lib/uiTokens";
 import { toneForGrade, gradePoints } from "@/lib/gradeHistory";
 import { buildGradeBoundaries } from "@/lib/gradeBoundaries";
+import { buildAttendanceDayCardsMap, ATTENDANCE_DAYS } from "@/lib/attendanceTimetable";
 import GradeLadderChart from "./marks-predictor/GradeLadderChart";
 import {
   XCircle, BookOpen, Target, Clock, Info, Activity,
@@ -46,7 +47,6 @@ import { AnimatePresence, m } from "framer-motion";
 import { useOverlayBack } from "@/lib/overlayStack";
 import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
 import { countRemainingClasses, UpcomingClassesList } from "../attendance/AttendanceSubpage";
-import config from '../../../../config.json';
 import HeatMap from "@uiw/react-heat-map";
 import dynamic from "next/dynamic";
 import CourseQBankTab from "./CourseQBankTab";
@@ -506,54 +506,44 @@ export default function CourseDetailSubpage({
   const defaultAttScope = labAttItem && !theoryAttItem ? "lab" : "theory";
   const effectiveTab = innerTab === "attendance" ? `${defaultAttScope}-log` : innerTab;
 
-  // Derived attendance data for full Attendance tab replication
+  // Derived attendance data for full Attendance tab replication.
+  //
+  // The shared `buildAttendanceDayCardsMap` builds this rather than a private
+  // copy, so this page gets what every other consumer already has: the
+  // Saturday override, the real time parser, and the adjacent-slot merge (a
+  // `L1+L2+L3` row stays one card instead of three loose entries). What the
+  // private copy had that the shared one does not is a *component split* —
+  // theory and lab attendance are separate, and the shared builder merges
+  // adjacent same-course entries within a call keyed on title/type/faculty,
+  // not on code. Feeding it both halves at once could fuse a theory row into
+  // a lab row and erase the lab's code from that day, which
+  // `countRemainingClasses` reads as "the lab does not meet this day". So the
+  // rows are split by the same rule the theory/lab items above are split by
+  // (`(L)`/`(P)` suffix) and each group gets its own build; the results are
+  // concatenated per day, which is all `countRemainingClasses` reads — it
+  // asks only which day-keys contain a code, never how many entries a day
+  // holds or in what order.
   const dayCardsMap = useMemo(() => {
-    const days = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
-    const map: Record<string, any[]> = {};
-    days.forEach(day => map[day] = []);
-    const slotMap = (config as any).slotMap;
-    
     let arr = attendanceData?.attendance || [];
     if (selectedGroup?.semesterSubId && selectedGroup.semesterSubId !== "Current" && pastSemesterData?.[selectedGroup.semesterSubId]?.attendance?.attendance) {
       arr = pastSemesterData[selectedGroup.semesterSubId].attendance.attendance;
     }
-    
-    if (!arr.length) return map;
 
-    arr.forEach((a: any) => {
-      const slots = a.slotName.split("+");
-      slots.forEach((slotName: string) => {
-        const cleanSlot = slotName.trim();
-        for (const day of days) {
-          if (slotMap[day] && slotMap[day][cleanSlot]) {
-            const info = slotMap[day][cleanSlot];
-            const cleanCourseCode = a.courseCode;
-            map[day].push({
-              ...a,
-              courseCode: cleanCourseCode,
-              slotName: cleanSlot,
-              time: info.time,
-            });
-          }
-        }
-      });
+    const isLabRow = (r: any) =>
+      String(r?.courseCode || "").endsWith("(L)") ||
+      String(r?.courseCode || "").endsWith("(P)");
+
+    const theoryMap = buildAttendanceDayCardsMap(arr.filter((r: any) => !isLabRow(r)));
+    const labRows = arr.filter(isLabRow);
+    if (!labRows.length) return theoryMap;
+
+    const labMap = buildAttendanceDayCardsMap(labRows);
+    const combined = { ...theoryMap };
+    ATTENDANCE_DAYS.forEach((day) => {
+      combined[day] = [...theoryMap[day], ...labMap[day]];
     });
-
-    function parseTime(timeStr: string) {
-      let [h, m] = timeStr.trim().split(":").map(Number);
-      if (h < 8) h += 12;
-      return h * 60 + m;
-    }
-
-    for (const day of days) {
-      map[day].sort((a, b) => {
-        const startA = parseTime(a.time.split("-")[0]);
-        const startB = parseTime(b.time.split("-")[0]);
-        return startA - startB;
-      });
-    }
-    return map;
-  }, [attendanceData]);
+    return combined;
+  }, [attendanceData, selectedGroup?.semesterSubId, pastSemesterData]);
 
   const analyzeCalendars = useMemo(() => {
     if (!calendars) return [];

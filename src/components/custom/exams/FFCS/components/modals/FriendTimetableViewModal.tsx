@@ -5,6 +5,7 @@ import { TimetableState, AddedCourse } from '../../types';
 import { getBatchColorClass } from '@/lib/utils';
 import { TimetableGrid } from '../TimetableGrid';
 import { CourseListTable } from '@amazecontinuityprojects/amazeui';
+import { groupSelectedCourses } from '../../logic/groupSelectedCourses';
 import BottomSheet from '../../../../shared/BottomSheet';
 import { renderCourseTypeChips } from '../CourseTypeChips';
 
@@ -39,15 +40,6 @@ export function FriendTimetableViewModal({
    * The grid is still wrapped in its own `overflow-auto`: `TimetableGrid` is
    * `w-max`, so only that box should scroll sideways, not the whole sheet.
    */
-  const getGroupedCourses = (courses: AddedCourse[]) => {
-      return Object.values(courses.reduce((acc, course) => {
-        if (!acc[course.code]) {
-            acc[course.code] = { ...course, credits: String(parseFloat(course.credits || '0')) };
-        }
-        return acc;
-      }, {} as Record<string, AddedCourse>));
-  };
-
   return (
     <AnimatePresence>
       {data && (
@@ -103,8 +95,14 @@ export function FriendTimetableViewModal({
                 labPeriods={labPeriods}
               />
 
+              {/* One row per course, via the planner's own grouper: a friend's
+                  saved timetable holds the halves the planner holds, and the
+                  table renders a Credits column per row. The local reduce this
+                  replaces kept only the first row per code, so the lab half
+                  vanished from the row — its slots, its venue, and any credit
+                  it carried. groupSelectedCourses joins them instead. */}
               <CourseListTable
-                courses={getGroupedCourses(data.timetables[data.currentIndex].courses as AddedCourse[])}
+                courses={groupSelectedCourses(data.timetables[data.currentIndex].courses as AddedCourse[])}
                 renderTypeChips={renderCourseTypeChips}
                 getBatchBadgeClass={getBatchColorClass}
               />
