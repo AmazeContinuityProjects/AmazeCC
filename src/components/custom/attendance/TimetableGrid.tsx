@@ -24,6 +24,7 @@
  */
 
 import { useCallback, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { Download, Printer } from "lucide-react";
 import type { AddedCourse } from "@amazecontinuityprojects/amazeui";
 import config from "../../../../config.json";
@@ -35,6 +36,20 @@ import {
 import { useTheme } from "next-themes";
 import { TimetableView, type AttendanceTone } from "../timetable";
 import { buildPeriodSkeleton } from "../timetable/periodSkeleton";
+
+/**
+ * The planner's own course list, shared rather than copied.
+ *
+ * It already renders a card list under `md` and a table above it, so the
+ * attendance sheet gets a usable phone layout for free — the hand-rolled
+ * `min-w-[700px]` table this replaces could not be read without scrolling
+ * sideways on a phone. Loaded lazily, exactly as the FFCS tab loads it, so
+ * its vitfac dependency stays out of the home route's initial bundle.
+ */
+const SelectedCoursesList = dynamic(
+  () => import("../exams/FFCS/components/SelectedCoursesList"),
+  { ssr: false }
+);
 
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 
@@ -141,10 +156,24 @@ export default function TimetableVtop({ attendance }: { attendance?: any[] }) {
 
   const addedCourses = useMemo(() => convertToAddedCourses(attendance || []), [attendance]);
 
-  const uniqueCourses = useMemo(
-    () => (attendance || []).filter((c: any, i: number, arr: any[]) => arr.findIndex((x: any) => x.courseCode === c.courseCode) === i),
-    [attendance]
-  );
+  /**
+   * One row per course code, for the shared course list.
+   *
+   * `SelectedCoursesList` merges the rows it is given per code and *sums*
+   * their credits — correct for the planner, where a theory half and a lab
+   * half each carry their own share, but attendance rows each carry the
+   * course's full credit, so passing them straight in would double-count a
+   * course that runs as both. The list's own grouper still does the merging;
+   * this only guarantees it sees each course once.
+   */
+  const uniqueAddedCourses = useMemo(() => {
+    const seen = new Set<string>();
+    return addedCourses.filter((c) => {
+      if (seen.has(c.code)) return false;
+      seen.add(c.code);
+      return true;
+    });
+  }, [addedCourses]);
 
   /** Feeds the vertical cell sheet, which the planner has no equivalent of. */
   const attendanceByCourse = useMemo(() => {
@@ -206,81 +235,17 @@ export default function TimetableVtop({ attendance }: { attendance?: any[] }) {
           className="w-full"
         />
 
-        {/* Course Reference Section */}
-        {uniqueCourses.length > 0 && (
+        {/* Course Reference — the planner's own list, shared rather than a
+            second copy of it. Its `md` breakpoint is the phone split: cards
+            under it, the table above, so this reads on a phone without the
+            sideways scroll the old fixed-width table forced. */}
+        {uniqueAddedCourses.length > 0 && (
           <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800/80 dark:bg-[#03070e]">
-            <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-800/80 dark:bg-zinc-900">
-              <h3 className="font-outfit text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                Course Reference
-              </h3>
-            </div>
-            <div className="scrollbar-thin w-full overflow-x-auto">
-              <table className="w-full min-w-[700px] border-collapse text-left text-sm">
-                <thead>
-                  <tr className="border-b border-gray-150 bg-gray-50 dark:border-gray-800 dark:bg-zinc-950">
-                    <th className="sticky left-0 z-10 bg-gray-50 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-gray-400 dark:bg-zinc-950 dark:text-gray-500">
-                      Course
-                    </th>
-                    <th className="px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
-                      Type
-                    </th>
-                    <th className="px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
-                      Faculty
-                    </th>
-                    <th className="px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
-                      Slots
-                    </th>
-                    <th className="px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
-                      Venue
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-800/40">
-                  {uniqueCourses.map((c: any, i: number) => (
-                    <tr
-                      key={`${c.courseCode}-${i}`}
-                      className="bg-white transition-colors hover:bg-gray-55 dark:bg-[#030507] dark:hover:bg-[#0a1825]"
-                    >
-                      <td className="sticky left-0 z-10 bg-white px-4 py-2.5 dark:bg-[#030507]">
-                        <div className="flex items-center gap-2">
-                          <span className="shrink-0 rounded-md bg-blue-600 px-2 py-0.5 text-[10px] font-bold text-white dark:bg-blue-800">
-                            {c.courseCode}
-                          </span>
-                          <span className="text-xs font-semibold text-gray-900 dark:text-white">
-                            {c.courseTitle}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <span className="inline-flex items-center rounded bg-blue-100 px-1.5 py-0.5 text-[9px] font-bold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
-                          {c.courseType ||
-                            (String(c.slotName || "").startsWith("L") ? "Lab" : "Theory")}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300">
-                        {c.faculty}
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <div className="flex flex-wrap gap-1">
-                          {String(c.slotName || "")
-                            .split("+")
-                            .map((s: string, si: number) => (
-                              <span
-                                key={si}
-                                className="rounded border border-gray-250/60 bg-gray-100 px-1 py-0.5 text-[9px] font-semibold dark:border-gray-800 dark:bg-[#0d1f2e]"
-                              >
-                                {s.trim()}
-                              </span>
-                            ))}
-                        </div>
-                      </td>
-                      <td className="max-w-[120px] truncate px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300">
-                        {c.slotVenue || "-"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="p-4">
+              <SelectedCoursesList
+                courses={uniqueAddedCourses}
+                title="Course Reference"
+              />
             </div>
           </div>
         )}

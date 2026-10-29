@@ -4,12 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Download, Map as MapIcon, AlertTriangle, CalendarDays, Layers, Clock } from "lucide-react";
-import {
-  decodeCompactTimetableShare,
-  decodeTimetableShapeShare,
-  decodeNumericTimetableShapeShare,
-  decodeTimetableShare,
-} from "@/lib/ffcsShare";
+import { decodeTimetableShare } from "@/lib/ffcsShare";
+import { resolveShareInput, type ParsedShareInput } from "@/lib/ffcsShareInput";
 import { CAMPUS_SCHEMAS, GLOBAL_CAMPUS } from "@/lib/campusSchema";
 import { timetableMetrics, formatHours } from "@/lib/timetableMetrics";
 import { downloadModernTimetableImage } from "@/lib/exportTimetable";
@@ -19,12 +15,7 @@ import { TimetableGrid } from "@/components/custom/exams/FFCS/components/Timetab
 import SelectedCoursesList from "@/components/custom/exams/FFCS/components/SelectedCoursesList";
 import FacultyReviewSheetHost from "@/components/custom/exams/FFCS/components/FacultyReviewSheetHost";
 import { DAYS } from "@/components/custom/exams/FFCS/constants";
-import type { ParsedCourse, TimetablePeriod, TimetableState } from "@/components/custom/exams/FFCS/types";
-import { getFFCSSemester, parseReportRows } from "@/components/custom/exams/FFCS/reports";
-import { groupSharedReportCourses } from "@/lib/ffcsCourseGrouping";
-import { COLORS } from "@/components/custom/exams/FFCS/constants";
-import { splitSlots } from "@/components/custom/exams/FFCS/logic/generate";
-import { getAssetPath } from "@/lib/utils";
+import type { TimetablePeriod, TimetableState } from "@/components/custom/exams/FFCS/types";
 import { useOverlayBackBoundary } from "@/lib/overlayStack";
 import { useFacultyReviewSheet } from "@/components/custom/exams/FFCS/hooks/useFacultyReviewSheet";
 
@@ -51,131 +42,64 @@ export default function FFCSShareView() {
   const shapeEncoded = searchParams.get("q") ?? "";
   const numericShapeEncoded = searchParams.get("r") ?? "";
   const fullDecoded = useMemo(() => decodeTimetableShare(encoded), [encoded]);
-  const compactPayload = useMemo(
-    () => decodeCompactTimetableShare(compactEncoded),
-    [compactEncoded]
-  );
-  const shapePayload = useMemo(
-    () => decodeTimetableShapeShare(shapeEncoded),
-    [shapeEncoded]
-  );
-  const numericShapePayload = useMemo(
-    () => decodeNumericTimetableShapeShare(numericShapeEncoded),
-    [numericShapeEncoded]
-  );
   const hasReportBackedLink = Boolean(compactEncoded || shapeEncoded || numericShapeEncoded);
-  const [compactDecoded, setCompactDecoded] = useState<{
+  // Which parameter is present names the payload's format outright — this
+  // page never has to guess, unlike the add-friend field, which is why the
+  // formats are declared here rather than detected. Report-backed wins over
+  // `d=` when a URL carries both, as it always has. Memoized because the load
+  // effect keys off identity: an object rebuilt each render would refetch
+  // forever.
+  const shareInput = useMemo<ParsedShareInput | null>(
+    () =>
+      shapeEncoded
+        ? { format: "shape", encoded: shapeEncoded }
+        : numericShapeEncoded
+          ? { format: "numeric-shape", encoded: numericShapeEncoded }
+          : compactEncoded
+            ? { format: "compact", encoded: compactEncoded }
+            : encoded
+              ? { format: "full", encoded }
+              : null,
+    [shapeEncoded, numericShapeEncoded, compactEncoded, encoded],
+  );
+  const [resolvedReport, setResolvedReport] = useState<{
     timetable: TimetableState;
     campus: string;
   } | null>(null);
   const [compactLoadState, setCompactLoadState] = useState<"idle" | "loading" | "ready" | "invalid">("idle");
-  const decoded = hasReportBackedLink ? compactDecoded : fullDecoded;
+  const decoded = hasReportBackedLink ? resolvedReport : fullDecoded;
 
   useEffect(() => {
-    if (!hasReportBackedLink) {
-      setCompactDecoded(null);
-      setCompactLoadState("idle");
-      return;
-    }
-    if (
-      (shapeEncoded && !shapePayload) ||
-      (numericShapeEncoded && !numericShapePayload) ||
-      (!shapeEncoded && !numericShapeEncoded && !compactPayload)
-    ) {
-      setCompactDecoded(null);
-      setCompactLoadState("invalid");
+    if (!hasReportBackedLink || !shareInput) {
+      setResolvedReport(null);
+      setCompactLoadState(hasReportBackedLink ? "invalid" : "idle");
       return;
     }
 
     let active = true;
-    setCompactDecoded(null);
+    setResolvedReport(null);
     setCompactLoadState("loading");
-    const loadCompactTimetable = async () => {
-      try {
-        const isShapeLink = Boolean(shapeEncoded || numericShapeEncoded);
-        const semesterId =
-          shapePayload?.semesterId ??
-          numericShapePayload?.semesterId ??
-          compactPayload!.s;
-        const semester = getFFCSSemester(semesterId);
-        const response = await fetch(getAssetPath(semester.path));
-        if (!response.ok) throw new Error(`Failed to fetch ${semester.path}`);
-        const XLSX = await import("xlsx");
-        const workbook = XLSX.read(new Uint8Array(await response.arrayBuffer()), { type: "array" });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet);
-        const reportCourses = parseReportRows(rows);
-        const classIds =
-          shapePayload?.classIds ??
-          numericShapePayload?.classIds ??
-          compactPayload!.i.map((suffix) => `${compactPayload!.p}${suffix}`);
-        const selectedCourses = classIds.map((classId) =>
-          reportCourses.find((course) => course.CLASS_ID?.trim() === classId)
-        );
-        if (selectedCourses.some((course) => !course)) {
-          throw new Error("One or more shared class IDs are not in the selected semester report.");
-        }
-        const resolvedCourses = selectedCourses.filter(
-          (course): course is ParsedCourse => Boolean(course)
-        );
-        const groupedCourses = groupSharedReportCourses(resolvedCourses);
-
-        const timetable: TimetableState = {
-          id: `share-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
-          name: isShapeLink ? "Shared timetable" : compactPayload!.n,
-          courses: groupedCourses.map((course, index) => {
-            const classIds = course.CLASS_IDS?.length
-              ? course.CLASS_IDS
-              : course.CLASS_ID
-                ? [course.CLASS_ID]
-                : [];
-            const isSoftSkill = course.CODE.trim().toUpperCase().startsWith("BASTS");
-            return {
-              id: `share-${classIds.join("-") || course.CLASS_ID || index}`,
-              code: course.CODE,
-              title: course.TITLE,
-              slots: splitSlots(course.SLOT),
-              faculty: course.FACULTY,
-              employeeId: course.ERP_ID,
-              classId: course.CLASS_ID,
-              classIds,
-              venue: course.ROOM,
-              credits: course.CREDITS,
-              type: isSoftSkill ? "SS" : course.TYPE || (course.SLOT.includes("L") ? "Lab" : "Theory"),
-              color: COLORS[index % COLORS.length],
-              batch: course.BATCH,
-            };
-          }),
-        };
+    // `resolveShareInput` loads the semester report and turns the shared class
+    // IDs back into courses — the same path the add-friend field takes, so a
+    // link opened by a friend and one pasted into the planner cannot disagree.
+    resolveShareInput(shareInput)
+      .then((result) => {
         if (!active) return;
-        setCompactDecoded({ timetable, campus: GLOBAL_CAMPUS });
+        setResolvedReport(result);
         setCompactLoadState("ready");
-      } catch {
+      })
+      .catch(() => {
         if (!active) return;
-        setCompactDecoded(null);
+        setResolvedReport(null);
         setCompactLoadState("invalid");
-      }
-    };
-    void loadCompactTimetable();
+      });
     return () => {
       active = false;
     };
-  }, [
-    compactEncoded,
-    compactPayload,
-    hasReportBackedLink,
-    numericShapeEncoded,
-    numericShapePayload,
-    shapeEncoded,
-    shapePayload,
-  ]);
+  }, [hasReportBackedLink, shareInput]);
 
   const [isDownloading, setIsDownloading] = useState(false);
-  const {
-    target: facultyReviewTarget,
-    open: openFacultyReview,
-    close: closeFacultyReview,
-  } = useFacultyReviewSheet();
+  const { target: facultyReviewTarget, open: openFacultyReview, close: closeFacultyReview } = useFacultyReviewSheet();
 
   useEffect(() => {
     if (decoded) {
@@ -188,14 +112,8 @@ export default function FFCSShareView() {
     return (CAMPUS_SCHEMAS[decoded.campus] ?? CAMPUS_SCHEMAS[GLOBAL_CAMPUS]) as any;
   }, [decoded]);
 
-  const theoryPeriods = useMemo(
-    () => ((schema?.theory ?? []) as TimetablePeriod[]).filter((p) => !p.lunch),
-    [schema]
-  );
-  const labPeriods = useMemo(
-    () => ((schema?.lab ?? []) as TimetablePeriod[]).filter((p) => !p.lunch),
-    [schema]
-  );
+  const theoryPeriods = useMemo(() => ((schema?.theory ?? []) as TimetablePeriod[]).filter((p) => !p.lunch), [schema]);
+  const labPeriods = useMemo(() => ((schema?.lab ?? []) as TimetablePeriod[]).filter((p) => !p.lunch), [schema]);
 
   const metrics = useMemo(() => {
     if (!decoded || !schema) return null;
@@ -282,8 +200,8 @@ export default function FFCSShareView() {
               <MapIcon className="text-blue-500 w-6 h-6" /> {timetable.name}
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              {timetable.courses.length} course{timetable.courses.length === 1 ? "" : "s"} ·{" "}
-              {campus} campus · shared from AmazeCC FFCS Planner
+              {timetable.courses.length} course{timetable.courses.length === 1 ? "" : "s"} · {campus} campus · shared
+              from AmazeCC FFCS Planner
             </p>
           </div>
         </header>
@@ -365,12 +283,9 @@ export default function FFCSShareView() {
               : "This TT shape link contains only class IDs. Their shared prefix identifies the semester report used to rebuild the timetable."
             : compactEncoded
               ? "This short link contains the semester and selected class IDs; the matching public semester report supplies the timetable details."
-            : "Plans travel inside the link itself — nothing was uploaded, and opening one here keeps it on this device."}
+              : "Plans travel inside the link itself — nothing was uploaded, and opening one here keeps it on this device."}
         </p>
-        <FacultyReviewSheetHost
-          target={facultyReviewTarget}
-          onClose={closeFacultyReview}
-        />
+        <FacultyReviewSheetHost target={facultyReviewTarget} onClose={closeFacultyReview} />
       </div>
     </main>
   );

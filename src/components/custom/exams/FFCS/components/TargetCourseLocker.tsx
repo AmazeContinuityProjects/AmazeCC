@@ -6,11 +6,7 @@ import { offeringId, offeringMatches } from "../reports";
 import { sameSlotFacultyAlternatives } from "../logic/generate";
 import { splitSlots } from "@/lib/slots";
 import { ListShell, ListRowText } from "../../../shared/primitives";
-import {
-  ENABLE_VITFAC_INTEGRATION,
-  getFacultyReview,
-  loadVitfacCatalog,
-} from "@/lib/vitfacService";
+import { ENABLE_VITFAC_INTEGRATION, getFacultyReview, loadVitfacCatalog } from "@/lib/vitfacService";
 
 interface Offering {
   faculty: string;
@@ -27,6 +23,18 @@ interface TargetCourseLockerProps {
   masterCourses: ParsedCourse[];
   selection: CourseLock;
   onChange: (next: CourseLock) => void;
+  /**
+   * Where the offering list scrolls.
+   *
+   * - `"page"` (default): no cap — the list grows with its content and the
+   *   surrounding page scrolls it. This is the target course page itself, so
+   *   on a phone the faculty list takes the full screen instead of living in
+   *   a short inner scroll box.
+   * - `"sheet"`: a capped inner scroll area, for the classic-mode mobile
+   *   BottomSheet where the panel has to stay on screen and the sheet owns
+   *   the list's overflow.
+   */
+  scrollArea?: "page" | "sheet";
 }
 
 /**
@@ -41,6 +49,7 @@ export const TargetCourseLocker: React.FC<TargetCourseLockerProps> = ({
   masterCourses,
   selection,
   onChange,
+  scrollArea = "page",
 }) => {
   const courseOpts = masterCourses.filter((mc) => mc.CODE === course.code);
   const uniqueOfferings = Array.from(
@@ -60,20 +69,21 @@ export const TargetCourseLocker: React.FC<TargetCourseLockerProps> = ({
             id,
           },
         ];
-      })
-    ).values()
+      }),
+    ).values(),
   ).sort(
     (a, b) =>
-      a.faculty.localeCompare(b.faculty) ||
-      a.slot.localeCompare(b.slot) ||
-      a.employeeId.localeCompare(b.employeeId)
+      a.faculty.localeCompare(b.faculty) || a.slot.localeCompare(b.slot) || a.employeeId.localeCompare(b.employeeId),
   );
 
-  const offeringsByFac = uniqueOfferings.reduce((acc, curr) => {
-    if (!acc[curr.faculty]) acc[curr.faculty] = [];
-    acc[curr.faculty].push(curr);
-    return acc;
-  }, {} as Record<string, Offering[]>);
+  const offeringsByFac = uniqueOfferings.reduce(
+    (acc, curr) => {
+      if (!acc[curr.faculty]) acc[curr.faculty] = [];
+      acc[curr.faculty].push(curr);
+      return acc;
+    },
+    {} as Record<string, Offering[]>,
+  );
 
   // The vitfac catalog loads async; flip a bit when it lands so the faculty
   // order re-ranks from alphabetical to review-ranked on the same mount.
@@ -111,11 +121,7 @@ export const TargetCourseLocker: React.FC<TargetCourseLockerProps> = ({
       // catalogReady is read (not just a dep) so alphabetical-before-load is
       // the intentional pre-ranking order.
       if (!catalogReady) return a.fac.localeCompare(b.fac);
-      return (
-        b.rank.wPct - a.rank.wPct ||
-        b.rank.reviews - a.rank.reviews ||
-        a.fac.localeCompare(b.fac)
-      );
+      return b.rank.wPct - a.rank.wPct || b.rank.reviews - a.rank.reviews || a.fac.localeCompare(b.fac);
     });
 
   // 1-based rank among rated faculty, shown as the entry's badge.
@@ -142,18 +148,21 @@ export const TargetCourseLocker: React.FC<TargetCourseLockerProps> = ({
   };
 
   // Grouped by the THEORY slot: `A1+TA1` and `A1+TB1` both bucket under `A1`.
-  const offeringsByTheorySlot = uniqueOfferings.reduce((acc, curr) => {
-    const theory = theorySlotOf(curr.slot);
-    if (!acc[theory]) acc[theory] = [];
-    acc[theory].push(curr);
-    return acc;
-  }, {} as Record<string, Offering[]>);
+  const offeringsByTheorySlot = uniqueOfferings.reduce(
+    (acc, curr) => {
+      const theory = theorySlotOf(curr.slot);
+      if (!acc[theory]) acc[theory] = [];
+      acc[theory].push(curr);
+      return acc;
+    },
+    {} as Record<string, Offering[]>,
+  );
   for (const bucket of Object.values(offeringsByTheorySlot)) {
     bucket.sort(
       (a, b) =>
         compareFacsByRank(a.faculty, b.faculty) ||
         a.slot.localeCompare(b.slot) ||
-        a.employeeId.localeCompare(b.employeeId)
+        a.employeeId.localeCompare(b.employeeId),
     );
   }
   const sortedTheorySlots = Object.keys(offeringsByTheorySlot).sort();
@@ -165,8 +174,8 @@ export const TargetCourseLocker: React.FC<TargetCourseLockerProps> = ({
           const match = theorySlotOf(o.slot).match(/^[T]?([A-G])/);
           return match ? match[1] : null;
         })
-        .filter(Boolean) as string[]
-    )
+        .filter(Boolean) as string[],
+    ),
   ).sort();
 
   const updateOfferings = (next: string[]) => {
@@ -180,10 +189,12 @@ export const TargetCourseLocker: React.FC<TargetCourseLockerProps> = ({
   const groupToggle = (
     <div className="flex flex-wrap items-center gap-1.5">
       <span className="text-[10px] font-bold text-text-heading/70 uppercase">Group by</span>
-      {([
-        { id: "faculty", label: "Faculty" },
-        { id: "slot", label: "Slot" },
-      ] as const).map((opt) => (
+      {(
+        [
+          { id: "faculty", label: "Faculty" },
+          { id: "slot", label: "Slot" },
+        ] as const
+      ).map((opt) => (
         <button
           key={opt.id}
           type="button"
@@ -220,8 +231,8 @@ export const TargetCourseLocker: React.FC<TargetCourseLockerProps> = ({
                 const allSelected = seriesOfferings.every((o) =>
                   offeringMatches(
                     { FACULTY: o.faculty, SLOT: o.slot, ROOM: o.venue, ERP_ID: o.employeeId },
-                    selection.offerings || []
-                  )
+                    selection.offerings || [],
+                  ),
                 );
                 return (
                   <button
@@ -257,9 +268,18 @@ export const TargetCourseLocker: React.FC<TargetCourseLockerProps> = ({
         {groupToggle}
       </div>
 
-      {/* The sheet keeps its own capped scroll area; in the main pane (desktop)
-          the page scrolls instead — a nested wheel region here feels absurd. */}
-      <div className="flex flex-col gap-3 lg:max-h-none lg:overflow-visible overflow-y-auto max-h-60 custom-scrollbar pr-1 bg-surface/50 border border-border-strong/50 rounded-lg p-3">
+      {/* On the target course page the list grows with its content and the page
+          scrolls it — a capped inner scroll box would squeeze the faculty list
+          into a fraction of a phone screen. Inside the classic-mode mobile
+          BottomSheet (`scrollArea="sheet"`) there is no page to scroll, so
+          that usage keeps its own capped scroll area instead. */}
+      <div
+        className={`flex flex-col gap-3 bg-surface/50 border border-border-strong/50 rounded-lg p-3 ${
+          scrollArea === "sheet"
+            ? "overflow-y-auto max-h-60 lg:max-h-none lg:overflow-visible custom-scrollbar pr-1"
+            : ""
+        }`}
+      >
         {offeringGroupBy === "faculty" && (
           <>
             {catalogReady && rankedFacs.some((r) => r.rank.wPct >= 0) && (
@@ -387,7 +407,7 @@ const OfferingRow: React.FC<{
 }> = ({ offering, course, masterCourses, selection, onChange, leading, showFullSlot, rank }) => {
   const isOffChecked = offeringMatches(
     { FACULTY: offering.faculty, SLOT: offering.slot, ROOM: offering.venue, ERP_ID: offering.employeeId },
-    selection.offerings || []
+    selection.offerings || [],
   );
   const altCount =
     1 +
@@ -395,7 +415,7 @@ const OfferingRow: React.FC<{
       course.code,
       splitSlots(offering.slot),
       { faculty: offering.faculty, employeeId: offering.employeeId },
-      masterCourses
+      masterCourses,
     ).length;
   const venue = offering.venue || (offering.employeeId ? `ERP ${offering.employeeId}` : "TBA");
 
@@ -427,9 +447,7 @@ const OfferingRow: React.FC<{
           } else {
             onChange({
               ...selection,
-              offerings: (selection.offerings || []).filter(
-                (id) => id !== offering.id && id !== offering.legacyId
-              ),
+              offerings: (selection.offerings || []).filter((id) => id !== offering.id && id !== offering.legacyId),
             });
           }
         }}

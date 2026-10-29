@@ -5,6 +5,17 @@ import FFCSGuidedSelector from "../components/custom/exams/FFCS/components/FFCSG
 import { closeTopOverlayFromPop, hasOpenOverlays } from "../lib/overlayStack";
 import type { ParsedCourse, AddedCourse, TimetableState } from "../components/custom/exams/FFCS/types";
 
+// The auto-generator awaits the live Vitfac catalog before solving (~1.6s over
+// the network, and longer on a cold connection). The results assertions below
+// wait at the default 1s `waitFor` budget, so an unmocked fetch turns this
+// file into a network-latency coin flip. Reviews are irrelevant to what these
+// tests assert — an empty lookup leaves ranking untouched — so the load is
+// answered instantly with "no ratings".
+vi.mock("@/lib/vitfacService", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../lib/vitfacService")>()),
+  loadVitfacRankingData: vi.fn().mockResolvedValue({ available: false, ratings: {} }),
+}));
+
 const mockMasterCourses: ParsedCourse[] = [
   {
     CODE: "BCSE101",
@@ -70,7 +81,7 @@ describe("FFCSGuidedSelector", () => {
         onAddCourse={vi.fn()}
         onViewTimetable={onViewTimetable}
         initialGuidedPhase="setup_timetable"
-      />
+      />,
     );
 
     expect(hasOpenOverlays()).toBe(true);
@@ -96,7 +107,7 @@ describe("FFCSGuidedSelector", () => {
         allTimetables={mockTimetables}
         onAddCourse={vi.fn()}
         onSelectTimetable={vi.fn()}
-      />
+      />,
     );
 
     expect(screen.getByText("Auto-Generate Timetable")).toBeDefined();
@@ -117,7 +128,7 @@ describe("FFCSGuidedSelector", () => {
         onSelectTimetable={onSelectTimetable}
         onRenameTimetable={onRenameTimetable}
         onDeleteTimetable={onDeleteTimetable}
-      />
+      />,
     );
 
     // Pick Custom and Continue
@@ -145,7 +156,7 @@ describe("FFCSGuidedSelector", () => {
         courseLocks={[]}
         setCourseLocks={setCourseLocks}
         onAddCourse={vi.fn()}
-      />
+      />,
     );
 
     // Pick Custom -> Timetable -> Strategy
@@ -179,7 +190,7 @@ describe("FFCSGuidedSelector", () => {
         initialGuidedPhase="builder"
         initialStep={1}
         initialPlanMode="custom"
-      />
+      />,
     );
 
     // In course picker, find BCSE101
@@ -211,7 +222,7 @@ describe("FFCSGuidedSelector", () => {
         code: "BCSE101",
         faculty: "DR. ALICE",
       }),
-      true // isReplacing = true
+      true, // isReplacing = true
     );
   });
 
@@ -229,7 +240,7 @@ describe("FFCSGuidedSelector", () => {
         onApplyTimetable={onApplyTimetable}
         onOpenFacultySchedule={onOpenFacultySchedule}
         onOpenFacultyReview={onOpenFacultyReview}
-      />
+      />,
     );
 
     // Step 1: Mode -> Pick Auto-Generate
@@ -286,10 +297,7 @@ describe("FFCSGuidedSelector", () => {
     });
     expect(screen.getAllByText("Best Faculty").length).toBeGreaterThan(0);
     expect(screen.getByText("1. Faculty reviews")).toBeDefined();
-    expect(screen.getByRole("spinbutton", { name: "Minimum Overall W %" })).toHaveProperty(
-      "value",
-      "80"
-    );
+    expect(screen.getByRole("spinbutton", { name: "Minimum Overall W %" })).toHaveProperty("value", "80");
 
     // Click Generate Timetables
     const generateBtn = screen.getByRole("button", { name: /Generate Timetable Recommendations/i });
@@ -332,9 +340,7 @@ describe("FFCSGuidedSelector", () => {
     const vitfacReviewBtn = screen.getByTitle("View Vitfac Review");
     expect(vitfacReviewBtn).toBeDefined();
     fireEvent.click(vitfacReviewBtn);
-    expect(onOpenFacultyReview).toHaveBeenCalledWith(
-      expect.objectContaining({ name: "DR. BOB" })
-    );
+    expect(onOpenFacultyReview).toHaveBeenCalledWith(expect.objectContaining({ name: "DR. BOB" }));
 
     // Check Apply CTA
     const applyBtn = screen.getByRole("button", { name: /Apply This Recommendation to Timetable 2/i });
@@ -350,7 +356,7 @@ describe("FFCSGuidedSelector", () => {
         activeTimetable={mockTimetables[1]}
         allTimetables={mockTimetables}
         onAddCourse={vi.fn()}
-      />
+      />,
     );
 
     // Pick Auto-Generate -> Timetable -> Strategy
@@ -389,7 +395,7 @@ describe("FFCSGuidedSelector", () => {
         activeTimetable={mockTimetables[1]}
         allTimetables={mockTimetables}
         onAddCourse={vi.fn()}
-      />
+      />,
     );
 
     // Go to Auto Courses screen
@@ -435,7 +441,7 @@ describe("FFCSGuidedSelector", () => {
         allTimetables={mockTimetables}
         onAddCourse={vi.fn()}
         onOpenFacultySchedule={onOpenFacultySchedule}
-      />
+      />,
     );
 
     // Navigate to auto courses selection
@@ -489,7 +495,7 @@ describe("FFCSGuidedSelector", () => {
         allTimetables={mockTimetables}
         onAddCourse={vi.fn()}
         onToggleBlockSlot={onToggleBlockSlot}
-      />
+      />,
     );
 
     // Pick Auto-Generate -> Timetable -> Strategy -> Course selection
@@ -585,7 +591,7 @@ describe("FFCSGuidedSelector", () => {
         allTimetables={mockTimetables}
         onAddCourse={vi.fn()}
         onToggleBlockSlot={onToggleBlockSlot}
-      />
+      />,
     );
 
     // Pick Auto-Generate -> Timetable -> Strategy -> Course selection
@@ -657,7 +663,7 @@ describe("FFCSGuidedSelector", () => {
         allTimetables={mockTimetables}
         onAddCourse={vi.fn()}
         onSwitchToSinglePageView={onSwitchToSinglePageView}
-      />
+      />,
     );
 
     const planBtn = screen.getByRole("button", { name: /Single Page View|Plan/i });
@@ -673,7 +679,7 @@ describe("FFCSGuidedSelector", () => {
         activeTimetable={mockTimetables[0]}
         allTimetables={mockTimetables}
         onAddCourse={vi.fn()}
-      />
+      />,
     );
 
     const container = screen.getByTestId("guided-hero-container");
@@ -696,7 +702,7 @@ describe("FFCSGuidedSelector", () => {
         courses={mockTimetables[0].courses}
         onAddCourse={onAddCourse}
         onViewTimetable={onViewTimetable}
-      />
+      />,
     );
 
     // Step 1: Mode -> Select Manual Builder
@@ -737,7 +743,7 @@ describe("FFCSGuidedSelector", () => {
         code: "BCSE102",
         faculty: "DR. BOB",
       }),
-      false
+      false,
     );
 
     // Step 7: Seamlessly transitions to Mounted Timetable Grid View within the hero
@@ -763,7 +769,7 @@ describe("FFCSGuidedSelector", () => {
         onAddCourse={vi.fn()}
         onSelectTimetable={onSelectTimetable}
         onViewTimetable={onViewTimetable}
-      />
+      />,
     );
 
     // Should display Timetable 1 initially with 1 course and credit count
@@ -813,7 +819,7 @@ describe("FFCSGuidedSelector", () => {
         initialPlanMode="auto"
         onAddCourse={vi.fn()}
         onSelectTimetable={onSelectTimetable}
-      />
+      />,
     );
 
     // Mock auto results state with at least one variant if present or check button
@@ -835,7 +841,7 @@ describe("FFCSGuidedSelector", () => {
         allTimetables={mockTimetables}
         initialGuidedPhase="manual_timetable_view"
         onAddCourse={vi.fn()}
-      />
+      />,
     );
 
     // Verify footer actions container uses flex-wrap and buttons prevent text-wrapping inside
@@ -869,7 +875,7 @@ describe("FFCSGuidedSelector", () => {
         onAddCourse={vi.fn()}
         initialHasLaunchedHero={false}
         onSwitchToSinglePageView={onSwitchToSinglePageView}
-      />
+      />,
     );
 
     // Should display Mobile Pre-Flight screen
@@ -921,7 +927,7 @@ describe("FFCSGuidedSelector", () => {
         courses={mockTimetables[0].courses}
         onAddCourse={vi.fn()}
         initialHasLaunchedHero={false}
-      />
+      />,
     );
 
     expect(screen.getByTestId("mobile-preflight-screen")).toBeDefined();
@@ -950,7 +956,7 @@ describe("FFCSGuidedSelector", () => {
         onAddCourse={vi.fn()}
         isFullScreen={false}
         onToggleFullScreen={onToggleFullScreen}
-      />
+      />,
     );
 
     // Click Enter Fullscreen button

@@ -1,6 +1,6 @@
 "use client";
 
-import { Trash2, Users } from "lucide-react";
+import { ListOrdered, Trash2, Users } from "lucide-react";
 import type { AddedCourse } from "../types";
 import { getCourseBadgeProps } from "../constants";
 import { getBatchColorClass } from "@/lib/utils";
@@ -22,6 +22,16 @@ type SelectedCoursesListProps = {
   modern?: boolean;
   onRemove?: (courseIds: string[]) => void;
   onFacultyClick?: (course: SelectedCourseGroup) => void;
+  /**
+   * Per-course faculty ranking ("I'd rather have Prof A than Prof B").
+   *
+   * Omitted in views that do not generate — the share view and the attendance
+   * grid show a finished plan, where an ordering control would imply an edit
+   * the surrounding screen cannot make.
+   */
+  onPriorityClick?: (course: SelectedCourseGroup) => void;
+  /** Course codes the student has already ordered faculties for. */
+  priorityCodes?: readonly string[];
   onReviewClick?: (faculty: { name: string; employeeId?: string; courseCode: string }) => void;
   getFacultyInfo?: (course: SelectedCourseGroup, rawHalves: AddedCourse[]) => FacultyInfo;
   onClear?: () => void;
@@ -33,6 +43,8 @@ export default function SelectedCoursesList({
   modern = true,
   onRemove,
   onFacultyClick,
+  onPriorityClick,
+  priorityCodes,
   onReviewClick,
   getFacultyInfo,
   onClear,
@@ -80,14 +92,42 @@ export default function SelectedCoursesList({
     );
   };
 
-  const renderBatches = (course: SelectedCourseGroup, compact = false) => course.batches.map((batch) => (
-    <span
-      key={batch}
-      className={`${compact ? "text-[10px] px-1.5" : "text-xs px-2"} font-bold py-0.5 rounded-md border ${getBatchColorClass(batch)}`}
-    >
-      {batch}
-    </span>
-  ));
+  const renderBatches = (course: SelectedCourseGroup, compact = false) =>
+    course.batches.map((batch) => (
+      <span
+        key={batch}
+        className={`${compact ? "text-[10px] px-1.5" : "text-xs px-2"} font-bold py-0.5 rounded-md border ${getBatchColorClass(batch)}`}
+      >
+        {batch}
+      </span>
+    ));
+
+  /**
+   * The ordering control, shown once per course wherever an action column
+   * already exists. A filled badge means the student has actually ranked this
+   * course's faculties — without that tell, the button reads as decoration
+   * rather than as a saved preference.
+   */
+  const renderPriorityAction = (course: SelectedCourseGroup) => {
+    if (!onPriorityClick) return null;
+    const ranked = priorityCodes?.includes(course.code);
+    return (
+      <button
+        type="button"
+        onClick={() => onPriorityClick(course)}
+        title={ranked ? "Edit faculty priority" : "Set faculty priority"}
+        aria-label={ranked ? `Edit faculty priority for ${course.code}` : `Set faculty priority for ${course.code}`}
+        className={`relative transition-colors ${
+          ranked ? "text-indigo-400 hover:text-indigo-300" : "text-muted-foreground hover:text-indigo-400"
+        }`}
+      >
+        <ListOrdered className="w-4 h-4" />
+        {ranked && (
+          <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-indigo-400" aria-hidden="true" />
+        )}
+      </button>
+    );
+  };
 
   return (
     <>
@@ -114,29 +154,39 @@ export default function SelectedCoursesList({
           const rawHalves = courses.filter((half) => course.ids.includes(half.id));
           const badgeProps = getCourseBadgeProps(course.color, modern);
           return (
-            <div key={course.id} className="p-3.5 rounded-2xl bg-surface border border-border-strong shadow-2xs space-y-2.5">
+            <div
+              key={course.id}
+              className="p-3.5 rounded-2xl bg-surface border border-border-strong shadow-2xs space-y-2.5"
+            >
               <div className="flex items-start justify-between gap-2.5">
                 <div className="flex flex-col gap-1 min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <div className={badgeProps.className} style={badgeProps.style}>{course.code}</div>
+                    <div className={badgeProps.className} style={badgeProps.style}>
+                      {course.code}
+                    </div>
                     <CourseTypeChips typesInput={course.type} size="sm" compactText />
                     <span className="text-[10px] text-muted-foreground font-semibold bg-surface-secondary/70 px-1.5 py-0.5 rounded border border-border-strong/50">
                       {course.credits} cr
                     </span>
                     {renderBatches(course, true)}
                   </div>
-                  <h3 className="text-xs sm:text-sm font-bold text-text-heading leading-snug line-clamp-2">{course.title}</h3>
+                  <h3 className="text-xs sm:text-sm font-bold text-text-heading leading-snug line-clamp-2">
+                    {course.title}
+                  </h3>
                 </div>
-                {onRemove && (
-                  <button
-                    type="button"
-                    onClick={() => onRemove(course.ids)}
-                    className="text-muted-foreground hover:text-red-400 p-1.5 rounded-lg hover:bg-red-500/10 transition-colors shrink-0 relative hit-expand touch-press active:scale-[0.95]"
-                    title="Remove Course"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                )}
+                <div className="flex items-center gap-1 shrink-0">
+                  {renderPriorityAction(course)}
+                  {onRemove && (
+                    <button
+                      type="button"
+                      onClick={() => onRemove(course.ids)}
+                      className="text-muted-foreground hover:text-red-400 p-1.5 rounded-lg hover:bg-red-500/10 transition-colors relative hit-expand touch-press active:scale-[0.95]"
+                      title="Remove Course"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="flex items-center justify-between gap-2 pt-2 border-t border-border-strong/40">
                 {renderFaculty(course, rawHalves)}
@@ -144,10 +194,17 @@ export default function SelectedCoursesList({
               <div className="flex items-center justify-between gap-2 text-xs">
                 <div className="flex flex-wrap gap-1 items-center">
                   {course.slots.map((slot) => (
-                    <span key={slot} className="bg-accent/50 border border-border-strong text-text-heading/80 text-[10px] px-1.5 py-0.5 rounded-md">{slot}</span>
+                    <span
+                      key={slot}
+                      className="bg-accent/50 border border-border-strong text-text-heading/80 text-[10px] px-1.5 py-0.5 rounded-md"
+                    >
+                      {slot}
+                    </span>
                   ))}
                 </div>
-                <div className="text-[11px] text-muted-foreground font-medium truncate shrink-0 max-w-[140px]">📍 {course.venue}</div>
+                <div className="text-[11px] text-muted-foreground font-medium truncate shrink-0 max-w-[140px]">
+                  📍 {course.venue}
+                </div>
               </div>
             </div>
           );
@@ -164,7 +221,11 @@ export default function SelectedCoursesList({
               <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Slots</th>
               <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Venue</th>
               <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Credits</th>
-              {onRemove && <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider text-right print:hidden">Action</th>}
+              {(onRemove || onPriorityClick) && (
+                <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider text-right print:hidden">
+                  Action
+                </th>
+              )}
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
@@ -175,29 +236,48 @@ export default function SelectedCoursesList({
                 <tr key={course.id} className="hover:bg-white/[0.02] transition-colors group">
                   <td className="py-3 px-2">
                     <div className="flex items-center gap-3">
-                      <div className={badgeProps.className} style={badgeProps.style}>{course.code}</div>
+                      <div className={badgeProps.className} style={badgeProps.style}>
+                        {course.code}
+                      </div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-muted-foreground text-xs max-w-xs">{course.title}</p>
                         {renderBatches(course)}
                       </div>
                     </div>
                   </td>
-                  <td className="py-3 px-2 text-sm text-text-heading/80"><CourseTypeChips typesInput={course.type} /></td>
+                  <td className="py-3 px-2 text-sm text-text-heading/80">
+                    <CourseTypeChips typesInput={course.type} />
+                  </td>
                   <td className="py-3 px-2">{renderFaculty(course, rawHalves)}</td>
                   <td className="py-3 px-2">
                     <div className="flex flex-wrap gap-1">
                       {course.slots.map((slot) => (
-                        <span key={slot} className="bg-accent/50 border border-border-strong text-text-heading/80 text-[10px] px-1.5 py-0.5 rounded-md">{slot}</span>
+                        <span
+                          key={slot}
+                          className="bg-accent/50 border border-border-strong text-text-heading/80 text-[10px] px-1.5 py-0.5 rounded-md"
+                        >
+                          {slot}
+                        </span>
                       ))}
                     </div>
                   </td>
                   <td className="py-3 px-2 text-sm text-text-heading/80 max-w-xs">{course.venue}</td>
                   <td className="py-3 px-2 text-sm text-text-heading/80">{course.credits}</td>
-                  {onRemove && (
+                  {(onRemove || onPriorityClick) && (
                     <td className="py-3 px-2 text-right print:hidden">
-                      <button type="button" onClick={() => onRemove(course.ids)} className="text-muted-foreground hover:text-red-400 transition-colors p-2" title="Remove Course">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="inline-flex items-center gap-0.5">
+                        {renderPriorityAction(course)}
+                        {onRemove && (
+                          <button
+                            type="button"
+                            onClick={() => onRemove(course.ids)}
+                            className="text-muted-foreground hover:text-red-400 transition-colors p-2"
+                            title="Remove Course"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   )}
                 </tr>

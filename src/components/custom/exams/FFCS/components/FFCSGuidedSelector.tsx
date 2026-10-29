@@ -45,6 +45,7 @@ import {
   Eye,
   LayoutGrid,
   LayoutDashboard,
+  ListOrdered,
 } from "lucide-react";
 import { Switch, SegmentedControl } from "../../../shared/primitives";
 import { FacultyAvatar, VitfacReviewPill } from "./FacultyAvatar";
@@ -60,14 +61,14 @@ import { useVitfacReview, getFacultyReview, loadVitfacRankingData } from "@/lib/
 import { acquireBodyScrollLock } from "@/lib/bodyScrollLock";
 import { CourseImportPanel, type ImportMode } from "./CourseImportPanel";
 import { useGenerationRun } from "../hooks/useGenerationRun";
+import { storage } from "@/lib/storage";
+import { hasFacultyPriority, sanitizeFacultyPriority, type FacultyPriorityMap } from "@/lib/ffcsFacultyPriority";
+import { applyResultFilters, DEFAULT_RESULT_FILTERS, type ResultFilters } from "@/lib/ffcsResultFilters";
+import FFCSResultsFilterBar from "./FFCSResultsFilterBar";
 import { getTimetableSchema } from "@/lib/campusSchema";
 import { timetableMetrics, type SortBy } from "@/lib/timetableMetrics";
 import { RANKING_MODES, type RankingMode } from "@/lib/ffcsRanking";
-import {
-  FFCSSettingsDefaults,
-  type FFCSSettings,
-  type RankingPriority,
-} from "@/lib/ffcsSettings";
+import { FFCSSettingsDefaults, type FFCSSettings, type RankingPriority } from "@/lib/ffcsSettings";
 import type { FacultyRatingLookup } from "@/lib/ffcsFacultyRanking";
 import dynamic from "next/dynamic";
 import VerticalTimetableGrid from "@/components/custom/timetable/VerticalTimetableGrid";
@@ -77,6 +78,8 @@ import { ensureLunchPeriod } from "@/lib/slots";
 // Fetched only when the student actually opens the swap sheet, not when the
 // guided flow itself loads.
 const SlotFacultySwapSheet = dynamic(() => import("./SlotFacultySwapSheet"), { ssr: false });
+// Same lazy rule for the per-course faculty ranking sheet.
+const FacultyPriorityModal = dynamic(() => import("./modals/FacultyPriorityModal"), { ssr: false });
 
 export function requestNativeFullscreen(element?: HTMLElement): Promise<void> {
   if (typeof document === "undefined") return Promise.resolve();
@@ -114,9 +117,7 @@ export function exitNativeFullscreen(): Promise<void> {
       webkitFullscreenElement?: Element | null;
     };
 
-    const isCurrentlyFullscreen = Boolean(
-      document.fullscreenElement || docWithWebkit.webkitFullscreenElement
-    );
+    const isCurrentlyFullscreen = Boolean(document.fullscreenElement || docWithWebkit.webkitFullscreenElement);
 
     if (!isCurrentlyFullscreen) return Promise.resolve();
 
@@ -266,8 +267,8 @@ function FacultyScoreBadge({
   const toneClass = isHigh
     ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/25"
     : isMid
-    ? "bg-amber-500/15 text-amber-300 border-amber-500/30 hover:bg-amber-500/25"
-    : "bg-rose-500/15 text-rose-300 border-rose-500/30 hover:bg-rose-500/25";
+      ? "bg-amber-500/15 text-amber-300 border-amber-500/30 hover:bg-amber-500/25"
+      : "bg-rose-500/15 text-rose-300 border-rose-500/30 hover:bg-rose-500/25";
 
   const metricsTitle = review.metrics
     ? `\nTeaching: ${typeof review.metrics.lecture === "number" ? review.metrics.lecture.toFixed(1) : "-"}/5 • DA: ${typeof review.metrics.da === "number" ? review.metrics.da.toFixed(1) : "-"}/5 • Vibe: ${typeof review.metrics.vibe === "number" ? review.metrics.vibe.toFixed(1) : "-"}/5`
@@ -298,9 +299,7 @@ function FacultyScoresForCourse({
   courseCode?: string;
   onOpenFacultyReview?: (target: { name: string; employeeId?: string; courseCode?: string }) => void;
 }) {
-  const parts = facultyString.includes("/")
-    ? facultyString.split("/").map((f) => f.trim())
-    : [facultyString];
+  const parts = facultyString.includes("/") ? facultyString.split("/").map((f) => f.trim()) : [facultyString];
 
   if (parts.length === 1) {
     return (
@@ -308,9 +307,7 @@ function FacultyScoresForCourse({
         name={parts[0]}
         employeeId={employeeId}
         onOpenReview={
-          onOpenFacultyReview
-            ? () => onOpenFacultyReview({ name: parts[0], employeeId, courseCode })
-            : undefined
+          onOpenFacultyReview ? () => onOpenFacultyReview({ name: parts[0], employeeId, courseCode }) : undefined
         }
       />
     );
@@ -420,8 +417,8 @@ function FacultySingleReviewStat({
               isHighRating
                 ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
                 : isMidRating
-                ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
-                : "bg-rose-500/20 text-rose-400 border border-rose-500/30"
+                  ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                  : "bg-rose-500/20 text-rose-400 border border-rose-500/30"
             }`}
           >
             <span>★</span>
@@ -513,7 +510,10 @@ function GuidedFacultyReviewStats({
   courseCode?: string;
   onOpenFacultyReview: (target: { name: string; employeeId?: string; courseCode?: string }) => void;
 }) {
-  const parts = facultyString.split(/\s*\/\s*/).map((s) => s.trim()).filter(Boolean);
+  const parts = facultyString
+    .split(/\s*\/\s*/)
+    .map((s) => s.trim())
+    .filter(Boolean);
 
   if (parts.length <= 1) {
     return (
@@ -533,7 +533,9 @@ function GuidedFacultyReviewStats({
           name={name}
           employeeId={idx === 0 ? employeeId : undefined}
           role={idx === 0 ? "Theory" : "Lab"}
-          onOpenReviewModal={() => onOpenFacultyReview({ name, employeeId: idx === 0 ? employeeId : undefined, courseCode })}
+          onOpenReviewModal={() =>
+            onOpenFacultyReview({ name, employeeId: idx === 0 ? employeeId : undefined, courseCode })
+          }
         />
       ))}
     </div>
@@ -589,12 +591,12 @@ export default function FFCSGuidedSelector({
       (allTimetables && allTimetables.length > 0
         ? allTimetables
         : timetables && timetables.length > 0
-        ? timetables
-        : activeTimetable
-        ? [activeTimetable]
-        : []
+          ? timetables
+          : activeTimetable
+            ? [activeTimetable]
+            : []
       ).filter(Boolean),
-    [allTimetables, timetables, activeTimetable]
+    [allTimetables, timetables, activeTimetable],
   );
   const courses = propCourses || activeTimetable?.courses || [];
 
@@ -623,7 +625,7 @@ export default function FFCSGuidedSelector({
   const [editingTtName, setEditingTtName] = useState("");
 
   const [internalCourseLocks, setInternalCourseLocks] = useState<CourseLock[]>(() =>
-    courseLocks && courseLocks.length > 0 ? courseLocks : []
+    courseLocks && courseLocks.length > 0 ? courseLocks : [],
   );
   const effectiveCourseLocks = setCourseLocks ? courseLocks : internalCourseLocks;
   const updateCourseLocks: React.Dispatch<React.SetStateAction<CourseLock[]>> = (updater) => {
@@ -723,7 +725,7 @@ export default function FFCSGuidedSelector({
   const [autoAvoidConsecutiveLabs, setAutoAvoidConsecutiveLabs] = useState<boolean>(false);
   const [autoLunchBreakSeparatesLabs, setAutoLunchBreakSeparatesLabs] = useState<boolean>(false);
   const [autoRankingMode, setAutoRankingMode] = useState<RankingMode | null>(() =>
-    settings?.rankingMode === "none" ? null : settings?.rankingMode ?? "Balanced"
+    settings?.rankingMode === "none" ? null : (settings?.rankingMode ?? "Balanced"),
   );
   const [autoMinHalfDays, setAutoMinHalfDays] = useState<number>(0);
   const [autoMinStartTime, setAutoMinStartTime] = useState<string>("08:00");
@@ -732,19 +734,58 @@ export default function FFCSGuidedSelector({
   const [autoRankingPriorityOrder, setAutoRankingPriorityOrder] = useState<RankingPriority[]>(() => [
     ...(settings?.rankingPriorityOrder ?? FFCSSettingsDefaults.rankingPriorityOrder),
   ]);
-  const [autoFacultyMetricWeights, setAutoFacultyMetricWeights] = useState<
-    FFCSSettings["facultyMetricWeights"]
-  >(() => ({ ...(settings?.facultyMetricWeights ?? FFCSSettingsDefaults.facultyMetricWeights) }));
-  const [autoFacultyScoreFilters, setAutoFacultyScoreFilters] = useState<
-    FFCSSettings["facultyScoreFilters"]
-  >(() => ({ ...(settings?.facultyScoreFilters ?? FFCSSettingsDefaults.facultyScoreFilters) }));
+  const [autoFacultyMetricWeights, setAutoFacultyMetricWeights] = useState<FFCSSettings["facultyMetricWeights"]>(
+    () => ({ ...(settings?.facultyMetricWeights ?? FFCSSettingsDefaults.facultyMetricWeights) }),
+  );
+  const [autoFacultyScoreFilters, setAutoFacultyScoreFilters] = useState<FFCSSettings["facultyScoreFilters"]>(() => ({
+    ...(settings?.facultyScoreFilters ?? FFCSSettingsDefaults.facultyScoreFilters),
+  }));
   const [autoUniqueFaculties, setAutoUniqueFaculties] = useState<boolean>(false);
   const [autoSyncFriends, setAutoSyncFriends] = useState<boolean>(true);
   const [autoMaximizeFreeTime, setAutoMaximizeFreeTime] = useState<boolean>(true);
   const [stagedTimetables, setStagedTimetables] = useState<TimetableState[]>([]);
   const [selectedVariantIndex, setSelectedVariantIndex] = useState<number>(0);
+  /**
+   * View-only narrowing of the auto-generated carousel (ported from
+   * FFCS-inator's result view). The arrows walk the *filtered* list, so
+   * "Recommendation 2 of 5" can mean "2 of the 5 morning plans" — filters
+   * never re-run generation and clear back to the full ranked list.
+   */
+  const [autoResultFilters, setAutoResultFilters] = useState<ResultFilters>(DEFAULT_RESULT_FILTERS);
+  const autoResultsList = useMemo(
+    () => applyResultFilters(stagedTimetables, autoResultFilters, getTimetableSchema()),
+    [stagedTimetables, autoResultFilters],
+  );
+  // A filter change restarts the carousel at its top recommendation: a stale
+  // index would point past the narrowed list and blank the card.
+  useEffect(() => {
+    setSelectedVariantIndex(0);
+  }, [autoResultFilters]);
   const [swapCourseRow, setSwapCourseRow] = useState<{ course: AddedCourse } | null>(null);
+  /**
+   * The per-course faculty ordering, loaded once so the priority buttons can
+   * show which courses are already ranked; saves write storage directly,
+   * which is exactly where every generation run re-reads from.
+   */
+  const [facultyPriority, setFacultyPriority] = useState<FacultyPriorityMap>({});
+  const [priorityCourse, setPriorityCourse] = useState<{
+    code: string;
+    title: string;
+    selected: string[];
+  } | null>(null);
+  useEffect(() => {
+    setFacultyPriority(sanitizeFacultyPriority(storage.ffcsFacultyPriority.get()));
+  }, []);
+  const handlePrioritySave = (code: string, order: string[]) => {
+    setFacultyPriority((prev) => {
+      const next = { ...prev, [code]: order };
+      storage.ffcsFacultyPriority.set(next);
+      return next;
+    });
+  };
   const [generationError, setGenerationError] = useState<string | null>(null);
+  /** Set when the drop ladder left courses out — shown beside the results. */
+  const [generationNotice, setGenerationNotice] = useState<string | null>(null);
   const [activeConfigCourseCode, setActiveConfigCourseCode] = useState<string>("");
   const [expandedCourseForAuto, setExpandedCourseForAuto] = useState<string | null>(null);
   const [facultySearchQuery, setFacultySearchQuery] = useState<string>("");
@@ -762,9 +803,7 @@ export default function FFCSGuidedSelector({
     setAutoRankingPriorityOrder([...settings.rankingPriorityOrder]);
     setAutoFacultyMetricWeights({ ...settings.facultyMetricWeights });
     setAutoFacultyScoreFilters({ ...settings.facultyScoreFilters });
-  }, [
-    settings,
-  ]);
+  }, [settings]);
 
   const updateBlockedSlots = (updater: React.SetStateAction<Set<string>>) => {
     if (setBlockedSlots) {
@@ -781,10 +820,7 @@ export default function FFCSGuidedSelector({
     setAutoRankingPriorityOrder(next);
   };
 
-  const updateAutoFacultyWeight = (
-    key: keyof FFCSSettings["facultyMetricWeights"],
-    value: string
-  ) => {
+  const updateAutoFacultyWeight = (key: keyof FFCSSettings["facultyMetricWeights"], value: string) => {
     const parsed = Number(value);
     if (Number.isFinite(parsed)) {
       setAutoFacultyMetricWeights((previous) => ({
@@ -794,10 +830,7 @@ export default function FFCSGuidedSelector({
     }
   };
 
-  const updateAutoFacultyFilter = (
-    key: keyof FFCSSettings["facultyScoreFilters"],
-    value: string
-  ) => {
+  const updateAutoFacultyFilter = (key: keyof FFCSSettings["facultyScoreFilters"], value: string) => {
     const parsed = Number(value);
     if (Number.isFinite(parsed)) {
       const max = key === "minWPct" ? 100 : 5;
@@ -964,9 +997,7 @@ export default function FFCSGuidedSelector({
       const docWithWebkit = document as Document & {
         webkitFullscreenElement?: Element | null;
       };
-      const isNativeFullscreen = Boolean(
-        document.fullscreenElement || docWithWebkit.webkitFullscreenElement
-      );
+      const isNativeFullscreen = Boolean(document.fullscreenElement || docWithWebkit.webkitFullscreenElement);
       if (!isNativeFullscreen && fullScreenMode) {
         setFullScreenMode(false);
         onToggleFullScreen?.(false);
@@ -1043,14 +1074,16 @@ export default function FFCSGuidedSelector({
       if (hasCombined) {
         slots = slots.filter((c) => {
           const parts = splitSlots(c.SLOT);
-          const isCombined = parts.some((s) => !s.startsWith("L") && s !== "NIL") && parts.some((s) => s.startsWith("L"));
+          const isCombined =
+            parts.some((s) => !s.startsWith("L") && s !== "NIL") && parts.some((s) => s.startsWith("L"));
           if (isCombined) return true;
 
           const facNorm = (c.FACULTY || "").trim().toLowerCase();
           const isSubset = slots.some((other) => {
             if (other === c) return false;
             const otherParts = splitSlots(other.SLOT);
-            const otherIsCombined = otherParts.some((s) => !s.startsWith("L") && s !== "NIL") && otherParts.some((s) => s.startsWith("L"));
+            const otherIsCombined =
+              otherParts.some((s) => !s.startsWith("L") && s !== "NIL") && otherParts.some((s) => s.startsWith("L"));
             if (!otherIsCombined) return false;
             const otherFacNorm = (other.FACULTY || "").trim().toLowerCase();
             const facMatches = otherFacNorm.includes(facNorm) || facNorm.includes(otherFacNorm);
@@ -1165,7 +1198,7 @@ export default function FFCSGuidedSelector({
     const offerings = masterCourses.filter((mc) => mc.CODE === code);
     const hasTheory = offerings.some((mc) => {
       const t = (mc.TYPE || "").toLowerCase();
-      return t.includes("th") || t.includes("theory") || (!splitSlots(mc.SLOT).every((s) => s.startsWith("L")));
+      return t.includes("th") || t.includes("theory") || !splitSlots(mc.SLOT).every((s) => s.startsWith("L"));
     });
     const hasLab = offerings.some((mc) => {
       const t = (mc.TYPE || "").toLowerCase();
@@ -1242,6 +1275,7 @@ export default function FFCSGuidedSelector({
 
   const handleRunAutoGeneration = async () => {
     setGenerationError(null);
+    setGenerationNotice(null);
     setStagedTimetables([]);
     setSelectedVariantIndex(0);
 
@@ -1254,6 +1288,22 @@ export default function FFCSGuidedSelector({
     } catch (err) {
       console.warn("Faculty reviews could not be loaded for timetable ranking:", err);
     }
+    // Fresh per run: the picker writes storage directly, and a run must see
+    // the latest reorder without the tree re-rendering on every one.
+    const facultyPriority = sanitizeFacultyPriority(storage.ffcsFacultyPriority.get());
+    // All Subjects Mode OFF → the drop ladder (see `../logic/dropPolicy`).
+    // Targeted courses (restricted slots/faculty/offerings) are never dropped.
+    const runOptions =
+      settings?.allSubjectsMode === false
+        ? {
+            drop: {
+              courseOrder: effectiveCourseLocks.map((lock) => lock.code),
+              protectedCodes: effectiveCourseLocks
+                .filter((lock) => lock.allowedSlots?.length || lock.allowedFaculty?.length || lock.offerings?.length)
+                .map((lock) => lock.code),
+            },
+          }
+        : undefined;
     const outcome = await generation.run(
       {
         schema: getTimetableSchema(),
@@ -1282,10 +1332,12 @@ export default function FFCSGuidedSelector({
         facultyScoreFilters: autoFacultyScoreFilters,
         rankingPriorityOrder: autoRankingPriorityOrder,
         ...(autoRankingMode ? { rankingMode: autoRankingMode } : {}),
+        facultyPriority: hasFacultyPriority(facultyPriority) ? facultyPriority : undefined,
       },
       (batch) => {
         setStagedTimetables((prev) => [...prev, ...batch]);
-      }
+      },
+      runOptions,
     );
 
     if (outcome.kind === "error") {
@@ -1298,7 +1350,7 @@ export default function FFCSGuidedSelector({
               ? "No timetable met the one-lab-class-per-day rule. Try turning it off or relaxing other constraints."
               : outcome.code === "no_consecutive_labs"
                 ? "No timetable met the consecutive-lab rule. Try allowing consecutive slots or treating lunch as a break."
-            : "An error occurred while generating timetables."
+                : "An error occurred while generating timetables.",
       );
       return;
     }
@@ -1306,6 +1358,14 @@ export default function FFCSGuidedSelector({
     if (outcome.timetables.length > 0) {
       setStagedTimetables(outcome.timetables);
       setSelectedVariantIndex(0);
+      // The drop ladder's disclosure, in the results' own words: a plan
+      // without a selected course must never read as a plan with it.
+      const droppedCourses = outcome.droppedCourses ?? [];
+      setGenerationNotice(
+        droppedCourses.length
+          ? `${droppedCourses.length === 1 ? "One course had" : `${droppedCourses.length} courses had`} no clash-free slot with the rest and ${droppedCourses.length === 1 ? "was" : "were"} left out (All Subjects Mode is off): ${droppedCourses.join(", ")}.`
+          : null,
+      );
       setGuidedPhase("auto_results");
     } else {
       setGenerationError("No valid combinations found. Try adjusting course constraints or preferences.");
@@ -1327,10 +1387,16 @@ export default function FFCSGuidedSelector({
   };
 
   const handleSwapVariantFaculty = (courseId: string, offering: ParsedCourse) => {
+    // By identity, not by filtered index: with the result filters on, the
+    // carousel's position is an index into the narrowed list, and writing to
+    // `stagedTimetables[index]` would patch a different plan entirely.
+    const targetId = autoResultsList[selectedVariantIndex]?.id;
+    if (!targetId) return;
     setStagedTimetables((prev) => {
+      const index = prev.findIndex((plan) => plan.id === targetId);
+      if (index === -1) return prev;
       const copy = [...prev];
-      const cur = copy[selectedVariantIndex];
-      if (!cur) return prev;
+      const cur = copy[index];
       const updatedCourses = cur.courses.map((c) => {
         if (c.id !== courseId && c.code !== offering.CODE) return c;
         return {
@@ -1342,7 +1408,7 @@ export default function FFCSGuidedSelector({
           venue: offering.ROOM || c.venue,
         };
       });
-      copy[selectedVariantIndex] = { ...cur, courses: updatedCourses };
+      copy[index] = { ...cur, courses: updatedCourses };
       return copy;
     });
   };
@@ -1437,9 +1503,7 @@ export default function FFCSGuidedSelector({
 
   const getCourseOfferingsData = (courseCode: string) => {
     const offerings = masterCourses.filter((m) => m.CODE === courseCode);
-    const uniqueSlots = Array.from(
-      new Set(offerings.flatMap((opt) => splitSlots(opt.SLOT)))
-    ).sort();
+    const uniqueSlots = Array.from(new Set(offerings.flatMap((opt) => splitSlots(opt.SLOT)))).sort();
 
     const clusterMap = new Map<string, { clusterKey: string; clusterLabel: string; letter: string; slots: string[] }>();
     const letterMap = new Map<string, string[]>();
@@ -1517,7 +1581,7 @@ export default function FFCSGuidedSelector({
         const cur = p.allowedSlots || [];
         const next = cur.includes(slot) ? cur.filter((s) => s !== slot) : [...cur, slot];
         return { ...p, allowedSlots: next };
-      })
+      }),
     );
   };
 
@@ -1536,7 +1600,7 @@ export default function FFCSGuidedSelector({
           });
         }
         return { ...p, allowedSlots: next };
-      })
+      }),
     );
   };
 
@@ -1545,17 +1609,15 @@ export default function FFCSGuidedSelector({
       prev.map((p) => {
         if (p.code !== courseCode) return p;
         const cur = p.allowedFaculty || [];
-        const next = cur.includes(facultyName)
-          ? cur.filter((f) => f !== facultyName)
-          : [...cur, facultyName];
+        const next = cur.includes(facultyName) ? cur.filter((f) => f !== facultyName) : [...cur, facultyName];
         return { ...p, allowedFaculty: next };
-      })
+      }),
     );
   };
 
   const handleResetCourseLocks = (courseCode: string) => {
     updateCourseLocks((prev) =>
-      prev.map((p) => (p.code === courseCode ? { ...p, allowedSlots: [], allowedFaculty: [] } : p))
+      prev.map((p) => (p.code === courseCode ? { ...p, allowedSlots: [], allowedFaculty: [] } : p)),
     );
   };
 
@@ -1622,7 +1684,7 @@ export default function FFCSGuidedSelector({
       | "evening_all"
       | "day_theory"
       | "day_lab"
-      | "all"
+      | "all",
   ) => {
     const dayData = getDaySlots(dayId);
     let slotsToToggle: string[] = [];
@@ -1707,7 +1769,9 @@ export default function FFCSGuidedSelector({
         >
           <div
             className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${
-              planMode === "auto" ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30" : "bg-zinc-900 border border-zinc-800 text-indigo-400"
+              planMode === "auto"
+                ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
+                : "bg-zinc-900 border border-zinc-800 text-indigo-400"
             }`}
           >
             <Wand2 className="w-6 h-6" />
@@ -1725,7 +1789,8 @@ export default function FFCSGuidedSelector({
             </div>
             <h3 className="text-base sm:text-lg font-black text-white font-outfit">Auto-Generate Timetable</h3>
             <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
-              Step-by-step guidance: pick target courses, set pacing rules, align with peers, and inspect recommended variants with direct faculty review & schedule views.
+              Step-by-step guidance: pick target courses, set pacing rules, align with peers, and inspect recommended
+              variants with direct faculty review & schedule views.
             </p>
           </div>
         </button>
@@ -1742,7 +1807,9 @@ export default function FFCSGuidedSelector({
         >
           <div
             className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${
-              planMode === "custom" ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30" : "bg-zinc-900 border border-zinc-800 text-indigo-400"
+              planMode === "custom"
+                ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
+                : "bg-zinc-900 border border-zinc-800 text-indigo-400"
             }`}
           >
             <Compass className="w-6 h-6" />
@@ -1760,7 +1827,8 @@ export default function FFCSGuidedSelector({
             </div>
             <h3 className="text-base sm:text-lg font-black text-white font-outfit">Build My Own Timetable</h3>
             <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
-              Select courses and slot offerings one-by-one with real-time conflict checking, faculty ratings, and replacement support.
+              Select courses and slot offerings one-by-one with real-time conflict checking, faculty ratings, and
+              replacement support.
             </p>
           </div>
         </button>
@@ -1776,7 +1844,9 @@ export default function FFCSGuidedSelector({
     >
       <div className="flex items-center justify-between pb-2 border-b border-zinc-800 shrink-0">
         <div>
-          <h3 className="text-sm font-black text-white uppercase tracking-wider font-outfit">Select Target Timetable</h3>
+          <h3 className="text-sm font-black text-white uppercase tracking-wider font-outfit">
+            Select Target Timetable
+          </h3>
           <p className="text-xs text-zinc-400">Choose which timetable you want to edit and save courses into.</p>
         </div>
         {onCreateNewTimetable && (
@@ -1876,7 +1946,9 @@ export default function FFCSGuidedSelector({
 
                 <span
                   className={`text-xs font-bold px-2.5 sm:px-3 py-1.5 rounded-xl border ${
-                    isSelected ? "bg-indigo-600 text-white border-indigo-500" : "bg-zinc-900 border-zinc-800 text-zinc-400"
+                    isSelected
+                      ? "bg-indigo-600 text-white border-indigo-500"
+                      : "bg-zinc-900 border-zinc-800 text-zinc-400"
                   }`}
                 >
                   {isSelected ? "Selected ✓" : "Choose"}
@@ -1908,7 +1980,9 @@ export default function FFCSGuidedSelector({
         >
           <div
             className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${
-              courseStrategy === "lock_advance" ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30" : "bg-zinc-900 border border-zinc-800 text-indigo-400"
+              courseStrategy === "lock_advance"
+                ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
+                : "bg-zinc-900 border border-zinc-800 text-indigo-400"
             }`}
           >
             <Lock className="w-6 h-6" />
@@ -1945,7 +2019,9 @@ export default function FFCSGuidedSelector({
         >
           <div
             className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${
-              courseStrategy === "one_by_one" ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30" : "bg-zinc-900 border border-zinc-800 text-indigo-400"
+              courseStrategy === "one_by_one"
+                ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
+                : "bg-zinc-900 border border-zinc-800 text-indigo-400"
             }`}
           >
             {planMode === "auto" ? <BookOpen className="w-6 h-6" /> : <Compass className="w-6 h-6" />}
@@ -2013,9 +2089,7 @@ export default function FFCSGuidedSelector({
           <div className="flex items-center justify-between p-2.5 rounded-2xl bg-purple-500/10 border border-purple-500/25 shrink-0 text-xs">
             <div className="flex items-center gap-2 min-w-0">
               <BookOpen className="w-4 h-4 text-purple-400 shrink-0" />
-              <span className="text-zinc-300 font-medium truncate">
-                Don't want to constrain slots or professors?
-              </span>
+              <span className="text-zinc-300 font-medium truncate">Don't want to constrain slots or professors?</span>
             </div>
             <button
               type="button"
@@ -2098,12 +2172,17 @@ export default function FFCSGuidedSelector({
                       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1">
                         <div className="flex flex-col gap-1 min-w-0">
                           <span className="font-black text-sm sm:text-base text-white font-outfit">{c.code}</span>
-                          <div className="flex items-center gap-1 flex-wrap">{renderCourseTypeChips(c.types || [], "sm")}</div>
+                          <div className="flex items-center gap-1 flex-wrap">
+                            {renderCourseTypeChips(c.types || [], "sm")}
+                          </div>
                         </div>
                         <div className="flex items-center gap-1.5 flex-wrap sm:shrink-0">
                           {c.batches &&
                             c.batches.map((b) => (
-                              <span key={b} className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${getBatchColorClass(b)}`}>
+                              <span
+                                key={b}
+                                className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${getBatchColorClass(b)}`}
+                              >
                                 {b}
                               </span>
                             ))}
@@ -2125,9 +2204,9 @@ export default function FFCSGuidedSelector({
                           const bundleSlots = Array.from(
                             new Set(
                               courseOpts.flatMap((co) =>
-                                splitSlots(co.SLOT).filter((s) => s.startsWith(prefix) || s.includes(prefix))
-                              )
-                            )
+                                splitSlots(co.SLOT).filter((s) => s.startsWith(prefix) || s.includes(prefix)),
+                              ),
+                            ),
                           );
                           if (bundleSlots.length === 0) return null;
                           const allChecked = bundleSlots.every((s) => sel.allowedSlots.includes(s));
@@ -2149,7 +2228,7 @@ export default function FFCSGuidedSelector({
                                       });
                                     }
                                     return { ...p, allowedSlots: newSlots };
-                                  })
+                                  }),
                                 );
                               }}
                               className={`text-[10.5px] font-bold px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
@@ -2165,43 +2244,69 @@ export default function FFCSGuidedSelector({
                       </div>
 
                       {/* Preferred Faculty Selection */}
-                      {courseOpts.length > 0 && (() => {
-                        const courseFaculties = Array.from(
-                          new Map(
-                            courseOpts
-                              .filter((co) => co.FACULTY && co.FACULTY.trim())
-                              .map((co) => [co.FACULTY.trim().toLowerCase(), co.FACULTY.trim()])
-                          ).values()
-                        ).sort();
+                      {courseOpts.length > 0 &&
+                        (() => {
+                          const courseFaculties = Array.from(
+                            new Map(
+                              courseOpts
+                                .filter((co) => co.FACULTY && co.FACULTY.trim())
+                                .map((co) => [co.FACULTY.trim().toLowerCase(), co.FACULTY.trim()]),
+                            ).values(),
+                          ).sort();
 
-                        return (
-                          <div className="space-y-1 pt-1 border-t border-purple-500/10">
-                            <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
-                              Preferred Faculty (Optional)
-                            </div>
-                            <div className="flex flex-wrap gap-1.5">
-                              {courseFaculties.map((facName) => {
-                                const isFacSelected = sel.allowedFaculty?.includes(facName);
-                                return (
+                          return (
+                            <div className="space-y-1 pt-1 border-t border-purple-500/10">
+                              <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                                Preferred Faculty (Optional)
+                              </div>
+                              <div className="flex flex-wrap gap-1.5">
+                                {courseFaculties.map((facName) => {
+                                  const isFacSelected = sel.allowedFaculty?.includes(facName);
+                                  return (
+                                    <button
+                                      key={facName}
+                                      type="button"
+                                      onClick={() => handleToggleLockFaculty(c.code, facName)}
+                                      className={`text-[10.5px] font-bold px-2.5 py-1 rounded-lg border transition-all cursor-pointer flex items-center gap-1 ${
+                                        isFacSelected
+                                          ? "bg-purple-600 text-white border-purple-500 shadow-xs"
+                                          : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-zinc-700"
+                                      }`}
+                                    >
+                                      <span>{facName}</span>
+                                      {isFacSelected && <Check className="w-3 h-3 text-white" />}
+                                    </button>
+                                  );
+                                })}
+                                {sel.allowedFaculty && sel.allowedFaculty.length > 0 && (
                                   <button
-                                    key={facName}
                                     type="button"
-                                    onClick={() => handleToggleLockFaculty(c.code, facName)}
+                                    onClick={() =>
+                                      setPriorityCourse({
+                                        code: c.code,
+                                        title: c.title,
+                                        selected: sel.allowedFaculty ?? [],
+                                      })
+                                    }
                                     className={`text-[10.5px] font-bold px-2.5 py-1 rounded-lg border transition-all cursor-pointer flex items-center gap-1 ${
-                                      isFacSelected
-                                        ? "bg-purple-600 text-white border-purple-500 shadow-xs"
+                                      facultyPriority[c.code]?.length
+                                        ? "bg-indigo-600 text-white border-indigo-500 shadow-xs"
                                         : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-zinc-700"
                                     }`}
+                                    title="Rank the selected faculties, best first — generation searches them in this order"
                                   >
-                                    <span>{facName}</span>
-                                    {isFacSelected && <Check className="w-3 h-3 text-white" />}
+                                    <ListOrdered className="w-3 h-3" />
+                                    <span>
+                                      {facultyPriority[c.code]?.length
+                                        ? `Priority (${facultyPriority[c.code].length})`
+                                        : "Prioritise"}
+                                    </span>
                                   </button>
-                                );
-                              })}
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })()}
+                          );
+                        })()}
                     </div>
                   )}
                 </div>
@@ -2223,7 +2328,9 @@ export default function FFCSGuidedSelector({
       >
         <div className="flex items-center justify-between gap-2 shrink-0">
           <div>
-            <h3 className="text-sm font-black text-white uppercase tracking-wider font-outfit">1. Select Target Courses</h3>
+            <h3 className="text-sm font-black text-white uppercase tracking-wider font-outfit">
+              1. Select Target Courses
+            </h3>
             <p className="text-xs text-zinc-400">Choose all courses you want the solver to build into your schedule.</p>
           </div>
           <span className="text-xs font-bold text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-500/20 shrink-0">
@@ -2235,9 +2342,7 @@ export default function FFCSGuidedSelector({
         <div className="flex items-center justify-between p-2.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/25 shrink-0 text-xs">
           <div className="flex items-center gap-2 min-w-0">
             <Compass className="w-4 h-4 text-indigo-400 shrink-0" />
-            <span className="text-zinc-300 font-medium truncate">
-              Prefer manual timetable creation?
-            </span>
+            <span className="text-zinc-300 font-medium truncate">Prefer manual timetable creation?</span>
           </div>
           <button
             type="button"
@@ -2405,7 +2510,9 @@ export default function FFCSGuidedSelector({
 
                     <span
                       className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition-all ${
-                        isSelected ? "bg-indigo-600 text-white border-indigo-500 shadow-xs" : "bg-zinc-900 border-zinc-800 text-zinc-400"
+                        isSelected
+                          ? "bg-indigo-600 text-white border-indigo-500 shadow-xs"
+                          : "bg-zinc-900 border-zinc-800 text-zinc-400"
                       }`}
                     >
                       {isSelected ? "Included ✓" : "Add +"}
@@ -2414,130 +2521,158 @@ export default function FFCSGuidedSelector({
                 </div>
 
                 {/* Inline Quick Slot & Faculty customization */}
-                {isExpanded && sel && (() => {
-                  const { uniqueSlots, clusterMap, availableClusters, faculties } =
-                    getCourseOfferingsData(c.code);
+                {isExpanded &&
+                  sel &&
+                  (() => {
+                    const { uniqueSlots, clusterMap, availableClusters, faculties } = getCourseOfferingsData(c.code);
 
-                  return (
-                    <div
-                      onClick={(e) => e.stopPropagation()}
-                      className="mt-2 pt-2.5 border-t border-indigo-500/25 space-y-2.5 cursor-default text-left"
-                    >
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-extrabold text-white text-[11px] font-outfit uppercase tracking-wider">
-                          Options for {c.code}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleResetCourseLocks(c.code)}
-                            className="text-[10px] text-zinc-400 hover:text-white transition-colors cursor-pointer"
-                          >
-                            Reset to Any
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setActiveConfigCourseCode(c.code);
-                              setGuidedPhase("auto_slots_faculty");
-                            }}
-                            className="text-[10px] text-indigo-400 hover:text-indigo-300 font-bold transition-colors cursor-pointer flex items-center gap-0.5"
-                          >
-                            <span>Dedicated Screen ↗</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Quick Slot Bundles */}
-                      {availableClusters.length > 0 && (
-                        <div className="space-y-1">
-                          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
-                            Slot Bundles
+                    return (
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="mt-2 pt-2.5 border-t border-indigo-500/25 space-y-2.5 cursor-default text-left"
+                      >
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-extrabold text-white text-[11px] font-outfit uppercase tracking-wider">
+                            Options for {c.code}
                           </span>
-                          <div className="flex flex-wrap gap-1">
-                            {availableClusters.map((clusterKey) => {
-                              const clusterSlots = clusterMap.get(clusterKey)?.slots || [];
-                              const allSelected =
-                                clusterSlots.length > 0 && clusterSlots.every((s) => sel.allowedSlots.includes(s));
-                              return (
-                                <button
-                                  key={clusterKey}
-                                  type="button"
-                                  onClick={() => handleToggleLockBundle(c.code, clusterSlots)}
-                                  className={`text-[10.5px] font-bold px-2 py-0.5 rounded-lg border transition-all cursor-pointer ${
-                                    allSelected
-                                      ? "bg-indigo-600 text-white border-indigo-500 shadow-xs"
-                                      : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-zinc-700"
-                                  }`}
-                                >
-                                  {clusterKey.endsWith("1") || clusterKey.endsWith("2") ? `${clusterKey} Slots` : clusterKey}
-                                </button>
-                              );
-                            })}
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleResetCourseLocks(c.code)}
+                              className="text-[10px] text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                            >
+                              Reset to Any
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveConfigCourseCode(c.code);
+                                setGuidedPhase("auto_slots_faculty");
+                              }}
+                              className="text-[10px] text-indigo-400 hover:text-indigo-300 font-bold transition-colors cursor-pointer flex items-center gap-0.5"
+                            >
+                              <span>Dedicated Screen ↗</span>
+                            </button>
                           </div>
                         </div>
-                      )}
 
-                      {/* Individual Slots */}
-                      {uniqueSlots.length > 0 && (
-                        <div className="space-y-1">
-                          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
-                            Individual Slots
-                          </span>
-                          <div className="flex flex-wrap gap-1">
-                            {uniqueSlots.map((slot) => {
-                              const checked = sel.allowedSlots.includes(slot);
-                              return (
-                                <button
-                                  key={slot}
-                                  type="button"
-                                  onClick={() => handleToggleLockSlot(c.code, slot)}
-                                  className={`text-[10px] font-bold px-2 py-0.5 rounded-md border transition-all cursor-pointer flex items-center gap-1 ${
-                                    checked
-                                      ? "bg-indigo-600/30 border-indigo-500 text-white"
-                                      : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200"
-                                  }`}
-                                >
-                                  <span>{slot}</span>
-                                  {checked && <Check className="w-2.5 h-2.5 text-indigo-400" />}
-                                </button>
-                              );
-                            })}
+                        {/* Quick Slot Bundles */}
+                        {availableClusters.length > 0 && (
+                          <div className="space-y-1">
+                            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
+                              Slot Bundles
+                            </span>
+                            <div className="flex flex-wrap gap-1">
+                              {availableClusters.map((clusterKey) => {
+                                const clusterSlots = clusterMap.get(clusterKey)?.slots || [];
+                                const allSelected =
+                                  clusterSlots.length > 0 && clusterSlots.every((s) => sel.allowedSlots.includes(s));
+                                return (
+                                  <button
+                                    key={clusterKey}
+                                    type="button"
+                                    onClick={() => handleToggleLockBundle(c.code, clusterSlots)}
+                                    className={`text-[10.5px] font-bold px-2 py-0.5 rounded-lg border transition-all cursor-pointer ${
+                                      allSelected
+                                        ? "bg-indigo-600 text-white border-indigo-500 shadow-xs"
+                                        : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-zinc-700"
+                                    }`}
+                                  >
+                                    {clusterKey.endsWith("1") || clusterKey.endsWith("2")
+                                      ? `${clusterKey} Slots`
+                                      : clusterKey}
+                                  </button>
+                                );
+                              })}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
 
-                      {/* Preferred Faculty */}
-                      {faculties.length > 0 && (
-                        <div className="space-y-1">
-                          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
-                            Preferred Faculty
-                          </span>
-                          <div className="flex flex-wrap gap-1">
-                            {faculties.map((fac) => {
-                              const isFacSelected = sel.allowedFaculty?.includes(fac.name);
-                              return (
+                        {/* Individual Slots */}
+                        {uniqueSlots.length > 0 && (
+                          <div className="space-y-1">
+                            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
+                              Individual Slots
+                            </span>
+                            <div className="flex flex-wrap gap-1">
+                              {uniqueSlots.map((slot) => {
+                                const checked = sel.allowedSlots.includes(slot);
+                                return (
+                                  <button
+                                    key={slot}
+                                    type="button"
+                                    onClick={() => handleToggleLockSlot(c.code, slot)}
+                                    className={`text-[10px] font-bold px-2 py-0.5 rounded-md border transition-all cursor-pointer flex items-center gap-1 ${
+                                      checked
+                                        ? "bg-indigo-600/30 border-indigo-500 text-white"
+                                        : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200"
+                                    }`}
+                                  >
+                                    <span>{slot}</span>
+                                    {checked && <Check className="w-2.5 h-2.5 text-indigo-400" />}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Preferred Faculty */}
+                        {faculties.length > 0 && (
+                          <div className="space-y-1">
+                            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
+                              Preferred Faculty
+                            </span>
+                            <div className="flex flex-wrap gap-1">
+                              {faculties.map((fac) => {
+                                const isFacSelected = sel.allowedFaculty?.includes(fac.name);
+                                return (
+                                  <button
+                                    key={fac.name}
+                                    type="button"
+                                    onClick={() => handleToggleLockFaculty(c.code, fac.name)}
+                                    className={`text-[10.5px] font-bold px-2.5 py-1 rounded-lg border transition-all cursor-pointer flex items-center gap-1 ${
+                                      isFacSelected
+                                        ? "bg-indigo-600 text-white border-indigo-500 shadow-xs"
+                                        : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-zinc-700"
+                                    }`}
+                                  >
+                                    <span>{fac.name}</span>
+                                    {isFacSelected && <Check className="w-3 h-3 text-white" />}
+                                  </button>
+                                );
+                              })}
+                              {sel.allowedFaculty && sel.allowedFaculty.length > 0 && (
                                 <button
-                                  key={fac.name}
                                   type="button"
-                                  onClick={() => handleToggleLockFaculty(c.code, fac.name)}
+                                  onClick={() =>
+                                    setPriorityCourse({
+                                      code: c.code,
+                                      title: c.title,
+                                      selected: sel.allowedFaculty ?? [],
+                                    })
+                                  }
                                   className={`text-[10.5px] font-bold px-2.5 py-1 rounded-lg border transition-all cursor-pointer flex items-center gap-1 ${
-                                    isFacSelected
+                                    facultyPriority[c.code]?.length
                                       ? "bg-indigo-600 text-white border-indigo-500 shadow-xs"
                                       : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-zinc-700"
                                   }`}
+                                  title="Rank the selected faculties, best first — generation searches them in this order"
                                 >
-                                  <span>{fac.name}</span>
-                                  {isFacSelected && <Check className="w-3 h-3 text-white" />}
+                                  <ListOrdered className="w-3 h-3" />
+                                  <span>
+                                    {facultyPriority[c.code]?.length
+                                      ? `Priority (${facultyPriority[c.code].length})`
+                                      : "Prioritise"}
+                                  </span>
                                 </button>
-                              );
-                            })}
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
+                        )}
+                      </div>
+                    );
+                  })()}
               </div>
             );
           })}
@@ -2580,7 +2715,7 @@ export default function FFCSGuidedSelector({
       getCourseOfferingsData(currentCode);
 
     const filteredFaculties = faculties.filter((f) =>
-      facultySearchQuery ? f.name.toLowerCase().includes(facultySearchQuery.toLowerCase()) : true
+      facultySearchQuery ? f.name.toLowerCase().includes(facultySearchQuery.toLowerCase()) : true,
     );
 
     const isSlotChecked = (slot: string) => currentLock.allowedSlots?.includes(slot) ?? false;
@@ -2633,10 +2768,7 @@ export default function FFCSGuidedSelector({
                 >
                   <span className="font-black">{lock.code}</span>
                   {(hasSlots || hasFac) && (
-                    <span
-                      className="w-1.5 h-1.5 rounded-full bg-emerald-400"
-                      title="Custom constraints configured"
-                    />
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" title="Custom constraints configured" />
                   )}
                 </button>
               );
@@ -2678,9 +2810,7 @@ export default function FFCSGuidedSelector({
           <div className="space-y-2.5">
             <div className="flex items-center justify-between">
               <div>
-                <h4 className="text-xs font-black text-white uppercase tracking-wider font-outfit">
-                  1. Allowed Slots
-                </h4>
+                <h4 className="text-xs font-black text-white uppercase tracking-wider font-outfit">1. Allowed Slots</h4>
                 <p className="text-[11px] text-zinc-400">
                   Select specific slot bundles or individual slots. Leave empty to allow any slot.
                 </p>
@@ -2690,7 +2820,7 @@ export default function FFCSGuidedSelector({
                   type="button"
                   onClick={() =>
                     updateCourseLocks((prev) =>
-                      prev.map((p) => (p.code === currentCode ? { ...p, allowedSlots: [] } : p))
+                      prev.map((p) => (p.code === currentCode ? { ...p, allowedSlots: [] } : p)),
                     )
                   }
                   className="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer"
@@ -2709,8 +2839,7 @@ export default function FFCSGuidedSelector({
                 <div className="flex flex-wrap gap-1.5">
                   {availableClusters.map((clusterKey) => {
                     const clusterSlots = clusterMap.get(clusterKey)?.slots || [];
-                    const allSelected =
-                      clusterSlots.length > 0 && clusterSlots.every((s) => isSlotChecked(s));
+                    const allSelected = clusterSlots.length > 0 && clusterSlots.every((s) => isSlotChecked(s));
 
                     return (
                       <button
@@ -2725,13 +2854,9 @@ export default function FFCSGuidedSelector({
                         title={`Toggle ${clusterKey} bundle (${clusterSlots.join(", ")})`}
                       >
                         <span>
-                          {clusterKey.endsWith("1") || clusterKey.endsWith("2")
-                            ? `${clusterKey} Slots`
-                            : clusterKey}
+                          {clusterKey.endsWith("1") || clusterKey.endsWith("2") ? `${clusterKey} Slots` : clusterKey}
                         </span>
-                        <span className="text-[10px] opacity-75 font-normal">
-                          ({clusterSlots.join(", ")})
-                        </span>
+                        <span className="text-[10px] opacity-75 font-normal">({clusterSlots.join(", ")})</span>
                       </button>
                     );
                   })}
@@ -2742,12 +2867,11 @@ export default function FFCSGuidedSelector({
                       (letter) =>
                         (clusterMap.get(`${letter}1`)?.slots.length || 0) +
                           (clusterMap.get(`${letter}2`)?.slots.length || 0) >
-                        1
+                        1,
                     )
                     .map((letter) => {
                       const seriesSlots = uniqueSlots.filter((s) => s.includes(letter));
-                      const allSelected =
-                        seriesSlots.length > 0 && seriesSlots.every((s) => isSlotChecked(s));
+                      const allSelected = seriesSlots.length > 0 && seriesSlots.every((s) => isSlotChecked(s));
 
                       return (
                         <button
@@ -2772,16 +2896,14 @@ export default function FFCSGuidedSelector({
             {/* Individual Slot Chips */}
             {uniqueSlots.length > 0 && (
               <div className="space-y-1.5 pt-1">
-                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
-                  Individual Slots
-                </span>
+                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Individual Slots</span>
                 <div className="flex flex-wrap gap-1.5">
                   {uniqueSlots.map((slot) => {
                     const checked = isSlotChecked(slot);
                     const facultyCount = new Set(
                       masterCourses
                         .filter((m) => m.CODE === currentCode && splitSlots(m.SLOT).includes(slot))
-                        .map((m) => m.FACULTY.trim().toLowerCase())
+                        .map((m) => m.FACULTY.trim().toLowerCase()),
                     ).size;
 
                     return (
@@ -2823,12 +2945,34 @@ export default function FFCSGuidedSelector({
               </div>
 
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPriorityCourse({
+                      code: currentCode,
+                      title:
+                        currentLock.title || masterCourses.find((m) => m.CODE === currentCode)?.TITLE || currentCode,
+                      selected: currentLock.allowedFaculty ?? [],
+                    })
+                  }
+                  className={`text-[10px] font-bold transition-colors cursor-pointer flex items-center gap-1 ${
+                    facultyPriority[currentCode]?.length
+                      ? "text-indigo-400 hover:text-indigo-300"
+                      : "text-zinc-400 hover:text-white"
+                  }`}
+                  title="Rank this course's faculties, best first — generation searches them in this order"
+                >
+                  <ListOrdered className="w-3 h-3" />
+                  {facultyPriority[currentCode]?.length
+                    ? `Priority (${facultyPriority[currentCode].length})`
+                    : "Prioritise Order"}
+                </button>
                 {currentLock.allowedFaculty && currentLock.allowedFaculty.length > 0 && (
                   <button
                     type="button"
                     onClick={() =>
                       updateCourseLocks((prev) =>
-                        prev.map((p) => (p.code === currentCode ? { ...p, allowedFaculty: [] } : p))
+                        prev.map((p) => (p.code === currentCode ? { ...p, allowedFaculty: [] } : p)),
                       )
                     }
                     className="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer"
@@ -2888,16 +3032,12 @@ export default function FFCSGuidedSelector({
                               {fac.name}
                             </span>
                             {fac.employeeId && (
-                              <span className="text-[10px] text-zinc-500 font-mono">
-                                #{fac.employeeId}
-                              </span>
+                              <span className="text-[10px] text-zinc-500 font-mono">#{fac.employeeId}</span>
                             )}
                           </div>
                           <div className="flex items-center gap-2 text-[10.5px] text-zinc-400 mt-0.5 flex-wrap">
                             <span>Slots: {fac.slots.join(", ")}</span>
-                            {fac.venues.length > 0 && (
-                              <span>• Venue: {fac.venues.join(", ")}</span>
-                            )}
+                            {fac.venues.length > 0 && <span>• Venue: {fac.venues.join(", ")}</span>}
                           </div>
                         </div>
                       </div>
@@ -2989,9 +3129,7 @@ export default function FFCSGuidedSelector({
 
           {/* Quick Schedule Presets */}
           <div className="space-y-1.5">
-            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
-              Quick Timing Presets
-            </span>
+            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Quick Timing Presets</span>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {quickDaySchedules.map((sched) => {
                 const isActive = autoMinStartTime === sched.start && autoMaxEndTime === sched.end;
@@ -3023,7 +3161,8 @@ export default function FFCSGuidedSelector({
             <div className="flex items-center gap-2 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-medium">
               <Clock className="w-4 h-4 shrink-0 text-amber-400" />
               <span>
-                <strong>{timeBlockedSlots.size} slots</strong> outside {autoMinStartTime} – {autoMaxEndTime} are automatically blocked for generation.
+                <strong>{timeBlockedSlots.size} slots</strong> outside {autoMinStartTime} – {autoMaxEndTime} are
+                automatically blocked for generation.
               </span>
             </div>
           ) : (
@@ -3089,9 +3228,7 @@ export default function FFCSGuidedSelector({
                 <span className="text-xs font-black text-white uppercase tracking-wider font-outfit block">
                   Latest Wrap Time (No classes after)
                 </span>
-                <span className="text-[11px] text-zinc-400">
-                  Classes ending later than this time will be excluded.
-                </span>
+                <span className="text-[11px] text-zinc-400">Classes ending later than this time will be excluded.</span>
               </div>
               <input
                 type="time"
@@ -3149,17 +3286,14 @@ export default function FFCSGuidedSelector({
       currentDayData.morningTheory.length > 0 &&
       currentDayData.morningTheory.every((s) => effectiveBlockedSlots.has(s));
     const morningLabBlocked =
-      currentDayData.morningLab.length > 0 &&
-      currentDayData.morningLab.every((s) => effectiveBlockedSlots.has(s));
+      currentDayData.morningLab.length > 0 && currentDayData.morningLab.every((s) => effectiveBlockedSlots.has(s));
     const eveningTheoryBlocked =
       currentDayData.eveningTheory.length > 0 &&
       currentDayData.eveningTheory.every((s) => effectiveBlockedSlots.has(s));
     const eveningLabBlocked =
-      currentDayData.eveningLab.length > 0 &&
-      currentDayData.eveningLab.every((s) => effectiveBlockedSlots.has(s));
+      currentDayData.eveningLab.length > 0 && currentDayData.eveningLab.every((s) => effectiveBlockedSlots.has(s));
     const dayAllBlocked =
-      currentDayData.all.length > 0 &&
-      currentDayData.all.every((s) => effectiveBlockedSlots.has(s));
+      currentDayData.all.length > 0 && currentDayData.all.every((s) => effectiveBlockedSlots.has(s));
 
     const schema = getTimetableSchema();
     const theoryPeriods = ensureLunchPeriod(schema.theory as TimetablePeriod[]);
@@ -3178,7 +3312,8 @@ export default function FFCSGuidedSelector({
                 4. Slot &amp; Day Blocking
               </h3>
               <p className="text-xs text-zinc-400">
-                Rule out whole days or specific periods. Tap any slot in the vertical timetable below to block theory or lab independently.
+                Rule out whole days or specific periods. Tap any slot in the vertical timetable below to block theory or
+                lab independently.
               </p>
             </div>
             {effectiveBlockedSlots.size > 0 && (
@@ -3339,9 +3474,7 @@ export default function FFCSGuidedSelector({
                 <span className="text-xs font-black text-white uppercase tracking-wider font-outfit block">
                   Minimum Free Half-Days
                 </span>
-                <span className="text-[11px] text-zinc-400">
-                  Mornings or afternoons with 0 scheduled classes.
-                </span>
+                <span className="text-[11px] text-zinc-400">Mornings or afternoons with 0 scheduled classes.</span>
               </div>
               <span className="text-sm font-black text-emerald-400 font-outfit">
                 {autoMinHalfDays === 0 ? "Flexible (0)" : `${autoMinHalfDays}+ Half-Days`}
@@ -3393,25 +3526,25 @@ export default function FFCSGuidedSelector({
               {[...new Set([10, 25, 50, 100, 250, 500, settings?.resultCap ?? 50])]
                 .sort((a, b) => a - b)
                 .map((cap) => {
-                const isSelected = !autoNoLimit && autoResultCap === cap;
-                return (
-                  <button
-                    key={cap}
-                    type="button"
-                    onClick={() => {
-                      setAutoNoLimit(false);
-                      setAutoResultCap(cap);
-                    }}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                      isSelected
-                        ? "bg-indigo-600 text-white border-indigo-500 shadow-xs"
-                        : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700"
-                    }`}
-                  >
-                    {cap}
-                  </button>
-                );
-              })}
+                  const isSelected = !autoNoLimit && autoResultCap === cap;
+                  return (
+                    <button
+                      key={cap}
+                      type="button"
+                      onClick={() => {
+                        setAutoNoLimit(false);
+                        setAutoResultCap(cap);
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                        isSelected
+                          ? "bg-indigo-600 text-white border-indigo-500 shadow-xs"
+                          : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700"
+                      }`}
+                    >
+                      {cap}
+                    </button>
+                  );
+                })}
 
               <button
                 type="button"
@@ -3427,7 +3560,8 @@ export default function FFCSGuidedSelector({
             </div>
             {autoNoLimit && !settings?.removeHardResultLimit && (
               <p className="mt-2 text-[10px] text-amber-300">
-                Unlimited runs still stop at 30,000 results. The Planner Settings opt-in can remove that safety ceiling, but may make the browser unstable.
+                Unlimited runs still stop at 30,000 results. The Planner Settings opt-in can remove that safety ceiling,
+                but may make the browser unstable.
               </p>
             )}
           </div>
@@ -3526,11 +3660,10 @@ export default function FFCSGuidedSelector({
                   className="mt-0.5 accent-indigo-500"
                 />
                 <span>
-                  <span className="block font-bold">
-                    Strictly {autoPreference} theory only
-                  </span>
+                  <span className="block font-bold">Strictly {autoPreference} theory only</span>
                   <span className="mt-0.5 block text-[10px] leading-snug text-zinc-400">
-                    Turn off to allow some {autoPreference === "morning" ? "evening" : "morning"} theory classes, while ranking schedules with more preferred-time theory higher. Labs are not restricted.
+                    Turn off to allow some {autoPreference === "morning" ? "evening" : "morning"} theory classes, while
+                    ranking schedules with more preferred-time theory higher. Labs are not restricted.
                   </span>
                 </span>
               </label>
@@ -3550,7 +3683,9 @@ export default function FFCSGuidedSelector({
       >
         <div className="space-y-4">
           <div>
-            <h3 className="text-sm font-black text-white uppercase tracking-wider font-outfit">3. Friends &amp; Peer Sync</h3>
+            <h3 className="text-sm font-black text-white uppercase tracking-wider font-outfit">
+              3. Friends &amp; Peer Sync
+            </h3>
             <p className="text-xs text-zinc-400">Align your generated timetable with peer schedules.</p>
           </div>
 
@@ -3577,7 +3712,12 @@ export default function FFCSGuidedSelector({
                   <p className="text-xs font-bold text-white">Maximize Shared Break Times</p>
                   <p className="text-[11px] text-zinc-400">Align lunch and free slots with friends</p>
                 </div>
-                <Switch checked={autoMaximizeFreeTime} onCheckedChange={setAutoMaximizeFreeTime} size="md" label="Maximize Breaks" />
+                <Switch
+                  checked={autoMaximizeFreeTime}
+                  onCheckedChange={setAutoMaximizeFreeTime}
+                  size="md"
+                  label="Maximize Breaks"
+                />
               </div>
             </div>
           )}
@@ -3652,7 +3792,9 @@ export default function FFCSGuidedSelector({
       >
         <div className="space-y-4">
           <div>
-            <h3 className="text-sm font-black text-white uppercase tracking-wider font-outfit">6. Generation Blueprint</h3>
+            <h3 className="text-sm font-black text-white uppercase tracking-wider font-outfit">
+              6. Generation Blueprint
+            </h3>
             <p className="text-xs text-zinc-400">Review your parameters before launching the solver.</p>
           </div>
 
@@ -3667,19 +3809,27 @@ export default function FFCSGuidedSelector({
             </div>
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-zinc-400">Class Hours</span>
-              <span className="text-xs font-mono font-bold text-white">{autoMinStartTime} – {autoMaxEndTime}</span>
+              <span className="text-xs font-mono font-bold text-white">
+                {autoMinStartTime} – {autoMaxEndTime}
+              </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-zinc-400">Blocked Slots</span>
-              <span className="text-xs font-mono font-bold text-rose-400">{effectiveBlockedSlots.size} Slots Blocked</span>
+              <span className="text-xs font-mono font-bold text-rose-400">
+                {effectiveBlockedSlots.size} Slots Blocked
+              </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-zinc-400">Min Half-Days</span>
-              <span className="text-xs font-extrabold text-emerald-400">{autoMinHalfDays === 0 ? "Flexible (0)" : `${autoMinHalfDays}+`}</span>
+              <span className="text-xs font-extrabold text-emerald-400">
+                {autoMinHalfDays === 0 ? "Flexible (0)" : `${autoMinHalfDays}+`}
+              </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-zinc-400">Max Timetables</span>
-              <span className="text-xs font-extrabold text-indigo-300">{autoNoLimit ? "Unlimited" : `${autoResultCap}`}</span>
+              <span className="text-xs font-extrabold text-indigo-300">
+                {autoNoLimit ? "Unlimited" : `${autoResultCap}`}
+              </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-zinc-400">Pacing Style</span>
@@ -3708,10 +3858,13 @@ export default function FFCSGuidedSelector({
             <div className="space-y-2">
               <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Ranking Profile</span>
               <div className="flex flex-wrap gap-1.5">
-                {[{ value: null, label: "No profile" }, ...RANKING_MODES.map((mode) => ({
-                  value: mode,
-                  label: mode,
-                }))].map((option) => (
+                {[
+                  { value: null, label: "No profile" },
+                  ...RANKING_MODES.map((mode) => ({
+                    value: mode,
+                    label: mode,
+                  })),
+                ].map((option) => (
                   <button
                     key={option.label}
                     type="button"
@@ -3888,7 +4041,7 @@ export default function FFCSGuidedSelector({
   };
 
   const renderAutoResultsCard = (isLandscape = false) => {
-    const currentVariant = stagedTimetables[selectedVariantIndex];
+    const currentVariant = autoResultsList[selectedVariantIndex];
     if (!currentVariant) return null;
 
     const schema = getTimetableSchema();
@@ -3904,11 +4057,8 @@ export default function FFCSGuidedSelector({
       .filter((s): s is number => s !== null);
 
     const liveAvgFacultyScore =
-      ratedScores.length > 0
-        ? ratedScores.reduce((sum, s) => sum + s, 0) / ratedScores.length
-        : null;
-    const avgFacultyScore =
-      currentVariant.facultySummary?.averageWPct ?? liveAvgFacultyScore;
+      ratedScores.length > 0 ? ratedScores.reduce((sum, s) => sum + s, 0) / ratedScores.length : null;
+    const avgFacultyScore = currentVariant.facultySummary?.averageWPct ?? liveAvgFacultyScore;
 
     return (
       <div
@@ -3929,7 +4079,7 @@ export default function FFCSGuidedSelector({
 
           <div className="text-center min-w-0">
             <span className="font-extrabold text-xs sm:text-sm text-white font-outfit truncate block">
-              Recommendation {selectedVariantIndex + 1} of {stagedTimetables.length}
+              Recommendation {selectedVariantIndex + 1} of {autoResultsList.length}
             </span>
             <span className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider">
               {selectedVariantIndex === 0 ? "★ Top Recommended" : "Alternative Option"}
@@ -3959,14 +4109,30 @@ export default function FFCSGuidedSelector({
 
             <button
               type="button"
-              disabled={selectedVariantIndex >= stagedTimetables.length - 1}
-              onClick={() => setSelectedVariantIndex((prev) => Math.min(stagedTimetables.length - 1, prev + 1))}
+              disabled={selectedVariantIndex >= autoResultsList.length - 1}
+              onClick={() => setSelectedVariantIndex((prev) => Math.min(autoResultsList.length - 1, prev + 1))}
               className="p-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
         </div>
+
+        {/* Drop-ladder notice: which courses these results are missing */}
+        {generationNotice && (
+          <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-start gap-2 shrink-0">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400 mt-0.5" />
+            <span>{generationNotice}</span>
+          </div>
+        )}
+
+        {/* Result filters (ported): the arrows above walk the filtered list */}
+        <FFCSResultsFilterBar
+          filters={autoResultFilters}
+          onChange={setAutoResultFilters}
+          totalCount={stagedTimetables.length}
+          visibleCount={autoResultsList.length}
+        />
 
         {/* Metrics Strip */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs shrink-0">
@@ -3994,9 +4160,7 @@ export default function FFCSGuidedSelector({
           <section className="rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-3.5 space-y-2 shrink-0">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-300">
-                  Combined ranking
-                </span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-300">Combined ranking</span>
                 <p className="text-xs text-zinc-400">
                   {currentVariant.rankingScore.toFixed(1)}/100 · unrated faculty lower review coverage
                 </p>
@@ -4086,7 +4250,14 @@ export default function FFCSGuidedSelector({
 
                   <button
                     type="button"
-                    onClick={() => onOpenFacultyReview && onOpenFacultyReview({ name: course.faculty, employeeId: course.employeeId, courseCode: course.code })}
+                    onClick={() =>
+                      onOpenFacultyReview &&
+                      onOpenFacultyReview({
+                        name: course.faculty,
+                        employeeId: course.employeeId,
+                        courseCode: course.code,
+                      })
+                    }
                     className="px-2 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-[10.5px] font-bold border border-amber-500/20 flex items-center gap-1 cursor-pointer"
                     title="View Vitfac Review"
                   >
@@ -4113,7 +4284,7 @@ export default function FFCSGuidedSelector({
   };
 
   const renderAutoTimetableViewCard = (isLandscape = false) => {
-    const currentVariant = stagedTimetables[selectedVariantIndex];
+    const currentVariant = autoResultsList[selectedVariantIndex];
     if (!currentVariant) return null;
 
     const schema = getTimetableSchema();
@@ -4148,7 +4319,7 @@ export default function FFCSGuidedSelector({
             </button>
             <div className="text-left">
               <span className="font-extrabold text-xs sm:text-sm text-white font-outfit block">
-                Timetable {selectedVariantIndex + 1} of {stagedTimetables.length}
+                Timetable {selectedVariantIndex + 1} of {autoResultsList.length}
               </span>
               <span className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider block">
                 {selectedVariantIndex === 0 ? "★ Top Recommended" : "Generated Variant"}
@@ -4156,8 +4327,8 @@ export default function FFCSGuidedSelector({
             </div>
             <button
               type="button"
-              disabled={selectedVariantIndex >= stagedTimetables.length - 1}
-              onClick={() => setSelectedVariantIndex((prev) => Math.min(stagedTimetables.length - 1, prev + 1))}
+              disabled={selectedVariantIndex >= autoResultsList.length - 1}
+              onClick={() => setSelectedVariantIndex((prev) => Math.min(autoResultsList.length - 1, prev + 1))}
               className="p-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
             >
               <ChevronRight className="w-4 h-4" />
@@ -4324,12 +4495,7 @@ export default function FFCSGuidedSelector({
                   key={tt.id}
                   role="tab"
                   aria-selected={isSelected}
-                  onClick={() =>
-                    navigateBrowsingTimetable(
-                      idx,
-                      idx >= browsingTimetableIndex ? "forward" : "backward"
-                    )
-                  }
+                  onClick={() => navigateBrowsingTimetable(idx, idx >= browsingTimetableIndex ? "forward" : "backward")}
                   className={`snap-center px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 border ${
                     isSelected
                       ? "bg-indigo-600/25 border-indigo-500/50 text-white shadow-sm ring-1 ring-indigo-500/30"
@@ -4339,9 +4505,7 @@ export default function FFCSGuidedSelector({
                   <span className="truncate max-w-[120px]">{tt.name}</span>
                   <span
                     className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${
-                      isSelected
-                        ? "bg-indigo-500/30 text-indigo-200"
-                        : "bg-zinc-800 text-zinc-400"
+                      isSelected ? "bg-indigo-500/30 text-indigo-200" : "bg-zinc-800 text-zinc-400"
                     }`}
                   >
                     {tt.courses?.length || 0}
@@ -4384,14 +4548,9 @@ export default function FFCSGuidedSelector({
                 key={c.id}
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-zinc-950/80 border border-zinc-800 text-[11px] shrink-0"
               >
-                <div
-                  className="w-2 h-2 rounded-full shrink-0"
-                  style={{ backgroundColor: c.color || "#6366f1" }}
-                />
+                <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: c.color || "#6366f1" }} />
                 <span className="font-black text-white">{c.code}</span>
-                <span className="text-zinc-400 font-medium truncate max-w-[100px]">
-                  {c.slots.join("+")}
-                </span>
+                <span className="text-zinc-400 font-medium truncate max-w-[100px]">{c.slots.join("+")}</span>
                 <span className="text-zinc-500 text-[10px]">({c.faculty})</span>
               </div>
             ))}
@@ -4419,9 +4578,7 @@ export default function FFCSGuidedSelector({
       <div className="flex items-center justify-between p-2.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/25 shrink-0 text-xs">
         <div className="flex items-center gap-2 min-w-0">
           <Wand2 className="w-4 h-4 text-indigo-400 shrink-0" />
-          <span className="text-zinc-300 font-medium truncate">
-            Want algorithm to solve combinations for you?
-          </span>
+          <span className="text-zinc-300 font-medium truncate">Want algorithm to solve combinations for you?</span>
         </div>
         <button
           type="button"
@@ -4541,8 +4698,8 @@ export default function FFCSGuidedSelector({
                   isSelected
                     ? "bg-indigo-600/15 border-indigo-500 text-white ring-1 ring-indigo-500/30"
                     : inTimetable
-                    ? "bg-zinc-950/40 border-emerald-500/30 text-zinc-300 hover:border-emerald-500/50"
-                    : "bg-zinc-950/40 border-zinc-800/80 text-zinc-300 hover:border-zinc-700 hover:bg-zinc-800/40"
+                      ? "bg-zinc-950/40 border-emerald-500/30 text-zinc-300 hover:border-emerald-500/50"
+                      : "bg-zinc-950/40 border-zinc-800/80 text-zinc-300 hover:border-zinc-700 hover:bg-zinc-800/40"
                 }`}
               >
                 <div className="min-w-0 flex-1">
@@ -4653,8 +4810,8 @@ export default function FFCSGuidedSelector({
                 isSelected
                   ? "bg-indigo-600/15 border-indigo-500 text-white shadow-md ring-1 ring-indigo-500/30"
                   : clash
-                  ? "bg-zinc-950/40 border-rose-500/30 text-zinc-300 hover:border-rose-500/50"
-                  : "bg-zinc-950/40 border-zinc-800/80 text-zinc-300 hover:border-zinc-700 hover:bg-zinc-800/40"
+                    ? "bg-zinc-950/40 border-rose-500/30 text-zinc-300 hover:border-rose-500/50"
+                    : "bg-zinc-950/40 border-zinc-800/80 text-zinc-300 hover:border-zinc-700 hover:bg-zinc-800/40"
               }`}
             >
               <div>
@@ -4734,41 +4891,50 @@ export default function FFCSGuidedSelector({
         </div>
       </div>
 
-      {selectedOffering && (() => {
-        const clash = checkClashes(splitSlots(selectedOffering.SLOT), isReplacingSlot ? selectedCourseCode : undefined);
-        if (clash) {
-          return (
-            <div className="p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-400 text-xs font-bold flex items-center gap-2.5 shadow-xs">
-              <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
-              <span><strong>Warning:</strong> {clash}</span>
-            </div>
+      {selectedOffering &&
+        (() => {
+          const clash = checkClashes(
+            splitSlots(selectedOffering.SLOT),
+            isReplacingSlot ? selectedCourseCode : undefined,
           );
-        }
-        if (isReplacingSlot && existingCourseInTimetable) {
-          return (
-            <div className="p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center justify-between gap-3 shadow-xs">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <RotateCcw className="w-4 h-4 shrink-0 text-amber-400" />
-                <div className="min-w-0">
-                  <span className="block text-white font-extrabold truncate">Replacing Active Slot</span>
-                  <span className="text-[11px] text-amber-200/80 font-normal">
-                    Replaces current slot {existingCourseInTimetable.slots.join("+")} ({existingCourseInTimetable.faculty}) with {selectedOffering.SLOT}
-                  </span>
-                </div>
+          if (clash) {
+            return (
+              <div className="p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-400 text-xs font-bold flex items-center gap-2.5 shadow-xs">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
+                <span>
+                  <strong>Warning:</strong> {clash}
+                </span>
               </div>
-              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 shrink-0">
-                Replacement
+            );
+          }
+          if (isReplacingSlot && existingCourseInTimetable) {
+            return (
+              <div className="p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center justify-between gap-3 shadow-xs">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <RotateCcw className="w-4 h-4 shrink-0 text-amber-400" />
+                  <div className="min-w-0">
+                    <span className="block text-white font-extrabold truncate">Replacing Active Slot</span>
+                    <span className="text-[11px] text-amber-200/80 font-normal">
+                      Replaces current slot {existingCourseInTimetable.slots.join("+")} (
+                      {existingCourseInTimetable.faculty}) with {selectedOffering.SLOT}
+                    </span>
+                  </div>
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 shrink-0">
+                  Replacement
+                </span>
+              </div>
+            );
+          }
+          return (
+            <div className="p-3.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-bold flex items-center gap-2.5 shadow-xs">
+              <Check className="w-4 h-4 shrink-0 text-emerald-400" />
+              <span>
+                <strong>Conflict-free:</strong> Fits cleanly into your schedule without any slot overlap!
               </span>
             </div>
           );
-        }
-        return (
-          <div className="p-3.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-bold flex items-center gap-2.5 shadow-xs">
-            <Check className="w-4 h-4 shrink-0 text-emerald-400" />
-            <span><strong>Conflict-free:</strong> Fits cleanly into your schedule without any slot overlap!</span>
-          </div>
-        );
-      })()}
+        })()}
 
       {selectedOffering && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
@@ -4778,7 +4944,12 @@ export default function FFCSGuidedSelector({
               <span>Instructor &amp; Venue</span>
             </div>
             <div className="flex items-center gap-2.5">
-              <FacultyAvatar employeeId={selectedOffering.ERP_ID} name={selectedOffering.FACULTY} size="sm" tone="indigo" />
+              <FacultyAvatar
+                employeeId={selectedOffering.ERP_ID}
+                name={selectedOffering.FACULTY}
+                size="sm"
+                tone="indigo"
+              />
               <div className="min-w-0">
                 <p className="font-extrabold text-white text-xs sm:text-sm truncate font-outfit">
                   {selectedOffering.FACULTY}
@@ -4946,8 +5117,8 @@ export default function FFCSGuidedSelector({
               {courseStrategy === "lock_advance"
                 ? "Continue to Lock Courses"
                 : planMode === "auto"
-                ? "Continue to Course Selection"
-                : "Start Adding Courses"}
+                  ? "Continue to Course Selection"
+                  : "Start Adding Courses"}
             </span>
             <ArrowRight className="w-4 h-4 shrink-0" />
           </button>
@@ -4981,8 +5152,8 @@ export default function FFCSGuidedSelector({
               {planMode === "auto"
                 ? `Configure Slots & Faculty (${effectiveCourseLocks.length})`
                 : effectiveCourseLocks.length > 0
-                ? `Continue to Course Adder (${effectiveCourseLocks.length})`
-                : "Continue to Course Adder"}
+                  ? `Continue to Course Adder (${effectiveCourseLocks.length})`
+                  : "Continue to Course Adder"}
             </span>
             <ArrowRight className="w-4 h-4 shrink-0" />
           </button>
@@ -5121,7 +5292,7 @@ export default function FFCSGuidedSelector({
     }
 
     if (guidedPhase === "auto_results" || guidedPhase === "auto_timetable_view") {
-      const currentVariant = stagedTimetables[selectedVariantIndex];
+      const currentVariant = autoResultsList[selectedVariantIndex];
       return (
         <div className="flex flex-wrap items-center gap-2 w-full">
           <button
@@ -5309,9 +5480,15 @@ export default function FFCSGuidedSelector({
               type="button"
               onClick={handleAddAnother}
               className="whitespace-nowrap py-3 sm:py-3.5 px-4 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-indigo-400 font-black text-xs shadow-lg transition-all active:scale-95 cursor-pointer font-outfit flex items-center justify-center gap-1.5 shrink-0"
-              title={isReplacingSlot ? "Replace slot and pick another course" : "Add to timetable and pick another course"}
+              title={
+                isReplacingSlot ? "Replace slot and pick another course" : "Add to timetable and pick another course"
+              }
             >
-              {isReplacingSlot ? <RotateCcw className="w-4 h-4 text-amber-400 shrink-0" /> : <PlusCircle className="w-4 h-4 shrink-0" />}
+              {isReplacingSlot ? (
+                <RotateCcw className="w-4 h-4 text-amber-400 shrink-0" />
+              ) : (
+                <PlusCircle className="w-4 h-4 shrink-0" />
+              )}
               <span className="whitespace-nowrap">{isReplacingSlot ? "Replace & Another" : "Add & Another"}</span>
             </button>
 
@@ -5325,7 +5502,9 @@ export default function FFCSGuidedSelector({
               }`}
             >
               {isReplacingSlot ? <RotateCcw className="w-4 h-4 shrink-0" /> : <Check className="w-4 h-4 shrink-0" />}
-              <span className="lg:whitespace-nowrap">{isReplacingSlot ? `Replace Slot in ${activeTimetable.name}` : `Add to ${activeTimetable.name}`}</span>
+              <span className="lg:whitespace-nowrap">
+                {isReplacingSlot ? `Replace Slot in ${activeTimetable.name}` : `Add to ${activeTimetable.name}`}
+              </span>
             </button>
           </div>
         )}
@@ -5411,7 +5590,8 @@ export default function FFCSGuidedSelector({
           Mobile-First Timetable Builder
         </h1>
         <p className="text-xs text-zinc-400 leading-relaxed font-medium">
-          Step-by-step mobile timetable designer with live clash checking, faculty ratings, and fast multi-timetable switching.
+          Step-by-step mobile timetable designer with live clash checking, faculty ratings, and fast multi-timetable
+          switching.
         </p>
       </div>
 
@@ -5447,7 +5627,6 @@ export default function FFCSGuidedSelector({
           </div>
         </div>
       </div>
-
     </div>
   );
 
@@ -5518,8 +5697,8 @@ export default function FFCSGuidedSelector({
                   currentPill === p
                     ? "w-7 bg-indigo-500 shadow-xs shadow-indigo-500/50"
                     : currentIdx > idx
-                    ? "w-2.5 bg-indigo-400/50 hover:bg-indigo-400"
-                    : "w-2 bg-zinc-800"
+                      ? "w-2.5 bg-indigo-400/50 hover:bg-indigo-400"
+                      : "w-2 bg-zinc-800"
                 }`}
                 title={`Step ${stepNum}`}
               />
@@ -5583,9 +5762,13 @@ export default function FFCSGuidedSelector({
               )}
               <span>
                 {addedJustNow.isReplacement ? (
-                  <>Replaced slot for <strong>{addedJustNow.code}</strong> in <strong>{activeTimetable.name}</strong>!</>
+                  <>
+                    Replaced slot for <strong>{addedJustNow.code}</strong> in <strong>{activeTimetable.name}</strong>!
+                  </>
                 ) : (
-                  <>Added <strong>{addedJustNow.code}</strong> to <strong>{activeTimetable.name}</strong>!</>
+                  <>
+                    Added <strong>{addedJustNow.code}</strong> to <strong>{activeTimetable.name}</strong>!
+                  </>
                 )}
               </span>
             </span>
@@ -5633,8 +5816,8 @@ export default function FFCSGuidedSelector({
                         currentPill === p
                           ? "w-7 bg-indigo-500 shadow-xs shadow-indigo-500/50"
                           : currentIdx > idx
-                          ? "w-2.5 bg-indigo-400/50 hover:bg-indigo-400"
-                          : "w-2 bg-zinc-800"
+                            ? "w-2.5 bg-indigo-400/50 hover:bg-indigo-400"
+                            : "w-2 bg-zinc-800"
                       }`}
                       title={`Step ${stepNum}`}
                     />
@@ -5674,471 +5857,559 @@ export default function FFCSGuidedSelector({
                     icon={<Sparkles className="w-6 h-6" />}
                     eyebrow={<>Phase 1 · Mode</>}
                     title={<>Choose Creation Mode</>}
-                    description={<>Choose between automated algorithmic generation or building your timetable step-by-step with real-time clash checking.</>}
-                    />
-                    </>
-                    )}
-                    {guidedPhase === "setup_timetable" && (
-                    <>
-                    <GuidedPhaseHeading
+                    description={
+                      <>
+                        Choose between automated algorithmic generation or building your timetable step-by-step with
+                        real-time clash checking.
+                      </>
+                    }
+                  />
+                </>
+              )}
+              {guidedPhase === "setup_timetable" && (
+                <>
+                  <GuidedPhaseHeading
                     tone="indigo"
                     icon={<CalendarDays className="w-6 h-6" />}
                     eyebrow={<>Phase 2 · Timetable</>}
                     title={<>Select Target Timetable</>}
-                    description={<>Choose which timetable to edit, create a new variant, or rename your existing schedules.</>}
-                    />
-                    </>
-                    )}
-                    {guidedPhase === "setup_strategy" && (
-                    <>
-                    <GuidedPhaseHeading
+                    description={
+                      <>Choose which timetable to edit, create a new variant, or rename your existing schedules.</>
+                    }
+                  />
+                </>
+              )}
+              {guidedPhase === "setup_strategy" && (
+                <>
+                  <GuidedPhaseHeading
                     tone="purple"
                     icon={<Sliders className="w-6 h-6" />}
                     eyebrow={<>Phase 3 · Strategy</>}
                     title={<>Course Strategy</>}
-                    description={<>Decide whether to lock mandatory target courses in advance or explore offerings one by one.</>}
-                    />
-                    </>
-                    )}
-                    {guidedPhase === "setup_locks" && (
-                    <>
-                    <GuidedPhaseHeading
+                    description={
+                      <>Decide whether to lock mandatory target courses in advance or explore offerings one by one.</>
+                    }
+                  />
+                </>
+              )}
+              {guidedPhase === "setup_locks" && (
+                <>
+                  <GuidedPhaseHeading
                     tone="purple"
                     icon={<Lock className="w-6 h-6" />}
                     eyebrow={<>Phase 4 · Lock Target Courses</>}
                     title={<>Lock Courses &amp; Slots</>}
-                    description={<>Select mandatory courses and optionally lock specific slot clusters (like A1 or B1 slots) or faculties.</>}
-                    />
-                    </>
-                    )}
-                    {guidedPhase === "auto_courses" && (
-                    <>
-                    <GuidedPhaseHeading
+                    description={
+                      <>
+                        Select mandatory courses and optionally lock specific slot clusters (like A1 or B1 slots) or
+                        faculties.
+                      </>
+                    }
+                  />
+                </>
+              )}
+              {guidedPhase === "auto_courses" && (
+                <>
+                  <GuidedPhaseHeading
                     tone="amber"
                     icon={<BookOpen className="w-6 h-6" />}
                     eyebrow={<>Auto Step 1 · Courses</>}
                     title={<>Choose Courses</>}
                     description={<>Select all courses you want the generator to find combinations for.</>}
-                    />
-                    </>
-                    )}
-                    {guidedPhase === "auto_slots_faculty" && (
-                    <>
-                    <GuidedPhaseHeading
+                  />
+                </>
+              )}
+              {guidedPhase === "auto_slots_faculty" && (
+                <>
+                  <GuidedPhaseHeading
                     tone="indigo"
                     icon={<Sliders className="w-6 h-6" />}
                     eyebrow={<>Auto Step 2 · Slots &amp; Faculty</>}
                     title={<>Slots &amp; Faculty</>}
-                    description={<>Optionally pick preferred slot bundles (like A1 or B1 slots) or specific professors for your selected courses.</>}
-                    />
-                    </>
-                    )}
-                    {guidedPhase === "auto_timings" && (
-                    <>
-                    <GuidedPhaseHeading
+                    description={
+                      <>
+                        Optionally pick preferred slot bundles (like A1 or B1 slots) or specific professors for your
+                        selected courses.
+                      </>
+                    }
+                  />
+                </>
+              )}
+              {guidedPhase === "auto_timings" && (
+                <>
+                  <GuidedPhaseHeading
                     tone="indigo"
                     icon={<Clock className="w-6 h-6" />}
                     eyebrow={<>Auto Step 3 · Day Timings</>}
                     title={<>Class Timings</>}
                     description={<>Set earliest start times and latest wrap-up hours using period-aligned chips.</>}
-                    />
-                    </>
-                    )}
-                    {guidedPhase === "auto_blocking" && (
-                    <>
-                    <GuidedPhaseHeading
+                  />
+                </>
+              )}
+              {guidedPhase === "auto_blocking" && (
+                <>
+                  <GuidedPhaseHeading
                     tone="rose"
                     icon={<LayoutGrid className="w-6 h-6" />}
                     eyebrow={<>Auto Step 4 · Day &amp; Slot Blocking</>}
                     title={<>Block Slots</>}
-                    description={<>Rule out whole days, mornings, or tap individual periods directly on the vertical grid.</>}
-                    />
-                    </>
-                    )}
-                    {guidedPhase === "auto_half_days" && (
-                    <>
-                    <GuidedPhaseHeading
+                    description={
+                      <>Rule out whole days, mornings, or tap individual periods directly on the vertical grid.</>
+                    }
+                  />
+                </>
+              )}
+              {guidedPhase === "auto_half_days" && (
+                <>
+                  <GuidedPhaseHeading
                     tone="emerald"
                     icon={<Sliders className="w-6 h-6" />}
                     eyebrow={<>Auto Step 5 · Half-Days &amp; Limits</>}
                     title={<>Half-Days &amp; Limits</>}
-                    description={<>Set target free half-days, search depth limits, and class distribution pacing style.</>}
-                    />
-                    </>
-                    )}
-                    {guidedPhase === "auto_social" && (
-                    <>
-                    <GuidedPhaseHeading
+                    description={
+                      <>Set target free half-days, search depth limits, and class distribution pacing style.</>
+                    }
+                  />
+                </>
+              )}
+              {guidedPhase === "auto_social" && (
+                <>
+                  <GuidedPhaseHeading
                     tone="purple"
                     icon={<Users className="w-6 h-6" />}
                     eyebrow={<>Auto Step 6 · Friends</>}
                     title={<>Peer Alignment</>}
                     description={<>Coordinate class timings and shared break slots with your friends.</>}
-                    />
-                    </>
-                    )}
-                    {guidedPhase === "auto_summary" && (
-                    <>
-                    <GuidedPhaseHeading
+                  />
+                </>
+              )}
+              {guidedPhase === "auto_summary" && (
+                <>
+                  <GuidedPhaseHeading
                     tone="indigo"
                     icon={<Wand2 className="w-6 h-6" />}
                     eyebrow={<>Auto Step 7 · Summary</>}
                     title={<>Ready to Solve</>}
                     description={<>Review your constraints and launch the algorithmic backtracking generator.</>}
-                    />
-                    </>
-                    )}
-                    {guidedPhase === "auto_results" && (
-                    <>
-                    <GuidedPhaseHeading
+                  />
+                </>
+              )}
+              {guidedPhase === "auto_results" && (
+                <>
+                  <GuidedPhaseHeading
                     tone="emerald"
                     icon={<Award className="w-6 h-6" />}
                     eyebrow={<>Auto Step 8 · Results</>}
                     title={<>Recommendations</>}
-                    description={<>Explore top-ranked conflict-free timetables, view semester faculty schedules, swap instructors, and apply to your schedule.</>}
-                    />
-                    </>
-                    )}
-                    {guidedPhase === "auto_timetable_view" && (
-                    <>
-                    <GuidedPhaseHeading
+                    description={
+                      <>
+                        Explore top-ranked conflict-free timetables, view semester faculty schedules, swap instructors,
+                        and apply to your schedule.
+                      </>
+                    }
+                  />
+                </>
+              )}
+              {guidedPhase === "auto_timetable_view" && (
+                <>
+                  <GuidedPhaseHeading
                     tone="indigo"
                     icon={<LayoutGrid className="w-6 h-6" />}
                     eyebrow={<>Auto Step 8 · Grid Counterpart</>}
                     title={<>Timetable Grid View</>}
-                    description={<>Inspect this generated variant in full vertical timetable format and cycle through variants.</>}
-                    />
-                    </>
-                    )}
-                    {guidedPhase === "manual_timetable_view" && (
-                    <>
-                    <GuidedPhaseHeading
+                    description={
+                      <>Inspect this generated variant in full vertical timetable format and cycle through variants.</>
+                    }
+                  />
+                </>
+              )}
+              {guidedPhase === "manual_timetable_view" && (
+                <>
+                  <GuidedPhaseHeading
                     tone="indigo"
                     icon={<LayoutGrid className="w-6 h-6" />}
-                    eyebrow={<>Phase {getPillsList().indexOf("manual_timetable_view") + 1} of {getPillsList().length} · Timetable Browser</>}
+                    eyebrow={
+                      <>
+                        Phase {getPillsList().indexOf("manual_timetable_view") + 1} of {getPillsList().length} ·
+                        Timetable Browser
+                      </>
+                    }
                     title={<>{(effectiveTimetables[browsingTimetableIndex] || activeTimetable)?.name || "Timetable"}</>}
-                    description={<>Browse and cycle through all your saved timetables, review slot allocations, and inspect metrics directly inside the hero.</>}
-                    />
-                    </>
-                    )}
-                    {guidedPhase === "builder" && currentStep === 1 && (
-                    <>
-                    <GuidedPhaseHeading
+                    description={
+                      <>
+                        Browse and cycle through all your saved timetables, review slot allocations, and inspect metrics
+                        directly inside the hero.
+                      </>
+                    }
+                  />
+                </>
+              )}
+              {guidedPhase === "builder" && currentStep === 1 && (
+                <>
+                  <GuidedPhaseHeading
                     tone="indigo"
                     icon={<BookOpen className="w-6 h-6" />}
-                    eyebrow={<>Phase {getPillsList().indexOf("builder_course") + 1} of {getPillsList().length} · Choose Course</>}
+                    eyebrow={
+                      <>
+                        Phase {getPillsList().indexOf("builder_course") + 1} of {getPillsList().length} · Choose Course
+                      </>
+                    }
                     title={<>Choose Course for {activeTimetable.name}</>}
-                    description={<>Browse the university catalogue or filter by your pre-locked courses for <strong className="text-white">{activeTimetable.name}</strong>.</>}
-                    />
-                    </>
-                    )}
-                    {guidedPhase === "builder" && currentStep === 2 && (
-                    <>
-                    <GuidedPhaseHeading
+                    description={
+                      <>
+                        Browse the university catalogue or filter by your pre-locked courses for{" "}
+                        <strong className="text-white">{activeTimetable.name}</strong>.
+                      </>
+                    }
+                  />
+                </>
+              )}
+              {guidedPhase === "builder" && currentStep === 2 && (
+                <>
+                  <GuidedPhaseHeading
                     tone="indigo"
                     icon={<Users className="w-6 h-6" />}
-                    eyebrow={<>Phase {getPillsList().indexOf("builder_slot") + 1} of {getPillsList().length} · Timings &amp; Profs</>}
+                    eyebrow={
+                      <>
+                        Phase {getPillsList().indexOf("builder_slot") + 1} of {getPillsList().length} · Timings &amp;
+                        Profs
+                      </>
+                    }
                     title={<>Pick Faculty &amp; Slot</>}
-                    description={<>Choose your preferred instructor and slot timing for <strong className="text-white">{selectedCourseCode}</strong> into <strong className="text-white">{activeTimetable.name}</strong>.</>}
-                    />
-                    </>
-                    )}
-                    {guidedPhase === "builder" && currentStep === 3 && (
-                    <>
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shrink-0 ${
-                    isReplacingSlot ? "bg-amber-500/10 border border-amber-500/20 text-amber-400" : "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
-                    }`}>
+                    description={
+                      <>
+                        Choose your preferred instructor and slot timing for{" "}
+                        <strong className="text-white">{selectedCourseCode}</strong> into{" "}
+                        <strong className="text-white">{activeTimetable.name}</strong>.
+                      </>
+                    }
+                  />
+                </>
+              )}
+              {guidedPhase === "builder" && currentStep === 3 && (
+                <>
+                  <div
+                    className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shrink-0 ${
+                      isReplacingSlot
+                        ? "bg-amber-500/10 border border-amber-500/20 text-amber-400"
+                        : "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
+                    }`}
+                  >
                     {isReplacingSlot ? <RotateCcw className="w-6 h-6" /> : <CheckCircle2 className="w-6 h-6" />}
-                    </div>
-                    <div>
-                    <span className={`text-[10px] font-black uppercase tracking-wider font-outfit ${isReplacingSlot ? "text-amber-400" : "text-emerald-400"}`}>
-                    Phase {getPillsList().indexOf("builder_review") + 1} of {getPillsList().length} · {isReplacingSlot ? "Replace Slot" : "Review & Place"}
+                  </div>
+                  <div>
+                    <span
+                      className={`text-[10px] font-black uppercase tracking-wider font-outfit ${isReplacingSlot ? "text-amber-400" : "text-emerald-400"}`}
+                    >
+                      Phase {getPillsList().indexOf("builder_review") + 1} of {getPillsList().length} ·{" "}
+                      {isReplacingSlot ? "Replace Slot" : "Review & Place"}
                     </span>
                     <h1 className="text-2xl lg:text-3xl font-black text-white font-outfit tracking-tight">
-                    {isReplacingSlot ? "Replace Slot" : "Review & Place"}
+                      {isReplacingSlot ? "Replace Slot" : "Review & Place"}
                     </h1>
-                    </div>
-                    <p className="text-xs text-zinc-400 font-medium leading-relaxed">
+                  </div>
+                  <p className="text-xs text-zinc-400 font-medium leading-relaxed">
                     {isReplacingSlot ? (
-                    <>This course is currently in <strong className="text-white">{activeTimetable.name}</strong>. Confirm to replace the existing slot.</>
+                      <>
+                        This course is currently in <strong className="text-white">{activeTimetable.name}</strong>.
+                        Confirm to replace the existing slot.
+                      </>
                     ) : (
-                    <>Confirm placement into <strong className="text-white">{activeTimetable.name}</strong> with community ratings and clash detection.</>
+                      <>
+                        Confirm placement into <strong className="text-white">{activeTimetable.name}</strong> with
+                        community ratings and clash detection.
+                      </>
                     )}
-                    </p>
-                    </>
-                    )}
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 w-full">
-                    {renderBottomActions()}
-                    </div>
-                    </div>
-                    {/* Right Pane (~58%) */}
-                    <div className="w-[58%] flex-1 flex items-center justify-center h-full min-h-0 pl-2 lg:pl-6 overflow-hidden">
-                    {guidedPhase === "setup_mode" && renderSetupModeCard(true)}
-                    {guidedPhase === "setup_timetable" && renderSetupTimetableCard(true)}
-                    {guidedPhase === "setup_strategy" && renderSetupStrategyCard(true)}
-                    {guidedPhase === "setup_locks" && renderSetupLocksCard(true)}
-                    {guidedPhase === "auto_courses" && renderAutoCoursesCard(true)}
-                    {guidedPhase === "auto_slots_faculty" && renderAutoSlotsFacultyCard(true)}
-                    {guidedPhase === "auto_timings" && renderAutoTimingsCard(true)}
-                    {guidedPhase === "auto_blocking" && renderAutoBlockingCard(true)}
-                    {guidedPhase === "auto_half_days" && renderAutoHalfDaysCard(true)}
-                    {guidedPhase === "auto_social" && renderAutoSocialCard(true)}
-                    {guidedPhase === "auto_summary" && renderAutoSummaryCard(true)}
-                    {guidedPhase === "auto_results" && renderAutoResultsCard(true)}
-                    {guidedPhase === "auto_timetable_view" && renderAutoTimetableViewCard(true)}
-                    {guidedPhase === "manual_timetable_view" && renderManualTimetableViewCard(true)}
-                    {guidedPhase === "builder" && currentStep === 1 && renderCourseListCard(true)}
-                    {guidedPhase === "builder" && currentStep === 2 && renderSlotOfferingsCard(true)}
-                    {guidedPhase === "builder" && currentStep === 3 && renderReviewCard(true)}
-                    </div>
-                    </div>
-                    ) : (
-                    /* Vertical Portrait Layout */
-                    <>
-                    {renderHeader()}
-                    <main className="relative z-20 w-full max-w-md sm:max-w-2xl mx-auto flex-1 flex flex-col justify-center min-h-0 my-auto py-2 sm:py-3">
-                    {isMobileViewport && !hasLaunchedHero ? (
-                    renderMobilePreflightCard()
-                    ) : (
-                    <>
-                    {guidedPhase === "setup_mode" && (
-                    <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
+                  </p>
+                </>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 w-full">{renderBottomActions()}</div>
+          </div>
+          {/* Right Pane (~58%) */}
+          <div className="w-[58%] flex-1 flex items-center justify-center h-full min-h-0 pl-2 lg:pl-6 overflow-hidden">
+            {guidedPhase === "setup_mode" && renderSetupModeCard(true)}
+            {guidedPhase === "setup_timetable" && renderSetupTimetableCard(true)}
+            {guidedPhase === "setup_strategy" && renderSetupStrategyCard(true)}
+            {guidedPhase === "setup_locks" && renderSetupLocksCard(true)}
+            {guidedPhase === "auto_courses" && renderAutoCoursesCard(true)}
+            {guidedPhase === "auto_slots_faculty" && renderAutoSlotsFacultyCard(true)}
+            {guidedPhase === "auto_timings" && renderAutoTimingsCard(true)}
+            {guidedPhase === "auto_blocking" && renderAutoBlockingCard(true)}
+            {guidedPhase === "auto_half_days" && renderAutoHalfDaysCard(true)}
+            {guidedPhase === "auto_social" && renderAutoSocialCard(true)}
+            {guidedPhase === "auto_summary" && renderAutoSummaryCard(true)}
+            {guidedPhase === "auto_results" && renderAutoResultsCard(true)}
+            {guidedPhase === "auto_timetable_view" && renderAutoTimetableViewCard(true)}
+            {guidedPhase === "manual_timetable_view" && renderManualTimetableViewCard(true)}
+            {guidedPhase === "builder" && currentStep === 1 && renderCourseListCard(true)}
+            {guidedPhase === "builder" && currentStep === 2 && renderSlotOfferingsCard(true)}
+            {guidedPhase === "builder" && currentStep === 3 && renderReviewCard(true)}
+          </div>
+        </div>
+      ) : (
+        /* Vertical Portrait Layout */
+        <>
+          {renderHeader()}
+          <main className="relative z-20 w-full max-w-md sm:max-w-2xl mx-auto flex-1 flex flex-col justify-center min-h-0 my-auto py-2 sm:py-3">
+            {isMobileViewport && !hasLaunchedHero ? (
+              renderMobilePreflightCard()
+            ) : (
+              <>
+                {guidedPhase === "setup_mode" && (
+                  <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
                     <GuidedPhaseHeading
-                    variant="portrait"
-                    tone="indigo"
-                    icon={<Sparkles className="w-6 h-6" />}
-                    title={<>Choose Creation Mode</>}
-                    description={<>Choose between automated algorithmic generation or building your timetable step-by-step.</>}
-                  />
-                {renderSetupModeCard(false)}
-              </div>
-            )}
-
-            {guidedPhase === "setup_timetable" && (
-              <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
-                <GuidedPhaseHeading
-                  variant="portrait"
-                  tone="indigo"
-                  icon={<CalendarDays className="w-6 h-6" />}
-                  title={<>Select Target Timetable</>}
-                  description={<>Pick which timetable you want to edit and save courses into.</>}
-                />
-                {renderSetupTimetableCard(false)}
-              </div>
-            )}
-
-            {guidedPhase === "setup_strategy" && (
-              <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
-                <GuidedPhaseHeading
-                  variant="portrait"
-                  tone="purple"
-                  icon={<Sliders className="w-6 h-6" />}
-                  title={<>Course Strategy</>}
-                  description={<>Choose whether to lock mandatory target courses in advance or pick courses dynamically.</>}
-                />
-                {renderSetupStrategyCard(false)}
-              </div>
-            )}
-
-            {guidedPhase === "setup_locks" && (
-              <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
-                <GuidedPhaseHeading
-                  variant="portrait"
-                  tone="purple"
-                  icon={<Lock className="w-6 h-6" />}
-                  title={<>Lock Target Courses</>}
-                  description={<>Pre-select mandatory courses and slot filters directly in this view.</>}
-                />
-                {renderSetupLocksCard(false)}
-              </div>
-            )}
-
-            {guidedPhase === "auto_courses" && (
-              <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
-                <GuidedPhaseHeading
-                  variant="portrait"
-                  tone="amber"
-                  icon={<BookOpen className="w-6 h-6" />}
-                  title={<>Select Target Courses</>}
-                  description={<>Pick the courses you want to take this semester.</>}
-                />
-                {renderAutoCoursesCard(false)}
-              </div>
-            )}
-
-            {guidedPhase === "auto_slots_faculty" && (
-              <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
-                <GuidedPhaseHeading
-                  variant="portrait"
-                  tone="indigo"
-                  icon={<Sliders className="w-6 h-6" />}
-                  title={<>Slots &amp; Faculty Options</>}
-                  description={<>Customize slot timings and faculty preferences for your selected courses.</>}
-                />
-                {renderAutoSlotsFacultyCard(false)}
-              </div>
-            )}
-
-            {guidedPhase === "auto_timings" && (
-              <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
-                <GuidedPhaseHeading
-                  variant="portrait"
-                  tone="indigo"
-                  icon={<Clock className="w-6 h-6" />}
-                  title={<>Day Timings</>}
-                  description={<>Set earliest class starts and latest wrap-up hours.</>}
-                />
-                {renderAutoTimingsCard(false)}
-              </div>
-            )}
-
-            {guidedPhase === "auto_blocking" && (
-              <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
-                <GuidedPhaseHeading
-                  variant="portrait"
-                  tone="rose"
-                  icon={<LayoutGrid className="w-6 h-6" />}
-                  title={<>Day &amp; Slot Blocking</>}
-                  description={<>Rule out days or tap slots in the vertical timetable to block them.</>}
-                />
-                {renderAutoBlockingCard(false)}
-              </div>
-            )}
-
-            {guidedPhase === "auto_half_days" && (
-              <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
-                <GuidedPhaseHeading
-                  variant="portrait"
-                  tone="emerald"
-                  icon={<Sliders className="w-6 h-6" />}
-                  title={<>Half-Days &amp; Limits</>}
-                  description={<>Set free half-days goals, generation limits, and pacing rules.</>}
-                />
-                {renderAutoHalfDaysCard(false)}
-              </div>
-            )}
-
-            {guidedPhase === "auto_social" && (
-              <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
-                <GuidedPhaseHeading
-                  variant="portrait"
-                  tone="purple"
-                  icon={<Users className="w-6 h-6" />}
-                  title={<>Friends &amp; Peer Sync</>}
-                  description={<>Sync class hours and shared break slots with your peers.</>}
-                />
-                {renderAutoSocialCard(false)}
-              </div>
-            )}
-
-            {guidedPhase === "auto_summary" && (
-              <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
-                <GuidedPhaseHeading
-                  variant="portrait"
-                  tone="indigo"
-                  icon={<Wand2 className="w-6 h-6" />}
-                  title={<>Generation Blueprint</>}
-                  description={<>Review your parameters and launch the timetable solver.</>}
-                />
-                {renderAutoSummaryCard(false)}
-              </div>
-            )}
-
-            {guidedPhase === "auto_results" && (
-              <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
-                <GuidedPhaseHeading
-                  variant="portrait"
-                  tone="emerald"
-                  icon={<Award className="w-6 h-6" />}
-                  title={<>Recommended Timetables</>}
-                  description={<>Inspect recommended variants, view faculty schedules, and apply to your schedule.</>}
-                />
-                {renderAutoResultsCard(false)}
-              </div>
-            )}
-
-            {guidedPhase === "auto_timetable_view" && (
-              <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
-                <GuidedPhaseHeading
-                  variant="portrait"
-                  tone="indigo"
-                  icon={<LayoutGrid className="w-6 h-6" />}
-                  title={<>Timetable Grid View</>}
-                  description={<>Inspect this generated timetable variant in full vertical timetable layout.</>}
-                />
-                {renderAutoTimetableViewCard(false)}
-              </div>
-            )}
-
-            {guidedPhase === "builder" && currentStep === 1 && (
-              <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
-                <GuidedPhaseHeading
-                  variant="portrait"
-                  tone="indigo"
-                  icon={<BookOpen className="w-6 h-6" />}
-                  title={<>Choose a Course</>}
-                  description={<>Search the master course catalogue or browse by discipline.</>}
-                />
-                {renderCourseListCard(false)}
-              </div>
-            )}
-
-            {guidedPhase === "builder" && currentStep === 2 && (
-              <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
-                <GuidedPhaseHeading
-                  variant="portrait"
-                  tone="indigo"
-                  icon={<Users className="w-6 h-6" />}
-                  title={<>Pick Faculty &amp; Slot</>}
-                  description={<>Choose your preferred instructor and timing for {selectedCourseCode}.</>}
-                />
-                {renderSlotOfferingsCard(false)}
-              </div>
-            )}
-
-            {guidedPhase === "builder" && currentStep === 3 && selectedOffering && selectedCourseMeta && (
-              <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
-                <div className="flex flex-col items-center gap-2 shrink-0">
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg ${
-                    isReplacingSlot ? "bg-amber-500/10 border border-amber-500/20 text-amber-400" : "bg-indigo-500/10 border border-indigo-500/20 text-indigo-400"
-                  }`}>
-                    {isReplacingSlot ? <RotateCcw className="w-6 h-6" /> : <CheckCircle2 className="w-6 h-6" />}
+                      variant="portrait"
+                      tone="indigo"
+                      icon={<Sparkles className="w-6 h-6" />}
+                      title={<>Choose Creation Mode</>}
+                      description={
+                        <>Choose between automated algorithmic generation or building your timetable step-by-step.</>
+                      }
+                    />
+                    {renderSetupModeCard(false)}
                   </div>
-                  <h1 className="text-2xl sm:text-3xl font-black text-white font-outfit tracking-tight">
-                    {isReplacingSlot ? "Replace Course Slot" : "Review & Place"}
-                  </h1>
-                  <p className="text-xs text-zinc-400 font-medium max-w-xs sm:max-w-md">
-                    {isReplacingSlot ? (
-                      <>This course is currently in <strong className="text-white">{activeTimetable.name}</strong>. Confirm to replace the existing slot.</>
-                    ) : (
-                      <>Confirm placement into <strong className="text-white">{activeTimetable.name}</strong>.</>
-                    )}
-                  </p>
-                </div>
-                {renderReviewCard(false)}
-              </div>
-            )}
+                )}
 
-            {guidedPhase === "manual_timetable_view" && (
-              <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
-                <div className="flex flex-col items-center gap-2 shrink-0">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-lg">
-                    <LayoutGrid className="w-6 h-6" />
+                {guidedPhase === "setup_timetable" && (
+                  <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
+                    <GuidedPhaseHeading
+                      variant="portrait"
+                      tone="indigo"
+                      icon={<CalendarDays className="w-6 h-6" />}
+                      title={<>Select Target Timetable</>}
+                      description={<>Pick which timetable you want to edit and save courses into.</>}
+                    />
+                    {renderSetupTimetableCard(false)}
                   </div>
-                  <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400 font-outfit">
-                    Phase {getPillsList().indexOf("manual_timetable_view") + 1} of {getPillsList().length} · Timetable Browser
-                  </span>
-                  <h1 className="text-2xl sm:text-3xl font-black text-white font-outfit tracking-tight">
-                    {(effectiveTimetables[browsingTimetableIndex] || activeTimetable)?.name || "Timetable"}
-                  </h1>
-                  <p className="text-xs text-zinc-400 font-medium max-w-xs sm:max-w-md">
-                    Browse and cycle through all your saved timetables, review slot allocations, and inspect metrics directly inside the hero.
-                  </p>
-                </div>
-                {renderManualTimetableViewCard(false)}
-              </div>
-            )}
+                )}
+
+                {guidedPhase === "setup_strategy" && (
+                  <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
+                    <GuidedPhaseHeading
+                      variant="portrait"
+                      tone="purple"
+                      icon={<Sliders className="w-6 h-6" />}
+                      title={<>Course Strategy</>}
+                      description={
+                        <>Choose whether to lock mandatory target courses in advance or pick courses dynamically.</>
+                      }
+                    />
+                    {renderSetupStrategyCard(false)}
+                  </div>
+                )}
+
+                {guidedPhase === "setup_locks" && (
+                  <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
+                    <GuidedPhaseHeading
+                      variant="portrait"
+                      tone="purple"
+                      icon={<Lock className="w-6 h-6" />}
+                      title={<>Lock Target Courses</>}
+                      description={<>Pre-select mandatory courses and slot filters directly in this view.</>}
+                    />
+                    {renderSetupLocksCard(false)}
+                  </div>
+                )}
+
+                {guidedPhase === "auto_courses" && (
+                  <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
+                    <GuidedPhaseHeading
+                      variant="portrait"
+                      tone="amber"
+                      icon={<BookOpen className="w-6 h-6" />}
+                      title={<>Select Target Courses</>}
+                      description={<>Pick the courses you want to take this semester.</>}
+                    />
+                    {renderAutoCoursesCard(false)}
+                  </div>
+                )}
+
+                {guidedPhase === "auto_slots_faculty" && (
+                  <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
+                    <GuidedPhaseHeading
+                      variant="portrait"
+                      tone="indigo"
+                      icon={<Sliders className="w-6 h-6" />}
+                      title={<>Slots &amp; Faculty Options</>}
+                      description={<>Customize slot timings and faculty preferences for your selected courses.</>}
+                    />
+                    {renderAutoSlotsFacultyCard(false)}
+                  </div>
+                )}
+
+                {guidedPhase === "auto_timings" && (
+                  <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
+                    <GuidedPhaseHeading
+                      variant="portrait"
+                      tone="indigo"
+                      icon={<Clock className="w-6 h-6" />}
+                      title={<>Day Timings</>}
+                      description={<>Set earliest class starts and latest wrap-up hours.</>}
+                    />
+                    {renderAutoTimingsCard(false)}
+                  </div>
+                )}
+
+                {guidedPhase === "auto_blocking" && (
+                  <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
+                    <GuidedPhaseHeading
+                      variant="portrait"
+                      tone="rose"
+                      icon={<LayoutGrid className="w-6 h-6" />}
+                      title={<>Day &amp; Slot Blocking</>}
+                      description={<>Rule out days or tap slots in the vertical timetable to block them.</>}
+                    />
+                    {renderAutoBlockingCard(false)}
+                  </div>
+                )}
+
+                {guidedPhase === "auto_half_days" && (
+                  <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
+                    <GuidedPhaseHeading
+                      variant="portrait"
+                      tone="emerald"
+                      icon={<Sliders className="w-6 h-6" />}
+                      title={<>Half-Days &amp; Limits</>}
+                      description={<>Set free half-days goals, generation limits, and pacing rules.</>}
+                    />
+                    {renderAutoHalfDaysCard(false)}
+                  </div>
+                )}
+
+                {guidedPhase === "auto_social" && (
+                  <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
+                    <GuidedPhaseHeading
+                      variant="portrait"
+                      tone="purple"
+                      icon={<Users className="w-6 h-6" />}
+                      title={<>Friends &amp; Peer Sync</>}
+                      description={<>Sync class hours and shared break slots with your peers.</>}
+                    />
+                    {renderAutoSocialCard(false)}
+                  </div>
+                )}
+
+                {guidedPhase === "auto_summary" && (
+                  <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
+                    <GuidedPhaseHeading
+                      variant="portrait"
+                      tone="indigo"
+                      icon={<Wand2 className="w-6 h-6" />}
+                      title={<>Generation Blueprint</>}
+                      description={<>Review your parameters and launch the timetable solver.</>}
+                    />
+                    {renderAutoSummaryCard(false)}
+                  </div>
+                )}
+
+                {guidedPhase === "auto_results" && (
+                  <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
+                    <GuidedPhaseHeading
+                      variant="portrait"
+                      tone="emerald"
+                      icon={<Award className="w-6 h-6" />}
+                      title={<>Recommended Timetables</>}
+                      description={
+                        <>Inspect recommended variants, view faculty schedules, and apply to your schedule.</>
+                      }
+                    />
+                    {renderAutoResultsCard(false)}
+                  </div>
+                )}
+
+                {guidedPhase === "auto_timetable_view" && (
+                  <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
+                    <GuidedPhaseHeading
+                      variant="portrait"
+                      tone="indigo"
+                      icon={<LayoutGrid className="w-6 h-6" />}
+                      title={<>Timetable Grid View</>}
+                      description={<>Inspect this generated timetable variant in full vertical timetable layout.</>}
+                    />
+                    {renderAutoTimetableViewCard(false)}
+                  </div>
+                )}
+
+                {guidedPhase === "builder" && currentStep === 1 && (
+                  <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
+                    <GuidedPhaseHeading
+                      variant="portrait"
+                      tone="indigo"
+                      icon={<BookOpen className="w-6 h-6" />}
+                      title={<>Choose a Course</>}
+                      description={<>Search the master course catalogue or browse by discipline.</>}
+                    />
+                    {renderCourseListCard(false)}
+                  </div>
+                )}
+
+                {guidedPhase === "builder" && currentStep === 2 && (
+                  <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
+                    <GuidedPhaseHeading
+                      variant="portrait"
+                      tone="indigo"
+                      icon={<Users className="w-6 h-6" />}
+                      title={<>Pick Faculty &amp; Slot</>}
+                      description={<>Choose your preferred instructor and timing for {selectedCourseCode}.</>}
+                    />
+                    {renderSlotOfferingsCard(false)}
+                  </div>
+                )}
+
+                {guidedPhase === "builder" && currentStep === 3 && selectedOffering && selectedCourseMeta && (
+                  <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
+                    <div className="flex flex-col items-center gap-2 shrink-0">
+                      <div
+                        className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg ${
+                          isReplacingSlot
+                            ? "bg-amber-500/10 border border-amber-500/20 text-amber-400"
+                            : "bg-indigo-500/10 border border-indigo-500/20 text-indigo-400"
+                        }`}
+                      >
+                        {isReplacingSlot ? <RotateCcw className="w-6 h-6" /> : <CheckCircle2 className="w-6 h-6" />}
+                      </div>
+                      <h1 className="text-2xl sm:text-3xl font-black text-white font-outfit tracking-tight">
+                        {isReplacingSlot ? "Replace Course Slot" : "Review & Place"}
+                      </h1>
+                      <p className="text-xs text-zinc-400 font-medium max-w-xs sm:max-w-md">
+                        {isReplacingSlot ? (
+                          <>
+                            This course is currently in <strong className="text-white">{activeTimetable.name}</strong>.
+                            Confirm to replace the existing slot.
+                          </>
+                        ) : (
+                          <>
+                            Confirm placement into <strong className="text-white">{activeTimetable.name}</strong>.
+                          </>
+                        )}
+                      </p>
+                    </div>
+                    {renderReviewCard(false)}
+                  </div>
+                )}
+
+                {guidedPhase === "manual_timetable_view" && (
+                  <div className="w-full flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 text-center min-h-0 animate-in fade-in duration-200">
+                    <div className="flex flex-col items-center gap-2 shrink-0">
+                      <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-lg">
+                        <LayoutGrid className="w-6 h-6" />
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400 font-outfit">
+                        Phase {getPillsList().indexOf("manual_timetable_view") + 1} of {getPillsList().length} ·
+                        Timetable Browser
+                      </span>
+                      <h1 className="text-2xl sm:text-3xl font-black text-white font-outfit tracking-tight">
+                        {(effectiveTimetables[browsingTimetableIndex] || activeTimetable)?.name || "Timetable"}
+                      </h1>
+                      <p className="text-xs text-zinc-400 font-medium max-w-xs sm:max-w-md">
+                        Browse and cycle through all your saved timetables, review slot allocations, and inspect metrics
+                        directly inside the hero.
+                      </p>
+                    </div>
+                    {renderManualTimetableViewCard(false)}
+                  </div>
+                )}
               </>
             )}
           </main>
@@ -6156,7 +6427,7 @@ export default function FFCSGuidedSelector({
           courseTitle={swapCourseRow.course.title}
           halves={[swapCourseRow.course]}
           masterCourses={masterCourses}
-          allTimetableCourses={stagedTimetables[selectedVariantIndex]?.courses || []}
+          allTimetableCourses={autoResultsList[selectedVariantIndex]?.courses || []}
           blockedSlots={blockedSlots}
           onSwap={(courseId, offering) => {
             handleSwapVariantFaculty(swapCourseRow.course.id, offering);
@@ -6165,6 +6436,21 @@ export default function FFCSGuidedSelector({
           onClose={() => setSwapCourseRow(null)}
           backdropZIndex={490}
           panelZIndex={500}
+        />
+      )}
+
+      {/* Per-course faculty ranking, opened from the Preferred Faculty
+          sections and the dedicated slots/faculty screen. */}
+      {priorityCourse && (
+        <FacultyPriorityModal
+          isOpen
+          onClose={() => setPriorityCourse(null)}
+          courseCode={priorityCourse.code}
+          courseTitle={priorityCourse.title}
+          offerings={masterCourses.filter((m) => m.CODE === priorityCourse.code)}
+          selectedFaculties={priorityCourse.selected}
+          priority={facultyPriority[priorityCourse.code] ?? []}
+          onSave={(order) => handlePrioritySave(priorityCourse.code, order)}
         />
       )}
     </div>

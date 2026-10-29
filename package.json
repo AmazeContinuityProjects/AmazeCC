@@ -15,11 +15,18 @@
     "start": "pnpm dlx serve@latest out -p 3001 -s",
     "serve": "pnpm dlx serve@latest out -p 3001 -s",
     "lint": "eslint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "catalogue:build": "node scripts/convert-codechef-catalogue.mjs",
+    "prepare": "husky",
     "pretypecheck": "node scripts/generate-build-info.js",
     "typecheck": "tsc --noEmit",
     "api-dev": "nodemon backend/src/server.ts",
     "api-build": "tsc -p backend/tsconfig.json",
     "api-start": "node backend/dist/server.js"
+  },
+  "lint-staged": {
+    "*.{js,jsx,mjs,cjs,ts,tsx,css,md,json}": "prettier --write"
   },
   "dependencies": {
     "@amazecontinuityprojects/amazeui": "^1.6.1",
@@ -96,8 +103,11 @@
     "eslint": "^9",
     "eslint-config-next": "^16.4.3",
     "gh-pages": "^6.3.0",
+    "husky": "^9.1.7",
     "jsdom": "^29.1.1",
+    "lint-staged": "^17.6.0",
     "nodemon": "^3.1.11",
+    "prettier": "^3.9.10",
     "serwist": "latest",
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",

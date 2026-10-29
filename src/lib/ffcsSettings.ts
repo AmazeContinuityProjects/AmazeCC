@@ -14,12 +14,7 @@ import {
 } from "./ffcsFacultyRanking";
 
 export type RankingPriority = "profile" | "faculty" | "sort" | "time";
-export const DEFAULT_RANKING_PRIORITY_ORDER: readonly RankingPriority[] = [
-  "profile",
-  "faculty",
-  "sort",
-  "time",
-];
+export const DEFAULT_RANKING_PRIORITY_ORDER: readonly RankingPriority[] = ["profile", "faculty", "sort", "time"];
 
 /**
  * The planner's preferences, in their own namespace (`ffcs_settings`).
@@ -78,6 +73,17 @@ export interface FFCSSettings {
   resultCap: number;
   /** Allow unlimited searches to exceed the default 30,000-result safety ceiling. */
   removeHardResultLimit: boolean;
+  /**
+   * Only timetables containing **every** selected course count.
+   *
+   * `true` (default) is the planner's original behaviour: the search either
+   * finds a week with all the courses or reports why it could not. `false` is
+   * FFCS-inator's "All Subjects Mode: OFF" — when the courses cannot all fit,
+   * generation retries while leaving out the lowest-priority courses (see
+   * `FFCS/logic/dropPolicy`) instead of returning nothing, and the result
+   * says which courses were left out.
+   */
+  allSubjectsMode: boolean;
   /** Whether to offer the guided tour to a first-time visitor. */
   showTour: boolean;
   /** Show a vertical timetable beside the dashboard on extra-wide screens. */
@@ -97,6 +103,7 @@ export const FFCSSettingsDefaults: Readonly<FFCSSettings> = Object.freeze({
   minHalfDays: 0,
   resultCap: DEFAULT_RESULT_LIMIT,
   removeHardResultLimit: false,
+  allSubjectsMode: true,
   showTour: true,
   showVerticalTimetableBesideWidgets: false,
   showGeneratorOptionPane: true,
@@ -133,14 +140,10 @@ function asScore(value: unknown, max: number, fallback = 0): number {
 export function sanitizeFFCSSettings(raw: unknown): FFCSSettings {
   const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   return {
-    rankingMode:
-      r.rankingMode === "none"
-        ? "none"
-        : asRankingMode(r.rankingMode) ?? FFCSSettingsDefaults.rankingMode,
-    defaultSortBy:
-      SORT_BY.includes(r.defaultSortBy as SortBy)
-        ? (r.defaultSortBy as SortBy)
-        : FFCSSettingsDefaults.defaultSortBy,
+    rankingMode: r.rankingMode === "none" ? "none" : (asRankingMode(r.rankingMode) ?? FFCSSettingsDefaults.rankingMode),
+    defaultSortBy: SORT_BY.includes(r.defaultSortBy as SortBy)
+      ? (r.defaultSortBy as SortBy)
+      : FFCSSettingsDefaults.defaultSortBy,
     exportFormat: EXPORT_FORMATS.includes(r.exportFormat as ExportFormat)
       ? (r.exportFormat as ExportFormat)
       : FFCSSettingsDefaults.exportFormat,
@@ -153,7 +156,7 @@ export function sanitizeFFCSSettings(raw: unknown): FFCSSettings {
       const supplied = Array.isArray(r.rankingPriorityOrder) ? r.rankingPriorityOrder : [];
       const unique = supplied.filter(
         (value, index): value is RankingPriority =>
-          allowed.includes(value as RankingPriority) && supplied.indexOf(value) === index
+          allowed.includes(value as RankingPriority) && supplied.indexOf(value) === index,
       );
       return [...unique, ...allowed.filter((value) => !unique.includes(value))];
     })(),
@@ -187,6 +190,7 @@ export function sanitizeFFCSSettings(raw: unknown): FFCSSettings {
       typeof r.removeHardResultLimit === "boolean"
         ? r.removeHardResultLimit
         : FFCSSettingsDefaults.removeHardResultLimit,
+    allSubjectsMode: typeof r.allSubjectsMode === "boolean" ? r.allSubjectsMode : FFCSSettingsDefaults.allSubjectsMode,
     showTour: typeof r.showTour === "boolean" ? r.showTour : FFCSSettingsDefaults.showTour,
     showVerticalTimetableBesideWidgets:
       typeof r.showVerticalTimetableBesideWidgets === "boolean"
