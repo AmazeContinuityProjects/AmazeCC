@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { writeHistoryEntry } from "./historyStack";
+import { continueBackPastDeadEntry, readHistoryOp, writeHistoryEntry } from "./historyStack";
 
 interface OverlayEntry {
   id: string;
@@ -32,8 +32,18 @@ export function useOverlayBackBoundary(id: string) {
   useEffect(() => {
     writeHistoryEntry("replace", { op: { kind: "page", id } });
 
-    const handlePopState = () => {
-      closeTopOverlayFromPop();
+    const handlePopState = (event: PopStateEvent) => {
+      if (closeTopOverlayFromPop()) return;
+      const op = readHistoryOp(event.state);
+      // An overlay entry left behind by an in-app close has nothing to dismiss:
+      // keep walking so the gesture reaches a real step. Landing on *this*
+      // route's own entry means the walk has reached the present (the sheet's
+      // entry sat above it) — back with nothing open should leave the route, so
+      // it keeps walking too. A *different* route's page entry is a real step
+      // back to that route and is left to the browser.
+      if (op?.kind === "overlay" || (op?.kind === "page" && op.id === id)) {
+        continueBackPastDeadEntry(event);
+      }
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
@@ -88,9 +98,13 @@ export function isTopOverlay(id: string): boolean {
  * example, by moving to a previous wizard step). That keeps the entry active
  * and writes a replacement history entry for the next gesture.
  *
- * Closing an overlay in-app (X, backdrop, Escape) leaves its entry behind as a
- * forward entry; the popstate handler treats a forward landing on an overlay
- * entry whose overlay is already gone as a no-op rather than re-opening it.
+ * Closing an overlay in-app (X, backdrop, Escape) deliberately leaves its
+ * entry in place rather than rewriting or rewinding it. `replaceState` cannot
+ * delete an entry, and rewinding races the next navigation (the pop lands
+ * asynchronously, after whatever the close triggered has already pushed). The
+ * entry is instead inert: the popstate handler finds no overlay to dismiss and
+ * walks back past it, so the gesture that eventually pops it still lands on a
+ * real step — see `continueBackPastDeadEntry`.
  */
 export function useOverlayBack(id: string, open: boolean, onClose: () => void | boolean) {
   const closeRef = useRef(onClose);

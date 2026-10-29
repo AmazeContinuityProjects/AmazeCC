@@ -19,6 +19,24 @@ import type { ParsedCourse } from "@/components/custom/exams/FFCS/types";
 /** The columns this app can consume, as they appear on `ParsedCourse`. */
 export type ImportableField = "CODE" | "TITLE" | "TYPE" | "CREDITS" | "SLOT" | "FACULTY" | "ROOM" | "BATCH";
 
+/**
+ * Every importable field, in sheet order.
+ *
+ * The order is the one a course list reads best in — identify, describe,
+ * classify, then where and with whom — and is what the downloadable sample
+ * sheet is built from, so the sample and this table cannot disagree.
+ */
+export const IMPORTABLE_FIELDS: readonly ImportableField[] = [
+  "CODE",
+  "TITLE",
+  "TYPE",
+  "CREDITS",
+  "SLOT",
+  "FACULTY",
+  "ROOM",
+  "BATCH",
+];
+
 /** Everything a row is required to have before it can become a course. */
 export const REQUIRED_FIELDS: readonly ImportableField[] = ["CODE", "SLOT"];
 

@@ -29,6 +29,18 @@ export const viewport: Viewport = {
   // other, because the browser simply renders those CSS pixels smaller instead
   // of scaling a subtree. A component-level `zoom: 0.85` was tried before and
   // reverted (see FFCSGuidedSelector's guided hero) for overzoom/snapping bugs.
+  //
+  // Breakpoint drift is inherent to this (it is what browser zoom-out does
+  // too): media queries and `window.innerWidth` both measure the widened
+  // layout viewport, so in DEVICE px the buckets now flip at
+  //   sm 544 (was 640) · md 653 (was 768) · lg 870 (was 1024) · xl 1088.
+  // Portrait phones (360-430 CSS px → 424-506 layout px) stay in the same
+  // bucket as before: identical structure, 15% smaller. The band that moves
+  // is small tablets (544-767 device px) and landscape phones (≥870). CSS
+  // queries and JS width checks read the same number, so they shift together
+  // and can never disagree — do NOT compensate by shifting breakpoints
+  // manually: desktop ignores this meta tag entirely, and Tailwind bakes
+  // media queries at build time, so "fixing" it would break desktop instead.
   initialScale: 0.85,
   // Pinching/zooming is left enabled on purpose: locking it (maximumScale 1 /
   // userScalable false) fails WCAG 1.4.4 and iOS ignores the lock anyway —

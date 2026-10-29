@@ -65,6 +65,7 @@ import { DAYS, COLORS, getCourseBadgeProps } from "./FFCS/constants";
 import { renderCourseTypeChips } from "./FFCS/components/CourseTypeChips";
 import { isCourseFullyAdded } from "./FFCS/utils";
 import { useFacultyReviewSheet } from "./FFCS/hooks/useFacultyReviewSheet";
+import { CourseListImportSection } from "./FFCS/components/CourseListImportSection";
 import { freeHalfDays, pairwiseSocialScore } from "@/lib/timetableMetrics";
 import {
   MORNING_BEFORE_MIN,
@@ -350,6 +351,7 @@ export default function FFCSTimetableTab({
   const [isGuidedFullScreen, setIsGuidedFullScreen] = useState(true);
   const [isLayoutModalOpen, setIsLayoutModalOpen] = useState(false);
   const [isCourseListModalOpen, setIsCourseListModalOpen] = useState(false);
+  const [isCourseImportSheetOpen, setIsCourseImportSheetOpen] = useState(false);
 
   useEffect(() => {
     onLayoutModeChange?.(layoutMode);
@@ -4084,7 +4086,49 @@ export default function FFCSTimetableTab({
                   </button>
                 );
               })}
+              <button
+                type="button"
+                onClick={() => setIsCourseImportSheetOpen(true)}
+                className="w-full flex items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-surface-secondary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-500"
+              >
+                <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-surface-secondary text-muted-foreground border-border-strong">
+                  <Upload className="w-4 h-4" />
+                </span>
+                <ListRowText
+                  title="Use your own course list"
+                  titleTag="span"
+                  subtitle="Download a sample CSV, fill it in, and import it back."
+                />
+              </button>
             </ListShell>
+          </BottomSheet>
+        )}
+      </AnimatePresence>
+
+      {/* The import flow, one level below the picker: the sample download and
+          the file input live here rather than crowding the list of reports. */}
+      <AnimatePresence>
+        {isCourseImportSheetOpen && (
+          <BottomSheet
+            onClose={() => setIsCourseImportSheetOpen(false)}
+            overlayId="ffcs-course-list-import"
+            title="Use your own course list"
+            subtitle="Download the sample, edit it, and import your list."
+            icon={<Upload className="w-5 h-5" />}
+            accent="bg-teal-500/10 text-teal-600 border-teal-500/20 dark:text-teal-400"
+            maxWidth="max-w-lg"
+          >
+            <CourseListImportSection
+              onImport={(courses) => {
+                setIsCourseImportSheetOpen(false);
+                setIsCourseListModalOpen(false);
+                handleImportCourses(courses);
+                setSuccessMsg(
+                  `Imported ${courses.length} course offering${courses.length === 1 ? "" : "s"} into your course list.`
+                );
+                setTimeout(() => setSuccessMsg(null), 4000);
+              }}
+            />
           </BottomSheet>
         )}
       </AnimatePresence>
