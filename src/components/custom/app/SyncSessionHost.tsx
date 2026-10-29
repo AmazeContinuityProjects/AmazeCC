@@ -31,7 +31,7 @@ export default function SyncSessionHost({
 
   return (
     <AnimatePresence>
-      {session.open && (
+      {session.open && session.presentation === "sheet" && (
         <SyncNotification
           message={formatSessionMessage(session.lines)}
           progress={session.progress}

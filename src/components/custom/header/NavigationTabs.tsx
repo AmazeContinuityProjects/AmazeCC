@@ -1057,7 +1057,7 @@ export default function NavigationTabs({
               <div className="flex items-center gap-0.5">
                 <button
                   onClick={handleSyncClick}
-                  className={`relative group rounded-xl px-2.5 py-1.5 transition-all duration-300 hover:scale-105 flex items-center gap-1.5 text-xs font-bold ${navButtonBase} ${
+                  className={`relative hit-expand group rounded-xl px-2.5 py-1.5 transition-all duration-300 hover:scale-105 flex items-center gap-1.5 text-xs font-bold ${navButtonBase} ${
                     isOffline
                       ? "bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-400 border border-amber-500/30"
                       : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"

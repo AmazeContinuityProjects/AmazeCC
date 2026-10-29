@@ -120,7 +120,7 @@ export default function HostelOverview({ hostelData, setHostelActiveSubTab }: Ho
         <div className="bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-5 flex flex-col justify-between shadow-2xs hover:border-sky-500/35 transition-all">
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400">Mess Dining</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400">Mess Dining</span>
               <span className="text-xs text-gray-450 dark:text-gray-400 font-semibold">{activeMeal.time}</span>
             </div>
             <div className="flex items-center gap-3">
@@ -150,7 +150,7 @@ export default function HostelOverview({ hostelData, setHostelActiveSubTab }: Ho
         {/* Card: Laundry */}
         <div className="bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-5 flex flex-col justify-between shadow-2xs hover:border-sky-500/35 transition-all">
           <div className="space-y-3">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400 block">Laundry Schedule</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400 block">Laundry Schedule</span>
             <div className="flex items-center gap-3">
               <span className="text-3xl shrink-0">🧺</span>
               <div>
@@ -162,7 +162,7 @@ export default function HostelOverview({ hostelData, setHostelActiveSubTab }: Ho
             <div className="bg-gray-100/50 dark:bg-slate-800/10 border border-gray-150 dark:border-gray-800/60 rounded-xl p-3 text-xs space-y-2">
               <div className="flex justify-between items-center text-gray-650 dark:text-gray-300">
                 <span>Active Slot today:</span>
-                <span className="font-semibold text-sky-400">Available</span>
+                <span className="font-semibold text-sky-600 dark:text-sky-400">Available</span>
               </div>
               <div className="text-[10px] text-gray-500 dark:text-gray-450 leading-relaxed">
                 Matches current calendar dates. Standard slots allocate up to two washings per week.
@@ -181,7 +181,7 @@ export default function HostelOverview({ hostelData, setHostelActiveSubTab }: Ho
         {/* Card: Leave Management */}
         <div className="bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-5 flex flex-col justify-between shadow-2xs hover:border-sky-500/35 transition-all">
           <div className="space-y-3">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400 block">Leaves & Outings</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400 block">Leaves & Outings</span>
             
             {activeLeave ? (
               <div className="space-y-3">
@@ -221,7 +221,7 @@ export default function HostelOverview({ hostelData, setHostelActiveSubTab }: Ho
         {/* Card: Room Selection & Counselling */}
         <div className="bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-5 flex flex-col justify-between shadow-2xs hover:border-sky-500/35 transition-all">
           <div className="space-y-3">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400 block">Room selection & counselling</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400 block">Room selection & counselling</span>
             <div className="flex items-center gap-3">
               <span className="text-3xl shrink-0">🤝</span>
               <div>
@@ -247,7 +247,7 @@ export default function HostelOverview({ hostelData, setHostelActiveSubTab }: Ho
         {/* Card: Hostel Information */}
         <div className="bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-5 flex flex-col justify-between shadow-2xs hover:border-sky-500/35 transition-all md:col-span-2">
           <div className="space-y-4">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400 block">Hostel Room Information</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400 block">Hostel Room Information</span>
             
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
               <div>
@@ -276,11 +276,11 @@ export default function HostelOverview({ hostelData, setHostelActiveSubTab }: Ho
                 <div className="space-y-1.5 text-[11px] text-gray-700 dark:text-gray-350">
                   <div className="flex items-center justify-between">
                     <span>Hostel Office:</span>
-                    <a href="tel:+914439931555" className="font-semibold text-sky-400 hover:underline">+91 44 3993 1555</a>
+                    <a href="tel:+914439931555" className="font-semibold text-sky-600 dark:text-sky-400 hover:underline">+91 44 3993 1555</a>
                   </div>
                   <div className="flex items-center justify-between">
                     <span>Warden Office:</span>
-                    <a href="tel:+914439931666" className="font-semibold text-sky-400 hover:underline">+91 44 3993 1666</a>
+                    <a href="tel:+914439931666" className="font-semibold text-sky-600 dark:text-sky-400 hover:underline">+91 44 3993 1666</a>
                   </div>
                   <div className="flex items-center justify-between">
                     <span>Medical / Ambulance:</span>
@@ -292,15 +292,15 @@ export default function HostelOverview({ hostelData, setHostelActiveSubTab }: Ho
               <div>
                 <p className="text-[10px] font-bold text-gray-450 uppercase mb-2">Useful Links</p>
                 <div className="space-y-1 text-[11px] text-gray-700 dark:text-gray-350">
-                  <a href="https://vtopcc.vit.ac.in/" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between hover:text-sky-400 transition-colors">
+                  <a href="https://vtopcc.vit.ac.in/" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between hover:text-sky-600 dark:hover:text-sky-600 dark:text-sky-400 transition-colors">
                     <span>VTOP Portal</span>
                     <ExternalLink size={11} className="text-gray-400" />
                   </a>
-                  <a href="#" className="flex items-center justify-between hover:text-sky-400 transition-colors">
+                  <a href="#" className="flex items-center justify-between hover:text-sky-600 dark:hover:text-sky-600 dark:text-sky-400 transition-colors">
                     <span>Mess Change Request Form</span>
                     <ChevronRight size={11} className="text-gray-400" />
                   </a>
-                  <a href="#" className="flex items-center justify-between hover:text-sky-400 transition-colors">
+                  <a href="#" className="flex items-center justify-between hover:text-sky-600 dark:hover:text-sky-600 dark:text-sky-400 transition-colors">
                     <span>Hostel Grievance Register</span>
                     <ChevronRight size={11} className="text-gray-400" />
                   </a>

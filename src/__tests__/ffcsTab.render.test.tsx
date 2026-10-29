@@ -1,6 +1,6 @@
 import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitForElementToBeRemoved, within } from "@testing-library/react";
 import FFCSTimetableTab from "../components/custom/exams/FFCSTimetableTab";
 import { getFittingStatTileCount } from "../components/custom/exams/FFCS/components/FFCSDashboardHeader";
 import { closeTopOverlayFromPop } from "../lib/overlayStack";
@@ -625,6 +625,81 @@ describe("FFCSTimetableTab", () => {
     expect(await screen.findByRole("radio", { name: /Guided Hero/ }, { timeout: 10000 })).toBeDefined();
   }, 30_000);
 
+  it("lets a student download the sample sheet and import their own CSV from the course-list picker", async () => {
+    // jsdom has no object-URL support and a real anchor click navigates; both
+    // are stubbed so the test can pin the download's filename and content.
+    const createObjectURL = vi.fn((_blob: Blob) => "blob:sample-csv");
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal("URL", { createObjectURL, revokeObjectURL });
+    let downloadedFile = "";
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
+      downloadedFile = this.download;
+    });
+
+    // The tab's own report load runs on mount; a stubbed report keeps it out
+    // of the error state, which would otherwise mask the success banner.
+    const csvContent =
+      "COURSE CODE,COURSE TITLE,TYPE,CREDITS,SLOT,FACULTY,ROOM,ERP ID\n" +
+      "BCSE101,Programming,TH,3,A1,PARTHIBAN V,AB3-101,1001\n";
+    vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true,
+      arrayBuffer: async () => new TextEncoder().encode(csvContent).buffer,
+    } as any);
+
+    render(<FFCSTimetableTab />);
+
+    const plannerMenu = within(screen.getByRole("navigation", { name: "Planner menu" }));
+    fireEvent.click(plannerMenu.getByRole("button", { name: /Switch Course List/ }));
+
+    // The import is a menu row of its own in the picker, beside the reports.
+    const importRow = screen.getByRole("button", { name: /Use your own course list/ });
+    fireEvent.click(importRow);
+
+    // Its sheet explains the shape before asking for a file: the field
+    // legend marks exactly CODE and SLOT as required.
+    expect(await screen.findByRole("heading", { name: "Use your own course list" })).toBeDefined();
+    const requiredChips = screen.getAllByTitle("Required — a row without it is dropped");
+    expect(requiredChips.map((chip) => chip.textContent)).toEqual(["CODErequired", "SLOTrequired"]);
+    const optionalChips = screen.getAllByTitle("Optional — safe to leave out");
+    expect(optionalChips.length).toBeGreaterThan(0);
+
+    // Download hands back a CSV whose headings still round-trip through the
+    // importer — the "(required)" annotation is stripped before matching.
+    fireEvent.click(screen.getByRole("button", { name: /Download sample CSV/ }));
+    expect(downloadedFile).toBe("amaze-course-list.csv");
+    const blob = createObjectURL.mock.calls[0][0] as Blob;
+    expect(await blob.text()).toContain("CODE (required)");
+    expect(revokeObjectURL).toHaveBeenCalledWith("blob:sample-csv");
+
+    // A corrected file goes in through the section's own input and previews
+    // before anything joins the list. `files` is defined directly rather than
+    // passed through fireEvent's target — jsdom's file input does not accept a
+    // plain array that way.
+    const uploadCsv =
+      "Course Code,Course Title,Slot\n" +
+      "BCSE999,Imported Course,A2+TA2\n";
+    const file = new File([uploadCsv as BlobPart], "my-list.csv", { type: "text/csv" });
+    if (typeof file.text !== "function") {
+      Object.defineProperty(file, "text", { value: async () => uploadCsv });
+    }
+    const input = screen.getByLabelText("Upload course list file") as HTMLInputElement;
+    Object.defineProperty(input, "files", { configurable: true, value: [file] });
+    fireEvent.change(input);
+
+    expect(await screen.findByText(/course ready from/, {}, { timeout: 10000 })).toBeDefined();
+    expect(screen.getByText("my-list.csv")).toBeDefined();
+
+    fireEvent.click(screen.getByRole("button", { name: /Import 1 course/ }));
+
+    // The picker closes (framer-motion plays the exit, so wait for it) and
+    // the tab confirms; the row joined the master list.
+    await waitForElementToBeRemoved(
+      () => screen.getByRole("button", { name: /Download sample CSV/ }),
+      { timeout: 5000 }
+    );
+    expect(screen.getByText(/Imported 1 course offering into your course list\./)).toBeDefined();
+  }, 30_000);
+
   it("renames and deletes timetables inside the Select Timetable sheet", () => {
     // jsdom's confirm exists but answers "no" forever. Every delete rides on
     // the tab's own handler, so the user's yes is the one decision faked here
@@ -777,7 +852,7 @@ describe("FFCSTimetableTab", () => {
     const courseOption = await screen.findByText("BCSE101", {}, { timeout: 5000 });
     fireEvent.click(courseOption);
     expect(screen.getByRole("region", { name: "Configure Selected Course widget" })).toBeDefined();
-    expect(screen.getByText("Faculty, slots & timetable conflicts")).toBeDefined();
+    expect(screen.getByText("Recommended faculty, slots & timetable fit")).toBeDefined();
     expect(screen.getAllByText(/A1/).length).toBeGreaterThan(0);
 
     // Step 2 appears, open Slot Search

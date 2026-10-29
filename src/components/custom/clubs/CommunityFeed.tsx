@@ -182,6 +182,7 @@ export default function CommunityFeed({
       actions={
         <IconButton
           title="Reload feed"
+          disabled={loading}
           onClick={() => {
             setLoading(true);
             fetchFeed(IDs?.VtopUsername);

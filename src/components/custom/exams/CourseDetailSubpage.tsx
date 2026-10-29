@@ -1097,7 +1097,7 @@ export default function CourseDetailSubpage({
         {(faculty || venue) && (
           <div className="space-y-0.5">
             {faculty && (
-              <p className="text-xs font-bold text-text-heading truncate">{faculty}</p>
+              <p title={faculty} className="text-xs font-bold text-text-heading truncate">{faculty}</p>
             )}
             {venue && (
               <p className="text-[10px] text-text-muted font-medium">

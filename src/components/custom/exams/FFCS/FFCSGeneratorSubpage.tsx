@@ -2324,7 +2324,7 @@ export function FFCSGeneratorSubpage({
               })()}
 
               {/* Left Column: Courses Selection */}
-              <div id={generatorViewMode === "modern" && activeGeneratorSection === "courses" && !activeLockerCode ? "generator-active-panel" : undefined} role={generatorViewMode === "modern" && !activeLockerCode ? "tabpanel" : undefined} aria-labelledby={generatorViewMode === "modern" && !activeLockerCode ? `generator-tab-${activeGeneratorSection}` : undefined} className={`flex min-w-0 flex-col gap-6 ${generatorViewMode === "modern" ? `${mobileSectionOpen ? "flex row-start-1" : "hidden"} ${showGeneratorSection("courses") && !activeLockerCode ? "lg:flex lg:row-start-1 lg:col-start-2" : "lg:hidden"}` : ""}`}>
+              <div id={generatorViewMode === "modern" && activeGeneratorSection === "courses" && !activeLockerCode ? "generator-active-panel" : undefined} role={generatorViewMode === "modern" && activeGeneratorSection === "courses" && !activeLockerCode ? "tabpanel" : undefined} aria-labelledby={generatorViewMode === "modern" && activeGeneratorSection === "courses" && !activeLockerCode ? `generator-tab-${activeGeneratorSection}` : undefined} className={`flex min-w-0 flex-col gap-6 ${generatorViewMode === "modern" ? `${mobileSectionOpen && showGeneratorSection("courses") && !activeLockerCode ? "flex row-start-1" : "hidden"} ${showGeneratorSection("courses") && !activeLockerCode ? "lg:flex lg:row-start-1 lg:col-start-2" : "lg:hidden"}` : ""}`}>
                 {/* The panel is a plain region, not a card: every widget inside
                     (list shells, course cards, schedule blocks) is the card
                     level, so a card here would be a card in a card. */}
@@ -2539,7 +2539,7 @@ export function FFCSGeneratorSubpage({
               </div>
 
               {/* Right Column: Preferences & Social */}
-              <div id={generatorViewMode === "modern" && activeGeneratorSection !== "courses" ? "generator-active-panel" : undefined} role={generatorViewMode === "modern" && activeGeneratorSection !== "courses" ? "tabpanel" : undefined} aria-labelledby={generatorViewMode === "modern" && activeGeneratorSection !== "courses" ? `generator-tab-${activeGeneratorSection}` : undefined} className={`flex min-w-0 flex-col gap-6 ${generatorViewMode === "modern" ? `${mobileSectionOpen ? "flex row-start-1" : "hidden"} ${activeGeneratorSection === "courses" ? "lg:hidden" : "lg:flex lg:row-start-1 lg:col-start-2"}` : ""}`}>
+              <div id={generatorViewMode === "modern" && activeGeneratorSection !== "courses" && !activeLockerCode ? "generator-active-panel" : undefined} role={generatorViewMode === "modern" && activeGeneratorSection !== "courses" && !activeLockerCode ? "tabpanel" : undefined} aria-labelledby={generatorViewMode === "modern" && activeGeneratorSection !== "courses" && !activeLockerCode ? `generator-tab-${activeGeneratorSection}` : undefined} className={`flex min-w-0 flex-col gap-6 ${generatorViewMode === "modern" ? `${mobileSectionOpen && activeGeneratorSection !== "courses" && !activeLockerCode ? "flex row-start-1" : "hidden"} ${activeGeneratorSection === "courses" ? "lg:hidden" : "lg:flex lg:row-start-1 lg:col-start-2"}` : ""}`}>
                 
                 {/* General Preferences */}
                 {/* Plain region on the page background — the list shells and
@@ -3100,7 +3100,7 @@ export function FFCSGeneratorSubpage({
             )}
           </div>
           {generatorViewMode === "modern" && !isReviewing && !isCompareModalOpen && !generatorPreviewTimetable && (
-            <div className="fixed inset-x-0 bottom-0 z-[240] px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] bg-surface/95 backdrop-blur-xl border-t border-border-strong/70 shadow-[0_-12px_28px_-16px_rgba(15,23,42,0.4)] lg:hidden">
+            <div className="ffcs-bottom-bar fixed inset-x-0 bottom-0 z-[240] px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] bg-surface/95 backdrop-blur-xl border-t border-border-strong/70 shadow-[0_-12px_28px_-16px_rgba(15,23,42,0.4)] lg:hidden">
               <button
                 type="button"
                 onClick={() => setIsRunSummaryOpen(true)}

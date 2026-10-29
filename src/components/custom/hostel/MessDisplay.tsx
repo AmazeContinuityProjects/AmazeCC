@@ -431,7 +431,7 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
                           <div className="flex items-center gap-2">
                             <h3 className="font-bold text-zinc-900 dark:text-white text-sm font-outfit">{meal.name}</h3>
                             {isCurrentNow && (
-                              <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                              <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                                 Serving Now
                               </span>
                             )}
@@ -482,7 +482,7 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
                           </div>
                         </div>
                         {isCurrentNow && (
-                          <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
                             Active
                           </span>
                         )}

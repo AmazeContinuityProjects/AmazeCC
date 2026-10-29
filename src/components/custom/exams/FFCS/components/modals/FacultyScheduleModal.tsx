@@ -282,7 +282,7 @@ export function FacultyScheduleModal({
                               type="button"
                               onClick={() => setSelectedSwapOffering(offering)}
                               title={countTitle}
-                              className="inline-flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-surface-secondary/70 border border-border-strong/70 text-muted-foreground hover:text-amber-500 hover:border-amber-500/40 transition-colors shrink-0 cursor-pointer"
+                              className="relative hit-expand inline-flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-surface-secondary/70 border border-border-strong/70 text-muted-foreground hover:text-amber-500 hover:border-amber-500/40 transition-colors shrink-0 cursor-pointer"
                             >
                               <Users className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-amber-500 shrink-0" />
                               <span>{count}</span>

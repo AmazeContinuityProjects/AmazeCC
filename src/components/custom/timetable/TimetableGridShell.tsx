@@ -118,7 +118,7 @@ export default function TimetableGridShell({
                 scope="col"
                 className={cn(
                   "sticky left-0 top-0 z-30 rounded-lg bg-white px-1 py-1 font-black uppercase tracking-wider text-zinc-400 dark:bg-zinc-950 dark:text-zinc-500",
-                  compact ? "w-12 min-w-12 text-[8px]" : "w-14 min-w-14 text-[9px]"
+                  compact ? "w-12 min-w-12 text-[9px]" : "w-14 min-w-14 text-[9px]"
                 )}
               >
                 Time
@@ -145,7 +145,7 @@ export default function TimetableGridShell({
                       <span
                         className={cn(
                           "mt-0.5 block font-bold leading-none opacity-70",
-                          compact ? "text-[8px]" : "text-[9px]"
+                          compact ? "text-[9px]" : "text-[9px]"
                         )}
                       >
                         {date.getDate()}
@@ -208,7 +208,7 @@ export default function TimetableGridShell({
                         <span className="block text-[9px] font-bold leading-tight text-zinc-600 dark:text-zinc-300">
                           {band.startLabel || "—"}
                         </span>
-                        <span className="block text-[8px] font-medium leading-tight text-zinc-400 dark:text-zinc-500">
+                        <span className="block text-[9px] font-medium leading-tight text-zinc-400 dark:text-zinc-500">
                           {band.endLabel}
                         </span>
                       </>

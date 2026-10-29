@@ -214,7 +214,7 @@ function BusDetailSheet({ bus, onClose }: { bus: BusRoute; onClose: () => void }
         <span className="inline-flex items-center gap-2 flex-wrap">
           <ToneBadge tone={routeTone(bus.type)}>{bus.type}</ToneBadge>
           {bus.busLocation ? (
-            <span className="text-[11px] font-medium text-text-secondary dark:text-text-muted truncate max-w-32">
+            <span title={bus.busLocation} className="text-[11px] font-medium text-text-secondary dark:text-text-muted truncate max-w-32">
               {bus.busLocation}
             </span>
           ) : null}

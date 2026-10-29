@@ -123,7 +123,7 @@ export default function TaskCard({
               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60">
                 {task.courseCode}
                 {task.component !== "both" && (
-                  <span className="opacity-70 ml-1 uppercase text-[8.5px]">
+                  <span className="opacity-70 ml-1 uppercase text-[10px]">
                     ({task.component})
                   </span>
                 )}

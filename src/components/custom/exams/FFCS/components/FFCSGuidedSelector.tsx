@@ -3046,6 +3046,7 @@ export default function FFCSGuidedSelector({
               </div>
               <input
                 type="time"
+                aria-label="Earliest class start time"
                 value={autoMinStartTime}
                 onChange={(e) => {
                   const val = e.target.value;
@@ -3094,6 +3095,7 @@ export default function FFCSGuidedSelector({
               </div>
               <input
                 type="time"
+                aria-label="Latest class end time"
                 value={autoMaxEndTime}
                 onChange={(e) => {
                   const val = e.target.value;
@@ -5168,10 +5170,10 @@ export default function FFCSGuidedSelector({
             type="button"
             disabled={!currentVariant}
             onClick={() => currentVariant && handleApplyVariant(currentVariant)}
-            className="flex-1 min-w-[260px] whitespace-nowrap py-3.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm shadow-xl shadow-emerald-600/20 transition-all active:scale-95 cursor-pointer font-outfit tracking-wide flex items-center justify-center gap-2 shrink-0"
+            className="flex-1 min-w-[260px] lg:whitespace-nowrap py-3.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm shadow-xl shadow-emerald-600/20 transition-all active:scale-95 cursor-pointer font-outfit tracking-wide flex items-center justify-center gap-2 shrink-0"
           >
             <Check className="w-4 h-4 shrink-0" />
-            <span className="whitespace-nowrap">Apply This Recommendation to {activeTimetable.name} 🚀</span>
+            <span className="lg:whitespace-nowrap">Apply This Recommendation to {activeTimetable.name} 🚀</span>
           </button>
         </div>
       );
@@ -5316,14 +5318,14 @@ export default function FFCSGuidedSelector({
             <button
               type="button"
               onClick={handleConfirmAdd}
-              className={`flex-1 min-w-[200px] whitespace-nowrap py-3.5 px-4 sm:px-5 rounded-2xl text-white font-black text-xs sm:text-sm shadow-xl transition-all active:scale-95 cursor-pointer font-outfit tracking-wide flex items-center justify-center gap-2 shrink-0 ${
+              className={`flex-1 min-w-[200px] lg:whitespace-nowrap py-3.5 px-4 sm:px-5 rounded-2xl text-white font-black text-xs sm:text-sm shadow-xl transition-all active:scale-95 cursor-pointer font-outfit tracking-wide flex items-center justify-center gap-2 shrink-0 ${
                 isReplacingSlot
                   ? "bg-amber-600 hover:bg-amber-700 shadow-amber-600/20"
                   : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/20"
               }`}
             >
               {isReplacingSlot ? <RotateCcw className="w-4 h-4 shrink-0" /> : <Check className="w-4 h-4 shrink-0" />}
-              <span className="whitespace-nowrap">{isReplacingSlot ? `Replace Slot in ${activeTimetable.name}` : `Add to ${activeTimetable.name}`}</span>
+              <span className="lg:whitespace-nowrap">{isReplacingSlot ? `Replace Slot in ${activeTimetable.name}` : `Add to ${activeTimetable.name}`}</span>
             </button>
           </div>
         )}

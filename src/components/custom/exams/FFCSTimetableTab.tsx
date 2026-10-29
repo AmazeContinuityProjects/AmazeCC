@@ -65,6 +65,7 @@ import { DAYS, COLORS, getCourseBadgeProps } from "./FFCS/constants";
 import { renderCourseTypeChips } from "./FFCS/components/CourseTypeChips";
 import { isCourseFullyAdded } from "./FFCS/utils";
 import { useFacultyReviewSheet } from "./FFCS/hooks/useFacultyReviewSheet";
+import { CourseListImportSection } from "./FFCS/components/CourseListImportSection";
 import { freeHalfDays, pairwiseSocialScore } from "@/lib/timetableMetrics";
 import {
   MORNING_BEFORE_MIN,
@@ -350,6 +351,7 @@ export default function FFCSTimetableTab({
   const [isGuidedFullScreen, setIsGuidedFullScreen] = useState(true);
   const [isLayoutModalOpen, setIsLayoutModalOpen] = useState(false);
   const [isCourseListModalOpen, setIsCourseListModalOpen] = useState(false);
+  const [isCourseImportSheetOpen, setIsCourseImportSheetOpen] = useState(false);
 
   useEffect(() => {
     onLayoutModeChange?.(layoutMode);
@@ -1973,7 +1975,7 @@ export default function FFCSTimetableTab({
                   onClick={() => setIsLayoutModalOpen(true)}
                   title="Choose planner layout experience (Guided Hero vs Standard View)"
                   aria-label="Choose layout mode"
-                  className="h-8 w-8 rounded-xl border border-border-strong/70 bg-surface hover:bg-surface-secondary text-muted-foreground hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center justify-center transition-colors shadow-2xs cursor-pointer"
+                  className="relative hit-expand h-8 w-8 rounded-xl border border-border-strong/70 bg-surface hover:bg-surface-secondary text-muted-foreground hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center justify-center transition-colors shadow-2xs cursor-pointer"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                 </button>
@@ -3559,7 +3561,7 @@ export default function FFCSTimetableTab({
                           <button
                             type="button"
                             onClick={() => { setSheetEditValue(t.name); setSheetEditingId(t.id); }}
-                            className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-text-heading hover:bg-surface-secondary transition-colors"
+                            className="relative hit-expand w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-text-heading hover:bg-surface-secondary transition-colors"
                             title={`Rename ${t.name}`}
                             aria-label={`Rename ${t.name}`}
                           >
@@ -3568,7 +3570,7 @@ export default function FFCSTimetableTab({
                           <button
                             type="button"
                             onClick={() => deleteTimetable(t.id)}
-                            className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                            className="relative hit-expand w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors"
                             title={`Delete ${t.name}`}
                             aria-label={`Delete ${t.name}`}
                           >
@@ -3586,7 +3588,7 @@ export default function FFCSTimetableTab({
                 </div>
               )}
             </div>
-            <div className="sticky bottom-0 z-10 -mx-4 sm:-mx-5 mt-1 px-4 sm:px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-border-strong bg-white/95 dark:bg-zinc-950/95 backdrop-blur flex flex-wrap justify-between items-center gap-2">
+            <div className="ffcs-bottom-bar sticky bottom-0 z-10 -mx-4 sm:-mx-5 mt-1 px-4 sm:px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-border-strong bg-white/95 dark:bg-zinc-950/95 backdrop-blur flex flex-wrap justify-between items-center gap-2">
               <span className="text-xs text-muted-foreground">{timetables.length} timetable{timetables.length !== 1 ? 's' : ''}</span>
               <div className="flex items-center gap-2">
                 <button
@@ -3763,7 +3765,7 @@ export default function FFCSTimetableTab({
               {manualLinks.length > 0 && (
                 <div className="mt-6">
                   <h4 className="text-sm font-semibold mb-2">Parsed Links Preview ({manualLinks.length})</h4>
-                  <div className="bg-surface-secondary/30 border border-border-strong rounded-xl overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
+                  <div className="bg-surface-secondary/30 border border-border-strong rounded-xl overflow-x-auto max-h-48 overflow-y-auto custom-scrollbar">
                     <table className="w-full text-left text-xs">
                       <thead className="bg-surface-secondary/50 border-b border-border-strong sticky top-0">
                         <tr>
@@ -4084,7 +4086,49 @@ export default function FFCSTimetableTab({
                   </button>
                 );
               })}
+              <button
+                type="button"
+                onClick={() => setIsCourseImportSheetOpen(true)}
+                className="w-full flex items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-surface-secondary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-500"
+              >
+                <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-surface-secondary text-muted-foreground border-border-strong">
+                  <Upload className="w-4 h-4" />
+                </span>
+                <ListRowText
+                  title="Use your own course list"
+                  titleTag="span"
+                  subtitle="Download a sample CSV, fill it in, and import it back."
+                />
+              </button>
             </ListShell>
+          </BottomSheet>
+        )}
+      </AnimatePresence>
+
+      {/* The import flow, one level below the picker: the sample download and
+          the file input live here rather than crowding the list of reports. */}
+      <AnimatePresence>
+        {isCourseImportSheetOpen && (
+          <BottomSheet
+            onClose={() => setIsCourseImportSheetOpen(false)}
+            overlayId="ffcs-course-list-import"
+            title="Use your own course list"
+            subtitle="Download the sample, edit it, and import your list."
+            icon={<Upload className="w-5 h-5" />}
+            accent="bg-teal-500/10 text-teal-600 border-teal-500/20 dark:text-teal-400"
+            maxWidth="max-w-lg"
+          >
+            <CourseListImportSection
+              onImport={(courses) => {
+                setIsCourseImportSheetOpen(false);
+                setIsCourseListModalOpen(false);
+                handleImportCourses(courses);
+                setSuccessMsg(
+                  `Imported ${courses.length} course offering${courses.length === 1 ? "" : "s"} into your course list.`
+                );
+                setTimeout(() => setSuccessMsg(null), 4000);
+              }}
+            />
           </BottomSheet>
         )}
       </AnimatePresence>

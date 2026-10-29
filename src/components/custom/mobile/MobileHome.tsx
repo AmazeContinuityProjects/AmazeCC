@@ -445,7 +445,7 @@ export default function MobileHome({
             <p className={`text-xl font-black text-zinc-900 dark:text-white leading-none mt-1 transition-all duration-300 ${settings?.CGPAHidden || settings?.blurGrades ? "blur-[5px] select-none hover:blur-none" : ""}`}>
               {marksData?.cgpa?.cgpa ? Number(marksData.cgpa.cgpa).toFixed(2) : "—"}
             </p>
-            <span className="text-[8px] text-zinc-400 dark:text-zinc-500 font-bold leading-none">VTOP Verified</span>
+            <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-bold leading-none">VTOP Verified</span>
           </button>
         ) : null}
 
@@ -456,7 +456,7 @@ export default function MobileHome({
           <p className={`text-xl font-black text-zinc-900 dark:text-white leading-none mt-1 transition-all duration-300 ${settings?.blurGrades ? "blur-[5px] select-none hover:blur-none" : ""}`}>
             {marksData?.cgpa?.creditsEarned ? Number(marksData.cgpa.creditsEarned) : "—"}
           </p>
-          <span className="text-[8px] text-zinc-400 dark:text-zinc-500 font-bold leading-none">Total Degree</span>
+          <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-bold leading-none">Total Degree</span>
         </div>
 
         {/* OD Hours Card */}
@@ -474,7 +474,7 @@ export default function MobileHome({
               ? ODhoursData.reduce((sum: number, day: any) => sum + day.total, 0)
               : 0)} hrs
           </p>
-          <span className="text-[8px] text-zinc-400 dark:text-zinc-500 font-bold leading-none font-outfit">On-Duty History</span>
+          <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-bold leading-none font-outfit">On-Duty History</span>
         </button>
       </div>
     );
@@ -503,7 +503,7 @@ export default function MobileHome({
             <span className="text-base font-black text-gray-900 dark:text-white leading-none font-outfit">
               {overallAttendance.percentage.toFixed(0)}%
             </span>
-            <span className="text-[8px] text-gray-400 dark:text-gray-500 font-extrabold uppercase mt-0.5">Overall</span>
+            <span className="text-[10px] text-gray-400 dark:text-gray-500 font-extrabold uppercase mt-0.5">Overall</span>
           </div>
         </div>
         <div className="flex-1 min-w-0 text-left">
@@ -524,7 +524,7 @@ export default function MobileHome({
           </div>
           <button 
             onClick={() => { setActiveTab("attendance"); setActiveAttendanceSubTab("attendance"); }}
-            className="mt-3.5 flex items-center gap-1.5 text-[10px] font-black text-indigo-600 dark:text-indigo-400 bg-white/50 dark:bg-zinc-900/50 border border-indigo-100/50 dark:border-indigo-900/20 px-3.5 py-1.5 rounded-xl w-fit active:scale-95 transition-all shadow-2xs hover:shadow-xs uppercase tracking-wider cursor-pointer font-outfit"
+            className="relative hit-expand mt-3.5 flex items-center gap-1.5 text-[10px] font-black text-indigo-600 dark:text-indigo-400 bg-white/50 dark:bg-zinc-900/50 border border-indigo-100/50 dark:border-indigo-900/20 px-3.5 py-1.5 rounded-xl w-fit active:scale-95 transition-all shadow-2xs hover:shadow-xs uppercase tracking-wider cursor-pointer font-outfit"
           >
             Predict Attendance <ChevronRight className="w-3.5 h-3.5 shrink-0" />
           </button>
@@ -648,7 +648,7 @@ export default function MobileHome({
                   <div className="flex items-center justify-between gap-1">
                     <h4 className="text-xs font-black text-zinc-900 dark:text-white truncate font-outfit" title={c.courseTitle}>{c.courseTitle}</h4>
                     {isGrouped && (
-                      <span className="text-[7.5px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0 border border-indigo-500/20">
+                      <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0 border border-indigo-500/20">
                         Theory + Lab
                       </span>
                     )}
@@ -759,7 +759,7 @@ export default function MobileHome({
               </div>
               <div className="text-right shrink-0">
                 <span className="text-sm font-black text-red-600 dark:text-red-455">{parseFloat(c.attendancePercentage).toFixed(0)}%</span>
-                <p className="text-[8px] text-red-500/80 font-bold uppercase mt-0.5">Below 75%</p>
+                <p className="text-[10px] text-red-500/80 font-bold uppercase mt-0.5">Below 75%</p>
               </div>
             </div>
           ))}
@@ -790,7 +790,7 @@ export default function MobileHome({
             {classStatus.current && (
               <div className="p-4.5 rounded-[24px] bg-indigo-650 text-white shadow-sm border border-indigo-700/30 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-bl-full pointer-events-none" />
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[8px] font-black uppercase tracking-wider bg-white/20 dark:bg-black/30 rounded-md">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider bg-white/20 dark:bg-black/30 rounded-md">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping [animation-duration:2.5s]" />
                   Ongoing Now
                 </span>
@@ -851,8 +851,8 @@ export default function MobileHome({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 min-w-0">
                           <p className="text-xs font-bold text-zinc-900 dark:text-white truncate">{cls.courseTitle}</p>
-                          {isCurrent && <span className="shrink-0 text-[8px] font-black uppercase text-emerald-600 dark:text-emerald-400 bg-emerald-100/60 dark:bg-emerald-950/20 px-1 rounded">Now</span>}
-                          {isNext && <span className="shrink-0 text-[8px] font-black uppercase text-indigo-650 dark:text-indigo-400 bg-indigo-100/60 dark:bg-indigo-950/20 px-1 rounded">Next</span>}
+                          {isCurrent && <span className="shrink-0 text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 bg-emerald-100/60 dark:bg-emerald-950/20 px-1 rounded">Now</span>}
+                          {isNext && <span className="shrink-0 text-[10px] font-black uppercase text-indigo-650 dark:text-indigo-400 bg-indigo-100/60 dark:bg-indigo-950/20 px-1 rounded">Next</span>}
                         </div>
                         <p className="mt-0.5 text-[9px] font-bold text-zinc-400 dark:text-zinc-500 truncate">
                           {cls.courseCode} • Slot {cls.slotName}
@@ -976,7 +976,7 @@ export default function MobileHome({
             {laundryStatus ? (
               laundryStatus.hasSlotToday ? (
                 <div>
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider bg-emerald-500/10 border border-emerald-500/25 text-emerald-605 dark:text-emerald-450 rounded-md">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 border border-emerald-500/25 text-emerald-605 dark:text-emerald-450 rounded-md">
                     Active Today
                   </span>
                   <p className="text-xs font-bold text-zinc-800 dark:text-zinc-100 mt-1 font-outfit">
@@ -988,7 +988,7 @@ export default function MobileHome({
                 </div>
               ) : laundryStatus.nextSlot ? (
                 <div>
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider bg-sky-500/10 border border-sky-500/25 text-sky-605 dark:text-sky-400 rounded-md">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider bg-sky-500/10 border border-sky-500/25 text-sky-605 dark:text-sky-400 rounded-md">
                     Upcoming Slot
                   </span>
                   <p className="text-xs font-bold text-zinc-800 dark:text-zinc-100 mt-1 font-outfit">
@@ -1079,7 +1079,7 @@ export default function MobileHome({
                   <p className="text-[9px] text-zinc-400 dark:text-zinc-500 font-semibold mt-0.5 truncate">{task.courseName || "General Assignment"}</p>
                 </div>
                 <div className="shrink-0 text-right">
-                  <span className="text-[8px] font-black text-red-505 uppercase bg-red-100/50 dark:bg-red-950/20 px-1 py-0.5 rounded">Due</span>
+                  <span className="text-[10px] font-black text-red-505 uppercase bg-red-100/50 dark:bg-red-950/20 px-1 py-0.5 rounded">Due</span>
                   <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-bold mt-1">{dueStr}</p>
                 </div>
               </div>
@@ -1360,7 +1360,7 @@ export default function MobileHome({
           <div className="space-y-2.5">
             <div className="p-4.5 rounded-[24px] bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-sm border border-emerald-600/30 relative overflow-hidden text-left">
               <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-bl-full pointer-events-none" />
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[8px] font-black uppercase tracking-wider bg-white/20 rounded-md">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider bg-white/20 rounded-md">
                 <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping [animation-duration:2.5s]" />
                 Exam Today!
               </span>
@@ -1396,7 +1396,7 @@ export default function MobileHome({
               className="p-4.5 rounded-[24px] bg-gradient-to-br from-blue-50/70 to-indigo-50/50 dark:from-blue-950/20 dark:to-indigo-950/20 border border-blue-200/60 dark:border-blue-900/40 text-left cursor-pointer hover:border-blue-400 dark:hover:border-blue-700 transition-all relative overflow-hidden shadow-2xs"
             >
               <div className="flex items-center justify-between gap-2 mb-2">
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[8.5px] font-black uppercase tracking-wider bg-blue-600/10 text-blue-700 dark:text-blue-400 rounded-md border border-blue-600/20 font-outfit">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider bg-blue-600/10 text-blue-700 dark:text-blue-400 rounded-md border border-blue-600/20 font-outfit">
                   Next Exam • {nextExam.parsedDate ? calculateDaysLeft(nextExam.parsedDate) : nextExam.examDate}
                 </span>
                 <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
@@ -1433,7 +1433,7 @@ export default function MobileHome({
                   >
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[8px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 shrink-0">
+                        <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 shrink-0">
                           {exam.examType}
                         </span>
                         <p className="text-xs font-bold text-zinc-900 dark:text-white truncate font-outfit">{exam.courseCode}</p>
@@ -1544,7 +1544,7 @@ export default function MobileHome({
           </button>
           <button
             onClick={handleSyncClick}
-            className={`px-3.5 py-2.5 rounded-2xl border transition-all active:scale-95 cursor-pointer flex items-center gap-1.5 text-xs font-bold ${
+            className={`relative hit-expand px-3.5 py-2.5 rounded-2xl border transition-all active:scale-95 cursor-pointer flex items-center gap-1.5 text-xs font-bold ${
               isOffline
                 ? "bg-amber-50 dark:bg-amber-950/30 border-amber-200/70 dark:border-amber-500/30 text-amber-700 dark:text-amber-400"
                 : "bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-200 shadow-xs"

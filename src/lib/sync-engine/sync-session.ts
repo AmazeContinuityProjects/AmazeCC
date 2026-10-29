@@ -16,6 +16,16 @@ export type SyncOutcome = "success" | "error" | null;
 /** Non-run reasons the sheet can be opened; drives a notice instead of progress. */
 export type SyncNotice = "offline" | null;
 
+/**
+ * Where an open session draws itself.
+ *
+ * `sheet` is the normal floating notification. `inline` means an in-page host
+ * is rendering the run itself — the first-run onboarding hero draws the full
+ * sync progress screen, so the modal must stay out of the way instead of
+ * popping over it.
+ */
+export type SyncPresentation = "sheet" | "inline";
+
 interface SyncSessionState {
   open: boolean;
   title: string;
@@ -26,12 +36,22 @@ interface SyncSessionState {
   outcome: SyncOutcome;
   /** Set when the sheet was opened to report a condition, not a live run. */
   notice: SyncNotice;
+  presentation: SyncPresentation;
 }
 
 const MAX_LINES = 60;
 const DEFAULT_HOLD_MS = 2500;
 
-let state: SyncSessionState = { open: false, title: "", lines: [], progress: 0, runId: 0, outcome: null, notice: null };
+let state: SyncSessionState = {
+  open: false,
+  title: "",
+  lines: [],
+  progress: 0,
+  runId: 0,
+  outcome: null,
+  notice: null,
+  presentation: "sheet",
+};
 const listeners = new Set<() => void>();
 let closeTimer: ReturnType<typeof setTimeout> | null = null;
 // Run dismissed by the user mid-flight: later events from the same run must
@@ -56,7 +76,17 @@ export function openSyncSession(title: string, notice: SyncNotice = null) {
     runId: state.runId + 1,
     outcome: null,
     notice,
+    // Runs are independent of who is drawing them: flipping presentation
+    // mid-run must not be undone by the next `openSyncSession`.
+    presentation: state.presentation,
   };
+  emit();
+}
+
+/** Switch between the floating sheet and an in-page host (see `SyncPresentation`). */
+export function setSyncPresentation(next: SyncPresentation) {
+  if (state.presentation === next) return;
+  state = { ...state, presentation: next };
   emit();
 }
 

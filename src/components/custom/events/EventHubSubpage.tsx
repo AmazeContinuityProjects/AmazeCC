@@ -526,7 +526,7 @@ export default function EventHubSubpage({
                       className="inline-flex items-center gap-1.5 max-w-full text-left text-[11px] font-extrabold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/40 px-2.5 py-1.5 rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-950/60 transition-colors cursor-pointer"
                     >
                       <Award className="w-3.5 h-3.5 shrink-0" />
-                      <span className="truncate">{club.club_name}</span>
+                      <span title={club.club_name} className="truncate">{club.club_name}</span>
                     </button>
                   </div>
                 ) : (

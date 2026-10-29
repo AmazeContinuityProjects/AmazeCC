@@ -199,7 +199,8 @@ export default function CalendarSubpage({
 }: {
   calendars?: any;
   calendarType?: CalendarTypeKey;
-  handleCalendarFetch: (type: string) => void;
+  /** May return a promise; the reload button disables until it settles. */
+  handleCalendarFetch: (type: string) => void | Promise<unknown>;
   moodleData?: any[];
   scheduleData?: any;
   attendanceData?: any;
@@ -219,6 +220,7 @@ export default function CalendarSubpage({
 }) {
   const [tasks, setTasks] = useAtom(tasksAtom);
   const [type, setType] = useState<CalendarTypeKey>(calendarType);
+  const [reloading, setReloading] = useState(false);
   const registeredEvents = useAtomValue(registeredEventsAtom);
   const settings = useAtomValue(settingsAtom);
 
@@ -618,7 +620,14 @@ export default function CalendarSubpage({
 
   const actions = (
     <>
-      <IconButton onClick={() => handleCalendarFetch(type)} title="Reload academic calendar">
+      <IconButton
+        onClick={() => {
+          setReloading(true);
+          Promise.resolve(handleCalendarFetch(type)).finally(() => setReloading(false));
+        }}
+        disabled={reloading}
+        title="Reload academic calendar"
+      >
         <RefreshCcw className="w-4 h-4" />
       </IconButton>
       <IconButton

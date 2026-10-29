@@ -1,6 +1,5 @@
 'use client';
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useAtom, useSetAtom } from "jotai";
 import {
@@ -29,14 +28,11 @@ import {
   resolveMode,
   type SyncMode,
 } from "@/lib/sync-engine/sync-modes";
-const LoginForm = dynamic(() => import("./LoginForm"), {
-  loading: () => (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-600 dark:bg-[#03060f] dark:text-slate-300" role="status" aria-label="Opening sign in">
-      <span className="mr-3 h-5 w-5 animate-spin rounded-full border-2 border-current border-r-transparent" />
-      <span>Preparing sign in…</span>
-    </div>
-  ),
-});
+import {
+  dismissSyncSession,
+  getSyncSessionSnapshot,
+  isSyncSessionOpen,
+} from "@/lib/sync-engine/sync-session";
 const CredentialEditorModal = dynamic(() => import("./CredentialEditorModal"));
 const SyncModeEditor = dynamic(() => import("@/components/custom/shared/SyncModeEditor"));
 import { useOverlayBack } from "@/lib/overlayStack";
@@ -72,7 +68,7 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
   const { setActiveDay } = useDashboardNavigator();
   // --- State Management via Jotai Atoms ---
   const [IDs, setIDs] = useAtom(credentialsAtom);
-  const [message, setMessage] = useAtom(messageAtom);
+  const setMessage = useSetAtom(messageAtom);
   const setAttendanceData = useSetAtom(attendanceDataAtom);
   const setMarksData = useSetAtom(marksDataAtom);
   const setGradesData = useSetAtom(gradesDataAtom);
@@ -163,14 +159,29 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
     void handleReloadRequest(undefined, id);
   }, [persistDefaultSyncMode, handleReloadRequest]);
 
-  const handleFormSubmit = (e) => {
-    e.preventDefault();
-    if (!IDs.VtopUsername || !IDs.VtopPassword) {
-      return alert("Please fill all the fields!");
-    }
+  // Sign-in now lives on page one of the onboarding hero, so this returns the
+  // outcome instead of driving a sheet: `true` on success, and on failure the
+  // reason from the sync log is surfaced by the caller.
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const submitLogin = useCallback(async (): Promise<boolean> => {
+    setLoginError(null);
     setIsReloading(true);
-    handleLogin().catch(() => {});
-  };
+    try {
+      await handleLogin();
+      return true;
+    } catch (err) {
+      // The engine writes the real reason into the session log ("Invalid
+      // Username / Password", a rate limit, a timeout). Mirror the last failure
+      // for the sign-in screen and drop the half-open session so no progress
+      // modal can pop up behind the hero that deliberately suppressed it.
+      const failure = [...getSyncSessionSnapshot().lines].reverse().find((line) => line.status === "error");
+      setLoginError(
+        failure?.text ?? (err instanceof Error && err.message ? err.message : "Sign-in failed. Please try again.")
+      );
+      if (isSyncSessionOpen()) dismissSyncSession();
+      return false;
+    }
+  }, [handleLogin, setIsReloading]);
 
   const handleDemoClick = async () => {
     const demoData = await (await fetch('/data/demoData.json')).json();
@@ -215,7 +226,10 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
 
   useGlobalShortcuts({ theme, setTheme, settings, setSettings, setCommandPaletteOpen, setIsShortcutsHelpOpen });
 
-
+  // Bootstrap reads the stored session and the intro flag in one effect; the
+  // hero/dashboard decision below cannot be trusted until it has run, so hold
+  // the branded opening screen instead of flashing the wrong surface.
+  if (!appHydrated) return <OpeningScreen />;
 
   return (
     <LazyMotion features={() => import("framer-motion").then((mod) => mod.domMax)}>
@@ -268,66 +282,19 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
         onRetry={() => handleReloadRequest()}
       />
 
-      {!appHydrated && initialIntent !== "login" && initialIntent !== "demo" && (
-        <div className="min-h-[60vh] flex-1" role="status" aria-label="Restoring your workspace" />
-      )}
-
-      {(!isLoggedIn && !demoMode) && (appHydrated || initialIntent === "login") && (
-        <LoginForm
-          initialLoginOpen={initialIntent === "login"}
-          username={IDs.VtopUsername}
-          setUsername={(val: string) =>
-            setIDs(prev => ({ ...prev, VtopUsername: val }))
-          }
-          password={IDs.VtopPassword}
-          setPassword={(val: string) =>
-            setIDs(prev => ({ ...prev, VtopPassword: val }))
-          }
-          message={message}
-          handleFormSubmit={handleFormSubmit}
-          handleDemoClick={handleDemoClick}
-          residentialStatus={settings.residentialStatus || "hosteller"}
-          setResidentialStatus={(val: "hosteller" | "dayscholar") => {
-            setSettings(prev => ({ ...prev, residentialStatus: val }));
-            localStorage.setItem("settings", JSON.stringify({ ...settings, residentialStatus: val }));
-          }}
-          isDayscholarWithBus={settings.isDayscholarWithBus || false}
-          setIsDayscholarWithBus={(val: boolean) => {
-            setSettings(prev => ({ ...prev, isDayscholarWithBus: val }));
-            localStorage.setItem("settings", JSON.stringify({ ...settings, isDayscholarWithBus: val }));
-          }}
-        />
-      )}
-
-      {appHydrated && (!isLoggedIn && !demoMode) && (
-        <>
-          <div style={{ textAlign: "center", marginTop: 12 }}>
-            <button
-              type="button"
-              onClick={() => setCredEditorOpen(true)}
-              style={{ background: "none", border: "none", color: "#4f46e5", cursor: "pointer", fontSize: 13, textDecoration: "underline" }}
-            >
-              Edit saved credentials
-            </button>
-          </div>
-          <div className="mx-auto mt-5 w-full max-w-md px-4">
-            <Link
-              href="/ffcs/"
-              className="flex min-h-11 w-full items-center justify-center rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-4 py-3 text-sm font-bold text-indigo-700 transition-colors hover:bg-indigo-500/15 dark:text-indigo-300"
-            >
-              Go to FFCS Planner
-            </Link>
-          </div>
-        </>
-      )}
-
       {credEditorOpen && <CredentialEditorModal
         open={credEditorOpen}
         onClose={() => setCredEditorOpen(false)}
         onSaved={(ids) => {
           setIDs(ids as typeof IDs);
           setCredEditorOpen(false);
-          handleLogin(undefined, ids as Ids);
+          // The previous rejection is what brought the student here; keeping it
+          // on screen while the retry runs would read as "still wrong".
+          setLoginError(null);
+          // Fire-and-forget: the retry reports through the sync session, which
+          // the intro's sync screen is already subscribed to. Swallow the
+          // rejection so a failed retry is not also an unhandled promise.
+          handleLogin(undefined, ids as Ids).catch(() => {});
         }}
       />}
 
@@ -351,6 +318,23 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
         onOpenCommandPalette={openCommandPalette}
         onOpenShortcutsHelp={openShortcutsHelp}
         onRunSyncMode={selectSyncMode}
+        intro={{
+          // "Try the demo" and a saved session skip straight to the welcome
+          // beat; everyone else lands on page one of onboarding: sign in.
+          initialPhase: initialIntent === "demo" || isLoggedIn || demoMode ? "welcome" : "login",
+          login: {
+            username: IDs.VtopUsername,
+            password: IDs.VtopPassword,
+            setUsername: (value: string) => setIDs(prev => ({ ...prev, VtopUsername: value })),
+            setPassword: (value: string) => setIDs(prev => ({ ...prev, VtopPassword: value })),
+            onSignIn: submitLogin,
+            error: loginError,
+            // Offered only for the rejections a new password actually fixes
+            // (see `classifyAuthFailure`); the editor re-runs the login on
+            // save, and the intro follows that run onto its sync screen.
+            onChangePassword: () => setCredEditorOpen(true),
+          },
+        }}
       />
       {/* <div className="top-0 left-0 w-full bg-blue-500 text-white text-center py-2 font-medium">
         Scheduled maintenance on December 29, 2025 ( afternoon ). API services will be temporarily unavailable.
@@ -373,6 +357,19 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
         </m.div>
     </>
     </LazyMotion>
+  );
+}
+
+function OpeningScreen() {
+  return (
+    <div
+      className="flex min-h-screen items-center justify-center gap-3 bg-slate-50 text-slate-600 dark:bg-black dark:text-slate-300"
+      role="status"
+      aria-label="Opening your workspace"
+    >
+      <span className="h-5 w-5 animate-spin rounded-full border-2 border-current border-r-transparent" />
+      <span className="text-sm font-semibold">Opening your workspace…</span>
+    </div>
   );
 }
 

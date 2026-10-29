@@ -89,7 +89,10 @@ describe("FFCSShareView image export", () => {
     render(<FFCSShareView />);
 
     expect(await screen.findByRole("heading", { name: "Compact Plan" })).toBeDefined();
-    expect(screen.getByText("Computer Science")).toBeDefined();
+    // The course title is rendered twice on purpose: once in the mobile card
+    // and once in the desktop table row. jsdom applies no media queries, so
+    // both responsive variants are in the DOM at once — hence AllByText.
+    expect(screen.getAllByText("Computer Science").length).toBeGreaterThan(0);
     expect(screen.getByText(/selected class IDs/i)).toBeDefined();
   });
 });

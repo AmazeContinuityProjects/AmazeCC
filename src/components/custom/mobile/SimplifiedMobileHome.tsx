@@ -32,6 +32,7 @@ import {
     DoorOpen,
     WifiOff,
     X,
+    ChevronDown,
   } from "lucide-react";
 
 import { AnimatePresence, m } from "framer-motion";
@@ -41,6 +42,8 @@ import { shouldShowGpa, shouldShowProfilePhoto } from "@/lib/settingsVisibility"
 import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
 import { getAssetPath } from "@/lib/utils";
 import { buildExamRows } from "@/lib/examSchedule";
+import { dateKey } from "@/lib/calendarDay";
+import { isLabFatMarked, labFatPapersByDate, labSlotTokens, type LabFatPaper } from "@/lib/labFatWeek";
 import { cn } from "@amazecontinuityprojects/amazeui";
 import { TILE } from "@/lib/uiTokens";
 import TimetableGrid from "../attendance/TimetableGrid";
@@ -107,6 +110,106 @@ function extractDayOrderOverride(eventText: string): AttendanceDay | null {
   if (norm.includes("fri") && (norm.includes("order") || norm.includes("timetable") || norm.includes("table"))) return "FRI";
   if (norm.includes("sat") && (norm.includes("order") || norm.includes("timetable") || norm.includes("table"))) return "SAT";
   return null;
+}
+
+/**
+ * A lab slot whose class hour has been taken over by its Lab FAT paper.
+ *
+ * Collapsed by default — the slot line (paper + slot + time + venue) is what
+ * the student scans; the session, reporting time and seat sit behind the
+ * disclosure, exactly like the exam schedule page's rows. Renders in the
+ * timetable's slot list, in the place of the lab class it replaces.
+ */
+function LabFatExamSlot({
+  paper,
+  time,
+  onHallDetails,
+}: {
+  paper: LabFatPaper;
+  time?: string;
+  onHallDetails: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const panelId = `labfat-${paper.courseCode}-${paper.slot}`;
+  return (
+    <div className="rounded-2xl border border-red-400/60 dark:border-red-800/60 bg-gradient-to-r from-red-500/10 via-white/90 to-amber-500/5 dark:from-red-950/40 dark:via-zinc-900/90 dark:to-amber-950/20 shadow-xs overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((was) => !was)}
+        aria-expanded={open}
+        aria-controls={panelId}
+        aria-label={`Lab FAT exam slot ${paper.slot} — ${paper.courseTitle || paper.courseCode}`}
+        className="w-full px-4 py-3 flex items-center justify-between gap-3 text-left cursor-pointer active:scale-[0.99] transition-transform"
+      >
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-red-500 text-white shadow-xs shrink-0">
+              Lab FAT
+            </span>
+            <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-900/40 shrink-0">
+              {paper.slot}
+            </span>
+            <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit truncate">
+              {paper.courseTitle || paper.courseCode}
+            </h3>
+          </div>
+          <div className="mt-1 flex items-center gap-3 text-[11px] text-zinc-600 dark:text-zinc-400 font-semibold min-w-0">
+            <span className="inline-flex items-center gap-1 shrink-0">
+              <Clock className="w-3.5 h-3.5 text-red-500" />
+              {paper.examTime || time || "Time TBA"}
+            </span>
+            <span className="inline-flex items-center gap-1 truncate">
+              <Building className="w-3.5 h-3.5 text-red-500 shrink-0" />
+              {paper.venue || "Venue TBA"}
+            </span>
+          </div>
+        </div>
+        <ChevronDown
+          className={`w-4 h-4 text-zinc-400 shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <m.div
+            id={panelId}
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: "easeInOut" }}
+            className="overflow-hidden"
+          >
+            <div className="px-4 pb-3.5 pt-2.5 border-t border-red-200/60 dark:border-red-900/40 grid grid-cols-2 gap-x-3 gap-y-2 text-[11px]">
+              <p className="text-zinc-500 dark:text-zinc-400">
+                Session{" "}
+                <span className="block font-bold text-zinc-800 dark:text-zinc-200">
+                  {paper.examSession || "—"}
+                </span>
+              </p>
+              <p className="text-zinc-500 dark:text-zinc-400">
+                Reporting{" "}
+                <span className="block font-bold text-zinc-800 dark:text-zinc-200">
+                  {paper.reportingTime || "—"}
+                </span>
+              </p>
+              <p className="text-zinc-500 dark:text-zinc-400">
+                Seat{" "}
+                <span className="block font-bold text-zinc-800 dark:text-zinc-200">
+                  {paper.seatNo ? `No. ${paper.seatNo}` : "—"}
+                </span>
+              </p>
+              <button
+                type="button"
+                onClick={onHallDetails}
+                className="self-center justify-self-end text-xs font-bold text-white bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-xl transition-all shadow-xs cursor-pointer"
+              >
+                Hall Details
+              </button>
+            </div>
+          </m.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
 }
 
 // Helper to parse exam dates reliably across diverse date formats (DD-MMM-YYYY, DD-MM-YYYY, ISO)
@@ -366,6 +469,14 @@ export default function SimplifiedMobileHome({
   // Flattened exams schedule, with per-paper start/end resolved.
   const scheduleRows = buildExamRows(ScheduleData?.Schedule || ScheduleData?.schedule);
 
+  // Lab FAT papers, joined to the calendar's LAB FAT day marks (see
+  // lib/labFatWeek). Both payloads are already fetched; this is the join that
+  // lets a lab slot say it has become its own exam.
+  const labFatByDate = useMemo(
+    () => labFatPapersByDate(ScheduleData?.Schedule || ScheduleData?.schedule, calendarData?.calendars),
+    [ScheduleData, calendarData]
+  );
+
   const allExams = useMemo(
     () => scheduleRows.map((r) => ({ ...r.raw, examCategory: r.examType })),
     [scheduleRows]
@@ -604,6 +715,7 @@ export default function SimplifiedMobileHome({
       let detectedDayOrder: AttendanceDay | null = null;
       let orderInfo: string | null = null;
       let isInstructional = false;
+      let isLabFatDay = false;
 
       for (const cal of userCals) {
         if (!cal.days || !Array.isArray(cal.days)) continue;
@@ -638,6 +750,10 @@ export default function SimplifiedMobileHome({
           const text = String(ev.text || ev.category || "").trim();
           const norm = text.toLowerCase();
           if (!norm) continue;
+
+          // "(Working Day / LAB FAT)" marks the day; the schedule supplies the
+          // paper. The two meet per-date in the return below.
+          if (isLabFatMarked(text, ev.category)) isLabFatDay = true;
 
           const hasNoInstructional =
             norm.includes("no instructional") ||
@@ -697,9 +813,11 @@ export default function SimplifiedMobileHome({
         detectedDayOrder,
         orderInfo,
         hasDeadline,
+        isLabFatDay,
+        labFatPapers: isLabFatDay ? labFatByDate.get(dateKey(d)) ?? [] : [],
       };
     });
-  }, [weekOffset, allExams, calendarData, settings?.calendarType, moodleData]);
+  }, [weekOffset, allExams, calendarData, settings?.calendarType, moodleData, labFatByDate]);
 
   // Active selected day's detailed calendar context
   const selectedDayMeta = useMemo(() => {
@@ -723,6 +841,49 @@ export default function SimplifiedMobileHome({
   const selectedDayClasses = useMemo(() => {
     return timetableMap[effectiveTimetableDay] || [];
   }, [timetableMap, effectiveTimetableDay]);
+
+  // The day's Lab FAT papers (calendar mark + schedule join).
+  const selectedDayLabFat: LabFatPaper[] = selectedDayMeta?.labFatPapers ?? [];
+
+  /**
+   * The slot list with lab FAT taken over in place: a lab class whose slot or
+   * course matches a paper becomes that paper's exam slot, in the class's own
+   * position and with its time. Papers with no matching row (attendance not
+   * synced, exam outside class hours) still get their slot, appended in
+   * exam-time order, so a Lab FAT never renders as an ordinary class hour.
+   */
+  const dayRows = useMemo(() => {
+    type DayRow =
+      | { kind: "class"; cls: any; index: number }
+      | { kind: "labFat"; paper: LabFatPaper; time?: string };
+    const rows: DayRow[] = [];
+    const remaining = [...selectedDayLabFat];
+
+    selectedDayClasses.forEach((cls: any, index: number) => {
+      const classTokens = labSlotTokens(cls.slotName);
+      const isLabClass = classTokens.length > 0;
+      const paperIdx =
+        isLabClass
+          ? remaining.findIndex(
+              (p) =>
+                p.labTokens.some((t) => classTokens.includes(t)) || p.courseCode === cls.courseCode
+            )
+          : -1;
+      if (paperIdx !== -1) {
+        const [paper] = remaining.splice(paperIdx, 1);
+        rows.push({ kind: "labFat", paper, time: cls.time });
+      } else {
+        rows.push({ kind: "class", cls, index });
+      }
+    });
+
+    remaining
+      .slice()
+      .sort((a, b) => String(a.examTime ?? a.reportingTime ?? "").localeCompare(String(b.examTime ?? b.reportingTime ?? "")))
+      .forEach((paper) => rows.push({ kind: "labFat", paper }));
+
+    return rows;
+  }, [selectedDayClasses, selectedDayLabFat]);
 
   // Month & Year header for the calendar row
   const calendarWeekHeader = useMemo(() => {
@@ -837,8 +998,15 @@ export default function SimplifiedMobileHome({
 
 
   // State checks for the active view
-  const isExamDay = selectedDayMeta && selectedDayMeta.exams && selectedDayMeta.exams.length > 0;
-  const isHolidayOrOff = selectedDayMeta && selectedDayMeta.holidayInfo && !isExamDay;
+  // Calendar-marked or paper-derived: either signal alone marks the day.
+  const isLabFatDay = Boolean(selectedDayMeta?.isLabFatDay) || selectedDayLabFat.length > 0;
+  // A Lab FAT day is a working day — other classes still run, so the day keeps
+  // its timetable and only the lab slot becomes the exam (see dayRows).
+  const isExamDay =
+    selectedDayMeta && selectedDayMeta.exams && selectedDayMeta.exams.length > 0 && !isLabFatDay;
+  const isHolidayOrOff = selectedDayMeta && selectedDayMeta.holidayInfo && !isExamDay && !isLabFatDay;
+  // Sessions still running: the slot list minus the labs that became exams.
+  const stillOnCount = dayRows.filter((row) => row.kind === "class").length;
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6 pt-3 sm:pt-5 md:pb-8 animate-in fade-in duration-300">
@@ -879,7 +1047,7 @@ export default function SimplifiedMobileHome({
           {/* Sync Button */}
           <button
             onClick={handleSyncClick}
-            className={`px-2.5 py-2.5 rounded-xl transition-all active:scale-95 cursor-pointer shadow-2xs flex items-center gap-1.5 text-xs font-bold ${
+            className={`relative hit-expand px-2.5 py-2.5 rounded-xl transition-all active:scale-95 cursor-pointer shadow-2xs flex items-center gap-1.5 text-xs font-bold ${
               isOffline
                 ? "bg-amber-50 hover:bg-amber-100/80 dark:bg-amber-950/30 dark:hover:bg-amber-900/30 border border-amber-200/70 dark:border-amber-500/30 text-amber-700 dark:text-amber-400"
                 : "bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300"
@@ -1128,14 +1296,15 @@ export default function SimplifiedMobileHome({
                     ? TODAY_INK
                     : tint.ink;
                 const title = weekStripTitle(item, count);
+                const labFatNote = item.isLabFatDay ? " · Lab FAT" : "";
 
                 return (
                   <button
                     key={item.dayCode}
                     type="button"
                     onClick={() => setSelectedDay(item.dayCode)}
-                    title={title}
-                    aria-label={`${title}${weekStripExamNote(item.exams.length)}`}
+                    title={`${title}${labFatNote}`}
+                    aria-label={`${title}${labFatNote}${weekStripExamNote(item.exams.length)}`}
                     // A circle navigates, it does not toggle: `aria-current`
                     // is the honest annotation, and the selection ring is
                     // visual only.
@@ -1151,7 +1320,7 @@ export default function SimplifiedMobileHome({
                           : "hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
                     )}
                   >
-                    <span className="text-[8.5px] font-bold uppercase tracking-wider leading-none text-zinc-400 dark:text-zinc-500">
+                    <span className="text-[10px] font-bold uppercase tracking-wider leading-none text-zinc-400 dark:text-zinc-500">
                       {item.dayCode}
                     </span>
                     <span
@@ -1176,7 +1345,18 @@ export default function SimplifiedMobileHome({
               {getSelectedDayFormattedDate()}
             </h3>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
-              {isExamDay
+              {isLabFatDay ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="font-extrabold text-red-600 dark:text-red-400">
+                    Lab FAT{selectedDayLabFat.length > 1 ? ` ×${selectedDayLabFat.length}` : ""}
+                  </span>
+                  {stillOnCount > 0
+                    ? `· ${stillOnCount} ${
+                        stillOnCount === 1 ? "session" : "sessions"
+                      } still on`
+                    : null}
+                </span>
+              ) : isExamDay
                 ? `${selectedDayMeta.exams.length} ${selectedDayMeta.exams.length === 1 ? "exam" : "exams"} scheduled`
                 : isHolidayOrOff
                 ? "Academic Holiday / Non-Instructional"
@@ -1311,7 +1491,7 @@ export default function SimplifiedMobileHome({
               </div>
             }
           />
-        ) : selectedDayClasses.length === 0 ? (
+        ) : dayRows.length === 0 ? (
           /* ── VIEWPORT STATE 3: FREE DAY (NO CLASSES SCHEDULED) ── */
           <div className="p-8 rounded-[28px] card-surface border border-zinc-200/60 dark:border-zinc-800/80 text-center space-y-3 shadow-2xs">
             <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center mx-auto text-indigo-500">
@@ -1343,7 +1523,23 @@ export default function SimplifiedMobileHome({
         ) : (
           /* ── VIEWPORT STATE 4: REGULAR TIMETABLE CLASSES ── */
           <div className="space-y-3">
-            {selectedDayClasses.map((cls: any, index: number) => {
+            {dayRows.map((row: any, index: number) => {
+              // A lab slot taken over by its Lab FAT paper renders as the
+              // collapsed exam slot, in the class's own place in the list.
+              if (row.kind === "labFat") {
+                return (
+                  <LabFatExamSlot
+                    key={`labfat-${row.paper.courseCode}-${row.paper.slot}`}
+                    paper={row.paper}
+                    time={row.time}
+                    onHallDetails={() => {
+                      setActiveTab("academics");
+                      setActiveSubTab("schedule");
+                    }}
+                  />
+                );
+              }
+              const cls = row.cls;
               const {
                 status,
                 progressPct,
@@ -1426,7 +1622,7 @@ export default function SimplifiedMobileHome({
                             {cls.courseTitle}
                           </h3>
                           {isLive && (
-                            <span className="inline-flex items-center gap-1 text-[8.5px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500 text-white shrink-0 shadow-2xs animate-pulse [animation-duration:2.5s]">
+                            <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500 text-white shrink-0 shadow-2xs animate-pulse [animation-duration:2.5s]">
                               <span className="w-1 h-1 rounded-full bg-white animate-ping [animation-duration:2.5s]" />
                               Live ({minutesLeft}m)
                             </span>

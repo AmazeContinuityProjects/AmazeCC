@@ -157,7 +157,7 @@ export default function PushNotificationManager() {
       setTimeout(() => setFetchStatus(null), 4000);
     } catch (error: any) {
       console.error("Push subscription failed:", error);
-      setFetchStatus(`Subscription error: ${error.message || "Failed to subscribe"}`);
+      setFetchStatus("Could not enable notifications on this device. Try again after reloading.");
     }
   }
 
@@ -215,7 +215,8 @@ export default function PushNotificationManager() {
 
       setFetchStatus("Test notification sent successfully!");
     } catch (err: any) {
-      setFetchStatus(`Test error: ${err.message}`);
+      console.error("Push test failed:", err);
+      setFetchStatus("The test notification could not be sent.");
     } finally {
       setIsTesting(false);
       setTimeout(() => setFetchStatus(null), 4000);

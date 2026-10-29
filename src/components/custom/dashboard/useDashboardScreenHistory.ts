@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { closeTopOverlayFromPop, hasOpenOverlays } from "@/lib/overlayStack";
-import { readHistoryOp, writeHistoryEntry } from "@/lib/historyStack";
+import { continueBackPastDeadEntry, readHistoryOp, writeHistoryEntry } from "@/lib/historyStack";
 import { useDashboardNavigator } from "./DashboardNavigator";
 
 /** Keeps browser history aligned with the navigator's selected screen. */
@@ -93,13 +93,45 @@ export function useDashboardScreenHistory() {
   useEffect(() => {
     const onPopState = (event: PopStateEvent) => {
       const state = event.state as { op?: unknown; screen?: unknown } | null;
-      if (readHistoryOp(state)?.kind === "overlay" && closeTopOverlayFromPop()) return;
+      const op = readHistoryOp(state);
+
+      // An overlay's own entry: dismiss that overlay. The overlay stack is LIFO
+      // and the entries were written in the same order, so this is the one the
+      // gesture means. The entry beneath it is already the right one to land on
+      // (a screen's, or a lower overlay's), so nothing is re-pushed.
+      if (op?.kind === "overlay" && closeTopOverlayFromPop()) return;
+
+      // A live overlay over an entry that is not its own — the screen changed
+      // underneath it. It is still the topmost thing on show, so dismiss it and
+      // re-sync the entry just landed on. Replace, not push: pushing grew the
+      // stack with duplicates that later gestures had to walk through, each one
+      // spent on a screen that did not move.
       if (closeTopOverlayFromPop()) {
-        writeScreenState("push", screenKeyRef.current);
+        writeScreenState("replace", screenKeyRef.current);
         return;
       }
+
+      // An entry claiming to be an overlay's with none live: its overlay was
+      // dismissed in-app, and the entry stayed behind (replaceState cannot
+      // delete an entry). Nothing to close — keep walking so the user's gesture
+      // lands on a real step instead of being spent here.
+      if (op && op.kind !== "page") {
+        continueBackPastDeadEntry(event);
+        return;
+      }
+
       const landedScreen = state?.screen;
       if (typeof landedScreen !== "string") return;
+
+      // The screen currently showing, i.e. the entry beneath the dead overlay
+      // entry just walked past. It is the present, not a step back: continuing
+      // is what lets one gesture skip the debris an in-app close left and land
+      // on the previous screen.
+      if (landedScreen === screenKeyRef.current) {
+        continueBackPastDeadEntry(event);
+        return;
+      }
+
       const stack = screenStackRef.current;
       if (stack.length >= 2 && stack[stack.length - 2] === landedScreen) stack.pop();
       else if (stack[stack.length - 1] !== landedScreen) stack.push(landedScreen);

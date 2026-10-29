@@ -133,7 +133,7 @@ export default function TaskWeekView({
 
                         <div className="flex items-center gap-1 mt-1.5">
                           <span
-                            className={`text-[8.5px] font-extrabold uppercase px-1.5 py-0.2 rounded border ${meta.badgeClass}`}
+                            className={`text-[10px] font-extrabold uppercase px-1.5 py-0.2 rounded border ${meta.badgeClass}`}
                           >
                             {meta.label}
                           </span>

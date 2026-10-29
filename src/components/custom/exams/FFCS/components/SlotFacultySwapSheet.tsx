@@ -903,7 +903,7 @@ export default function SlotFacultySwapSheet({
                                 TH: {offTheory.join("+")}
                               </span>
                               <span className="text-[10px] text-muted-foreground/30">•</span>
-                              <span className={`text-[10px] font-semibold ${clashes ? "text-zinc-600" : "text-sky-400/90"}`}>
+                              <span className={`text-[10px] font-semibold ${clashes ? "text-zinc-600" : "text-sky-600 dark:text-sky-400"}`}>
                                 LAB: {offLab.join("+")}
                               </span>
                             </>

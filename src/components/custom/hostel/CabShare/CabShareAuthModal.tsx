@@ -138,6 +138,7 @@ export default function CabShareAuthModal({ isOpen, onAuthSuccess }: { isOpen: b
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
+                autoComplete="username"
                 className={FIELD_INPUT}
                 placeholder="Enter registration number"
               />
@@ -153,6 +154,7 @@ export default function CabShareAuthModal({ isOpen, onAuthSuccess }: { isOpen: b
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                autoComplete="current-password"
                 className={FIELD_INPUT}
                 placeholder="Enter your VTOP password"
               />
@@ -168,6 +170,8 @@ export default function CabShareAuthModal({ isOpen, onAuthSuccess }: { isOpen: b
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 required
+                autoComplete="tel"
+                inputMode="tel"
                 className={`${FIELD_INPUT} pl-11`}
                 placeholder="10-digit mobile number"
               />

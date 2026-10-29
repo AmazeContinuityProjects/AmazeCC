@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useState } from "react";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import {
   FFCSGeneratorSubpage,
   type FFCSGeneratorSubpageProps,
@@ -144,11 +144,21 @@ const courseCheckbox = () =>
   };
 
 describe("FFCSGeneratorSubpage", () => {
-  afterEach(() => {
+  afterEach(async () => {
     // The overlay stack is module-global. An entry leaked by one test would
     // make the next test's system-back assertion pass for the wrong reason.
-    while (closeTopOverlayFromPop()) {
-      /* drain */
+    //
+    // A page-like overlay can consume back internally and return `true`, which
+    // re-pushes its entry — and the close it just performed is a React state
+    // update. Draining synchronously never lets that re-render land, so the
+    // same branch reads `true` on every iteration and the loop spins forever
+    // (the generator's post-run `isReviewing` branch does exactly this). Flush
+    // between pops so the close takes effect before the next one; the guard
+    // bounds a pathological stack that refuses to empty regardless.
+    let guard = 0;
+    while (closeTopOverlayFromPop() && guard++ < 25) {
+      // eslint-disable-next-line no-await-in-loop
+      await act(async () => {});
     }
     // So is the generator's private picks key: one test's tick must not seed
     // another test's mount.
@@ -318,6 +328,12 @@ describe("FFCSGeneratorSubpage", () => {
   });
 
   it("holds generate back until a course is picked, and keeps the pick private", () => {
+    // This asserts the classic full-form markup — the labelled checkbox list
+    // and the "Selected:" counter live in the non-modern branch, and the
+    // default view is now the modern widget. Pin the view rather than chase
+    // the default; the modern target widget has its own case further down.
+    storage.setItem("ffcs_generator_view_mode", "classic");
+
     const courses = [{ code: "BCSE101", title: "Structured Programming", types: [] as string[] }];
     const { unmount } = render(<FFCSGeneratorSubpage {...props({ generatorDisplayCourses: courses })} />);
 
@@ -340,6 +356,10 @@ describe("FFCSGeneratorSubpage", () => {
   });
 
   it("seeds this run from the planner's locked targets, and never writes back", () => {
+    // Classic view again: the ticked checkbox and the "from your locked
+    // Target Courses" note are both in the non-modern branch.
+    storage.setItem("ffcs_generator_view_mode", "classic");
+
     render(
       <FFCSGeneratorSubpage
         {...props({
@@ -607,6 +627,74 @@ describe("FFCSGeneratorSubpage", () => {
     fireEvent.click(screen.getByRole("button", { name: /results \(1\)/i }));
     expect(screen.getAllByText("Review Timetables").length).toBeGreaterThan(0);
   }, 20_000);
+
+  it("shows exactly one generator panel at a time on a phone", () => {
+    // A phone viewport: the component reads `matchMedia("(min-width: 1024px)")`,
+    // falling back to `window.innerWidth` when jsdom provides no matchMedia —
+    // which it doesn't, and its default 1024 reads as "desktop". The modern
+    // grid is grid-cols-1 here and every panel claims row-start-1, so two
+    // panels visible at once paint on top of each other. That overlap is what
+    // this pins.
+    storage.setItem("ffcs_generator_view_mode", "modern");
+    const widthDescriptor = Object.getOwnPropertyDescriptor(window, "innerWidth");
+    Object.defineProperty(window, "innerWidth", { value: 390, configurable: true });
+
+    const { unmount } = render(
+      <FFCSGeneratorSubpage
+        {...props({
+          courseLocks: [courseLock("BCSE101")],
+          generatorDisplayCourses: [
+            { code: "BCSE101", title: "Structured Programming", types: [] as string[] },
+          ],
+        })}
+      />
+    );
+
+    // The column wrappers are the grid children; their contents carry the ids.
+    const coursesColumn = () =>
+      document.getElementById("generator-target-courses")?.parentElement as HTMLElement;
+    const rightColumn = () =>
+      document.getElementById("generator-preferences")?.parentElement as HTMLElement;
+
+    try {
+      // Menu state: nav is up, no panel is.
+      expect(coursesColumn().className).toContain("hidden");
+      expect(rightColumn().className).toContain("hidden");
+
+      // Open the focused subject. Only its panel may take the row — the courses
+      // list and the preferences column used to keep `flex row-start-1` too and
+      // stacked underneath it.
+      fireEvent.click(document.getElementById("generator-course-tab-BCSE101") as HTMLElement);
+
+      const focusPanel = document.getElementById("generator-active-panel") as HTMLElement;
+      expect(focusPanel).not.toBeNull();
+      expect(focusPanel.className).toContain("flex");
+      expect(focusPanel.className).not.toContain("hidden");
+      expect(coursesColumn().className).toContain("hidden");
+      expect(rightColumn().className).toContain("hidden");
+
+      // Back out to a section: that section's panel, and only it, is on screen.
+      fireEvent.click(screen.getByRole("tab", { name: /Ranking & reviews/i }));
+      expect(document.getElementById("generator-active-panel")).toBe(rightColumn());
+      expect(rightColumn().className).not.toContain("hidden");
+      expect(coursesColumn().className).toContain("hidden");
+
+      fireEvent.click(screen.getByRole("tab", { name: /Target courses/i }));
+      expect(document.getElementById("generator-active-panel")).toBe(coursesColumn());
+      expect(coursesColumn().className).not.toContain("hidden");
+      expect(rightColumn().className).toContain("hidden");
+    } finally {
+      // Unmount here, not in afterEach's `cleanup()`: on a phone the subpage
+      // consumes its own back gesture while a section is open
+      // (`handleBack` returns true and the entry is re-pushed), so the shared
+      // `while (closeTopOverlayFromPop())` drain would spin forever against a
+      // mounted component whose state cannot flush mid-loop. Unmounting
+      // releases the entry through `useOverlayBack`'s cleanup first.
+      unmount();
+      if (widthDescriptor) Object.defineProperty(window, "innerWidth", widthDescriptor);
+      else delete (window as { innerWidth?: number }).innerWidth;
+    }
+  });
 
   it("persists session preferences statefully across subpage mounts in sessionStorage", () => {
     saveSessionPreferences({

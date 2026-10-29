@@ -122,7 +122,7 @@ export default function ModernHorizontalTimetableGrid({
                         <span className="text-[9.5px] font-black text-amber-600 dark:text-amber-400 tracking-wider">
                           LUNCH
                         </span>
-                        <span className="text-[7.5px] font-bold text-amber-700/80 dark:text-amber-300/80 mt-0.5">
+                        <span className="text-[9px] font-bold text-amber-700/80 dark:text-amber-300/80 mt-0.5">
                           1:20-2:00
                         </span>
                       </div>
@@ -181,9 +181,9 @@ export default function ModernHorizontalTimetableGrid({
                             <span className="text-[12px] font-black text-amber-600 dark:text-amber-400 leading-tight tracking-widest drop-shadow-xs">C</span>
                             <span className="text-[12px] font-black text-amber-600 dark:text-amber-400 leading-tight tracking-widest drop-shadow-xs">H</span>
                             <div className="w-4 h-[1px] bg-amber-500/30 dark:bg-amber-500/40 my-2" />
-                            <span className="text-[8.5px] font-black text-amber-700 dark:text-amber-300 leading-tight">1:20</span>
+                            <span className="text-[9px] font-black text-amber-700 dark:text-amber-300 leading-tight">1:20</span>
                             <span className="text-[7px] text-amber-600/70 dark:text-amber-400/70 leading-tight">-</span>
-                            <span className="text-[8.5px] font-black text-amber-700 dark:text-amber-300 leading-tight">2:00</span>
+                            <span className="text-[9px] font-black text-amber-700 dark:text-amber-300 leading-tight">2:00</span>
                           </div>
                         </td>
                       );
@@ -272,7 +272,7 @@ export default function ModernHorizontalTimetableGrid({
                           <span className="text-[10px] font-black tracking-wide">
                             Blocked
                           </span>
-                          <span className="text-[8px] font-semibold opacity-75">
+                          <span className="text-[9px] font-semibold opacity-75">
                             {slotName}
                           </span>
                         </div>
@@ -300,12 +300,12 @@ export default function ModernHorizontalTimetableGrid({
                             <span className="text-[10px] font-extrabold text-slate-900 dark:text-white tracking-tight leading-none drop-shadow-xs">
                               {course.code}
                             </span>
-                            <span className="text-[8px] font-bold text-slate-700 dark:text-slate-300 bg-white/70 dark:bg-black/40 border border-slate-300/40 dark:border-white/5 px-1 py-0.5 rounded leading-none">
+                            <span className="text-[9px] font-bold text-slate-700 dark:text-slate-300 bg-white/70 dark:bg-black/40 border border-slate-300/40 dark:border-white/5 px-1 py-0.5 rounded leading-none">
                               {slotName}
                             </span>
                           </div>
 
-                          <div className="text-[8.5px] font-semibold text-slate-600 dark:text-slate-400 truncate leading-none mt-0.5">
+                          <div className="text-[9px] font-semibold text-slate-600 dark:text-slate-400 truncate leading-none mt-0.5">
                             {course.venue || "TBA"}
                           </div>
 

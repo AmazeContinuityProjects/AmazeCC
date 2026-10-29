@@ -100,8 +100,17 @@ export interface DayIndex {
   byPeriod: Map<string, Set<string>>;
   /** Block → its room codes, sorted. */
   blocks: Map<string, string[]>;
-  /** Room code → every course due in it, for the inspector. */
+  /** Room code → every course due in it, all day. */
   courses: Map<string, FreeRoomCourse[]>;
+  /**
+   * Period key → room code → the courses due in that room *in that period*.
+   *
+   * `courses` is the room's whole day, so using it to name what occupies a
+   * single period lists every class the room has that day on every period it
+   * is busy — which is what the room inspector used to show. This is the
+   * period-scoped answer the inspector needs.
+   */
+  coursesInPeriod: Map<string, Map<string, FreeRoomCourse[]>>;
   /** Period keys in timetable order, restricted to this day. */
   periods: PeriodOption[];
 }
@@ -346,6 +355,7 @@ export function buildDayIndex(
   const byPeriod = new Map<string, Set<string>>();
   const blocks = new Map<string, string[]>();
   const coursesByRoom = new Map<string, FreeRoomCourse[]>();
+  const coursesInPeriod = new Map<string, Map<string, FreeRoomCourse[]>>();
 
   for (const period of periods) {
     const slots = periodSlots.get(period.key);
@@ -389,6 +399,17 @@ export function buildDayIndex(
       if (!courseSlots.some((s) => active.has(s))) continue;
       addTo(occupancy, code, period.key);
       byPeriod.get(period.key)?.add(code);
+      // The period-scoped twin of `coursesByRoom`: this course, in this room,
+      // in this period only. The room inspector reads it to name what is
+      // sitting in a room at 10 AM without also naming the 2 PM class.
+      const inThisPeriod = coursesInPeriod.get(period.key);
+      if (inThisPeriod) {
+        const roomCourses = inThisPeriod.get(code);
+        if (roomCourses) roomCourses.push(course);
+        else inThisPeriod.set(code, [course]);
+      } else {
+        coursesInPeriod.set(period.key, new Map([[code, [course]]]));
+      }
     }
   }
 
@@ -405,6 +426,7 @@ export function buildDayIndex(
     byPeriod,
     blocks,
     courses: coursesByRoom,
+    coursesInPeriod,
     periods: [...periods],
   };
 }

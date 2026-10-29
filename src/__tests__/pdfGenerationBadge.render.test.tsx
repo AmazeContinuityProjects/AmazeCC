@@ -17,8 +17,8 @@ describe("PdfGenerationBadge Component", () => {
       />
     );
 
-    expect(screen.getByText("Generating PDF Dossier")).toBeDefined();
-    expect(screen.getByText("Building Fall 2026 Primary...")).toBeDefined();
+    expect(screen.getByText("Preparing Dossier Download")).toBeDefined();
+    expect(screen.getByText("Preparing Fall 2026 Primary download...")).toBeDefined();
     expect(screen.getByText("Light")).toBeDefined();
   });
 
@@ -34,7 +34,7 @@ describe("PdfGenerationBadge Component", () => {
       />
     );
 
-    expect(screen.getByText("PDF Dossier Ready")).toBeDefined();
+    expect(screen.getByText("Dossier Downloaded")).toBeDefined();
     expect(screen.getByText("Downloaded successfully!")).toBeDefined();
     expect(screen.getByText("Dark")).toBeDefined();
 
@@ -52,7 +52,7 @@ describe("PdfGenerationBadge Component", () => {
       />
     );
 
-    expect(screen.getByText("PDF Export Failed")).toBeDefined();
+    expect(screen.getByText("Dossier Download Failed")).toBeDefined();
     expect(screen.getByText("Failed to render timetable")).toBeDefined();
   });
 });

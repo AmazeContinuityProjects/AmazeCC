@@ -559,11 +559,11 @@ export default function EventHubTab({
   return (
     <PageShell
       onBack={onBack}
-      eyebrow="Event Hub"
+      eyebrow="Campus · Events"
       title="Event Hub"
       subtitle="Clubs, chapters and technical events at VIT."
       actions={
-        <IconButton title="Reload events" onClick={fetchEvents}>
+        <IconButton title="Reload events" onClick={fetchEvents} disabled={loading}>
           <RefreshCcw className={loading ? "animate-spin" : ""} />
         </IconButton>
       }
@@ -685,7 +685,7 @@ export default function EventHubTab({
                     type="button"
                     onClick={() => setSearchQuery("")}
                     aria-label="Clear search"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 hit-expand p-1 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>

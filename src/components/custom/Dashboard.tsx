@@ -24,8 +24,6 @@ import SubpageLayout from "./shared/SubpageLayout";
 import dynamic from "next/dynamic";
 import { AnimatePresence } from "framer-motion";
 
-import PushPromptModal from "./PushPromptModal";
-import PwaInstallCard from "./shared/PwaInstallCard";
 import { useDashboardWelcomeState } from "./dashboard/useDashboardWelcomeState";
 import { DashboardRoute, useDashboardNavigator } from "./dashboard/DashboardNavigator";
 import { useDashboardDataActions } from "./dashboard/useDashboardDataActions";
@@ -191,7 +189,7 @@ function DashboardContent({
 
   return (
     <div
-      className="w-full max-w-md md:max-w-full mx-auto overflow-visible"
+      className="dashboard-shell w-full max-w-md md:max-w-full mx-auto overflow-visible"
     >
       <NavigationTabs
         activeTab={activeTab}
@@ -243,7 +241,7 @@ function DashboardContent({
       />
 
       <div
-        className={`relative bg-gray-50/50  dark:bg-black min-h-[100dvh] text-gray-900  dark:text-gray-100 transition-all duration-300 pb-24 md:pb-0 ${settings.isSidebarCollapsed ? 'md:pl-24' : 'md:pl-80'} w-full overflow-hidden`}
+        className={`dashboard-content relative bg-gray-50/50  dark:bg-black min-h-[100dvh] text-gray-900  dark:text-gray-100 transition-all duration-300 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] md:pb-0 ${settings.isSidebarCollapsed ? 'md:pl-24' : 'md:pl-80'} w-full overflow-x-clip`}
         style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
       >
         {/* Ambient Background Glows */}
@@ -264,8 +262,6 @@ function DashboardContent({
           )}
         </AnimatePresence>
 
-        <PushPromptModal UserID={IDs?.VtopUsername} />
-        <PwaInstallCard />
         <FeedbackStatusModal isOpen={showFeedbackStatus} onClose={() => setShowFeedbackStatus(false)} loginToVTOP={loginToVTOP} />
         <div className="px-6 py-4 md:p-6 lg:p-10 max-w-7xl mx-auto w-full">
           <DashboardRoute route="home">

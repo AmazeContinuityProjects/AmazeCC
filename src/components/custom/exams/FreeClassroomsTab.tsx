@@ -28,6 +28,7 @@ import {
   freeRoomsForPeriod,
   freeRoomsForRun,
   positionLabel,
+  parseCachedCourses,
   parseCourseRows,
   resolveNow,
   resolvePeriods,
@@ -297,17 +298,23 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
     setError(null);
 
     if (!forceReload) {
-      try {
-        const cached = localStorage.getItem("ffcs_raw_courses");
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (parsed?.length) {
-            setCourses(parsed);
-            setLoading(false);
-            return;
-          }
-        }
-      } catch {}
+      /**
+       * The shared `ffcs_raw_courses` cache has three writers and two shapes:
+       * the FFCS timetable tab writes the room as `ROOM`, this page writes it
+       * as `VENUE`. Whichever screen the user visited last owns the key, so a
+       * raw `JSON.parse` here could hand the index rows with no `VENUE` at all
+       * — and `buildDayIndex` skips every one of them, rendering "no rooms"
+       * over a full report. `parseCachedCourses` is the tested normaliser that
+       * folds the aliases and survives a corrupt cache as "no rows" (so we
+       * still fall through to the CSV), which is what the mobile widget and
+       * the faculty-group loader already do.
+       */
+      const parsed = parseCachedCourses(localStorage.getItem("ffcs_raw_courses"));
+      if (parsed.length) {
+        setCourses(parsed);
+        setLoading(false);
+        return;
+      }
     }
 
     try {
@@ -671,22 +678,17 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
    *
    * The merged occupants already carry both sources, so a room taken by a class
    * the server knows about shows that class, and a room taken only by the
-   * report shows the report's row.
+   * report shows the report's row. Every occupant is kept, not just the first:
+   * a room can host two classes in one period, and dropping the second left a
+   * whole class invisible in the room's own timeline.
    */
   const timeline = useMemo(() => {
     if (!inspectedRoom) return [];
     return inspect.periods.map((p) => {
       const occupants = inspectMerged.periods.get(p.key)?.occupants.get(inspectedRoom) ?? [];
-      const occupying = occupants[0];
       return {
         period: p,
-        course: occupying
-          ? {
-              CODE: occupying.courseCode,
-              TITLE: occupying.title,
-              FACULTY: occupying.faculty,
-            }
-          : null,
+        occupants,
         // Only meaningful on the day the page is also showing, so browsing the
         // week does not claim a period is "selected" that the list is not on.
         isSelected: inspectDay === day && p.key === activePeriodKey,
@@ -711,7 +713,7 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
       title="Find an empty room"
       subtitle="Every room on campus, from the FFCS report and the live timetable."
       actions={
-        <IconButton title="Reload timetable" onClick={() => load(true)}>
+        <IconButton title="Reload timetable" onClick={() => load(true)} disabled={loading}>
           <RefreshCcw className={loading ? "animate-spin" : ""} />
         </IconButton>
       }
@@ -1017,7 +1019,7 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
           overlayId="room-inspector"
           maxWidth="max-w-xl"
           title={inspectedRoom}
-          subtitle={`${DAY_LABELS[inspectDay].full} · ${timeline.filter((t) => !t.course).length}/${timeline.length} free`}
+          subtitle={`${DAY_LABELS[inspectDay].full} · ${timeline.filter((t) => t.occupants.length === 0).length}/${timeline.length} free`}
           icon={<DoorOpen className="w-5 h-5" />}
           accent="bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
           closeLabel="Close room inspector"
@@ -1052,18 +1054,28 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
             )}
 
             <ListShell>
-              {timeline.map(({ period, course, isSelected }) => (
+              {timeline.map(({ period, occupants, isSelected }) => (
                 <ListRow
                   key={`${inspectDay}-${period.key}`}
                   icon={<Clock className="w-4 h-4" />}
                   title={period.label}
                   subtitle={
-                    course
-                      ? `${course.TITLE || course.CODE}${course.FACULTY ? ` · ${course.FACULTY}` : ""}`
+                    occupants.length
+                      ? occupants
+                          .map((o) =>
+                            [
+                              o.title || o.courseCode,
+                              o.courseCode && o.title ? o.courseCode : "",
+                              o.faculty,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ")
+                          )
+                          .join(" + ")
                       : "Free and available"
                   }
-                  tone={course ? "zinc" : "emerald"}
-                  badge={course ? "Taken" : "Free"}
+                  tone={occupants.length ? "zinc" : "emerald"}
+                  badge={occupants.length ? "Taken" : "Free"}
                   selected={isSelected}
                   // Takes the list to this day and period together, so
                   // "it's free Thursday 2 PM" turns into the list of rooms

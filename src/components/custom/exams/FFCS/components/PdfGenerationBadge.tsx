@@ -92,7 +92,7 @@ export default function PdfGenerationBadge({
                 : "Preparing Dossier Download"}
             </h4>
             <span
-              className={`text-[8.5px] font-black uppercase px-1.5 py-0.2 rounded border shrink-0 ${
+              className={`text-[10px] font-black uppercase px-1.5 py-0.2 rounded border shrink-0 ${
                 theme === "light"
                   ? "bg-amber-500/10 text-amber-600 border-amber-500/25"
                   : "bg-indigo-500/10 text-indigo-400 border-indigo-500/25"
