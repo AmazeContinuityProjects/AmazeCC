@@ -1,0 +1,40 @@
+# ==============================================================================
+# AmazeCC Reviews Worker Local Secrets (.dev.vars.example)
+# Used by Wrangler local development (`wrangler dev`). In production, provision
+# via `wrangler secret put <KEY>`.
+# ==============================================================================
+
+# --- Database ---
+# Supabase project REST/HTTPS URL for batch inserts and aggregate fetches
+# Get from: Supabase Dashboard -> Project Settings -> API -> Project URL
+SUPABASE_URL=https://REPLACE_ME.supabase.co
+
+# Supabase publishable key (client/anon equivalent)
+SUPABASE_PUBLISHABLE_KEY=REPLACE_ME
+
+# Supabase secret key (privileged/service-role equivalent for writing reviews bypassing RLS)
+# Get from: Supabase Dashboard -> Project Settings -> API -> Secret keys
+SUPABASE_SECRET_KEY=REPLACE_ME
+
+# --- Auth and secrets ---
+# Shared HMAC secret for authenticating review ingestion from amazecc-api (/internal/ingest)
+# CRITICAL: Must be identical to REVIEWS_INGEST_SECRET in amazecc-api/.env
+# Generate with: openssl rand -hex 32
+REVIEWS_INGEST_SECRET=REPLACE_ME
+
+# ==============================================================================
+# NOTE ON NON-SECRET CONFIGURATION (wrangler.jsonc)
+# ==============================================================================
+# The following values are runtime configurations, not secrets. They live in
+# `wrangler.jsonc` (under `vars` or resource bindings), NOT in this file:
+#   - SNAPSHOT_STORE="kv"
+#   - READ_ONLY_MODE=false
+#   - MAX_KV_WRITES_PER_RUN=50
+#   - KV Namespace: binding "REVIEWS_SNAPSHOTS", id "<KV_NAMESPACE_ID>"
+#   - Queue Producer: queue "amazecc-reviews-queue", binding "amazecc_reviews_queue"
+#   - Queue Consumer: queue "amazecc-reviews-queue", max_batch_size 25, timeout 10
+#
+# Deploy-only credentials (CI/CD only; locally use `npx wrangler login`):
+#   - CLOUDFLARE_ACCOUNT_ID
+#   - CLOUDFLARE_API_TOKEN
+# ==============================================================================

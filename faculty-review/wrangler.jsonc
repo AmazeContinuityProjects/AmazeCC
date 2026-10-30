@@ -1,0 +1,38 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "amazecc-reviews-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-30",
+  "vars": {
+    "SNAPSHOT_STORE": "kv",
+    "READ_ONLY_MODE": "false",
+    "MAX_KV_WRITES_PER_RUN": "50"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "REVIEWS_SNAPSHOTS",
+      "id": "amazecc-reviews-snapshots-local"
+    }
+  ],
+  "queues": {
+    "producers": [
+      {
+        "queue": "amazecc-reviews-queue",
+        "binding": "amazecc_reviews_queue"
+      }
+    ],
+    "consumers": [
+      {
+        "queue": "amazecc-reviews-queue",
+        "max_batch_size": 25,
+        "max_batch_timeout": 10,
+        "max_retries": 3
+      }
+    ]
+  },
+  "triggers": {
+    "crons": [
+      "*/10 * * * *"
+    ]
+  }
+}
