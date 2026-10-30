@@ -1,17 +1,29 @@
-'use client';
+"use client";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import dynamic from "next/dynamic";
 import { useAtom, useSetAtom } from "jotai";
 import {
-  credentialsAtom, messageAtom, attendanceDataAtom, marksDataAtom, gradesDataAtom,
-  allGradesDataAtom, scheduleDataAtom, hostelDataAtom, calendarDataAtom,
+  credentialsAtom,
+  messageAtom,
+  attendanceDataAtom,
+  marksDataAtom,
+  gradesDataAtom,
+  allGradesDataAtom,
+  scheduleDataAtom,
+  hostelDataAtom,
+  calendarDataAtom,
   isReloadingAtom,
   isLoggedInAtom,
-  moodleDataAtom, demoModeAtom, settingsAtom,
-  registeredEventsAtom, eventHubEventsAtom, commandPaletteOpenAtom, isShortcutsHelpOpenAtom,
+  moodleDataAtom,
+  demoModeAtom,
+  settingsAtom,
+  registeredEventsAtom,
+  eventHubEventsAtom,
+  commandPaletteOpenAtom,
+  isShortcutsHelpOpenAtom,
   officialOdDataAtom,
   authorizedIDAtom,
-  defaultSettings
+  defaultSettings,
 } from "@/store";
 import IntroSong from "@/lib/introSong/IntroSong";
 import config from "../../../config.json";
@@ -20,19 +32,9 @@ import { useAppBootstrap } from "./app/useAppBootstrap";
 import { AnimatePresence, LazyMotion, m } from "framer-motion";
 import BottomSheet from "@/components/custom/shared/BottomSheet";
 import { useTheme } from "next-themes";
-import { X, Keyboard, WifiOff } from "lucide-react";
-import {
-  BUILT_IN_MODES,
-  listModes,
-  loadCustomModes,
-  resolveMode,
-  type SyncMode,
-} from "@/lib/sync-engine/sync-modes";
-import {
-  dismissSyncSession,
-  getSyncSessionSnapshot,
-  isSyncSessionOpen,
-} from "@/lib/sync-engine/sync-session";
+import { Keyboard } from "lucide-react";
+import { BUILT_IN_MODES, listModes, loadCustomModes, resolveMode, type SyncMode } from "@/lib/sync-engine/sync-modes";
+import { dismissSyncSession, getSyncSessionSnapshot, isSyncSessionOpen } from "@/lib/sync-engine/sync-session";
 const CredentialEditorModal = dynamic(() => import("./CredentialEditorModal"));
 const SyncModeEditor = dynamic(() => import("@/components/custom/shared/SyncModeEditor"));
 import { useOverlayBack } from "@/lib/overlayStack";
@@ -88,7 +90,7 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
   const [commandPaletteOpen, setCommandPaletteOpen] = useAtom(commandPaletteOpenAtom);
   const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useAtom(isShortcutsHelpOpenAtom);
   const [credEditorOpen, setCredEditorOpen] = useState(false);
-  const { isOffline, isAPIworking, setIsAPIworking } = useAppNetworkStatus(isLoggedIn, demoMode);
+  useAppNetworkStatus(isLoggedIn, demoMode);
   const { appHydrated, setAttendanceAndOD } = useAppBootstrap();
   const didStartInitialIntent = useRef(false);
   // Custom sync modes (built-ins come from the engine). Refreshed whenever the
@@ -119,10 +121,25 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
   // Attendance cache normalization and initial app state live in focused hooks.
 
   const { loginToVTOP, handleLogin, handleReloadRequest } = useAppDataActions({
-    IDs, demoMode, settings, customModes, setSettings, setDemoMode, setIsReloading,
-    setAttendanceData, setMarksData, setGradesData, setAllGradesData, setScheduleData,
-    sethostelData, setCalender, setRegisteredEvents, setEventHubEvents, setMoodleData,
-    setIsLoggedIn, setOfficialOdData,
+    IDs,
+    demoMode,
+    settings,
+    customModes,
+    setSettings,
+    setDemoMode,
+    setIsReloading,
+    setAttendanceData,
+    setMarksData,
+    setGradesData,
+    setAllGradesData,
+    setScheduleData,
+    sethostelData,
+    setCalender,
+    setRegisteredEvents,
+    setEventHubEvents,
+    setMoodleData,
+    setIsLoggedIn,
+    setOfficialOdData,
     setAttendanceAndOD,
   });
   const handleLogOutRequest = useLogoutAction({
@@ -145,19 +162,25 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
 
   // Switching modes persists the preference AND re-runs the reload with it,
   // so the sheet switcher is one tap, not two.
-  const persistDefaultSyncMode = useCallback((id: string) => {
-    setSettings(prev => {
-      const next = { ...prev, defaultSyncMode: id };
-      try {
-        localStorage.setItem("settings", JSON.stringify(next));
-      } catch {}
-      return next;
-    });
-  }, [setSettings]);
-  const selectSyncMode = useCallback((id: string) => {
-    persistDefaultSyncMode(id);
-    void handleReloadRequest(undefined, id);
-  }, [persistDefaultSyncMode, handleReloadRequest]);
+  const persistDefaultSyncMode = useCallback(
+    (id: string) => {
+      setSettings((prev) => {
+        const next = { ...prev, defaultSyncMode: id };
+        try {
+          localStorage.setItem("settings", JSON.stringify(next));
+        } catch {}
+        return next;
+      });
+    },
+    [setSettings],
+  );
+  const selectSyncMode = useCallback(
+    (id: string) => {
+      persistDefaultSyncMode(id);
+      void handleReloadRequest(undefined, id);
+    },
+    [persistDefaultSyncMode, handleReloadRequest],
+  );
 
   // Sign-in now lives on page one of the onboarding hero, so this returns the
   // outcome instead of driving a sheet: `true` on success, and on failure the
@@ -176,7 +199,7 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
       // modal can pop up behind the hero that deliberately suppressed it.
       const failure = [...getSyncSessionSnapshot().lines].reverse().find((line) => line.status === "error");
       setLoginError(
-        failure?.text ?? (err instanceof Error && err.message ? err.message : "Sign-in failed. Please try again.")
+        failure?.text ?? (err instanceof Error && err.message ? err.message : "Sign-in failed. Please try again."),
       );
       if (isSyncSessionOpen()) dismissSyncSession();
       return false;
@@ -184,14 +207,14 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
   }, [handleLogin, setIsReloading]);
 
   const handleDemoClick = async () => {
-    const demoData = await (await fetch('/data/demoData.json')).json();
+    const demoData = await (await fetch("/data/demoData.json")).json();
     setDemoMode(true);
     localStorage.setItem("demoMode", "true");
     setIDs({
       VtopUsername: demoData.username,
       VtopPassword: demoData.password,
       MoodleUsername: "",
-      MoodlePassword: ""
+      MoodlePassword: "",
     });
 
     setSettings(defaultSettings);
@@ -210,7 +233,7 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
       localStorage.setItem("profile", JSON.stringify((demoData as any).profile));
     }
     setIsLoggedIn(true);
-  }
+  };
 
   useEffect(() => {
     if (!initialIntent || didStartInitialIntent.current) return;
@@ -233,129 +256,97 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
 
   return (
     <LazyMotion features={() => import("framer-motion").then((mod) => mod.domMax)}>
-    <>
+      <>
         {/* One-time intro song, gated on the VTOP authorizedID. Renders nothing
             for anyone not on the allowlist, and not even an <audio> element for
             them. Mounted at the root so it survives sub-tab navigation. */}
         <IntroSong authorizedId={authorizedID} />
-        <m.div
-          className="min-h-screen bg-gray-50  dark:bg-black flex flex-col text-gray-900  dark:text-zinc-100 transition-colors"
-        >
-      <AnimatePresence>
-        {isAPIworking && !isOffline && (
-          <m.div
-            initial={{ opacity: 0, y: -20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            transition={{ type: "spring", stiffness: 350, damping: 25 }}
-            className="fixed top-[calc(env(safe-area-inset-top,0px)+1rem)] left-1/2 -translate-x-1/2 z-50 w-full max-w-[320px] px-4"
-          >
-            <div className="flex items-center justify-between gap-3 p-3.5 bg-red-50/90 dark:bg-zinc-950/90 backdrop-blur-md border border-red-200/50 dark:border-red-900/30 rounded-2xl shadow-xl">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-xl bg-red-500/10 dark:bg-red-950/40 text-red-650 dark:text-red-400 flex items-center justify-center shrink-0">
-                  <WifiOff size={16} />
-                </div>
-                <div className="min-w-0">
-                  <h4 className="text-xs font-black text-red-900 dark:text-red-400 leading-none">Connection Offline</h4>
-                  <p className="text-[10px] text-red-700/80 dark:text-red-400/70 font-semibold mt-1 truncate">
-                    Unable to connect to VTOP API services.
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsAPIworking(false)}
-                className="p-1 rounded-lg text-red-500 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-500/10 dark:hover:bg-red-950/40 transition-colors cursor-pointer shrink-0"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          </m.div>
-        )}
-      </AnimatePresence>
-      <SyncSessionHost
-        activeModeId={activeModeId}
-        modes={allModes}
-        modeLabel={activeMode.label}
-        onSelectMode={selectSyncMode}
-        onOpenEditor={() => setModeEditorOpen(true)}
-        onChangePassword={() => setCredEditorOpen(true)}
-        onRetry={() => handleReloadRequest()}
-      />
+        <m.div className="min-h-screen bg-gray-50  dark:bg-black flex flex-col text-gray-900  dark:text-zinc-100 transition-colors">
+          <SyncSessionHost
+            activeModeId={activeModeId}
+            modes={allModes}
+            modeLabel={activeMode.label}
+            onSelectMode={selectSyncMode}
+            onOpenEditor={() => setModeEditorOpen(true)}
+            onChangePassword={() => setCredEditorOpen(true)}
+            onRetry={() => handleReloadRequest()}
+          />
 
-      {credEditorOpen && <CredentialEditorModal
-        open={credEditorOpen}
-        onClose={() => setCredEditorOpen(false)}
-        onSaved={(ids) => {
-          setIDs(ids as typeof IDs);
-          setCredEditorOpen(false);
-          // The previous rejection is what brought the student here; keeping it
-          // on screen while the retry runs would read as "still wrong".
-          setLoginError(null);
-          // Fire-and-forget: the retry reports through the sync session, which
-          // the intro's sync screen is already subscribed to. Swallow the
-          // rejection so a failed retry is not also an unhandled promise.
-          handleLogin(undefined, ids as Ids).catch(() => {});
-        }}
-      />}
+          {credEditorOpen && (
+            <CredentialEditorModal
+              open={credEditorOpen}
+              onClose={() => setCredEditorOpen(false)}
+              onSaved={(ids) => {
+                setIDs(ids as typeof IDs);
+                setCredEditorOpen(false);
+                // The previous rejection is what brought the student here; keeping it
+                // on screen while the retry runs would read as "still wrong".
+                setLoginError(null);
+                // Fire-and-forget: the retry reports through the sync session, which
+                // the intro's sync screen is already subscribed to. Swallow the
+                // rejection so a failed retry is not also an unhandled promise.
+                handleLogin(undefined, ids as Ids).catch(() => {});
+              }}
+            />
+          )}
 
-      {modeEditorOpen && <SyncModeEditor
-        open={modeEditorOpen}
-        onClose={() => setModeEditorOpen(false)}
-        onChanged={setCustomModes}
-        defaultId={activeModeId}
-        onSetDefault={persistDefaultSyncMode}
-        onRun={(id) => {
-          setModeEditorOpen(false);
-          selectSyncMode(id);
-        }}
-      />}
+          {modeEditorOpen && (
+            <SyncModeEditor
+              open={modeEditorOpen}
+              onClose={() => setModeEditorOpen(false)}
+              onChanged={setCustomModes}
+              defaultId={activeModeId}
+              onSetDefault={persistDefaultSyncMode}
+              onRun={(id) => {
+                setModeEditorOpen(false);
+                selectSyncMode(id);
+              }}
+            />
+          )}
 
-      <AuthenticatedWorkspace
-        handleLogOutRequest={handleLogOutRequest}
-        handleReloadRequest={handleReloadRequest}
-        loginToVTOP={loginToVTOP}
-        handleLogin={handleLogin}
-        onOpenCommandPalette={openCommandPalette}
-        onOpenShortcutsHelp={openShortcutsHelp}
-        onRunSyncMode={selectSyncMode}
-        intro={{
-          // "Try the demo" and a saved session skip straight to the welcome
-          // beat; everyone else lands on page one of onboarding: sign in.
-          initialPhase: initialIntent === "demo" || isLoggedIn || demoMode ? "welcome" : "login",
-          login: {
-            username: IDs.VtopUsername,
-            password: IDs.VtopPassword,
-            setUsername: (value: string) => setIDs(prev => ({ ...prev, VtopUsername: value })),
-            setPassword: (value: string) => setIDs(prev => ({ ...prev, VtopPassword: value })),
-            onSignIn: submitLogin,
-            error: loginError,
-            // Offered only for the rejections a new password actually fixes
-            // (see `classifyAuthFailure`); the editor re-runs the login on
-            // save, and the intro follows that run onto its sync screen.
-            onChangePassword: () => setCredEditorOpen(true),
-          },
-        }}
-      />
-      {/* <div className="top-0 left-0 w-full bg-blue-500 text-white text-center py-2 font-medium">
+          <AuthenticatedWorkspace
+            handleLogOutRequest={handleLogOutRequest}
+            handleReloadRequest={handleReloadRequest}
+            loginToVTOP={loginToVTOP}
+            handleLogin={handleLogin}
+            onOpenCommandPalette={openCommandPalette}
+            onOpenShortcutsHelp={openShortcutsHelp}
+            onRunSyncMode={selectSyncMode}
+            intro={{
+              // "Try the demo" and a saved session skip straight to the welcome
+              // beat; everyone else lands on page one of onboarding: sign in.
+              initialPhase: initialIntent === "demo" || isLoggedIn || demoMode ? "welcome" : "login",
+              login: {
+                username: IDs.VtopUsername,
+                password: IDs.VtopPassword,
+                setUsername: (value: string) => setIDs((prev) => ({ ...prev, VtopUsername: value })),
+                setPassword: (value: string) => setIDs((prev) => ({ ...prev, VtopPassword: value })),
+                onSignIn: submitLogin,
+                error: loginError,
+                // Offered only for the rejections a new password actually fixes
+                // (see `classifyAuthFailure`); the editor re-runs the login on
+                // save, and the intro follows that run onto its sync screen.
+                onChangePassword: () => setCredEditorOpen(true),
+              },
+            }}
+          />
+          {/* <div className="top-0 left-0 w-full bg-blue-500 text-white text-center py-2 font-medium">
         Scheduled maintenance on December 29, 2025 ( afternoon ). API services will be temporarily unavailable.
       </div> */}
 
-
-      <CommandPaletteHost
-        isOpen={commandPaletteOpen}
-        onClose={() => setCommandPaletteOpen(false)}
-        handleReloadRequest={handleReloadRequest}
-        handleLogOutRequest={handleLogOutRequest}
-        setModeEditorOpen={setModeEditorOpen}
-        customModes={customModes}
-      />
-      <AnimatePresence>
-        {isShortcutsHelpOpen && (
-          <GlobalShortcutsModal onClose={() => setIsShortcutsHelpOpen(false)} />
-        )}
-      </AnimatePresence>
+          <CommandPaletteHost
+            isOpen={commandPaletteOpen}
+            onClose={() => setCommandPaletteOpen(false)}
+            handleReloadRequest={handleReloadRequest}
+            handleLogOutRequest={handleLogOutRequest}
+            setModeEditorOpen={setModeEditorOpen}
+            customModes={customModes}
+          />
+          <AnimatePresence>
+            {isShortcutsHelpOpen && <GlobalShortcutsModal onClose={() => setIsShortcutsHelpOpen(false)} />}
+          </AnimatePresence>
         </m.div>
-    </>
+      </>
     </LazyMotion>
   );
 }
@@ -385,7 +376,7 @@ function GlobalShortcutsModal({ onClose }: { onClose: () => void }) {
         { keys: ["Alt", "L"], desc: "Go to Koha Library Search" },
         { keys: ["Alt", "G"], desc: "Go to Academic Grades" },
         { keys: ["Alt", "S"], desc: "Go to Settings" },
-      ]
+      ],
     },
     {
       title: "Quick Tools & Actions",
@@ -395,8 +386,8 @@ function GlobalShortcutsModal({ onClose }: { onClose: () => void }) {
         { keys: ["Alt", "B"], desc: "Toggle privacy blur filter (hides GPA)" },
         { keys: ["Alt", "T"], desc: "Toggle Theme (Light / Dark mode)" },
         { keys: ["?"], desc: "Show this keyboard shortcuts cheat-sheet" },
-      ]
-    }
+      ],
+    },
   ];
 
   return (
@@ -413,7 +404,9 @@ function GlobalShortcutsModal({ onClose }: { onClose: () => void }) {
         <div className="space-y-5">
           {categories.map((cat, idx) => (
             <div key={idx} className="space-y-2">
-              <h4 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{cat.title}</h4>
+              <h4 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                {cat.title}
+              </h4>
               <div className="divide-y divide-gray-100 dark:divide-gray-850/40 border border-gray-150 dark:border-gray-800/80 rounded-xl overflow-hidden bg-white/40 dark:bg-slate-900/10">
                 {cat.items.map((item, iIdx) => (
                   <div key={iIdx} className="flex items-center justify-between px-3.5 py-2.5 text-xs">
@@ -446,4 +439,3 @@ function GlobalShortcutsModal({ onClose }: { onClose: () => void }) {
     </BottomSheet>
   );
 }
-
