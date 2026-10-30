@@ -181,6 +181,9 @@ describe("parsing report rows", () => {
     expect(new Set(final.map((course) => course.CODE)).size).toBe(741);
     expect(final.every((course) => course.SLOT && course.CLASS_ID && course.ERP_ID)).toBe(true);
     expect(final.every((course) => course.EMPLOYEE_SCHOOL)).toBe(true);
+    // No extraction glue: every code is a bare 7–8 character code, never a
+    // code merged with the first word of its title (e.g. "UHUM151NEthics").
+    expect(final.every((course) => /^[A-Z0-9]{7,8}$/.test(course.CODE))).toBe(true);
 
     // The earlier mock slot timetable, still selectable beside the final list.
     const mock = load("public/ffcs/winter-2026-2027-slot-timetable.csv");
