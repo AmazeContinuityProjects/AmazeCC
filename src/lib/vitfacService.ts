@@ -85,6 +85,7 @@ export interface FacultyRosterEntry {
   profileUrl?: string;
   wpUrl?: string;
   featuredMedia?: number | null;
+  imageUrl?: string | null;
 }
 
 export interface FacultyDirectoryProfile {
@@ -789,6 +790,15 @@ export function useChennaiImage(employeeId?: string | null): string | null {
       try {
         const roster = await loadFacultyRoster();
         const entry = roster.find((r) => r.employeeId === employeeId);
+        // Prefer an already-resolved imageUrl from the worker roster.
+        if (entry?.imageUrl) {
+          if (cancelled) return;
+          setUrl(entry.imageUrl);
+          try {
+            safeSessionStorage.setItem(CHENNAI_IMG_URL_PREFIX + employeeId, entry.imageUrl);
+          } catch {}
+          return;
+        }
         const fm = entry?.featuredMedia;
         if (!fm) {
           try {
