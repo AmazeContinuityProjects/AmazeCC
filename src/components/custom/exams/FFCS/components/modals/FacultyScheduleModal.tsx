@@ -364,10 +364,17 @@ export function FacultyScheduleModal({
                 {filtered.map((group) => {
                   const empId = group.offerings.find((o) => o.ERP_ID)?.ERP_ID;
                   return (
-                    <button
+                    <div
                       key={group.key}
-                      type="button"
+                      role="button"
+                      tabIndex={0}
                       onClick={() => setSelectedKey(group.key)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setSelectedKey(group.key);
+                        }
+                      }}
                       className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface-secondary/30 transition-colors cursor-pointer"
                     >
                       <FacultyAvatar
@@ -401,7 +408,7 @@ export function FacultyScheduleModal({
                         </span>
                       </span>
                       <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-                    </button>
+                    </div>
                   );
                 })}
               </div>
