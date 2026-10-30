@@ -526,11 +526,25 @@ export async function getFacultyDirectoryProfile(idOrEmpId: string): Promise<Fac
 
   // sessionStorage cache first
   const cacheKey = `amazecc_dir_profile_${empId}`;
+  const DIR_PROFILE_TTL_MS = 24 * 60 * 60 * 1000;
   try {
     const cached = safeSessionStorage.getItem(cacheKey);
     if (cached) {
-      const parsed = JSON.parse(cached) as FacultyDirectoryProfile;
-      if (parsed && parsed.employeeId) return parsed;
+      const parsed = JSON.parse(cached);
+      // New format: { v, t }. Old format (bare profile) is treated as expired.
+      if (
+        parsed &&
+        parsed.v &&
+        parsed.v.employeeId &&
+        typeof parsed.t === "number" &&
+        Date.now() - parsed.t < DIR_PROFILE_TTL_MS
+      ) {
+        return parsed.v as FacultyDirectoryProfile;
+      }
+      if (parsed && parsed.employeeId && !parsed.v) {
+        // Legacy bare profile: accept once, then re-wrap on next fetch.
+        return parsed as FacultyDirectoryProfile;
+      }
     }
   } catch {}
 
@@ -574,7 +588,7 @@ export async function getFacultyDirectoryProfile(idOrEmpId: string): Promise<Fac
           courses: prof?.courses || [],
         };
         try {
-          safeSessionStorage.setItem(cacheKey, JSON.stringify(profile));
+          safeSessionStorage.setItem(cacheKey, JSON.stringify({ v: profile, t: Date.now() }));
         } catch {}
         // also enrich the in-memory vitfac catalog entry if present
         if (prof?.name) {
@@ -688,6 +702,7 @@ export function useVitfacReview(employeeId?: string | null, name?: string | null
 
 const IMG_CACHE_PREFIX = "amazecc_img_";
 const IMG_CACHE_MAX_BYTES = 60 * 1024; // 60 KB per image
+const IMG_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 export function useCachedImage(url: string | null | undefined): string | null {
   const [src, setSrc] = useState<string | null>(url || null);
@@ -704,13 +719,25 @@ export function useCachedImage(url: string | null | undefined): string | null {
 
     let cancelled = false;
 
-    // 1. Serve from local cache if present.
+    // 1. Serve from local cache if present (with TTL).
     try {
       const key = IMG_CACHE_PREFIX + url;
       const cached = safeSessionStorage.getItem(key);
       if (cached) {
-        if (!cancelled) setSrc(cached);
-        return;
+        try {
+          const parsed = JSON.parse(cached);
+          if (parsed && typeof parsed === "object" && "d" in parsed) {
+            if (Date.now() - (parsed.t || 0) < IMG_CACHE_TTL_MS) {
+              if (!cancelled) setSrc(parsed.d);
+              return;
+            }
+            // expired — fall through and refetch
+          } else {
+            // legacy bare dataUrl — treat as expired
+          }
+        } catch {
+          // legacy bare dataUrl — treat as expired
+        }
       }
     } catch {}
 
@@ -728,14 +755,14 @@ export function useCachedImage(url: string | null | undefined): string | null {
           if (!dataUrl) return;
           setSrc(dataUrl);
           try {
-            safeSessionStorage.setItem(IMG_CACHE_PREFIX + url, dataUrl);
+            safeSessionStorage.setItem(IMG_CACHE_PREFIX + url, JSON.stringify({ d: dataUrl, t: Date.now() }));
           } catch {
             // Quota exceeded: drop the whole image namespace and retry once.
             try {
               Object.keys(sessionStorage)
                 .filter((k) => k.startsWith(IMG_CACHE_PREFIX))
                 .forEach((k) => sessionStorage.removeItem(k));
-              safeSessionStorage.setItem(IMG_CACHE_PREFIX + url, dataUrl);
+              safeSessionStorage.setItem(IMG_CACHE_PREFIX + url, JSON.stringify({ d: dataUrl, t: Date.now() }));
             } catch {}
           }
         };
@@ -760,16 +787,27 @@ export function useCachedImage(url: string | null | undefined): string | null {
 // cached in sessionStorage so the lookup happens once per faculty, ever.
 
 const CHENNAI_IMG_URL_PREFIX = "chennai_img_url_";
+const CHENNAI_IMG_URL_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days for a resolved URL
+const CHENNAI_IMG_NONE_TTL_MS = 60 * 60 * 1000; // 1 hour for "no image" (retry transient failures)
 
 export function useChennaiImage(employeeId?: string | null): string | null {
   const [url, setUrl] = useState<string | null>(() => {
     if (!employeeId) return null;
     try {
       const cached = safeSessionStorage.getItem(CHENNAI_IMG_URL_PREFIX + employeeId);
-      return cached && cached !== "__none__" ? cached : null;
-    } catch {
-      return null;
-    }
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (parsed && typeof parsed === "object" && "v" in parsed) {
+            const ttl = parsed.v && parsed.v !== "__none__" ? CHENNAI_IMG_URL_TTL_MS : CHENNAI_IMG_NONE_TTL_MS;
+            if (Date.now() - (parsed.t || 0) < ttl) return parsed.v === "__none__" ? null : parsed.v;
+          }
+        } catch {
+          // legacy bare string — treated as expired
+        }
+      }
+    } catch {}
+    return null;
   });
 
   useEffect(() => {
@@ -780,8 +818,18 @@ export function useChennaiImage(employeeId?: string | null): string | null {
     try {
       const cached = safeSessionStorage.getItem(CHENNAI_IMG_URL_PREFIX + employeeId);
       if (cached) {
-        setUrl(cached === "__none__" ? null : cached);
-        return;
+        try {
+          const parsed = JSON.parse(cached);
+          if (parsed && typeof parsed === "object" && "v" in parsed) {
+            const ttl = parsed.v && parsed.v !== "__none__" ? CHENNAI_IMG_URL_TTL_MS : CHENNAI_IMG_NONE_TTL_MS;
+            if (Date.now() - (parsed.t || 0) < ttl) {
+              setUrl(parsed.v === "__none__" ? null : parsed.v);
+              return;
+            }
+          }
+        } catch {
+          // legacy bare string — fall through and refetch
+        }
       }
     } catch {}
 
@@ -795,21 +843,30 @@ export function useChennaiImage(employeeId?: string | null): string | null {
           if (cancelled) return;
           setUrl(entry.imageUrl);
           try {
-            safeSessionStorage.setItem(CHENNAI_IMG_URL_PREFIX + employeeId, entry.imageUrl);
+            safeSessionStorage.setItem(
+              CHENNAI_IMG_URL_PREFIX + employeeId,
+              JSON.stringify({ v: entry.imageUrl, t: Date.now() }),
+            );
           } catch {}
           return;
         }
         const fm = entry?.featuredMedia;
         if (!fm) {
           try {
-            safeSessionStorage.setItem(CHENNAI_IMG_URL_PREFIX + employeeId, "__none__");
+            safeSessionStorage.setItem(
+              CHENNAI_IMG_URL_PREFIX + employeeId,
+              JSON.stringify({ v: "__none__", t: Date.now() }),
+            );
           } catch {}
           return;
         }
         const res = await fetch(`https://chennai.vit.ac.in/wp-json/wp/v2/media/${fm}`);
         if (!res.ok) {
           try {
-            safeSessionStorage.setItem(CHENNAI_IMG_URL_PREFIX + employeeId, "__none__");
+            safeSessionStorage.setItem(
+              CHENNAI_IMG_URL_PREFIX + employeeId,
+              JSON.stringify({ v: "__none__", t: Date.now() }),
+            );
           } catch {}
           return;
         }
@@ -818,7 +875,10 @@ export function useChennaiImage(employeeId?: string | null): string | null {
         if (cancelled) return;
         setUrl(src);
         try {
-          safeSessionStorage.setItem(CHENNAI_IMG_URL_PREFIX + employeeId, src || "__none__");
+          safeSessionStorage.setItem(
+            CHENNAI_IMG_URL_PREFIX + employeeId,
+            JSON.stringify({ v: src || "__none__", t: Date.now() }),
+          );
         } catch {}
       } catch {
         // network/TLS failure: leave uncached so it retries next load
@@ -830,4 +890,17 @@ export function useChennaiImage(employeeId?: string | null): string | null {
   }, [employeeId]);
 
   return url;
+}
+
+/**
+ * Drop every faculty-related entry from sessionStorage. Useful for a manual
+ * "clear cache" action or when the worker's data has changed and a fresh fetch
+ * is wanted before the natural TTL expiry.
+ */
+export function clearFacultyCache() {
+  try {
+    Object.keys(sessionStorage)
+      .filter((k) => k.startsWith("amazecc_") || k.startsWith("vitfac_"))
+      .forEach((k) => sessionStorage.removeItem(k));
+  } catch {}
 }
