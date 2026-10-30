@@ -706,7 +706,7 @@ export function useCachedImage(url: string | null | undefined): string | null {
 
     // 1. Serve from local cache if present.
     try {
-      const key = IMG_CACHE_PREFIX + btoa(url).slice(0, 48);
+      const key = IMG_CACHE_PREFIX + url;
       const cached = safeSessionStorage.getItem(key);
       if (cached) {
         if (!cancelled) setSrc(cached);
@@ -728,14 +728,14 @@ export function useCachedImage(url: string | null | undefined): string | null {
           if (!dataUrl) return;
           setSrc(dataUrl);
           try {
-            safeSessionStorage.setItem(IMG_CACHE_PREFIX + btoa(url).slice(0, 48), dataUrl);
+            safeSessionStorage.setItem(IMG_CACHE_PREFIX + url, dataUrl);
           } catch {
             // Quota exceeded: drop the whole image namespace and retry once.
             try {
               Object.keys(sessionStorage)
                 .filter((k) => k.startsWith(IMG_CACHE_PREFIX))
                 .forEach((k) => sessionStorage.removeItem(k));
-              safeSessionStorage.setItem(IMG_CACHE_PREFIX + btoa(url).slice(0, 48), dataUrl);
+              safeSessionStorage.setItem(IMG_CACHE_PREFIX + url, dataUrl);
             } catch {}
           }
         };
