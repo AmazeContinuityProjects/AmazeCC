@@ -83,9 +83,7 @@ export default function FacultyReviewSheet({
   const availableCourses = bundle?.courseStats?.courses || [];
   const selectedCourseStat =
     activeCourseFilter !== "global"
-      ? availableCourses.find(
-          (c) => c.code.toUpperCase() === activeCourseFilter.toUpperCase()
-        )
+      ? availableCourses.find((c) => c.code.toUpperCase() === activeCourseFilter.toUpperCase())
       : null;
 
   // Harmonize stats: prioritize course selection -> global courseStats -> prof summary
@@ -118,14 +116,12 @@ export default function FacultyReviewSheet({
           <FacultyAvatar
             employeeId={prof?.employeeId || employeeId}
             name={prof?.name || facultyName}
-            fallbackImageUrl={prof?.image_url}
+            fallbackImageUrl={prof?.image ? `data:image/jpeg;base64,${prof.image}` : prof?.image_url || null}
             size="lg"
             tone="amber"
           />
           <div className="min-w-0">
-            <h3 className="font-bold text-lg text-text-heading leading-tight truncate">
-              {prof?.name || facultyName}
-            </h3>
+            <h3 className="font-bold text-lg text-text-heading leading-tight truncate">{prof?.name || facultyName}</h3>
             <p className="text-xs text-muted-foreground mt-0.5 truncate">
               {prof?.designation ? `${prof.designation} · ` : ""}
               {prof?.dept || (employeeId ? `ERP: ${employeeId}` : "Faculty")}
@@ -211,9 +207,7 @@ export default function FacultyReviewSheet({
           {/* Win / Loss Rating Hero */}
           <div className="bg-surface rounded-2xl border border-border-strong p-4 shadow-xs space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Community Rating
-              </span>
+              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Community Rating</span>
               <span className="text-xs font-medium text-muted-foreground">
                 {reviewsCount} {reviewsCount === 1 ? "student review" : "student reviews"}
               </span>
@@ -223,11 +217,7 @@ export default function FacultyReviewSheet({
               <div className="flex items-center gap-2">
                 <span
                   className={`text-3xl font-black font-outfit ${
-                    wPct >= 70
-                      ? "text-emerald-500"
-                      : wPct >= 40
-                      ? "text-amber-500"
-                      : "text-red-500"
+                    wPct >= 70 ? "text-emerald-500" : wPct >= 40 ? "text-amber-500" : "text-red-500"
                   }`}
                 >
                   {wPct}%
@@ -246,10 +236,7 @@ export default function FacultyReviewSheet({
 
             {/* Progress split bar */}
             <div className="w-full h-2.5 rounded-full bg-red-500/20 overflow-hidden flex">
-              <div
-                className="h-full bg-emerald-500 transition-all duration-500"
-                style={{ width: `${wPct}%` }}
-              />
+              <div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${wPct}%` }} />
             </div>
           </div>
 
@@ -261,9 +248,7 @@ export default function FacultyReviewSheet({
                 {lecture ? lecture.toFixed(1) : "—"}
                 <span className="text-[10px] font-normal text-muted-foreground">/5</span>
               </div>
-              <div className="text-[10px] font-bold text-muted-foreground uppercase mt-0.5">
-                Lecture
-              </div>
+              <div className="text-[10px] font-bold text-muted-foreground uppercase mt-0.5">Lecture</div>
             </div>
 
             <div className="bg-surface rounded-xl border border-border-strong p-3 text-center">
@@ -272,9 +257,7 @@ export default function FacultyReviewSheet({
                 {da ? da.toFixed(1) : "—"}
                 <span className="text-[10px] font-normal text-muted-foreground">/5</span>
               </div>
-              <div className="text-[10px] font-bold text-muted-foreground uppercase mt-0.5">
-                DA Marks
-              </div>
+              <div className="text-[10px] font-bold text-muted-foreground uppercase mt-0.5">DA Marks</div>
             </div>
 
             <div className="bg-surface rounded-xl border border-border-strong p-3 text-center">
@@ -283,9 +266,7 @@ export default function FacultyReviewSheet({
                 {vibe ? vibe.toFixed(1) : "—"}
                 <span className="text-[10px] font-normal text-muted-foreground">/5</span>
               </div>
-              <div className="text-[10px] font-bold text-muted-foreground uppercase mt-0.5">
-                Vibe
-              </div>
+              <div className="text-[10px] font-bold text-muted-foreground uppercase mt-0.5">Vibe</div>
             </div>
           </div>
 
@@ -324,9 +305,7 @@ export default function FacultyReviewSheet({
                     className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-500/10 border border-red-500/20 text-red-700 dark:text-red-300 text-xs font-medium"
                   >
                     <span>{item.text}</span>
-                    <span className="bg-red-500/20 text-red-500 px-1 rounded text-[10px] font-bold">
-                      +{item.count}
-                    </span>
+                    <span className="bg-red-500/20 text-red-500 px-1 rounded text-[10px] font-bold">+{item.count}</span>
                   </span>
                 ))}
               </div>
@@ -336,9 +315,7 @@ export default function FacultyReviewSheet({
           {/* Courses Taught */}
           {prof.courses && prof.courses.length > 0 && (
             <div className="space-y-1.5 pt-2 border-t border-border-strong/40">
-              <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                Known Courses
-              </div>
+              <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Known Courses</div>
               <div className="flex flex-wrap gap-1">
                 {prof.courses.map((c) => (
                   <span
@@ -380,7 +357,8 @@ export default function FacultyReviewSheet({
             >
               vitfac.pages.dev
             </a>
-            ). AmazeCC does not create, endorse, or verify these opinions; we provide this integration solely as a viewer for student convenience.
+            ). AmazeCC does not create, endorse, or verify these opinions; we provide this integration solely as a
+            viewer for student convenience.
           </p>
         </div>
       </div>

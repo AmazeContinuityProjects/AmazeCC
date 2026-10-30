@@ -3,10 +3,7 @@
 import { useEffect, useState } from "react";
 import { safeSessionStorage } from "./ffcsGeneratorSessionPrefs";
 import type { ParsedCourse } from "@/components/custom/exams/FFCS/types";
-import {
-  buildFacultyRatingLookup,
-  type FacultyRatingLookup,
-} from "@/lib/ffcsFacultyRanking";
+import { buildFacultyRatingLookup, type FacultyRatingLookup } from "@/lib/ffcsFacultyRanking";
 
 export interface VitfacLoreItem {
   text: string;
@@ -37,6 +34,20 @@ export interface VitfacFaculty {
   };
   image_url?: string | null;
   avatar?: string;
+  image?: string | null; // base64 or URL from directorycc
+  email?: string | null;
+  intercom?: string | null;
+  profileUrl?: string | null;
+  researchArea?: string[];
+  areasOfSpecialization?: string[];
+  links?: { orcid?: string; scopus?: string; googleScholar?: string; linkedin?: string } | null;
+  education?: any[];
+  publications?: any[];
+  awards?: string[];
+  hIndexScopus?: number | null;
+  i10Index?: number | null;
+  directoryAvailable?: boolean;
+  vitfacAvailable?: boolean;
 }
 
 export interface VitfacProfileBundle {
@@ -65,13 +76,56 @@ export interface VitfacProfileBundle {
   };
 }
 
+export interface FacultyRosterEntry {
+  employeeId: string;
+  name: string;
+  school: string;
+  wpId?: number;
+  slug?: string;
+  profileUrl?: string;
+  wpUrl?: string;
+  featuredMedia?: number | null;
+}
+
+export interface FacultyDirectoryProfile {
+  employeeId: string;
+  name: string | null;
+  designation: string | null;
+  dept: string | null;
+  campus: string | null;
+  schoolPage: string | null;
+  image: string | null;
+  imageUrl: string | null;
+  email: string | null;
+  intercom: string | null;
+  phd: string | null;
+  researchArea: string[];
+  areasOfSpecialization: string[];
+  links: { orcid?: string; scopus?: string; googleScholar?: string; linkedin?: string } | null;
+  education: any[];
+  publications: any[];
+  awards: string[];
+  hIndexScopus: number | null;
+  i10Index: number | null;
+  directoryAvailable: boolean;
+  vitfacAvailable: boolean;
+  wPct: number;
+  reviews: number;
+  wCount: number;
+  lCount: number;
+  metrics: VitfacMetrics | null;
+  lore: { green?: VitfacLoreItem[]; red?: VitfacLoreItem[] } | null;
+  courses: string[];
+}
+
 /**
  * Master killswitch to enable or disable the entire vitfac integration.
  * Set to `false` to instantly turn off all network calls, review pills, and modals across the application.
  */
 export const ENABLE_VITFAC_INTEGRATION = true;
 
-export const VITFAC_WORKER_BASE = "https://vitfac.amazecc.com";
+export const VITFAC_WORKER_BASE = "https://cache.amazecc.com";
+export const CACHE_BASE = VITFAC_WORKER_BASE;
 const VITFAC_CACHE_KEY = "vitfac_faculty_catalog_v1";
 const VITFAC_CACHE_TIMESTAMP_KEY = "vitfac_faculty_catalog_ts_v1";
 const CATALOG_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -228,10 +282,7 @@ export async function loadVitfacCatalog(): Promise<Map<string, VitfacFaculty>> {
 /**
  * Synchronous lookup from memory index.
  */
-export function getFacultyReview(params: {
-  employeeId?: string | null;
-  name?: string | null;
-}): VitfacFaculty | null {
+export function getFacultyReview(params: { employeeId?: string | null; name?: string | null }): VitfacFaculty | null {
   if (!ENABLE_VITFAC_INTEGRATION) return null;
 
   if (!isCatalogLoaded) {
@@ -267,7 +318,7 @@ export function getFacultyReview(params: {
  * disabled or unavailable, an empty lookup leaves schedule ranking untouched.
  */
 export async function loadVitfacRankingData(
-  courses: readonly ParsedCourse[]
+  courses: readonly ParsedCourse[],
 ): Promise<{ available: boolean; ratings: FacultyRatingLookup }> {
   if (!ENABLE_VITFAC_INTEGRATION) return { available: false, ratings: {} };
   const catalog = await loadVitfacCatalog();
@@ -306,14 +357,10 @@ export function updateFacultyInCatalog(updatedProf: VitfacFaculty) {
 /**
  * Fetch detailed profile bundle for a specific professor.
  */
-export async function getFacultyProfileBundle(
-  idOrEmpId: string
-): Promise<VitfacProfileBundle | null> {
+export async function getFacultyProfileBundle(idOrEmpId: string): Promise<VitfacProfileBundle | null> {
   if (!ENABLE_VITFAC_INTEGRATION) return null;
 
-  const b64Id = /^[0-9]+$/.test(idOrEmpId.trim())
-    ? encodeVitfacId(idOrEmpId.trim())
-    : idOrEmpId.trim();
+  const b64Id = /^[0-9]+$/.test(idOrEmpId.trim()) ? encodeVitfacId(idOrEmpId.trim()) : idOrEmpId.trim();
 
   try {
     const res = await fetch(`${VITFAC_WORKER_BASE}/profile/${encodeURIComponent(b64Id)}`);
@@ -343,10 +390,249 @@ export async function getFacultyProfileBundle(
  * Generates external profile URL to vitfac.pages.dev.
  */
 export function getVitfacProfileUrl(idOrEmpId: string): string {
-  const b64Id = /^[0-9]+$/.test(idOrEmpId.trim())
-    ? encodeVitfacId(idOrEmpId.trim())
-    : idOrEmpId.trim();
+  const b64Id = /^[0-9]+$/.test(idOrEmpId.trim()) ? encodeVitfacId(idOrEmpId.trim()) : idOrEmpId.trim();
   return `https://vitfac.pages.dev/profile?id=${encodeURIComponent(b64Id)}`;
+}
+
+// ---------- cache.amazecc.com : VIT faculty roster + directory profiles ----------
+
+const ROSTER_CACHE_KEY = "amazecc_faculty_roster_v1";
+const ROSTER_CACHE_TS_KEY = "amazecc_faculty_roster_ts_v1";
+const ROSTER_TTL_MS = 24 * 60 * 60 * 1000; // 24h — roster changes rarely
+
+let rosterPromise: Promise<FacultyRosterEntry[]> | null = null;
+let rosterLoaded = false;
+const rosterListeners = new Set<() => void>();
+
+function indexRoster(list: FacultyRosterEntry[]) {
+  // roster is consumed as a list; nothing to index here beyond the cache.
+  rosterLoaded = list.length > 0;
+  rosterListeners.forEach((fn) => {
+    try {
+      fn();
+    } catch {}
+  });
+}
+
+export async function loadFacultyRoster(): Promise<FacultyRosterEntry[]> {
+  if (!ENABLE_VITFAC_INTEGRATION) return [];
+
+  if (rosterLoaded) {
+    try {
+      const cached = safeSessionStorage.getItem(ROSTER_CACHE_KEY);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed as FacultyRosterEntry[];
+      }
+    } catch {}
+  }
+
+  if (rosterPromise) return rosterPromise;
+
+  rosterPromise = (async () => {
+    // The static roster (generated by scripts/fetch-vit-faculty.mjs, shipped in
+    // public/data/vit-faculty/roster.json) is the complete, reliable floor:
+    // chennai.vit.ac.in blocks Cloudflare's edge for several schools, so the
+    // worker's live roster is only a partial subset. Load the static file
+    // first so the UI never waits on the network and never shrinks.
+    let base: FacultyRosterEntry[] = [];
+    try {
+      const res = await fetch("/data/vit-faculty/roster.json");
+      if (res.ok) {
+        const list = (await res.json()) as FacultyRosterEntry[];
+        if (Array.isArray(list) && list.length > 0) {
+          const seen = new Set<string>();
+          base = list.filter((e) => {
+            if (seen.has(e.employeeId)) return false;
+            seen.add(e.employeeId);
+            return true;
+          });
+        }
+      }
+    } catch {}
+
+    // Best-effort enhancement: merge in whatever the worker managed to fetch
+    // (freshness + any entries the static file lacks). Worker entries win on
+    // conflict; the static floor is never lost.
+    let merged = base;
+    try {
+      const cached = safeSessionStorage.getItem(ROSTER_CACHE_KEY);
+      const ts = safeSessionStorage.getItem(ROSTER_CACHE_TS_KEY);
+      const fresh = !cached || !ts || Date.now() - parseInt(ts, 10) < ROSTER_TTL_MS;
+      let workerList: FacultyRosterEntry[] | null = null;
+      if (fresh && cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) workerList = parsed as FacultyRosterEntry[];
+        } catch {}
+      }
+      if (!workerList) {
+        const res = await fetch(`${VITFAC_WORKER_BASE}/faculty/roster`);
+        if (res.ok) {
+          const json = await res.json();
+          const list: FacultyRosterEntry[] = json?.data?.faculty || [];
+          if (Array.isArray(list) && list.length > 0) {
+            workerList = list;
+            try {
+              safeSessionStorage.setItem(ROSTER_CACHE_KEY, JSON.stringify(list));
+              safeSessionStorage.setItem(ROSTER_CACHE_TS_KEY, String(Date.now()));
+            } catch {}
+          }
+        }
+      }
+      if (workerList && workerList.length > 0) {
+        const byId = new Map<string, FacultyRosterEntry>();
+        for (const e of base) byId.set(e.employeeId, e);
+        for (const e of workerList) byId.set(e.employeeId, e); // worker overrides
+        merged = Array.from(byId.values());
+      }
+    } catch (err) {
+      console.warn("Faculty roster worker enhancement failed (static floor kept):", err);
+    }
+
+    if (merged.length > 0) {
+      indexRoster(merged);
+      return merged;
+    }
+    return [];
+  })();
+
+  return rosterPromise;
+}
+
+export async function searchFacultyDirectory(params: {
+  q?: string | null;
+  school?: string | null;
+}): Promise<FacultyRosterEntry[]> {
+  if (!ENABLE_VITFAC_INTEGRATION) return [];
+  const roster = await loadFacultyRoster();
+  const q = (params.q || "").toLowerCase().trim();
+  const school = (params.school || "").toLowerCase().trim();
+  return roster.filter((r) => {
+    if (school && r.school.toLowerCase() !== school) return false;
+    if (!q) return true;
+    return (
+      r.name.toLowerCase().includes(q) || r.employeeId.toLowerCase().includes(q) || r.school.toLowerCase().includes(q)
+    );
+  });
+}
+
+export async function getFacultyDirectoryProfile(idOrEmpId: string): Promise<FacultyDirectoryProfile | null> {
+  if (!ENABLE_VITFAC_INTEGRATION) return null;
+
+  const empId = idOrEmpId.trim();
+  const b64Id = /^[0-9]+$/.test(empId) ? encodeVitfacId(empId) : empId;
+
+  // sessionStorage cache first
+  const cacheKey = `amazecc_dir_profile_${empId}`;
+  try {
+    const cached = safeSessionStorage.getItem(cacheKey);
+    if (cached) {
+      const parsed = JSON.parse(cached) as FacultyDirectoryProfile;
+      if (parsed && parsed.employeeId) return parsed;
+    }
+  } catch {}
+
+  // worker
+  try {
+    const res = await fetch(`${VITFAC_WORKER_BASE}/faculty/profile/${encodeURIComponent(b64Id)}`);
+    if (res.ok) {
+      const json = await res.json();
+      const bundle = json?.data;
+      const prof = bundle?.prof || bundle;
+      const dir = bundle?.directory;
+      if (prof || dir) {
+        const profile: FacultyDirectoryProfile = {
+          employeeId: dir?.employeeId || prof?.employeeId || empId,
+          name: dir?.name || prof?.name || null,
+          designation: dir?.designation || prof?.designation || null,
+          dept: prof?.dept || null,
+          campus: prof?.campus || null,
+          schoolPage: prof?.schoolPage || null,
+          image: dir?.image || prof?.image || null,
+          imageUrl: prof?.image_url || prof?.imageUrl || null,
+          email: dir?.email || null,
+          intercom: dir?.intercom || null,
+          phd: dir?.phd || null,
+          researchArea: dir?.researchArea || [],
+          areasOfSpecialization: dir?.areasOfSpecialization || [],
+          links: dir?.links || null,
+          education: dir?.education || [],
+          publications: dir?.publications || [],
+          awards: dir?.awards || [],
+          hIndexScopus: dir?.metrics?.hIndexScopus ?? dir?.hIndexScopus ?? null,
+          i10Index: dir?.metrics?.i10Index ?? dir?.i10Index ?? null,
+          directoryAvailable: dir?.available ?? !!dir,
+          vitfacAvailable: prof?.vitfacAvailable ?? true,
+          wPct: prof?.wPct ?? 0,
+          reviews: prof?.reviews ?? 0,
+          wCount: prof?.wCount ?? 0,
+          lCount: prof?.lCount ?? 0,
+          metrics: prof?.metrics || prof?.vitfacMetrics || null,
+          lore: prof?.lore || null,
+          courses: prof?.courses || [],
+        };
+        try {
+          safeSessionStorage.setItem(cacheKey, JSON.stringify(profile));
+        } catch {}
+        // also enrich the in-memory vitfac catalog entry if present
+        if (prof?.name) {
+          updateFacultyInCatalog({
+            id: prof.id || encodeVitfacId(empId),
+            employeeId: empId,
+            name: prof.name,
+            designation: profile.designation || undefined,
+            dept: profile.dept || undefined,
+            image_url: profile.imageUrl || undefined,
+            image: profile.image || undefined,
+            email: profile.email || undefined,
+            intercom: profile.intercom || undefined,
+            links: profile.links || undefined,
+            researchArea: profile.researchArea,
+            areasOfSpecialization: profile.areasOfSpecialization,
+            wPct: profile.wPct,
+            reviews: profile.reviews,
+            wCount: profile.wCount,
+            lCount: profile.lCount,
+            metrics: profile.metrics || undefined,
+            lore: profile.lore || undefined,
+            courses: profile.courses,
+          } as any);
+        }
+        return profile;
+      }
+    }
+  } catch (err) {
+    console.warn("Failed to fetch directory profile from cache worker:", err);
+  }
+
+  return null;
+}
+
+export function useVitfacDirectoryProfile(employeeId?: string | null) {
+  const [profile, setProfile] = useState<FacultyDirectoryProfile | null>(() => (employeeId ? null : null));
+  const [loading, setLoading] = useState<boolean>(!!employeeId);
+
+  useEffect(() => {
+    if (!ENABLE_VITFAC_INTEGRATION || !employeeId) {
+      setLoading(false);
+      return;
+    }
+    let active = true;
+    setLoading(true);
+    getFacultyDirectoryProfile(employeeId)
+      .then((p) => {
+        if (active) setProfile(p);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [employeeId]);
+
+  return { profile, loading };
 }
 
 /**
@@ -354,11 +640,9 @@ export function getVitfacProfileUrl(idOrEmpId: string): string {
  */
 export function useVitfacReview(employeeId?: string | null, name?: string | null) {
   const [review, setReview] = useState<VitfacFaculty | null>(() =>
-    ENABLE_VITFAC_INTEGRATION ? getFacultyReview({ employeeId, name }) : null
+    ENABLE_VITFAC_INTEGRATION ? getFacultyReview({ employeeId, name }) : null,
   );
-  const [loading, setLoading] = useState<boolean>(
-    ENABLE_VITFAC_INTEGRATION ? !isCatalogLoaded : false
-  );
+  const [loading, setLoading] = useState<boolean>(ENABLE_VITFAC_INTEGRATION ? !isCatalogLoaded : false);
 
   useEffect(() => {
     if (!ENABLE_VITFAC_INTEGRATION) return;
@@ -390,4 +674,80 @@ export function useVitfacReview(employeeId?: string | null, name?: string | null
   }, [employeeId, name]);
 
   return { review, loading };
+}
+
+// ---------- local image cache for non-local faculty pics ----------
+//
+// Faculty photos arrive from non-local space (vitfac image_url, directorycc
+// base64). Once one has been fetched we keep a copy in sessionStorage so the
+// next render (and the next visit) is instant and does not hit the network
+// again. Base64 payloads are stored as-is; external URLs are fetched once,
+// converted to a data URL, and cached. Entries larger than the size cap are
+// skipped, and quota failures evict the whole namespace and retry once.
+
+const IMG_CACHE_PREFIX = "amazecc_img_";
+const IMG_CACHE_MAX_BYTES = 60 * 1024; // 60 KB per image
+
+export function useCachedImage(url: string | null | undefined): string | null {
+  const [src, setSrc] = useState<string | null>(url || null);
+
+  useEffect(() => {
+    if (!url) {
+      setSrc(null);
+      return;
+    }
+    if (url.startsWith("data:")) {
+      setSrc(url);
+      return;
+    }
+
+    let cancelled = false;
+
+    // 1. Serve from local cache if present.
+    try {
+      const key = IMG_CACHE_PREFIX + btoa(url).slice(0, 48);
+      const cached = safeSessionStorage.getItem(key);
+      if (cached) {
+        if (!cancelled) setSrc(cached);
+        return;
+      }
+    } catch {}
+
+    // 2. Fetch once, cache, then swap the src in.
+    (async () => {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const blob = await res.blob();
+        if (blob.size > IMG_CACHE_MAX_BYTES) return;
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (cancelled) return;
+          const dataUrl = reader.result as string;
+          if (!dataUrl) return;
+          setSrc(dataUrl);
+          try {
+            safeSessionStorage.setItem(IMG_CACHE_PREFIX + btoa(url).slice(0, 48), dataUrl);
+          } catch {
+            // Quota exceeded: drop the whole image namespace and retry once.
+            try {
+              Object.keys(sessionStorage)
+                .filter((k) => k.startsWith(IMG_CACHE_PREFIX))
+                .forEach((k) => sessionStorage.removeItem(k));
+              safeSessionStorage.setItem(IMG_CACHE_PREFIX + btoa(url).slice(0, 48), dataUrl);
+            } catch {}
+          }
+        };
+        reader.readAsDataURL(blob);
+      } catch {
+        // leave src as the original url (browser fetches directly)
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [url]);
+
+  return src;
 }
