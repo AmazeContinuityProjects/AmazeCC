@@ -19,7 +19,7 @@ import type { ParsedCourse } from "../../types";
 import { EmptyPanel, IconButton, ListSkeleton } from "../../../../shared/primitives";
 import { VitfacReviewPill, FacultyAvatar } from "../FacultyAvatar";
 import FacultyReviewSheetHost from "../FacultyReviewSheetHost";
-import { ENABLE_VITFAC_INTEGRATION } from "@/lib/vitfacService";
+import { ENABLE_VITFAC_INTEGRATION, useVitfacDirectoryProfile } from "@/lib/vitfacService";
 import dynamic from "next/dynamic";
 import { useFacultyReviewSheet } from "../../hooks/useFacultyReviewSheet";
 
@@ -114,6 +114,8 @@ export function FacultyScheduleModal({
 
   const periods = useMemo(() => facultySchedulePeriods(), []);
   const selected = groups.find((group) => group.key === selectedKey) ?? null;
+  const selectedEmpId = selected?.offerings.find((o) => o.ERP_ID)?.ERP_ID;
+  const { profile: directoryProfile } = useVitfacDirectoryProfile(selectedEmpId);
   const courses = useMemo(
     () => (selected ? facultyGroupToAddedCourses(selected) : []),
     [selected]
@@ -156,8 +158,13 @@ export function FacultyScheduleModal({
               <div className="flex items-center gap-3 min-w-0">
                 {selected ? (
                   <FacultyAvatar
-                    employeeId={selected.offerings.find((o) => o.ERP_ID)?.ERP_ID}
+                    employeeId={selectedEmpId}
                     name={selected.canonical}
+                    fallbackImageUrl={
+                      directoryProfile?.image
+                        ? `data:image/jpeg;base64,${directoryProfile.image}`
+                        : directoryProfile?.imageUrl || null
+                    }
                     size="md"
                     tone="blue"
                   />
@@ -190,6 +197,23 @@ export function FacultyScheduleModal({
                       ? `${selected.offerings.length} class${selected.offerings.length === 1 ? "" : "es"} · tap a slot for day, time & venue`
                       : "Search every faculty, or pick one to see their week"}
                   </p>
+                  {selected && (directoryProfile?.designation || directoryProfile?.email || directoryProfile?.intercom) ? (
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      {directoryProfile?.designation ? `${directoryProfile.designation} · ` : ""}
+                      {directoryProfile?.email ? directoryProfile.email : directoryProfile?.intercom ? `Intercom ${directoryProfile.intercom}` : ""}
+                      {directoryProfile?.directoryAvailable ? (
+                        <a
+                          href={`https://directorycc.vit.ac.in/faculty/${selectedEmpId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="ml-1.5 inline-flex items-center gap-0.5 text-blue-500 hover:underline"
+                        >
+                          directory <ExternalLink className="w-3 h-3" />
+                        </a>
+                      ) : null}
+                    </p>
+                  ) : null}
                 </div>
               </div>
               <IconButton onClick={onClose} title="Close schedule">

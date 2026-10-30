@@ -15,6 +15,7 @@ import {
 } from "../shared/primitives";
 import { LIST_ROW, SEARCH_FIELD, TONE_ICON_TILE } from "@/lib/uiTokens";
 import FacultyScheduleModal from "./FFCS/components/modals/FacultyScheduleModal";
+import { VitfacReviewPill, FacultyAvatar } from "./FFCS/components/FacultyReviewSheet";
 import {
   buildFacultyNameGroups,
   findFirstMatchingGroup,
@@ -184,49 +185,61 @@ export default function FacultyScheduleTab({ onBack }: { onBack?: () => void }) 
       if (group.canonical.toLowerCase().includes(query)) return true;
       if (group.names.some((name) => name.toLowerCase().includes(query))) return true;
       return group.offerings.some(
-        (offering) =>
-          offering.CODE.toLowerCase().includes(query) ||
-          offering.TITLE.toLowerCase().includes(query)
+        (offering) => offering.CODE.toLowerCase().includes(query) || offering.TITLE.toLowerCase().includes(query),
       );
     },
-    [query]
+    [query],
   );
 
   const currentGroups = useMemo(
     () => groups.filter((g) => currentKeys.has(g.key) && matchesQuery(g)),
-    [groups, currentKeys, matchesQuery]
+    [groups, currentKeys, matchesQuery],
   );
   const otherGroups = useMemo(
     () => groups.filter((g) => !currentKeys.has(g.key) && matchesQuery(g)),
-    [groups, currentKeys, matchesQuery]
+    [groups, currentKeys, matchesQuery],
   );
 
   const searching = query.length > 0;
   const resultCount = currentGroups.length + otherGroups.length;
 
-  /** The grade-history row: icon, name + courses, chevron. */
-  const renderRow = (group: FacultyNameGroup) => (
-    <button
-      key={group.key}
-      type="button"
-      onClick={() => setSelected(group.canonical)}
-      className={`${LIST_ROW} cursor-pointer`}
-    >
-      <span
-        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border ${
-          currentKeys.has(group.key) ? TONE_ICON_TILE.indigo : TONE_ICON_TILE.sky
-        }`}
+  /** The grade-history row: avatar (vitfac image), name + courses, review pill, chevron. */
+  const renderRow = (group: FacultyNameGroup) => {
+    const empId = group.offerings.find((o) => o.ERP_ID)?.ERP_ID;
+    return (
+      <button
+        key={group.key}
+        type="button"
+        onClick={() => setSelected(group.canonical)}
+        className={`${LIST_ROW} cursor-pointer`}
       >
-        <GraduationCap className="h-4.5 w-4.5" />
-      </span>
-      <ListRowText
-        title={group.canonical}
-        subtitle={courseSummary(group)}
-        titleTooltip={group.canonical}
-      />
-      <ChevronRight className="h-4 w-4 text-zinc-400 shrink-0" />
-    </button>
-  );
+        <FacultyAvatar
+          employeeId={empId}
+          name={group.canonical}
+          size="sm"
+          tone={currentKeys.has(group.key) ? "indigo" : "blue"}
+        />
+        <span className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-bold text-text-heading truncate">{group.canonical}</span>
+            <VitfacReviewPill
+              employeeId={empId}
+              name={group.canonical}
+              onClick={(e) => {
+                e.stopPropagation();
+                // no-op: pill is informational on the list; full review opens from the schedule modal
+              }}
+            />
+          </div>
+          <span className="block text-xs text-muted-foreground truncate">
+            {courseSummary(group)}
+            {group.names.length > 1 ? ` · ${group.names.length} spelling${group.names.length === 1 ? "" : "s"}` : ""}
+          </span>
+        </span>
+        <ChevronRight className="h-4 w-4 text-zinc-400 shrink-0" />
+      </button>
+    );
+  };
 
   const content = loading ? (
     <ListSkeleton rows={6} leading="dot" trailing />
@@ -292,10 +305,8 @@ export default function FacultyScheduleTab({ onBack }: { onBack?: () => void }) 
                wondering where their own professors went. Name the two ways in:
                a synced timetable/semester, or an FFCS draft. */
             <div className="rounded-2xl border border-dashed border-border-muted p-4 text-[11px] leading-relaxed font-medium text-text-secondary dark:text-text-muted">
-              Once your timetable and marks are synced — or you add courses in the
-              FFCS planner — the faculties teaching{" "}
-              <span className="font-bold text-text-heading">your</span> courses will be
-              listed here first.
+              Once your timetable and marks are synced — or you add courses in the FFCS planner — the faculties teaching{" "}
+              <span className="font-bold text-text-heading">your</span> courses will be listed here first.
             </div>
           )}
 
