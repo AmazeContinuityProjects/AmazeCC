@@ -1,6 +1,6 @@
 import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitForElementToBeRemoved, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, waitForElementToBeRemoved, within } from "@testing-library/react";
 import FFCSTimetableTab from "../components/custom/exams/FFCSTimetableTab";
 import { getFittingStatTileCount } from "../components/custom/exams/FFCS/components/FFCSDashboardHeader";
 import { closeTopOverlayFromPop } from "../lib/overlayStack";
@@ -68,9 +68,7 @@ describe("FFCSTimetableTab", () => {
     try {
       render(<FFCSTimetableTab />);
 
-      expect(
-        screen.getByRole("button", { name: /Switch Planner View Modern planner/ })
-      ).toBeDefined();
+      expect(screen.getByRole("button", { name: /Switch Planner View Modern planner/ })).toBeDefined();
       expect(screen.queryByText("Enter Full Screen & Start")).toBeNull();
       expect(screen.queryByText("Install App")).toBeNull();
     } finally {
@@ -99,7 +97,7 @@ describe("FFCSTimetableTab", () => {
             },
           ],
         },
-      ])
+      ]),
     );
     vi.stubGlobal(
       "ResizeObserver",
@@ -108,12 +106,12 @@ describe("FFCSTimetableTab", () => {
         observe(target: Element) {
           this.callback(
             [{ target, contentRect: { width: 324 } } as ResizeObserverEntry],
-            this as unknown as ResizeObserver
+            this as unknown as ResizeObserver,
           );
         }
         unobserve() {}
         disconnect() {}
-      }
+      },
     );
     render(<FFCSTimetableTab />);
 
@@ -137,7 +135,7 @@ describe("FFCSTimetableTab", () => {
       JSON.stringify([
         { id: "default", name: "Plan One", courses: [] },
         { id: "plan-two", name: "Plan Two", courses: [] },
-      ])
+      ]),
     );
     render(<FFCSTimetableTab />);
 
@@ -167,7 +165,7 @@ describe("FFCSTimetableTab", () => {
             },
           ],
         },
-      ])
+      ]),
     );
     vi.stubGlobal(
       "matchMedia",
@@ -180,7 +178,7 @@ describe("FFCSTimetableTab", () => {
         addListener: vi.fn(),
         removeListener: vi.fn(),
         dispatchEvent: vi.fn(),
-      }))
+      })),
     );
 
     render(<FFCSTimetableTab />);
@@ -190,7 +188,7 @@ describe("FFCSTimetableTab", () => {
     expect(
       await screen.findByRole("button", {
         name: /Weekly Rhythm: .*View schedule details/,
-      })
+      }),
     ).toBeDefined();
     const carousel = within(statStrip).getByRole("region", {
       name: "More timetable statistics",
@@ -233,24 +231,20 @@ describe("FFCSTimetableTab", () => {
             },
           ],
         },
-      ])
+      ]),
     );
     render(<FFCSTimetableTab />);
 
     // The course list is a lazily-loaded chunk now — await it.
-    expect(
-      await screen.findByText("Total Credits: 4", {}, { timeout: 10000 })
-    ).toBeDefined();
+    expect(await screen.findByText("Total Credits: 4", {}, { timeout: 10000 })).toBeDefined();
     expect(screen.getByText("4 / 27")).toBeDefined();
     const statStrip = screen.getByTestId("ffcs-stat-strip").textContent ?? "";
-    expect(statStrip.indexOf("Total Credits")).toBeLessThan(
-      statStrip.indexOf("Active Timetable")
-    );
+    expect(statStrip.indexOf("Total Credits")).toBeLessThan(statStrip.indexOf("Active Timetable"));
 
     fireEvent.click(
       screen.getByRole("button", {
         name: "Active Timetable: Credit Test. 2 courses enrolled. Switch timetable.",
-      })
+      }),
     );
     expect(screen.getByRole("heading", { name: "Select Timetable" })).toBeDefined();
   }, 30_000);
@@ -276,7 +270,7 @@ describe("FFCSTimetableTab", () => {
             },
           ],
         },
-      ])
+      ]),
     );
     render(<FFCSTimetableTab />);
 
@@ -296,11 +290,9 @@ describe("FFCSTimetableTab", () => {
     expect(screen.getAllByText("Worst faculty").length).toBeGreaterThan(0);
     const weeklyContent = document.body.textContent ?? "";
     expect(weeklyContent.indexOf("Faculty ratings in this timetable")).toBeLessThan(
-      weeklyContent.indexOf("Day-by-day schedule")
+      weeklyContent.indexOf("Day-by-day schedule"),
     );
-    expect(weeklyContent.indexOf("Largest class gaps")).toBeLessThan(
-      weeklyContent.indexOf("Faculty average win rate")
-    );
+    expect(weeklyContent.indexOf("Largest class gaps")).toBeLessThan(weeklyContent.indexOf("Faculty average win rate"));
   }, 30_000);
 
   it("hides the clash statistic when there are no clashes", () => {
@@ -343,21 +335,19 @@ describe("FFCSTimetableTab", () => {
             },
           ],
         },
-      ])
+      ]),
     );
     render(<FFCSTimetableTab />);
 
     fireEvent.click(
       screen.getByRole("button", {
         name: "Clash Status: 1 clash. View clashing courses.",
-      })
+      }),
     );
     expect(screen.getAllByText("CSE1001").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Faculty One").length).toBeGreaterThan(0);
     expect(screen.getAllByText("CSE1002").length).toBeGreaterThan(0);
-    fireEvent.click(
-      screen.getByRole("button", { name: "Remove CSE1001 — Faculty One" })
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Remove CSE1001 — Faculty One" }));
     expect(screen.getByText("This timetable has no course or blocked-slot clashes.")).toBeDefined();
   }, 30_000);
 
@@ -372,10 +362,7 @@ describe("FFCSTimetableTab", () => {
     expect(widgetPanel.className).toContain("xl:columns-2");
     expect(widgetPanel.className).not.toContain("columns-3");
     expect(widgetPanel.className).toContain("break-inside-avoid");
-    expect(JSON.parse(storage.getItem("ffcs_dashboard_widgets") || "[]")).toEqual([
-      "add-courses",
-      "timetables",
-    ]);
+    expect(JSON.parse(storage.getItem("ffcs_dashboard_widgets") || "[]")).toEqual(["add-courses", "timetables"]);
 
     const socialToggle = screen.getByRole("button", { name: /Social & Friends/ });
     fireEvent.click(socialToggle);
@@ -396,10 +383,7 @@ describe("FFCSTimetableTab", () => {
   }, 30_000);
 
   it("shows a vertical timetable beside a single widget column when enabled on xl screens", () => {
-    storage.setItem(
-      "ffcs_settings",
-      JSON.stringify({ showVerticalTimetableBesideWidgets: true })
-    );
+    storage.setItem("ffcs_settings", JSON.stringify({ showVerticalTimetableBesideWidgets: true }));
     vi.stubGlobal(
       "matchMedia",
       vi.fn((query: string) => ({
@@ -411,16 +395,14 @@ describe("FFCSTimetableTab", () => {
         addListener: vi.fn(),
         removeListener: vi.fn(),
         dispatchEvent: vi.fn(),
-      }))
+      })),
     );
 
     render(<FFCSTimetableTab />);
 
     expect(screen.getByLabelText("Enabled planner widgets").className).toContain("xl:columns-1");
     expect(screen.getByTestId("ffcs-selected-courses").className).toContain("xl:col-span-full");
-    expect(
-      screen.queryByText("Auto · showing the modern grid on this screen")
-    ).toBeNull();
+    expect(screen.queryByText("Auto · showing the modern grid on this screen")).toBeNull();
   }, 30_000);
 
   it("moves planner view, course list, and settings actions to the wide-screen header", () => {
@@ -450,11 +432,11 @@ describe("FFCSTimetableTab", () => {
     expect(screen.getByText("Share as HTML")).toBeDefined();
     const shareFFCS = screen.getByRole("button", { name: /Share AmazeCC FFCS/ });
     expect(screen.getByText("Sign in to AmazeCC")).toBeDefined();
-    const shareSheetText = screen.getByRole("heading", { name: "Share AmazeCC FFCS" })
-      .closest("[role='dialog']")?.textContent ?? document.body.textContent ?? "";
-    expect(shareSheetText.indexOf("Share AmazeCC FFCS")).toBeLessThan(
-      shareSheetText.indexOf("Sign in to AmazeCC")
-    );
+    const shareSheetText =
+      screen.getByRole("heading", { name: "Share AmazeCC FFCS" }).closest("[role='dialog']")?.textContent ??
+      document.body.textContent ??
+      "";
+    expect(shareSheetText.indexOf("Share AmazeCC FFCS")).toBeLessThan(shareSheetText.indexOf("Sign in to AmazeCC"));
 
     const shareMock = vi.fn().mockResolvedValue(undefined);
     vi.stubGlobal("navigator", { ...navigator, share: shareMock });
@@ -464,7 +446,7 @@ describe("FFCSTimetableTab", () => {
       expect.objectContaining({
         title: "AmazeCC FFCS",
         url: `${window.location.origin}/ffcs`,
-      })
+      }),
     );
   }, 30_000);
 
@@ -480,7 +462,7 @@ describe("FFCSTimetableTab", () => {
         addListener: vi.fn(),
         removeListener: vi.fn(),
         dispatchEvent: vi.fn(),
-      }))
+      })),
     );
     render(<FFCSTimetableTab />);
 
@@ -515,7 +497,7 @@ describe("FFCSTimetableTab", () => {
         addListener: vi.fn(),
         removeListener: vi.fn(),
         dispatchEvent: vi.fn(),
-      }))
+      })),
     );
     render(<FFCSTimetableTab />);
 
@@ -527,7 +509,7 @@ describe("FFCSTimetableTab", () => {
     expect(
       within(screen.getByRole("navigation", { name: "Planner menu" })).queryByRole("button", {
         name: /^Add Courses$/,
-      })
+      }),
     ).toBeNull();
     expect(screen.getByRole("button", { name: /Manually Add Course/ })).toBeDefined();
 
@@ -547,7 +529,7 @@ describe("FFCSTimetableTab", () => {
         addListener: vi.fn(),
         removeListener: vi.fn(),
         dispatchEvent: vi.fn(),
-      }))
+      })),
     );
     const csvContent =
       "COURSE CODE,COURSE TITLE,TYPE,CREDITS,SLOT,FACULTY,ROOM,ERP ID\n" +
@@ -563,17 +545,11 @@ describe("FFCSTimetableTab", () => {
 
     fireEvent.click(await screen.findByText("BCSE101", {}, { timeout: 5000 }));
 
-    expect(
-      await screen.findByRole("heading", { name: "Configure Selected Course" })
-    ).toBeDefined();
-    expect(
-      screen.getByRole("region", { name: "Configure Selected Course widget" })
-    ).toBeDefined();
+    expect(await screen.findByRole("heading", { name: "Configure Selected Course" })).toBeDefined();
+    expect(screen.getByRole("region", { name: "Configure Selected Course widget" })).toBeDefined();
 
     fireEvent.click(screen.getAllByRole("button", { name: "Close" })[1]);
-    expect(
-      screen.queryByRole("region", { name: "Configure Selected Course widget" })
-    ).toBeNull();
+    expect(screen.queryByRole("region", { name: "Configure Selected Course widget" })).toBeNull();
   }, 30_000);
 
   it("puts course-planning actions in the menu and keeps their actions wired", () => {
@@ -602,9 +578,7 @@ describe("FFCSTimetableTab", () => {
     expect(screen.getAllByRole("heading", { name: "Planner Settings" })).toHaveLength(2);
 
     fireEvent.click(screen.getByRole("button", { name: /Target Courses/ }));
-    expect(
-      await screen.findByText(/Select the courses you intend to take/, {}, { timeout: 10000 })
-    ).toBeDefined();
+    expect(await screen.findByText(/Select the courses you intend to take/, {}, { timeout: 10000 })).toBeDefined();
   }, 30_000);
 
   it("opens view and course-list switching from Modern menu rows", async () => {
@@ -619,9 +593,7 @@ describe("FFCSTimetableTab", () => {
 
     fireEvent.click(plannerMenu.getByRole("button", { name: /Switch Planner View/ }));
     // The layout-mode modal is a lazy chunk — await its contents.
-    expect(
-      await screen.findByText("Choose Your Planner Experience", {}, { timeout: 10000 })
-    ).toBeDefined();
+    expect(await screen.findByText("Choose Your Planner Experience", {}, { timeout: 10000 })).toBeDefined();
     expect(await screen.findByRole("radio", { name: /Guided Hero/ }, { timeout: 10000 })).toBeDefined();
   }, 30_000);
 
@@ -675,9 +647,7 @@ describe("FFCSTimetableTab", () => {
     // before anything joins the list. `files` is defined directly rather than
     // passed through fireEvent's target — jsdom's file input does not accept a
     // plain array that way.
-    const uploadCsv =
-      "Course Code,Course Title,Slot\n" +
-      "BCSE999,Imported Course,A2+TA2\n";
+    const uploadCsv = "Course Code,Course Title,Slot\n" + "BCSE999,Imported Course,A2+TA2\n";
     const file = new File([uploadCsv as BlobPart], "my-list.csv", { type: "text/csv" });
     if (typeof file.text !== "function") {
       Object.defineProperty(file, "text", { value: async () => uploadCsv });
@@ -693,10 +663,9 @@ describe("FFCSTimetableTab", () => {
 
     // The picker closes (framer-motion plays the exit, so wait for it) and
     // the tab confirms; the row joined the master list.
-    await waitForElementToBeRemoved(
-      () => screen.getByRole("button", { name: /Download sample CSV/ }),
-      { timeout: 5000 }
-    );
+    await waitForElementToBeRemoved(() => screen.getByRole("button", { name: /Download sample CSV/ }), {
+      timeout: 5000,
+    });
     expect(screen.getByText(/Imported 1 course offering into your course list\./)).toBeDefined();
   }, 30_000);
 
@@ -745,20 +714,16 @@ describe("FFCSTimetableTab", () => {
   }, 30_000);
 
   it("confirms clearing every timetable and leaves one blank timetable", () => {
-    const confirmSpy = vi.spyOn(window, "confirm")
-      .mockReturnValueOnce(false)
-      .mockReturnValueOnce(true);
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValueOnce(true);
 
     render(<FFCSTimetableTab />);
     fireEvent.click(screen.getByRole("button", { name: "New Plan" }));
     fireEvent.click(screen.getByTitle("Switch or manage saved timetables"));
-    expect(
-      screen.getByRole("button", { name: "New" }).closest(".sticky")
-    ).not.toBeNull();
+    expect(screen.getByRole("button", { name: "New" }).closest(".sticky")).not.toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
     expect(confirmSpy).toHaveBeenLastCalledWith(
-      "Delete all 2 timetables and their courses? A blank timetable will be kept."
+      "Delete all 2 timetables and their courses? A blank timetable will be kept.",
     );
     expect(screen.getByTitle("Delete Timetable 1")).toBeDefined();
     expect(screen.getByTitle("Delete Timetable 2")).toBeDefined();
@@ -801,7 +766,7 @@ describe("FFCSTimetableTab", () => {
             },
           ],
         },
-      ])
+      ]),
     );
     storage.setItem("ffcs_activeTimetableId", "1");
 
@@ -811,7 +776,7 @@ describe("FFCSTimetableTab", () => {
     const badges = await screen.findAllByTitle(
       /2 (drop-in replacements|faculties teaching this slot)/,
       {},
-      { timeout: 10000 }
+      { timeout: 10000 },
     );
     expect(badges.length).toBeGreaterThan(0);
     expect(badges[0].textContent).toContain("2");
@@ -856,11 +821,7 @@ describe("FFCSTimetableTab", () => {
     expect(screen.getAllByText(/A1/).length).toBeGreaterThan(0);
 
     // Step 2 appears, open Slot Search
-    const chooseSlotBtn = await screen.findByText(
-      "Click to choose slot & faculty option...",
-      {},
-      { timeout: 5000 }
-    );
+    const chooseSlotBtn = await screen.findByText("Click to choose slot & faculty option...", {}, { timeout: 5000 });
     fireEvent.click(chooseSlotBtn);
 
     // Search Slot & Faculty modal is open
@@ -906,7 +867,7 @@ describe("FFCSTimetableTab", () => {
             },
           ],
         },
-      ])
+      ]),
     );
     storage.setItem("ffcs_activeTimetableId", "1");
 
@@ -941,7 +902,7 @@ describe("FFCSTimetableTab", () => {
     fireEvent.click(
       within(screen.getByRole("navigation", { name: "Planner menu" })).getByRole("button", {
         name: /Switch Planner View/,
-      })
+      }),
     );
     // The layout-mode modal and the guided hero are both lazy chunks now —
     // each appears a tick after the click that mounts it.
@@ -966,5 +927,125 @@ describe("FFCSTimetableTab", () => {
 
     expect(document.getElementById("ffcs-timetable-grid")).not.toBeNull();
     expect(storage.getItem("ffcs_layout_mode")).toBe("modern");
+  }, 30_000);
+
+  it("announces the Final Registration list once for a returning user with saved faculty data", async () => {
+    // The gate for "old user": vitfac-backed data saved in an earlier visit.
+    storage.setItem("ffcs_facultyPriority", JSON.stringify({ BCSE101: ["PARTHIBAN V"] }));
+    const csvContent =
+      "COURSE CODE,COURSE TITLE,TYPE,CREDITS,SLOT,FACULTY,ROOM,ERP ID\n" +
+      "BCSE101,Programming,TH,3,A1,PARTHIBAN V,AB3-101,1001\n";
+    vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true,
+      json: async () => [],
+      arrayBuffer: async () => new TextEncoder().encode(csvContent).buffer,
+    } as any);
+
+    const first = render(<FFCSTimetableTab />);
+
+    expect(await screen.findByRole("heading", { name: /Final Registration/ }, { timeout: 10000 })).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: "Got it" }));
+    expect(storage.getItem("ffcs_final_list_notice_seen")).toBe("true");
+    expect(screen.queryByRole("heading", { name: /Final Registration/ })).toBeNull();
+
+    // A later visit reads the seen flag and never resurfaces the sheet.
+    first.unmount();
+    render(<FFCSTimetableTab />);
+    expect(screen.queryByRole("heading", { name: /Final Registration/ })).toBeNull();
+  }, 30_000);
+
+  it("stays silent for a first-time user without saved faculty data", async () => {
+    const csvContent =
+      "COURSE CODE,COURSE TITLE,TYPE,CREDITS,SLOT,FACULTY,ROOM,ERP ID\n" +
+      "BCSE101,Programming,TH,3,A1,PARTHIBAN V,AB3-101,1001\n";
+    vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true,
+      json: async () => [],
+      arrayBuffer: async () => new TextEncoder().encode(csvContent).buffer,
+    } as any);
+
+    render(<FFCSTimetableTab />);
+
+    // Let the report load finish so the sheet has had every chance to show.
+    await screen.findByText(/loaded \(\d+ slots\)/, {}, { timeout: 10000 });
+    expect(screen.queryByText(/Final Registration/)).toBeNull();
+    expect(storage.getItem("ffcs_final_list_notice_seen")).toBeNull();
+  }, 30_000);
+
+  it("unselects target courses the loaded course list no longer offers", async () => {
+    const kept = { code: "BCSE101", title: "Programming", allowedSlots: [], allowedFaculty: [] };
+    const stale = { code: "GONE999", title: "Retired Course", allowedSlots: [], allowedFaculty: [] };
+    storage.setItem("ffcs_courseLocks", JSON.stringify([kept, stale]));
+    storage.setItem("ffcs_generator_targets", JSON.stringify([kept, stale]));
+    const csvContent =
+      "COURSE CODE,COURSE TITLE,TYPE,CREDITS,SLOT,FACULTY,ROOM,ERP ID\n" +
+      "BCSE101,Programming,TH,3,A1,PARTHIBAN V,AB3-101,1001\n";
+    vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true,
+      json: async () => [],
+      arrayBuffer: async () => new TextEncoder().encode(csvContent).buffer,
+    } as any);
+
+    render(<FFCSTimetableTab />);
+
+    // Both stores drop the code the report never offered...
+    await waitFor(
+      () => {
+        expect(JSON.parse(storage.getItem("ffcs_courseLocks")!).map((l: { code: string }) => l.code)).toEqual([
+          "BCSE101",
+        ]);
+        expect(JSON.parse(storage.getItem("ffcs_generator_targets")!).map((t: { code: string }) => t.code)).toEqual([
+          "BCSE101",
+        ]);
+      },
+      { timeout: 10000 },
+    );
+  }, 30_000);
+
+  it("auto-unselects targets when the student switches course lists", async () => {
+    const csvFinal =
+      "COURSE CODE,COURSE TITLE,TYPE,CREDITS,SLOT,FACULTY,ROOM,ERP ID\n" +
+      "BCSE101,Programming,TH,3,A1,PARTHIBAN V,AB3-101,1001\n" +
+      "BCSE102,Data Structures,TH,3,B1,RAMESH K,AB3-102,1002\n";
+    const csvMock =
+      "COURSE CODE,COURSE TITLE,TYPE,CREDITS,SLOT,FACULTY,ROOM,ERP ID\n" +
+      "BCSE101,Programming,TH,3,A1,PARTHIBAN V,AB3-101,1001\n";
+    vi.spyOn(globalThis, "fetch").mockImplementation((async (input: RequestInfo | URL) => ({
+      ok: true,
+      json: async () => [],
+      arrayBuffer: async () =>
+        new TextEncoder().encode(String(input).includes("slot-timetable") ? csvMock : csvFinal).buffer,
+    })) as any);
+
+    const both = [
+      { code: "BCSE101", title: "Programming", allowedSlots: [], allowedFaculty: [] },
+      { code: "BCSE102", title: "Data Structures", allowedSlots: [], allowedFaculty: [] },
+    ];
+    storage.setItem("ffcs_courseLocks", JSON.stringify(both));
+    storage.setItem("ffcs_generator_targets", JSON.stringify(both));
+
+    render(<FFCSTimetableTab />);
+
+    // Both courses exist in the final list, so nothing is unselected yet.
+    await screen.findByText(/Winter 2026-27 loaded/, {}, { timeout: 10000 });
+    expect(JSON.parse(storage.getItem("ffcs_courseLocks")!)).toHaveLength(2);
+
+    // Switch to the mock list, which drops BCSE102...
+    const plannerMenu = within(screen.getByRole("navigation", { name: "Planner menu" }));
+    fireEvent.click(plannerMenu.getByRole("button", { name: /Switch Course List/ }));
+    fireEvent.click(await screen.findByRole("button", { name: /Winter 2026-27 Mock List/ }));
+
+    // ...and its target unselects itself the moment the new list lands.
+    await waitFor(
+      () => {
+        expect(JSON.parse(storage.getItem("ffcs_courseLocks")!).map((l: { code: string }) => l.code)).toEqual([
+          "BCSE101",
+        ]);
+        expect(JSON.parse(storage.getItem("ffcs_generator_targets")!).map((t: { code: string }) => t.code)).toEqual([
+          "BCSE101",
+        ]);
+      },
+      { timeout: 10000 },
+    );
   }, 30_000);
 });

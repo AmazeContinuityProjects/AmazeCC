@@ -78,7 +78,8 @@ export { processParsedCourses } from "@/lib/ffcsCourseGrouping";
 import { track } from "@/lib/analytics";
 import { useFFCSSettings } from "@/lib/ffcsSettings";
 import { storage } from "@/lib/storage";
-import { sanitizeFacultyPriority, type FacultyPriorityMap } from "@/lib/ffcsFacultyPriority";
+import { sanitizeFacultyPriority, hasFacultyPriority, type FacultyPriorityMap } from "@/lib/ffcsFacultyPriority";
+import { pruneGeneratorTargets } from "@/lib/ffcsGeneratorTargets";
 import {
   encodeTimetableShare,
   encodeCompactTimetableShare,
@@ -212,6 +213,14 @@ export const safeStorage = {
 };
 
 /**
+ * localStorage flag: the final-list announcement has been shown and
+ * dismissed. Read on mount (see the notice effect further down) and
+ * written by `dismissFinalListNotice`, so the sheet appears at most once
+ * per browser.
+ */
+const FFCS_FINAL_LIST_NOTICE_SEEN_KEY = "ffcs_final_list_notice_seen";
+
+/**
  * `timeToMinutes` and `parse24HourToMinutes` used to sit here as well.
  *
  * Both are now in `lib/slots.ts` — the first rejects an unreadable time rather
@@ -343,6 +352,14 @@ export default function FFCSTimetableTab({
   const reportRequestRef = useRef(0);
   const loadedSemesterRef = useRef<FFCSSemesterId>(DEFAULT_FFCS_SEMESTER);
   const semesterSwitchRef = useRef(0);
+  /**
+   * Flips on whenever a report load actually swaps the course catalogue
+   * (set in `loadSemesterReport`) and is spent by the prune effect below,
+   * so a `masterCourses` recompute from toggling grouping or adding
+   * manual links never touches the student's selections — only a changed
+   * course list does.
+   */
+  const reportCatalogChangedRef = useRef(false);
   const [isLoadingCourses, setIsLoadingCourses] = useState(false);
   const [isGroupingEnabled, setIsGroupingEnabled] = useState(true);
   const [blockedSlots, setBlockedSlots] = useState<Set<string>>(new Set());
@@ -401,6 +418,13 @@ export default function FFCSTimetableTab({
   const [isLayoutModalOpen, setIsLayoutModalOpen] = useState(false);
   const [isCourseListModalOpen, setIsCourseListModalOpen] = useState(false);
   const [isCourseImportSheetOpen, setIsCourseImportSheetOpen] = useState(false);
+  /**
+   * The one-time Final Registration announcement: opened by the mount
+   * effect below for returning users who had saved vitfac data, and closed
+   * through `dismissFinalListNotice`, which also writes the seen flag so
+   * the sheet never resurfaces.
+   */
+  const [isFinalListNoticeOpen, setIsFinalListNoticeOpen] = useState(false);
 
   useEffect(() => {
     onLayoutModeChange?.(layoutMode);
@@ -717,6 +741,9 @@ export default function FFCSTimetableTab({
       );
       reportCodesRef.current = new Set(parsed.map((course) => course.CODE));
       loadedSemesterRef.current = nextSemesterId;
+      // The catalogue behind the planner just changed; the prune effect
+      // downstream of `masterCourses` unselects targets it no longer offers.
+      reportCatalogChangedRef.current = true;
 
       setSelectedCourseCode("");
       setSelectedSlotIndex("-1");
@@ -806,6 +833,29 @@ export default function FFCSTimetableTab({
     setIsLoaded(true);
   }, [loadSemesterReport]);
 
+  /**
+   * One-time announcement of the Final Registration course list, for
+   * students who were already around when the planner ran on the
+   * provisional list.
+   *
+   * Vitfac's own caches live in per-tab sessionStorage that a brand-new
+   * user's first render also fills (`getFacultyReview` prefetches the
+   * catalog), so they cannot tell old from new. The durable trace of a
+   * user who actually saved vitfac-backed data is their manual faculty
+   * ordering: `ffcs_facultyPriority` — localStorage, written only on an
+   * explicit save, so it exists for old users and not for new ones.
+   */
+  useEffect(() => {
+    if (safeStorage.getItem(FFCS_FINAL_LIST_NOTICE_SEEN_KEY)) return;
+    if (!hasFacultyPriority(sanitizeFacultyPriority(storage.ffcsFacultyPriority.get()))) return;
+    setIsFinalListNoticeOpen(true);
+  }, []);
+
+  const dismissFinalListNotice = useCallback(() => {
+    safeStorage.setItem(FFCS_FINAL_LIST_NOTICE_SEEN_KEY, "true");
+    setIsFinalListNoticeOpen(false);
+  }, []);
+
   // Compute masterCourses whenever rawParsedCourses or isGroupingEnabled changes
   useEffect(() => {
     if (rawParsedCourses.length > 0) {
@@ -820,6 +870,30 @@ export default function FFCSTimetableTab({
       setMasterCourses([]);
     }
   }, [rawParsedCourses, isGroupingEnabled, isLoaded, manualLinks]);
+
+  /**
+   * When the loaded course list changes, automatically unselect the target
+   * courses it no longer offers: a lock with no offerings doesn't merely
+   * sit idle — it fails the entire generation run with `no_valid_slots`,
+   * so stale targets are dropped the moment the new catalogue lands
+   * (a semester switch, or the shipped list being updated under them).
+   *
+   * `masterCourses` is the exact catalogue generation reads — report rows
+   * (grouped when grouping is on) plus anything the student imported — so
+   * everything this filter keeps resolves. The ref guard confines the
+   * prune to actual catalogue swaps: recomputes from toggling grouping or
+   * adding manual links leave the student's selections alone.
+   */
+  useEffect(() => {
+    if (!reportCatalogChangedRef.current) return;
+    if (masterCourses.length === 0) return;
+    reportCatalogChangedRef.current = false;
+    const offeredCodes = new Set(masterCourses.map((course) => course.CODE));
+    setCourseLocks((locks) =>
+      locks.some((lock) => !offeredCodes.has(lock.code)) ? locks.filter((lock) => offeredCodes.has(lock.code)) : locks,
+    );
+    pruneGeneratorTargets(offeredCodes);
+  }, [masterCourses]);
 
   /**
    * Faculty groups from the registration list.
@@ -3905,6 +3979,36 @@ export default function FFCSTimetableTab({
           theme={pdfGenerationTheme}
           onDismiss={() => setPdfBadgeMsg(null)}
         />
+
+        {isFinalListNoticeOpen && (
+          <BottomSheet
+            onClose={dismissFinalListNotice}
+            overlayId="ffcs-final-list-notice"
+            title="FFCS has been updated with the Final Registration course list"
+            subtitle="Winter 2026–27 course list updated"
+            icon={<Megaphone className="w-5 h-5" />}
+            accent="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400"
+            maxWidth="max-w-md"
+          >
+            <div className="space-y-3 text-sm text-slate-600 dark:text-slate-300">
+              <p>
+                The Winter 2026–27 planner now loads the Final Registration list straight from VIT, so every course,
+                faculty and room it offers matches what registration actually gave out.
+              </p>
+              <p>
+                Your saved timetables, targets and faculty preferences are untouched — re-check anything you locked
+                against the updated offerings before generating.
+              </p>
+              <button
+                type="button"
+                onClick={dismissFinalListNotice}
+                className="w-full px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-xl transition-colors shadow-sm"
+              >
+                Got it
+              </button>
+            </div>
+          </BottomSheet>
+        )}
 
         {isShareSheetOpen && (
           <BottomSheet
