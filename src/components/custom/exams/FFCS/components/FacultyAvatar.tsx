@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { ENABLE_VITFAC_INTEGRATION, useVitfacReview } from "@/lib/vitfacService";
+import { ENABLE_VITFAC_INTEGRATION, useVitfacReview, useCachedImage } from "@/lib/vitfacService";
 
 /*
  * The lightweight vitfac display bits — avatar, review pill, initials —
@@ -80,16 +80,17 @@ export function FacultyAvatar({
   const { review } = useVitfacReview(employeeId, name);
   const [failedUrls, setFailedUrls] = useState<string[]>([]);
 
-  const vitfacUrl = ENABLE_VITFAC_INTEGRATION
-    ? review?.image
-      ? `data:image/jpeg;base64,${review.image}`
-      : review?.image_url || null
-    : null;
+  const directUrl = ENABLE_VITFAC_INTEGRATION && review?.image ? `data:image/jpeg;base64,${review.image}` : null;
+  const externalUrl = directUrl
+    ? null
+    : (ENABLE_VITFAC_INTEGRATION ? review?.image_url : null) || fallbackImageUrl || null;
+  const sourceUrl = directUrl || externalUrl;
+  const cachedUrl = useCachedImage(sourceUrl);
   const effectiveUrl =
-    vitfacUrl && !failedUrls.includes(vitfacUrl)
-      ? vitfacUrl
-      : fallbackImageUrl && !failedUrls.includes(fallbackImageUrl)
-        ? fallbackImageUrl
+    cachedUrl && !failedUrls.includes(cachedUrl)
+      ? cachedUrl
+      : sourceUrl && !failedUrls.includes(sourceUrl)
+        ? sourceUrl
         : null;
 
   const sizeClasses = {

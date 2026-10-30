@@ -34,7 +34,6 @@ export interface VitfacFaculty {
   };
   image_url?: string | null;
   avatar?: string;
-  // Combined directorycc profile fields (from cache.amazecc.com /faculty/profile/{id})
   image?: string | null; // base64 or URL from directorycc
   email?: string | null;
   intercom?: string | null;
@@ -675,4 +674,80 @@ export function useVitfacReview(employeeId?: string | null, name?: string | null
   }, [employeeId, name]);
 
   return { review, loading };
+}
+
+// ---------- local image cache for non-local faculty pics ----------
+//
+// Faculty photos arrive from non-local space (vitfac image_url, directorycc
+// base64). Once one has been fetched we keep a copy in sessionStorage so the
+// next render (and the next visit) is instant and does not hit the network
+// again. Base64 payloads are stored as-is; external URLs are fetched once,
+// converted to a data URL, and cached. Entries larger than the size cap are
+// skipped, and quota failures evict the whole namespace and retry once.
+
+const IMG_CACHE_PREFIX = "amazecc_img_";
+const IMG_CACHE_MAX_BYTES = 60 * 1024; // 60 KB per image
+
+export function useCachedImage(url: string | null | undefined): string | null {
+  const [src, setSrc] = useState<string | null>(url || null);
+
+  useEffect(() => {
+    if (!url) {
+      setSrc(null);
+      return;
+    }
+    if (url.startsWith("data:")) {
+      setSrc(url);
+      return;
+    }
+
+    let cancelled = false;
+
+    // 1. Serve from local cache if present.
+    try {
+      const key = IMG_CACHE_PREFIX + btoa(url).slice(0, 48);
+      const cached = safeSessionStorage.getItem(key);
+      if (cached) {
+        if (!cancelled) setSrc(cached);
+        return;
+      }
+    } catch {}
+
+    // 2. Fetch once, cache, then swap the src in.
+    (async () => {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const blob = await res.blob();
+        if (blob.size > IMG_CACHE_MAX_BYTES) return;
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (cancelled) return;
+          const dataUrl = reader.result as string;
+          if (!dataUrl) return;
+          setSrc(dataUrl);
+          try {
+            safeSessionStorage.setItem(IMG_CACHE_PREFIX + btoa(url).slice(0, 48), dataUrl);
+          } catch {
+            // Quota exceeded: drop the whole image namespace and retry once.
+            try {
+              Object.keys(sessionStorage)
+                .filter((k) => k.startsWith(IMG_CACHE_PREFIX))
+                .forEach((k) => sessionStorage.removeItem(k));
+              safeSessionStorage.setItem(IMG_CACHE_PREFIX + btoa(url).slice(0, 48), dataUrl);
+            } catch {}
+          }
+        };
+        reader.readAsDataURL(blob);
+      } catch {
+        // leave src as the original url (browser fetches directly)
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [url]);
+
+  return src;
 }
