@@ -2,6 +2,12 @@
 import { useState, useEffect, useMemo } from "react";
 import { api } from "@/lib/sync-engine";
 import {
+  loadFacultyRoster,
+  getFacultyDirectoryProfile,
+  getFacultyReview,
+  type FacultyRosterEntry,
+} from "@/lib/vitfacService";
+import {
   Search,
   User,
   XCircle,
@@ -28,22 +34,11 @@ import {
   ToneBadge,
   useSubpageStack,
 } from "../shared/primitives";
-import {
-  CHIP,
-  LIST_ROW,
-  LIST_SHELL,
-  SEARCH_FIELD,
-  TILE_CARD,
-  TONE_ICON_TILE,
-} from "@/lib/uiTokens";
+import { CHIP, LIST_ROW, LIST_SHELL, SEARCH_FIELD, TILE_CARD, TONE_ICON_TILE } from "@/lib/uiTokens";
 import FacultyScheduleModal from "./FFCS/components/modals/FacultyScheduleModal";
 import { VitfacReviewPill, FacultyAvatar } from "./FFCS/components/FacultyReviewSheet";
 import FacultyReviewSheetHost from "./FFCS/components/FacultyReviewSheetHost";
-import {
-  buildFacultyNameGroups,
-  loadFacultyOfferings,
-  type FacultyNameGroup,
-} from "./FFCS/logic/facultyGroups";
+import { buildFacultyNameGroups, loadFacultyOfferings, type FacultyNameGroup } from "./FFCS/logic/facultyGroups";
 
 interface School {
   id: string;
@@ -101,9 +96,29 @@ const FacultyCard = ({
   useEffect(() => {
     if (expanded && !profile.email && profile.employeeId) {
       setLoading(true);
-      api(`faculty-profile/${profile.employeeId}`, { parse: "raw" })
-        .then(async (r: any) => (r.ok ? r.json() : { success: false }))
-        .then((data) => {
+      (async () => {
+        try {
+          // Prefer the cached worker directory profile (cache.amazecc.com):
+          // it carries email/intercom/designation + image + links + education
+          // without a VTOP round-trip. Fall back to VTOP when it is missing
+          // the fields we need.
+          const dir = await getFacultyDirectoryProfile(profile.employeeId);
+          if (dir && (dir.email || dir.intercom || dir.designation)) {
+            onDetailFetched({
+              ...profile,
+              designation: dir.designation || profile.designation,
+              email: dir.email || "",
+              intercom: dir.intercom || "",
+              imageUrl: dir.image ? `data:image/jpeg;base64,${dir.image}` : dir.imageUrl || profile.imageUrl,
+            });
+            return;
+          }
+        } catch {
+          // fall through to VTOP
+        }
+        try {
+          const r = await api(`faculty-profile/${profile.employeeId}`, { parse: "raw" });
+          const data = r.ok ? await r.json() : { success: false };
           if (data?.success && data.profile) {
             onDetailFetched({
               ...profile,
@@ -112,9 +127,10 @@ const FacultyCard = ({
               intercom: data.profile.intercom || "",
             });
           }
-        })
-        .catch(() => {})
-        .finally(() => setLoading(false));
+        } catch {
+          // ignore
+        }
+      })().finally(() => setLoading(false));
     }
   }, [expanded, profile.email, profile.employeeId]);
 
@@ -297,22 +313,52 @@ export default function FacultyInfoTab({
 
   // Fetch school list on mount (do NOT auto-select so user can pick from pill cards)
   useEffect(() => {
-    api("faculty/schools", { parse: "raw" })
-      .then(async (r: any) => {
-        if (!r.ok) {
-          throw new Error(`Failed to load schools: API returned ${r.status}`);
+    let cancelled = false;
+    (async () => {
+      // Prefer the cached worker roster (cache.amazecc.com) over the VTOP
+      // scrape: it is pre-built, has no auth requirement, and carries vitfac
+      // images. Fall back to VTOP only if the roster is unavailable.
+      try {
+        const roster = await loadFacultyRoster();
+        if (!cancelled && roster && roster.length > 0) {
+          const schools = [...new Set(roster.map((r) => r.school))].sort().map((s) => ({
+            id: s,
+            school_name: s.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+          }));
+          setSchools(schools);
+          setLoadingSchools(false);
+          return;
         }
-        return r.json();
-      })
-      .then((data) => {
-        if (data.success) {
-          setSchools(data.schools || []);
-        } else {
-          setError(data.error || "Failed to load schools list");
-        }
-      })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoadingSchools(false));
+      } catch {
+        // fall through to VTOP
+      }
+      if (cancelled) return;
+      api("faculty/schools", { parse: "raw" })
+        .then(async (r: any) => {
+          if (!r.ok) {
+            throw new Error(`Failed to load schools: API returned ${r.status}`);
+          }
+          return r.json();
+        })
+        .then((data) => {
+          if (!cancelled) {
+            if (data.success) {
+              setSchools(data.schools || []);
+            } else {
+              setError(data.error || "Failed to load schools list");
+            }
+          }
+        })
+        .catch((err) => {
+          if (!cancelled) setError(err.message);
+        })
+        .finally(() => {
+          if (!cancelled) setLoadingSchools(false);
+        });
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // The schedule lookup needs the FFCS report, which the planner caches. Read
@@ -343,12 +389,39 @@ export default function FacultyInfoTab({
     setSearchTerm("");
 
     try {
-      const res = await api("faculty/scrape", {
+      // Prefer the cached worker roster when it has rows for this school.
+      const roster = await loadFacultyRoster();
+      const rows = roster.filter((r) => r.school === schoolId);
+      if (rows.length > 0) {
+        const mapped: FacultyProfile[] = rows.map((r) => {
+          const review = getFacultyReview({ employeeId: r.employeeId, name: r.name });
+          const imageUrl = review?.image ? `data:image/jpeg;base64,${review.image}` : review?.image_url || "";
+          return {
+            id: r.employeeId,
+            name: r.name,
+            designation: review?.designation || "",
+            imageUrl,
+            profileUrl: r.profileUrl || r.wpUrl || "",
+            email: "",
+            employeeId: r.employeeId,
+            intercom: "",
+          };
+        });
+        setFaculties(mapped);
+        setLoadingFaculties(false);
+        return;
+      }
+    } catch {
+      // fall through to VTOP
+    }
+
+    try {
+      const res = (await api("faculty/scrape", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: { schoolId },
         parse: "raw",
-      }) as Response;
+      })) as Response;
       if (!res.ok) {
         throw new Error(`Failed to fetch faculty list: API returned ${res.status}`);
       }
@@ -376,11 +449,7 @@ export default function FacultyInfoTab({
   const filteredSchools = useMemo(() => {
     if (!schoolSearchTerm.trim()) return schools;
     const lower = schoolSearchTerm.toLowerCase();
-    return schools.filter(
-      (s) =>
-        s.school_name.toLowerCase().includes(lower) ||
-        s.id.toLowerCase().includes(lower)
-    );
+    return schools.filter((s) => s.school_name.toLowerCase().includes(lower) || s.id.toLowerCase().includes(lower));
   }, [schools, schoolSearchTerm]);
 
   const filteredFaculties = useMemo(() => {
@@ -392,7 +461,7 @@ export default function FacultyInfoTab({
         f.employeeId.toLowerCase().includes(lower) ||
         f.email.toLowerCase().includes(lower) ||
         f.designation.toLowerCase().includes(lower) ||
-        f.intercom.toLowerCase().includes(lower)
+        f.intercom.toLowerCase().includes(lower),
     );
   }, [faculties, searchTerm]);
 
@@ -416,8 +485,7 @@ export default function FacultyInfoTab({
               <ToneBadge tone="indigo">Directory</ToneBadge>
             </div>
             <p className="mt-1 text-[11px] font-medium leading-relaxed text-text-secondary dark:text-text-muted">
-              Pick a department to load its faculty list, designations, employee IDs
-              and intercom numbers.
+              Pick a department to load its faculty list, designations, employee IDs and intercom numbers.
             </p>
           </div>
         </div>
@@ -439,11 +507,7 @@ export default function FacultyInfoTab({
       )}
 
       <div className="space-y-3">
-        <SectionHeader
-          icon={Building2}
-          title="Schools"
-          count={filteredSchools.length}
-        />
+        <SectionHeader icon={Building2} title="Schools" count={filteredSchools.length} />
         {filteredSchools.length === 0 ? (
           <EmptyPanel
             icon={<SchoolIcon className="h-7 w-7" />}
@@ -480,7 +544,9 @@ export default function FacultyInfoTab({
                   }}
                   className={`${LIST_ROW} cursor-pointer`}
                 >
-                  <span className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${TONE_ICON_TILE.sky}`}>
+                  <span
+                    className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${TONE_ICON_TILE.sky}`}
+                  >
                     <GraduationCap className="w-4.5 h-4.5" />
                   </span>
                   <ListRowText title={cleanName} subtitle={acronym || undefined} titleTooltip={school.school_name} />
@@ -559,11 +625,10 @@ export default function FacultyInfoTab({
               onDetailFetched={(updated) => {
                 setFaculties((prev) =>
                   prev.map((p) =>
-                    (p.id && p.id === updated.id) ||
-                    (p.employeeId && p.employeeId === updated.employeeId)
+                    (p.id && p.id === updated.id) || (p.employeeId && p.employeeId === updated.employeeId)
                       ? updated
-                      : p
-                  )
+                      : p,
+                  ),
                 );
               }}
             />
@@ -617,10 +682,7 @@ export default function FacultyInfoTab({
         initialFaculty={scheduleFaculty ?? undefined}
       />
 
-      <FacultyReviewSheetHost
-        target={reviewFaculty}
-        onClose={() => setReviewFaculty(null)}
-      />
+      <FacultyReviewSheetHost target={reviewFaculty} onClose={() => setReviewFaculty(null)} />
     </>
   );
 }

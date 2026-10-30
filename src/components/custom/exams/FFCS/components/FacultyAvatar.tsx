@@ -31,8 +31,8 @@ export function VitfacReviewPill({
   const colorClass = isGreen
     ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
     : isAmber
-    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/20"
-    : "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30 hover:bg-red-500/20";
+      ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/20"
+      : "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30 hover:bg-red-500/20";
 
   return (
     <button
@@ -80,13 +80,17 @@ export function FacultyAvatar({
   const { review } = useVitfacReview(employeeId, name);
   const [failedUrls, setFailedUrls] = useState<string[]>([]);
 
-  const vitfacUrl = ENABLE_VITFAC_INTEGRATION ? review?.image_url : null;
+  const vitfacUrl = ENABLE_VITFAC_INTEGRATION
+    ? review?.image
+      ? `data:image/jpeg;base64,${review.image}`
+      : review?.image_url || null
+    : null;
   const effectiveUrl =
     vitfacUrl && !failedUrls.includes(vitfacUrl)
       ? vitfacUrl
       : fallbackImageUrl && !failedUrls.includes(fallbackImageUrl)
-      ? fallbackImageUrl
-      : null;
+        ? fallbackImageUrl
+        : null;
 
   const sizeClasses = {
     xs: "w-6 h-6 rounded-md text-[10px]",
@@ -123,9 +127,7 @@ export function FacultyAvatar({
           className="w-full h-full object-cover rounded-[inherit]"
         />
       ) : (
-        <span className={`w-full h-full flex items-center justify-center font-bold ${toneClasses}`}>
-          {initials}
-        </span>
+        <span className={`w-full h-full flex items-center justify-center font-bold ${toneClasses}`}>{initials}</span>
       )}
     </div>
   );
