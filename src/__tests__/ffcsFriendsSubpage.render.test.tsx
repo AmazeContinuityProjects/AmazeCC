@@ -113,12 +113,13 @@ describe("FFCSFriendsSubpage", () => {
     fireEvent.click(screen.getByRole("button", { name: /add a friend/i }));
     const input = screen.getByLabelText(/share link or code/i);
 
-    // The bare TT-shape code path — what a chat app delivers intact.
-    fireEvent.change(input, { target: { value: "1.ABCDEF" } });
+    // The bare TT-shape code path — what a chat app delivers intact. The
+    // leading digit is the report's numeric alias: 2 = winter final list.
+    fireEvent.change(input, { target: { value: "2.ABCDEF" } });
     fireEvent.keyDown(input, { key: "Enter" });
 
     await waitFor(() =>
-      expect(loadShareInputMock).toHaveBeenCalledWith("1.ABCDEF", {
+      expect(loadShareInputMock).toHaveBeenCalledWith("2.ABCDEF", {
         reportCourses: [],
         reportSemesterId: "winter-2026-2027",
       }),

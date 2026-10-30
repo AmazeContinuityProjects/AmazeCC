@@ -3,18 +3,22 @@ import type { ParsedCourse } from "./types";
 /**
  * The course reports the planner can load.
  *
+ * Winter ships twice over: the final course-offered list is the default, and
+ * the earlier mock slot timetable stays selectable beside it. Both draw from
+ * the same class-ID namespace (`CH202627050...`), so the numeric share format's
+ * `classIdPrefixCode` — not the prefix — is what tells one report from the
+ * other; the prefix alone only ever names the semester.
+ *
  * The previous semester remains available by design: a student comparing an
  * old plan with the new one should not have to clear localStorage or re-upload
- * a spreadsheet to do it. The winter report is the default because it is the
- * semester the planner is being used for now; the previous report is the same
- * `ffcsReport.csv` the app has always shipped.
+ * a spreadsheet to do it.
  *
  * The CodeChef VIT catalogue is the fully offline option: converted from
  * FFCS-inator's open data (see `public/ffcs/codechef-vit-catalogue.SOURCE.md`)
  * it carries no class IDs, so it is deliberately kept out of share-link
  * resolution — a name-free share can only point at a registration report.
  */
-export type FFCSSemesterId = "winter-2026-2027" | "previous" | "codechef-vit";
+export type FFCSSemesterId = "winter-2026-2027" | "winter-2026-2027-mock" | "previous" | "codechef-vit";
 
 export interface FFCSSemesterReport {
   id: FFCSSemesterId;
@@ -42,11 +46,21 @@ export const FFCS_SEMESTER_REPORTS: readonly FFCSSemesterReport[] = [
     id: "winter-2026-2027",
     label: "Winter Semester 2026-2027",
     shortLabel: "Winter 2026-27",
+    path: "/ffcs/winter-2026-2027-final-ffcs.csv",
+    classIdPrefix: "CH202627050",
+    classIdPrefixCode: "2",
+    name: "Winter Semester 2026-2027 final FFCS course list",
+    attribution: "Course data from VIT's Winter 2026-2027 course offered list.",
+  },
+  {
+    id: "winter-2026-2027-mock",
+    label: "Winter 2026-27 Mock List",
+    shortLabel: "Winter Mock",
     path: "/ffcs/winter-2026-2027-slot-timetable.csv",
     classIdPrefix: "CH202627050",
     classIdPrefixCode: "1",
-    name: "Winter Semester 2026-2027 slot timetable",
-    attribution: "Course data from VIT's current-semester registration list.",
+    name: "Winter Semester 2026-2027 mock slot timetable",
+    attribution: "Mock course data published before VIT's final Winter 2026-2027 course offered list.",
   },
   {
     id: "previous",
@@ -87,10 +101,16 @@ export function getFFCSSemesterByClassIdPrefix(prefix: string): FFCSSemesterRepo
   ).sort((a, b) => (b.classIdPrefix?.length ?? 0) - (a.classIdPrefix?.length ?? 0));
   if (matches.length === 0) return null;
   const longestLength = matches[0].classIdPrefix!.length;
-  if (matches.filter((report) => report.classIdPrefix!.length === longestLength).length !== 1) {
-    return null;
+  const longest = matches.filter((report) => report.classIdPrefix!.length === longestLength);
+  // A tie means several reports share one class-ID namespace — the winter mock
+  // and final lists both use CH202627050. The prefix alone cannot say which
+  // one a link meant, but this format carries the full class IDs, which are
+  // byte-identical under either report, so the default is the safe answer and
+  // legacy links keep resolving instead of dying on the ambiguity.
+  if (longest.length !== 1) {
+    return longest.find((report) => report.id === DEFAULT_FFCS_SEMESTER) ?? null;
   }
-  return matches[0];
+  return longest[0];
 }
 
 /** Resolve the stable numeric alias used by compact, delta-coded shape links. */

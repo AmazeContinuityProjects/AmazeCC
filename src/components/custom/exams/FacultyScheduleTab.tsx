@@ -207,10 +207,17 @@ export default function FacultyScheduleTab({ onBack }: { onBack?: () => void }) 
   const renderRow = (group: FacultyNameGroup) => {
     const empId = group.offerings.find((o) => o.ERP_ID)?.ERP_ID;
     return (
-      <button
+      <div
         key={group.key}
-        type="button"
+        role="button"
+        tabIndex={0}
         onClick={() => setSelected(group.canonical)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setSelected(group.canonical);
+          }
+        }}
         className={`${LIST_ROW} cursor-pointer`}
       >
         <FacultyAvatar
@@ -227,7 +234,6 @@ export default function FacultyScheduleTab({ onBack }: { onBack?: () => void }) 
               name={group.canonical}
               onClick={(e) => {
                 e.stopPropagation();
-                // no-op: pill is informational on the list; full review opens from the schedule modal
               }}
             />
           </div>
@@ -237,7 +243,7 @@ export default function FacultyScheduleTab({ onBack }: { onBack?: () => void }) 
           </span>
         </span>
         <ChevronRight className="h-4 w-4 text-zinc-400 shrink-0" />
-      </button>
+      </div>
     );
   };
 
