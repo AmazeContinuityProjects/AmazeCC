@@ -1,10 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
-import {
-  FFCSSettingsDefaults,
-  sanitizeFFCSSettings,
-  useFFCSSettings,
-} from "../lib/ffcsSettings";
+import { FFCSSettingsDefaults, sanitizeFFCSSettings, useFFCSSettings } from "../lib/ffcsSettings";
 import { installLocalStorage } from "./helpers/localStorage";
 
 /**
@@ -22,9 +18,7 @@ describe("sanitizeFFCSSettings", () => {
   it("builds a whole record from defaults when the input is garbage", () => {
     expect(sanitizeFFCSSettings("junk")).toEqual(FFCSSettingsDefaults);
     expect(sanitizeFFCSSettings(null)).toEqual(FFCSSettingsDefaults);
-    expect(sanitizeFFCSSettings({ rankingMode: 42, defaultSortBy: "nope" })).toEqual(
-      FFCSSettingsDefaults
-    );
+    expect(sanitizeFFCSSettings({ rankingMode: 42, defaultSortBy: "nope" })).toEqual(FFCSSettingsDefaults);
   });
 
   it("falls back per field, keeping what is still valid", () => {
@@ -46,34 +40,24 @@ describe("sanitizeFFCSSettings", () => {
 
   it("defaults the wide-screen side-by-side timetable layout to off", () => {
     expect(FFCSSettingsDefaults.showVerticalTimetableBesideWidgets).toBe(false);
-    expect(
-      sanitizeFFCSSettings({ showVerticalTimetableBesideWidgets: true })
-        .showVerticalTimetableBesideWidgets
-    ).toBe(true);
-    expect(
-      sanitizeFFCSSettings({ showVerticalTimetableBesideWidgets: "yes" })
-        .showVerticalTimetableBesideWidgets
-    ).toBe(false);
+    expect(sanitizeFFCSSettings({ showVerticalTimetableBesideWidgets: true }).showVerticalTimetableBesideWidgets).toBe(
+      true,
+    );
+    expect(sanitizeFFCSSettings({ showVerticalTimetableBesideWidgets: "yes" }).showVerticalTimetableBesideWidgets).toBe(
+      false,
+    );
   });
 
   it("shows the generator option pane by default and sanitizes its preference", () => {
     expect(FFCSSettingsDefaults.showGeneratorOptionPane).toBe(true);
-    expect(sanitizeFFCSSettings({ showGeneratorOptionPane: false }).showGeneratorOptionPane).toBe(
-      false
-    );
-    expect(
-      sanitizeFFCSSettings({ showGeneratorOptionPane: "yes" }).showGeneratorOptionPane
-    ).toBe(true);
+    expect(sanitizeFFCSSettings({ showGeneratorOptionPane: false }).showGeneratorOptionPane).toBe(false);
+    expect(sanitizeFFCSSettings({ showGeneratorOptionPane: "yes" }).showGeneratorOptionPane).toBe(true);
   });
 
   it("defaults separate course-list image downloads off and sanitizes the toggle", () => {
     expect(FFCSSettingsDefaults.separateCourseListExport).toBe(false);
-    expect(sanitizeFFCSSettings({ separateCourseListExport: true }).separateCourseListExport).toBe(
-      true
-    );
-    expect(
-      sanitizeFFCSSettings({ separateCourseListExport: "yes" }).separateCourseListExport
-    ).toBe(false);
+    expect(sanitizeFFCSSettings({ separateCourseListExport: true }).separateCourseListExport).toBe(true);
+    expect(sanitizeFFCSSettings({ separateCourseListExport: "yes" }).separateCourseListExport).toBe(false);
   });
 
   it("sanitizes ranking priority order, faculty weights, and review thresholds independently", () => {
@@ -111,16 +95,22 @@ describe("sanitizeFFCSSettings", () => {
     expect(sanitizeFFCSSettings({ removeHardResultLimit: true }).removeHardResultLimit).toBe(true);
     expect(sanitizeFFCSSettings({ removeHardResultLimit: "yes" }).removeHardResultLimit).toBe(false);
   });
+
+  it("defaults All Subjects Mode on and only accepts a real boolean off", () => {
+    // ON is this planner's original contract: every selected course must fit.
+    expect(FFCSSettingsDefaults.allSubjectsMode).toBe(true);
+    expect(sanitizeFFCSSettings({ allSubjectsMode: false }).allSubjectsMode).toBe(false);
+    // A wrong-typed value falls back rather than silently switching modes —
+    // "off" changes what a run means, so it must be asked for explicitly.
+    expect(sanitizeFFCSSettings({ allSubjectsMode: "false" }).allSubjectsMode).toBe(true);
+  });
 });
 
 describe("useFFCSSettings", () => {
   beforeEach(() => store.clear());
 
   it("reads what was persisted once mounted", async () => {
-    store.setItem(
-      "ffcs_settings",
-      JSON.stringify({ ...FFCSSettingsDefaults, defaultSortBy: "halfdays" })
-    );
+    store.setItem("ffcs_settings", JSON.stringify({ ...FFCSSettingsDefaults, defaultSortBy: "halfdays" }));
 
     const { result } = renderHook(() => useFFCSSettings());
 

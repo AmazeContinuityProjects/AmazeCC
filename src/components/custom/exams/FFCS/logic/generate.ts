@@ -73,6 +73,12 @@ import {
   type FacultyScoreFilters,
 } from "@/lib/ffcsFacultyRanking";
 import { offeringMatches } from "../reports";
+import {
+  hasFacultyPriority,
+  sortOptionsByFacultyPriority,
+  timetablePreferenceScore,
+  type FacultyPriorityMap,
+} from "@/lib/ffcsFacultyPriority";
 import type { ParsedCourse, TimetableState, Friend, CourseLock, AddedCourse } from "../types";
 
 /** The ways a narrowing can end with nothing to offer. */
@@ -205,6 +211,17 @@ export interface GenerateParams {
   avoidConsecutiveLabs?: boolean;
   /** When enabled, a schema lunch marker separates otherwise consecutive lab periods. */
   lunchBreakSeparatesLabs?: boolean;
+  /**
+   * Per-course faculty ordering the student set by hand ("Prof A over Prof B").
+   *
+   * Optional and **unset by default**: without it the run is exactly the one
+   * it has always been. Two effects, both ordering-only — nothing is filtered:
+   * each course's offerings are walked preferred-faculty first (so at a result
+   * cap the survivors are the preferred ones), and the settled result is
+   * ordered by how well each plan honours the ranking. See
+   * `@/lib/ffcsFacultyPriority`.
+   */
+  facultyPriority?: FacultyPriorityMap;
 }
 
 /**
@@ -360,7 +377,9 @@ export { splitSlots };
 
 /** `"08:00"` → 480. Returns null rather than 0, which would be midnight. */
 function parse24HourToMinutes(time: string): number | null {
-  const match = String(time ?? "").trim().match(/^(\d{1,2}):(\d{2})$/);
+  const match = String(time ?? "")
+    .trim()
+    .match(/^(\d{1,2}):(\d{2})$/);
   if (!match) return null;
   const hours = Number(match[1]);
   const minutes = Number(match[2]);
@@ -400,11 +419,7 @@ function isEveningSlot(schema: CampusSchema, slot: string): boolean {
 function isCompleteEmbeddedCourse(option: ParsedCourse): boolean {
   const type = option.TYPE.trim().toUpperCase();
   const embedded =
-    type === "ETH" ||
-    type === "ELA" ||
-    type === "EPJ" ||
-    type.includes("EMBEDDED") ||
-    type.includes("+");
+    type === "ETH" || type === "ELA" || type === "EPJ" || type.includes("EMBEDDED") || type.includes("+");
   if (!embedded) return true;
   const slots = splitSlots(option.SLOT);
   const hasTheory = slots.some((s) => !s.startsWith("L") && s !== "NIL");
@@ -425,7 +440,7 @@ function optionsFor(
   schema: CampusSchema,
   params: GenerateParams,
   lock: CourseLock,
-  all: ParsedCourse[]
+  all: ParsedCourse[],
 ): ParsedCourse[] {
   const blocked = new Set(params.blockedSlots.map((s) => s.trim().toUpperCase()));
   let options = all;
@@ -434,9 +449,7 @@ function optionsFor(
   if (lock.allowedSlots?.length) {
     const allowed = new Set(lock.allowedSlots.map((s) => s.trim().toUpperCase()));
     options = options.filter(
-      (opt) =>
-        allowed.has(opt.SLOT.trim().toUpperCase()) ||
-        splitSlots(opt.SLOT).some((s) => allowed.has(s))
+      (opt) => allowed.has(opt.SLOT.trim().toUpperCase()) || splitSlots(opt.SLOT).some((s) => allowed.has(s)),
     );
   }
 
@@ -474,9 +487,7 @@ function optionsFor(
   //    the two name the same period and the report writes the numbered one.
   options = options.filter((opt) => {
     const slots = splitSlots(opt.SLOT);
-    return !slots.some(
-      (slot) => slotSpellings(slot).some((spelling) => blocked.has(spelling))
-    );
+    return !slots.some((slot) => slotSpellings(slot).some((spelling) => blocked.has(spelling)));
   });
 
   // 7. Time bounds.
@@ -486,7 +497,7 @@ function optionsFor(
     Object.entries(params.maxEndTimeByDay ?? {}).flatMap(([day, time]) => {
       const minutes = time ? parse24HourToMinutes(time) : null;
       return minutes === null ? [] : [[day, minutes]];
-    })
+    }),
   ) as Partial<Record<DayId, number>>;
   if (params.minStartTime || params.maxEndTime || Object.keys(maxAllowedByDay).length > 0) {
     const lower = minAllowed ?? 0;
@@ -498,12 +509,10 @@ function optionsFor(
         return periodsForSlot(schema, slot).every((period) => {
           const dayLimit = maxAllowedByDay[period.day];
           return (
-            period.startMin >= lower &&
-            period.endMin <= upper &&
-            (dayLimit === undefined || period.endMin <= dayLimit)
+            period.startMin >= lower && period.endMin <= upper && (dayLimit === undefined || period.endMin <= dayLimit)
           );
         });
-      })
+      }),
     );
   }
 
@@ -519,14 +528,21 @@ function optionsFor(
       options = options.filter((opt) => {
         const optSlots = splitSlots(opt.SLOT).sort().join(",");
         return friendCourses.some((fc) => {
-          const theirSlots = [...fc.slots].map((s) => s.trim().toUpperCase()).sort().join(",");
+          const theirSlots = [...fc.slots]
+            .map((s) => s.trim().toUpperCase())
+            .sort()
+            .join(",");
           return opt.FACULTY === fc.faculty && optSlots === theirSlots;
         });
       });
     }
   }
 
-  return options;
+  // 9. The student's own faculty ordering, applied last so every filter above
+  //    has already had its say over *which* offerings remain — preference
+  //    orders the survivors, it never resurrects a rejected offering. Stable,
+  //    so a course with no ordering walks in report order exactly as before.
+  return sortOptionsByFacultyPriority(options, params.facultyPriority, lock.code, (opt) => opt.FACULTY);
 }
 
 /* ── the solve ──────────────────────────────────────────────────────────── */
@@ -546,7 +562,7 @@ const clashes = periodListsClash;
  */
 function labsShareADay(
   combination: readonly ParsedCourse[],
-  labPeriodsByOffering: ReadonlyMap<ParsedCourse, readonly SlotPeriod[]>
+  labPeriodsByOffering: ReadonlyMap<ParsedCourse, readonly SlotPeriod[]>,
 ): boolean {
   const taken = new Set<DayId>();
   for (const offering of combination) {
@@ -573,10 +589,7 @@ function labPeriodPairKey(day: DayId, firstIndex: number, secondIndex: number): 
  * bitmask implementation that disagreed with *this* would be a bug in one of
  * them, and the test is what says which.
  */
-export function consecutiveLabPeriodPairs(
-  schema: CampusSchema,
-  lunchBreakSeparatesLabs: boolean
-): Set<string> {
+export function consecutiveLabPeriodPairs(schema: CampusSchema, lunchBreakSeparatesLabs: boolean): Set<string> {
   const pairs = new Set<string>();
   for (const day of DAYS_OF_WEEK) {
     const dayPeriods = (schema.lab ?? [])
@@ -604,7 +617,7 @@ export function consecutiveLabPeriodPairs(
 function labsAreConsecutive(
   combination: readonly ParsedCourse[],
   labPeriodsByOffering: ReadonlyMap<ParsedCourse, readonly SlotPeriod[]>,
-  consecutivePairs: ReadonlySet<string>
+  consecutivePairs: ReadonlySet<string>,
 ): boolean {
   for (let firstIndex = 0; firstIndex < combination.length; firstIndex++) {
     const firstPeriods = labPeriodsByOffering.get(combination[firstIndex]) ?? [];
@@ -612,10 +625,10 @@ function labsAreConsecutive(
       const secondPeriods = labPeriodsByOffering.get(combination[secondIndex]) ?? [];
       if (
         firstPeriods.some((first) =>
-          secondPeriods.some((second) =>
-            first.day === second.day &&
-            consecutivePairs.has(labPeriodPairKey(first.day, first.index, second.index))
-          )
+          secondPeriods.some(
+            (second) =>
+              first.day === second.day && consecutivePairs.has(labPeriodPairKey(first.day, first.index, second.index)),
+          ),
         )
       ) {
         return true;
@@ -748,7 +761,7 @@ function buildWalkRules(
   schema: CampusSchema,
   optionsPerCourse: ParsedCourse[][],
   labPeriodsByOffering: ReadonlyMap<ParsedCourse, readonly SlotPeriod[]>,
-  consecutiveLabPairs: ReadonlySet<string>
+  consecutiveLabPairs: ReadonlySet<string>,
 ): WalkRules | null {
   const rules: WalkRules = { minHalfDays: params.minHalfDays > 0 ? params.minHalfDays : 0 };
 
@@ -760,7 +773,7 @@ function buildWalkRules(
           mask |= 1 << DAYS_OF_WEEK.indexOf(period.day);
         }
         return mask;
-      })
+      }),
     );
   }
 
@@ -792,7 +805,7 @@ function buildWalkRules(
           sites.push({ day: DAYS_OF_WEEK.indexOf(period.day), own: 1 << period.index, threat });
         }
         return sites;
-      })
+      }),
     );
   }
 
@@ -814,7 +827,7 @@ function buildWalkRules(
           }
         }
         return mask;
-      })
+      }),
     );
   }
 
@@ -892,7 +905,7 @@ function walkCombinations(
   windows: SlotPeriod[][][],
   limit: number,
   hooks: WalkHooks,
-  rules: WalkRules | null = null
+  rules: WalkRules | null = null,
 ): WalkOutcome {
   const chosen: ParsedCourse[] = [];
   const chosenWindows: SlotPeriod[] = [];
@@ -971,10 +984,7 @@ function walkCombinations(
           continue;
         }
       }
-      if (
-        halfDayMasks !== undefined &&
-        HALF_DAY_CELLS - popcount(claimedHalfDays | halfDayMasks[i]) < minHalfDays
-      ) {
+      if (halfDayMasks !== undefined && HALF_DAY_CELLS - popcount(claimedHalfDays | halfDayMasks[i]) < minHalfDays) {
         halfDaysPruned = true;
         continue;
       }
@@ -1075,7 +1085,7 @@ export function expandCourseHalves(halves: readonly AddedCourse[]): AddedCourse[
   for (const h of halves) {
     const rawSlots = h.slots ?? [];
     const theorySlots = rawSlots.filter(
-      (s) => !s.trim().toUpperCase().startsWith("L") && s.trim().toUpperCase() !== "NIL"
+      (s) => !s.trim().toUpperCase().startsWith("L") && s.trim().toUpperCase() !== "NIL",
     );
     const labSlots = rawSlots.filter((s) => s.trim().toUpperCase().startsWith("L"));
 
@@ -1115,33 +1125,31 @@ export function sameSlotFacultyAlternatives(
   code: string,
   slots: readonly string[],
   current: { faculty: string; employeeId?: string },
-  masterCourses: readonly ParsedCourse[]
+  masterCourses: readonly ParsedCourse[],
 ): ParsedCourse[] {
   const normalizedCode = code.trim().toUpperCase();
-  const baseCode = (normalizedCode.endsWith('L') || normalizedCode.endsWith('P'))
-    ? normalizedCode.slice(0, -1)
-    : normalizedCode;
+  const baseCode =
+    normalizedCode.endsWith("L") || normalizedCode.endsWith("P") ? normalizedCode.slice(0, -1) : normalizedCode;
 
   const codeMatches = (c: ParsedCourse): boolean => {
     const cCode = c.CODE.trim().toUpperCase();
     const cOrig = (c as any).ORIGINAL_CODE?.trim()?.toUpperCase();
-    const cBase = (cCode.endsWith('L') || cCode.endsWith('P')) ? cCode.slice(0, -1) : cCode;
-    return (
-      cCode === normalizedCode ||
-      cOrig === normalizedCode ||
-      cBase === baseCode ||
-      cBase === normalizedCode
-    );
+    const cBase = cCode.endsWith("L") || cCode.endsWith("P") ? cCode.slice(0, -1) : cCode;
+    return cCode === normalizedCode || cOrig === normalizedCode || cBase === baseCode || cBase === normalizedCode;
   };
 
-  const wantTokens = [...slots]
-    .map((s) => s.trim().toUpperCase())
-    .filter((s) => Boolean(s) && s !== "NIL");
+  const wantTokens = [...slots].map((s) => s.trim().toUpperCase()).filter((s) => Boolean(s) && s !== "NIL");
   if (wantTokens.length === 0) return [];
 
   const wantExact = [...wantTokens].sort().join("+");
-  const wantTheoryTokens = wantTokens.filter((s) => !s.startsWith("L")).sort().join("+");
-  const wantLabTokens = wantTokens.filter((s) => s.startsWith("L")).sort().join("+");
+  const wantTheoryTokens = wantTokens
+    .filter((s) => !s.startsWith("L"))
+    .sort()
+    .join("+");
+  const wantLabTokens = wantTokens
+    .filter((s) => s.startsWith("L"))
+    .sort()
+    .join("+");
 
   const hasTheory = wantTheoryTokens.length > 0;
   const hasLab = wantLabTokens.length > 0;
@@ -1152,8 +1160,8 @@ export function sameSlotFacultyAlternatives(
   const currentFacultyHalfNorm = isPureTheory
     ? currentFacultyNorm.split(/\s*\/\s*/)[0].trim()
     : isPureLab
-    ? (currentFacultyNorm.split(/\s*\/\s*/)[1] || currentFacultyNorm.split(/\s*\/\s*/)[0]).trim()
-    : currentFacultyNorm;
+      ? (currentFacultyNorm.split(/\s*\/\s*/)[1] || currentFacultyNorm.split(/\s*\/\s*/)[0]).trim()
+      : currentFacultyNorm;
 
   const dedupeKey = (c: ParsedCourse): string =>
     `${c.FACULTY.trim().toLowerCase()}|${splitSlots(c.SLOT).sort().join("+")}|${(c.ROOM ?? "").trim().toLowerCase()}|${c.ERP_ID ?? ""}`;
@@ -1164,10 +1172,18 @@ export function sameSlotFacultyAlternatives(
   for (const c of masterCourses) {
     if (!codeMatches(c)) continue;
 
-    const cTokens = splitSlots(c.SLOT).map((s) => s.trim().toUpperCase()).filter((s) => Boolean(s) && s !== "NIL");
+    const cTokens = splitSlots(c.SLOT)
+      .map((s) => s.trim().toUpperCase())
+      .filter((s) => Boolean(s) && s !== "NIL");
     const cExact = [...cTokens].sort().join("+");
-    const cTheory = cTokens.filter((s) => !s.startsWith("L")).sort().join("+");
-    const cLab = cTokens.filter((s) => s.startsWith("L")).sort().join("+");
+    const cTheory = cTokens
+      .filter((s) => !s.startsWith("L"))
+      .sort()
+      .join("+");
+    const cLab = cTokens
+      .filter((s) => s.startsWith("L"))
+      .sort()
+      .join("+");
 
     let isMatch = false;
     let effectiveOffering: ParsedCourse;
@@ -1200,10 +1216,12 @@ export function sameSlotFacultyAlternatives(
       };
     } else if (hasTheory && hasLab && cTheory === wantTheoryTokens && cLab === wantLabTokens) {
       // Both theory and lab slot together: require same faculty for both theory and lab
-      const facParts = (c.FACULTY || "").split(/\s*\/\s*/).map((s) => s.trim()).filter(Boolean);
+      const facParts = (c.FACULTY || "")
+        .split(/\s*\/\s*/)
+        .map((s) => s.trim())
+        .filter(Boolean);
       const isSameFac =
-        facParts.length <= 1 ||
-        (facParts.length === 2 && facParts[0].toLowerCase() === facParts[1].toLowerCase());
+        facParts.length <= 1 || (facParts.length === 2 && facParts[0].toLowerCase() === facParts[1].toLowerCase());
       if (!isSameFac) continue;
 
       isMatch = true;
@@ -1236,9 +1254,7 @@ export function sameSlotFacultyAlternatives(
   }
 
   return results.sort(
-    (a, b) =>
-      a.FACULTY.localeCompare(b.FACULTY) ||
-      String(a.ROOM ?? "").localeCompare(String(b.ROOM ?? ""))
+    (a, b) => a.FACULTY.localeCompare(b.FACULTY) || String(a.ROOM ?? "").localeCompare(String(b.ROOM ?? "")),
   );
 }
 
@@ -1246,25 +1262,16 @@ export function sameSlotFacultyAlternatives(
  * Return all distinct offerings for a subject code from the report,
  * preserving embedded theory+lab pairings.
  */
-export function allCourseOfferings(
-  code: string,
-  masterCourses: readonly ParsedCourse[]
-): ParsedCourse[] {
+export function allCourseOfferings(code: string, masterCourses: readonly ParsedCourse[]): ParsedCourse[] {
   const normalizedCode = code.trim().toUpperCase();
-  const baseCode = (normalizedCode.endsWith('L') || normalizedCode.endsWith('P'))
-    ? normalizedCode.slice(0, -1)
-    : normalizedCode;
+  const baseCode =
+    normalizedCode.endsWith("L") || normalizedCode.endsWith("P") ? normalizedCode.slice(0, -1) : normalizedCode;
 
   const codeMatches = (c: ParsedCourse): boolean => {
     const cCode = c.CODE.trim().toUpperCase();
     const cOrig = (c as any).ORIGINAL_CODE?.trim()?.toUpperCase();
-    const cBase = (cCode.endsWith('L') || cCode.endsWith('P')) ? cCode.slice(0, -1) : cCode;
-    return (
-      cCode === normalizedCode ||
-      cOrig === normalizedCode ||
-      cBase === baseCode ||
-      cBase === normalizedCode
-    );
+    const cBase = cCode.endsWith("L") || cCode.endsWith("P") ? cCode.slice(0, -1) : cCode;
+    return cCode === normalizedCode || cOrig === normalizedCode || cBase === baseCode || cBase === normalizedCode;
   };
 
   const dedupeKey = (c: ParsedCourse): string =>
@@ -1284,10 +1291,7 @@ export function allCourseOfferings(
   // Check if course has combined offerings (embedded theory + lab)
   const hasCombined = results.some((c) => {
     const tokens = splitSlots(c.SLOT);
-    return (
-      tokens.some((s) => !s.startsWith("L") && s !== "NIL") &&
-      tokens.some((s) => s.startsWith("L"))
-    );
+    return tokens.some((s) => !s.startsWith("L") && s !== "NIL") && tokens.some((s) => s.startsWith("L"));
   });
 
   let filtered = results;
@@ -1295,9 +1299,7 @@ export function allCourseOfferings(
     // If embedded grouping exists, eliminate individual half-slots of faculties
     filtered = results.filter((c) => {
       const tokens = splitSlots(c.SLOT);
-      const isComb =
-        tokens.some((s) => !s.startsWith("L") && s !== "NIL") &&
-        tokens.some((s) => s.startsWith("L"));
+      const isComb = tokens.some((s) => !s.startsWith("L") && s !== "NIL") && tokens.some((s) => s.startsWith("L"));
       if (isComb) return true;
 
       const facNorm = c.FACULTY.trim().toLowerCase();
@@ -1305,8 +1307,7 @@ export function allCourseOfferings(
         if (other === c) return false;
         const otherTokens = splitSlots(other.SLOT);
         const otherIsComb =
-          otherTokens.some((s) => !s.startsWith("L") && s !== "NIL") &&
-          otherTokens.some((s) => s.startsWith("L"));
+          otherTokens.some((s) => !s.startsWith("L") && s !== "NIL") && otherTokens.some((s) => s.startsWith("L"));
         if (!otherIsComb) return false;
         const otherFacNorm = other.FACULTY.trim().toLowerCase();
         const facMatches = otherFacNorm.includes(facNorm) || facNorm.includes(otherFacNorm);
@@ -1318,10 +1319,7 @@ export function allCourseOfferings(
 
     const combinedOnly = filtered.filter((c) => {
       const tokens = splitSlots(c.SLOT);
-      return (
-        tokens.some((s) => !s.startsWith("L") && s !== "NIL") &&
-        tokens.some((s) => s.startsWith("L"))
-      );
+      return tokens.some((s) => !s.startsWith("L") && s !== "NIL") && tokens.some((s) => s.startsWith("L"));
     });
 
     if (combinedOnly.length > 0) {
@@ -1332,7 +1330,7 @@ export function allCourseOfferings(
   return filtered.sort(
     (a, b) =>
       a.FACULTY.localeCompare(b.FACULTY) ||
-      splitSlots(a.SLOT).sort().join("+").localeCompare(splitSlots(b.SLOT).sort().join("+"))
+      splitSlots(a.SLOT).sort().join("+").localeCompare(splitSlots(b.SLOT).sort().join("+")),
   );
 }
 
@@ -1346,7 +1344,7 @@ export function allCourseOfferings(
 function socialScoreAgainst(
   courses: readonly AddedCourse[],
   friends: readonly Friend[],
-  schema: CampusSchema
+  schema: CampusSchema,
 ): { socialScore: number; bestFriendMatches: string[] } {
   if (!friends.length) return { socialScore: 0, bestFriendMatches: [] };
 
@@ -1444,18 +1442,14 @@ function groupVariants(timetables: TimetableState[]): TimetableState[] {
 function preferredTheoryScore(
   courses: AddedCourse[],
   schema: CampusSchema,
-  preference: "morning" | "evening"
+  preference: "morning" | "evening",
 ): number | null {
   const theoryPeriods = courses.flatMap((course) =>
-    course.slots.flatMap((slot) =>
-      periodsForSlot(schema, slot).filter((period) => period.type === "theory")
-    )
+    course.slots.flatMap((slot) => periodsForSlot(schema, slot).filter((period) => period.type === "theory")),
   );
   if (!theoryPeriods.length) return null;
   const preferredCount = theoryPeriods.filter((period) =>
-    preference === "morning"
-      ? period.startMin < MORNING_BEFORE_MIN
-      : period.startMin >= MORNING_BEFORE_MIN
+    preference === "morning" ? period.startMin < MORNING_BEFORE_MIN : period.startMin >= MORNING_BEFORE_MIN,
   ).length;
   return (preferredCount / theoryPeriods.length) * 100;
 }
@@ -1468,18 +1462,19 @@ function preferredTheoryScore(
 function scoreCombination(
   params: GenerateParams,
   combination: ParsedCourse[],
-  scoredFriends: readonly Friend[]
+  scoredFriends: readonly Friend[],
 ): TimetableState {
   const courses = combination.map(toAddedCourse);
   const base = timetableMetrics(courses, params.schema);
   const social = socialScoreAgainst(courses, scoredFriends, params.schema);
-  const facultySummary = params.facultyRatingsAvailable && params.facultyRatings
-    ? facultyRankingSummary(
-        courses,
-        params.facultyRatings,
-        params.facultyMetricWeights ?? DEFAULT_FACULTY_METRIC_WEIGHTS
-      )
-    : undefined;
+  const facultySummary =
+    params.facultyRatingsAvailable && params.facultyRatings
+      ? facultyRankingSummary(
+          courses,
+          params.facultyRatings,
+          params.facultyMetricWeights ?? DEFAULT_FACULTY_METRIC_WEIGHTS,
+        )
+      : undefined;
   const timetable: TimetableState = {
     id: newId(),
     name: "Generated Option",
@@ -1491,16 +1486,14 @@ function scoreCombination(
   const hasProfile = Boolean(params.rankingMode);
   const hasFacultyData = (facultySummary?.ratedFacultyCount ?? 0) > 0;
   const hasSoftTheoryPreference =
-    params.strictTheoryPreference === false &&
-    (params.preference === "morning" || params.preference === "evening");
+    params.strictTheoryPreference === false && (params.preference === "morning" || params.preference === "evening");
   const hasTimePreference =
     params.preference !== "none" ||
     Boolean(params.minStartTime || params.maxEndTime || Object.keys(params.maxEndTimeByDay ?? {}).length);
 
   // One read of the week's ranking inputs, shared by whichever ranking path runs.
   let cachedRankingInputs: RankingInputs | null = null;
-  const getRankingInputs = (): RankingInputs =>
-    (cachedRankingInputs ??= rankingInputs(courses, params.schema));
+  const getRankingInputs = (): RankingInputs => (cachedRankingInputs ??= rankingInputs(courses, params.schema));
 
   // Preference fit, 0–100. Shared by both paths so the "time" factor and the
   // legacy `time` component measure the same thing.
@@ -1511,17 +1504,11 @@ function scoreCombination(
     const lateFinish = bounded((timeInputs.averageDayEndMinutes - 12 * 60) / (7 * 60));
     switch (params.preference) {
       case "morning":
-        return hasSoftTheoryPreference
-          ? preferredTheoryScore(courses, params.schema, "morning")
-          : earlyStart * 100;
+        return hasSoftTheoryPreference ? preferredTheoryScore(courses, params.schema, "morning") : earlyStart * 100;
       case "evening":
-        return hasSoftTheoryPreference
-          ? preferredTheoryScore(courses, params.schema, "evening")
-          : lateFinish * 100;
+        return hasSoftTheoryPreference ? preferredTheoryScore(courses, params.schema, "evening") : lateFinish * 100;
       case "compact":
-        return timeInputs.activeDays
-          ? (timeInputs.compactDays / timeInputs.activeDays) * 100
-          : 0;
+        return timeInputs.activeDays ? (timeInputs.compactDays / timeInputs.activeDays) * 100 : 0;
       case "spread":
         return (timeInputs.activeDays / 6) * 100;
       default:
@@ -1551,7 +1538,7 @@ function scoreCombination(
           courses,
           params.schema,
           params.rankingMode,
-          facultySummary?.facultyScore == null ? null : facultySummary.facultyScore / 100
+          facultySummary?.facultyScore == null ? null : facultySummary.facultyScore / 100,
         )
       : null;
     const metrics = timetable.metrics;
@@ -1573,16 +1560,14 @@ function scoreCombination(
       }
     })();
     const components = {
-      profile:
-        ranked?.score ??
-        (params.rankingMode === "Best Faculty" ? facultySummary?.facultyScore ?? null : null),
+      profile: ranked?.score ?? (params.rankingMode === "Best Faculty" ? (facultySummary?.facultyScore ?? null) : null),
       faculty: facultySummary?.facultyScore ?? null,
       sort: sortScore,
       time: timeScore,
     };
     const composite = combineRankingScores(
       components,
-      params.rankingPriorityOrder ?? ["profile", "faculty", "sort", "time"]
+      params.rankingPriorityOrder ?? ["profile", "faculty", "sort", "time"],
     );
     timetable.rankingScore = composite.score;
     timetable.rankingBreakdown = composite.breakdown;
@@ -1624,10 +1609,7 @@ function scoreCombination(
  * function called with `{}`, which is the whole reason the two entry points
  * cannot drift apart.
  */
-export function generateTimetablesStream(
-  params: GenerateParams,
-  hooks: GenerateStreamHooks = {}
-): GenerateResult {
+export function generateTimetablesStream(params: GenerateParams, hooks: GenerateStreamHooks = {}): GenerateResult {
   const { schema } = params;
 
   if (!params.courseLocks.length) {
@@ -1645,10 +1627,7 @@ export function generateTimetablesStream(
   const windowsPerCourse: SlotPeriod[][][] = [];
   /** Each offering's actual lab periods, reused by both optional lab rules. */
   const labPeriodsByOffering = new Map<ParsedCourse, SlotPeriod[]>();
-  const consecutiveLabPairs = consecutiveLabPeriodPairs(
-    schema,
-    params.lunchBreakSeparatesLabs ?? false
-  );
+  const consecutiveLabPairs = consecutiveLabPeriodPairs(schema, params.lunchBreakSeparatesLabs ?? false);
 
   for (const lock of params.courseLocks) {
     const options = optionsFor(schema, params, lock, byCode.get(lock.code) ?? []);
@@ -1673,25 +1652,19 @@ export function generateTimetablesStream(
         }
         labPeriodsByOffering.set(opt, labPeriods);
         return periods;
-      })
+      }),
     );
   }
 
   // The monotone rules, as bit facts, computed once — from here the walk
   // prunes on them instead of meeting them again at every leaf.
-  const walkRules = buildWalkRules(
-    params,
-    schema,
-    optionsPerCourse,
-    labPeriodsByOffering,
-    consecutiveLabPairs
-  );
+  const walkRules = buildWalkRules(params, schema, optionsPerCourse, labPeriodsByOffering, consecutiveLabPairs);
 
   const limit = params.noLimit
     ? params.removeHardResultLimit
       ? Number.POSITIVE_INFINITY
       : HARD_RESULT_LIMIT
-    : params.resultCap ?? DEFAULT_RESULT_LIMIT;
+    : (params.resultCap ?? DEFAULT_RESULT_LIMIT);
   const batchSize = hooks.batchSize && hooks.batchSize > 0 ? hooks.batchSize : DEFAULT_BATCH_SIZE;
 
   const scoredFriends = params.maximizeFreeTimeFriends.length
@@ -1715,62 +1688,61 @@ export function generateTimetablesStream(
     hooks.onBatch?.(batch);
   };
 
-  const walk = walkCombinations(optionsPerCourse, windowsPerCourse, limit, {
-    visit: (combination) => {
-      // The post-search form of the lab-day rule. With in-tree pruning on,
-      // the walk has already guaranteed this week is legal, so this is a
-      // no-op; without pruning it is the rule itself, exactly as it always
-      // was. Either way it stays: it costs nothing at the limits a run
-      // actually reaches, and it keeps a pruning bug from either shipping a
-      // week the student asked to exclude or wording the failure
-      // `no_conflict_free`.
-      if (params.separateLabDays && labsShareADay(combination, labPeriodsByOffering)) {
-        labDayRejected = true;
-        return;
-      }
-      if (
-        params.avoidConsecutiveLabs &&
-        labsAreConsecutive(
-          combination,
-          labPeriodsByOffering,
-          consecutiveLabPairs
-        )
-      ) {
-        consecutiveLabsRejected = true;
-        return;
-      }
-      const timetable = scoreCombination(params, combination, scoredFriends);
-      const facultyFilters = params.facultyScoreFilters ?? DEFAULT_FACULTY_SCORE_FILTERS;
-      const hasActiveFacultyFilter = Object.values(facultyFilters).some((minimum) => minimum > 0);
-      if (
-        hasActiveFacultyFilter &&
-        params.facultyRatingsAvailable &&
-        params.facultyRatings &&
-        Object.keys(params.facultyRatings).length > 0 &&
-        timetable.facultySummary &&
-        !passesFacultyScoreFilters(timetable.facultySummary, facultyFilters)
-      ) {
-        facultyScoreRejected = true;
-        return;
-      }
-      // The half-days floor, as a result filter. When the walk pruned on the
-      // floor too, this is the exact re-check of its optimistic bound — a
-      // backstop rather than the primary decision — and when no floor was
-      // active in-tree it is the whole of the rule, exactly as it always
-      // was. Either way the check runs *after* scoring, because the number
-      // it compares is the metrics' own half-days count.
-      if ((timetable.metrics?.halfDays ?? 0) < params.minHalfDays) {
-        halfDaysRejected = true;
-        return;
-      }
-      accepted.push(timetable);
-      if (accepted.length - emitted >= batchSize) flush();
+  const walk = walkCombinations(
+    optionsPerCourse,
+    windowsPerCourse,
+    limit,
+    {
+      visit: (combination) => {
+        // The post-search form of the lab-day rule. With in-tree pruning on,
+        // the walk has already guaranteed this week is legal, so this is a
+        // no-op; without pruning it is the rule itself, exactly as it always
+        // was. Either way it stays: it costs nothing at the limits a run
+        // actually reaches, and it keeps a pruning bug from either shipping a
+        // week the student asked to exclude or wording the failure
+        // `no_conflict_free`.
+        if (params.separateLabDays && labsShareADay(combination, labPeriodsByOffering)) {
+          labDayRejected = true;
+          return;
+        }
+        if (params.avoidConsecutiveLabs && labsAreConsecutive(combination, labPeriodsByOffering, consecutiveLabPairs)) {
+          consecutiveLabsRejected = true;
+          return;
+        }
+        const timetable = scoreCombination(params, combination, scoredFriends);
+        const facultyFilters = params.facultyScoreFilters ?? DEFAULT_FACULTY_SCORE_FILTERS;
+        const hasActiveFacultyFilter = Object.values(facultyFilters).some((minimum) => minimum > 0);
+        if (
+          hasActiveFacultyFilter &&
+          params.facultyRatingsAvailable &&
+          params.facultyRatings &&
+          Object.keys(params.facultyRatings).length > 0 &&
+          timetable.facultySummary &&
+          !passesFacultyScoreFilters(timetable.facultySummary, facultyFilters)
+        ) {
+          facultyScoreRejected = true;
+          return;
+        }
+        // The half-days floor, as a result filter. When the walk pruned on the
+        // floor too, this is the exact re-check of its optimistic bound — a
+        // backstop rather than the primary decision — and when no floor was
+        // active in-tree it is the whole of the rule, exactly as it always
+        // was. Either way the check runs *after* scoring, because the number
+        // it compares is the metrics' own half-days count.
+        if ((timetable.metrics?.halfDays ?? 0) < params.minHalfDays) {
+          halfDaysRejected = true;
+          return;
+        }
+        accepted.push(timetable);
+        if (accepted.length - emitted >= batchSize) flush();
+      },
+      tick: (nodes, found) => {
+        hooks.onProgress?.({ nodes, found, accepted: accepted.length });
+        return hooks.shouldStop ? hooks.shouldStop() : false;
+      },
     },
-    tick: (nodes, found) => {
-      hooks.onProgress?.({ nodes, found, accepted: accepted.length });
-      return hooks.shouldStop ? hooks.shouldStop() : false;
-    },
-  }, walkRules);
+    walkRules,
+  );
 
   // A partial the walk declined is one the old walk would have enumerated
   // and then rejected at `visit`, so it raises the same flags: where the rule
@@ -1796,12 +1768,7 @@ export function generateTimetablesStream(
   // rule that cut it is named rather than `no_conflict_free` — the same trade
   // the rule-aimed `limit` makes: the answer names the constraint that
   // actually shaped it.
-  if (
-    !walk.found &&
-    !labDayRejected &&
-    !consecutiveLabsRejected &&
-    !halfDaysRejected
-  ) {
+  if (!walk.found && !labDayRejected && !consecutiveLabsRejected && !halfDaysRejected) {
     return { kind: "error", code: "no_conflict_free" };
   }
   if (!accepted.length) {
@@ -1825,16 +1792,27 @@ export function generateTimetablesStream(
   if (
     params.rankingMode ||
     timetables.some((timetable) => (timetable.facultySummary?.ratedFacultyCount ?? 0) > 0) ||
-    (params.strictTheoryPreference === false &&
-      (params.preference === "morning" || params.preference === "evening"))
+    (params.strictTheoryPreference === false && (params.preference === "morning" || params.preference === "evening"))
   ) {
-    timetables = [...timetables].sort(
-      (a, b) => (b.rankingScore ?? -1) - (a.rankingScore ?? -1)
-    );
+    timetables = [...timetables].sort((a, b) => (b.rankingScore ?? -1) - (a.rankingScore ?? -1));
   }
 
   if (params.uniqueFaculties) {
     timetables = dedupeByFaculty(timetables);
+  }
+
+  // The student's per-course faculty ordering outranks every automatic score:
+  // a hand-expressed preference is more specific than a metric, and the sorts
+  // above are stable, so this settles ties rather than scrambling their work —
+  // plans equally faithful to the ranking keep their relative order, and a plan
+  // without a prioritised course anywhere stays tied with its neighbours.
+  if (hasFacultyPriority(params.facultyPriority)) {
+    const preference = params.facultyPriority;
+    const scores = new Map<TimetableState, number>();
+    for (const timetable of timetables) {
+      scores.set(timetable, timetablePreferenceScore(timetable.courses, preference) ?? 0);
+    }
+    timetables = [...timetables].sort((a, b) => (scores.get(b) ?? 0) - (scores.get(a) ?? 0));
   }
 
   return {

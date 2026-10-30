@@ -14,6 +14,7 @@ export interface ExportDossierWidgetProps {
   onDownloadImage?: (format: "jpg" | "png", orientation?: "horizontal" | "vertical") => void;
   onExportIcal: () => void;
   onExportTimetablesJson: () => void;
+  onDownloadClashReport?: () => void;
   onOpenPrintablePage?: () => void;
   onOpenDetachedPrintablePage?: () => void;
 }
@@ -25,6 +26,7 @@ export default function ExportDossierWidget({
   onDownloadImage,
   onExportIcal,
   onExportTimetablesJson,
+  onDownloadClashReport,
   onOpenPrintablePage,
   onOpenDetachedPrintablePage,
 }: ExportDossierWidgetProps) {
@@ -163,6 +165,18 @@ export default function ExportDossierWidget({
       </div>
 
       <div className="flex flex-col gap-2 @sm:flex-row @sm:items-center">
+        {onDownloadClashReport && (
+          <button
+            type="button"
+            onClick={onDownloadClashReport}
+            disabled={!canExport}
+            className="flex min-h-10 items-center justify-center gap-2 rounded-lg bg-surface-secondary/60 px-3 text-xs font-semibold text-text-heading transition-colors hover:bg-surface-secondary disabled:cursor-not-allowed disabled:opacity-50"
+            title="Download a detailed PDF report listing what each course clashes with"
+          >
+            <FileText className="h-3.5 w-3.5 text-rose-500" />
+            <span>Detailed report (PDF)</span>
+          </button>
+        )}
         {onOpenPrintablePage && (
           <button
             type="button"

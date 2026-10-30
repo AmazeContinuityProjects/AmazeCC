@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, render, screen } from "@testing-library/react";
-import { FFCSSettingsModal, type FFCSSettingsModalProps } from "../components/custom/exams/FFCS/components/modals/FFCSSettingsModal";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import {
+  FFCSSettingsModal,
+  type FFCSSettingsModalProps,
+} from "../components/custom/exams/FFCS/components/modals/FFCSSettingsModal";
 import { FFCSSettingsDefaults } from "../lib/ffcsSettings";
 import { closeTopOverlayFromPop } from "../lib/overlayStack";
 import { installLocalStorage } from "./helpers/localStorage";
@@ -23,8 +26,7 @@ const store = installLocalStorage();
  */
 function click(name: string | RegExp) {
   act(() => {
-    const target =
-      screen.queryByRole("button", { name }) ?? screen.queryByRole("tab", { name });
+    const target = screen.queryByRole("button", { name }) ?? screen.queryByRole("tab", { name });
     if (!target) throw new Error(`no control named ${String(name)}`);
     target.click();
   });
@@ -48,6 +50,7 @@ beforeEach(() => store.clear());
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   while (closeTopOverlayFromPop()) {
     /* the sheet registers with the overlay stack while mounted */
   }
@@ -102,7 +105,7 @@ describe("FFCSSettingsModal", () => {
     // Grouping's switch is unnamed on purpose; the wide-screen layout switch
     // is labelled because it is a new presentation preference.
     const grouping = (screen.getAllByRole("switch") as HTMLButtonElement[]).find(
-      (control) => !control.hasAttribute("aria-label")
+      (control) => !control.hasAttribute("aria-label"),
     );
     expect(grouping).toBeDefined();
     act(() => grouping.click());
@@ -128,14 +131,12 @@ describe("FFCSSettingsModal", () => {
     render(<FFCSSettingsModal {...p} />);
 
     const description = screen.getByText(
-      "Show the desktop side pane for switching between generated timetable options while reviewing."
+      "Show the desktop side pane for switching between generated timetable options while reviewing.",
     );
     expect(description.className).toContain("whitespace-normal");
     expect(description.className).not.toContain("truncate");
 
-    act(() =>
-      screen.getByRole("switch", { name: "Generator timetable options pane" }).click()
-    );
+    act(() => screen.getByRole("switch", { name: "Generator timetable options pane" }).click());
 
     expect(p.update).toHaveBeenCalledWith("showGeneratorOptionPane", false);
   });
@@ -153,9 +154,7 @@ describe("FFCSSettingsModal", () => {
     const p = props();
     render(<FFCSSettingsModal {...p} />);
 
-    act(() =>
-      screen.getByRole("switch", { name: "Remove 30,000-result safety ceiling" }).click()
-    );
+    act(() => screen.getByRole("switch", { name: "Remove 30,000-result safety ceiling" }).click());
 
     expect(p.update).toHaveBeenCalledWith("removeHardResultLimit", true);
   });
@@ -166,12 +165,7 @@ describe("FFCSSettingsModal", () => {
 
     act(() => screen.getByRole("button", { name: "Move Faculty reviews up" }).click());
 
-    expect(p.update).toHaveBeenCalledWith("rankingPriorityOrder", [
-      "faculty",
-      "profile",
-      "sort",
-      "time",
-    ]);
+    expect(p.update).toHaveBeenCalledWith("rankingPriorityOrder", ["faculty", "profile", "sort", "time"]);
   });
 
   it("writes analytics consent to the analytics key, not to settings", () => {
@@ -218,5 +212,43 @@ describe("FFCSSettingsModal", () => {
     click(/reset/i);
 
     expect(p.reset).not.toHaveBeenCalled();
+  });
+
+  it("docks as a side pane on a wide viewport instead of opening a sheet", () => {
+    // jsdom never reports a wide viewport — this build does not even install
+    // `matchMedia` — so every other test here exercises the sheet. This one
+    // provides the query at wide to show the desktop half of the single
+    // shared body: same rows, different chrome.
+    const matchMedia = vi.fn().mockImplementation(
+      (query: string) =>
+        ({
+          matches: query.includes("min-width: 1024px"),
+          media: query,
+          onchange: null,
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          dispatchEvent: vi.fn(),
+        }) as unknown as MediaQueryList,
+    );
+    vi.stubGlobal("matchMedia", matchMedia);
+    const p = props();
+    render(<FFCSSettingsModal {...p} />);
+
+    // The pane — not the sheet — is the dialog; the sheet's blurred backdrop
+    // must not be mounted at the same time, or both surfaces would be live.
+    screen.getByRole("dialog", { name: "Planner Settings" });
+    expect(document.querySelector(".backdrop-blur-xs")).toBeNull();
+
+    // Grouped rows come from the shared body, so the wide layout cannot drift
+    // from the sheet's.
+    screen.getByText("Generation", { exact: false });
+    screen.getByText("Faculty filters", { exact: false });
+    screen.getByRole("switch", { name: "Separate course-list image" });
+
+    // Escape dismisses the pane through the same overlay-stack contract.
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(p.onClose).toHaveBeenCalled();
   });
 });

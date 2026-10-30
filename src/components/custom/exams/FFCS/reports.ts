@@ -1,15 +1,20 @@
 import type { ParsedCourse } from "./types";
 
 /**
- * The two course reports the planner can load.
+ * The course reports the planner can load.
  *
  * The previous semester remains available by design: a student comparing an
  * old plan with the new one should not have to clear localStorage or re-upload
  * a spreadsheet to do it. The winter report is the default because it is the
  * semester the planner is being used for now; the previous report is the same
  * `ffcsReport.csv` the app has always shipped.
+ *
+ * The CodeChef VIT catalogue is the fully offline option: converted from
+ * FFCS-inator's open data (see `public/ffcs/codechef-vit-catalogue.SOURCE.md`)
+ * it carries no class IDs, so it is deliberately kept out of share-link
+ * resolution — a name-free share can only point at a registration report.
  */
-export type FFCSSemesterId = "winter-2026-2027" | "previous";
+export type FFCSSemesterId = "winter-2026-2027" | "previous" | "codechef-vit";
 
 export interface FFCSSemesterReport {
   id: FFCSSemesterId;
@@ -25,6 +30,11 @@ export interface FFCSSemesterReport {
   classIdPrefixCode?: string;
   /** What the dataset is called in prose, e.g. in an error message. */
   name: string;
+  /**
+   * Data-provenance credit shown next to the report, when the dataset is not
+   * VIT's own registration list. Keep it short and factual.
+   */
+  attribution?: string;
 }
 
 export const FFCS_SEMESTER_REPORTS: readonly FFCSSemesterReport[] = [
@@ -36,6 +46,7 @@ export const FFCS_SEMESTER_REPORTS: readonly FFCSSemesterReport[] = [
     classIdPrefix: "CH202627050",
     classIdPrefixCode: "1",
     name: "Winter Semester 2026-2027 slot timetable",
+    attribution: "Course data from VIT's current-semester registration list.",
   },
   {
     id: "previous",
@@ -43,6 +54,15 @@ export const FFCS_SEMESTER_REPORTS: readonly FFCSSemesterReport[] = [
     shortLabel: "Previous",
     path: "/ffcs/ffcsReport.csv",
     name: "previous semester slot timetable",
+    attribution: "Course data from VIT's previous-semester registration report.",
+  },
+  {
+    id: "codechef-vit",
+    label: "CodeChef VIT Catalogue",
+    shortLabel: "CodeChef VIT",
+    path: "/ffcs/codechef-vit-catalogue.csv",
+    name: "CodeChef VIT offline catalogue",
+    attribution: "Course & faculty data converted from FFCS-inator by CodeChef VIT — ffcs.codechefvit.com (MIT).",
   },
 ];
 
@@ -62,9 +82,9 @@ export function getFFCSSemester(id: string | null | undefined): FFCSSemesterRepo
 
 /** Resolve a report from a class-ID namespace carried by a name-free share link. */
 export function getFFCSSemesterByClassIdPrefix(prefix: string): FFCSSemesterReport | null {
-  const matches = FFCS_SEMESTER_REPORTS
-    .filter((report) => report.classIdPrefix && prefix.startsWith(report.classIdPrefix))
-    .sort((a, b) => (b.classIdPrefix?.length ?? 0) - (a.classIdPrefix?.length ?? 0));
+  const matches = FFCS_SEMESTER_REPORTS.filter(
+    (report) => report.classIdPrefix && prefix.startsWith(report.classIdPrefix),
+  ).sort((a, b) => (b.classIdPrefix?.length ?? 0) - (a.classIdPrefix?.length ?? 0));
   if (matches.length === 0) return null;
   const longestLength = matches[0].classIdPrefix!.length;
   if (matches.filter((report) => report.classIdPrefix!.length === longestLength).length !== 1) {
@@ -76,9 +96,7 @@ export function getFFCSSemesterByClassIdPrefix(prefix: string): FFCSSemesterRepo
 /** Resolve the stable numeric alias used by compact, delta-coded shape links. */
 export function getFFCSSemesterByClassIdPrefixCode(code: string): FFCSSemesterReport | null {
   if (!/^\d{1,3}$/.test(code)) return null;
-  const matches = FFCS_SEMESTER_REPORTS.filter(
-    (report) => report.classIdPrefixCode === code && report.classIdPrefix
-  );
+  const matches = FFCS_SEMESTER_REPORTS.filter((report) => report.classIdPrefixCode === code && report.classIdPrefix);
   return matches.length === 1 ? matches[0] : null;
 }
 
@@ -107,16 +125,15 @@ export function legacyOfferingId(offering: OfferingIdentity): string {
   return `${offering.FACULTY}|${offering.SLOT}|${offering.ROOM}`;
 }
 
-export function offeringMatches(
-  offering: OfferingIdentity,
-  selected: readonly string[]
-): boolean {
+export function offeringMatches(offering: OfferingIdentity, selected: readonly string[]): boolean {
   return selected.includes(offeringId(offering)) || selected.includes(legacyOfferingId(offering));
 }
 
 /** A spreadsheet cell as the planner wants it: one trimmed line of text. */
 const cleanReportText = (value: unknown): string =>
-  String(value ?? "").replace(/\s+/g, " ").trim();
+  String(value ?? "")
+    .replace(/\s+/g, " ")
+    .trim();
 
 /** The first non-empty spelling of a column the report may use. */
 const readReportText = (row: Record<string, unknown>, ...keys: string[]): string => {
@@ -142,7 +159,12 @@ export function parseReportRows(rows: readonly Record<string, unknown>[]): Parse
     .map((row) => {
       const clean: Record<string, unknown> = {};
       for (const key in row) {
-        clean[key.replace(/^\uFEFF/, "").trim().toUpperCase()] = row[key];
+        clean[
+          key
+            .replace(/^\uFEFF/, "")
+            .trim()
+            .toUpperCase()
+        ] = row[key];
       }
 
       const course: ParsedCourse = {

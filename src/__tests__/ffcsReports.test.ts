@@ -21,20 +21,39 @@ import {
  */
 
 describe("semester reports", () => {
-  it("defaults to winter and keeps the previous report selectable", () => {
+  it("defaults to winter and keeps the other reports selectable", () => {
     expect(DEFAULT_FFCS_SEMESTER).toBe("winter-2026-2027");
-    expect(FFCS_SEMESTER_REPORTS.map((report) => report.id)).toEqual([
-      "winter-2026-2027",
-      "previous",
-    ]);
+    expect(FFCS_SEMESTER_REPORTS.map((report) => report.id)).toEqual(["winter-2026-2027", "previous", "codechef-vit"]);
     expect(getFFCSSemester("previous").path).toBe("/ffcs/ffcsReport.csv");
     expect(getFFCSSemester(null).id).toBe(DEFAULT_FFCS_SEMESTER);
     expect(getFFCSSemester("summer-2027").id).toBe(DEFAULT_FFCS_SEMESTER);
   });
 
+  it("ships the offline CodeChef VIT catalogue without a shareable class-ID prefix", () => {
+    const report = FFCS_SEMESTER_REPORTS.find((entry) => entry.id === "codechef-vit");
+    expect(report).toMatchObject({
+      path: "/ffcs/codechef-vit-catalogue.csv",
+      shortLabel: "CodeChef VIT",
+    });
+    // The catalogue data is third-party and carries no class IDs; a name-free
+    // share link must never resolve to it.
+    expect(report?.attribution).toContain("CodeChef VIT");
+    expect(report?.attribution).toContain("ffcs.codechefvit.com");
+    expect(report?.classIdPrefix).toBeUndefined();
+    expect(report?.classIdPrefixCode).toBeUndefined();
+  });
+
+  it("credits the two registration reports for what they are", () => {
+    const winter = FFCS_SEMESTER_REPORTS.find((entry) => entry.id === "winter-2026-2027");
+    const previous = FFCS_SEMESTER_REPORTS.find((entry) => entry.id === "previous");
+    expect(winter?.attribution).toBe("Course data from VIT's current-semester registration list.");
+    expect(previous?.attribution).toBe("Course data from VIT's previous-semester registration report.");
+  });
+
   it("accepts only ids this build knows", () => {
     expect(isFFCSSemesterId("winter-2026-2027")).toBe(true);
     expect(isFFCSSemesterId("previous")).toBe(true);
+    expect(isFFCSSemesterId("codechef-vit")).toBe(true);
     expect(isFFCSSemesterId("ffcs_semester")).toBe(false);
     expect(isFFCSSemesterId(null)).toBe(false);
   });
@@ -49,9 +68,7 @@ describe("offering identity", () => {
   });
 
   it("keeps two people with one name apart", () => {
-    expect(offeringId({ ...offering, ERP_ID: "1" })).not.toBe(
-      offeringId({ ...offering, ERP_ID: "2" })
-    );
+    expect(offeringId({ ...offering, ERP_ID: "1" })).not.toBe(offeringId({ ...offering, ERP_ID: "2" }));
   });
 
   it("accepts locks saved before employee ids were used", () => {
@@ -117,9 +134,7 @@ describe("parsing report rows", () => {
   });
 
   it("reads every row of the shipped winter CSV", () => {
-    const csv = readFileSync(
-      resolve(process.cwd(), "public/ffcs/winter-2026-2027-slot-timetable.csv")
-    );
+    const csv = readFileSync(resolve(process.cwd(), "public/ffcs/winter-2026-2027-slot-timetable.csv"));
     const workbook = XLSX.read(csv, { type: "buffer" });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet);
@@ -132,20 +147,12 @@ describe("parsing report rows", () => {
   });
 
   it("joins wrapped names at word boundaries without splitting words", () => {
-    const csv = readFileSync(
-      resolve(process.cwd(), "public/ffcs/winter-2026-2027-slot-timetable.csv")
-    );
+    const csv = readFileSync(resolve(process.cwd(), "public/ffcs/winter-2026-2027-slot-timetable.csv"));
     const workbook = XLSX.read(csv, { type: "buffer" });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const courses = parseReportRows(
-      XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet)
-    );
+    const courses = parseReportRows(XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet));
 
-    expect(courses.find((course) => course.CODE === "MATR706")?.FACULTY).toBe(
-      "THARASI DILLESWAR RAO"
-    );
-    expect(courses.find((course) => course.CODE === "PRMC001L")?.FACULTY).toBe(
-      "BALAMURUGAN B J"
-    );
+    expect(courses.find((course) => course.CODE === "MATR706")?.FACULTY).toBe("THARASI DILLESWAR RAO");
+    expect(courses.find((course) => course.CODE === "PRMC001L")?.FACULTY).toBe("BALAMURUGAN B J");
   });
 });

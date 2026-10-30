@@ -68,6 +68,8 @@ export interface AnalyticsEventMap {
   export_html: { theme?: string; viewMode?: string };
   /** The printable page was opened. */
   export_printable: Record<string, never>;
+  /** The structured clash report PDF was downloaded. */
+  export_clash_report: { courses: number };
   /** Smart paste parsed a selection. */
   import_pasted: { courses: number };
   /** A CSV/XLSX file parsed. `format` is the file extension. */
@@ -167,10 +169,7 @@ function flush(): void {
  * that only ever fires one event still gets it out on the following load's
  * first event. Never throws: this sits inside feature code paths.
  */
-export function track<E extends AnalyticsEvent>(
-  event: E,
-  props?: AnalyticsEventMap[E]
-): void {
+export function track<E extends AnalyticsEvent>(event: E, props?: AnalyticsEventMap[E]): void {
   if (!isAnalyticsEnabled() || typeof window === "undefined") return;
 
   const send = sink();
