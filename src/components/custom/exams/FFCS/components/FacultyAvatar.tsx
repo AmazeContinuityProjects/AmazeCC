@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { ENABLE_VITFAC_INTEGRATION, useVitfacReview, useCachedImage } from "@/lib/vitfacService";
+import { ENABLE_VITFAC_INTEGRATION, useVitfacReview, useCachedImage, useChennaiImage } from "@/lib/vitfacService";
 
 /*
  * The lightweight vitfac display bits — avatar, review pill, initials —
@@ -81,9 +81,10 @@ export function FacultyAvatar({
   const [failedUrls, setFailedUrls] = useState<string[]>([]);
 
   const directUrl = ENABLE_VITFAC_INTEGRATION && review?.image ? `data:image/jpeg;base64,${review.image}` : null;
+  const chennaiUrl = useChennaiImage(employeeId);
   const externalUrl = directUrl
     ? null
-    : (ENABLE_VITFAC_INTEGRATION ? review?.image_url : null) || fallbackImageUrl || null;
+    : (ENABLE_VITFAC_INTEGRATION ? review?.image_url : null) || chennaiUrl || fallbackImageUrl || null;
   const sourceUrl = directUrl || externalUrl;
   const cachedUrl = useCachedImage(sourceUrl);
   const effectiveUrl =

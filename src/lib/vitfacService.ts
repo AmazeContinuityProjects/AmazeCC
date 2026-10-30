@@ -751,3 +751,73 @@ export function useCachedImage(url: string | null | undefined): string | null {
 
   return src;
 }
+
+// ---------- chennai.vit.ac.in faculty images ----------
+//
+// The WP media endpoint for a faculty member's featured_media returns a
+// source_url pointing at their photo. Resolved lazily per employee id and
+// cached in sessionStorage so the lookup happens once per faculty, ever.
+
+const CHENNAI_IMG_URL_PREFIX = "chennai_img_url_";
+
+export function useChennaiImage(employeeId?: string | null): string | null {
+  const [url, setUrl] = useState<string | null>(() => {
+    if (!employeeId) return null;
+    try {
+      const cached = safeSessionStorage.getItem(CHENNAI_IMG_URL_PREFIX + employeeId);
+      return cached && cached !== "__none__" ? cached : null;
+    } catch {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    if (!employeeId) {
+      setUrl(null);
+      return;
+    }
+    try {
+      const cached = safeSessionStorage.getItem(CHENNAI_IMG_URL_PREFIX + employeeId);
+      if (cached) {
+        setUrl(cached === "__none__" ? null : cached);
+        return;
+      }
+    } catch {}
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const roster = await loadFacultyRoster();
+        const entry = roster.find((r) => r.employeeId === employeeId);
+        const fm = entry?.featuredMedia;
+        if (!fm) {
+          try {
+            safeSessionStorage.setItem(CHENNAI_IMG_URL_PREFIX + employeeId, "__none__");
+          } catch {}
+          return;
+        }
+        const res = await fetch(`https://chennai.vit.ac.in/wp-json/wp/v2/media/${fm}`);
+        if (!res.ok) {
+          try {
+            safeSessionStorage.setItem(CHENNAI_IMG_URL_PREFIX + employeeId, "__none__");
+          } catch {}
+          return;
+        }
+        const data = await res.json();
+        const src = data?.source_url || data?.guid?.rendered || null;
+        if (cancelled) return;
+        setUrl(src);
+        try {
+          safeSessionStorage.setItem(CHENNAI_IMG_URL_PREFIX + employeeId, src || "__none__");
+        } catch {}
+      } catch {
+        // network/TLS failure: leave uncached so it retries next load
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [employeeId]);
+
+  return url;
+}
