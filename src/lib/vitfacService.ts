@@ -441,7 +441,14 @@ export async function loadFacultyRoster(): Promise<FacultyRosterEntry[]> {
       const res = await fetch("/data/vit-faculty/roster.json");
       if (res.ok) {
         const list = (await res.json()) as FacultyRosterEntry[];
-        if (Array.isArray(list) && list.length > 0) base = list;
+        if (Array.isArray(list) && list.length > 0) {
+          const seen = new Set<string>();
+          base = list.filter((e) => {
+            if (seen.has(e.employeeId)) return false;
+            seen.add(e.employeeId);
+            return true;
+          });
+        }
       }
     } catch {}
 
