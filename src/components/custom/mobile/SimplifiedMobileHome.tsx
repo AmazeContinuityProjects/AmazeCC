@@ -39,6 +39,7 @@ import { AnimatePresence, m } from "framer-motion";
 import { buildAttendanceDayCardsMap, AttendanceDay, ATTENDANCE_DAYS, parseAttendanceTime } from "@/lib/attendanceTimetable";
 import { summariseAttendance } from "@/lib/attendanceSummary";
 import { shouldShowGpa, shouldShowProfilePhoto } from "@/lib/settingsVisibility";
+import { ENABLE_AMAZE_REVIEWS } from "@/lib/reviewsService";
 import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
 import { getAssetPath } from "@/lib/utils";
 import { buildExamRows } from "@/lib/examSchedule";
@@ -1969,11 +1970,23 @@ export default function SimplifiedMobileHome({
               reading as the next item rather than a lone half-width button. */}
           <button
             onClick={handleOpenFacultySchedule}
-            className="sm:col-span-2 w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-indigo-50/80 hover:bg-indigo-100/80 dark:bg-indigo-950/30 dark:hover:bg-indigo-900/40 border border-indigo-200/70 dark:border-indigo-800/50 text-xs font-bold text-indigo-700 dark:text-indigo-300 hover:border-indigo-300 dark:hover:border-indigo-700 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-indigo-50/80 hover:bg-indigo-100/80 dark:bg-indigo-950/30 dark:hover:bg-indigo-900/40 border border-indigo-200/70 dark:border-indigo-800/50 text-xs font-bold text-indigo-700 dark:text-indigo-300 hover:border-indigo-300 dark:hover:border-indigo-700 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
           >
             <UserSearch className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
             <span>Find Faculty Schedule</span>
           </button>
+          {ENABLE_AMAZE_REVIEWS && (
+            <button
+              onClick={() => {
+                setActiveTab("tools");
+                setActiveToolsSubTab?.("faculty-reviews");
+              }}
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-amber-50/80 hover:bg-amber-100/80 dark:bg-amber-950/30 dark:hover:bg-amber-900/40 border border-amber-200/70 dark:border-amber-800/50 text-xs font-bold text-amber-700 dark:text-amber-300 hover:border-amber-300 dark:hover:border-amber-700 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
+            >
+              <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              <span>Faculty Reviews</span>
+            </button>
+          )}
         </div>
       </div>
 

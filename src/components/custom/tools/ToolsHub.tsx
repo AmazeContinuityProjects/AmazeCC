@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { navigateToFFCSPlanner } from "@/lib/ffcsNavigation";
+import { ENABLE_AMAZE_REVIEWS } from "@/lib/reviewsService";
 import {
   Database,
   UserCheck,
@@ -15,6 +16,7 @@ import {
   Layers,
   Sparkles,
   CheckSquare,
+  Star,
 } from "lucide-react";
 
 interface ToolsHubProps {
@@ -54,6 +56,18 @@ export default function ToolsHub({
       icon: Database,
       iconColor: "text-rose-600 dark:text-rose-400 bg-rose-500/10 dark:bg-rose-500/20 border-rose-500/20",
     },
+    ...(ENABLE_AMAZE_REVIEWS
+      ? [
+          {
+            id: "faculty-reviews",
+            title: "Faculty Reviews",
+            subtitle: "Verified ratings, quality metrics & project guides",
+            category: "academic" as const,
+            icon: Star,
+            iconColor: "text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border-amber-500/20",
+          },
+        ]
+      : []),
     {
       id: "faculty-info",
       title: "Faculty Explorer",

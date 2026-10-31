@@ -172,7 +172,8 @@ export interface ApiOptions {
   timeoutMs?: number;
 }
 
-export async function apiRequest(path: string, opts: ApiOptions = {}): Promise<any> {
+export async function apiRequest(path: string, rawOpts?: ApiOptions): Promise<any> {
+  const opts = rawOpts || {};
   const auth = opts.auth ?? "none";
   const method = opts.method ?? (opts.body !== undefined ? "POST" : "GET");
 

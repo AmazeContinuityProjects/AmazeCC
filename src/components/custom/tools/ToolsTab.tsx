@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import dynamic from "next/dynamic";
+import { ENABLE_AMAZE_REVIEWS } from "@/lib/reviewsService";
 import {
   ChevronLeft,
   Database,
@@ -16,6 +17,7 @@ import {
 } from "lucide-react";
 import ToolsHub from "./ToolsHub";
 import FacultyInfoTab from "../exams/FacultyInfoTab";
+import FacultyReviewsTab from "../reviews/FacultyReviewsTab";
 import FreeClassroomsTab from "../exams/FreeClassroomsTab";
 import FFCSTimetableTab from "../exams/FFCSTimetableTab";
 import SocialTab from "../social/SocialTab";
@@ -81,6 +83,12 @@ export default function ToolsTab({
             username={IDs?.VtopUsername}
             setActiveSubTab={setActiveToolsSubTab}
           />
+        )}
+
+                {activeToolsSubTab === "faculty-reviews" && ENABLE_AMAZE_REVIEWS && (
+          <div className="animate-fadeIn">
+            <FacultyReviewsTab onBack={() => setActiveToolsSubTab("overview")} />
+          </div>
         )}
 
         {activeToolsSubTab === "faculty-info" && (

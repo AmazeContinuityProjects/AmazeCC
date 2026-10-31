@@ -26,8 +26,8 @@ export function useAppNetworkStatus(isLoggedIn: boolean, demoMode: boolean) {
     if (!isLoggedIn && !demoMode) return;
     const checkAPIStatus = async () => {
       try {
-        const data = await api("status") as any;
-        setIsAPIworking(data.text !== "API is working");
+        const data = (await api("status", { method: "GET" })) as any;
+        setIsAPIworking(data?.text !== "API is working");
       } catch {
         setIsAPIworking(true);
       }

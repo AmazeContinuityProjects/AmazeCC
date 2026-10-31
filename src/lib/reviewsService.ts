@@ -19,8 +19,7 @@ export type AmazeReviewsMode = "vitfac_only" | "amaze_only" | "hybrid";
 export const ENABLE_AMAZE_REVIEWS =
   typeof process !== "undefined" &&
   (process.env.NEXT_PUBLIC_ENABLE_AMAZE_REVIEWS === "true" ||
-    process.env.ENABLE_AMAZE_REVIEWS === "true" ||
-    true); // Default enabled for this feature
+    process.env.ENABLE_AMAZE_REVIEWS === "true"); // Default OFF: set to "true" via env to enable
 
 export const AMAZE_REVIEWS_MODE: AmazeReviewsMode =
   ((typeof process !== "undefined" &&
@@ -458,18 +457,44 @@ export async function loadRankingDataWithAmazeReviews(
 }
 
 /**
+ * Client-visible allowlist for review moderation UI. This is only a UI gate —
+ * the API's RBAC check is the actual authority. Provide real admin register
+ * numbers/usernames, comma-separated.
+ * Example: NEXT_PUBLIC_REVIEW_ADMIN_IDS=25BCE1001,staff01
+ */
+function parseAdminIds(): Set<string> {
+  return new Set(
+    (process.env.NEXT_PUBLIC_REVIEW_ADMIN_IDS || "")
+      .split(",")
+      .map((s) => s.trim().toUpperCase())
+      .filter(Boolean)
+  );
+}
+
+export const REVIEW_ADMIN_IDS = typeof process !== "undefined" ? parseAdminIds() : new Set<string>([]);
+
+export function isCurrentUserReviewAdmin(): boolean {
+  if (typeof window === "undefined") return false;
+  if (REVIEW_ADMIN_IDS.size === 0) return false;
+  const authId = getStudentAuthorizedId();
+  return Boolean(authId) && REVIEW_ADMIN_IDS.has(authId.toUpperCase());
+}
+/**
  * Retrieves the current student's authorized ID for verified review authentication.
+ * Returns "" when the student is not signed in / not cached — callers must treat
+ * an empty result as unauthenticated and skip review requests entirely. It must
+ * never fall back to a hardcoded ID: those would submit/eligibility-check as a
+ * real (other) student and would contaminate verified reviews.
  */
 export function getStudentAuthorizedId(): string {
-  if (typeof window === "undefined") return "25BCE1399";
+  if (typeof window === "undefined") return "";
   try {
     // 1. Explicit profile register number
     const profileRaw = localStorage.getItem("profile");
     if (profileRaw) {
       const p = JSON.parse(profileRaw);
       if (p.registerNo && String(p.registerNo).trim()) {
-        const r = String(p.registerNo).trim();
-        return r;
+        return String(p.registerNo).trim();
       }
     }
     // 2. Cache payments register number
@@ -480,23 +505,18 @@ export function getStudentAuthorizedId(): string {
         return String(pm.studentInfo.registerNo).trim();
       }
     }
-    // 3. Raw authorizedID (normalize known student usernames/app numbers)
+    // 3. Raw authorizedID / VTOP username (plain value, no translation)
     const raw = localStorage.getItem("authorizedID");
     if (raw && raw.trim()) {
-      const clean = raw.trim();
-      if (clean === "20635113" || clean === "CALEBEJ3510") return "25BCE1399";
-      return clean;
+      return raw.trim();
     }
     const ids = JSON.parse(localStorage.getItem("IDs") || "{}");
     if (ids.authorizedID && String(ids.authorizedID).trim()) {
-      const clean = String(ids.authorizedID).trim();
-      if (clean === "20635113" || clean === "CALEBEJ3510") return "25BCE1399";
-      return clean;
+      return String(ids.authorizedID).trim();
     }
     if (ids.VtopUsername && String(ids.VtopUsername).trim()) {
-      const u = String(ids.VtopUsername).trim();
-      return (u === "CALEBEJ3510" || u === "20635113") ? "25BCE1399" : u;
+      return String(ids.VtopUsername).trim();
     }
   } catch {}
-  return "25BCE1399";
+  return "";
 }

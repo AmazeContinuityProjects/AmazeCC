@@ -83,6 +83,7 @@ import { AppLibrary, MobileBottomNav } from "@amazecontinuityprojects/amazeui";
 import { useSyncTrigger } from "../shared/useSyncTrigger";
 import config from "../../../../config.json";
 import { shouldShowGpa, shouldShowProfilePhoto } from "@/lib/settingsVisibility";
+import { ENABLE_AMAZE_REVIEWS } from "@/lib/reviewsService";
 
 type NavItem = {
   id: string;
@@ -583,6 +584,20 @@ export default function NavigationTabs({
       isActive: (activeTab === "more" && activeMoreSubTab === "ffcs") || (activeTab === "tools" && activeToolsSubTab === "ffcs"),
       onSelect: navigateToFFCSPlanner,
     },
+    ...(ENABLE_AMAZE_REVIEWS
+      ? [
+          {
+            id: "faculty-reviews",
+            label: "Faculty Reviews",
+            icon: Sparkles,
+            isActive: activeTab === "tools" && activeToolsSubTab === "faculty-reviews",
+            onSelect: () => {
+              selectTab("tools");
+              setActiveToolsSubTab?.("faculty-reviews");
+            },
+          } satisfies NavItem,
+        ]
+      : []),
     {
       id: "tools",
       label: "Tools & Utilities Hub",
@@ -798,6 +813,20 @@ export default function NavigationTabs({
         setActiveToolsSubTab?.("qbank");
       },
     },
+    ...(ENABLE_AMAZE_REVIEWS
+      ? [
+          {
+            id: "faculty-reviews",
+            label: "Faculty Reviews",
+            icon: Sparkles,
+            isActive: activeTab === "tools" && activeToolsSubTab === "faculty-reviews",
+            onSelect: () => {
+              selectTab("tools");
+              setActiveToolsSubTab?.("faculty-reviews");
+            },
+          } satisfies NavItem,
+        ]
+      : []),
     {
       id: "faculty-info",
       label: "Faculty Explorer",
@@ -1763,6 +1792,7 @@ const AppLibraryPortal = memo(({
     { label: "FFCS Planner", group: "Tools", icon: Compass, action: navigateToFFCSPlanner },
     { label: "Tools Hub", group: "Tools", icon: Layers, action: () => { selectTab("tools"); setActiveToolsSubTab?.("overview"); } },
     { label: "Question Bank", group: "Tools", icon: Database, action: () => { selectTab("tools"); setActiveToolsSubTab?.("qbank"); } },
+    ...(ENABLE_AMAZE_REVIEWS ? [{ label: "Faculty Reviews", group: "Tools", icon: Sparkles, action: () => { selectTab("tools"); setActiveToolsSubTab?.("faculty-reviews"); } }] : []),
     { label: "Faculty Explorer", group: "Tools", icon: UserCheck, action: () => { selectTab("tools"); setActiveToolsSubTab?.("faculty-info"); } },
     { label: "Tasks & Schedule", group: "Tools", icon: CheckSquare, action: () => { selectTab("tools"); setActiveToolsSubTab?.("tasks"); } },
     { label: "Cab Share", group: "Tools", icon: CarTaxiFront, action: () => { selectTab("tools"); setActiveToolsSubTab?.("cabshare"); } },
@@ -1811,6 +1841,7 @@ const AppLibraryPortal = memo(({
         { label: "FFCS Planner", icon: Compass, type: "link", action: navigateToFFCSPlanner },
         { label: "Tools Hub", icon: Layers, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("overview"); } },
         { label: "Question Bank", icon: Database, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("qbank"); } },
+        ...(ENABLE_AMAZE_REVIEWS ? [{ label: "Faculty Reviews", icon: Sparkles, type: "link" as const, action: () => { selectTab("tools"); setActiveToolsSubTab?.("faculty-reviews"); } }] : []),
         { label: "Faculty Explorer", icon: UserCheck, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("faculty-info"); } },
         { label: "Tasks & Schedule", icon: CheckSquare, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("tasks"); } },
         { label: "Cab Share", icon: CarTaxiFront, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("cabshare"); } },
