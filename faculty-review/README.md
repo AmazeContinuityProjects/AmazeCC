@@ -40,7 +40,9 @@ cron (every 10 min)                     */internal/recompute, HMAC-signed)
 | `src/store/SnapshotStore.ts` | `SnapshotStore` interface — KV (default), R2, in-memory backends |
 | `src/config/reviewQuestions.ts` | **Canonical** review question/weight config (`schemaVersion 1.0.0`) |
 | `src/db/supabase.ts` | PostgREST client (faculty, reviews, faculty_aggregates) |
-| `docs/` | DEPLOYMENT, RUNBOOK, ROLLOUT, CLEANUP_STEPS |
+| `src/validation/ingest.ts` | Defence-in-depth schema validation of ingest messages |
+| `scripts/smoke-test.sh` | Post-deploy smoke test |
+| `docs/` | DEPLOYMENT, RUNBOOK, ROLLOUT, CLEANUP_STEPS, CONTRACTS |
 
 ## Environments
 
@@ -62,8 +64,9 @@ ordered steps and the exact create commands).
 | `READ_ONLY_MODE` | `false` | Blocks ingest/recompute during FFCS peak; reads keep serving |
 | vitfac killswitch | frontend/api (`NEXT_PUBLIC_ENABLE_VITFAC_INTEGRATION`) | Legacy vitfac service is untouched by this Worker entirely |
 
-All three operate independently and can be flipped from the dashboard
-(Variables) without a redeploy.
+These flags are intentionally **not** in `wrangler.jsonc` (`keep_vars: true`), so
+they are set in the Cloudflare dashboard and flip without a deploy. Unset means
+OFF. See docs/RUNBOOK.md section 4.
 
 ## Snapshot backends
 
@@ -77,7 +80,8 @@ same contract tests; switching is safe and documented in docs/RUNBOOK.md.
 ```bash
 pnpm install          # or npm install
 pnpm wrangler dev     # localhost:8787, simulated bindings, needs .dev.vars
-pnpm test             # vitest (68 tests)
+pnpm test             # vitest
+pnpm build            # credential-free wrangler dry run
 pnpm typecheck        # tsc --noEmit
 ```
 
@@ -88,10 +92,11 @@ pnpm typecheck        # tsc --noEmit
 
 | Route | Auth | Notes |
 | --- | --- | --- |
-| `GET /api/reviews/catalog` | public | ETag/304, `s-maxage=300` SWR 1 day |
+| `GET /health` | public | liveness only; no flag, DB or secret access |
+| `GET /api/reviews/catalog` | public | ETag/304, `max-age` and SWR configurable (default 300 s / 1 day) |
 | `GET /api/reviews/faculty/:id` | public | per-faculty profile snapshot |
 | `POST /internal/ingest` | HMAC (`x-signature`, `x-timestamp`) | ±5 min window, constant-time compare, schemaVersion guarded → 202 |
 | `POST /internal/recompute` | HMAC (same secret) | triggers one aggregation run |
 
 Internal routes are never CORS-exposed; CORS is an allowlist
-(amazecc.com, www.amazecc.com, vitfac.amazecc.com + configurable extras).
+(amazecc.com, www.amazecc.com, vitfac.amazecc.com plus extras from `ALLOWED_ORIGINS`; localhost is allowed for local development).

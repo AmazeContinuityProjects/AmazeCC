@@ -43,7 +43,14 @@ export class SupabaseClient {
   }
 
   /**
-   * Batch upsert reviews into the reviews table idempotently.
+   * Insert reviews idempotently. The API has already written each row (and
+   * enforced eligibility and the edit window), so the Worker must never overwrite.
+   *
+   * resolution=ignore-duplicates compiles to INSERT ... ON CONFLICT DO NOTHING,
+   * which covers the unique index idx_reviews_unique_submission. That index is on
+   * COALESCE(...) expressions, which PostgREST cannot name in on_conflict, so
+   * merge-duplicates would only target the primary key and fail with a unique
+   * violation for every review the API already wrote (dead-lettering them all).
    */
   async upsertReviewsBatch(messages: ReviewSubmissionMessage[]): Promise<boolean> {
     if (messages.length === 0) return true;
@@ -66,7 +73,7 @@ export class SupabaseClient {
 
     const res = await fetch(`${this.url}/rest/v1/reviews`, {
       method: "POST",
-      headers: this.headers("resolution=merge-duplicates"),
+      headers: this.headers("resolution=ignore-duplicates,return=minimal"),
       body: JSON.stringify(rows),
     });
 

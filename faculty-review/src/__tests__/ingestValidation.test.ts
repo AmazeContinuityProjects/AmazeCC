@@ -113,6 +113,28 @@ describe("ingest message validation", () => {
   });
 });
 
+describe("queue consumer write semantics", () => {
+  it("inserts with ignore-duplicates so rows the API already wrote do not fail the batch", async () => {
+    const { SupabaseClient } = await import("../db/supabase");
+    const realFetch = globalThis.fetch;
+    let prefer = "";
+    globalThis.fetch = (async (_u: unknown, init?: RequestInit) => {
+      prefer = String((init?.headers as Record<string, string>).Prefer);
+      return new Response(null, { status: 201 });
+    }) as typeof fetch;
+    try {
+      const res = validateIngestMessage(base());
+      if (!res.ok) throw new Error("fixture invalid");
+      const db = new SupabaseClient({ SUPABASE_URL: "https://t.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "k", REVIEWS_INGEST_SECRET: "s" } as Env);
+      expect(await db.upsertReviewsBatch([res.message])).toBe(true);
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+    expect(prefer).toContain("resolution=ignore-duplicates");
+    expect(prefer).not.toContain("merge-duplicates");
+  });
+});
+
 describe("queue payload never carries free text (end to end through the Worker)", () => {
   it("enqueues only the validated, rebuilt message", async () => {
     const sent: unknown[] = [];
