@@ -1,21 +1,23 @@
+// Faculty Reviews Worker. Placeholders (REPLACE_WITH_*) are filled by the maintainer.
+// FLAGS: ENABLE_AMAZE_REVIEWS and READ_ONLY_MODE are deliberately NOT listed in "vars".
+// "keep_vars": true makes wrangler leave dashboard-set variables alone, so the flags can be
+// flipped in Cloudflare (Settings -> Variables and Secrets) with no deploy and survive later
+// deploys. Unset = feature OFF and not read-only (code default). See docs/RUNBOOK.md.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "amazecc-reviews-worker",
   "main": "src/index.ts",
   "compatibility_date": "2026-10-30",
+  "workers_dev": false,
+  "observability": {
+    "enabled": true
+  },
   "vars": {
     "SNAPSHOT_STORE": "kv",
-    "READ_ONLY_MODE": "false",
-    "ENABLE_AMAZE_REVIEWS": "false",
     "MAX_KV_WRITES_PER_RUN": "200",
     "VITFAC_ENABLED": "true"
   },
   "kv_namespaces": [
-    {
-      "binding": "AMAZE_REVIEWS_KV",
-      "id": "amazecc-reviews-snapshots-local",
-      "preview_id": "amazecc-reviews-snapshots-preview"
-    },
     {
       "binding": "REVIEWS_SNAPSHOTS",
       "id": "amazecc-reviews-snapshots-local",
@@ -24,12 +26,7 @@
   ],
   "r2_buckets": [
     {
-      "binding": "AMAZE_REVIEWS_R2",
-      "bucket_name": "amazecc-faculty-reviews",
-      "preview_bucket_name": "amazecc-faculty-reviews-preview"
-    },
-    {
-      "binding": "SNAPSHOT_BUCKET",
+      "binding": "REVIEWS_BUCKET",
       "bucket_name": "amazecc-faculty-reviews",
       "preview_bucket_name": "amazecc-faculty-reviews-preview"
     }
@@ -52,13 +49,15 @@
     ]
   },
   "triggers": {
-    "crons": [
-      "*/10 * * * *"
-    ]
+    "crons": ["*/10 * * * *"]
   },
   "env": {
     "staging": {
       "name": "amazecc-reviews-worker-staging",
+      "workers_dev": false,
+      "observability": {
+        "enabled": true
+      },
       "routes": [
         {
           "pattern": "reviews-api-staging.amazecc.com",
@@ -67,17 +66,10 @@
       ],
       "vars": {
         "SNAPSHOT_STORE": "kv",
-        "READ_ONLY_MODE": "false",
-        "ENABLE_AMAZE_REVIEWS": "false",
         "MAX_KV_WRITES_PER_RUN": "200",
         "VITFAC_ENABLED": "true"
       },
       "kv_namespaces": [
-        {
-          "binding": "AMAZE_REVIEWS_KV",
-          "id": "REPLACE_WITH_STAGING_KV_ID",
-          "preview_id": "REPLACE_WITH_STAGING_PREVIEW_KV_ID"
-        },
         {
           "binding": "REVIEWS_SNAPSHOTS",
           "id": "REPLACE_WITH_STAGING_KV_ID",
@@ -86,11 +78,7 @@
       ],
       "r2_buckets": [
         {
-          "binding": "AMAZE_REVIEWS_R2",
-          "bucket_name": "amazecc-faculty-reviews-staging"
-        },
-        {
-          "binding": "SNAPSHOT_BUCKET",
+          "binding": "REVIEWS_BUCKET",
           "bucket_name": "amazecc-faculty-reviews-staging"
         }
       ],
@@ -112,13 +100,16 @@
         ]
       },
       "triggers": {
-        "crons": [
-          "*/10 * * * *"
-        ]
-      }
+        "crons": ["*/10 * * * *"]
+      },
+      "keep_vars": true
     },
     "production": {
       "name": "amazecc-reviews-worker",
+      "workers_dev": false,
+      "observability": {
+        "enabled": true
+      },
       "routes": [
         {
           "pattern": "reviews-api.amazecc.com",
@@ -127,17 +118,10 @@
       ],
       "vars": {
         "SNAPSHOT_STORE": "kv",
-        "READ_ONLY_MODE": "false",
-        "ENABLE_AMAZE_REVIEWS": "false",
         "MAX_KV_WRITES_PER_RUN": "200",
         "VITFAC_ENABLED": "true"
       },
       "kv_namespaces": [
-        {
-          "binding": "AMAZE_REVIEWS_KV",
-          "id": "REPLACE_WITH_PRODUCTION_KV_ID",
-          "preview_id": "REPLACE_WITH_PRODUCTION_PREVIEW_KV_ID"
-        },
         {
           "binding": "REVIEWS_SNAPSHOTS",
           "id": "REPLACE_WITH_PRODUCTION_KV_ID",
@@ -146,11 +130,7 @@
       ],
       "r2_buckets": [
         {
-          "binding": "AMAZE_REVIEWS_R2",
-          "bucket_name": "amazecc-faculty-reviews"
-        },
-        {
-          "binding": "SNAPSHOT_BUCKET",
+          "binding": "REVIEWS_BUCKET",
           "bucket_name": "amazecc-faculty-reviews"
         }
       ],
@@ -172,10 +152,10 @@
         ]
       },
       "triggers": {
-        "crons": [
-          "*/10 * * * *"
-        ]
-      }
+        "crons": ["*/10 * * * *"]
+      },
+      "keep_vars": true
     }
-  }
+  },
+  "keep_vars": true
 }
