@@ -182,20 +182,24 @@ export function createSnapshotStore(
         }
         return new KvSnapshotStore(kv);
       }
-      return new InMemorySnapshotStore();
+      // Silently using memory would publish snapshots nowhere; fail loudly.
+      throw new Error(
+        "SNAPSHOT_STORE=kv but no KV binding provided: bind REVIEWS_SNAPSHOTS in wrangler.jsonc"
+      );
     }
 
-    // Default resolution hierarchy: R2 -> KV -> InMemory
-    const r2 = env.AMAZE_REVIEWS_R2 || env.SNAPSHOT_BUCKET || env.REVIEWS_BUCKET;
-    if (r2) {
-      return new R2SnapshotStore(r2);
-    }
+    // SNAPSHOT_STORE unset. KV is the documented default, so it wins over R2.
+    // Resolution hierarchy: KV -> R2 -> InMemory (tests/local only).
     const kv = env.AMAZE_REVIEWS_KV || env.REVIEWS_SNAPSHOTS;
     if (kv) {
       if (kv instanceof InMemorySnapshotStore || kv instanceof KvSnapshotStore) {
         return kv;
       }
       return new KvSnapshotStore(kv);
+    }
+    const r2 = env.AMAZE_REVIEWS_R2 || env.SNAPSHOT_BUCKET || env.REVIEWS_BUCKET;
+    if (r2) {
+      return new R2SnapshotStore(r2);
     }
     return new InMemorySnapshotStore();
   }

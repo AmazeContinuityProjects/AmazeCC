@@ -257,7 +257,7 @@ describe("SnapshotStore Implementations & Factory", () => {
       expect(store).toBeInstanceOf(KvSnapshotStore);
     });
 
-    it("prefers R2 over KV when both are present and SNAPSHOT_STORE is unset", () => {
+    it("prefers KV (the documented default) over R2 when both are bound and SNAPSHOT_STORE is unset", () => {
       const mockKv = createMockKvNamespace();
       const mockR2 = createMockR2Bucket();
       const env: Env = {
@@ -266,7 +266,22 @@ describe("SnapshotStore Implementations & Factory", () => {
         AMAZE_REVIEWS_R2: mockR2,
       };
       const store = createSnapshotStore(env);
-      expect(store).toBeInstanceOf(R2SnapshotStore);
+      expect(store).toBeInstanceOf(KvSnapshotStore);
+    });
+
+    it("selects R2 when SNAPSHOT_STORE='r2' even if KV is bound", () => {
+      const env: Env = {
+        ...baseEnv,
+        SNAPSHOT_STORE: "r2",
+        REVIEWS_SNAPSHOTS: createMockKvNamespace(),
+        REVIEWS_BUCKET: createMockR2Bucket(),
+      };
+      expect(createSnapshotStore(env)).toBeInstanceOf(R2SnapshotStore);
+    });
+
+    it("throws a clear error when SNAPSHOT_STORE='kv' but no KV namespace is bound", () => {
+      const env: Env = { ...baseEnv, SNAPSHOT_STORE: "kv" };
+      expect(() => createSnapshotStore(env)).toThrow(/REVIEWS_SNAPSHOTS/);
     });
 
     it("respects SNAPSHOT_STORE='kv' variable even if R2 is bound", () => {
