@@ -1,0 +1,6 @@
+# The Worker is a standalone pnpm project (it is excluded from the AmazeCC app install).
+# Native build scripts it needs: esbuild + workerd (wrangler/vitest), sharp (wrangler dev image support).
+allowBuilds:
+  esbuild: true
+  workerd: true
+  sharp: true
