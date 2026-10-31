@@ -1,5 +1,6 @@
 import type { Env, ReviewSubmissionMessage } from "./types";
 import { createSnapshotStore } from "./store/SnapshotStore";
+import { validateIngestMessage } from "./validation/ingest";
 import { SupabaseClient } from "./db/supabase";
 import { runAggregationAndSnapshotSync } from "./aggregation/engine";
 
@@ -123,6 +124,8 @@ function resolveCors(req: Request, env: Env): Record<string, string> {
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, If-None-Match, x-signature, x-timestamp",
     "Access-Control-Max-Age": "86400",
+    // Always vary on Origin: a cached response without ACAO must never be served to an allowlisted origin.
+    Vary: "Origin",
   };
 
   if (origin) {
@@ -136,7 +139,6 @@ function resolveCors(req: Request, env: Env): Record<string, string> {
     const isLocalhost = host === "localhost" || host === "127.0.0.1";
     if (isLocalhost || buildOriginAllowlist(env).has(origin)) {
       headers["Access-Control-Allow-Origin"] = origin;
-      headers["Vary"] = "Origin";
     }
   } else {
     // If no origin header, allow public access
@@ -157,6 +159,18 @@ function securityHeaders(): Record<string, string> {
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
   };
+}
+
+function positiveInt(v: string | undefined, fallback: number): number {
+  const n = parseInt(v ?? "", 10);
+  return Number.isFinite(n) && n >= 0 ? n : fallback;
+}
+
+/** Cache-Control for snapshot reads. TTLs are configurable (CACHE_TTL_SECONDS / CACHE_SWR_SECONDS). */
+function snapshotCacheControl(env: Env): string {
+  const ttl = positiveInt(env.CACHE_TTL_SECONDS, 300);
+  const swr = positiveInt(env.CACHE_SWR_SECONDS, 86400);
+  return `public, max-age=${ttl}, stale-while-revalidate=${swr}`;
 }
 
 function responseHeaders(req: Request, env: Env, extra: Record<string, string> = {}): Record<string, string> {
@@ -296,6 +310,29 @@ const worker = {
         });
       }
 
+      // --- GET /health (liveness only: no store, DB or secret access; flag-independent) ---
+      if (req.method === "GET" && url.pathname === "/health") {
+        response = new Response(
+          JSON.stringify({ ok: true, service: "amazecc-reviews-worker" }),
+          {
+            status: 200,
+            headers: responseHeaders(req, env, {
+              "Content-Type": "application/json",
+              "Cache-Control": "no-store",
+            }),
+          }
+        );
+        logStructured({
+          level: "info",
+          requestId,
+          method,
+          path,
+          status: 200,
+          durationMs: Date.now() - startTime,
+        });
+        return response;
+      }
+
       const store = createSnapshotStore(env);
 
       // --- GET /api/reviews/catalog ---
@@ -332,7 +369,7 @@ const worker = {
               status: 304,
               headers: responseHeaders(req, env, {
                 ETag: snapshot.etag,
-                "Cache-Control": "public, max-age=300, stale-while-revalidate=86400",
+                "Cache-Control": snapshotCacheControl(env),
               }),
             });
           } else {
@@ -341,7 +378,7 @@ const worker = {
               headers: responseHeaders(req, env, {
                 "Content-Type": "application/json",
                 ETag: snapshot.etag,
-                "Cache-Control": "public, max-age=300, stale-while-revalidate=86400",
+                "Cache-Control": snapshotCacheControl(env),
               }),
             });
           }
@@ -385,7 +422,7 @@ const worker = {
                   status: 304,
                   headers: responseHeaders(req, env, {
                     ETag: snapshot.etag,
-                    "Cache-Control": "public, max-age=300, stale-while-revalidate=86400",
+                    "Cache-Control": snapshotCacheControl(env),
                   }),
                 });
               } else {
@@ -394,7 +431,7 @@ const worker = {
                   headers: responseHeaders(req, env, {
                     "Content-Type": "application/json",
                     ETag: snapshot.etag,
-                    "Cache-Control": "public, max-age=300, stale-while-revalidate=86400",
+                    "Cache-Control": snapshotCacheControl(env),
                   }),
                 });
               }
@@ -474,22 +511,16 @@ const worker = {
             return response;
           }
 
-          // Enforce canonical contract schemaVersion
-          if (
-            !payload ||
-            typeof payload !== "object" ||
-            payload.schemaVersion !== "1.0.0"
-          ) {
-            response = new Response(
-              JSON.stringify({
-                error: "Invalid or missing schemaVersion: expected 1.0.0",
-              }),
-              {
-                status: 400,
-                headers: responseHeaders(req, env, { "Content-Type": "application/json" }),
-              }
-            );
+          // Defence in depth: schema-validate (any 1.x.y accepted), drop unknown
+          // fields, and rebuild the message from validated parts only.
+          const validated = validateIngestMessage(payload);
+          if (!validated.ok) {
+            response = new Response(JSON.stringify({ error: validated.error }), {
+              status: 400,
+              headers: responseHeaders(req, env, { "Content-Type": "application/json" }),
+            });
           } else {
+            payload = validated.message;
             // Enqueue to Cloudflare Queue
             try {
               if (env.amazecc_reviews_queue) {

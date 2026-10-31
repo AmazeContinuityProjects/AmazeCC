@@ -13,6 +13,8 @@ export interface Env {
   READ_ONLY_MODE?: string; // "true" | "false"
   ENABLE_AMAZE_REVIEWS?: string; // "true" | "false" (default OFF)
   MAX_KV_WRITES_PER_RUN?: string; // default "200"
+  CACHE_TTL_SECONDS?: string; // snapshot max-age, default "300"
+  CACHE_SWR_SECONDS?: string; // stale-while-revalidate, default "86400"
   VITFAC_ENABLED?: string; // "true" | "false"
   // Comma-separated CORS allowlist, e.g. "https://amazecc.com,https://www.amazecc.com"
   ALLOWED_ORIGINS?: string;

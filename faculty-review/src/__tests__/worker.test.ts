@@ -56,9 +56,11 @@ describe("Cloudflare Worker Handlers", () => {
     const payload: ReviewSubmissionMessage = {
       schemaVersion: "1.0.0",
       idempotencyKey: "test-key-1",
-      student_hash: "student_hash_abc",
-      faculty_id: "f-123",
+      student_hash: "a".repeat(64),
+      faculty_id: "11111111-1111-4111-a111-111111111111",
       track: "teaching",
+      course_code: "BCSE101E",
+      semester: "CH20262701",
       verified: true,
       answers: { T_CLARITY: 5 },
       tags_green: [],
@@ -108,9 +110,11 @@ describe("Cloudflare Worker Handlers", () => {
   it("rejects signed requests to /internal/ingest with missing schemaVersion with 400", async () => {
     const payload = {
       idempotencyKey: "test-key-no-version",
-      student_hash: "student_hash_abc",
-      faculty_id: "f-123",
+      student_hash: "a".repeat(64),
+      faculty_id: "11111111-1111-4111-a111-111111111111",
       track: "teaching",
+      course_code: "BCSE101E",
+      semester: "CH20262701",
       verified: true,
       answers: { T_CLARITY: 5 },
       tags_green: [],
@@ -158,9 +162,11 @@ describe("Cloudflare Worker Handlers", () => {
     const payload = {
       schemaVersion: "2.0.0",
       idempotencyKey: "test-key-wrong-ver",
-      student_hash: "student_hash_abc",
-      faculty_id: "f-123",
+      student_hash: "a".repeat(64),
+      faculty_id: "11111111-1111-4111-a111-111111111111",
       track: "teaching",
+      course_code: "BCSE101E",
+      semester: "CH20262701",
       verified: true,
       answers: { T_CLARITY: 5 },
       tags_green: [],
@@ -300,6 +306,25 @@ describe("Cloudflare Worker Handlers", () => {
     expect(res.headers.get("Referrer-Policy")).toBe("strict-origin-when-cross-origin");
   });
 
+  it("makes snapshot cache TTLs configurable and always varies on Origin", async () => {
+    await inMemoryStore.put("catalog.json", JSON.stringify({ faculty: [] }), '"e1"');
+    const dflt = await worker.fetch(new Request("http://localhost/api/reviews/catalog"), mockEnv, {} as ExecutionContext);
+    expect(dflt.headers.get("Cache-Control")).toBe("public, max-age=300, stale-while-revalidate=86400");
+    expect(dflt.headers.get("Vary")).toBe("Origin");
+
+    const custom: Env = { ...mockEnv, CACHE_TTL_SECONDS: "60", CACHE_SWR_SECONDS: "600" };
+    const res = await worker.fetch(new Request("http://localhost/api/reviews/catalog"), custom, {} as ExecutionContext);
+    expect(res.headers.get("Cache-Control")).toBe("public, max-age=60, stale-while-revalidate=600");
+  });
+
+  it("serves /health regardless of flag and without touching the snapshot store", async () => {
+    const off: Env = { ...mockEnv, ENABLE_AMAZE_REVIEWS: "false", SNAPSHOT_STORE: "r2" };
+    const res = await worker.fetch(new Request("http://localhost/health"), off, {} as ExecutionContext);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("X-Content-Type-Options")).toBe("nosniff");
+    expect(await res.json()).toEqual({ ok: true, service: "amazecc-reviews-worker" });
+  });
+
   it("does not leak stack traces on unknown routes and returns 404", async () => {
     const res = await worker.fetch(new Request("http://localhost/nope"), mockEnv, {} as ExecutionContext);
     expect(res.status).toBe(404);
@@ -363,9 +388,11 @@ function makeMinimalPayload() {
   return {
     schemaVersion: "1.0.0",
     idempotencyKey: "flag-test-key",
-    student_hash: "student_hash_flagtest",
-    faculty_id: "f-123",
+    student_hash: "c".repeat(64),
+    faculty_id: "11111111-1111-4111-a111-111111111111",
     track: "teaching" as const,
+    course_code: "BCSE101E",
+    semester: "CH20262701",
     verified: true,
     answers: { T_CLARITY: 4 },
     tags_green: [],

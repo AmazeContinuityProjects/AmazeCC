@@ -1,6 +1,20 @@
 import type { Env, ReviewSubmissionMessage } from "../types";
 import type { FacultyRow, RawReviewRow } from "../aggregation/engine";
 
+/**
+ * PostgREST error bodies can echo row values (e.g. a unique violation includes
+ * the reviewer hash). Never log the body; log the HTTP status and, when present,
+ * the stable SQLSTATE-style error code only.
+ */
+async function safeErrorCode(res: Response): Promise<string> {
+  try {
+    const j = (await res.json()) as { code?: unknown };
+    return typeof j.code === "string" && /^[A-Za-z0-9_-]{1,16}$/.test(j.code) ? j.code : "unknown";
+  } catch {
+    return "unparsed";
+  }
+}
+
 export class SupabaseClient {
   private url: string;
   private key: string;
@@ -57,8 +71,7 @@ export class SupabaseClient {
     });
 
     if (!res.ok) {
-      const errText = await res.text();
-      console.error("[supabase] Failed to upsert reviews batch:", res.status, errText);
+      console.error("[supabase] Failed to upsert reviews batch:", res.status, await safeErrorCode(res));
       return false;
     }
 
@@ -148,8 +161,7 @@ export class SupabaseClient {
     });
 
     if (!res.ok) {
-      const err = await res.text();
-      console.warn("[supabase] Failed to upsert faculty_aggregates table:", res.status, err);
+      console.warn("[supabase] Failed to upsert faculty_aggregates table:", res.status, await safeErrorCode(res));
     }
   }
 }

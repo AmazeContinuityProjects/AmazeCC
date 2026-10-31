@@ -66,7 +66,7 @@ describe("Cloudflare Worker Shared Schemas & Contract Specification", () => {
     const mockReview: RawReviewRow = {
       id: "rev-1",
       student_hash: "hash-student-1",
-      faculty_id: "fac-100",
+      faculty_id: "22222222-2222-4222-a222-222222222222",
       track: "teaching",
       course_code: "CSE1001",
       semester: "FALL2026",
@@ -119,9 +119,11 @@ describe("Cloudflare Worker Shared Schemas & Contract Specification", () => {
       const message: ReviewSubmissionMessage = {
         schemaVersion: "1.0.0",
         idempotencyKey: "key-1",
-        student_hash: "hash-xyz",
-        faculty_id: "fac-100",
+        student_hash: "b".repeat(64),
+        faculty_id: "22222222-2222-4222-a222-222222222222",
         track: "teaching",
+        course_code: "BCSE101E",
+        semester: "CH20262701",
         verified: true,
         answers: { T_CLARITY: 5 },
         tags_green: [],
