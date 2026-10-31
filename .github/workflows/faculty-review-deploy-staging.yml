@@ -1,0 +1,49 @@
+name: faculty-review-deploy-staging
+
+# Deploys the Faculty Reviews Worker to STAGING on merge to main (or manual).
+# Requires repo variables/secrets: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "faculty-review/**"
+  workflow_dispatch:
+
+concurrency:
+  group: faculty-review-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: wrangler deploy --env staging
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: faculty-review/pnpm-lock.yaml
+
+      - name: Install
+        run: pnpm --dir faculty-review install --frozen-lockfile
+
+      - name: Tests (gate)
+        run: pnpm --dir faculty-review test
+
+      - name: Deploy to staging
+        uses: cloudflare/wrangler-action@v4
+        with:
+          workingDirectory: faculty-review
+          command: deploy --env staging
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Smoke test
+        run: bash faculty-review/scripts/smoke-test.sh https://reviews-api-staging.amazecc.com

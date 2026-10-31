@@ -1,29 +1,74 @@
 "use client";
 
 import React, { useState } from "react";
+
+import { ENABLE_AMAZE_REVIEWS, useFacultyReview } from "@/lib/reviewsService";
 import { ENABLE_VITFAC_INTEGRATION, useVitfacReview, useCachedImage, useChennaiImage } from "@/lib/vitfacService";
 
 /*
- * The lightweight vitfac display bits — avatar, review pill, initials —
- * extracted from `FacultyReviewSheet` so routes can render them inline
- * without pulling the whole review sheet into their initial JS bundle.
- * `FacultyReviewSheet` re-exports these for existing importers.
+ * Lightweight display bits — avatar, review pill, initials.
+ * Supports both first-party AmazeCC Faculty Reviews and legacy vitfac data.
  */
 
 export function VitfacReviewPill({
   employeeId,
   name,
+  facultyId,
   onClick,
   className = "",
 }: {
   employeeId?: string | null;
   name?: string | null;
+  facultyId?: string | null;
   onClick?: (e: React.MouseEvent) => void;
   className?: string;
 }) {
-  if (!ENABLE_VITFAC_INTEGRATION) return null;
-  const { review } = useVitfacReview(employeeId, name);
-  if (!review || review.reviews === 0) return null;
+  const { review } = useFacultyReview(employeeId, name, facultyId);
+
+  if (!ENABLE_AMAZE_REVIEWS && !ENABLE_VITFAC_INTEGRATION) return null;
+  if (!review) return null;
+
+  // First-party Amaze Review
+  if (review.isFirstParty) {
+    if (review.teachingGrade !== null) {
+      const grade = review.teachingGrade;
+      const isGreen = grade >= 4.0;
+      const isAmber = grade >= 3.0 && grade < 4.0;
+
+      const colorClass = isGreen
+        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
+        : isAmber
+        ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/20"
+        : "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30 hover:bg-red-500/20";
+
+      return (
+        <button
+          type="button"
+          onClick={onClick}
+          title={`Teaching Grade: ${grade.toFixed(1)} / 5 (${review.reviews} reviews). Click to view details.`}
+          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[11px] font-bold transition-all cursor-pointer shrink-0 relative hit-expand touch-press active:scale-[0.97] ${colorClass} ${className}`.trim()}
+        >
+          <span>{grade.toFixed(1)} / 5</span>
+          <span className="text-[10px] opacity-70">({review.reviews})</span>
+        </button>
+      );
+    }
+
+    // Unreviewed / Insufficient reviews state (honest state, prompt rule 5)
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        title="Not enough student reviews yet. Click to view or leave a review."
+        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-border-strong/60 bg-surface text-muted-foreground text-[10px] font-medium transition-all cursor-pointer shrink-0 hit-expand touch-press active:scale-[0.97] ${className}`.trim()}
+      >
+        <span>Unreviewed</span>
+      </button>
+    );
+  }
+
+  // Legacy vitfac review
+  if (review.reviews === 0) return null;
 
   const isGreen = review.wPct >= 70;
   const isAmber = review.wPct >= 40 && review.wPct < 70;
@@ -50,6 +95,7 @@ export function VitfacReviewPill({
 export interface FacultyAvatarProps {
   employeeId?: string | null;
   name?: string | null;
+  facultyId?: string | null;
   fallbackImageUrl?: string | null;
   size?: "xs" | "sm" | "md" | "lg" | "xl";
   tone?: "blue" | "amber" | "indigo" | "zinc";
@@ -71,13 +117,14 @@ export function getFacultyInitials(name?: string | null, avatar?: string | null)
 export function FacultyAvatar({
   employeeId,
   name,
+  facultyId,
   fallbackImageUrl,
   size = "md",
   tone = "blue",
   className = "",
   alt,
 }: FacultyAvatarProps) {
-  const { review } = useVitfacReview(employeeId, name);
+  const { review } = useFacultyReview(employeeId, name, facultyId);
   const [failedUrls, setFailedUrls] = useState<string[]>([]);
 
   const directUrl = ENABLE_VITFAC_INTEGRATION && review?.image ? `data:image/jpeg;base64,${review.image}` : null;

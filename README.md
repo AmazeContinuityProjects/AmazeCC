@@ -211,3 +211,23 @@ This project is licensed under the [GNU General Public License v3.0](LICENSE).
   <a href="https://github.com/dhivyanj"><img src="https://img.shields.io/badge/dhivyanj-181717?style=for-the-badge&logo=github&logoColor=white" alt="dhivyanj"></a>
   <a href="https://github.com/ANASARFEEN123"><img src="https://img.shields.io/badge/ANASARFEEN123-181717?style=for-the-badge&logo=github&logoColor=white" alt="ANASARFEEN123"></a>
 </p>
+
+## Faculty Reviews (feature flag, off by default)
+
+First-party faculty reviews are built into this app and backed by a Cloudflare
+Worker that lives in [`faculty-review/`](./faculty-review/README.md) (same repo,
+its own pnpm project and CI).
+
+- **Flag:** `NEXT_PUBLIC_ENABLE_AMAZE_REVIEWS` (default `false`, inlined at build time).
+  With it off, existing FFCS and review pills are unchanged and nothing is sent to
+  the reviews API.
+- **Env vars** (see `.env.example`): `NEXT_PUBLIC_ENABLE_AMAZE_REVIEWS`,
+  `NEXT_PUBLIC_REVIEWS_API_URL` (Worker base URL), `NEXT_PUBLIC_REVIEWS_API_BASE`
+  (API base), `NEXT_PUBLIC_AMAZE_REVIEWS_MODE`, `NEXT_PUBLIC_REVIEW_ADMIN_IDS`.
+  The legacy vitfac killswitch is `NEXT_PUBLIC_ENABLE_VITFAC_INTEGRATION`.
+- **Docs:** [deployment](./faculty-review/docs/DEPLOYMENT.md),
+  [runbook](./faculty-review/docs/RUNBOOK.md),
+  [rollout order](./faculty-review/docs/ROLLOUT.md),
+  [contracts](./faculty-review/docs/CONTRACTS.md),
+  [security audit](./docs/faculty-reviews/SECURITY_AUDIT.md),
+  [code review](./docs/faculty-reviews/CODE_REVIEW.md).

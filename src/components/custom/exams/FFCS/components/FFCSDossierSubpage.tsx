@@ -149,7 +149,7 @@ export default function FFCSDossierSubpage({
       return {
         ...f,
         review,
-        profileUrl: f.employeeId ? getVitfacProfileUrl(f.employeeId) : null,
+        profileUrl: getVitfacProfileUrl({ employeeId: f.employeeId, name: f.name }),
       };
     });
   }, [courses]);

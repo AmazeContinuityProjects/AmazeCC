@@ -4,6 +4,7 @@ import {
   encodeVitfacId,
   normalizeFacultyName,
   getVitfacProfileUrl,
+  resetVitfacCatalogForTesting,
   loadVitfacCatalog,
   getFacultyReview,
   getFacultyProfileBundle,
@@ -16,6 +17,7 @@ import { safeSessionStorage } from "../lib/ffcsGeneratorSessionPrefs";
 describe("vitfacService", () => {
   beforeEach(() => {
     safeSessionStorage.clear();
+    resetVitfacCatalogForTesting();
     vi.restoreAllMocks();
   });
 
@@ -49,6 +51,21 @@ describe("vitfacService", () => {
     it("handles pre-encoded base64 ID", () => {
       const url = getVitfacProfileUrl("MTAwOTA=");
       expect(url).toBe("https://vitfac.pages.dev/profile?id=MTAwOTA%3D");
+    });
+
+    it("generates direct link when passed target object with employeeId", () => {
+      const url = getVitfacProfileUrl({ employeeId: "10269" });
+      expect(url).toBe("https://vitfac.pages.dev/profile?id=MTAyNjk%3D");
+    });
+
+    it("generates direct link when passed target object with vitfacId", () => {
+      const url = getVitfacProfileUrl({ vitfacId: "MTAyNjk=" });
+      expect(url).toBe("https://vitfac.pages.dev/profile?id=MTAyNjk%3D");
+    });
+
+    it("never emits internal database UUIDs to vitfac.pages.dev", () => {
+      const url = getVitfacProfileUrl("86ded97d-f6a3-4924-87ba-b2cfaf184060");
+      expect(url).not.toContain("86ded97d-f6a3-4924-87ba-b2cfaf184060");
     });
   });
 

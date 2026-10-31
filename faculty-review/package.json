@@ -1,0 +1,21 @@
+{
+  "name": "amazecc-reviews-worker",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker for AmazeCC Faculty Reviews - Edge caching, Queue buffering & Aggregation",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "deploy:staging": "wrangler deploy --env staging",
+    "deploy:production": "wrangler deploy --env production",
+    "lint": "tsc --noEmit",
+    "build": "wrangler deploy --dry-run --env production --outdir .wrangler/dry-run"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241022.0",
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.12",
+    "wrangler": "^4.156.0"
+  }
+}

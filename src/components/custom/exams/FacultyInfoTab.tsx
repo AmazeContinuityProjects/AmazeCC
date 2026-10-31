@@ -425,7 +425,9 @@ export default function FacultyInfoTab({
       if (!res.ok) {
         throw new Error(`Failed to fetch faculty list: API returned ${res.status}`);
       }
-      const data = await res.json();
+      const ct = res.headers?.get?.("content-type") || "";
+      if (!ct.includes("application/json")) throw new Error("Server returned non-JSON response");
+      const data = await res.json().catch(() => ({ success: false }));
       if (data.success === false) {
         setError(data.error || "Failed to fetch faculty list");
       } else {

@@ -3,6 +3,7 @@ import { credentialManager } from "./credential-manager";
 import { registerOp, type OpCtx } from "./operation-registry";
 import { dataAtoms } from "./state-bridge";
 import { toEngineError, assertApiSuccess } from "./errors";
+import { ENABLE_AMAZE_REVIEWS, REVIEWS_API_BASE } from "../reviewsService";
 import {
   clearPeerTimetables,
   writeGrants,
@@ -87,6 +88,36 @@ registerOp({
     persist("marks", data.marksRes);
     ctx.bridge.setAtom(dataAtoms.attendanceDataAtom, data.attRes);
     ctx.bridge.setAtom(dataAtoms.marksDataAtom, data.marksRes);
+
+    // Ingest timetable enrollments into Supabase for verified faculty reviews.
+    // Gated by the feature flag: with reviews disabled, a nominally unrelated
+    // attendance sync must never ship identity + timetable to the reviews API.
+    try {
+      if (ENABLE_AMAZE_REVIEWS) {
+        const items = (data.attRes as any)?.attendance || [];
+        const courses = items
+          .filter((it: any) => it.courseCode && (it.faculty || it.facultyDetails))
+          .map((it: any) => ({
+            courseCode: it.courseCode,
+            facultyDetails: it.faculty || it.facultyDetails,
+            component: it.courseType || it.component || 'Theory',
+            semester: semesterId || 'FALL2026-27',
+          }));
+        if (courses.length > 0) {
+          const authId = (args?.authorizedID as string) || (typeof window !== 'undefined' ? localStorage.getItem('authorizedID') : '');
+          if (authId) {
+            // Identity travels in the x-authorized-id header only. Uses
+            // REVIEWS_API_BASE so failover/active-host selection applies.
+            fetch(`${REVIEWS_API_BASE}/api/reviews/enrollment-snapshot`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'x-authorized-id': String(authId) },
+              body: JSON.stringify({ courses }),
+            }).catch(() => {});
+          }
+        }
+      }
+    } catch {}
+
     return { attRes: data.attRes, marksRes: data.marksRes };
   },
 });

@@ -958,7 +958,7 @@ function renderDetailedFacultyReviewsDossierHtml(courses: AddedCourse[], isLight
   const cardsHtml = faculties
     .map((f) => {
       const rev = getFacultyReview({ employeeId: f.employeeId, name: f.name });
-      const profileUrl = f.employeeId ? getVitfacProfileUrl(f.employeeId) : null;
+      const profileUrl = getVitfacProfileUrl({ employeeId: f.employeeId, name: f.name });
       const facultyImage = findFacultyImage(facultyImages, f.employeeId, f.name);
 
       let scoreBadge = "";

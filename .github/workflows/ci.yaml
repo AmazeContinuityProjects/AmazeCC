@@ -50,3 +50,20 @@ jobs:
           NEXT_PUBLIC_BACKUP_API_URL: ${{ vars.NEXT_PUBLIC_BACKUP_API_URL || 'https://amazecc-api-d402b5.rivendeploy.com' }}
           NEXT_PUBLIC_UNICC_API_URL: ${{ vars.NEXT_PUBLIC_UNICC_API_URL || 'https://api-unicc.arya22.dev' }}
 
+
+  secrets-scan:
+    name: Secrets scan (tracked files)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Pattern-based scan of tracked files (private keys, service-role style
+      # tokens, JWTs, AWS keys, credentialed DB URLs). Prints file:line only,
+      # never the matched value. For full-history scanning run gitleaks locally.
+      - name: Scan
+        run: |
+          if git grep -n -I -E "BEGIN (OPENSSH |RSA |EC )?PRIVATE KEY|sb_secret_[A-Za-z0-9_-]{10,}|sbp_[a-f0-9]{30,}|AKIA[0-9A-Z]{16}|eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}|postgres(ql)?://[^:@/ ]+:[^@/ ]{4,}@" -- . ':!*pnpm-lock.yaml' ':!*.md' | cut -d: -f1,2; then
+            echo "Possible secret found (locations above)"; exit 1
+          fi
+          echo "No secret patterns found"

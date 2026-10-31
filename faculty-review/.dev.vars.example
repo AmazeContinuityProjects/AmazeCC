@@ -1,0 +1,60 @@
+# ==============================================================================
+# AmazeCC Faculty Reviews Worker — local dev secrets (.dev.vars.example)
+# Used by `wrangler dev` (copy to `.dev.vars` and fill in). NEVER commit the
+# real `.dev.vars`. In staging/production these are provisioned instead with:
+#     npx wrangler secret put SUPABASE_URL --env staging
+#     npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY --env staging
+#     npx wrangler secret put REVIEWS_INGEST_SECRET --env staging
+#     (same four commands again with --env production)
+# ==============================================================================
+
+# --- Staging section (duplicate the four keys above with --env staging) -------
+# Supabase project REST/HTTPS URL for aggregation reads and review upserts.
+# Get from: Supabase Dashboard -> Project Settings -> API -> Project URL
+SUPABASE_URL=https://REPLACE_ME.supabase.co
+
+# Privileged service-role key the Worker uses to upsert reviews and read
+# faculty/review tables (bypasses RLS by design inside the Worker only).
+# Get from: Supabase Dashboard -> Project Settings -> API -> Secret keys
+# NOTE: legacy key names SUPABASE_SECRET_KEY / SUPABASE_PUBLISHABLE_KEY are
+# still accepted by the code for backward compatibility; migrate to this name.
+SUPABASE_SERVICE_ROLE_KEY=REPLACE_ME
+
+# Shared HMAC secret for authenticated ingestion from AmazeCC-api
+# (/internal/ingest, /internal/recompute). CRITICAL: must be IDENTICAL to
+# REVIEWS_INGEST_SECRET in AmazeCC-api/.env. Rotate via the dual-secret window:
+# set REVIEWS_INGEST_SECRET_PREVIOUS to the old value during rollover
+# (both are accepted; see docs/RUNBOOK.md -> "Secret rotation").
+# Generate with: openssl rand -hex 32
+REVIEWS_INGEST_SECRET=REPLACE_ME
+
+# During a rotation window ONLY: the previous ingest secret, still accepted.
+# REVIEWS_INGEST_SECRET_PREVIOUS=REPLACE_ME
+
+# ==============================================================================
+# NOTE ON NON-SECRET CONFIGURATION (wrangler.jsonc)
+# ==============================================================================
+# The following values are runtime configuration, not secrets. They live in
+# `wrangler.jsonc` (under `vars` or resource bindings), NOT in this file:
+#   - SNAPSHOT_STORE="kv"
+#   - READ_ONLY_MODE="false"
+#   - ENABLE_AMAZE_REVIEWS="false"   (master feature flag; default OFF)
+#   - MAX_KV_WRITES_PER_RUN="200"
+#   - ALLOWED_ORIGINS (extra CORS origins)
+#   - KV namespace binding "REVIEWS_SNAPSHOTS"
+#   - R2 binding "REVIEWS_BUCKET" (bucket amazecc-faculty-reviews)
+#   - Queue producer binding "amazecc_reviews_queue" (+ DLQ in consumers)
+#
+# Deploy-only credentials (CI/CD only; locally use `npx wrangler login`):
+#   - CLOUDFLARE_ACCOUNT_ID (GitHub secret)
+#   - CLOUDFLARE_API_TOKEN  (GitHub secret)
+# ==============================================================================
+
+# ==============================================================================
+# LOCAL-ONLY feature flags for `wrangler dev` (non-secret)
+# ==============================================================================
+# In staging/production these two flags are NOT in wrangler.jsonc: they are set in
+# the Cloudflare dashboard (Settings -> Variables and Secrets). Unset = OFF.
+# Locally, turn the feature on to exercise it:
+# ENABLE_AMAZE_REVIEWS=true
+# READ_ONLY_MODE=false

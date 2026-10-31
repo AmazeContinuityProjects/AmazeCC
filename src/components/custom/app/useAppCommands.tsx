@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useTheme } from "next-themes";
 import config from "../../../../config.json";
+import { ENABLE_AMAZE_REVIEWS } from "@/lib/reviewsService";
 import LibrarySearchPalette from "../palette/LibrarySearchPalette";
 import EventSearchPalette from "../palette/EventSearchPalette";
 import { useDashboardNavigator } from "../dashboard/DashboardNavigator";
@@ -270,7 +271,8 @@ export function useAppCommands(input: AppCommandInputs) {
       { id: "tr-bus-routes", label: "Bus Routes", description: "Browse all bus routes, stops & contacts", icon: "🚌", category: "Transport", onSelect: () => setActiveTab("transport") },
       { id: "tr-placements", label: "Vehicle Placements", description: "5 PM & 6 PM vehicle placement info", icon: "🚍", category: "Transport", onSelect: () => setActiveTab("transport") },
       { id: "qbank", label: "Question Bank", description: "Previous year papers & extracted questions", icon: "??", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("qbank"); } },
-        { id: "tool-faculty", label: "Search Faculty Directory", description: "Search for faculty contact & information", icon: "👨‍🏫", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("faculty-info"); } },
+      ...(ENABLE_AMAZE_REVIEWS ? [{ id: "tool-faculty-reviews", label: "Faculty Reviews", description: "Browse anonymous faculty ratings & write verified reviews for your teachers", icon: "⭐", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("faculty-reviews"); } }] : []),
+      { id: "tool-faculty", label: "Search Faculty Directory", description: "Search for faculty contact & information", icon: "👨‍🏫", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("faculty-info"); } },
       { id: "tool-social", label: "Social Timetable Sharing", description: "Events, friends & timetables", icon: "👥", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("social"); } },
       { id: "tool-cabshare", label: "Cab Share", description: "Find & share cab rides", icon: "🚕", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("cabshare"); } },
       { id: "tool-free-class", label: "Search Free Classrooms", description: "Find an empty classroom or lab", icon: "🏫", category: "Campus", onSelect: () => { setActiveTab("free-class"); } },

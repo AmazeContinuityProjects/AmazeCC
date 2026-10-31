@@ -1,0 +1,60 @@
+name: faculty-review-deploy-production
+
+# Production deploy of the Faculty Reviews Worker — GATED.
+# Runs ONLY via manual workflow_dispatch or a version tag, from the
+# `production` GitHub environment, which must be configured with required
+# reviewers (Settings → Environments → production → Required reviewers).
+# Requires repo secrets: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID.
+
+on:
+  push:
+    tags:
+      - "faculty-review@v*"
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "deploy-production" to confirm'
+        required: true
+        default: ""
+
+concurrency:
+  group: faculty-review-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: wrangler deploy --env production (gated)
+    # Manual runs must type the confirmation; tag pushes proceed directly.
+    # The `production` GitHub environment + required reviewers is the real gate.
+    if: github.event_name != 'workflow_dispatch' || inputs.confirm == 'deploy-production'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: faculty-review/pnpm-lock.yaml
+
+      - name: Install
+        run: pnpm --dir faculty-review install --frozen-lockfile
+
+      - name: Tests (gate)
+        run: pnpm --dir faculty-review test
+
+      - name: Deploy to production
+        uses: cloudflare/wrangler-action@v4
+        with:
+          workingDirectory: faculty-review
+          command: deploy --env production
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Smoke test
+        run: bash faculty-review/scripts/smoke-test.sh https://reviews-api.amazecc.com
