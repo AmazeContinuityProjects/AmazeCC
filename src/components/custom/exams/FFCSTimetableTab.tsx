@@ -42,6 +42,7 @@ import {
   Code2,
   Megaphone,
   LogIn,
+  BadgeCheck,
 } from "lucide-react";
 
 import SearchInput from "../shared/SearchInput";
@@ -78,8 +79,21 @@ export { processParsedCourses } from "@/lib/ffcsCourseGrouping";
 import { track } from "@/lib/analytics";
 import { useFFCSSettings } from "@/lib/ffcsSettings";
 import { storage } from "@/lib/storage";
+import { useAtomValue } from "jotai";
+import { isLoggedInAtom } from "@/store";
+import { settingsAtom } from "@/store/settingsAtoms";
+import { shouldShowProfilePhoto } from "@/lib/settingsVisibility";
 import { sanitizeFacultyPriority, hasFacultyPriority, type FacultyPriorityMap } from "@/lib/ffcsFacultyPriority";
 import { pruneGeneratorTargets } from "@/lib/ffcsGeneratorTargets";
+import {
+  buildSlotIndex,
+  courseCategory,
+  matchesCatalogFilters,
+  type CatalogFilterState,
+} from "@/lib/ffcsCatalogFilters";
+import { CourseCatalogFilters } from "./FFCS/components/CourseCatalogFilters";
+import { notifyCatalogCurriculumChanged, useCatalogCurriculum } from "./FFCS/hooks/useCatalogCurriculum";
+import { runPageSync } from "@/lib/sync-engine/single-sync";
 import {
   encodeTimetableShare,
   encodeCompactTimetableShare,
@@ -455,6 +469,30 @@ export default function FFCSTimetableTab({
   // without a storage event or a remount.
   const { settings, update: updateSetting, reset: resetSettings } = useFFCSSettings();
   const { visible: hints, dismiss: dismissHint } = useTips();
+
+  // App-level identity (not FFCS settings): the share sheet signs the card
+  // with it — logged in, the student's own name and photo; logged out, the
+  // sign-in promo. Photo honours the show-profile-photo visibility setting,
+  // the same gate every other avatar in the app applies.
+  const appSettings = useAtomValue(settingsAtom);
+  const isLoggedIn = useAtomValue(isLoggedInAtom);
+  const shareAccount = useMemo(() => {
+    if (!isLoggedIn) return null;
+    const profile = storage.profile.get() as {
+      name?: string;
+      image?: string;
+      photo?: string;
+      photoBase64?: string;
+    } | null;
+    const username = storage.ids.get()?.VtopUsername || "";
+    return {
+      name: appSettings?.friendlyName || profile?.name || username || "Student",
+      username,
+      photo: shouldShowProfilePhoto(appSettings)
+        ? profile?.image || profile?.photo || profile?.photoBase64 || null
+        : null,
+    };
+  }, [isLoggedIn, appSettings]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const { resolved: resolvedView, isMobile } = useTimetableViewMode();
   const [isExtraLargeViewport, setIsExtraLargeViewport] = useState(false);
@@ -681,6 +719,12 @@ export default function FFCSTimetableTab({
   const [slotSearchTimeFilter, setSlotSearchTimeFilter] = useState("all");
   const [slotSearchTheoryFilter, setSlotSearchTheoryFilter] = useState("");
   const [slotSearchLabFilter, setSlotSearchLabFilter] = useState("");
+  // Catalog filters for the Search Course sheet: slot chips + curriculum match.
+  const [catalogSlots, setCatalogSlots] = useState<string[]>([]);
+  const [catalogCurriculumOnly, setCatalogCurriculumOnly] = useState(false);
+  const [catalogCategories, setCatalogCategories] = useState<string[]>([]);
+  // Explicit "Sync curriculum" button state (shared by both picker sheets).
+  const [isCurriculumSyncing, setIsCurriculumSyncing] = useState(false);
   const [generatorCourseSearchQuery, setGeneratorCourseSearchQuery] = useState("");
   const [isVariantSearchOpen, setIsVariantSearchOpen] = useState(false);
   const [variantSearchQuery, setVariantSearchQuery] = useState("");
@@ -1101,6 +1145,71 @@ export default function FFCSTimetableTab({
   const uniqueCourseCodes = useMemo(() => {
     return uniqueCourses;
   }, [uniqueCourses]);
+
+  // Slot chips and the curriculum index behind the Search Course sheet.
+  const catalogSlotIndex = useMemo(() => buildSlotIndex(masterCourses), [masterCourses]);
+  const catalogCurriculum = useCatalogCurriculum();
+
+  /**
+   * The filters row's "Sync curriculum" button. An explicit user action, so
+   * it runs through `runPageSync` — a visible sheet with a real lifecycle
+   * (open → per-op log → close) rather than a silent background fetch — and
+   * announces the result so every mounted picker re-reads at once.
+   */
+  const handleSyncCurriculum = useCallback(async () => {
+    if (isCurriculumSyncing) return;
+    setIsCurriculumSyncing(true);
+    try {
+      await runPageSync({
+        title: "Curriculum",
+        steps: [{ op: "curriculum", apply: () => notifyCatalogCurriculumChanged() }],
+        doneLine: "Curriculum synced — My Curriculum is ready",
+      });
+    } catch {
+      /* runPageSync already logged the failure into its own sheet */
+    } finally {
+      setIsCurriculumSyncing(false);
+    }
+  }, [isCurriculumSyncing]);
+
+  /**
+   * The Search Course sheet's visible list: query, locked-only, then the
+   * shared slot/curriculum filters. One derivation for the list and its
+   * empty state — the sheet used to run its filter twice inline, and a
+   * third predicate here would drift the message from the rows.
+   */
+  const filteredSearchCourses = useMemo(() => {
+    const query = courseSearchQuery.trim().toLowerCase();
+    const state: CatalogFilterState = {
+      slots: catalogSlots,
+      curriculumOnly: catalogCurriculumOnly,
+      categories: catalogCategories,
+    };
+    return uniqueCourses.filter((course) => {
+      if (searchLockedOnly && courseLocks.length > 0 && !courseLocks.some((lock) => lock.code === course.code)) {
+        return false;
+      }
+      if (query && !course.code.toLowerCase().includes(query) && !course.title.toLowerCase().includes(query)) {
+        return false;
+      }
+      return matchesCatalogFilters(
+        course.code,
+        catalogSlotIndex.get(course.code.trim().toUpperCase()),
+        state,
+        catalogCurriculum,
+      );
+    });
+  }, [
+    uniqueCourses,
+    courseSearchQuery,
+    searchLockedOnly,
+    courseLocks,
+    catalogSlotIndex,
+    catalogSlots,
+    catalogCurriculumOnly,
+    catalogCategories,
+    catalogCurriculum,
+  ]);
 
   const selectedCourse = useMemo(() => {
     if (!selectedCourseCode) return null;
@@ -3156,6 +3265,8 @@ export default function FFCSTimetableTab({
           uniqueCourseCodes={uniqueCourseCodes}
           onImportCourses={handleImportCourses}
           onImportToTimetable={(added) => handleLoadRegisteredCourses(added, [], false)}
+          onSyncCurriculum={isLoggedIn ? handleSyncCurriculum : undefined}
+          curriculumSyncing={isCurriculumSyncing}
         />
 
         <PasteRegisteredCoursesModal
@@ -3251,6 +3362,18 @@ export default function FFCSTimetableTab({
                 className="bg-surface-secondary/50 border-border-strong pl-10 pr-4 py-3 focus:border-blue-500/50 placeholder:text-muted-foreground"
                 autoFocus
               />
+              <CourseCatalogFilters
+                slotIndex={catalogSlotIndex}
+                slots={catalogSlots}
+                onSlotsChange={setCatalogSlots}
+                curriculum={catalogCurriculum}
+                curriculumOnly={catalogCurriculumOnly}
+                onCurriculumOnlyChange={setCatalogCurriculumOnly}
+                categories={catalogCategories}
+                onCategoriesChange={setCatalogCategories}
+                onSyncCurriculum={isLoggedIn ? handleSyncCurriculum : undefined}
+                curriculumSyncing={isCurriculumSyncing}
+              />
               {courseLocks.length > 0 && (
                 <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs">
                   <span className="flex items-center gap-1.5 text-text-heading font-medium">
@@ -3279,78 +3402,71 @@ export default function FFCSTimetableTab({
               you arrow through results.
             */}
               <div className="p-2 overflow-y-auto max-h-[50vh] custom-scrollbar bg-surface-secondary/5 rounded-xl">
-                {uniqueCourses
-                  .filter(
-                    (c) =>
-                      (!searchLockedOnly ||
-                        courseLocks.length === 0 ||
-                        courseLocks.some((lock) => lock.code === c.code)) &&
-                      (c.code.toLowerCase().includes(courseSearchQuery.toLowerCase()) ||
-                        c.title.toLowerCase().includes(courseSearchQuery.toLowerCase())),
-                  )
-                  .slice(0, 100)
-                  .map((c) => {
-                    const fullyAdded = isCourseFullyAdded(c.code, c.types, activeTimetable.courses);
-                    return (
-                      <button
-                        key={c.code}
-                        disabled={fullyAdded}
-                        onClick={() => {
-                          if (fullyAdded) return;
-                          setSelectedCourseCode(c.code);
-                          setSelectedSlotIndex("-1");
-                          setIsCourseSearchOpen(false);
-                          setCourseSearchQuery("");
-                        }}
-                        className={`w-full text-left px-4 py-3 my-0.5 rounded-xl transition-colors flex flex-col gap-1 ${fullyAdded ? "opacity-50 cursor-not-allowed bg-surface-secondary/30 border border-border-strong/50" : selectedCourseCode === c.code ? "bg-blue-500/10 border border-blue-500/20 shadow-sm" : "border border-transparent hover:bg-surface-secondary/80"}`}
-                      >
-                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1">
-                          <div className="flex flex-col gap-1 min-w-0">
-                            <span
-                              className={`font-bold text-sm ${fullyAdded ? "text-muted-foreground" : "text-text-heading"}`}
-                            >
-                              {c.code}
-                            </span>
-                            <div className="flex items-center gap-1 flex-wrap">
-                              {renderCourseTypeChips(c.types || [], "sm")}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1.5 flex-wrap sm:shrink-0">
-                            {c.batches &&
-                              c.batches.length > 0 &&
-                              c.batches.map((b) => (
-                                <span
-                                  key={b}
-                                  className={`text-xs font-bold px-2 py-0.5 rounded-md border ${getBatchColorClass(b)}`}
-                                >
-                                  {b}
-                                </span>
-                              ))}
-                            {fullyAdded ? (
-                              <span className="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-md">
-                                Fully Added
+                {filteredSearchCourses.slice(0, 100).map((c) => {
+                  const fullyAdded = isCourseFullyAdded(c.code, c.types, activeTimetable.courses);
+                  const curriculumCategory =
+                    catalogCurriculumOnly && catalogCurriculum ? courseCategory(c.code, catalogCurriculum) : null;
+                  return (
+                    <button
+                      key={c.code}
+                      disabled={fullyAdded}
+                      onClick={() => {
+                        if (fullyAdded) return;
+                        setSelectedCourseCode(c.code);
+                        setSelectedSlotIndex("-1");
+                        setIsCourseSearchOpen(false);
+                        setCourseSearchQuery("");
+                      }}
+                      className={`w-full text-left px-4 py-3 my-0.5 rounded-xl transition-colors flex flex-col gap-1 ${fullyAdded ? "opacity-50 cursor-not-allowed bg-surface-secondary/30 border border-border-strong/50" : selectedCourseCode === c.code ? "bg-blue-500/10 border border-blue-500/20 shadow-sm" : "border border-transparent hover:bg-surface-secondary/80"}`}
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1">
+                        <div className="flex flex-col gap-1 min-w-0">
+                          <span
+                            className={`font-bold text-sm ${fullyAdded ? "text-muted-foreground" : "text-text-heading"}`}
+                          >
+                            {c.code}
+                          </span>
+                          <div className="flex items-center gap-1 flex-wrap">
+                            {renderCourseTypeChips(c.types || [], "sm")}
+                            {curriculumCategory && (
+                              <span
+                                title={`Counts toward ${curriculumCategory}`}
+                                className="text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
+                              >
+                                {curriculumCategory}
                               </span>
-                            ) : (
-                              selectedCourseCode === c.code && (
-                                <span className="text-xs font-bold text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-md">
-                                  Selected
-                                </span>
-                              )
                             )}
                           </div>
                         </div>
-                        <span className="text-xs text-muted-foreground line-clamp-2">{c.title}</span>
-                      </button>
-                    );
-                  })}
-                {uniqueCourses.filter(
-                  (c) =>
-                    (!searchLockedOnly ||
-                      courseLocks.length === 0 ||
-                      courseLocks.some((lock) => lock.code === c.code)) &&
-                    (c.code.toLowerCase().includes(courseSearchQuery.toLowerCase()) ||
-                      c.title.toLowerCase().includes(courseSearchQuery.toLowerCase())),
-                ).length === 0 && (
+                        <div className="flex items-center gap-1.5 flex-wrap sm:shrink-0">
+                          {c.batches &&
+                            c.batches.length > 0 &&
+                            c.batches.map((b) => (
+                              <span
+                                key={b}
+                                className={`text-xs font-bold px-2 py-0.5 rounded-md border ${getBatchColorClass(b)}`}
+                              >
+                                {b}
+                              </span>
+                            ))}
+                          {fullyAdded ? (
+                            <span className="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                              Fully Added
+                            </span>
+                          ) : (
+                            selectedCourseCode === c.code && (
+                              <span className="text-xs font-bold text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-md">
+                                Selected
+                              </span>
+                            )
+                          )}
+                        </div>
+                      </div>
+                      <span className="text-xs text-muted-foreground line-clamp-2">{c.title}</span>
+                    </button>
+                  );
+                })}
+                {filteredSearchCourses.length === 0 && (
                   <div className="py-6 text-center flex flex-col items-center">
                     <EmptyState
                       icon={<Search className="w-8 h-8" />}
@@ -3358,7 +3474,9 @@ export default function FFCSTimetableTab({
                       description={
                         searchLockedOnly && courseLocks.length > 0
                           ? "No locked courses matched your search."
-                          : "Try a different search term"
+                          : catalogSlots.length > 0 || catalogCurriculumOnly
+                            ? "No courses match these slot and curriculum filters."
+                            : "Try a different search term"
                       }
                       className="py-8 border border-dashed border-border-strong/50 rounded-xl m-2 w-full"
                     />
@@ -3371,16 +3489,22 @@ export default function FFCSTimetableTab({
                         Show all catalogue courses instead
                       </button>
                     )}
+                    {(catalogSlots.length > 0 || catalogCurriculumOnly) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCatalogSlots([]);
+                          setCatalogCurriculumOnly(false);
+                          setCatalogCategories([]);
+                        }}
+                        className="mt-2 text-xs font-semibold text-indigo-500 hover:text-indigo-400 hover:underline cursor-pointer"
+                      >
+                        Clear slot and curriculum filters
+                      </button>
+                    )}
                   </div>
                 )}
-                {uniqueCourses.filter(
-                  (c) =>
-                    (!searchLockedOnly ||
-                      courseLocks.length === 0 ||
-                      courseLocks.some((lock) => lock.code === c.code)) &&
-                    (c.code.toLowerCase().includes(courseSearchQuery.toLowerCase()) ||
-                      c.title.toLowerCase().includes(courseSearchQuery.toLowerCase())),
-                ).length > 100 && (
+                {filteredSearchCourses.length > 100 && (
                   <div className="text-center py-4 text-xs text-muted-foreground font-medium flex items-center justify-center gap-2 border-t border-border-strong/30 mt-2">
                     <Info className="w-3 h-3" /> Showing first 100 results. Refine search.
                   </div>
@@ -4123,24 +4247,46 @@ export default function FFCSTimetableTab({
                 </button>
               </ListShell>
 
-              {layoutMode === "modern" && (
-                <Link
-                  href="/"
-                  onClick={() => setIsShareSheetOpen(false)}
-                  className="flex items-center gap-3 rounded-2xl border border-indigo-500/25 bg-gradient-to-r from-indigo-500/10 to-fuchsia-500/10 p-4 transition-colors hover:from-indigo-500/15 hover:to-fuchsia-500/15"
-                >
-                  <span className="w-10 h-10 rounded-2xl border border-indigo-500/20 bg-surface flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
-                    <LogIn className="w-4 h-4" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-bold text-text-heading">Sign in to AmazeCC</span>
-                    <span className="block text-xs text-muted-foreground mt-0.5">
-                      Save your plans and unlock more features.
+              {layoutMode === "modern" &&
+                (shareAccount ? (
+                  <div className="flex items-center gap-3 rounded-2xl border border-border-strong bg-surface-secondary/50 p-4">
+                    {shareAccount.photo ? (
+                      <img
+                        src={shareAccount.photo}
+                        alt=""
+                        decoding="async"
+                        className="w-10 h-10 rounded-2xl object-cover border border-border-strong shrink-0"
+                      />
+                    ) : (
+                      <span className="w-10 h-10 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                        <BadgeCheck className="w-4 h-4" />
+                      </span>
+                    )}
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-bold text-text-heading truncate">{shareAccount.name}</span>
+                      <span className="block text-xs text-muted-foreground mt-0.5 truncate">
+                        {shareAccount.username ? `Signed in as ${shareAccount.username}` : "Signed in to AmazeCC"}
+                      </span>
                     </span>
-                  </span>
-                  <ExternalLink className="w-4 h-4 text-muted-foreground shrink-0" />
-                </Link>
-              )}
+                  </div>
+                ) : (
+                  <Link
+                    href="/"
+                    onClick={() => setIsShareSheetOpen(false)}
+                    className="flex items-center gap-3 rounded-2xl border border-indigo-500/25 bg-gradient-to-r from-indigo-500/10 to-fuchsia-500/10 p-4 transition-colors hover:from-indigo-500/15 hover:to-fuchsia-500/15"
+                  >
+                    <span className="w-10 h-10 rounded-2xl border border-indigo-500/20 bg-surface flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+                      <LogIn className="w-4 h-4" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-bold text-text-heading">Sign in to AmazeCC</span>
+                      <span className="block text-xs text-muted-foreground mt-0.5">
+                        Save your plans and unlock more features.
+                      </span>
+                    </span>
+                    <ExternalLink className="w-4 h-4 text-muted-foreground shrink-0" />
+                  </Link>
+                ))}
             </div>
           </BottomSheet>
         )}

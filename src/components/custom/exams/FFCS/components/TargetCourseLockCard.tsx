@@ -19,6 +19,8 @@ interface TargetCourseLockCardProps {
   selection: CourseLock | undefined;
   onSelectionChange: (selection: CourseLock | null) => void;
   tone?: "purple" | "neutral";
+  /** The student's curriculum category, shown only when the picker filters by it. */
+  category?: string;
 }
 
 /** Search result row shared by planner target locks and generator focus locks. */
@@ -28,18 +30,18 @@ export function TargetCourseLockCard({
   selection,
   onSelectionChange,
   tone = "purple",
+  category,
 }: TargetCourseLockCardProps) {
   const isSelected = Boolean(selection);
-  const cardToneClass = tone === "neutral"
-    ? isSelected
-      ? "border-zinc-500/50 bg-zinc-500/[0.08] shadow-sm dark:border-zinc-400/40 dark:bg-zinc-400/[0.08]"
-      : "border-zinc-200/80 bg-zinc-500/[0.025] hover:border-zinc-300 hover:bg-zinc-500/[0.06] dark:border-zinc-800 dark:bg-zinc-500/[0.04] dark:hover:border-zinc-700 dark:hover:bg-zinc-500/[0.08]"
-    : isSelected
-      ? "border-purple-500/50 bg-surface-secondary/30 shadow-sm"
-      : "border-transparent bg-transparent hover:border-border-strong hover:bg-surface-secondary/50";
-  const uniqueSlots = Array.from(
-    new Set(offerings.flatMap((offering) => splitSlots(offering.SLOT)))
-  ).sort();
+  const cardToneClass =
+    tone === "neutral"
+      ? isSelected
+        ? "border-zinc-500/50 bg-zinc-500/[0.08] shadow-sm dark:border-zinc-400/40 dark:bg-zinc-400/[0.08]"
+        : "border-zinc-200/80 bg-zinc-500/[0.025] hover:border-zinc-300 hover:bg-zinc-500/[0.06] dark:border-zinc-800 dark:bg-zinc-500/[0.04] dark:hover:border-zinc-700 dark:hover:bg-zinc-500/[0.08]"
+      : isSelected
+        ? "border-purple-500/50 bg-surface-secondary/30 shadow-sm"
+        : "border-transparent bg-transparent hover:border-border-strong hover:bg-surface-secondary/50";
+  const uniqueSlots = Array.from(new Set(offerings.flatMap((offering) => splitSlots(offering.SLOT)))).sort();
 
   const toggleSlots = (slots: string[]) => {
     if (!selection) return;
@@ -114,6 +116,14 @@ export function TargetCourseLockCard({
               <span className="font-bold text-base text-text-heading">{course.code}</span>
               <span className="flex flex-wrap items-center gap-1">
                 {renderCourseTypeChips(course.types ?? [], "sm")}
+                {category && (
+                  <span
+                    title={`Counts toward ${category}`}
+                    className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-500"
+                  >
+                    {category}
+                  </span>
+                )}
               </span>
             </span>
             {course.batches && course.batches.length > 0 && (
@@ -140,15 +150,12 @@ export function TargetCourseLockCard({
           </div>
           {clusters.length > 0 && (
             <div className="space-y-1">
-              <div className="text-[10px] font-bold uppercase text-text-heading/70">
-                Quick Select Slot Bundles
-              </div>
+              <div className="text-[10px] font-bold uppercase text-text-heading/70">Quick Select Slot Bundles</div>
               <div className="flex flex-wrap gap-1.5">
                 {clusters.map(([cluster, value]) => {
-                  const selected = value.slots.length > 0 && value.slots.every((slot) => selection.allowedSlots.includes(slot));
-                  const label = cluster.endsWith("1") || cluster.endsWith("2")
-                    ? `${cluster} Slots`
-                    : cluster;
+                  const selected =
+                    value.slots.length > 0 && value.slots.every((slot) => selection.allowedSlots.includes(slot));
+                  const label = cluster.endsWith("1") || cluster.endsWith("2") ? `${cluster} Slots` : cluster;
                   return (
                     <button
                       key={cluster}
@@ -168,7 +175,8 @@ export function TargetCourseLockCard({
                 })}
                 {broadLetters.map((letter) => {
                   const letterSlots = letterMap.get(letter) ?? [];
-                  const selected = letterSlots.length > 0 && letterSlots.every((slot) => selection.allowedSlots.includes(slot));
+                  const selected =
+                    letterSlots.length > 0 && letterSlots.every((slot) => selection.allowedSlots.includes(slot));
                   return (
                     <button
                       key={`broad-${letter}`}
@@ -192,11 +200,12 @@ export function TargetCourseLockCard({
           <div className="flex flex-wrap gap-2 pr-1">
             {uniqueSlots.map((slot) => {
               const checked = selection.allowedSlots.includes(slot);
-              const facultyCount = new Set(
-                offerings
-                  .filter((offering) => offering.SLOT === slot)
-                  .map((offering) => offering.FACULTY.trim().toLowerCase())
-              ).size || 1;
+              const facultyCount =
+                new Set(
+                  offerings
+                    .filter((offering) => offering.SLOT === slot)
+                    .map((offering) => offering.FACULTY.trim().toLowerCase()),
+                ).size || 1;
               return (
                 <label
                   key={slot}
