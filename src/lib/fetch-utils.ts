@@ -42,17 +42,6 @@ export const BACKUP_API_URL =
  * the allowlisted UniCC fallback" — the intended behaviour — instead of pointing
  * `/api/student` and friends at a host that 404s them.
  */
-
-export function isLocalDev(): boolean {
-  if (typeof window !== 'undefined') {
-    const host = window.location.hostname;
-    if (host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0') {
-      return true;
-    }
-  }
-  return PRIMARY_API_URL.includes('localhost') || PRIMARY_API_URL.includes('127.0.0.1');
-}
-
 function failoverBackupUrl(): string {
   return isUniccHost(BACKUP_API_URL) ? PRIMARY_API_URL : BACKUP_API_URL;
 }
@@ -63,16 +52,6 @@ if (typeof window !== "undefined") {
   try {
     customUrlFromStorage = localStorage.getItem("amazecc_custom_api_url") || "";
     activeUrlFromStorage = localStorage.getItem("amazecc_active_api_url") || "";
-    if (isLocalDev()) {
-      if (activeUrlFromStorage && !activeUrlFromStorage.includes('localhost') && !activeUrlFromStorage.includes('127.0.0.1')) {
-        activeUrlFromStorage = '';
-        localStorage.removeItem('amazecc_active_api_url');
-      }
-      if (customUrlFromStorage && !customUrlFromStorage.includes('localhost') && !customUrlFromStorage.includes('127.0.0.1')) {
-        customUrlFromStorage = '';
-        localStorage.removeItem('amazecc_custom_api_url');
-      }
-    }
 
     // Both keys will accept a UniCC URL, and one that survives a reload keeps
     // every request pointed at a host that implements only part of the API — a
@@ -119,9 +98,6 @@ export function getActiveApiUrl(): string {
 }
 
 export function setActiveApiUrl(url: string) {
-  if (isLocalDev() && !url.includes('localhost') && !url.includes('127.0.0.1')) {
-    return;
-  }
   if (isUniccHost(url)) {
     console.warn(
       `Refusing to make ${url} the active API URL: it implements only part of ` +
@@ -383,7 +359,7 @@ export async function fetchWithFailover(
     // Non-absolute or malformed URL: treat as non-target and pass through.
   }
 
-  if (isUniccTarget || (!isPrimary && !isBackup) || urlStr.includes('/api/reviews') || urlStr.includes(':8787') || isLocalDev()) {
+  if (isUniccTarget || (!isPrimary && !isBackup)) {
     return originalFetch(input, init);
   }
 
@@ -442,9 +418,8 @@ export async function fetchWithFailover(
     // caller and the UniCC hop would never be reached.
     const isPrimaryActive = activeApiUrl === PRIMARY_API_URL;
     const isBackupActive = activeApiUrl === backup;
-    const isLocalhost = PRIMARY_API_URL.includes("localhost") || PRIMARY_API_URL.includes("127.0.0.1");
 
-    if (!isLocalhost && (isPrimaryActive || isBackupActive)) {
+    if (isPrimaryActive || isBackupActive) {
       if (error.name === "AbortError" && init?.signal?.aborted) {
         throw error;
       }
