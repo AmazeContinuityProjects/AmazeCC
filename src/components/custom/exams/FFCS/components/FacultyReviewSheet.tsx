@@ -1,10 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   ExternalLink,
-  ThumbsUp,
-  ThumbsDown,
   Sparkles,
   BookOpen,
   GraduationCap,
@@ -14,20 +12,28 @@ import {
   FileText,
   X,
   Loader2,
+  CheckCircle2,
+  ShieldCheck,
+  PenLine,
+  Sliders,
+  Tag,
 } from "lucide-react";
 import BottomSheet from "../../../shared/BottomSheet";
 import {
   ENABLE_VITFAC_INTEGRATION,
-  useVitfacReview,
   getFacultyProfileBundle,
   getVitfacProfileUrl,
   type VitfacProfileBundle,
 } from "@/lib/vitfacService";
+import {
+  ENABLE_AMAZE_REVIEWS,
+  useFacultyReview,
+  getFacultyProfileSnapshot,
+} from "@/lib/reviewsService";
 import { FacultyAvatar } from "./FacultyAvatar";
+import { TEACHING_CONFIG, PROJECT_CONFIG, getComponentQuestion } from "@/config/reviewQuestions";
 
-// The avatar / review-pill / initials helpers live in `FacultyAvatar` so
-// routes can render them inline without pulling this sheet into their
-// initial JS bundle. Re-exported here so existing importers keep working.
+// Re-exports so existing importers continue working untouched
 export { FacultyAvatar, VitfacReviewPill, getFacultyInitials } from "./FacultyAvatar";
 export type { FacultyAvatarProps } from "./FacultyAvatar";
 
@@ -37,6 +43,7 @@ export interface FacultyReviewSheetProps {
   facultyName: string;
   employeeId?: string;
   courseCode?: string;
+  facultyId?: string;
 }
 
 export default function FacultyReviewSheet({
@@ -45,14 +52,32 @@ export default function FacultyReviewSheet({
   facultyName,
   employeeId,
   courseCode,
+  facultyId,
 }: FacultyReviewSheetProps) {
-  const { review, loading } = useVitfacReview(employeeId, facultyName);
+  const { review, loading: reviewLoading } = useFacultyReview(employeeId, facultyName, facultyId);
+
+  const [activeTab, setActiveTab] = useState<"teaching" | "project">("teaching");
+  const [profileSnapshot, setProfileSnapshot] = useState<any | null>(null);
   const [bundle, setBundle] = useState<VitfacProfileBundle | null>(null);
-  const [loadingBundle, setLoadingBundle] = useState(false);
+  const [loadingData, setLoadingData] = useState(false);
   const [activeCourseFilter, setActiveCourseFilter] = useState<string>("global");
+
+  const inferredComponent = useMemo(() => {
+    if (activeCourseFilter !== "global") {
+      if (activeCourseFilter.endsWith("L") || activeCourseFilter.includes("LAB") || activeCourseFilter.endsWith("P")) return "Lab";
+      if (activeCourseFilter.endsWith("E")) return "Embedded";
+      return "Theory";
+    }
+    const courses: string[] = profileSnapshot?.teaching?.courses || [];
+    if (courses.length > 0 && courses.every((c: string) => c.endsWith("L") || c.includes("LAB"))) {
+      return "Lab";
+    }
+    return "Theory";
+  }, [activeCourseFilter, profileSnapshot?.teaching?.courses]);
 
   useEffect(() => {
     if (!open) {
+      setProfileSnapshot(null);
       setBundle(null);
       setActiveCourseFilter("global");
       return;
@@ -64,326 +89,394 @@ export default function FacultyReviewSheet({
       setActiveCourseFilter("global");
     }
 
-    const targetId = review?.id || employeeId;
-    if (targetId) {
-      setLoadingBundle(true);
-      getFacultyProfileBundle(targetId)
-        .then((b) => {
-          if (b) setBundle(b);
+    const resolvedFacultyId = facultyId || review?.id;
+
+    // Fetch snapshot if first-party ID is present
+    if (ENABLE_AMAZE_REVIEWS && resolvedFacultyId) {
+      setLoadingData(true);
+      getFacultyProfileSnapshot(resolvedFacultyId)
+        .then((snap) => {
+          if (snap) setProfileSnapshot(snap);
         })
-        .finally(() => setLoadingBundle(false));
+        .finally(() => setLoadingData(false));
     }
-  }, [open, review?.id, employeeId, courseCode]);
 
-  if (!ENABLE_VITFAC_INTEGRATION || !open) return null;
+    // Fetch legacy vitfac bundle if legacy integration is active
+    const vitfacTarget = {
+      employeeId: employeeId || review?.employeeId || profileSnapshot?.faculty?.employee_id,
+      vitfacId: (review as any)?.vitfac_id || (profileSnapshot?.faculty as any)?.vitfac_id,
+      name: profileSnapshot?.faculty?.name || review?.name || facultyName,
+      id: review?.id || facultyId,
+    };
+    if (ENABLE_VITFAC_INTEGRATION && (!profileSnapshot || review?.legacyVitfac)) {
+      getFacultyProfileBundle(vitfacTarget).then((b) => {
+        if (b) setBundle(b);
+      });
+    }
+  }, [open, facultyId, review?.id, employeeId, courseCode, review?.legacyVitfac]);
 
-  const prof = bundle?.prof || review;
-  const profileUrl = prof?.id || employeeId ? getVitfacProfileUrl(prof?.id || employeeId!) : "https://vitfac.pages.dev";
+  if (!open) return null;
 
-  const availableCourses = bundle?.courseStats?.courses || [];
-  const selectedCourseStat =
+  const isFirstParty = profileSnapshot !== null && !review?.legacyVitfac;
+
+  // Active track stats from first-party snapshot
+  const teachingTrack = profileSnapshot?.teaching || null;
+  const projectTrack = profileSnapshot?.project || null;
+  const currentTrackData =
+    activeTab === "teaching"
+      ? activeCourseFilter !== "global" && profileSnapshot?.teaching_by_course?.[activeCourseFilter]
+        ? profileSnapshot.teaching_by_course[activeCourseFilter]
+        : teachingTrack
+      : projectTrack;
+
+  // Legacy vitfac fallback calculations
+  const legacyProf = bundle?.prof || review;
+  const availableLegacyCourses = bundle?.courseStats?.courses || [];
+  const selectedLegacyCourse =
     activeCourseFilter !== "global"
-      ? availableCourses.find(
-          (c) => c.code.toUpperCase() === activeCourseFilter.toUpperCase()
-        )
+      ? availableLegacyCourses.find((c) => c.code.toUpperCase() === activeCourseFilter.toUpperCase())
       : null;
+  const legacyStats = selectedLegacyCourse || bundle?.courseStats?.global || null;
+  const legacyWPct = legacyStats?.wPct ?? legacyProf?.wPct ?? 0;
+  const legacyReviews = legacyStats?.reviews ?? legacyProf?.reviews ?? 0;
 
-  // Harmonize stats: prioritize course selection -> global courseStats -> prof summary
-  const activeStats = selectedCourseStat || bundle?.courseStats?.global || null;
-
-  const wPct = activeStats?.wPct ?? prof?.wPct ?? 0;
-  const reviewsCount = activeStats?.reviews ?? prof?.reviews ?? 0;
-  const wCount = Math.round((wPct / 100) * reviewsCount);
-  const lCount = Math.max(0, reviewsCount - wCount);
-
-  const lecture = activeStats?.metrics?.lecture ?? prof?.metrics?.lecture ?? 0;
-  const da = activeStats?.metrics?.da ?? prof?.metrics?.da ?? 0;
-  const vibe = activeStats?.metrics?.vibe ?? prof?.metrics?.vibe ?? 0;
-
-  const greenLore = activeStats?.lore?.green ?? prof?.lore?.green ?? [];
-  const redLore = activeStats?.lore?.red ?? prof?.lore?.red ?? [];
+  const profileUrl = getVitfacProfileUrl({
+    employeeId:
+      employeeId ||
+      review?.employeeId ||
+      profileSnapshot?.faculty?.employee_id ||
+      null,
+    vitfacId:
+      (review as any)?.vitfac_id ||
+      (profileSnapshot?.faculty as any)?.vitfac_id ||
+      null,
+    name:
+      profileSnapshot?.faculty?.name ||
+      review?.name ||
+      facultyName ||
+      null,
+    id: review?.id || facultyId || null,
+  });
 
   return (
-    <BottomSheet
-      onClose={onClose}
-      overlayId="vitfac-review-sheet"
-      maxWidth="max-w-lg"
-      panelZIndex={320}
-      backdropZIndex={315}
-      contentClassName="space-y-5"
-    >
-      {/* Header */}
-      <div className="flex items-start justify-between gap-3 border-b border-border-strong pb-4">
-        <div className="flex items-center gap-3">
-          <FacultyAvatar
-            employeeId={prof?.employeeId || employeeId}
-            name={prof?.name || facultyName}
-            fallbackImageUrl={prof?.image_url}
-            size="lg"
-            tone="amber"
-          />
-          <div className="min-w-0">
-            <h3 className="font-bold text-lg text-text-heading leading-tight truncate">
-              {prof?.name || facultyName}
-            </h3>
-            <p className="text-xs text-muted-foreground mt-0.5 truncate">
-              {prof?.designation ? `${prof.designation} · ` : ""}
-              {prof?.dept || (employeeId ? `ERP: ${employeeId}` : "Faculty")}
-            </p>
-          </div>
-        </div>
-
-        <a
-          href={profileUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-strong bg-surface hover:bg-surface-secondary text-text-heading text-xs font-semibold transition-colors shrink-0"
-        >
-          <span>vitfac</span>
-          <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
-        </a>
-      </div>
-
-      {loading && !prof ? (
-        <div className="py-12 flex flex-col items-center justify-center gap-2 text-muted-foreground">
-          <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
-          <span className="text-xs">Loading faculty reviews…</span>
-        </div>
-      ) : !prof || reviewsCount === 0 ? (
-        <div className="py-8 text-center bg-surface-secondary/20 rounded-2xl border border-dashed border-border-strong p-6">
-          <GraduationCap className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-50" />
-          <p className="text-sm font-semibold text-text-heading">No reviews yet on vitfac</p>
-          <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
-            This faculty has not received any reviews yet on vitfac.pages.dev.
-          </p>
-          <a
-            href={profileUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-amber-500 font-bold hover:underline mt-4"
-          >
-            Be the first to review on vitfac <ExternalLink className="w-3 h-3" />
-          </a>
-        </div>
-      ) : (
-        <>
-          {/* Subject Filter Bar (matching vitfac subject toggle) */}
-          {availableCourses.length > 0 && (
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                <span>Filter by Course</span>
-                {selectedCourseStat && (
-                  <span className="text-amber-500 font-semibold lowercase">
-                    showing {selectedCourseStat.code} stats
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-1">
-                <button
-                  type="button"
-                  onClick={() => setActiveCourseFilter("global")}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
-                    activeCourseFilter === "global"
-                      ? "bg-amber-500 text-white font-bold shadow-xs"
-                      : "bg-surface-secondary text-muted-foreground hover:text-text-heading border border-border-strong/70"
-                  }`}
-                >
-                  All Courses ({bundle?.courseStats?.global?.reviews ?? reviewsCount})
-                </button>
-                {availableCourses.map((c) => (
-                  <button
-                    key={c.code}
-                    type="button"
-                    onClick={() => setActiveCourseFilter(c.code)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
-                      activeCourseFilter.toUpperCase() === c.code.toUpperCase()
-                        ? "bg-amber-500 text-white font-bold shadow-xs"
-                        : "bg-surface-secondary text-muted-foreground hover:text-text-heading border border-border-strong/70"
-                    }`}
-                  >
-                    {c.code} ({c.reviews})
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Win / Loss Rating Hero */}
-          <div className="bg-surface rounded-2xl border border-border-strong p-4 shadow-xs space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Community Rating
-              </span>
-              <span className="text-xs font-medium text-muted-foreground">
-                {reviewsCount} {reviewsCount === 1 ? "student review" : "student reviews"}
-              </span>
-            </div>
-
-            <div className="flex items-baseline justify-between">
-              <div className="flex items-center gap-2">
-                <span
-                  className={`text-3xl font-black font-outfit ${
-                    wPct >= 70
-                      ? "text-emerald-500"
-                      : wPct >= 40
-                      ? "text-amber-500"
-                      : "text-red-500"
-                  }`}
-                >
-                  {wPct}%
-                </span>
-                <span className="text-sm font-bold text-text-heading">Win Rate</span>
-              </div>
-              <div className="flex items-center gap-3 text-xs font-bold">
-                <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                  <ThumbsUp className="w-3.5 h-3.5" /> {wCount} W
-                </span>
-                <span className="text-red-500 flex items-center gap-1">
-                  <ThumbsDown className="w-3.5 h-3.5" /> {lCount} L
-                </span>
-              </div>
-            </div>
-
-            {/* Progress split bar */}
-            <div className="w-full h-2.5 rounded-full bg-red-500/20 overflow-hidden flex">
-              <div
-                className="h-full bg-emerald-500 transition-all duration-500"
-                style={{ width: `${wPct}%` }}
-              />
+    <>
+      <BottomSheet
+        onClose={onClose}
+        overlayId="faculty-review-sheet"
+        maxWidth="max-w-xl"
+        panelZIndex={320}
+        backdropZIndex={315}
+        contentClassName="space-y-5"
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3 border-b border-border-strong pb-4">
+          <div className="flex items-center gap-3">
+            <FacultyAvatar
+              employeeId={review?.employeeId || employeeId}
+              name={profileSnapshot?.faculty?.name || review?.name || facultyName}
+              fallbackImageUrl={profileSnapshot?.faculty?.image_url || review?.image_url}
+              size="lg"
+              tone="amber"
+            />
+            <div className="min-w-0">
+              <h3 className="font-bold text-lg text-text-heading leading-tight truncate">
+                {profileSnapshot?.faculty?.name || review?.name || facultyName}
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                {profileSnapshot?.faculty?.designation || review?.designation ? `${profileSnapshot?.faculty?.designation || review?.designation} · ` : ""}
+                {profileSnapshot?.faculty?.school || review?.dept || (employeeId ? `ERP: ${employeeId}` : "Faculty")}
+              </p>
             </div>
           </div>
 
-          {/* 3 Metric Gauges */}
-          <div className="grid grid-cols-3 gap-2.5">
-            <div className="bg-surface rounded-xl border border-border-strong p-3 text-center">
-              <BookOpen className="w-4 h-4 mx-auto mb-1 text-blue-500" />
-              <div className="text-base font-black text-text-heading">
-                {lecture ? lecture.toFixed(1) : "—"}
-                <span className="text-[10px] font-normal text-muted-foreground">/5</span>
-              </div>
-              <div className="text-[10px] font-bold text-muted-foreground uppercase mt-0.5">
-                Lecture
-              </div>
-            </div>
-
-            <div className="bg-surface rounded-xl border border-border-strong p-3 text-center">
-              <FileText className="w-4 h-4 mx-auto mb-1 text-purple-500" />
-              <div className="text-base font-black text-text-heading">
-                {da ? da.toFixed(1) : "—"}
-                <span className="text-[10px] font-normal text-muted-foreground">/5</span>
-              </div>
-              <div className="text-[10px] font-bold text-muted-foreground uppercase mt-0.5">
-                DA Marks
-              </div>
-            </div>
-
-            <div className="bg-surface rounded-xl border border-border-strong p-3 text-center">
-              <Smile className="w-4 h-4 mx-auto mb-1 text-amber-500" />
-              <div className="text-base font-black text-text-heading">
-                {vibe ? vibe.toFixed(1) : "—"}
-                <span className="text-[10px] font-normal text-muted-foreground">/5</span>
-              </div>
-              <div className="text-[10px] font-bold text-muted-foreground uppercase mt-0.5">
-                Vibe
-              </div>
-            </div>
-          </div>
-
-          {/* Green Flags */}
-          {greenLore.length > 0 && (
-            <div className="space-y-1.5">
-              <div className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5" /> Green Flags
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {greenLore.map((item, idx) => (
-                  <span
-                    key={idx}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs font-medium"
-                  >
-                    <span>{item.text}</span>
-                    <span className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-1 rounded text-[10px] font-bold">
-                      +{item.count}
-                    </span>
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Red Flags */}
-          {redLore.length > 0 && (
-            <div className="space-y-1.5">
-              <div className="text-xs font-bold uppercase tracking-wider text-red-500 flex items-center gap-1.5">
-                <AlertTriangle className="w-3.5 h-3.5" /> Red Flags
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {redLore.map((item, idx) => (
-                  <span
-                    key={idx}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-500/10 border border-red-500/20 text-red-700 dark:text-red-300 text-xs font-medium"
-                  >
-                    <span>{item.text}</span>
-                    <span className="bg-red-500/20 text-red-500 px-1 rounded text-[10px] font-bold">
-                      +{item.count}
-                    </span>
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Courses Taught */}
-          {prof.courses && prof.courses.length > 0 && (
-            <div className="space-y-1.5 pt-2 border-t border-border-strong/40">
-              <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                Known Courses
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {prof.courses.map((c) => (
-                  <span
-                    key={c}
-                    className={`px-2 py-0.5 rounded text-[11px] font-mono font-medium border ${
-                      courseCode && c.toUpperCase().includes(courseCode.toUpperCase())
-                        ? "bg-amber-500/20 border-amber-500/40 text-amber-500 font-bold"
-                        : "bg-surface-secondary/40 border-border-strong text-muted-foreground"
-                    }`}
-                  >
-                    {c}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-        </>
-      )}
-
-      {/* Footer attribution & review CTA */}
-      <div className="pt-3 border-t border-border-strong/30 flex flex-col items-center gap-2.5">
-        <a
-          href={profileUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-xs font-bold transition-all shadow-xs"
-        >
-          <ExternalLink className="w-3.5 h-3.5" />
-          <span>Leave a Review for this Faculty on vitfac.pages.dev</span>
-        </a>
-        <div className="text-[10px] text-muted-foreground/70 text-center leading-relaxed">
-          <p>
-            Disclaimer: Ratings and reviews are sourced from a third-party platform (
-            <a
-              href="https://vitfac.pages.dev"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-emerald-600 dark:text-emerald-400 hover:underline font-semibold"
+          <div className="flex items-center gap-2 shrink-0">
+            {ENABLE_VITFAC_INTEGRATION && profileUrl && (
+              <a
+                href={profileUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="View on VIT fac"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold text-amber-500 hover:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 transition-all cursor-pointer"
+              >
+                <span>VIT fac</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            )}
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-text-heading hover:bg-surface-secondary transition-colors"
             >
-              vitfac.pages.dev
-            </a>
-            ). AmazeCC does not create, endorse, or verify these opinions; we provide this integration solely as a viewer for student convenience.
-          </p>
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
-      </div>
-    </BottomSheet>
+
+        {/* Two Review Tracks: Teaching vs Project Guide (Side by Side) */}
+        <div className="flex items-center p-1 bg-surface-secondary/60 rounded-xl border border-border">
+          <button
+            type="button"
+            onClick={() => setActiveTab("teaching")}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              activeTab === "teaching"
+                ? "bg-surface text-text-heading shadow-sm"
+                : "text-muted-foreground hover:text-text-heading"
+            }`}
+          >
+            <BookOpen className="w-3.5 h-3.5 text-amber-500" />
+            <span>Teaching Grade</span>
+            {teachingTrack?.grade !== null && teachingTrack?.grade !== undefined && (
+              <span className="px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-extrabold text-[11px]">
+                {teachingTrack.grade.toFixed(1)}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("project")}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              activeTab === "project"
+                ? "bg-surface text-text-heading shadow-sm"
+                : "text-muted-foreground hover:text-text-heading"
+            }`}
+          >
+            <GraduationCap className="w-3.5 h-3.5 text-indigo-500" />
+            <span>Project Grade</span>
+            {projectTrack?.grade !== null && projectTrack?.grade !== undefined && (
+              <span className="px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-extrabold text-[11px]">
+                {projectTrack.grade.toFixed(1)}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {loadingData ? (
+          <div className="py-12 flex flex-col items-center justify-center gap-2 text-muted-foreground">
+            <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
+            <span className="text-xs">Loading faculty intelligence…</span>
+          </div>
+        ) : isFirstParty && currentTrackData ? (
+          <div className="space-y-5">
+            {/* Headline Grade Banner */}
+            <div className="p-4 rounded-2xl bg-surface-secondary/40 border border-border-strong flex items-center justify-between">
+              <div>
+                <div className="flex items-baseline gap-2">
+                  {currentTrackData.grade !== null ? (
+                    <>
+                      <span className="text-3xl font-extrabold text-text-heading">
+                        {currentTrackData.grade.toFixed(1)}
+                      </span>
+                      <span className="text-xs text-muted-foreground font-semibold">/ 5.0</span>
+                    </>
+                  ) : (
+                    <span className="text-lg font-bold text-muted-foreground">
+                      Not enough reviews yet
+                    </span>
+                  )}
+
+                  {currentTrackData.is_early && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 border border-amber-500/30">
+                      Early Data
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                  <span>{currentTrackData.n_reviews} student reviews</span>
+                  {currentTrackData.n_reviews > 0 && (
+                    <>
+                      <span>·</span>
+                      <span className="flex items-center gap-1 text-emerald-500">
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        <span>
+                          {Math.round((currentTrackData.n_verified / currentTrackData.n_reviews) * 100)}% verified
+                        </span>
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Course Filter (Teaching track only) */}
+              {activeTab === "teaching" && profileSnapshot?.teaching?.courses?.length > 0 && (
+                <div>
+                  <select
+                    value={activeCourseFilter}
+                    onChange={(e) => setActiveCourseFilter(e.target.value)}
+                    className="px-2.5 py-1.5 rounded-xl border border-border-strong bg-surface text-text-heading text-xs font-semibold focus:outline-none"
+                  >
+                    <option value="global">All Courses</option>
+                    {profileSnapshot.teaching.courses.map((c: string) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            {/* Per-Question Averages & Distributions */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                Question Breakdown
+              </h4>
+              <div className="space-y-2">
+                {(activeTab === "teaching" ? TEACHING_CONFIG : PROJECT_CONFIG).qualityQuestions.map((q) => {
+                  const stat = currentTrackData.per_question?.[q.id];
+                  if (!stat) return null;
+                  return (
+                    <div
+                      key={q.id}
+                      className="p-3 rounded-xl border border-border bg-surface flex flex-col gap-1.5"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-xs font-medium text-text-heading leading-tight">
+                          {getComponentQuestion(q.id, q.question, activeTab === "teaching" ? inferredComponent : undefined)}
+                        </span>
+                        <span className="text-xs font-extrabold text-amber-500 shrink-0">
+                          {stat.avg.toFixed(1)} / 5
+                        </span>
+                      </div>
+
+                      {/* 5-bar distribution (only shown if n >= 5) */}
+                      {stat.dist && (
+                        <div className="flex items-center gap-1 pt-1">
+                          {stat.dist.map((cnt: number, idx: number) => {
+                            const total = stat.dist.reduce((a: number, b: number) => a + b, 0);
+                            const pct = total > 0 ? (cnt / total) * 100 : 0;
+                            return (
+                              <div key={idx} className="flex-1 flex flex-col items-center gap-1">
+                                <div className="w-full bg-border-strong rounded-full h-1.5 overflow-hidden">
+                                  <div
+                                    className="bg-amber-500 h-1.5 rounded-full"
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                </div>
+                                <span className="text-[9px] text-muted-foreground">{idx + 1}★</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Style Spectrums */}
+            {Object.keys(currentTrackData.style || {}).length > 0 && (
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <Sliders className="w-3.5 h-3.5" />
+                  <span>Style & Atmosphere (Neutral Spectrum)</span>
+                </h4>
+                <div className="space-y-2.5">
+                  {(activeTab === "teaching" ? TEACHING_CONFIG : PROJECT_CONFIG).styleQuestions.map((s) => {
+                    const stat = currentTrackData.style?.[s.id];
+                    if (!stat) return null;
+                    const pct = Math.max(0, Math.min(100, ((stat.avg - 1) / 4) * 100));
+                    return (
+                      <div key={s.id} className="p-3 rounded-xl border border-border bg-surface space-y-1.5">
+                        <div className="flex items-center justify-between text-xs font-semibold text-text-heading">
+                          <span>{getComponentQuestion(s.id, s.question, activeTab === "teaching" ? inferredComponent : undefined)}</span>
+                          <span className="text-muted-foreground">{stat.avg.toFixed(1)}</span>
+                        </div>
+                        <div className="relative w-full h-2 bg-border-strong rounded-full">
+                          <div
+                            className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-blue-500 border-2 border-white shadow-sm"
+                            style={{ left: `calc(${pct}% - 7px)` }}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                          <span>{s.minAnchor}</span>
+                          {s.midAnchor && <span>{s.midAnchor}</span>}
+                          <span>{s.maxAnchor}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Top Student Tags */}
+            {((currentTrackData.top_tags_green && currentTrackData.top_tags_green.length > 0) ||
+              (currentTrackData.top_tags_red && currentTrackData.top_tags_red.length > 0)) && (
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <Tag className="w-3.5 h-3.5" />
+                  <span>Student Observations (Top Tags)</span>
+                </h4>
+                <div className="space-y-2">
+                  {currentTrackData.top_tags_green?.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {currentTrackData.top_tags_green.map((t: any) => (
+                        <span
+                          key={t.tag}
+                          className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1"
+                        >
+                          <span>{t.tag}</span>
+                          <span className="text-[10px] opacity-70">+{t.count}</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {currentTrackData.top_tags_red?.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {currentTrackData.top_tags_red.map((t: any) => (
+                        <span
+                          key={t.tag}
+                          className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/30 flex items-center gap-1"
+                        >
+                          <span>{t.tag}</span>
+                          <span className="text-[10px] opacity-70">+{t.count}</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          /* Legacy Vitfac Fallback State */
+          <div className="space-y-4">
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-600 dark:text-amber-400 flex items-center justify-between">
+              <span>Legacy vitfac data</span>
+              <span className="font-bold">{legacyReviews} reviews</span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-surface-secondary/40 border border-border-strong flex items-center justify-between">
+              <div>
+                <span className="text-3xl font-extrabold text-text-heading">{legacyWPct}%</span>
+                <span className="text-xs font-semibold text-muted-foreground ml-1.5">Win Rate</span>
+                <p className="text-xs text-muted-foreground mt-0.5">{legacyReviews} total reviews on vitfac</p>
+              </div>
+              <a
+                href={profileUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-1.5 rounded-xl border border-border-strong bg-surface hover:bg-surface-secondary text-xs font-semibold text-text-heading flex items-center gap-1.5 transition-colors"
+              >
+                <span>View on vitfac</span>
+                <ExternalLink className="w-3 h-3 text-muted-foreground" />
+              </a>
+            </div>
+
+            <div className="text-center py-3 text-xs text-muted-foreground italic">
+              Verified students who have studied under this faculty can submit reviews from the Write Reviews tab.
+            </div>
+          </div>
+        )}
+
+        {/* Legal and Privacy Disclaimer */}
+        <p className="text-[11px] text-muted-foreground text-center border-t border-border pt-4 leading-relaxed">
+          Disclaimer: Anonymous student opinions, aggregated. AmazeCC does not endorse or independently verify these submissions; this system provides peer transparency to assist course planning.
+        </p>
+      </BottomSheet>
+    </>
   );
 }

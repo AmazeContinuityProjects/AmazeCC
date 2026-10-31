@@ -22,6 +22,8 @@ export interface VitfacMetrics {
 export interface VitfacFaculty {
   id: string; // Base64 encoded employeeId e.g. "MTAwOTA="
   employeeId?: string; // Decoded employeeId e.g. "10090"
+  vitfac_id?: string | null;
+  vitfacId?: string | null;
   name: string;
   designation?: string;
   dept?: string;
@@ -125,6 +127,17 @@ function notifyListeners() {
       fn();
     } catch {}
   });
+}
+
+export function resetVitfacCatalogForTesting() {
+  catalogPromise = null;
+  byEmployeeId = new Map();
+  byNormalizedName = new Map();
+  isCatalogLoaded = false;
+  try {
+    safeSessionStorage.removeItem(VITFAC_CACHE_KEY);
+    safeSessionStorage.removeItem(VITFAC_CACHE_TIMESTAMP_KEY);
+  } catch {}
 }
 
 function indexCatalog(list: VitfacFaculty[]) {
@@ -304,16 +317,118 @@ export function updateFacultyInCatalog(updatedProf: VitfacFaculty) {
 }
 
 /**
+ * Target descriptor for resolving vitfac profiles.
+ */
+export type VitfacProfileTarget =
+  | string
+  | {
+      employeeId?: string | null;
+      vitfac_id?: string | null;
+      vitfacId?: string | null;
+      name?: string | null;
+      id?: string | null;
+    }
+  | null
+  | undefined;
+
+/**
+ * Validates if a string is a valid base64 vitfac employee id.
+ */
+export function isValidVitfacBase64(str: string): boolean {
+  if (!str || typeof str !== "string") return false;
+  const clean = str.trim();
+  if (clean.includes("-") || clean.length > 32) return false;
+  if (!/^[A-Za-z0-9+/=]+$/.test(clean)) return false;
+  const decoded = decodeVitfacId(clean);
+  return /^\d+$/.test(decoded);
+}
+
+/**
+ * Resolves a faculty target to their valid vitfac base64 profile id.
+ * Guaranteed to NEVER return internal database UUIDs.
+ */
+export function resolveVitfacId(target?: VitfacProfileTarget): string | null {
+  if (!target) return null;
+
+  let empId: string | null = null;
+  let b64Id: string | null = null;
+
+  if (typeof target === "object") {
+    const rawEmp = target.employeeId ? String(target.employeeId).trim() : "";
+    if (/^\d+$/.test(rawEmp)) {
+      empId = rawEmp;
+    }
+
+    const rawVitfac = (target.vitfac_id || target.vitfacId || "").trim();
+    if (!empId && rawVitfac && isValidVitfacBase64(rawVitfac)) {
+      b64Id = rawVitfac;
+    }
+
+    if (!empId && !b64Id && target.name) {
+      const match = getFacultyReview({ name: target.name });
+      if (match?.employeeId && /^\d+$/.test(match.employeeId.trim())) {
+        empId = match.employeeId.trim();
+      } else if (match?.id && isValidVitfacBase64(match.id)) {
+        b64Id = match.id.trim();
+      }
+    }
+
+    if (!empId && !b64Id && target.id) {
+      const cleanId = String(target.id).trim();
+      if (/^\d+$/.test(cleanId)) {
+        empId = cleanId;
+      } else if (isValidVitfacBase64(cleanId)) {
+        b64Id = cleanId;
+      } else {
+        const match = getFacultyReview({ employeeId: cleanId });
+        if (match?.employeeId && /^\d+$/.test(match.employeeId.trim())) {
+          empId = match.employeeId.trim();
+        } else if (match?.id && isValidVitfacBase64(match.id)) {
+          b64Id = match.id.trim();
+        }
+      }
+    }
+  } else if (typeof target === "string") {
+    const trimmed = target.trim();
+    if (!trimmed) return null;
+
+    if (/^\d+$/.test(trimmed)) {
+      empId = trimmed;
+    } else if (isValidVitfacBase64(trimmed)) {
+      b64Id = trimmed;
+    } else if (trimmed.includes("-") || /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(trimmed)) {
+      const match = getFacultyReview({ employeeId: trimmed });
+      if (match?.employeeId && /^\d+$/.test(match.employeeId.trim())) {
+        empId = match.employeeId.trim();
+      } else if (match?.id && isValidVitfacBase64(match.id)) {
+        b64Id = match.id.trim();
+      }
+    } else {
+      const match = getFacultyReview({ name: trimmed });
+      if (match?.employeeId && /^\d+$/.test(match.employeeId.trim())) {
+        empId = match.employeeId.trim();
+      } else if (match?.id && isValidVitfacBase64(match.id)) {
+        b64Id = match.id.trim();
+      }
+    }
+  }
+
+  if (empId) {
+    return encodeVitfacId(empId);
+  }
+  return b64Id;
+}
+
+/**
  * Fetch detailed profile bundle for a specific professor.
  */
 export async function getFacultyProfileBundle(
-  idOrEmpId: string
+  idOrEmpIdOrTarget: VitfacProfileTarget
 ): Promise<VitfacProfileBundle | null> {
-  if (!ENABLE_VITFAC_INTEGRATION) return null;
+  if (!ENABLE_VITFAC_INTEGRATION || !idOrEmpIdOrTarget) return null;
 
-  const b64Id = /^[0-9]+$/.test(idOrEmpId.trim())
-    ? encodeVitfacId(idOrEmpId.trim())
-    : idOrEmpId.trim();
+  const b64Id = resolveVitfacId(idOrEmpIdOrTarget);
+  if (!b64Id) return null;
 
   try {
     const res = await fetch(`${VITFAC_WORKER_BASE}/profile/${encodeURIComponent(b64Id)}`);
@@ -341,12 +456,12 @@ export async function getFacultyProfileBundle(
 
 /**
  * Generates external profile URL to vitfac.pages.dev.
+ * Guaranteed to NEVER output raw database UUIDs.
  */
-export function getVitfacProfileUrl(idOrEmpId: string): string {
-  const b64Id = /^[0-9]+$/.test(idOrEmpId.trim())
-    ? encodeVitfacId(idOrEmpId.trim())
-    : idOrEmpId.trim();
-  return `https://vitfac.pages.dev/profile?id=${encodeURIComponent(b64Id)}`;
+export function getVitfacProfileUrl(target?: VitfacProfileTarget): string {
+  const b64 = resolveVitfacId(target);
+  if (!b64) return "https://vitfac.pages.dev";
+  return `https://vitfac.pages.dev/profile?id=${encodeURIComponent(b64)}`;
 }
 
 /**
