@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   aggregateTrackReviews,
   buildFacultyProfileSnapshot,
@@ -149,6 +149,25 @@ describe("Worker Aggregation Engine & Diffing", () => {
     const res2 = await runAggregationAndSnapshotSync(store, [sampleFaculty], reviews);
     expect(res2.writtenKeys.length).toBe(0);
     expect(res2.skippedKeys.length).toBeGreaterThan(0);
+  });
+
+  it("still performs zero writes one cron interval (10 min) later when no data changed", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-11-02T10:00:00.000Z"));
+      const reviews = [
+        createSampleReview({ id: "r-a", created_at: "2026-10-01T09:00:00.000Z" }),
+        createSampleReview({ id: "r-b", student_hash: "s-b", verified: false, created_at: "2026-09-10T09:00:00.000Z" }),
+      ];
+      const res1 = await runAggregationAndSnapshotSync(store, [sampleFaculty], reviews);
+      expect(res1.writtenKeys.length).toBeGreaterThan(0);
+
+      vi.setSystemTime(new Date("2026-11-02T10:10:00.000Z"));
+      const res2 = await runAggregationAndSnapshotSync(store, [sampleFaculty], reviews);
+      expect(res2.writtenKeys).toEqual([]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("writes ONLY the changed profile snapshot and catalog when 1 profile updates", async () => {
