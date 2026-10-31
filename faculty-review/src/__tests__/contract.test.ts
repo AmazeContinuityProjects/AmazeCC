@@ -25,6 +25,7 @@ describe("Cloudflare Worker Shared Schemas & Contract Specification", () => {
     mockEnv = {
       SNAPSHOT_STORE: "memory",
       READ_ONLY_MODE: "false",
+      ENABLE_AMAZE_REVIEWS: "true",
       MAX_KV_WRITES_PER_RUN: "50",
       SUPABASE_URL: "https://test.supabase.co",
       REVIEWS_INGEST_SECRET: "test-secret-1234567890",

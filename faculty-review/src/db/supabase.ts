@@ -7,7 +7,13 @@ export class SupabaseClient {
 
   constructor(env: Env) {
     this.url = env.SUPABASE_URL.replace(/\/$/, "");
-    this.key = env.SUPABASE_SECRET_KEY || env.SUPABASE_PUBLISHABLE_KEY || "";
+    // Prefer the canonical service-role key name; fall back to legacy names so
+    // environments provisioned before the rename keep working until rotated.
+    this.key =
+      env.SUPABASE_SERVICE_ROLE_KEY ||
+      env.SUPABASE_SECRET_KEY ||
+      env.SUPABASE_PUBLISHABLE_KEY ||
+      "";
   }
 
   private headers(prefer?: string): HeadersInit {

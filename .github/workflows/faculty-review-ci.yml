@@ -1,0 +1,58 @@
+name: faculty-review-ci
+
+# CI for the Cloudflare Worker subdirectory (AmazeCC/faculty-review).
+# Runs on PRs and pushes that touch the worker subtree.
+
+on:
+  pull_request:
+    paths:
+      - "faculty-review/**"
+      - ".github/workflows/faculty-review-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "faculty-review/**"
+      - ".github/workflows/faculty-review-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: faculty-review-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  worker:
+    name: Worker — Typecheck · Test · Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: faculty-review/pnpm-lock.yaml
+
+      - name: Install (frozen lockfile)
+        run: pnpm --dir faculty-review install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm --dir faculty-review typecheck
+
+      - name: Tests
+        run: pnpm --dir faculty-review test
+
+      # Pattern-based secret scan; gitleaks/trufflehog can be added later.
+      # Fails on private keys or 64-hex-char values in code/config.
+      - name: Secrets scan
+        run: |
+          set -e
+          if grep -rInE "BEGIN (OPENSSH |RSA |EC )?PRIVATE KEY" faculty-review/src; then exit 1; fi
+          if grep -rInE "[A-Fa-f0-9]{64}" faculty-review/src faculty-review/wrangler.jsonc; then exit 1; fi
+          echo "No secret patterns found"

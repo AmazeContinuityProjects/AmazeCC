@@ -6,12 +6,32 @@
   "vars": {
     "SNAPSHOT_STORE": "kv",
     "READ_ONLY_MODE": "false",
-    "MAX_KV_WRITES_PER_RUN": "50"
+    "ENABLE_AMAZE_REVIEWS": "false",
+    "MAX_KV_WRITES_PER_RUN": "200",
+    "VITFAC_ENABLED": "true"
   },
   "kv_namespaces": [
     {
+      "binding": "AMAZE_REVIEWS_KV",
+      "id": "amazecc-reviews-snapshots-local",
+      "preview_id": "amazecc-reviews-snapshots-preview"
+    },
+    {
       "binding": "REVIEWS_SNAPSHOTS",
-      "id": "amazecc-reviews-snapshots-local"
+      "id": "amazecc-reviews-snapshots-local",
+      "preview_id": "amazecc-reviews-snapshots-preview"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "AMAZE_REVIEWS_R2",
+      "bucket_name": "amazecc-faculty-reviews",
+      "preview_bucket_name": "amazecc-faculty-reviews-preview"
+    },
+    {
+      "binding": "SNAPSHOT_BUCKET",
+      "bucket_name": "amazecc-faculty-reviews",
+      "preview_bucket_name": "amazecc-faculty-reviews-preview"
     }
   ],
   "queues": {
@@ -26,7 +46,8 @@
         "queue": "amazecc-reviews-queue",
         "max_batch_size": 25,
         "max_batch_timeout": 10,
-        "max_retries": 3
+        "max_retries": 3,
+        "dead_letter_queue": "amazecc-reviews-dlq"
       }
     ]
   },
@@ -34,5 +55,127 @@
     "crons": [
       "*/10 * * * *"
     ]
+  },
+  "env": {
+    "staging": {
+      "name": "amazecc-reviews-worker-staging",
+      "routes": [
+        {
+          "pattern": "reviews-api-staging.amazecc.com",
+          "custom_domain": true
+        }
+      ],
+      "vars": {
+        "SNAPSHOT_STORE": "kv",
+        "READ_ONLY_MODE": "false",
+        "ENABLE_AMAZE_REVIEWS": "false",
+        "MAX_KV_WRITES_PER_RUN": "200",
+        "VITFAC_ENABLED": "true"
+      },
+      "kv_namespaces": [
+        {
+          "binding": "AMAZE_REVIEWS_KV",
+          "id": "REPLACE_WITH_STAGING_KV_ID",
+          "preview_id": "REPLACE_WITH_STAGING_PREVIEW_KV_ID"
+        },
+        {
+          "binding": "REVIEWS_SNAPSHOTS",
+          "id": "REPLACE_WITH_STAGING_KV_ID",
+          "preview_id": "REPLACE_WITH_STAGING_PREVIEW_KV_ID"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "AMAZE_REVIEWS_R2",
+          "bucket_name": "amazecc-faculty-reviews-staging"
+        },
+        {
+          "binding": "SNAPSHOT_BUCKET",
+          "bucket_name": "amazecc-faculty-reviews-staging"
+        }
+      ],
+      "queues": {
+        "producers": [
+          {
+            "queue": "amazecc-reviews-queue-staging",
+            "binding": "amazecc_reviews_queue"
+          }
+        ],
+        "consumers": [
+          {
+            "queue": "amazecc-reviews-queue-staging",
+            "max_batch_size": 25,
+            "max_batch_timeout": 10,
+            "max_retries": 3,
+            "dead_letter_queue": "amazecc-reviews-dlq-staging"
+          }
+        ]
+      },
+      "triggers": {
+        "crons": [
+          "*/10 * * * *"
+        ]
+      }
+    },
+    "production": {
+      "name": "amazecc-reviews-worker",
+      "routes": [
+        {
+          "pattern": "reviews-api.amazecc.com",
+          "custom_domain": true
+        }
+      ],
+      "vars": {
+        "SNAPSHOT_STORE": "kv",
+        "READ_ONLY_MODE": "false",
+        "ENABLE_AMAZE_REVIEWS": "false",
+        "MAX_KV_WRITES_PER_RUN": "200",
+        "VITFAC_ENABLED": "true"
+      },
+      "kv_namespaces": [
+        {
+          "binding": "AMAZE_REVIEWS_KV",
+          "id": "REPLACE_WITH_PRODUCTION_KV_ID",
+          "preview_id": "REPLACE_WITH_PRODUCTION_PREVIEW_KV_ID"
+        },
+        {
+          "binding": "REVIEWS_SNAPSHOTS",
+          "id": "REPLACE_WITH_PRODUCTION_KV_ID",
+          "preview_id": "REPLACE_WITH_PRODUCTION_PREVIEW_KV_ID"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "AMAZE_REVIEWS_R2",
+          "bucket_name": "amazecc-faculty-reviews"
+        },
+        {
+          "binding": "SNAPSHOT_BUCKET",
+          "bucket_name": "amazecc-faculty-reviews"
+        }
+      ],
+      "queues": {
+        "producers": [
+          {
+            "queue": "amazecc-reviews-queue",
+            "binding": "amazecc_reviews_queue"
+          }
+        ],
+        "consumers": [
+          {
+            "queue": "amazecc-reviews-queue",
+            "max_batch_size": 25,
+            "max_batch_timeout": 10,
+            "max_retries": 3,
+            "dead_letter_queue": "amazecc-reviews-dlq"
+          }
+        ]
+      },
+      "triggers": {
+        "crons": [
+          "*/10 * * * *"
+        ]
+      }
+    }
   }
 }

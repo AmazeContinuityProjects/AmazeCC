@@ -12,6 +12,7 @@ describe("Cloudflare Worker Handlers", () => {
     mockEnv = {
       SNAPSHOT_STORE: "memory",
       READ_ONLY_MODE: "false",
+      ENABLE_AMAZE_REVIEWS: "true",
       MAX_KV_WRITES_PER_RUN: "50",
       SUPABASE_URL: "https://test.supabase.co",
       REVIEWS_INGEST_SECRET: "test-secret-1234567890",
@@ -236,4 +237,153 @@ describe("Cloudflare Worker Handlers", () => {
     const res = await worker.fetch(req, mockEnv, {} as ExecutionContext);
     expect(res.status).toBe(401);
   });
+
+  it("gates /internal/ingest with 503 when ENABLE_AMAZE_REVIEWS is not 'true'", async () => {
+    const { sign } = await createSigner(mockEnv.REVIEWS_INGEST_SECRET);
+    const rawBody = JSON.stringify(makeMinimalPayload());
+    const timestamp = Date.now().toString();
+    const req = new Request("http://localhost/internal/ingest", {
+      method: "POST",
+      headers: { "x-timestamp": timestamp, "x-signature": await sign(`${timestamp}.${rawBody}`) },
+      body: rawBody,
+    });
+    const res = await worker.fetch(req, { ...mockEnv, ENABLE_AMAZE_REVIEWS: "false" }, {} as ExecutionContext);
+    expect(res.status).toBe(503);
+  });
+
+  it("gates public reads with 503 when the feature flag is off", async () => {
+    const res = await worker.fetch(
+      new Request("http://localhost/api/reviews/catalog"),
+      { ...mockEnv, ENABLE_AMAZE_REVIEWS: "false" } as Env,
+      {} as ExecutionContext
+    );
+    expect(res.status).toBe(503);
+    const data = (await res.json()) as { error: string };
+    expect(data.error).toContain("currently");
+  });
+
+  it("gates /internal/recompute with 503 when the feature flag is off", async () => {
+    const { sign } = await createSigner(mockEnv.REVIEWS_INGEST_SECRET);
+    const timestamp = Date.now().toString();
+    const req = new Request("http://localhost/internal/recompute", {
+      method: "POST",
+      headers: { "x-timestamp": timestamp, "x-signature": await sign(`${timestamp}.`) },
+      body: "",
+    });
+    const res = await worker.fetch(req, { ...mockEnv, ENABLE_AMAZE_REVIEWS: "false" }, {} as ExecutionContext);
+    expect(res.status).toBe(503);
+  });
+
+  it("rejects ingest with 503 when READ_ONLY_MODE is on, even signed", async () => {
+    const { sign } = await createSigner(mockEnv.REVIEWS_INGEST_SECRET);
+    const rawBody = JSON.stringify(makeMinimalPayload());
+    const timestamp = Date.now().toString();
+    const req = new Request("http://localhost/internal/ingest", {
+      method: "POST",
+      headers: { "x-timestamp": timestamp, "x-signature": await sign(`${timestamp}.${rawBody}`) },
+      body: rawBody,
+    });
+    const res = await worker.fetch(
+      req,
+      { ...mockEnv, ENABLE_AMAZE_REVIEWS: "true", READ_ONLY_MODE: "true" } as Env,
+      {} as ExecutionContext
+    );
+    expect(res.status).toBe(503);
+    const data = (await res.json()) as { error: string };
+    expect(data.error).toContain("read-only");
+  });
+
+  it("emits security headers on all responses", async () => {
+    const res = await worker.fetch(new Request("http://localhost/api/reviews/catalog"), mockEnv, {} as ExecutionContext);
+    expect(res.headers.get("X-Content-Type-Options")).toBe("nosniff");
+    expect(res.headers.get("X-Frame-Options")).toBe("DENY");
+    expect(res.headers.get("Referrer-Policy")).toBe("strict-origin-when-cross-origin");
+  });
+
+  it("does not leak stack traces on unknown routes and returns 404", async () => {
+    const res = await worker.fetch(new Request("http://localhost/nope"), mockEnv, {} as ExecutionContext);
+    expect(res.status).toBe(404);
+    const data = (await res.json()) as { error: string };
+    expect(data.error).toBe("Not found");
+  });
+
+  describe("CORS allowlist", () => {
+    it("echoes allowlisted production origins", async () => {
+      const req = new Request("http://localhost/api/reviews/catalog", {
+        headers: { Origin: "https://amazecc.com" },
+      });
+      const res = await worker.fetch(req, mockEnv, {} as ExecutionContext);
+      expect(res.headers.get("Access-Control-Allow-Origin")).toBe("https://amazecc.com");
+    });
+
+    it("allows localhost origins for local development only", async () => {
+      const req = new Request("http://localhost/api/reviews/catalog", {
+        headers: { Origin: "http://localhost:3000" },
+      });
+      const res = await worker.fetch(req, mockEnv, {} as ExecutionContext);
+      expect(res.headers.get("Access-Control-Allow-Origin")).toBe("http://localhost:3000");
+    });
+
+    it("omits Access-Control-Allow-Origin for non-allowlisted origins", async () => {
+      const req = new Request("http://localhost/api/reviews/catalog", {
+        headers: { Origin: "https://evil.example.com" },
+      });
+      const res = await worker.fetch(req, mockEnv, {} as ExecutionContext);
+      expect(res.headers.get("Access-Control-Allow-Origin")).toBeNull();
+    });
+
+    it("honours extra origins from ALLOWED_ORIGINS", async () => {
+      const req = new Request("http://localhost/api/reviews/catalog", {
+        headers: { Origin: "https://staging.amazecc.com" },
+      });
+      const res = await worker.fetch(
+        req,
+        { ...mockEnv, ALLOWED_ORIGINS: "https://staging.amazecc.com" } as Env,
+        {} as ExecutionContext
+      );
+      expect(res.headers.get("Access-Control-Allow-Origin")).toBe("https://staging.amazecc.com");
+    });
+  });
+
+  describe("feature flag independence", () => {
+    it("keeps reads/serving decoupled from READ_ONLY_MODE", async () => {
+      const res = await worker.fetch(
+        new Request("http://localhost/api/reviews/catalog"),
+        { ...mockEnv, ENABLE_AMAZE_REVIEWS: "true", READ_ONLY_MODE: "true" } as Env,
+        {} as ExecutionContext
+      );
+      expect(res.status).toBe(200);
+    });
+  });
 });
+
+/* ------- small helpers shared by the tests above ------- */
+
+function makeMinimalPayload() {
+  return {
+    schemaVersion: "1.0.0",
+    idempotencyKey: "flag-test-key",
+    student_hash: "student_hash_flagtest",
+    faculty_id: "f-123",
+    track: "teaching" as const,
+    verified: true,
+    answers: { T_CLARITY: 4 },
+    tags_green: [],
+    tags_red: [],
+    context: {},
+    timestamp: Date.now(),
+  };
+}
+
+async function createSigner(secret: string) {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return {
+    async sign(message: string): Promise<string> {
+      const mac = await crypto.subtle.sign("HMAC", key, enc.encode(message));
+      return Array.from(new Uint8Array(mac))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+    },
+  };
+}

@@ -1,18 +1,31 @@
 export interface Env {
   // Bindings
-  REVIEWS_SNAPSHOTS: KVNamespace;
-  amazecc_reviews_queue: Queue<ReviewSubmissionMessage>;
+  REVIEWS_SNAPSHOTS?: KVNamespace;
+  AMAZE_REVIEWS_KV?: KVNamespace;
+  AMAZE_REVIEWS_R2?: R2Bucket;
+  SNAPSHOT_BUCKET?: R2Bucket;
+  REVIEWS_BUCKET?: R2Bucket;
+  amazecc_reviews_queue?: Queue<ReviewSubmissionMessage>;
+  REVIEWS_QUEUE?: Queue<ReviewSubmissionMessage>;
 
   // Variables
-  SNAPSHOT_STORE?: string; // "kv" | "memory" | "r2"
+  SNAPSHOT_STORE?: string; // "kv" (default) | "r2" | "memory"
   READ_ONLY_MODE?: string; // "true" | "false"
-  MAX_KV_WRITES_PER_RUN?: string; // default "50"
+  ENABLE_AMAZE_REVIEWS?: string; // "true" | "false" (default OFF)
+  MAX_KV_WRITES_PER_RUN?: string; // default "200"
+  VITFAC_ENABLED?: string; // "true" | "false"
+  // Comma-separated CORS allowlist, e.g. "https://amazecc.com,https://www.amazecc.com"
+  ALLOWED_ORIGINS?: string;
 
   // Secrets (.dev.vars or wrangler secret)
   SUPABASE_URL: string;
-  SUPABASE_PUBLISHABLE_KEY?: string;
+  // Preferred name for the privileged Supabase key (service role).
+  SUPABASE_SERVICE_ROLE_KEY?: string;
+  // Legacy names kept for backward compatibility; migrate to SUPABASE_SERVICE_ROLE_KEY.
   SUPABASE_SECRET_KEY?: string;
+  SUPABASE_PUBLISHABLE_KEY?: string;
   REVIEWS_INGEST_SECRET: string;
+  REVIEWS_INGEST_SECRET_PREVIOUS?: string; // Dual-secret acceptance window
 }
 
 export interface ReviewSubmissionMessage {
