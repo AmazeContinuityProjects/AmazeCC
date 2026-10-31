@@ -38,7 +38,7 @@ jobs:
         run: pnpm --dir faculty-review test
 
       - name: Deploy to staging
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@v4
         with:
           workingDirectory: faculty-review
           command: deploy --env staging
