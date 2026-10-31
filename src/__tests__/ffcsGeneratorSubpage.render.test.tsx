@@ -64,9 +64,7 @@ const declaredSlotIds = (): string[] => {
 };
 
 const collide = (a: SlotPeriod[], b: SlotPeriod[]): boolean =>
-  a.some((x) =>
-    b.some((y) => x.day === y.day && Math.max(x.startMin, y.startMin) < Math.min(x.endMin, y.endMin))
-  );
+  a.some((x) => b.some((y) => x.day === y.day && Math.max(x.startMin, y.startMin) < Math.min(x.endMin, y.endMin)));
 
 const nonClashingSlots = (count: number): string[] => {
   const chosen: string[] = [];
@@ -123,8 +121,7 @@ const props = (over: Partial<FFCSGeneratorSubpageProps> = {}): FFCSGeneratorSubp
   ...over,
 });
 
-const generateButton = () =>
-  screen.getAllByRole("button", { name: /generate timetables/i })[0] as HTMLButtonElement;
+const generateButton = () => screen.getAllByRole("button", { name: /generate timetables/i })[0] as HTMLButtonElement;
 
 /**
  * The target-course row's checkbox, without an accessible name of its own.
@@ -134,14 +131,13 @@ const generateButton = () =>
  * mode also repeats selected codes in the summary pane, so we take the row
  * that owns a checkbox.
  */
-const courseCheckbox = () =>
-  {
-    const row = screen
-      .getAllByText("BCSE101")
-      .map((node) => node.closest("label"))
-      .find((label) => label?.querySelector("input[type='checkbox']"));
-    return (row?.querySelector("input[type='checkbox']") ?? null) as HTMLInputElement | null;
-  };
+const courseCheckbox = () => {
+  const row = screen
+    .getAllByText("BCSE101")
+    .map((node) => node.closest("label"))
+    .find((label) => label?.querySelector("input[type='checkbox']"));
+  return (row?.querySelector("input[type='checkbox']") ?? null) as HTMLInputElement | null;
+};
 
 describe("FFCSGeneratorSubpage", () => {
   afterEach(async () => {
@@ -183,10 +179,10 @@ describe("FFCSGeneratorSubpage", () => {
     const { container } = render(<FFCSGeneratorSubpage {...props()} />);
 
     const shell = Array.from(container.querySelectorAll("div")).find((element) =>
-      element.className.includes("!max-w-none")
+      element.className.includes("!max-w-none"),
     );
     const contentGrid = Array.from(container.querySelectorAll("div")).find((element) =>
-      element.className.includes("minmax(220px,0.8fr)")
+      element.className.includes("minmax(220px,0.8fr)"),
     );
 
     expect(shell).toBeDefined();
@@ -218,12 +214,12 @@ describe("FFCSGeneratorSubpage", () => {
         observe(target: Element) {
           this.callback(
             [{ target, contentRect: { width: 324 } } as ResizeObserverEntry],
-            this as unknown as ResizeObserver
+            this as unknown as ResizeObserver,
           );
         }
         unobserve() {}
         disconnect() {}
-      }
+      },
     );
 
     render(<FFCSGeneratorSubpage {...props()} />);
@@ -235,9 +231,7 @@ describe("FFCSGeneratorSubpage", () => {
     const carousel = await within(strip).findByRole("region", {
       name: "More generator statistics",
     });
-    expect(carousel.textContent).toMatch(
-      /Target courses|Blocked slots|Friend matches|Options found/
-    );
+    expect(carousel.textContent).toMatch(/Target courses|Blocked slots|Friend matches|Options found/);
   });
 
   it("lets users re-rank factors and override boundary filters before generating", () => {
@@ -256,22 +250,12 @@ describe("FFCSGeneratorSubpage", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: /^250$/ }));
 
-    expect(screen.getByRole("switch", { name: "Time with friends enabled" }).getAttribute("aria-checked")).toBe("false");
-    expect(screen.getByRole("spinbutton", { name: "Minimum Overall W %" })).toHaveProperty(
-      "value",
-      "80"
+    expect(screen.getByRole("switch", { name: "Time with friends enabled" }).getAttribute("aria-checked")).toBe(
+      "false",
     );
+    expect(screen.getByRole("spinbutton", { name: "Minimum Overall W %" })).toHaveProperty("value", "80");
     expect(loadSessionPreferences()).toMatchObject({
-      rankingFactorOrder: [
-        "gaps",
-        "halfdays",
-        "faculty",
-        "balancedLoad",
-        "social",
-        "earlyFinish",
-        "lateStart",
-        "time",
-      ],
+      rankingFactorOrder: ["gaps", "halfdays", "faculty", "balancedLoad", "social", "earlyFinish", "lateStart", "time"],
       rankingFactorDisabled: ["social"],
       facultyMetricOrder: ["wPct", "da", "lecture", "vibe"],
       facultyMetricWeights: { da: 4 },
@@ -287,7 +271,7 @@ describe("FFCSGeneratorSubpage", () => {
           theoryPeriods: chennai.theory,
           labPeriods: chennai.lab,
         })}
-      />
+      />,
     );
 
     expect(screen.queryByLabelText("Min Start Time")).toBeNull();
@@ -366,7 +350,7 @@ describe("FFCSGeneratorSubpage", () => {
           courseLocks: [courseLock("BCSE101")],
           generatorDisplayCourses: [{ code: "BCSE101", title: "Structured Programming", types: [] as string[] }],
         })}
-      />
+      />,
     );
 
     // The locked course arrives already ticked, and the counter says where
@@ -394,7 +378,7 @@ describe("FFCSGeneratorSubpage", () => {
       const code = `BCSE4${courseIndex}0`;
       for (let slotIndex = 0; slotIndex < 3; slotIndex++) {
         masterCourses.push(
-          courseRow(code, pool[courseIndex * 3 + slotIndex], `AB1-${100 + courseIndex * 3 + slotIndex}`)
+          courseRow(code, pool[courseIndex * 3 + slotIndex], `AB1-${100 + courseIndex * 3 + slotIndex}`),
         );
       }
       return courseLock(code);
@@ -441,9 +425,7 @@ describe("FFCSGeneratorSubpage", () => {
   }, 20_000);
 
   it("shows the run's own message on the screen that produced it", () => {
-    render(
-      <FFCSGeneratorSubpage {...props({ successMsg: "Found 12 unique timetables" })} />
-    );
+    render(<FFCSGeneratorSubpage {...props({ successMsg: "Found 12 unique timetables" })} />);
 
     expect(document.body.textContent).toContain("Found 12 unique timetables");
   });
@@ -455,12 +437,10 @@ describe("FFCSGeneratorSubpage", () => {
           error: "Could not generate any conflict-free timetables from the selected options.",
           successMsg: "Found 12 unique timetables",
         })}
-      />
+      />,
     );
 
-    expect(document.body.textContent).toContain(
-      "Could not generate any conflict-free timetables"
-    );
+    expect(document.body.textContent).toContain("Could not generate any conflict-free timetables");
     expect(document.body.textContent).not.toContain("Found 12 unique timetables");
   });
 
@@ -487,12 +467,9 @@ describe("FFCSGeneratorSubpage", () => {
       <FFCSGeneratorSubpage
         {...props({
           courseLocks: [],
-          semesterReportCourses: [
-            courseRow("BCSE101", "A1", "A-101"),
-            courseRow("BCSE101", "B1", "B-102"),
-          ],
+          semesterReportCourses: [courseRow("BCSE101", "A1", "A-101"), courseRow("BCSE101", "B1", "B-102")],
         })}
-      />
+      />,
     );
 
     expect(screen.getByRole("region", { name: "Autogenerator target courses" })).toBeDefined();
@@ -560,14 +537,11 @@ describe("FFCSGeneratorSubpage", () => {
     expect(screen.getAllByText(/free half-days$/).length).toBeGreaterThan(0);
     const detailedMetrics = screen.getAllByText("Free Half-Days")[0].parentElement?.parentElement;
     expect(detailedMetrics?.className).toContain("hidden sm:grid");
-    expect(screen.getByRole("button", { name: /Back to Options/ }).className).toContain(
-      "hidden sm:flex"
-    );
+    expect(screen.getByRole("button", { name: /Back to Options/ }).className).toContain("hidden sm:flex");
     expect(
-      screen.getByRole("button", { name: "Discard all generated timetables" }).querySelector("svg")
+      screen.getByRole("button", { name: "Discard all generated timetables" }).querySelector("svg"),
     ).not.toBeNull();
-    expect(screen.getByRole("button", { name: /Save \d+ selected timetables/ }).querySelector("svg"))
-      .not.toBeNull();
+    expect(screen.getByRole("button", { name: /Save \d+ selected timetables/ }).querySelector("svg")).not.toBeNull();
     expect(screen.getByRole("button", { name: "Preview Option 1" })).toBeDefined();
     expect(screen.getAllByRole("button", { name: "Compare" }).length).toBeGreaterThan(1);
     fireEvent.click(screen.getByRole("button", { name: "Preview Option 1" }));
@@ -643,18 +617,14 @@ describe("FFCSGeneratorSubpage", () => {
       <FFCSGeneratorSubpage
         {...props({
           courseLocks: [courseLock("BCSE101")],
-          generatorDisplayCourses: [
-            { code: "BCSE101", title: "Structured Programming", types: [] as string[] },
-          ],
+          generatorDisplayCourses: [{ code: "BCSE101", title: "Structured Programming", types: [] as string[] }],
         })}
-      />
+      />,
     );
 
     // The column wrappers are the grid children; their contents carry the ids.
-    const coursesColumn = () =>
-      document.getElementById("generator-target-courses")?.parentElement as HTMLElement;
-    const rightColumn = () =>
-      document.getElementById("generator-preferences")?.parentElement as HTMLElement;
+    const coursesColumn = () => document.getElementById("generator-target-courses")?.parentElement as HTMLElement;
+    const rightColumn = () => document.getElementById("generator-preferences")?.parentElement as HTMLElement;
 
     try {
       // Menu state: nav is up, no panel is.
@@ -694,6 +664,120 @@ describe("FFCSGeneratorSubpage", () => {
       if (widthDescriptor) Object.defineProperty(window, "innerWidth", widthDescriptor);
       else delete (window as { innerWidth?: number }).innerWidth;
     }
+  });
+
+  it("lets the focused course's faculty list take the full page on a phone", () => {
+    // The locker's offering list used to carry `max-h-60 overflow-y-auto` below
+    // `lg`, so on a phone the target course page's faculty list lived in a
+    // ~6-inch-limited inner scroll box while the page itself had the whole
+    // screen. The page usage must render it uncapped: the list grows with its
+    // content and the page's own scroll moves through it.
+    storage.setItem("ffcs_generator_view_mode", "modern");
+    const widthDescriptor = Object.getOwnPropertyDescriptor(window, "innerWidth");
+    Object.defineProperty(window, "innerWidth", { value: 390, configurable: true });
+
+    const { unmount } = render(
+      <FFCSGeneratorSubpage
+        {...props({
+          courseLocks: [courseLock("BCSE101")],
+          generatorDisplayCourses: [{ code: "BCSE101", title: "Structured Programming", types: [] as string[] }],
+          masterCourses: [courseRow("BCSE101", "A1+TA1", "AP-101")],
+        })}
+      />,
+    );
+
+    try {
+      fireEvent.click(document.getElementById("generator-course-tab-BCSE101") as HTMLElement);
+
+      // Each faculty group is a <section> whose parent is the list container.
+      const facultySection = document.querySelector('[aria-label="Offerings by Dr Someone"]');
+      expect(facultySection).not.toBeNull();
+      const list = facultySection?.parentElement as HTMLElement;
+      expect(list.className).toContain("bg-surface/50");
+      expect(list.className).not.toContain("max-h-60");
+      expect(list.className).not.toContain("overflow-y-auto");
+      // The offering row renders inside that uncapped list, so it is live.
+      expect(screen.getAllByText("Dr Someone").length).toBeGreaterThan(0);
+    } finally {
+      // Unmount before the shared overlay drain: on a phone this screen
+      // consumes its own back gesture while a page is open (see above).
+      unmount();
+      if (widthDescriptor) Object.defineProperty(window, "innerWidth", widthDescriptor);
+      else delete (window as { innerWidth?: number }).innerWidth;
+    }
+  });
+
+  it("scopes the faculty ranking to the target's selected faculties", () => {
+    // Modern mode again: the focused-course panel is where the locker (and
+    // its "Prioritise faculties" control) lives.
+    storage.setItem("ffcs_generator_view_mode", "modern");
+    const masterCourses: ParsedCourse[] = [
+      { ...courseRow("BCSE101", "A1", "AB1-101"), FACULTY: "Prof Alpha" },
+      { ...courseRow("BCSE101", "A1", "AB1-102"), FACULTY: "Prof Beta" },
+      { ...courseRow("BCSE101", "B1", "AB1-103"), FACULTY: "Prof Gamma" },
+    ];
+    const courses = [{ code: "BCSE101", title: "Structured Programming", types: [] as string[] }];
+
+    render(
+      <FFCSGeneratorSubpage
+        {...props({
+          courseLocks: [courseLock("BCSE101")],
+          generatorDisplayCourses: courses,
+          masterCourses,
+        })}
+      />,
+    );
+
+    // Focus the course so the locker renders on the page.
+    fireEvent.click(document.getElementById("generator-course-tab-BCSE101") as HTMLElement);
+
+    // No faculties chosen yet, so there is nothing to prioritise.
+    expect(screen.queryByRole("button", { name: /Prioritise faculties/i })).toBeNull();
+
+    // Pick one faculty in the locker's offering list. The row is a <label>
+    // around a `sr-only` checkbox with no accessible name, so scope through
+    // the faculty group the locker renders per faculty.
+    const pickOffering = (faculty: string) => {
+      const section = document.querySelector(`[aria-label="Offerings by ${faculty}"]`);
+      expect(section).not.toBeNull();
+      fireEvent.click(section!.querySelector("input[type='checkbox']")!);
+    };
+    pickOffering("Prof Alpha");
+
+    // The prioritise control appears beside the locker's header.
+    fireEvent.click(screen.getByRole("button", { name: /Prioritise faculties/i }));
+
+    // The ranking sheet opens scoped to the one selected faculty — the other
+    // two of the catalogue are not in the list you are asked to order.
+    expect(screen.getByText("Faculty priority")).toBeDefined();
+    expect(screen.getByText(/Ranked among the 1 faculty you selected/)).toBeDefined();
+    const rankedList = screen.getByRole("list", { name: "Faculty priority for BCSE101" });
+    expect(within(rankedList).getAllByText("Prof Alpha")).toHaveLength(1);
+    expect(within(rankedList).queryByText("Prof Beta")).toBeNull();
+    expect(within(rankedList).queryByText("Prof Gamma")).toBeNull();
+
+    // Widen the selection: a second offering joins, and with it the pool.
+    fireEvent.click(screen.getByRole("button", { name: /Cancel/ }));
+    pickOffering("Prof Beta");
+    fireEvent.click(screen.getByRole("button", { name: /Prioritise faculties/i }));
+
+    expect(screen.getByText(/Ranked among the 2 faculties you selected/)).toBeDefined();
+    // Re-queried, not the earlier node: the sheet unmounts and remounts.
+    const widenedList = screen.getByRole("list", { name: "Faculty priority for BCSE101" });
+    expect(within(widenedList).queryByText("Prof Beta")).not.toBeNull();
+    // The unselected catalogue member stays out of the ranking.
+    expect(within(widenedList).queryByText("Prof Gamma")).toBeNull();
+
+    // Save an order among the selection and confirm it round-trips into the
+    // generation key — and only the selected names are stored.
+    fireEvent.click(screen.getByRole("button", { name: /Move Prof Beta up/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Save order/ }));
+
+    expect(JSON.parse(storage.getItem("ffcs_facultyPriority") ?? "{}")).toMatchObject({
+      BCSE101: ["Prof Beta", "Prof Alpha"],
+    });
+    // The button now reports the saved length instead of the empty label.
+    expect(screen.getByRole("button", { name: /Priority \(2\)/i })).toBeDefined();
   });
 
   it("persists session preferences statefully across subpage mounts in sessionStorage", () => {

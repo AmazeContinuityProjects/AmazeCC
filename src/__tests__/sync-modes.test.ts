@@ -101,10 +101,20 @@ describe("built-in modes", () => {
 
   it("quick is the lightest, full covers every background op", () => {
     const quick = BUILT_IN_MODES.find((m) => m.id === "quick")!;
+    const balanced = BUILT_IN_MODES.find((m) => m.id === "balanced")!;
     const full = BUILT_IN_MODES.find((m) => m.id === "full")!;
+    const academics = BUILT_IN_MODES.find((m) => m.id === "academics")!;
     expect(foregroundSteps(quick).map((s) => s.op)).toEqual(["attendanceMarks"]);
     expect(estimateModeCost(quick).score).toBeLessThan(estimateModeCost(full).score);
     expect(full.steps.some((s) => s.op === "social")).toBe(true);
+    // The planner's My Curriculum match reads `storage.curriculum` — every
+    // sweep broad enough to claim "everything" (and the academics sweep,
+    // which is exactly where this data belongs) has to fill it, background
+    // so it never delays the foreground bundle. Quick stays attendance-only.
+    expect(balanced.steps.some((s) => s.op === "curriculum")).toBe(true);
+    expect(full.steps.some((s) => s.op === "curriculum")).toBe(true);
+    expect(academics.steps.some((s) => s.op === "curriculum")).toBe(true);
+    expect(quick.steps.some((s) => s.op === "curriculum")).toBe(false);
   });
 
   it("resolveMode finds built-ins and customs", () => {
@@ -119,9 +129,7 @@ describe("built-in modes", () => {
 describe("validateMode", () => {
   it("rejects empty, unknown, oversized and untitled modes", () => {
     expect(validateMode({ id: "x", label: "X", steps: [] }, KNOWN).ok).toBe(false);
-    expect(
-      validateMode({ id: "x", label: "X", steps: [{ op: "nope" }] }, KNOWN).errors,
-    ).toContain("Unknown op: nope");
+    expect(validateMode({ id: "x", label: "X", steps: [{ op: "nope" }] }, KNOWN).errors).toContain("Unknown op: nope");
     expect(
       validateMode(
         { id: "x", label: "X", steps: Array.from({ length: MAX_MODE_STEPS + 1 }, () => ({ op: "buses" })) },
@@ -158,9 +166,7 @@ describe("granular op subsets", () => {
   it("core without `only` keeps the full six-module bundle", async () => {
     const calls: string[] = [];
     await getOp("core")!.run(fakeCtx(calls), { semesterId: "S1", isHosteller: true });
-    expect(calls.sort()).toEqual(
-      ["grades", "schedule", "hostel", "calendar", "all-grades", "profile-images"].sort(),
-    );
+    expect(calls.sort()).toEqual(["grades", "schedule", "hostel", "calendar", "all-grades", "profile-images"].sort());
   });
 
   it("bulk `only` caches a subset of endpoints", async () => {
@@ -215,6 +221,8 @@ describe("syncMode runner", () => {
       "schedule",
       "calendar",
       "all-grades",
+      // Background step: settled after the foreground chain, still reported.
+      "curriculum",
     ]);
     expect(res.aborted).toBe(false);
     expect(res.errors).toEqual([]);
@@ -279,35 +287,24 @@ describe("syncMode runner", () => {
 
 describe("bulk endpoint expand/collapse", () => {
   it("expands a bare bulk step to every endpoint", () => {
-    const { steps, bulkEndpoints, bulkPos } = expandBulkSteps([
-      { op: "grades" },
-      { op: "bulk" },
-    ]);
+    const { steps, bulkEndpoints, bulkPos } = expandBulkSteps([{ op: "grades" }, { op: "bulk" }]);
     expect(steps.map((s) => s.op)).toEqual(["grades"]);
     expect(bulkEndpoints.sort()).toEqual(BULK_ENDPOINT_META.map((m) => m.endpoint).sort());
     expect(bulkPos).toBe(1);
   });
 
   it("expands an `only` bulk step to just those endpoints", () => {
-    const { bulkEndpoints } = expandBulkSteps([
-      { op: "bulk", args: { only: ["library-due", "wallet"] } },
-    ]);
+    const { bulkEndpoints } = expandBulkSteps([{ op: "bulk", args: { only: ["library-due", "wallet"] } }]);
     expect(bulkEndpoints).toEqual(["library-due", "wallet"]);
   });
 
   it("collapses a full house back to a bare bulk step", () => {
     const all = BULK_ENDPOINT_META.map((m) => m.endpoint);
-    expect(
-      collapseBulkSteps([{ op: "grades" }], all, 1),
-    ).toEqual([{ op: "grades" }, { op: "bulk" }]);
+    expect(collapseBulkSteps([{ op: "grades" }], all, 1)).toEqual([{ op: "grades" }, { op: "bulk" }]);
   });
 
   it("collapses a subset into `only`, preserving position", () => {
-    const steps = collapseBulkSteps(
-      [{ op: "grades" }, { op: "events" }],
-      ["library-due", "wallet"],
-      1,
-    );
+    const steps = collapseBulkSteps([{ op: "grades" }, { op: "events" }], ["library-due", "wallet"], 1);
     expect(steps).toEqual([
       { op: "grades" },
       { op: "bulk", args: { only: ["library-due", "wallet"] } },
@@ -323,11 +320,7 @@ describe("bulk endpoint expand/collapse", () => {
   it("round-trips edit -> save without losing order", () => {
     const mode = createCustomMode({
       label: "Roundtrip",
-      steps: [
-        { op: "grades" },
-        { op: "bulk", args: { only: ["library-due"] } },
-        { op: "events", background: true },
-      ],
+      steps: [{ op: "grades" }, { op: "bulk", args: { only: ["library-due"] } }, { op: "events", background: true }],
     });
     const stored = loadCustomModes().find((m) => m.id === mode.id)!;
     const { steps, bulkEndpoints, bulkPos } = expandBulkSteps(stored.steps);
@@ -366,10 +359,7 @@ describe("custom mode persistence", () => {
   it("rejects invalid creations and drops corrupt stored entries", () => {
     expect(() => createCustomMode({ label: "Bad", steps: [{ op: "nope" }] })).toThrow();
     expect(() => createCustomMode({ label: "  ", steps: [{ op: "buses" }] })).toThrow();
-    localStorage.setItem(
-      CUSTOM_MODES_KEY,
-      JSON.stringify([{ id: "x", label: "", steps: [] }, "garbage", null]),
-    );
+    localStorage.setItem(CUSTOM_MODES_KEY, JSON.stringify([{ id: "x", label: "", steps: [] }, "garbage", null]));
     expect(loadCustomModes()).toEqual([]);
   });
 

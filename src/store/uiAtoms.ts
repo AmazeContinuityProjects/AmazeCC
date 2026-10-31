@@ -28,21 +28,19 @@ export const isShortcutsHelpOpenAtom = atom<boolean>(false);
  * the create sheet. `nonce` forces a re-fire when the same title is used twice.
  */
 export const tasksQuickAddRequestAtom = atom<{ title: string; nonce: number } | null>(
-  null as unknown as { title: string; nonce: number }
+  null as unknown as { title: string; nonce: number },
 );
 export const isReloadingAtom = atom<boolean>(false);
 export const progressBarAtom = atom<number>(0);
-export const messageAtom = atom<string, [string | ((prev: string) => string)], void>(
-  "",
-  (get, set, update) => {
-    const prev = get(messageAtom);
-    const next = typeof update === "function" ? update(prev) : update;
-    const lines = next.split("\n");
-    const capped = lines.length > 60 ? lines.slice(-60).join("\n") : next;
-    set(messageAtom, capped);
-  }
-);
+export const messageAtom = atom<string, [string | ((prev: string) => string)], void>("", (get, set, update) => {
+  const prev = get(messageAtom);
+  const next = typeof update === "function" ? update(prev) : update;
+  const lines = next.split("\n");
+  const capped = lines.length > 60 ? lines.slice(-60).join("\n") : next;
+  set(messageAtom, capped);
+});
 export const odHoursIsOpenAtom = atom<boolean>(false);
 export const gradesDisplayIsOpenAtom = atom<boolean>(false);
 export const isOfflineAtom = atom<boolean>(false);
+export const isAPIworkingAtom = atom<boolean>(false);
 export const showReloadBannerAtom = atom<boolean>(false);

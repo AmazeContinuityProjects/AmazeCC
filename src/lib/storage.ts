@@ -59,6 +59,7 @@ export const KEYS = {
   FFCS_FRIEND_GROUPS: "ffcs_friendGroups",
   FFCS_SOCIAL_SCORE_METHOD: "ffcs_socialScoreGroupMethod",
   FFCS_COURSE_LOCKS: "ffcs_courseLocks",
+  FFCS_FACULTY_PRIORITY: "ffcs_facultyPriority",
   FFCS_MANUAL_LINKS: "ffcs_manual_links",
   FFCS_RAW_COURSES: "ffcs_raw_courses",
   FFCS_SETTINGS: "ffcs_settings",
@@ -83,13 +84,17 @@ function getItem<T>(key: string): T | null {
 function setItem<T>(key: string, value: T): void {
   try {
     localStorage.setItem(key, JSON.stringify(value));
-  } catch { /* quota exceeded, silently fail */ }
+  } catch {
+    /* quota exceeded, silently fail */
+  }
 }
 
 function removeItem(key: string): void {
   try {
     localStorage.removeItem(key);
-  } catch { /* silently fail */ }
+  } catch {
+    /* silently fail */
+  }
 }
 
 function getString(key: string): string | null {
@@ -103,7 +108,9 @@ function getString(key: string): string | null {
 function setString(key: string, value: string): void {
   try {
     localStorage.setItem(key, value);
-  } catch { /* silently fail */ }
+  } catch {
+    /* silently fail */
+  }
 }
 
 export interface EventHubSession {
@@ -175,8 +182,10 @@ export const storage = {
     remove: () => removeItem(KEYS.PROFILE_IMAGES),
   },
   ids: {
-    get: () => getItem<{ VtopUsername: string; VtopPassword: string; MoodleUsername: string; MoodlePassword: string }>(KEYS.IDS),
-    set: (data: { VtopUsername: string; VtopPassword: string; MoodleUsername: string; MoodlePassword: string }) => setItem(KEYS.IDS, data),
+    get: () =>
+      getItem<{ VtopUsername: string; VtopPassword: string; MoodleUsername: string; MoodlePassword: string }>(KEYS.IDS),
+    set: (data: { VtopUsername: string; VtopPassword: string; MoodleUsername: string; MoodlePassword: string }) =>
+      setItem(KEYS.IDS, data),
     remove: () => removeItem(KEYS.IDS),
   },
   settings: {
@@ -302,8 +311,10 @@ export const storage = {
     remove: (semesterId: string) => removeItem(KEYS.FROZEN_ATT_PREFIX + semesterId),
   },
   officialOd: {
-    get: (semesterId: string) => getItem<import("@/types/data/od").OfficialOdResponse>(KEYS.OFFICIAL_OD_PREFIX + semesterId),
-    set: (semesterId: string, data: import("@/types/data/od").OfficialOdResponse) => setItem(KEYS.OFFICIAL_OD_PREFIX + semesterId, data),
+    get: (semesterId: string) =>
+      getItem<import("@/types/data/od").OfficialOdResponse>(KEYS.OFFICIAL_OD_PREFIX + semesterId),
+    set: (semesterId: string, data: import("@/types/data/od").OfficialOdResponse) =>
+      setItem(KEYS.OFFICIAL_OD_PREFIX + semesterId, data),
     remove: (semesterId: string) => removeItem(KEYS.OFFICIAL_OD_PREFIX + semesterId),
   },
   noteTracker: {
@@ -366,6 +377,11 @@ export const storage = {
     set: (data: unknown) => setItem(KEYS.FFCS_COURSE_LOCKS, data),
     remove: () => removeItem(KEYS.FFCS_COURSE_LOCKS),
   },
+  ffcsFacultyPriority: {
+    get: () => getItem<unknown>(KEYS.FFCS_FACULTY_PRIORITY),
+    set: (data: unknown) => setItem(KEYS.FFCS_FACULTY_PRIORITY, data),
+    remove: () => removeItem(KEYS.FFCS_FACULTY_PRIORITY),
+  },
   ffcsRawCourses: {
     get: () => getItem<unknown>(KEYS.FFCS_RAW_COURSES),
     set: (data: unknown) => setItem(KEYS.FFCS_RAW_COURSES, data),
@@ -415,12 +431,24 @@ export const storage = {
 
 export function clearAllData(): void {
   try {
-    const keep = new Set<string>([KEYS.USERNAME, KEYS.PASSWORD, KEYS.MOODLE_USERNAME, KEYS.MOODLE_PASSWORD, KEYS.IDS, KEYS.SETTINGS, KEYS.THEME, KEYS.FRIENDLY_NAME, KEYS.APP_ICON]);
+    const keep = new Set<string>([
+      KEYS.USERNAME,
+      KEYS.PASSWORD,
+      KEYS.MOODLE_USERNAME,
+      KEYS.MOODLE_PASSWORD,
+      KEYS.IDS,
+      KEYS.SETTINGS,
+      KEYS.THEME,
+      KEYS.FRIENDLY_NAME,
+      KEYS.APP_ICON,
+    ]);
     for (let i = localStorage.length - 1; i >= 0; i--) {
       const key = localStorage.key(i);
       if (key && !keep.has(key)) {
         localStorage.removeItem(key);
       }
     }
-  } catch { /* silently fail */ }
+  } catch {
+    /* silently fail */
+  }
 }

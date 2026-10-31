@@ -32,10 +32,19 @@ import {
 } from "@/lib/reviewsService";
 import { FacultyAvatar } from "./FacultyAvatar";
 import { TEACHING_CONFIG, PROJECT_CONFIG, getComponentQuestion } from "@/config/reviewQuestions";
+import LegacyVitfacReviewSheet from "./LegacyVitfacReviewSheet";
 
 // Re-exports so existing importers continue working untouched
 export { FacultyAvatar, VitfacReviewPill, getFacultyInitials } from "./FacultyAvatar";
 export type { FacultyAvatarProps } from "./FacultyAvatar";
+
+/**
+ * The review pane sits above the whole FFCS sheet ladder (tops out at the
+ * z-600 Advanced Course Linker) and below the command palette (z-9999), so
+ * pills inside any higher pane can open it. Kept in sync with upstream.
+ */
+const REVIEW_PANEL_Z = 650;
+const REVIEW_BACKDROP_Z = 645;
 
 export interface FacultyReviewSheetProps {
   open: boolean;
@@ -46,7 +55,7 @@ export interface FacultyReviewSheetProps {
   facultyId?: string;
 }
 
-export default function FacultyReviewSheet({
+function FirstPartyReviewSheet({
   open,
   onClose,
   facultyName,
@@ -164,8 +173,8 @@ export default function FacultyReviewSheet({
         onClose={onClose}
         overlayId="faculty-review-sheet"
         maxWidth="max-w-xl"
-        panelZIndex={320}
-        backdropZIndex={315}
+        panelZIndex={REVIEW_PANEL_Z}
+        backdropZIndex={REVIEW_BACKDROP_Z}
         contentClassName="space-y-5"
       >
         {/* Header */}
@@ -174,7 +183,7 @@ export default function FacultyReviewSheet({
             <FacultyAvatar
               employeeId={review?.employeeId || employeeId}
               name={profileSnapshot?.faculty?.name || review?.name || facultyName}
-              fallbackImageUrl={profileSnapshot?.faculty?.image_url || review?.image_url}
+              fallbackImageUrl={profileSnapshot?.faculty?.image_url || (review?.image ? `data:image/jpeg;base64,${review.image}` : review?.image_url)}
               size="lg"
               tone="amber"
             />
@@ -479,4 +488,13 @@ export default function FacultyReviewSheet({
       </BottomSheet>
     </>
   );
+}
+
+
+/**
+ * With ENABLE_AMAZE_REVIEWS off (the default) the original vitfac review pane is
+ * rendered untouched. The first-party pane only appears when the flag is on.
+ */
+export default function FacultyReviewSheet(props: FacultyReviewSheetProps) {
+  return ENABLE_AMAZE_REVIEWS ? <FirstPartyReviewSheet {...props} /> : <LegacyVitfacReviewSheet {...props} />;
 }

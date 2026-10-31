@@ -1,0 +1,23 @@
+# Dependencies & lockfiles
+node_modules
+pnpm-lock.yaml
+
+# Build output & generated artifacts
+out
+.next
+.next-dev
+tsconfig.tsbuildinfo
+next-env.d.ts
+public/sw.js
+src/data/buildInfo.json
+
+# Repo-local tool state & vendored assets
+.agents
+.vscode
+certificates
+dayscholar
+*.pem
+
+# Bundled data files (converted/generated datasets are kept byte-exact)
+public
+src/data

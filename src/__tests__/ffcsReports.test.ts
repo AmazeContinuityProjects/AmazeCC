@@ -6,6 +6,8 @@ import {
   DEFAULT_FFCS_SEMESTER,
   FFCS_SEMESTER_REPORTS,
   getFFCSSemester,
+  getFFCSSemesterByClassIdPrefix,
+  getFFCSSemesterByClassIdPrefixCode,
   isFFCSSemesterId,
   legacyOfferingId,
   offeringId,
@@ -21,20 +23,71 @@ import {
  */
 
 describe("semester reports", () => {
-  it("defaults to winter and keeps the previous report selectable", () => {
+  it("defaults to winter and keeps the other reports selectable", () => {
     expect(DEFAULT_FFCS_SEMESTER).toBe("winter-2026-2027");
     expect(FFCS_SEMESTER_REPORTS.map((report) => report.id)).toEqual([
       "winter-2026-2027",
+      "winter-2026-2027-mock",
       "previous",
+      "codechef-vit",
     ]);
     expect(getFFCSSemester("previous").path).toBe("/ffcs/ffcsReport.csv");
     expect(getFFCSSemester(null).id).toBe(DEFAULT_FFCS_SEMESTER);
     expect(getFFCSSemester("summer-2027").id).toBe(DEFAULT_FFCS_SEMESTER);
   });
 
+  it("ships the winter final list and its mock side by side", () => {
+    const final = FFCS_SEMESTER_REPORTS.find((entry) => entry.id === "winter-2026-2027");
+    const mock = FFCS_SEMESTER_REPORTS.find((entry) => entry.id === "winter-2026-2027-mock");
+    expect(final?.path).toBe("/ffcs/winter-2026-2027-final-ffcs.csv");
+    expect(mock?.path).toBe("/ffcs/winter-2026-2027-slot-timetable.csv");
+    // Both lists share one class-ID namespace, so the numeric share code is
+    // the only thing that tells them apart: 2 = final, 1 = mock.
+    expect(final?.classIdPrefix).toBe("CH202627050");
+    expect(mock?.classIdPrefix).toBe("CH202627050");
+    expect(final?.classIdPrefixCode).toBe("2");
+    expect(mock?.classIdPrefixCode).toBe("1");
+    expect(getFFCSSemesterByClassIdPrefixCode("2")?.id).toBe("winter-2026-2027");
+    expect(getFFCSSemesterByClassIdPrefixCode("1")?.id).toBe("winter-2026-2027-mock");
+  });
+
+  it("resolves the shared winter class-ID namespace to the default report", () => {
+    // The legacy p-prefix link format carries no report code; when several
+    // reports share the prefix, the default must win or every winter link
+    // would die on the ambiguity.
+    expect(getFFCSSemesterByClassIdPrefix("CH202627050")?.id).toBe(DEFAULT_FFCS_SEMESTER);
+    expect(getFFCSSemesterByClassIdPrefix("CH2026270503524")?.id).toBe(DEFAULT_FFCS_SEMESTER);
+    expect(getFFCSSemesterByClassIdPrefix("CH999999999")).toBeNull();
+  });
+
+  it("ships the offline CodeChef VIT catalogue without a shareable class-ID prefix", () => {
+    const report = FFCS_SEMESTER_REPORTS.find((entry) => entry.id === "codechef-vit");
+    expect(report).toMatchObject({
+      path: "/ffcs/codechef-vit-catalogue.csv",
+      shortLabel: "CodeChef VIT",
+    });
+    // The catalogue data is third-party and carries no class IDs; a name-free
+    // share link must never resolve to it.
+    expect(report?.attribution).toContain("CodeChef VIT");
+    expect(report?.attribution).toContain("ffcs.codechefvit.com");
+    expect(report?.classIdPrefix).toBeUndefined();
+    expect(report?.classIdPrefixCode).toBeUndefined();
+  });
+
+  it("credits each report for what it is", () => {
+    const winter = FFCS_SEMESTER_REPORTS.find((entry) => entry.id === "winter-2026-2027");
+    const mock = FFCS_SEMESTER_REPORTS.find((entry) => entry.id === "winter-2026-2027-mock");
+    const previous = FFCS_SEMESTER_REPORTS.find((entry) => entry.id === "previous");
+    expect(winter?.attribution).toBe("Course data from VIT's Winter 2026-2027 course offered list.");
+    expect(mock?.attribution).toContain("Mock");
+    expect(previous?.attribution).toBe("Course data from VIT's previous-semester registration report.");
+  });
+
   it("accepts only ids this build knows", () => {
     expect(isFFCSSemesterId("winter-2026-2027")).toBe(true);
+    expect(isFFCSSemesterId("winter-2026-2027-mock")).toBe(true);
     expect(isFFCSSemesterId("previous")).toBe(true);
+    expect(isFFCSSemesterId("codechef-vit")).toBe(true);
     expect(isFFCSSemesterId("ffcs_semester")).toBe(false);
     expect(isFFCSSemesterId(null)).toBe(false);
   });
@@ -49,9 +102,7 @@ describe("offering identity", () => {
   });
 
   it("keeps two people with one name apart", () => {
-    expect(offeringId({ ...offering, ERP_ID: "1" })).not.toBe(
-      offeringId({ ...offering, ERP_ID: "2" })
-    );
+    expect(offeringId({ ...offering, ERP_ID: "1" })).not.toBe(offeringId({ ...offering, ERP_ID: "2" }));
   });
 
   it("accepts locks saved before employee ids were used", () => {
@@ -116,36 +167,37 @@ describe("parsing report rows", () => {
     });
   });
 
-  it("reads every row of the shipped winter CSV", () => {
-    const csv = readFileSync(
-      resolve(process.cwd(), "public/ffcs/winter-2026-2027-slot-timetable.csv")
-    );
-    const workbook = XLSX.read(csv, { type: "buffer" });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet);
-    const courses = parseReportRows(rows);
+  it("reads every row of the shipped winter CSVs", () => {
+    const load = (path: string) => {
+      const csv = readFileSync(resolve(process.cwd(), path));
+      const workbook = XLSX.read(csv, { type: "buffer" });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      return parseReportRows(XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet));
+    };
 
-    expect(courses).toHaveLength(3426);
-    expect(new Set(courses.map((course) => course.CODE)).size).toBe(686);
-    expect(courses.every((course) => course.SLOT && course.CLASS_ID && course.ERP_ID)).toBe(true);
-    expect(courses.every((course) => course.EMPLOYEE_SCHOOL)).toBe(true);
+    // The final course-offered list (the default report).
+    const final = load("public/ffcs/winter-2026-2027-final-ffcs.csv");
+    expect(final).toHaveLength(3530);
+    expect(new Set(final.map((course) => course.CODE)).size).toBe(741);
+    expect(final.every((course) => course.SLOT && course.CLASS_ID && course.ERP_ID)).toBe(true);
+    expect(final.every((course) => course.EMPLOYEE_SCHOOL)).toBe(true);
+    // No extraction glue: every code is a bare 7–8 character code, never a
+    // code merged with the first word of its title (e.g. "UHUM151NEthics").
+    expect(final.every((course) => /^[A-Z0-9]{7,8}$/.test(course.CODE))).toBe(true);
+
+    // The earlier mock slot timetable, still selectable beside the final list.
+    const mock = load("public/ffcs/winter-2026-2027-slot-timetable.csv");
+    expect(mock).toHaveLength(3426);
+    expect(new Set(mock.map((course) => course.CODE)).size).toBe(686);
   });
 
   it("joins wrapped names at word boundaries without splitting words", () => {
-    const csv = readFileSync(
-      resolve(process.cwd(), "public/ffcs/winter-2026-2027-slot-timetable.csv")
-    );
+    const csv = readFileSync(resolve(process.cwd(), "public/ffcs/winter-2026-2027-final-ffcs.csv"));
     const workbook = XLSX.read(csv, { type: "buffer" });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const courses = parseReportRows(
-      XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet)
-    );
+    const courses = parseReportRows(XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet));
 
-    expect(courses.find((course) => course.CODE === "MATR706")?.FACULTY).toBe(
-      "THARASI DILLESWAR RAO"
-    );
-    expect(courses.find((course) => course.CODE === "PRMC001L")?.FACULTY).toBe(
-      "BALAMURUGAN B J"
-    );
+    expect(courses.find((course) => course.CODE === "MATR706")?.FACULTY).toBe("THARASI DILLESWAR RAO");
+    expect(courses.find((course) => course.CODE === "PRMC001L")?.FACULTY).toBe("BALAMURUGAN B J");
   });
 });

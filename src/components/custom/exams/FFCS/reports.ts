@@ -1,15 +1,24 @@
 import type { ParsedCourse } from "./types";
 
 /**
- * The two course reports the planner can load.
+ * The course reports the planner can load.
+ *
+ * Winter ships twice over: the final course-offered list is the default, and
+ * the earlier mock slot timetable stays selectable beside it. Both draw from
+ * the same class-ID namespace (`CH202627050...`), so the numeric share format's
+ * `classIdPrefixCode` — not the prefix — is what tells one report from the
+ * other; the prefix alone only ever names the semester.
  *
  * The previous semester remains available by design: a student comparing an
  * old plan with the new one should not have to clear localStorage or re-upload
- * a spreadsheet to do it. The winter report is the default because it is the
- * semester the planner is being used for now; the previous report is the same
- * `ffcsReport.csv` the app has always shipped.
+ * a spreadsheet to do it.
+ *
+ * The CodeChef VIT catalogue is the fully offline option: converted from
+ * FFCS-inator's open data (see `public/ffcs/codechef-vit-catalogue.SOURCE.md`)
+ * it carries no class IDs, so it is deliberately kept out of share-link
+ * resolution — a name-free share can only point at a registration report.
  */
-export type FFCSSemesterId = "winter-2026-2027" | "previous";
+export type FFCSSemesterId = "winter-2026-2027" | "winter-2026-2027-mock" | "previous" | "codechef-vit";
 
 export interface FFCSSemesterReport {
   id: FFCSSemesterId;
@@ -25,6 +34,11 @@ export interface FFCSSemesterReport {
   classIdPrefixCode?: string;
   /** What the dataset is called in prose, e.g. in an error message. */
   name: string;
+  /**
+   * Data-provenance credit shown next to the report, when the dataset is not
+   * VIT's own registration list. Keep it short and factual.
+   */
+  attribution?: string;
 }
 
 export const FFCS_SEMESTER_REPORTS: readonly FFCSSemesterReport[] = [
@@ -32,10 +46,21 @@ export const FFCS_SEMESTER_REPORTS: readonly FFCSSemesterReport[] = [
     id: "winter-2026-2027",
     label: "Winter Semester 2026-2027",
     shortLabel: "Winter 2026-27",
+    path: "/ffcs/winter-2026-2027-final-ffcs.csv",
+    classIdPrefix: "CH202627050",
+    classIdPrefixCode: "2",
+    name: "Winter Semester 2026-2027 final FFCS course list",
+    attribution: "Course data from VIT's Winter 2026-2027 course offered list.",
+  },
+  {
+    id: "winter-2026-2027-mock",
+    label: "Winter 2026-27 Mock List",
+    shortLabel: "Winter Mock",
     path: "/ffcs/winter-2026-2027-slot-timetable.csv",
     classIdPrefix: "CH202627050",
     classIdPrefixCode: "1",
-    name: "Winter Semester 2026-2027 slot timetable",
+    name: "Winter Semester 2026-2027 mock slot timetable",
+    attribution: "Mock course data published before VIT's final Winter 2026-2027 course offered list.",
   },
   {
     id: "previous",
@@ -43,6 +68,15 @@ export const FFCS_SEMESTER_REPORTS: readonly FFCSSemesterReport[] = [
     shortLabel: "Previous",
     path: "/ffcs/ffcsReport.csv",
     name: "previous semester slot timetable",
+    attribution: "Course data from VIT's previous-semester registration report.",
+  },
+  {
+    id: "codechef-vit",
+    label: "CodeChef VIT Catalogue",
+    shortLabel: "CodeChef VIT",
+    path: "/ffcs/codechef-vit-catalogue.csv",
+    name: "CodeChef VIT offline catalogue",
+    attribution: "Course & faculty data converted from FFCS-inator by CodeChef VIT — ffcs.codechefvit.com (MIT).",
   },
 ];
 
@@ -62,23 +96,27 @@ export function getFFCSSemester(id: string | null | undefined): FFCSSemesterRepo
 
 /** Resolve a report from a class-ID namespace carried by a name-free share link. */
 export function getFFCSSemesterByClassIdPrefix(prefix: string): FFCSSemesterReport | null {
-  const matches = FFCS_SEMESTER_REPORTS
-    .filter((report) => report.classIdPrefix && prefix.startsWith(report.classIdPrefix))
-    .sort((a, b) => (b.classIdPrefix?.length ?? 0) - (a.classIdPrefix?.length ?? 0));
+  const matches = FFCS_SEMESTER_REPORTS.filter(
+    (report) => report.classIdPrefix && prefix.startsWith(report.classIdPrefix),
+  ).sort((a, b) => (b.classIdPrefix?.length ?? 0) - (a.classIdPrefix?.length ?? 0));
   if (matches.length === 0) return null;
   const longestLength = matches[0].classIdPrefix!.length;
-  if (matches.filter((report) => report.classIdPrefix!.length === longestLength).length !== 1) {
-    return null;
+  const longest = matches.filter((report) => report.classIdPrefix!.length === longestLength);
+  // A tie means several reports share one class-ID namespace — the winter mock
+  // and final lists both use CH202627050. The prefix alone cannot say which
+  // one a link meant, but this format carries the full class IDs, which are
+  // byte-identical under either report, so the default is the safe answer and
+  // legacy links keep resolving instead of dying on the ambiguity.
+  if (longest.length !== 1) {
+    return longest.find((report) => report.id === DEFAULT_FFCS_SEMESTER) ?? null;
   }
-  return matches[0];
+  return longest[0];
 }
 
 /** Resolve the stable numeric alias used by compact, delta-coded shape links. */
 export function getFFCSSemesterByClassIdPrefixCode(code: string): FFCSSemesterReport | null {
   if (!/^\d{1,3}$/.test(code)) return null;
-  const matches = FFCS_SEMESTER_REPORTS.filter(
-    (report) => report.classIdPrefixCode === code && report.classIdPrefix
-  );
+  const matches = FFCS_SEMESTER_REPORTS.filter((report) => report.classIdPrefixCode === code && report.classIdPrefix);
   return matches.length === 1 ? matches[0] : null;
 }
 
@@ -107,16 +145,15 @@ export function legacyOfferingId(offering: OfferingIdentity): string {
   return `${offering.FACULTY}|${offering.SLOT}|${offering.ROOM}`;
 }
 
-export function offeringMatches(
-  offering: OfferingIdentity,
-  selected: readonly string[]
-): boolean {
+export function offeringMatches(offering: OfferingIdentity, selected: readonly string[]): boolean {
   return selected.includes(offeringId(offering)) || selected.includes(legacyOfferingId(offering));
 }
 
 /** A spreadsheet cell as the planner wants it: one trimmed line of text. */
 const cleanReportText = (value: unknown): string =>
-  String(value ?? "").replace(/\s+/g, " ").trim();
+  String(value ?? "")
+    .replace(/\s+/g, " ")
+    .trim();
 
 /** The first non-empty spelling of a column the report may use. */
 const readReportText = (row: Record<string, unknown>, ...keys: string[]): string => {
@@ -142,7 +179,12 @@ export function parseReportRows(rows: readonly Record<string, unknown>[]): Parse
     .map((row) => {
       const clean: Record<string, unknown> = {};
       for (const key in row) {
-        clean[key.replace(/^\uFEFF/, "").trim().toUpperCase()] = row[key];
+        clean[
+          key
+            .replace(/^\uFEFF/, "")
+            .trim()
+            .toUpperCase()
+        ] = row[key];
       }
 
       const course: ParsedCourse = {

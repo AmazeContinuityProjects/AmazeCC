@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation & feature list
+    url: https://github.com/AmazeContinuityProjects/AmazeCC#readme
+    about: Check README.md, FEATURES.md and docs/ before opening an issue — many behaviours are documented there.

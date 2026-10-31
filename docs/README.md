@@ -56,6 +56,8 @@ docs/
 │   └── glossary.md             # Project glossary
 ├── historical/                 # Archived analyses and superseded plans
 │   └── speed/                 # Archived frontend performance audit
+├── FFCSketch-Comparison/       # FFCSketch vs AmazeCC FFCS comparison (9 docs)
+│   └── README.md              # Index, head-to-head snapshot, verdict
 └── security/                   # Security documentation
     ├── overview.md             # Security overview
     ├── authentication.md       # Auth security
@@ -72,6 +74,7 @@ docs/
 - [Deployment Guide](../deployment/overview.md)
 - [Contributing](../contributing/pull-request-guide.md)
 - [Main/Dashboard decoupling plan](../../docs/main-dashboard-decoupling-plan.md)
+- [FFCSketch vs AmazeCC FFCS comparison](./FFCSketch-Comparison/README.md)
 
 ## Documentation Standards
 

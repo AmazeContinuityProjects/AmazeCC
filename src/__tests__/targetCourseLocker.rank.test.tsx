@@ -40,6 +40,9 @@ vi.mock("@/lib/vitfacService", () => {
     getFacultyReview: ({ employeeId }: { employeeId?: string | null }) => reviewFor(employeeId),
     // The pill reads the catalog through this hook; same table, no listeners.
     useVitfacReview: (employeeId?: string | null) => ({ review: reviewFor(employeeId), loading: false }),
+    // Avatar image sources: no network in these tests.
+    useCachedImage: () => null,
+    useChennaiImage: () => null,
     loadVitfacCatalog: () => Promise.resolve(new Map()),
     getFacultyProfileBundle: () => Promise.resolve(null),
     getVitfacProfileUrl: () => "https://vitfac.amazecc.com",
@@ -78,7 +81,7 @@ const renderSlotGrouped = () =>
       masterCourses={masterCourses}
       selection={selection}
       onChange={() => {}}
-    />
+    />,
   );
 
 /** Switch the locker's grouping to "Slot" via its Group by toggle. */

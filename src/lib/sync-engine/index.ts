@@ -1,13 +1,7 @@
 import { credentialManager } from "./credential-manager";
 import { progressBus } from "./progress-bus";
 import { makeCtx, getOp } from "./operation-registry";
-import {
-  resolveMode,
-  loadCustomModes,
-  foregroundSteps,
-  backgroundSteps,
-  type SyncMode,
-} from "./sync-modes";
+import { resolveMode, loadCustomModes, foregroundSteps, backgroundSteps, type SyncMode } from "./sync-modes";
 import { toEngineError } from "./errors";
 import { storage } from "../storage";
 import type { Ids, VtopCreds, ProgressEvent } from "./types";
@@ -16,12 +10,7 @@ export { apiRequest as api } from "./request-layer";
 import { apiRequest } from "./request-layer";
 
 export type { SyncMode, SyncModeStep } from "./sync-modes";
-export {
-  BUILT_IN_MODES,
-  listModes,
-  loadCustomModes,
-  estimateModeCost,
-} from "./sync-modes";
+export { BUILT_IN_MODES, listModes, loadCustomModes, estimateModeCost } from "./sync-modes";
 
 export interface SyncAllOptions {
   semesterId: string;
@@ -117,19 +106,53 @@ class SyncEngine {
     return c;
   }
 
-  async sync<T = unknown>(name: string, args: Record<string, unknown> = {}): Promise<T> {
+  async sync<T = unknown>(
+    name: string,
+    args: Record<string, unknown> = {},
+    opts: { silent?: boolean } = {},
+  ): Promise<T> {
     const op = getOp(name);
     if (!op) throw new Error(`Unknown sync op: ${name}`);
     const ctx = makeCtx(this.ensureIds());
-    progressBus.emit({ op: name, phase: "start" });
+    // Silent runs suppress the feed at BOTH ends: this engine's own emits and
+    // the `ctx.emit` ops use for their per-module lines. The feed is what the
+    // app-wide session bridge turns into the "VTOP Sync" sheet, and only a
+    // flow that owns the sheet's lifecycle (runPageSync, the reload sweep)
+    // can close it — a raw `sync()` would leave it open forever.
+    const emit: (e: ProgressEvent) => void = opts.silent ? () => {} : (e) => progressBus.emit(e);
+    const opCtx = { ...ctx, emit };
+    emit({ op: name, phase: "start" });
     try {
-      const result = (await op.run(ctx, args)) as T;
-      progressBus.emit({ op: name, phase: "done" });
+      const result = (await op.run(opCtx, args)) as T;
+      emit({ op: name, phase: "done" });
       return result;
     } catch (e) {
-      progressBus.emit({ op: name, phase: "error", error: toEngineError(e) });
+      emit({ op: name, phase: "error", error: toEngineError(e) });
       throw e;
     }
+  }
+
+  /**
+   * Run one op as a background backfill: silently, and without demanding a
+   * login from *this* page session.
+   *
+   * After a reload the engine has never logged in (only `login`/`syncSocial`
+   * set `ids`), so `sync()` would refuse before the first request — ids fall
+   * back to storage the way `syncSocial` does. The request layer's auth
+   * provider re-authenticates a stale VTOP session on its own, so nothing
+   * here has to prompt anyone.
+   *
+   * Used by callers that only want the op's persisted result and no visible
+   * "VTOP Sync" sheet — e.g. the FFCS catalog's curriculum match fetching a
+   * missing `/curriculum` payload.
+   */
+  async syncBackground<T = unknown>(name: string, args: Record<string, unknown> = {}): Promise<T> {
+    if (!this.ids) {
+      const stored = storage.ids.get();
+      if (!stored?.VtopUsername) throw new Error("SyncEngine: not logged in");
+      this.ids = stored;
+    }
+    return this.sync<T>(name, args, { silent: true });
   }
 
   /**
@@ -216,8 +239,7 @@ class SyncEngine {
     const bg = backgroundSteps(mode).map((s) =>
       this.sync(s.op, argsFor(s.args)).then(
         (value) => results.push({ op: s.op, value }),
-        (e: unknown) =>
-          errors.push({ op: s.op, message: e instanceof Error ? e.message : String(e) }),
+        (e: unknown) => errors.push({ op: s.op, message: e instanceof Error ? e.message : String(e) }),
       ),
     );
     if (awaitBackground) {
@@ -311,9 +333,7 @@ export async function eventHubRequest<T = any>(
   const first = await send();
   // One retry, and only one: a session that keeps coming back marked dead is a
   // problem to report, not to keep retrying against.
-  const res = first?.reauthenticate
-    ? (credentialManager.clearEventHub(), await send())
-    : first;
+  const res = first?.reauthenticate ? (credentialManager.clearEventHub(), await send()) : first;
   if (res?.error) {
     throw new EventHubError(String(res.error), res.reason);
   }
