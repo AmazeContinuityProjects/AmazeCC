@@ -56,3 +56,6 @@ implementation_plan.md
 src/data/buildInfo.json
 config.bat
 .env
+
+# LibreOffice lock files
+.~lock.*

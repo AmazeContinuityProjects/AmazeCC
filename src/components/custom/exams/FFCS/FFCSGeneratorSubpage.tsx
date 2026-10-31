@@ -75,6 +75,7 @@ import { AnimatePresence } from "framer-motion";
 import BottomSheet from "../../shared/BottomSheet";
 import { renderCourseTypeChips } from "./components/CourseTypeChips";
 import { loadSessionPreferences, saveSessionPreferences, type FacultyMetricKey } from "@/lib/ffcsGeneratorSessionPrefs";
+import { loadGeneratorTargets, saveGeneratorTargets } from "@/lib/ffcsGeneratorTargets";
 import { VitfacReviewPill, FacultyAvatar } from "./components/FacultyReviewSheet";
 import FacultyReviewSheetHost from "./components/FacultyReviewSheetHost";
 import { TargetCourseLocker } from "./components/TargetCourseLocker";
@@ -409,25 +410,18 @@ export function FFCSGeneratorSubpage({
     remembered across opens under their own key so the selection memory the
     lock storage used to provide incidentally carries over without the leak.
   */
-  const TARGETS_STORAGE_KEY = "ffcs_generator_targets";
   const seededFromLocks = courseLocks.length > 0;
   const [generatorTargets, setGeneratorTargets] = useState<CourseLock[]>(() => {
     if (seededFromLocks) return courseLocks.map((lock) => ({ ...lock }));
     if (sessionPrefs.targets && sessionPrefs.targets.length > 0) {
       return sessionPrefs.targets;
     }
-    try {
-      const stored = safeStorage.getItem(TARGETS_STORAGE_KEY);
-      const parsed = stored ? (JSON.parse(stored) as CourseLock[]) : [];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
+    return loadGeneratorTargets();
   });
 
   useEffect(() => {
     if (seededFromLocks) return;
-    safeStorage.setItem(TARGETS_STORAGE_KEY, JSON.stringify(generatorTargets));
+    saveGeneratorTargets(generatorTargets);
   }, [generatorTargets, seededFromLocks]);
   const [activeLockerCode, setActiveLockerCode] = useState<string | null>(null);
   /**
