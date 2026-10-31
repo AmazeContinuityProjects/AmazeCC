@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { ClipboardPaste, FileSpreadsheet, Lock, Search, X } from "lucide-react";
 import SearchInput from "../../../../shared/SearchInput";
@@ -7,6 +7,9 @@ import { CourseLock, ParsedCourse, AddedCourse } from "../../types";
 import { SegmentedControl } from "@/components/custom/shared/primitives";
 import { CourseImportPanel, type ImportMode } from "../CourseImportPanel";
 import { TargetCourseLockCard } from "../TargetCourseLockCard";
+import { CourseCatalogFilters } from "../CourseCatalogFilters";
+import { useCatalogCurriculum } from "../../hooks/useCatalogCurriculum";
+import { buildSlotIndex, courseCategory, matchesCatalogFilters } from "@/lib/ffcsCatalogFilters";
 
 interface TargetCoursesModalProps {
   isOpen: boolean;
@@ -45,6 +48,32 @@ export const TargetCoursesModal: React.FC<TargetCoursesModalProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [mode, setMode] = useState<ImportMode | "search">("search");
+
+  // Catalog filters: slot chips + the logged-in student's curriculum match.
+  const slotIndex = useMemo(() => buildSlotIndex(masterCourses), [masterCourses]);
+  const curriculum = useCatalogCurriculum();
+  const [slots, setSlots] = useState<string[]>([]);
+  const [curriculumOnly, setCurriculumOnly] = useState(false);
+  const [categories, setCategories] = useState<string[]>([]);
+
+  /**
+   * One filtered list for both the rows and the "nothing found" message —
+   * the search tab used to run its predicate twice inline, and the shared
+   * slot/curriculum filters made a third copy a certainty to drift.
+   */
+  const visibleCourses = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return uniqueCourseCodes.filter(
+      (c) =>
+        (!query || c.code.toLowerCase().includes(query) || c.title.toLowerCase().includes(query)) &&
+        matchesCatalogFilters(
+          c.code,
+          slotIndex.get(c.code.trim().toUpperCase()),
+          { slots, curriculumOnly, categories },
+          curriculum,
+        ),
+    );
+  }, [uniqueCourseCodes, searchQuery, slotIndex, slots, curriculumOnly, categories, curriculum]);
 
   /*
     The sheet owns the chrome now — grabber, one X, swipe-down, Escape and system
@@ -85,16 +114,20 @@ export const TargetCoursesModal: React.FC<TargetCoursesModalProps> = ({
           />
 
           <p className="text-sm text-muted-foreground">
-            Select the courses you intend to take. Both the manual planner and auto-generator will filter results based on your target courses.
+            Select the courses you intend to take. Both the manual planner and auto-generator will filter results based
+            on your target courses.
           </p>
 
           {courseLocks.length > 0 && (
             <div className="flex flex-wrap gap-2">
-              {courseLocks.map(lock => (
-                <div key={lock.code} className="bg-purple-500/10 border border-purple-500/30 text-purple-500 rounded-lg px-3 py-1.5 flex items-center gap-2 text-sm font-medium">
+              {courseLocks.map((lock) => (
+                <div
+                  key={lock.code}
+                  className="bg-purple-500/10 border border-purple-500/30 text-purple-500 rounded-lg px-3 py-1.5 flex items-center gap-2 text-sm font-medium"
+                >
                   <span>{lock.code}</span>
-                  <button 
-                    onClick={() => setCourseLocks(prev => prev.filter(p => p.code !== lock.code))}
+                  <button
+                    onClick={() => setCourseLocks((prev) => prev.filter((p) => p.code !== lock.code))}
                     className="hover:bg-purple-500/20 p-0.5 rounded-full transition-colors"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -106,44 +139,59 @@ export const TargetCoursesModal: React.FC<TargetCoursesModalProps> = ({
 
           {mode === "search" ? (
             <>
-          <SearchInput placeholder="Search master course list..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} containerClassName="mb-2" />
+              <SearchInput
+                placeholder="Search master course list..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                containerClassName="mb-2"
+              />
 
-          <div className="grid grid-cols-1 gap-2">
-            {uniqueCourseCodes.filter(c => 
-              c.code.toLowerCase().includes(searchQuery.toLowerCase()) || 
-              c.title.toLowerCase().includes(searchQuery.toLowerCase())
-            ).length === 0 && (
-              <div className="text-center py-8 text-muted-foreground text-sm">
-                No courses found matching "{searchQuery}"
+              <CourseCatalogFilters
+                slotIndex={slotIndex}
+                slots={slots}
+                onSlotsChange={setSlots}
+                curriculum={curriculum}
+                curriculumOnly={curriculumOnly}
+                onCurriculumOnlyChange={setCurriculumOnly}
+                categories={categories}
+                onCategoriesChange={setCategories}
+              />
+
+              <div className="grid grid-cols-1 gap-2">
+                {visibleCourses.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground text-sm">
+                    {searchQuery
+                      ? `No courses found matching "${searchQuery}"`
+                      : "No courses match these slot and curriculum filters."}
+                  </div>
+                )}
+                {visibleCourses.slice(0, 50).map((c) => {
+                  const selection = courseLocks.find((lock) => lock.code === c.code);
+                  const offerings = masterCourses.filter((course) => course.CODE === c.code);
+                  return (
+                    <TargetCourseLockCard
+                      key={c.code}
+                      course={c}
+                      offerings={offerings}
+                      selection={selection}
+                      category={
+                        curriculumOnly && curriculum ? (courseCategory(c.code, curriculum) ?? undefined) : undefined
+                      }
+                      onSelectionChange={(nextSelection) => {
+                        if (!nextSelection) {
+                          setCourseLocks((previous) => previous.filter((lock) => lock.code !== c.code));
+                          return;
+                        }
+                        setCourseLocks((previous) => {
+                          const index = previous.findIndex((lock) => lock.code === c.code);
+                          if (index === -1) return [...previous, nextSelection];
+                          return previous.map((lock, lockIndex) => (lockIndex === index ? nextSelection : lock));
+                        });
+                      }}
+                    />
+                  );
+                })}
               </div>
-            )}
-            {uniqueCourseCodes.filter(c => 
-              c.code.toLowerCase().includes(searchQuery.toLowerCase()) || 
-              c.title.toLowerCase().includes(searchQuery.toLowerCase())
-            ).slice(0, 50).map(c => {
-              const selection = courseLocks.find((lock) => lock.code === c.code);
-              const offerings = masterCourses.filter((course) => course.CODE === c.code);
-              return (
-                <TargetCourseLockCard
-                  key={c.code}
-                  course={c}
-                  offerings={offerings}
-                  selection={selection}
-                  onSelectionChange={(nextSelection) => {
-                    if (!nextSelection) {
-                      setCourseLocks((previous) => previous.filter((lock) => lock.code !== c.code));
-                      return;
-                    }
-                    setCourseLocks((previous) => {
-                      const index = previous.findIndex((lock) => lock.code === c.code);
-                      if (index === -1) return [...previous, nextSelection];
-                      return previous.map((lock, lockIndex) => lockIndex === index ? nextSelection : lock);
-                    });
-                  }}
-                />
-              );
-            })}
-          </div>
             </>
           ) : (
             <CourseImportPanel mode={mode} onImport={onImportCourses} onImportToTimetable={onImportToTimetable} />
@@ -152,7 +200,7 @@ export const TargetCoursesModal: React.FC<TargetCoursesModalProps> = ({
             <span className="text-sm font-medium text-text-heading">
               <span className="text-purple-500 font-bold">{courseLocks.length}</span> courses selected
             </span>
-            <button 
+            <button
               onClick={onClose}
               className="bg-foreground text-background px-6 py-2 rounded-xl text-sm font-bold shadow hover:bg-foreground/90 transition-colors"
             >
