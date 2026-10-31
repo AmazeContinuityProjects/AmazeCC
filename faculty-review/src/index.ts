@@ -761,6 +761,7 @@ const worker = {
         level: "info",
         requestId,
         job: "scheduled_aggregation",
+        event: "aggregation_complete",
         durationMs,
         writtenKeysCount: result.writtenKeys.length,
         skippedKeysCount: result.skippedKeys.length,
@@ -772,9 +773,13 @@ const worker = {
         level: "error",
         requestId,
         job: "scheduled_aggregation",
+        event: "aggregation_failed",
         durationMs,
         message: "Scheduled aggregation run error",
       });
+      // Rethrow so the cron invocation is recorded as failed (visible in the
+      // dashboard) instead of silently succeeding with stale snapshots.
+      throw err;
     }
   },
 };

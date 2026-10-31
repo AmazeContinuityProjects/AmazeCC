@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import worker from "../index";
 import { InMemorySnapshotStore } from "../store/SnapshotStore";
 import type { Env, ReviewSubmissionMessage } from "../types";
@@ -315,6 +315,22 @@ describe("Cloudflare Worker Handlers", () => {
     const custom: Env = { ...mockEnv, CACHE_TTL_SECONDS: "60", CACHE_SWR_SECONDS: "600" };
     const res = await worker.fetch(new Request("http://localhost/api/reviews/catalog"), custom, {} as ExecutionContext);
     expect(res.headers.get("Cache-Control")).toBe("public, max-age=60, stale-while-revalidate=600");
+  });
+
+  it("logs aggregation_failed and fails the cron invocation when the database is unreachable", async () => {
+    const realFetch = globalThis.fetch;
+    const logged: string[] = [];
+    const spy = vi.spyOn(console, "error").mockImplementation((m: unknown) => void logged.push(String(m)));
+    globalThis.fetch = (async () => new Response("{}", { status: 500 })) as typeof fetch;
+    try {
+      await expect(
+        worker.scheduled({} as ScheduledController, mockEnv, {} as ExecutionContext)
+      ).rejects.toBeDefined();
+    } finally {
+      globalThis.fetch = realFetch;
+      spy.mockRestore();
+    }
+    expect(logged.some((l) => l.includes("aggregation_failed"))).toBe(true);
   });
 
   it("serves /health regardless of flag and without touching the snapshot store", async () => {

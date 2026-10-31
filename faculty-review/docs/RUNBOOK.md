@@ -1,116 +1,183 @@
-# RUNBOOK — AmazeCC Faculty Reviews Worker
+# Runbook: Faculty Reviews Worker
 
-Day-2 operations. Deployment steps are in `DEPLOYMENT.md`; the merge/deploy
-order lives in `ROLLOUT.md`.
+Day-2 operations. Deployment is in [DEPLOYMENT.md](./DEPLOYMENT.md); the merge and
+deploy order is in [ROLLOUT.md](./ROLLOUT.md).
 
----
+## 0. How the pieces fit (read once)
 
-## 1) Monitoring & alerts
+- The **API** (`AmazeCC-api`) validates a submission, checks eligibility, writes the
+  review **directly to Postgres**, then sends a signed copy to the Worker's
+  `/internal/ingest`. The Worker validates it again and puts it on the queue; the
+  consumer upserts it into Postgres (idempotent: same unique key).
+- Because the API already wrote the row, **a lost or dead-lettered queue message
+  does not lose a review**. It only means the redundant upsert did not run.
+- **Reads never touch Postgres.** Public reads are served from published snapshots
+  (KV or R2). Snapshots are rebuilt by the cron (every 10 minutes) or by
+  `POST /internal/recompute`.
 
-- **Worker Logs**: `observability.enabled: true` streams structured JSON logs
-  (Dashboard → Workers → amazecc-reviews-worker → Logs). Every line is
-  PII-scrubbed by design (authorizedID, student hashes, tokens, bodies, tags
-  and answers can never be emitted — enforced by the log sanitizer).
-- Recommended **Cloudflare alerts** (Dashboard → Notifications):
-  1. *Worker crash/failure rate* — any request failures over 1% for 5 min.
-  2. *Queue backlog / DLQ* — messages in `amazecc-reviews-dlq` > 0 (Queue
-     insights; checked weekly below if no native alert is available).
-  3. *Cron failure* — email on `aggregation_failed` log events (Worker Logs →
-     alert matching `[reviews] {"event":"aggregation_failed"`), or set a 
-    Workers notification "Cron job failed".
-  4. *KV spend anomaly* — Cloudflare billing notification at a monthly budget.
-- Key log events to watch: `aggregation_complete` (written/skipped),
-  `consumer_batch` (size/ok), `ingest_rejected_hmac` (spikes = auth noise),
-  `ingest_rejected_flag/readonly` (expected while flags off).
+## 1. Monitoring and alerts
 
-## 2) Dead-letter handling
+Workers Logs are on (`observability.enabled: true`). Open Workers, the Worker,
+Logs. Every line is structured JSON; identifiers, reviewer hashes, tokens, request
+bodies, answers and tags are never logged (enforced by the log sanitizer, and
+PostgREST error bodies are reduced to a status and error code).
 
-- DLQ: `amazecc-reviews-dlq` (prod) / `amazecc-reviews-dlq-staging`. Messages land there after
-  `max_retries` (3) failed consumer attempts.
-- **Inspect**: Dashboard → Queues → amazecc-reviews-dlq → View messages
-  (shows count + sample). CLI: `npx wrangler queues messages list` where available
-  (or Queue insights → DLQ metrics).
-- **Cause triage**: `consumer_batch` error logs (Supabase 4xx/5xx), retry
-  storms, oversized batches. The most common cause: expired Supabase OTP/key
-  (401) — rotate the key (below) and replay.
-- **Replay**: Dashboard → Queues → DLQ → *Replay messages* (re-pushes to the
-  source queue). CLI equivalent: `npx wrangler queues messages replay <dlq>`.
-  Verify Postgres counts increased, then re-run aggregation.
+Events to watch:
 
-## 3) Rollback
-
-- Worker versions: Dashboard → Workers → amazecc-reviews-worker → Deployments →
-  select previous version → *Rollback*. OR re-deploy a previous git tag:
-  `npx wrangler deploy --env production` from the tag; `git checkout <tag>` first.
-- Roll back the CUSTOM DOMAIN separately if needed by disabling the route
-  (Dashboard → Workers → Routes): remove `reviews-api.amazecc.com` temporarily —
-  frontend keeps answering from `AmazeCC-api` proxied catalog (flag-off path).
-
-## 4) Killswitch / flags (all dashboard-only, no deploy)
-
-| Situation | Action |
+| Event / field | Meaning |
 | --- | --- |
-| Any review-feature incident, keep legacy vitfac | Dashboard → Settings → Variables → `ENABLE_AMAZE_REVIEWS="false"` (prod + staging as needed) |
-| FFCS day write freeze (reads stay served) | `READ_ONLY_MODE="true"`; revert same way |
-| Take vitfac pills down | `NEXT_PUBLIC_ENABLE_VITFAC_INTEGRATION=false` in **AmazeCC frontend** build env — unrelated to this Worker |
-| Turn the feature on/off for maintenance | `ENABLE_AMAZE_REVIEWS` toggling only |
+| `job: "queue_consumer"` with `level: "error"` | batch upsert failed; messages retry up to `max_retries` then dead-letter |
+| `event: "aggregation_failed"` | cron or recompute failed; snapshots are stale |
+| aggregation summary (written / skipped counts) | `written: 0` on an idle system is **correct** (write-diffing) |
+| `status: 401` on `/internal/ingest` | bad or expired signature. A spike means a secret mismatch or probing |
+| `status: 503` | flag off or read-only mode (expected while off) |
 
-## 5) Secret rotation
+Alerts to create (dashboard, Notifications): Worker error rate, queue backlog and
+dead-letter growth where offered, and a billing threshold. Cloudflare has no native
+"cron failed" alert, so set a Logs-based alert on `aggregation_failed` if your plan
+supports it, and otherwise use the weekly checklist (section 8).
 
-Generate: `openssl rand -hex 32`
+## 2. Dead-letter queue
 
-- **REVIEWS_INGEST_SECRET (zero-downtime, dual-secret window):**
-  1. Put NEW value as `REVIEWS_INGEST_SECRET` (Worker) — old value temporarily
-     set as `REVIEWS_INGEST_SECRET_PREVIOUS` so both signatures accepted.
-  2. Update `AmazeCC-api/.env` (`REVIEWS_INGEST_SECRET`) and redeploy/restart API.
-  3. After one aggregation cycle (~30 min, confirm `ingest_rejected_hmac` stops
-     rising), DELETE `REVIEWS_INGEST_SECRET_PREVIOUS` from the Worker.
-  4. Never log secret values; rotate `REVIEW_HASH_SECRET` only if a leak is
-     proven — it changes every reviewer hash at once.
-- **SUPABASE_SERVICE_ROLE_KEY**: rotate in Supabase dashboard
-  (Settings → API → rotate), then `wrangler secret put` the new value for both
-  environments. A brief 401 window is acceptable (queue retries cover it).
-- **CLOUDFLARE_API_TOKEN** (CI only): create a new scoped token, update GitHub
-  secret, then revoke the old one. Scope: Account → Workers scripts:Edit,
-  Workers KV:Edit, Queues:Edit, R2:Edit; Zone → DNS:Edit for amazecc.com
-  (custom-domain route creation), Workers Routes:Edit — nothing else.
+- Queues: `amazecc-reviews-dlq` (production), `amazecc-reviews-dlq-staging`.
+  A message lands there after `max_retries` (3) failed consumer attempts.
+- Without a consumer, dead-lettered messages **persist for 4 days** and are then
+  deleted. A DLQ is an ordinary queue: it is inspected and drained by attaching a
+  consumer to it.
+- **Inspect**: Dashboard, Queues, the DLQ: backlog count and metrics. To read the
+  messages, attach a temporary consumer Worker (or an HTTP pull consumer) to the DLQ
+  and log only counts, never message bodies.
+- **Triage**: look at `queue_consumer` errors. The usual causes are an expired or
+  rotated `SUPABASE_SERVICE_ROLE_KEY` (401) or a Supabase outage (5xx).
+- **Recover** (do in this order):
+  1. Fix the cause (e.g. set the correct Supabase secret).
+  2. Run `POST /internal/recompute` (signed, see CLEANUP_STEPS.md section 4). It
+     rebuilds snapshots from Postgres, which already holds every review the API wrote.
+  3. If you want the DLQ messages applied too, attach a consumer that re-sends them
+     to `amazecc-reviews-queue`; upserts are idempotent, so replays are safe.
+  4. Confirm the DLQ backlog is 0.
 
-## 6) Switching `SNAPSHOT_STORE` safely (kv ↔ r2)
+## 3. Rollback
 
-1. Enable the new backend first: create/verify the R2 bucket (or KV ns) and
-   set `SNAPSHOT_STORE="r2"` on **staging**; deploy; smoke test
-   (`catalog` 200, ETag works).
-2. **Backfill**: run one ingest-free aggregation against the new backend:
-   `curl -X POST https://reviews-api-staging.amazecc.com/internal/recompute -H "x-timestamp: .." -H "x-signature: .."` — it writes all snapshots to the new backend (manifest rebuilt; write-diffing restarts at zero).
-3. Verify catalog + profile JSON in the dashboard; then repeat on production.
-4. Rollback = set `SNAPSHOT_STORE="kv"` back and re-run recompute (KV retains
-   the old data until the next clean write covers it).
+- **Worker code**: Dashboard, Workers, the Worker, Deployments: select a previous
+  version and roll back. Or `git checkout <tag>` and `pnpm deploy:production`.
+- **Fastest mitigation (no deploy)**: turn the flag off (section 4). Public reads and
+  ingest return 503; the frontend falls back to legacy vitfac data.
+- **Domain**: only as a last resort, remove the custom domain in Workers, Settings,
+  Domains and Routes. This does not affect `vitfac.amazecc.com`.
 
-## 7) Limits & pricing used (Cloudflare docs, Oct 2026)
+## 4. Flags and the killswitch (dashboard, no deploy)
 
-Workers Paid base **$5/mo**; 10M requests/mo included, then ~$0.30/million.
+`ENABLE_AMAZE_REVIEWS` and `READ_ONLY_MODE` are deliberately **not** in
+`wrangler.jsonc`. With `keep_vars: true`, Wrangler leaves variables you set in the
+dashboard alone, so a later deploy does not reset them.
 
-| Item | Included (Paid) | Extra |
-| --- | --- | --- |
-| KV writes/deletes/lists | 1M / month | $5.00 per extra million |
-| Writes to the same KV key | 1/sec per key | — (write-diffing keeps us far below) |
-| Queues operations | 1M ops/month | $0.40 per extra million (≈3 ops per delivered message; retries cost reads) |
-| Queue message retention | 4 days (configurable to 14) | — |
-| `max_batch_size` | default 10, we use **25** (max 100) | — |
-| R2 storage | 10 GB free tier | $0.015 /GB-month |
-| R2 Class A (writes/lists) | 1M free tier | $4.50 /million |
-| R2 Class B (reads) | 10M free tier | $0.36 /million |
-| Worker size | 64 MiB | — |
+| Goal | Action |
+| --- | --- |
+| Feature on | Workers, the Worker, Settings, Variables and Secrets: add `ENABLE_AMAZE_REVIEWS` = `true` (type Text) |
+| **Killswitch (feature off)** | set it to `false` or delete it. Strict opt-in: anything other than the exact text `true` is OFF |
+| Freeze writes, keep reads (FFCS peak) | add `READ_ONLY_MODE` = `true`; ingest and recompute and cron return 503 / skip, reads keep serving |
+| Legacy vitfac | independent: the frontend `NEXT_PUBLIC_ENABLE_VITFAC_INTEGRATION` and API `ENABLE_VITFAC_INTEGRATION`. This Worker never calls `vitfac.amazecc.com` |
 
-Configurable constants (all in `wrangler.jsonc` `vars`): `MAX_KV_WRITES_PER_RUN`
-(staging/prod **200**; the current faculty size needs ~120 snapshots/cycle), 
-aggregation cron 10 min. If the faculty list grows past ~500 official
-professors, raise the cap or increase the cron budget with the same
-write-diffing (unchanged snapshots cost nothing).
+Do this per environment (staging and production are separate Workers).
+Because variables set in the dashboard are not in git, **record any change** in the
+team's change log. The API (`ENABLE_AMAZE_REVIEWS`) and frontend
+(`NEXT_PUBLIC_ENABLE_AMAZE_REVIEWS`) flags are separate and need their own change.
 
-## 8) Weekly checklist (2 min)
+## 5. Secret rotation
 
-1. `cloudflare dashboard` → Workers → Logs: any `aggregation_failed`?
-2. Queues → DLQ count == 0?
-3. `GET /api/reviews/catalog` → 200, `updated_at` within last 15 min.
-4. KV usage dashboard within monthly budget.
+Generate: `openssl rand -hex 32`. Never reuse a value across secrets or environments.
+
+**`REVIEWS_INGEST_SECRET`** (zero downtime, dual-secret window):
+
+1. Generate NEW. In the Worker: `wrangler secret put REVIEWS_INGEST_SECRET_PREVIOUS --env <env>`
+   with the **old** value, then `wrangler secret put REVIEWS_INGEST_SECRET --env <env>`
+   with the **new** value. The Worker accepts either signature.
+2. Set the new value as `REVIEWS_INGEST_SECRET` in `AmazeCC-api` and redeploy/restart it.
+3. Watch `status: 401` on `/internal/ingest` fall to zero (give it one full day for
+   in-flight retries).
+4. Delete the old one: `wrangler secret delete REVIEWS_INGEST_SECRET_PREVIOUS --env <env>`.
+
+**`SUPABASE_SERVICE_ROLE_KEY`**: rotate in Supabase, then `wrangler secret put` for
+both environments. Brief 401s are absorbed by queue retries (the API already wrote
+the rows). Run a recompute afterwards.
+
+**`REVIEW_HASH_SECRET`** (API only): do **not** rotate unless it leaked. It is the key
+for every reviewer hash, so changing it orphans every existing review's owner
+(students could re-review, edit windows reset) and every stored enrollment. A rotation
+needs a re-hash migration of `enrollments.student_hash` and `reviews.student_hash`.
+If it leaks, treat as an incident (section 9).
+
+**`CLOUDFLARE_API_TOKEN`** (CI only): create the new scoped token, update the GitHub
+secret, run a staging deploy to prove it, then revoke the old token.
+
+**Admin signing secret (`ADMIN_SECRET`)** is an existing app secret outside this feature.
+
+## 6. Switching `SNAPSHOT_STORE` safely (kv and r2)
+
+`SNAPSHOT_STORE` is a normal var in `wrangler.jsonc` (default `kv`). Both backends pass
+the same contract tests, and each keeps its own manifest and write-diff state, so
+switching **republishes everything once**.
+
+1. On **staging**: set `SNAPSHOT_STORE` to `r2` in `wrangler.jsonc`, deploy, then run
+   `POST /internal/recompute`. Confirm the response reports snapshots written and
+   `GET /api/reviews/catalog` returns 200 with an `ETag`.
+2. Compare the catalog JSON against production's. They should match apart from `updated_at`.
+3. Repeat on production in a quiet period.
+4. **Rollback**: set `SNAPSHOT_STORE` back to `kv`, deploy, recompute. The old KV data
+   is untouched until overwritten. A missing binding for the selected backend makes
+   the Worker fail loudly (500) instead of silently publishing nowhere.
+
+## 7. Limits and pricing used (looked up 2026-10-31)
+
+Sources: Cloudflare docs, Workers pricing, KV pricing, Queues pricing, R2 pricing,
+Workers Logs (all "last updated" Oct 2026). Re-check before relying on them.
+
+| Item | Workers Paid |
+| --- | --- |
+| Plan | $5 / month minimum |
+| Worker requests | 10M / month included, then $0.30 per million. Cached responses served by a Worker still count |
+| Worker CPU | 30M CPU-ms / month included, then $0.02 per million; Cron and Queue consumer invocations can run up to 15 min |
+| KV reads | 10M / month, then $0.50 per million |
+| KV writes / deletes / lists | 1M / month each, then $5.00 per million |
+| KV storage | 1 GB, then $0.50 per GB-month |
+| Queues | 1M operations / month, then $0.40 per million. About 3 operations per delivered message (write, read, delete); each retry adds a read; per 64 KB |
+| Queue retention | 4 days default, up to 14 days |
+| R2 storage | $0.015 per GB-month (10 GB-month free) |
+| R2 Class A (writes, lists) | $4.50 per million (1M free) |
+| R2 Class B (reads) | $0.36 per million (10M free) |
+| R2 egress | free |
+| Workers Logs | 20M events / month included, then $0.60 per million; 7 days retention. From 1 Dec 2026 billed under Cloudflare Observability pricing |
+
+Configurable values and why:
+
+| Setting | Where | Value | Reason |
+| --- | --- | --- | --- |
+| `MAX_KV_WRITES_PER_RUN` | `wrangler.jsonc` var | local 50, environments 200 | Caps one aggregation run's writes. The catalog plus a profile per faculty is a few hundred keys at most, and write-diffing writes only changed ones |
+| `CACHE_TTL_SECONDS` / `CACHE_SWR_SECONDS` | optional vars | 300 / 86400 | `Cache-Control` for snapshot reads. Lower for fresher grades, raise to save requests |
+| cron | `triggers.crons` | every 10 minutes | about 4,300 runs a month; with write-diffing that is near 0 KV writes when idle |
+| consumer `max_batch_size` / `max_batch_timeout` / `max_retries` | `queues.consumers` | 25 / 10 s / 3 | one Supabase call per batch; DLQ after 3 retries |
+| Daily ingest cap | **not in the Worker** | n/a | The Worker is stateless. Cap abuse with the WAF rate-limit rules (DEPLOYMENT.md section 5) and the API's per-student limiter |
+
+Cost sanity check: a read-heavy launch day of 1M catalog reads is about 1M Worker
+requests (inside the included 10M) and at most 1M KV reads (inside the included
+10M). Writes stay tiny because snapshots only change when reviews change.
+
+## 8. Weekly checklist (2 minutes)
+
+1. Workers Logs: any `aggregation_failed` or sustained `queue_consumer` errors?
+2. Queues: dead-letter backlog is 0?
+3. `GET /api/reviews/catalog` returns 200 and `updated_at` is recent.
+4. Usage dashboard (KV, Queues, Worker requests) is within budget.
+5. `npm audit` / Dependabot for `faculty-review/`.
+
+## 9. Incident steps
+
+1. **Contain**: turn the flag off (section 4). Reads and ingest return 503 and the app
+   falls back to legacy vitfac data.
+2. **Assess** with logs (no personal data in them). Check Supabase status and the DLQ.
+3. **Suspected secret leak**: rotate that secret (section 5). For `REVIEWS_INGEST_SECRET`
+   use the dual-secret window; for `SUPABASE_SERVICE_ROLE_KEY` rotate immediately.
+4. **Bad data published**: fix the data, then `POST /internal/recompute`; snapshots are
+   rewritten only where content changed. Purge the edge cache for the affected URLs.
+5. **Recover**: turn the flag on in staging first, then production. Note it in the change log.

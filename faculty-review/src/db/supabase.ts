@@ -88,15 +88,16 @@ export class SupabaseClient {
 
     while (true) {
       const res = await fetch(
-        `${this.url}/rest/v1/faculty?select=*&status=neq.hidden&order=name.asc&limit=${pageSize}&offset=${offset}`,
+        `${this.url}/rest/v1/faculty?select=*&status=neq.hidden&order=name.asc,id.asc&limit=${pageSize}&offset=${offset}`,
         {
           method: "GET",
           headers: this.headers(),
         }
       );
       if (!res.ok) {
-        console.error("[supabase] Failed to fetch faculty list:", res.status);
-        break;
+        // Never publish from a partial read: a truncated list would overwrite good
+        // snapshots. Throwing fails the run and leaves the last good snapshots live.
+        throw new Error(`Supabase faculty read failed (HTTP ${res.status})`);
       }
       const page = (await res.json()) as FacultyRow[];
       if (!Array.isArray(page) || page.length === 0) break;
@@ -118,15 +119,14 @@ export class SupabaseClient {
 
     while (true) {
       const res = await fetch(
-        `${this.url}/rest/v1/reviews?select=*&limit=${pageSize}&offset=${offset}`,
+        `${this.url}/rest/v1/reviews?select=*&order=id.asc&limit=${pageSize}&offset=${offset}`,
         {
           method: "GET",
           headers: this.headers(),
         }
       );
       if (!res.ok) {
-        console.error("[supabase] Failed to fetch reviews:", res.status);
-        break;
+        throw new Error(`Supabase reviews read failed (HTTP ${res.status})`);
       }
       const page = (await res.json()) as RawReviewRow[];
       if (!Array.isArray(page) || page.length === 0) break;
