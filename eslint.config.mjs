@@ -43,6 +43,8 @@ const eslintConfig = [
       "out/**",
       "build/**",
       "next-env.d.ts",
+      // Separate pnpm project (Cloudflare Worker), checked by its own CI job.
+      "faculty-review/**",
     ],
   },
   {

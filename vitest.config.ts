@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 import { fileURLToPath } from 'node:url';
 
 export default defineConfig({
@@ -15,6 +15,9 @@ export default defineConfig({
   // stylesheet. Nothing under test asserts on computed style.
   css: { postcss: { plugins: [] } },
   test: {
+    // The Cloudflare Worker (faculty-review/) is a separate pnpm project with its
+    // own CI job and a workers runtime; do not run its tests under jsdom here.
+    exclude: [...configDefaults.exclude, 'faculty-review/**'],
     environment: 'jsdom',
     globals: true,
     server: {
