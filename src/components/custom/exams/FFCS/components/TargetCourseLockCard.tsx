@@ -21,6 +21,12 @@ interface TargetCourseLockCardProps {
   tone?: "purple" | "neutral";
   /** The student's curriculum category, shown only when the picker filters by it. */
   category?: string;
+  /**
+   * Did `category` come from an exact curriculum listing, or from a mere
+   * shared code start (default: listed)? A candidate wears the amber
+   * open-elective look instead of the curriculum emerald.
+   */
+  curriculumListed?: boolean;
 }
 
 /** Search result row shared by planner target locks and generator focus locks. */
@@ -31,6 +37,7 @@ export function TargetCourseLockCard({
   onSelectionChange,
   tone = "purple",
   category,
+  curriculumListed = true,
 }: TargetCourseLockCardProps) {
   const isSelected = Boolean(selection);
   const cardToneClass =
@@ -118,8 +125,16 @@ export function TargetCourseLockCard({
                 {renderCourseTypeChips(course.types ?? [], "sm")}
                 {category && (
                   <span
-                    title={`Counts toward ${category}`}
-                    className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-500"
+                    title={
+                      curriculumListed
+                        ? `In your curriculum — counts toward ${category}`
+                        : "Not in your curriculum — shares a code start with a course that is (open-elective candidate)"
+                    }
+                    className={`rounded-md border px-1.5 py-0.5 text-[10px] font-bold ${
+                      curriculumListed
+                        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
+                        : "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                    }`}
                   >
                     {category}
                   </span>

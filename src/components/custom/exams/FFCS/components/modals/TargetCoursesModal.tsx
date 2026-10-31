@@ -9,7 +9,7 @@ import { CourseImportPanel, type ImportMode } from "../CourseImportPanel";
 import { TargetCourseLockCard } from "../TargetCourseLockCard";
 import { CourseCatalogFilters } from "../CourseCatalogFilters";
 import { useCatalogCurriculum } from "../../hooks/useCatalogCurriculum";
-import { buildSlotIndex, courseCategory, matchesCatalogFilters } from "@/lib/ffcsCatalogFilters";
+import { buildSlotIndex, courseCategory, isListedInCurriculum, matchesCatalogFilters } from "@/lib/ffcsCatalogFilters";
 
 interface TargetCoursesModalProps {
   isOpen: boolean;
@@ -184,6 +184,9 @@ export const TargetCoursesModal: React.FC<TargetCoursesModalProps> = ({
                       selection={selection}
                       category={
                         curriculumOnly && curriculum ? (courseCategory(c.code, curriculum) ?? undefined) : undefined
+                      }
+                      curriculumListed={
+                        curriculumOnly && curriculum ? isListedInCurriculum(c.code, curriculum) : undefined
                       }
                       onSelectionChange={(nextSelection) => {
                         if (!nextSelection) {

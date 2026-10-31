@@ -88,6 +88,7 @@ import { pruneGeneratorTargets } from "@/lib/ffcsGeneratorTargets";
 import {
   buildSlotIndex,
   courseCategory,
+  isListedInCurriculum,
   matchesCatalogFilters,
   type CatalogFilterState,
 } from "@/lib/ffcsCatalogFilters";
@@ -3406,6 +3407,11 @@ export default function FFCSTimetableTab({
                   const fullyAdded = isCourseFullyAdded(c.code, c.types, activeTimetable.courses);
                   const curriculumCategory =
                     catalogCurriculumOnly && catalogCurriculum ? courseCategory(c.code, catalogCurriculum) : null;
+                  // Listed in the payload = curriculum; shared start only = an
+                  // open-elective candidate, which must not wear the emerald
+                  // "counts toward your curriculum" look.
+                  const curriculumListed =
+                    !!curriculumCategory && !!catalogCurriculum && isListedInCurriculum(c.code, catalogCurriculum);
                   return (
                     <button
                       key={c.code}
@@ -3430,8 +3436,16 @@ export default function FFCSTimetableTab({
                             {renderCourseTypeChips(c.types || [], "sm")}
                             {curriculumCategory && (
                               <span
-                                title={`Counts toward ${curriculumCategory}`}
-                                className="text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
+                                title={
+                                  curriculumListed
+                                    ? `In your curriculum — counts toward ${curriculumCategory}`
+                                    : "Not in your curriculum — shares a code start with a course that is (open-elective candidate)"
+                                }
+                                className={
+                                  curriculumListed
+                                    ? "text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
+                                    : "text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                                }
                               >
                                 {curriculumCategory}
                               </span>

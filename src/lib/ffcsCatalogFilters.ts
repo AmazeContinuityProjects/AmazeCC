@@ -4,16 +4,24 @@
  *
  * Two hosts share this — the Search Course sheet and the Target Courses modal
  * — so the matching lives here as pure functions: a chip list built from the
- * loaded catalogue, a course-code → curriculum-category index built from
- * VTOP's `/curriculum` payload (see `sync-engine`'s `curriculum` op) that
- * matches on shared code prefixes as well as exact codes, and one predicate
- * both sheets call while filtering their lists.
+ * loaded catalogue, an index built from VTOP's `/curriculum` payload (see
+ * `sync-engine`'s `curriculum` op) that labels a listed code with its
+ * curriculum category and a mere shared-start code as an open-elective
+ * candidate, and one predicate both sheets call while filtering their lists.
  */
 import type { CategoryDetail } from "@/lib/curriculum";
 import { hasSlot, schemaSlotFor, splitSlots } from "@/lib/slots";
 
 /** course code → every slot token its offerings run in (`NIL` dropped). */
 export type CatalogSlotIndex = Map<string, Set<string>>;
+
+/**
+ * The label a course that is NOT listed in the curriculum answers with when
+ * it shares a code start with one — a family member, so a candidate open
+ * elective rather than a curriculum course. Exact listings keep their own
+ * category instead; that split is how the pickers "tell it is curriculum".
+ */
+export const OPEN_ELECTIVE_CATEGORY = "Open Elective";
 
 /** The student's curriculum as a lookup, for matching catalogue codes. */
 export interface CatalogCurriculum {
@@ -22,20 +30,22 @@ export interface CatalogCurriculum {
   /** Exact course code (upper-cased) → the category it counts toward. */
   categoryByCode: Map<string, string>;
   /**
-   * Every prefix of every curriculum code, down to a single character, → the
-   * category it counts toward. The catalogue matches on a shared start of any
-   * length — `BASTS101` claims `BASTS102` through `BASTS1`, an embedded or lab
-   * variant claims its base code, and a bare `B`/`I`/`MA` still claims the
-   * rest of that family. `courseCategory` walks a code from its full length
-   * down, so the longest shared start always wins the category.
+   * Every start any curriculum code has, from the full code down to a single
+   * character (`BCSE1`, `BC`, `B`). Membership here means "shares a code
+   * start" — the criterion for counting as an open-elective candidate:
+   * `BASTS102` through `BASTS1`, an embedded/lab variant through its base
+   * code, or a bare `B`/`I`/`IA` family.
    */
-  categoryByPrefix: Map<string, string>;
+  prefixes: Set<string>;
 }
 
 export interface CatalogFilterState {
   /** Selected slot chips; a course survives when ANY of its slots is one. */
   slots: string[];
-  /** Only courses the student's own curriculum lists. */
+  /**
+   * Only courses related to the student's curriculum: listed codes under
+   * their own category, shared-start codes as open-elective candidates.
+   */
   curriculumOnly: boolean;
   /** Selected categories; empty means every category. */
   categories: string[];
@@ -116,19 +126,21 @@ export function catalogSlotChips(index: CatalogSlotIndex): { theory: string[]; l
 
 /**
  * The student's curriculum as code → category ("University Core Courses",
- * "Programme Core Courses", "Concentration", "Open Elective", …).
+ * "Programme Core Courses", "Concentration", …), split two ways by how a
+ * catalogue code relates to it:
  *
- * Matching is prefix-based, not exact-only: a catalogue course counts when it
- * shares a common start with a curriculum code — anything from the full code
- * down to its first letter. The index therefore stores every prefix of every
- * curriculum code; the exact `categoryByCode` map stays for callers that want
- * the literal listing, but filtering and chips go through `courseCategory`,
- * which answers with the longest shared start's category.
+ * - an EXACT listing is in the curriculum and answers with its own category,
+ * - a code that merely shares a start with a listed one is NOT in the
+ *   curriculum — it answers with `OPEN_ELECTIVE_CATEGORY`, a candidate from
+ *   the same family,
+ * - a code sharing no start answers with nothing and stays hidden.
  *
- * Null when there is nothing to match — logged out, never synced, or a
- * payload without course items — so hosts branch on null alone. A course
- * appearing in two categories keeps the first; VTOP should not do that and
- * there is no second answer worth hiding the first one for.
+ * `prefixes` holds every start (full code → first letter) so the second
+ * question is one membership test. Null when there is nothing to match —
+ * logged out, never synced, or a payload without course items — so hosts
+ * branch on null alone. A course appearing in two categories keeps the
+ * first; VTOP should not do that and there is no second answer worth
+ * hiding the first one for.
  */
 export function buildCurriculumIndex(details: readonly CategoryDetail[] | null | undefined): CatalogCurriculum | null {
   if (!details?.length) return null;
@@ -158,46 +170,52 @@ export function buildCurriculumIndex(details: readonly CategoryDetail[] | null |
 
   if (!categoryByCode.size) return null;
 
-  // Every prefix of every code, longest first per code, first claimant wins
-  // each key. The KEY set is what matters: it is exactly the set of strings
-  // that are a prefix of both some catalogue code and some curriculum code,
-  // so walking a code's own prefixes longest-first lands on the longest
-  // shared start — the shortest keys (a bare first letter) only ever decide
-  // the category of a course nothing more specific claims.
-  const categoryByPrefix = new Map<string, string>();
-  for (const [code, name] of categoryByCode) {
-    for (let len = code.length; len >= 1; len--) {
-      const prefix = code.slice(0, len);
-      if (!categoryByPrefix.has(prefix)) categoryByPrefix.set(prefix, name);
-    }
+  // Every start of every listed code, full length down to one character —
+  // exactly the set of strings that are a prefix of both some catalogue code
+  // and some curriculum code, i.e. "shares a start" made testable in O(len).
+  const prefixes = new Set<string>();
+  for (const code of categoryByCode.keys()) {
+    for (let len = code.length; len >= 1; len--) prefixes.add(code.slice(0, len));
   }
 
-  // A category with no course codes of its own would render a chip that can
-  // only ever empty the list.
-  return {
-    categories: order.filter((name) => (counts.get(name) ?? 0) > 0),
-    categoryByCode,
-    categoryByPrefix,
-  };
+  const categories = order.filter((name) => (counts.get(name) ?? 0) > 0);
+  // Family matches answer with OPEN_ELECTIVE_CATEGORY, so the chip that
+  // selects them must exist even when the payload's own Open Elective basket
+  // is empty or absent. Unlike a purely empty category this chip can never
+  // be a dead one — prefix matches land in it.
+  if (!categories.some((name) => name.toLowerCase() === OPEN_ELECTIVE_CATEGORY.toLowerCase())) {
+    categories.push(OPEN_ELECTIVE_CATEGORY);
+  }
+
+  return { categories, categoryByCode, prefixes };
 }
 
 /**
- * Which curriculum category a code counts toward, or null.
- *
- * Prefix match: the answer comes from the longest start the code shares with
- * a curriculum code, so a listed course still answers with its own category
- * while `BCSE101E`-style variants and same-family codes inherit the closest
- * relative's. The filter and the category chip both call this, so a course
- * can never be visible under a category the chip does not show.
+ * The label a code answers with, or null when it shares no start at all:
+ * its own curriculum category when it is listed verbatim (it IS curriculum),
+ * `OPEN_ELECTIVE_CATEGORY` when it only shares a start (it is not, just a
+ * candidate), null otherwise. The filter and the badges both call this, so a
+ * course can never be visible under a label the badge does not show.
  */
 export function courseCategory(code: string, curriculum: CatalogCurriculum | null | undefined): string | null {
   if (!curriculum) return null;
   const normalised = normaliseCode(code);
+  const exact = curriculum.categoryByCode.get(normalised);
+  if (exact) return exact;
   for (let len = normalised.length; len >= 1; len--) {
-    const hit = curriculum.categoryByPrefix.get(normalised.slice(0, len));
-    if (hit) return hit;
+    if (curriculum.prefixes.has(normalised.slice(0, len))) return OPEN_ELECTIVE_CATEGORY;
   }
   return null;
+}
+
+/**
+ * Is the code listed verbatim in the curriculum, as opposed to merely sharing
+ * a start with a listed code? Hosts call it beside `courseCategory` to word
+ * the badge honestly: "counts toward your curriculum" for a listing, an
+ * open-elective candidate for a shared start.
+ */
+export function isListedInCurriculum(code: string, curriculum: CatalogCurriculum | null | undefined): boolean {
+  return !!curriculum?.categoryByCode.has(normaliseCode(code));
 }
 
 /** Do the active filters narrow anything? For empty-state copy. */
@@ -212,9 +230,12 @@ export function catalogFiltersActive(state: CatalogFilterState): boolean {
  * the caller has no index for that code) because the index is built per host
  * from whatever catalogue is loaded. Slot chips match with `hasSlot` so a
  * law-spelled course answers to its engineering chip. Curriculum-only keeps a
- * course when `courseCategory` does — exact listing OR any shared code start,
+ * course when `courseCategory` does — an exact listing (kept under its own
+ * category) or any shared code start (kept as an open-elective candidate),
  * so lab/embedded variants and the rest of a curriculum code's family come
- * along with the courses themselves. A curriculum-only state with no
+ * along too. Narrow the category chips to real curriculum categories and the
+ * candidates drop out, leaving exactly the courses VTOP listed: the split is
+ * in the label, not in a second switch. A curriculum-only state with no
  * curriculum to check is a no-op rather than an empty list — the switch
  * cannot be on without curriculum, so a stale true means the data left, not
  * that the student asked for nothing.

@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   EMPTY_CATALOG_FILTERS,
+  OPEN_ELECTIVE_CATEGORY,
   buildCurriculumIndex,
   buildSlotIndex,
   canonicalSlot,
   catalogFiltersActive,
   catalogSlotChips,
   courseCategory,
+  isListedInCurriculum,
   matchesCatalogFilters,
   type CatalogFilterState,
 } from "../lib/ffcsCatalogFilters";
@@ -96,9 +98,14 @@ describe("buildCurriculumIndex", () => {
   it("maps upper-cased codes to their category, only counting categories with courses", () => {
     const curriculum = buildCurriculumIndex(details);
     expect(curriculum).not.toBeNull();
-    // "Open Elective" has no course items and must not render a chip that
-    // can only ever empty the list.
-    expect(curriculum!.categories).toEqual(["University Core Courses", "Programme Core Courses"]);
+    // An empty category normally renders a chip that can only ever empty the
+    // list — but "Open Elective" is the label shared-start candidates carry,
+    // so it is offered whatever the payload's own basket holds.
+    expect(curriculum!.categories).toEqual([
+      "University Core Courses",
+      "Programme Core Courses",
+      OPEN_ELECTIVE_CATEGORY,
+    ]);
     expect(courseCategory("phy101", curriculum)).toBe("University Core Courses");
     expect(courseCategory(" BCSE101 ", curriculum)).toBe("Programme Core Courses");
     expect(courseCategory("NOTIN1", curriculum)).toBeNull();
@@ -133,9 +140,10 @@ describe("buildCurriculumIndex", () => {
 });
 
 /**
- * Prefix matching: a catalogue course counts when it shares a common start
- * with a curriculum code — the full code down to a bare leading letter
- * (`B`, `BA`, `IA`, `I`…). Longest shared start decides the category.
+ * Shared starts are candidates, not curriculum: a full code match keeps its
+ * own category ("it IS curriculum"), anything that merely shares a start
+ * (`B`, `BA`, `IA`, `I`…) is labelled a non-curriculum open elective, and a
+ * code sharing no start with the payload is hidden.
  */
 const prefixDetails: CategoryDetail[] = [
   {
@@ -164,61 +172,72 @@ const prefixDetails: CategoryDetail[] = [
   },
 ];
 
-describe("curriculum prefix matching", () => {
+describe("shared course-code starts", () => {
   const curriculum = buildCurriculumIndex(prefixDetails)!;
 
-  it("answers with the category of the longest start the code shares", () => {
-    // The exact listing still answers with its own category.
+  it("tells a full code match apart from a mere shared start", () => {
+    // Listed verbatim: this IS curriculum, under its own category.
     expect(courseCategory("BCSE101", curriculum)).toBe("Programme Core Courses");
-    // An embedded/lab-style variant claims its base code: "BCSE101" ⊂ BCSE101E.
-    expect(courseCategory("BCSE101E", curriculum)).toBe("Programme Core Courses");
-    // Shares "BASTS1" with BASTS101 — not just its first letter.
-    expect(courseCategory("BASTS102", curriculum)).toBe("University Core Courses");
-    // "BC" (from BCSE101) beats the bare "B" that BASTS101 also claims.
-    expect(courseCategory("BCHY105", curriculum)).toBe("Programme Core Courses");
+    expect(isListedInCurriculum("BCSE101", curriculum)).toBe(true);
+    expect(courseCategory(" BASTS101 ", curriculum)).toBe("University Core Courses");
+    expect(isListedInCurriculum("BASTS101", curriculum)).toBe(true);
+
+    // Shares a start with that listing — a candidate, not a curriculum course.
+    expect(courseCategory("BCSE101E", curriculum)).toBe(OPEN_ELECTIVE_CATEGORY);
+    expect(isListedInCurriculum("BCSE101E", curriculum)).toBe(false);
   });
 
-  it("claims a family from as short a start as the codes allow", () => {
-    // "IA" with IAMAT203 — two letters.
-    expect(courseCategory("IACHY101", curriculum)).toBe("Interdisciplinary Core");
-    // "I" alone when nothing more specific exists: the bare-letter case.
-    expect(courseCategory("IBIOM101", curriculum)).toBe("Interdisciplinary Core");
-    // A bare "C": only CHM101's family claims it.
-    expect(courseCategory("CHM999", curriculum)).toBe("University Core Courses");
-    // A bare "B" is claimed by both B-codes, so the first in curriculum
-    // order keeps it — the same rule as a code listed in two categories.
-    expect(courseCategory("BFSD1001", curriculum)).toBe("Programme Core Courses");
+  it("calls a candidate the same whatever depth it matched at", () => {
+    // "BASTS1" — nearly the whole code.
+    expect(courseCategory("BASTS102", curriculum)).toBe(OPEN_ELECTIVE_CATEGORY);
+    // "IA" — two letters.
+    expect(courseCategory("IACHY101", curriculum)).toBe(OPEN_ELECTIVE_CATEGORY);
+    // A bare leading letter — the shallowest match there is.
+    expect(courseCategory("BFSD1001", curriculum)).toBe(OPEN_ELECTIVE_CATEGORY); // B
+    expect(courseCategory("IBIOM101", curriculum)).toBe(OPEN_ELECTIVE_CATEGORY); // I
+    expect(courseCategory("CHM999", curriculum)).toBe(OPEN_ELECTIVE_CATEGORY); // C
+    expect(isListedInCurriculum("CHM999", curriculum)).toBe(false);
   });
 
   it("stays null for a family no curriculum code starts", () => {
     expect(courseCategory("UASTS102", curriculum)).toBeNull();
     expect(courseCategory("TLAW101", curriculum)).toBeNull();
+    expect(isListedInCurriculum("UASTS102", curriculum)).toBe(false);
   });
 
-  it("keeps prefix-matched courses in the list and drops the rest", () => {
+  it("keeps listed courses and candidates alike while curriculum-only is on", () => {
     const only = state({ curriculumOnly: true });
-    expect(matchesCatalogFilters("BCSE101E", undefined, only, curriculum)).toBe(true);
+    expect(matchesCatalogFilters("BCSE101", undefined, only, curriculum)).toBe(true);
     expect(matchesCatalogFilters("BASTS102", undefined, only, curriculum)).toBe(true);
     expect(matchesCatalogFilters("IBIOM101", undefined, only, curriculum)).toBe(true);
     expect(matchesCatalogFilters("UASTS102", undefined, only, curriculum)).toBe(false);
   });
 
-  it("hands the inherited category to the chips, filter and chip agreeing", () => {
+  it("narrows to a pure-curriculum or a candidates-only view with the chips", () => {
     const only = state({ curriculumOnly: true });
-    // BASTS102 inherits University Core… so that chip keeps it…
+    // A real curriculum chip: the listed course stays, the candidate drops.
     expect(
-      matchesCatalogFilters("BASTS102", undefined, { ...only, categories: ["University Core Courses"] }, curriculum),
+      matchesCatalogFilters("BCSE101", undefined, { ...only, categories: ["Programme Core Courses"] }, curriculum),
     ).toBe(true);
-    // …and the Programme Core chip drops it.
     expect(
       matchesCatalogFilters("BASTS102", undefined, { ...only, categories: ["Programme Core Courses"] }, curriculum),
     ).toBe(false);
-    // BCHY105 inherits Programme Core through "BC" — same agreement.
-    expect(courseCategory("BCHY105", curriculum)).toBe("Programme Core Courses");
-    expect(matchesCatalogFilters("BCHY105", undefined, only, curriculum)).toBe(true);
+    // The Open Elective chip is the mirror image: candidates, not listings.
     expect(
-      matchesCatalogFilters("BCHY105", undefined, { ...only, categories: ["Programme Core Courses"] }, curriculum),
+      matchesCatalogFilters("BASTS102", undefined, { ...only, categories: [OPEN_ELECTIVE_CATEGORY] }, curriculum),
     ).toBe(true);
+    expect(
+      matchesCatalogFilters("BCSE101", undefined, { ...only, categories: [OPEN_ELECTIVE_CATEGORY] }, curriculum),
+    ).toBe(false);
+  });
+
+  it("offers the Open Elective chip alongside the payload's own categories", () => {
+    expect(curriculum.categories).toEqual([
+      "Programme Core Courses",
+      "University Core Courses",
+      "Interdisciplinary Core",
+      OPEN_ELECTIVE_CATEGORY,
+    ]);
   });
 });
 

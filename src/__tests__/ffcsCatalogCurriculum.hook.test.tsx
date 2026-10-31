@@ -10,6 +10,7 @@ import {
   useCatalogCurriculum,
 } from "../components/custom/exams/FFCS/hooks/useCatalogCurriculum";
 import { installLocalStorage } from "./helpers/localStorage";
+import { OPEN_ELECTIVE_CATEGORY } from "../lib/ffcsCatalogFilters";
 
 // The hook only ever touches the engine through `syncBackground`; stubbing the
 // module keeps the real engine (and any VTOP reachability) out of the test.
@@ -56,7 +57,8 @@ describe("useCatalogCurriculum", () => {
     const { result } = renderHook(() => useCatalogCurriculum());
 
     await waitFor(() => expect(result.current).not.toBeNull());
-    expect(result.current?.categories).toEqual(["University Core Courses"]);
+    // "Open Elective" is appended: shared-start candidates need a chip too.
+    expect(result.current?.categories).toEqual(["University Core Courses", OPEN_ELECTIVE_CATEGORY]);
     expect(result.current?.categoryByCode.get("PHY101")).toBe("University Core Courses");
     expect(backfill).not.toHaveBeenCalled();
   });
@@ -115,7 +117,8 @@ describe("useCatalogCurriculum", () => {
     storage.curriculum.set({ details });
     act(() => notifyCatalogCurriculumChanged());
 
-    expect(result.current?.categories).toEqual(["University Core Courses"]);
+    // "Open Elective" is appended: shared-start candidates need a chip too.
+    expect(result.current?.categories).toEqual(["University Core Courses", OPEN_ELECTIVE_CATEGORY]);
     expect(result.current?.categoryByCode.get("PHY101")).toBe("University Core Courses");
   });
 
