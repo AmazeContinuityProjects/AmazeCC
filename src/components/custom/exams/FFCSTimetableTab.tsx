@@ -43,6 +43,8 @@ import {
   Megaphone,
   LogIn,
   BadgeCheck,
+  GraduationCap,
+  RefreshCw,
 } from "lucide-react";
 
 import SearchInput from "../shared/SearchInput";
@@ -94,6 +96,8 @@ import {
 } from "@/lib/ffcsCatalogFilters";
 import { CourseCatalogFilters } from "./FFCS/components/CourseCatalogFilters";
 import { notifyCatalogCurriculumChanged, useCatalogCurriculum } from "./FFCS/hooks/useCatalogCurriculum";
+import { notifyCatalogGradesChanged, useCatalogGrades } from "./FFCS/hooks/useCatalogGrades";
+import { gradeBadge, retriesFirst, GRADE_BADGE_TONE_CLASSES } from "@/lib/ffcsPlannerGrades";
 import { runPageSync } from "@/lib/sync-engine/single-sync";
 import {
   encodeTimetableShare,
@@ -726,6 +730,9 @@ export default function FFCSTimetableTab({
   const [catalogCategories, setCatalogCategories] = useState<string[]>([]);
   // Explicit "Sync curriculum" button state (shared by both picker sheets).
   const [isCurriculumSyncing, setIsCurriculumSyncing] = useState(false);
+  // "Curriculum & grade history" integration sheet: open state + its sync run.
+  const [isIntegrateSheetOpen, setIsIntegrateSheetOpen] = useState(false);
+  const [isIntegrating, setIsIntegrating] = useState(false);
   const [generatorCourseSearchQuery, setGeneratorCourseSearchQuery] = useState("");
   const [isVariantSearchOpen, setIsVariantSearchOpen] = useState(false);
   const [variantSearchQuery, setVariantSearchQuery] = useState("");
@@ -1149,7 +1156,11 @@ export default function FFCSTimetableTab({
 
   // Slot chips and the curriculum index behind the Search Course sheet.
   const catalogSlotIndex = useMemo(() => buildSlotIndex(masterCourses), [masterCourses]);
-  const catalogCurriculum = useCatalogCurriculum();
+  // The planner's own setting ("Curriculum & grade history" sheet) gates both
+  // indexes: off, the pickers get nulls and show the plain catalogue again.
+  const integrateData = settings.integrateCurriculumAndGrades;
+  const catalogCurriculum = useCatalogCurriculum({ enabled: integrateData });
+  const catalogGrades = useCatalogGrades({ enabled: integrateData });
 
   /**
    * The filters row's "Sync curriculum" button. An explicit user action, so
@@ -1174,6 +1185,30 @@ export default function FFCSTimetableTab({
   }, [isCurriculumSyncing]);
 
   /**
+   * The integration sheet's "Integrate now": fetch BOTH payloads the pickers
+   * read — curriculum and full grade history — in one visible sync, announcing
+   * each to every mounted picker as it lands.
+   */
+  const handleIntegrateNow = useCallback(async () => {
+    if (isIntegrating) return;
+    setIsIntegrating(true);
+    try {
+      await runPageSync({
+        title: "Curriculum & grade history",
+        steps: [
+          { op: "curriculum", apply: () => notifyCatalogCurriculumChanged() },
+          { op: "all-grades", apply: () => notifyCatalogGradesChanged() },
+        ],
+        doneLine: "Integrated — the pickers now know your curriculum and grades",
+      });
+    } catch {
+      /* runPageSync already logged the failure into its own sheet */
+    } finally {
+      setIsIntegrating(false);
+    }
+  }, [isIntegrating]);
+
+  /**
    * The Search Course sheet's visible list: query, locked-only, then the
    * shared slot/curriculum filters. One derivation for the list and its
    * empty state — the sheet used to run its filter twice inline, and a
@@ -1186,20 +1221,28 @@ export default function FFCSTimetableTab({
       curriculumOnly: catalogCurriculumOnly,
       categories: catalogCategories,
     };
-    return uniqueCourses.filter((course) => {
-      if (searchLockedOnly && courseLocks.length > 0 && !courseLocks.some((lock) => lock.code === course.code)) {
-        return false;
-      }
-      if (query && !course.code.toLowerCase().includes(query) && !course.title.toLowerCase().includes(query)) {
-        return false;
-      }
-      return matchesCatalogFilters(
-        course.code,
-        catalogSlotIndex.get(course.code.trim().toUpperCase()),
-        state,
-        catalogCurriculum,
-      );
-    });
+    // Retake subjects (`F`/`N`/`NX*`) surface to the top of the results —
+    // the ones a student most needs to see when choosing what to register
+    // for. Stable, so among themselves (and for everything else) the
+    // filter's own order still decides.
+    return retriesFirst(
+      uniqueCourses.filter((course) => {
+        if (searchLockedOnly && courseLocks.length > 0 && !courseLocks.some((lock) => lock.code === course.code)) {
+          return false;
+        }
+        if (query && !course.code.toLowerCase().includes(query) && !course.title.toLowerCase().includes(query)) {
+          return false;
+        }
+        return matchesCatalogFilters(
+          course.code,
+          catalogSlotIndex.get(course.code.trim().toUpperCase()),
+          state,
+          catalogCurriculum,
+        );
+      }),
+      (course) => course.code,
+      catalogGrades,
+    );
   }, [
     uniqueCourses,
     courseSearchQuery,
@@ -1210,6 +1253,7 @@ export default function FFCSTimetableTab({
     catalogCurriculumOnly,
     catalogCategories,
     catalogCurriculum,
+    catalogGrades,
   ]);
 
   const selectedCourse = useMemo(() => {
@@ -2227,6 +2271,14 @@ export default function FFCSTimetableTab({
                   className={layoutMode === "guided" ? "" : "hidden"}
                 >
                   <Settings2 className="w-4 h-4" />
+                </IconButton>
+                <IconButton
+                  onClick={() => setIsIntegrateSheetOpen(true)}
+                  title="Curriculum & grade history"
+                  aria-label="Curriculum and grade history integration"
+                  className={isLoggedIn ? "" : "hidden"}
+                >
+                  <GraduationCap className="w-4 h-4" />
                 </IconButton>
                 <IconButton onClick={() => setIsShareSheetOpen(true)} title="Share this plan">
                   <Share2 className="w-4 h-4" />
@@ -3268,6 +3320,7 @@ export default function FFCSTimetableTab({
           onImportToTimetable={(added) => handleLoadRegisteredCourses(added, [], false)}
           onSyncCurriculum={isLoggedIn ? handleSyncCurriculum : undefined}
           curriculumSyncing={isCurriculumSyncing}
+          integrateCurriculumAndGrades={integrateData}
         />
 
         <PasteRegisteredCoursesModal
@@ -3405,6 +3458,10 @@ export default function FFCSTimetableTab({
               <div className="p-2 overflow-y-auto max-h-[50vh] custom-scrollbar bg-surface-secondary/5 rounded-xl">
                 {filteredSearchCourses.slice(0, 100).map((c) => {
                   const fullyAdded = isCourseFullyAdded(c.code, c.types, activeTimetable.courses);
+                  // Grade rule: an `S` in this subject makes it unselectable —
+                  // nothing to improve, nothing to retake.
+                  const grade = gradeBadge(c.code, catalogGrades);
+                  const disabled = fullyAdded || !!grade?.blocked;
                   const curriculumCategory =
                     catalogCurriculumOnly && catalogCurriculum ? courseCategory(c.code, catalogCurriculum) : null;
                   // Listed in the payload = curriculum; shared start only = an
@@ -3415,25 +3472,30 @@ export default function FFCSTimetableTab({
                   return (
                     <button
                       key={c.code}
-                      disabled={fullyAdded}
+                      disabled={disabled}
                       onClick={() => {
-                        if (fullyAdded) return;
+                        if (disabled) return;
                         setSelectedCourseCode(c.code);
                         setSelectedSlotIndex("-1");
                         setIsCourseSearchOpen(false);
                         setCourseSearchQuery("");
                       }}
-                      className={`w-full text-left px-4 py-3 my-0.5 rounded-xl transition-colors flex flex-col gap-1 ${fullyAdded ? "opacity-50 cursor-not-allowed bg-surface-secondary/30 border border-border-strong/50" : selectedCourseCode === c.code ? "bg-blue-500/10 border border-blue-500/20 shadow-sm" : "border border-transparent hover:bg-surface-secondary/80"}`}
+                      className={`w-full text-left px-4 py-3 my-0.5 rounded-xl transition-colors flex flex-col gap-1 ${disabled ? "opacity-50 cursor-not-allowed bg-surface-secondary/30 border border-border-strong/50" : selectedCourseCode === c.code ? "bg-blue-500/10 border border-blue-500/20 shadow-sm" : "border border-transparent hover:bg-surface-secondary/80"}`}
                     >
                       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1">
                         <div className="flex flex-col gap-1 min-w-0">
                           <span
-                            className={`font-bold text-sm ${fullyAdded ? "text-muted-foreground" : "text-text-heading"}`}
+                            className={`font-bold text-sm ${disabled ? "text-muted-foreground" : "text-text-heading"}`}
                           >
                             {c.code}
                           </span>
                           <div className="flex items-center gap-1 flex-wrap">
                             {renderCourseTypeChips(c.types || [], "sm")}
+                            {grade && (
+                              <span title={grade.title} className={GRADE_BADGE_TONE_CLASSES[grade.tone]}>
+                                {grade.text}
+                              </span>
+                            )}
                             {curriculumCategory && (
                               <span
                                 title={
@@ -4301,6 +4363,92 @@ export default function FFCSTimetableTab({
                     <ExternalLink className="w-4 h-4 text-muted-foreground shrink-0" />
                   </Link>
                 ))}
+            </div>
+          </BottomSheet>
+        )}
+
+        {isIntegrateSheetOpen && (
+          <BottomSheet
+            onClose={() => setIsIntegrateSheetOpen(false)}
+            overlayId="ffcs-integrate-data"
+            title="Curriculum & grade history"
+            subtitle="Let the course pickers use your VTOP curriculum and grades."
+            icon={<GraduationCap className="w-5 h-5" />}
+            accent="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400"
+            maxWidth="max-w-lg"
+          >
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-3 rounded-2xl border border-border-strong bg-surface-secondary/50 p-4">
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-bold text-text-heading">Integrate into the planner</span>
+                  <span className="block text-xs text-muted-foreground mt-0.5">
+                    {settings.integrateCurriculumAndGrades
+                      ? catalogGrades || catalogCurriculum
+                        ? `On — ${catalogGrades?.size ?? 0} graded subjects, ${catalogCurriculum?.categoryByCode.size ?? 0} curriculum courses in use.`
+                        : "On — no data yet. Use Integrate now to fetch it."
+                      : "Off — the course pickers show the plain catalogue."}
+                  </span>
+                </span>
+                <Switch
+                  checked={settings.integrateCurriculumAndGrades}
+                  onCheckedChange={(checked) => updateSetting("integrateCurriculumAndGrades", checked)}
+                  size="md"
+                  label="Integrate curriculum and grade history into the planner"
+                />
+              </div>
+
+              {settings.integrateCurriculumAndGrades && (
+                <ListShell>
+                  <div className="flex items-center gap-2.5 px-3 py-2.5">
+                    <span className={GRADE_BADGE_TONE_CLASSES.red}>Completed · S</span>
+                    <ListRowText
+                      title="S grades cannot be selected"
+                      titleTag="span"
+                      subtitle="Nothing to improve or retake — the subject is done."
+                    />
+                  </div>
+                  <div className="flex items-center gap-2.5 px-3 py-2.5">
+                    <span className={GRADE_BADGE_TONE_CLASSES.amber}>Grade improvement</span>
+                    <ListRowText
+                      title="A–E grades warn on selection"
+                      titleTag="span"
+                      subtitle="Selectable, but re-registering counts as a grade improvement."
+                    />
+                  </div>
+                  <div className="flex items-center gap-2.5 px-3 py-2.5">
+                    <span className={GRADE_BADGE_TONE_CLASSES.blue}>Retake · F</span>
+                    <ListRowText
+                      title="F, N and NX subjects jump to the top"
+                      titleTag="span"
+                      subtitle="Selectable, and listed first — the ones worth seeing when you pick."
+                    />
+                  </div>
+                  <div className="flex items-center gap-2.5 px-3 py-2.5">
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-emerald-500/30 bg-emerald-500/10 text-emerald-500">
+                      Curriculum
+                    </span>
+                    <ListRowText
+                      title="Each course says whether it counts"
+                      titleTag="span"
+                      subtitle="Curriculum courses are labelled, and shared-code candidates show as NC Open Elective."
+                    />
+                  </div>
+                </ListShell>
+              )}
+
+              <button
+                type="button"
+                onClick={() => void handleIntegrateNow()}
+                disabled={isIntegrating}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-sm font-bold transition-colors hover:bg-emerald-500/15 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                <RefreshCw className={`w-4 h-4 ${isIntegrating ? "animate-spin" : ""}`} />
+                {isIntegrating ? "Integrating…" : "Integrate now"}
+              </button>
+              <p className="text-[11px] text-muted-foreground px-1">
+                Fetches both payloads from VTOP in one go and refreshes every open picker. The planner also fetches them
+                on its own when they are missing — this button is for an explicit refresh.
+              </p>
             </div>
           </BottomSheet>
         )}

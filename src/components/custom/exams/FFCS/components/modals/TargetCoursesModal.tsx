@@ -9,6 +9,8 @@ import { CourseImportPanel, type ImportMode } from "../CourseImportPanel";
 import { TargetCourseLockCard } from "../TargetCourseLockCard";
 import { CourseCatalogFilters } from "../CourseCatalogFilters";
 import { useCatalogCurriculum } from "../../hooks/useCatalogCurriculum";
+import { useCatalogGrades } from "../../hooks/useCatalogGrades";
+import { gradeBadge, retriesFirst } from "@/lib/ffcsPlannerGrades";
 import { buildSlotIndex, courseCategory, isListedInCurriculum, matchesCatalogFilters } from "@/lib/ffcsCatalogFilters";
 
 interface TargetCoursesModalProps {
@@ -26,6 +28,12 @@ interface TargetCoursesModalProps {
   onSyncCurriculum?: () => void;
   /** That explicit sync is running — mirrored into the filter row. */
   curriculumSyncing?: boolean;
+  /**
+   * The planner's "Curriculum & grade history" integration, as owned by the
+   * tab's settings (default on): gates both indexes and the grade rules
+   * here — off, this modal is the plain catalogue again.
+   */
+  integrateCurriculumAndGrades?: boolean;
 }
 
 /**
@@ -51,13 +59,17 @@ export const TargetCoursesModal: React.FC<TargetCoursesModalProps> = ({
   onImportToTimetable,
   onSyncCurriculum,
   curriculumSyncing = false,
+  integrateCurriculumAndGrades = true,
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [mode, setMode] = useState<ImportMode | "search">("search");
 
   // Catalog filters: slot chips + the logged-in student's curriculum match.
   const slotIndex = useMemo(() => buildSlotIndex(masterCourses), [masterCourses]);
-  const curriculum = useCatalogCurriculum();
+  const curriculum = useCatalogCurriculum({ enabled: integrateCurriculumAndGrades });
+  // Grade rules: `S` blocks selection, `A`–`E` warn, `F`/`N`/`NX*` surface
+  // to the top — same source and wording as the Search Course sheet.
+  const grades = useCatalogGrades({ enabled: integrateCurriculumAndGrades });
   const [slots, setSlots] = useState<string[]>([]);
   const [curriculumOnly, setCurriculumOnly] = useState(false);
   const [categories, setCategories] = useState<string[]>([]);
@@ -69,17 +81,22 @@ export const TargetCoursesModal: React.FC<TargetCoursesModalProps> = ({
    */
   const visibleCourses = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    return uniqueCourseCodes.filter(
-      (c) =>
-        (!query || c.code.toLowerCase().includes(query) || c.title.toLowerCase().includes(query)) &&
-        matchesCatalogFilters(
-          c.code,
-          slotIndex.get(c.code.trim().toUpperCase()),
-          { slots, curriculumOnly, categories },
-          curriculum,
-        ),
+    // Retakes first (stable), mirroring the Search Course sheet.
+    return retriesFirst(
+      uniqueCourseCodes.filter(
+        (c) =>
+          (!query || c.code.toLowerCase().includes(query) || c.title.toLowerCase().includes(query)) &&
+          matchesCatalogFilters(
+            c.code,
+            slotIndex.get(c.code.trim().toUpperCase()),
+            { slots, curriculumOnly, categories },
+            curriculum,
+          ),
+      ),
+      (c) => c.code,
+      grades,
     );
-  }, [uniqueCourseCodes, searchQuery, slotIndex, slots, curriculumOnly, categories, curriculum]);
+  }, [uniqueCourseCodes, searchQuery, slotIndex, slots, curriculumOnly, categories, curriculum, grades]);
 
   /*
     The sheet owns the chrome now — grabber, one X, swipe-down, Escape and system
@@ -176,12 +193,16 @@ export const TargetCoursesModal: React.FC<TargetCoursesModalProps> = ({
                 {visibleCourses.slice(0, 50).map((c) => {
                   const selection = courseLocks.find((lock) => lock.code === c.code);
                   const offerings = masterCourses.filter((course) => course.CODE === c.code);
+                  // An `S` in this subject makes it unselectable here too.
+                  const grade = gradeBadge(c.code, grades);
                   return (
                     <TargetCourseLockCard
                       key={c.code}
                       course={c}
                       offerings={offerings}
                       selection={selection}
+                      grade={grade}
+                      disabled={!!grade?.blocked}
                       category={
                         curriculumOnly && curriculum ? (courseCategory(c.code, curriculum) ?? undefined) : undefined
                       }

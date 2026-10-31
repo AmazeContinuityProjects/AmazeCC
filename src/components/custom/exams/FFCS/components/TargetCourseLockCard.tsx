@@ -5,6 +5,7 @@ import { getBatchColorClass } from "@/lib/utils";
 import { splitSlots } from "@/lib/slots";
 import type { CourseLock, ParsedCourse } from "../types";
 import { renderCourseTypeChips } from "./CourseTypeChips";
+import { GRADE_BADGE_TONE_CLASSES, type GradeBadge } from "@/lib/ffcsPlannerGrades";
 
 export interface TargetCourseLockOption {
   code: string;
@@ -27,6 +28,14 @@ interface TargetCourseLockCardProps {
    * open-elective look instead of the curriculum emerald.
    */
   curriculumListed?: boolean;
+  /**
+   * The grade-history rule for this course, or null when none applies. A
+   * blocked badge (`S` already earned) comes with `disabled` from the host —
+   * this card renders the badge either way.
+   */
+  grade?: GradeBadge | null;
+  /** Selection disallowed (a completed `S` subject). Mutes the whole card. */
+  disabled?: boolean;
 }
 
 /** Search result row shared by planner target locks and generator focus locks. */
@@ -38,10 +47,13 @@ export function TargetCourseLockCard({
   tone = "purple",
   category,
   curriculumListed = true,
+  grade = null,
+  disabled = false,
 }: TargetCourseLockCardProps) {
   const isSelected = Boolean(selection);
-  const cardToneClass =
-    tone === "neutral"
+  const cardToneClass = disabled
+    ? "border-border-strong/50 bg-surface-secondary/20 opacity-60"
+    : tone === "neutral"
       ? isSelected
         ? "border-zinc-500/50 bg-zinc-500/[0.08] shadow-sm dark:border-zinc-400/40 dark:bg-zinc-400/[0.08]"
         : "border-zinc-200/80 bg-zinc-500/[0.025] hover:border-zinc-300 hover:bg-zinc-500/[0.06] dark:border-zinc-800 dark:bg-zinc-500/[0.04] dark:hover:border-zinc-700 dark:hover:bg-zinc-500/[0.08]"
@@ -99,11 +111,12 @@ export function TargetCourseLockCard({
 
   return (
     <div className={`w-full min-w-0 flex flex-col gap-2 rounded-xl border p-3 transition-colors ${cardToneClass}`}>
-      <label className="flex items-start gap-3 cursor-pointer">
+      <label className={`flex items-start gap-3 ${disabled ? "cursor-not-allowed" : "cursor-pointer"}`}>
         <input
           type="checkbox"
-          className="mt-1 rounded bg-surface border-border-strong text-purple-500 focus:ring-purple-500/30"
+          className="mt-1 rounded bg-surface border-border-strong text-purple-500 focus:ring-purple-500/30 disabled:opacity-50"
           checked={isSelected}
+          disabled={disabled}
           onChange={(event) => {
             if (event.target.checked) {
               onSelectionChange({
@@ -123,6 +136,11 @@ export function TargetCourseLockCard({
               <span className="font-bold text-base text-text-heading">{course.code}</span>
               <span className="flex flex-wrap items-center gap-1">
                 {renderCourseTypeChips(course.types ?? [], "sm")}
+                {grade && (
+                  <span title={grade.title} className={GRADE_BADGE_TONE_CLASSES[grade.tone]}>
+                    {grade.text}
+                  </span>
+                )}
                 {category && (
                   <span
                     title={

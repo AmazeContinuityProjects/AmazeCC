@@ -53,8 +53,13 @@ function readCurriculum(): CatalogCurriculum | null {
  * The logged-in student's curriculum index, or null when there is none.
  *
  * Null covers every "not available" case — logged out, never synced, a
- * payload without course items — so hosts hide the My Curriculum switch on
- * null alone.
+ * payload without course items, or the integration switched off — so hosts
+ * hide the My Curriculum switch on null alone.
+ *
+ * `enabled` comes from the planner setting `integrateCurriculumAndGrades`
+ * (the "Curriculum & grade history" menu entry toggles it): when off the
+ * hook returns null and fires no backfill, which switches the pickers back
+ * to the plain catalogue with one condition.
  *
  * The read is state + effect, not a memo on `isLoggedIn`, for a reason: the
  * sync that fills `storage.curriculum` runs *after* the login flag flips on a
@@ -68,12 +73,13 @@ function readCurriculum(): CatalogCurriculum | null {
  * A failed fetch just leaves the null: the switch stays hidden, which is the
  * same honest "no curriculum yet" state as never having tried.
  */
-export function useCatalogCurriculum(): CatalogCurriculum | null {
+export function useCatalogCurriculum(options?: { enabled?: boolean }): CatalogCurriculum | null {
+  const enabled = options?.enabled ?? true;
   const isLoggedIn = useAtomValue(isLoggedInAtom);
-  const [curriculum, setCurriculum] = useState<CatalogCurriculum | null>(() => readCurriculum());
+  const [curriculum, setCurriculum] = useState<CatalogCurriculum | null>(() => (enabled ? readCurriculum() : null));
 
   useEffect(() => {
-    if (!isLoggedIn) {
+    if (!isLoggedIn || !enabled) {
       setCurriculum(null);
       return;
     }
@@ -102,7 +108,7 @@ export function useCatalogCurriculum(): CatalogCurriculum | null {
     return () => {
       refreshListeners.delete(onChange);
     };
-  }, [isLoggedIn]);
+  }, [isLoggedIn, enabled]);
 
   return curriculum;
 }

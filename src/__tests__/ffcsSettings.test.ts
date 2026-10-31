@@ -54,6 +54,18 @@ describe("sanitizeFFCSSettings", () => {
     expect(sanitizeFFCSSettings({ showGeneratorOptionPane: "yes" }).showGeneratorOptionPane).toBe(true);
   });
 
+  it("defaults the curriculum/grade integration on and only accepts a real boolean off", () => {
+    // On by default: a student who never opened the sheet still gets the
+    // curriculum labels and grade rules in their pickers.
+    expect(FFCSSettingsDefaults.integrateCurriculumAndGrades).toBe(true);
+    expect(sanitizeFFCSSettings({}).integrateCurriculumAndGrades).toBe(true);
+    expect(sanitizeFFCSSettings({ integrateCurriculumAndGrades: false }).integrateCurriculumAndGrades).toBe(false);
+    // Anything that is not a boolean falls back to the default, not to off —
+    // silently losing the student's data integration would be a bug.
+    expect(sanitizeFFCSSettings({ integrateCurriculumAndGrades: "yes" }).integrateCurriculumAndGrades).toBe(true);
+    expect(sanitizeFFCSSettings({ integrateCurriculumAndGrades: 0 }).integrateCurriculumAndGrades).toBe(true);
+  });
+
   it("defaults separate course-list image downloads off and sanitizes the toggle", () => {
     expect(FFCSSettingsDefaults.separateCourseListExport).toBe(false);
     expect(sanitizeFFCSSettings({ separateCourseListExport: true }).separateCourseListExport).toBe(true);

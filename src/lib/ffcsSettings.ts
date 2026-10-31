@@ -90,6 +90,19 @@ export interface FFCSSettings {
   showVerticalTimetableBesideWidgets: boolean;
   /** Show the desktop option pane while reviewing generated timetables. */
   showGeneratorOptionPane: boolean;
+  /**
+   * Let the planner use the student's curriculum and grade history in the
+   * course pickers.
+   *
+   * `true` (default). When on, course rows say whether the subject is in the
+   * curriculum (or an "NC Open Elective" candidate), courses already graded
+   * `S` cannot be selected, `A`–`E` carry a grade-improvement warning, and
+   * `F`/`N`/`NX*` subjects are surfaced to the top of the list. `false` turns
+   * all of that off and stops the backfill — the pickers then show the plain
+   * catalogue exactly as before. Toggled from the planner's "Curriculum &
+   * grade history" entry, which is also where a sync is triggered.
+   */
+  integrateCurriculumAndGrades: boolean;
 }
 
 export const FFCSSettingsDefaults: Readonly<FFCSSettings> = Object.freeze({
@@ -107,6 +120,7 @@ export const FFCSSettingsDefaults: Readonly<FFCSSettings> = Object.freeze({
   showTour: true,
   showVerticalTimetableBesideWidgets: false,
   showGeneratorOptionPane: true,
+  integrateCurriculumAndGrades: true,
 });
 
 const SORT_BY: readonly SortBy[] = ["social", "halfdays", "compactness", "balanced", "faculty"];
@@ -200,6 +214,10 @@ export function sanitizeFFCSSettings(raw: unknown): FFCSSettings {
       typeof r.showGeneratorOptionPane === "boolean"
         ? r.showGeneratorOptionPane
         : FFCSSettingsDefaults.showGeneratorOptionPane,
+    integrateCurriculumAndGrades:
+      typeof r.integrateCurriculumAndGrades === "boolean"
+        ? r.integrateCurriculumAndGrades
+        : FFCSSettingsDefaults.integrateCurriculumAndGrades,
   };
 }
 
