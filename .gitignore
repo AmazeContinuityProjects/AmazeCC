@@ -66,3 +66,7 @@ faculty-review/dist/
 
 # Additional OS files
 Thumbs.db
+
+# Build output and logs
+dist/
+*.log
