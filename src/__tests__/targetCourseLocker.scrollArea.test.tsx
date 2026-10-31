@@ -26,6 +26,9 @@ vi.mock("@/lib/vitfacService", () => {
     VITFAC_WORKER_BASE: "https://vitfac.amazecc.com",
     getFacultyReview: () => null,
     useVitfacReview: () => ({ review: null, loading: false }),
+    // Avatar image sources: no network in these tests.
+    useCachedImage: () => null,
+    useChennaiImage: () => null,
     loadVitfacCatalog: () => Promise.resolve(new Map()),
     getFacultyProfileBundle: () => Promise.resolve(null),
     getVitfacProfileUrl: () => "https://vitfac.amazecc.com",

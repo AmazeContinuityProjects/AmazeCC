@@ -39,6 +39,24 @@ export interface FacultyReviewSheetProps {
   courseCode?: string;
 }
 
+/**
+ * The review pane's rung on the z-index ladder.
+ *
+ * It is summoned by vitfac pills that live inside almost every surface of the
+ * FFCS screens: the planner's page, its slot-search sheet (z-400), its
+ * variant-search sheet (z-500), the "Switch Faculty" pane (z-455) that lists
+ * the other courses' offerings for a slot, the faculty-schedule modal (z-300
+ * with a z-455 swap sheet inside), and the auto-generator's sheets (z-210 to
+ * z-300). A fixed z-320 left the review pane *behind* whichever higher pane
+ * summoned it, so the tap looked dead. It now sits above the whole sheet
+ * ladder, which tops out at the z-600 Advanced Course Linker, and below the
+ * command palette (z-9999). Nothing can be summoned over it while it is open:
+ * its backdrop blocks the surface beneath, and system back pops the top
+ * overlay — this pane — first.
+ */
+const REVIEW_PANEL_Z = 650;
+const REVIEW_BACKDROP_Z = 645;
+
 export default function FacultyReviewSheet({
   open,
   onClose,
@@ -106,8 +124,8 @@ export default function FacultyReviewSheet({
       onClose={onClose}
       overlayId="vitfac-review-sheet"
       maxWidth="max-w-lg"
-      panelZIndex={320}
-      backdropZIndex={315}
+      panelZIndex={REVIEW_PANEL_Z}
+      backdropZIndex={REVIEW_BACKDROP_Z}
       contentClassName="space-y-5"
     >
       {/* Header */}
