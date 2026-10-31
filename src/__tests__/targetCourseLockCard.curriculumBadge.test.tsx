@@ -37,12 +37,12 @@ describe("TargetCourseLockCard curriculum badge", () => {
         offerings={[]}
         selection={undefined}
         onSelectionChange={() => {}}
-        category="Open Elective"
+        category="NC Open Elective"
         curriculumListed={false}
       />,
     );
 
-    const badge = screen.getByText("Open Elective");
+    const badge = screen.getByText("NC Open Elective");
     expect(badge.getAttribute("title")).toContain("Not in your curriculum");
     expect(badge.className).toContain("text-amber-600");
     // The candidate must never borrow the curriculum colour.

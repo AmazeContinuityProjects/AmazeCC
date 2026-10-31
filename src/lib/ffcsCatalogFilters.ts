@@ -17,11 +17,13 @@ export type CatalogSlotIndex = Map<string, Set<string>>;
 
 /**
  * The label a course that is NOT listed in the curriculum answers with when
- * it shares a code start with one — a family member, so a candidate open
- * elective rather than a curriculum course. Exact listings keep their own
- * category instead; that split is how the pickers "tell it is curriculum".
+ * it shares a code start with one — "NC" for non-curriculum: a family
+ * member, so a candidate open elective rather than a curriculum course.
+ * Exact listings keep their own category instead — including a payload's
+ * own "Open Elective" listing, which stays spelled that way — and that
+ * split is how the pickers "tell it is curriculum".
  */
-export const OPEN_ELECTIVE_CATEGORY = "Open Elective";
+export const OPEN_ELECTIVE_CATEGORY = "NC Open Elective";
 
 /** The student's curriculum as a lookup, for matching catalogue codes. */
 export interface CatalogCurriculum {
@@ -179,10 +181,12 @@ export function buildCurriculumIndex(details: readonly CategoryDetail[] | null |
   }
 
   const categories = order.filter((name) => (counts.get(name) ?? 0) > 0);
-  // Family matches answer with OPEN_ELECTIVE_CATEGORY, so the chip that
-  // selects them must exist even when the payload's own Open Elective basket
-  // is empty or absent. Unlike a purely empty category this chip can never
-  // be a dead one — prefix matches land in it.
+  // Family matches answer with OPEN_ELECTIVE_CATEGORY ("NC Open Elective" —
+  // deliberately NOT the spelling a payload's own Open Elective listing uses,
+  // so the two can never be confused), so the chip that selects them has to
+  // exist even when the payload carries no such category. Unlike a purely
+  // empty category this chip can never be a dead one — prefix matches land
+  // in it.
   if (!categories.some((name) => name.toLowerCase() === OPEN_ELECTIVE_CATEGORY.toLowerCase())) {
     categories.push(OPEN_ELECTIVE_CATEGORY);
   }

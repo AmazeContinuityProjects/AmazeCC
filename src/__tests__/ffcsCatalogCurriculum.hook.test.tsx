@@ -57,7 +57,7 @@ describe("useCatalogCurriculum", () => {
     const { result } = renderHook(() => useCatalogCurriculum());
 
     await waitFor(() => expect(result.current).not.toBeNull());
-    // "Open Elective" is appended: shared-start candidates need a chip too.
+    // "NC Open Elective" is appended: shared-start candidates need a chip too.
     expect(result.current?.categories).toEqual(["University Core Courses", OPEN_ELECTIVE_CATEGORY]);
     expect(result.current?.categoryByCode.get("PHY101")).toBe("University Core Courses");
     expect(backfill).not.toHaveBeenCalled();
@@ -117,7 +117,7 @@ describe("useCatalogCurriculum", () => {
     storage.curriculum.set({ details });
     act(() => notifyCatalogCurriculumChanged());
 
-    // "Open Elective" is appended: shared-start candidates need a chip too.
+    // "NC Open Elective" is appended: shared-start candidates need a chip too.
     expect(result.current?.categories).toEqual(["University Core Courses", OPEN_ELECTIVE_CATEGORY]);
     expect(result.current?.categoryByCode.get("PHY101")).toBe("University Core Courses");
   });

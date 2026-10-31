@@ -99,8 +99,8 @@ describe("buildCurriculumIndex", () => {
     const curriculum = buildCurriculumIndex(details);
     expect(curriculum).not.toBeNull();
     // An empty category normally renders a chip that can only ever empty the
-    // list — but "Open Elective" is the label shared-start candidates carry,
-    // so it is offered whatever the payload's own basket holds.
+    // list — but "NC Open Elective" is the label shared-start candidates
+    // carry, so it is offered whatever the payload's own basket holds.
     expect(curriculum!.categories).toEqual([
       "University Core Courses",
       "Programme Core Courses",
@@ -222,7 +222,7 @@ describe("shared course-code starts", () => {
     expect(
       matchesCatalogFilters("BASTS102", undefined, { ...only, categories: ["Programme Core Courses"] }, curriculum),
     ).toBe(false);
-    // The Open Elective chip is the mirror image: candidates, not listings.
+    // The NC Open Elective chip is the mirror image: candidates, not listings.
     expect(
       matchesCatalogFilters("BASTS102", undefined, { ...only, categories: [OPEN_ELECTIVE_CATEGORY] }, curriculum),
     ).toBe(true);
@@ -231,13 +231,36 @@ describe("shared course-code starts", () => {
     ).toBe(false);
   });
 
-  it("offers the Open Elective chip alongside the payload's own categories", () => {
+  it("offers the NC Open Elective chip alongside the payload's own categories", () => {
     expect(curriculum.categories).toEqual([
       "Programme Core Courses",
       "University Core Courses",
       "Interdisciplinary Core",
       OPEN_ELECTIVE_CATEGORY,
     ]);
+  });
+
+  it("keeps a payload's own Open Elective listing apart from the NC label", () => {
+    const withOpenElective: CategoryDetail[] = [
+      ...prefixDetails,
+      {
+        code: "OE",
+        name: "Open Elective",
+        baskets: [{ title: "OE basket", credits: 3, items: [{ code: "UASTS102", name: "Soft Skills", credits: 3 }] }],
+      },
+    ];
+    const index = buildCurriculumIndex(withOpenElective)!;
+
+    // The listed open elective IS curriculum — exact match, payload spelling.
+    expect(courseCategory("UASTS102", index)).toBe("Open Elective");
+    expect(isListedInCurriculum("UASTS102", index)).toBe(true);
+    // A code sharing a start with it is the non-curriculum one instead.
+    expect(courseCategory("UASTS103", index)).toBe(OPEN_ELECTIVE_CATEGORY);
+    expect(isListedInCurriculum("UASTS103", index)).toBe(false);
+
+    // Both chips exist, so the two are selectable — and therefore visible — apart.
+    expect(index.categories).toContain("Open Elective");
+    expect(index.categories).toContain(OPEN_ELECTIVE_CATEGORY);
   });
 });
 
