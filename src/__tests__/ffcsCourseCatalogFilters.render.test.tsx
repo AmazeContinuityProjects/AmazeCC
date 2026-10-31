@@ -78,6 +78,35 @@ describe("CourseCatalogFilters", () => {
     expect(screen.queryByRole("switch", { name: "Only show courses from my curriculum" })).toBeNull();
   });
 
+  it("offers the curriculum sync while there is nothing to match yet", () => {
+    const onSyncCurriculum = vi.fn<() => void>();
+    renderFilters({ onSyncCurriculum });
+
+    fireEvent.click(screen.getByRole("button", { name: /Sync curriculum/ }));
+    expect(onSyncCurriculum).toHaveBeenCalledTimes(1);
+
+    // While the explicit sync runs the button spins and cannot be re-fired.
+    cleanup();
+    renderFilters({ onSyncCurriculum, curriculumSyncing: true });
+    const syncing = screen.getByRole("button", { name: /Syncing…/ });
+    expect((syncing as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(syncing);
+    expect(onSyncCurriculum).toHaveBeenCalledTimes(1);
+  });
+
+  it("drops the sync once a curriculum exists — the switch says more", () => {
+    renderFilters({ curriculum, onSyncCurriculum: vi.fn() });
+
+    expect(screen.queryByRole("button", { name: /Sync curriculum/ })).toBeNull();
+    expect(screen.getByRole("switch", { name: "Only show courses from my curriculum" })).toBeDefined();
+  });
+
+  it("offers no sync to a logged-out host (no handler passed)", () => {
+    renderFilters();
+
+    expect(screen.queryByRole("button", { name: /Sync curriculum/ })).toBeNull();
+  });
+
   it("reveals category chips behind the curriculum switch", () => {
     const handlers = renderFilters({
       curriculum,

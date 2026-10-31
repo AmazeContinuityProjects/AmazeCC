@@ -1,9 +1,12 @@
 import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, waitForElementToBeRemoved, within } from "@testing-library/react";
+import { getDefaultStore } from "jotai";
 import FFCSTimetableTab from "../components/custom/exams/FFCSTimetableTab";
 import { getFittingStatTileCount } from "../components/custom/exams/FFCS/components/FFCSDashboardHeader";
 import { closeTopOverlayFromPop } from "../lib/overlayStack";
+import { isLoggedInAtom } from "../store";
+import { defaultSettings, settingsAtom } from "../store/settingsAtoms";
 import { installLocalStorage, stubScrollIntoView } from "./helpers/localStorage";
 
 // The tab persists its lists through `safeStorage`; this jsdom environment
@@ -20,6 +23,10 @@ describe("FFCSTimetableTab", () => {
       /* drain */
     }
     storage.clear();
+    // Identity rides on the default jotai store (no Provider in tests): a
+    // signed-in case must not leak into the next test's share sheet.
+    getDefaultStore().set(isLoggedInAtom, false);
+    getDefaultStore().set(settingsAtom, defaultSettings);
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
@@ -448,6 +455,25 @@ describe("FFCSTimetableTab", () => {
         url: `${window.location.origin}/ffcs`,
       }),
     );
+  }, 30_000);
+
+  it("shows the signed-in student's name and photo in the share sheet instead of the sign-in card", () => {
+    getDefaultStore().set(settingsAtom, {
+      ...getDefaultStore().get(settingsAtom),
+      friendlyName: "Arjun Kumar",
+    });
+    getDefaultStore().set(isLoggedInAtom, true);
+    storage.setItem("IDs", JSON.stringify({ VtopUsername: "21BCE1234" }));
+    storage.setItem("profile", JSON.stringify({ name: "Arjun K", image: "data:image/png;base64,avatar" }));
+
+    render(<FFCSTimetableTab />);
+    fireEvent.click(screen.getByRole("button", { name: "Share this plan" }));
+
+    // Signed in: the account row replaces the sign-in promo entirely.
+    expect(screen.getByText("Arjun Kumar")).toBeDefined();
+    expect(screen.getByText("Signed in as 21BCE1234")).toBeDefined();
+    expect(screen.queryByText("Sign in to AmazeCC")).toBeNull();
+    expect(document.querySelector('img[src="data:image/png;base64,avatar"]')).not.toBeNull();
   }, 30_000);
 
   it("places the guide in mobile Planner Settings and keeps the theme toggle in the header", () => {

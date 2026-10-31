@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { ChevronDown, GraduationCap, Layers } from "lucide-react";
+import { ChevronDown, GraduationCap, Layers, RefreshCw } from "lucide-react";
 import Switch from "../../../shared/primitives/Switch";
 import { catalogSlotChips, type CatalogCurriculum, type CatalogSlotIndex } from "@/lib/ffcsCatalogFilters";
 
@@ -15,7 +15,10 @@ import { catalogSlotChips, type CatalogCurriculum, type CatalogSlotIndex } from 
  * The My Curriculum switch only exists when a curriculum index exists (the
  * hook hands null to logged-out students), and turning it on reveals the
  * category chips: empty selection means every category, so "All" is a real
- * chip rather than the absence of one.
+ * chip rather than the absence of one. While the index is still null the
+ * row's right side is instead a sync button — the payload comes from VTOP,
+ * and a student who never opened Academics → Curriculum has to be able to
+ * fetch it from right here.
  *
  * Pure presentation — selection state lives in the host, which is also what
  * filters the list beside this component.
@@ -29,6 +32,14 @@ export interface CourseCatalogFiltersProps {
   onCurriculumOnlyChange: (next: boolean) => void;
   categories: string[];
   onCategoriesChange: (next: string[]) => void;
+  /**
+   * Fetch the student's missing curriculum. Hosts pass it only when logged
+   * in; the button itself renders only while `curriculum` is null — once the
+   * payload exists the switch it would sit beside says more than it can.
+   */
+  onSyncCurriculum?: () => void;
+  /** That explicit sync is running: the button spins and stays disabled. */
+  curriculumSyncing?: boolean;
 }
 
 const CHIP_BASE = "text-[10px] font-bold px-2 py-1 rounded-full border transition-colors cursor-pointer";
@@ -47,6 +58,8 @@ export function CourseCatalogFilters({
   onCurriculumOnlyChange,
   categories,
   onCategoriesChange,
+  onSyncCurriculum,
+  curriculumSyncing = false,
 }: CourseCatalogFiltersProps) {
   const [slotsOpen, setSlotsOpen] = useState(false);
   const chips = useMemo(() => catalogSlotChips(slotIndex), [slotIndex]);
@@ -95,6 +108,18 @@ export function CourseCatalogFilters({
             className="text-[10px] font-bold text-indigo-500 hover:underline cursor-pointer"
           >
             Clear slots
+          </button>
+        )}
+
+        {!curriculum && onSyncCurriculum && (
+          <button
+            type="button"
+            onClick={onSyncCurriculum}
+            disabled={curriculumSyncing}
+            className="ml-auto flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 disabled:opacity-60 cursor-pointer disabled:cursor-wait"
+          >
+            <RefreshCw className={`w-3 h-3 ${curriculumSyncing ? "animate-spin" : ""}`} />
+            {curriculumSyncing ? "Syncing…" : "Sync curriculum"}
           </button>
         )}
 

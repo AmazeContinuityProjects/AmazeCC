@@ -22,6 +22,10 @@ interface TargetCoursesModalProps {
   onImportCourses: (courses: ParsedCourse[]) => void;
   /** Optional callback to also load imported courses directly into active timetable */
   onImportToTimetable?: (courses: AddedCourse[]) => void;
+  /** Fetch a missing curriculum (tab-owned; undefined while logged out). */
+  onSyncCurriculum?: () => void;
+  /** That explicit sync is running — mirrored into the filter row. */
+  curriculumSyncing?: boolean;
 }
 
 /**
@@ -45,6 +49,8 @@ export const TargetCoursesModal: React.FC<TargetCoursesModalProps> = ({
   uniqueCourseCodes,
   onImportCourses,
   onImportToTimetable,
+  onSyncCurriculum,
+  curriculumSyncing = false,
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [mode, setMode] = useState<ImportMode | "search">("search");
@@ -155,6 +161,8 @@ export const TargetCoursesModal: React.FC<TargetCoursesModalProps> = ({
                 onCurriculumOnlyChange={setCurriculumOnly}
                 categories={categories}
                 onCategoriesChange={setCategories}
+                onSyncCurriculum={onSyncCurriculum}
+                curriculumSyncing={curriculumSyncing}
               />
 
               <div className="grid grid-cols-1 gap-2">

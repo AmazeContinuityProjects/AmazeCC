@@ -60,6 +60,7 @@ export const BUILT_IN_MODES: SyncMode[] = [
       step("buses", { background: true }),
       step("transport", { background: true }),
       step("events", { background: true }),
+      step("curriculum", { background: true }),
       step("bulk", { background: true }),
       step("lms", { background: true }),
       step("officialOd", { background: true }),
@@ -80,6 +81,7 @@ export const BUILT_IN_MODES: SyncMode[] = [
       step("buses", { background: true }),
       step("transport", { background: true }),
       step("events", { background: true }),
+      step("curriculum", { background: true }),
       step("bulk", { background: true }),
       step("lms", { background: true }),
       step("officialOd", { background: true }),
@@ -89,7 +91,7 @@ export const BUILT_IN_MODES: SyncMode[] = [
   {
     id: "academics",
     label: "Academics Only",
-    description: "Attendance, marks, grades, schedule, calendar and history.",
+    description: "Attendance, marks, grades, schedule, curriculum, calendar and history.",
     builtIn: true,
     steps: [
       step("attendanceMarks"),
@@ -98,6 +100,7 @@ export const BUILT_IN_MODES: SyncMode[] = [
       step("schedule"),
       step("calendar"),
       step("all-grades"),
+      step("curriculum", { background: true }),
     ],
   },
   {
@@ -170,9 +173,7 @@ export function expandBulkSteps(steps: SyncModeStep[]): {
       return;
     }
     if (bulkPos === -1) bulkPos = rest.length;
-    const only = (s.args?.only as string[] | undefined)?.filter((e) =>
-      KNOWN_BULK_ENDPOINTS.has(e),
-    );
+    const only = (s.args?.only as string[] | undefined)?.filter((e) => KNOWN_BULK_ENDPOINTS.has(e));
     if (!only || only.length === 0) {
       bulkEndpoints = [...BULK_ENDPOINT_META.map((m) => m.endpoint)];
     } else if (bulkEndpoints) {
@@ -189,11 +190,7 @@ export function expandBulkSteps(steps: SyncModeStep[]): {
  * `only`, omitted entirely when nothing is selected. A full house saves as a
  * bare `{ op: "bulk" }` so future endpoints join automatically.
  */
-export function collapseBulkSteps(
-  steps: SyncModeStep[],
-  bulkEndpoints: string[],
-  bulkPos: number,
-): SyncModeStep[] {
+export function collapseBulkSteps(steps: SyncModeStep[], bulkEndpoints: string[], bulkPos: number): SyncModeStep[] {
   const known = bulkEndpoints.filter((e) => KNOWN_BULK_ENDPOINTS.has(e));
   const out = steps.filter((s) => s.op !== "bulk").map((s) => ({ ...s }));
   if (known.length === 0) return out;
@@ -234,9 +231,7 @@ export function validateMode(
     // Default to the live registry so built-ins and customs validate against
     // whatever operations.ts registered. Tests pass an explicit list to avoid
     // depending on that import side effect.
-    const names: Set<string> = knownOpNames
-      ? new Set(knownOpNames)
-      : new Set(allOps().map((o) => o.name));
+    const names: Set<string> = knownOpNames ? new Set(knownOpNames) : new Set(allOps().map((o) => o.name));
     // Registry empty (operations.ts not imported in this bundle yet): fall
     // back to per-step getOp so valid modes are not all rejected at once.
     const useGetOp = !knownOpNames && names.size === 0;
@@ -254,9 +249,7 @@ export function validateMode(
 
 /** Built-in or custom mode by id. Customs override nothing — ids must differ. */
 export function resolveMode(id: string, customModes: SyncMode[] = []): SyncMode | undefined {
-  return (
-    customModes.find((m) => m.id === id) ?? BUILT_IN_MODES.find((m) => m.id === id)
-  );
+  return customModes.find((m) => m.id === id) ?? BUILT_IN_MODES.find((m) => m.id === id);
 }
 
 export function listModes(customModes: SyncMode[] = []): SyncMode[] {

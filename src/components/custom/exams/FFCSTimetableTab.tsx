@@ -42,6 +42,7 @@ import {
   Code2,
   Megaphone,
   LogIn,
+  BadgeCheck,
 } from "lucide-react";
 
 import SearchInput from "../shared/SearchInput";
@@ -78,6 +79,10 @@ export { processParsedCourses } from "@/lib/ffcsCourseGrouping";
 import { track } from "@/lib/analytics";
 import { useFFCSSettings } from "@/lib/ffcsSettings";
 import { storage } from "@/lib/storage";
+import { useAtomValue } from "jotai";
+import { isLoggedInAtom } from "@/store";
+import { settingsAtom } from "@/store/settingsAtoms";
+import { shouldShowProfilePhoto } from "@/lib/settingsVisibility";
 import { sanitizeFacultyPriority, hasFacultyPriority, type FacultyPriorityMap } from "@/lib/ffcsFacultyPriority";
 import { pruneGeneratorTargets } from "@/lib/ffcsGeneratorTargets";
 import {
@@ -87,7 +92,8 @@ import {
   type CatalogFilterState,
 } from "@/lib/ffcsCatalogFilters";
 import { CourseCatalogFilters } from "./FFCS/components/CourseCatalogFilters";
-import { useCatalogCurriculum } from "./FFCS/hooks/useCatalogCurriculum";
+import { notifyCatalogCurriculumChanged, useCatalogCurriculum } from "./FFCS/hooks/useCatalogCurriculum";
+import { runPageSync } from "@/lib/sync-engine/single-sync";
 import {
   encodeTimetableShare,
   encodeCompactTimetableShare,
@@ -463,6 +469,30 @@ export default function FFCSTimetableTab({
   // without a storage event or a remount.
   const { settings, update: updateSetting, reset: resetSettings } = useFFCSSettings();
   const { visible: hints, dismiss: dismissHint } = useTips();
+
+  // App-level identity (not FFCS settings): the share sheet signs the card
+  // with it — logged in, the student's own name and photo; logged out, the
+  // sign-in promo. Photo honours the show-profile-photo visibility setting,
+  // the same gate every other avatar in the app applies.
+  const appSettings = useAtomValue(settingsAtom);
+  const isLoggedIn = useAtomValue(isLoggedInAtom);
+  const shareAccount = useMemo(() => {
+    if (!isLoggedIn) return null;
+    const profile = storage.profile.get() as {
+      name?: string;
+      image?: string;
+      photo?: string;
+      photoBase64?: string;
+    } | null;
+    const username = storage.ids.get()?.VtopUsername || "";
+    return {
+      name: appSettings?.friendlyName || profile?.name || username || "Student",
+      username,
+      photo: shouldShowProfilePhoto(appSettings)
+        ? profile?.image || profile?.photo || profile?.photoBase64 || null
+        : null,
+    };
+  }, [isLoggedIn, appSettings]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const { resolved: resolvedView, isMobile } = useTimetableViewMode();
   const [isExtraLargeViewport, setIsExtraLargeViewport] = useState(false);
@@ -693,6 +723,8 @@ export default function FFCSTimetableTab({
   const [catalogSlots, setCatalogSlots] = useState<string[]>([]);
   const [catalogCurriculumOnly, setCatalogCurriculumOnly] = useState(false);
   const [catalogCategories, setCatalogCategories] = useState<string[]>([]);
+  // Explicit "Sync curriculum" button state (shared by both picker sheets).
+  const [isCurriculumSyncing, setIsCurriculumSyncing] = useState(false);
   const [generatorCourseSearchQuery, setGeneratorCourseSearchQuery] = useState("");
   const [isVariantSearchOpen, setIsVariantSearchOpen] = useState(false);
   const [variantSearchQuery, setVariantSearchQuery] = useState("");
@@ -1117,6 +1149,28 @@ export default function FFCSTimetableTab({
   // Slot chips and the curriculum index behind the Search Course sheet.
   const catalogSlotIndex = useMemo(() => buildSlotIndex(masterCourses), [masterCourses]);
   const catalogCurriculum = useCatalogCurriculum();
+
+  /**
+   * The filters row's "Sync curriculum" button. An explicit user action, so
+   * it runs through `runPageSync` — a visible sheet with a real lifecycle
+   * (open → per-op log → close) rather than a silent background fetch — and
+   * announces the result so every mounted picker re-reads at once.
+   */
+  const handleSyncCurriculum = useCallback(async () => {
+    if (isCurriculumSyncing) return;
+    setIsCurriculumSyncing(true);
+    try {
+      await runPageSync({
+        title: "Curriculum",
+        steps: [{ op: "curriculum", apply: () => notifyCatalogCurriculumChanged() }],
+        doneLine: "Curriculum synced — My Curriculum is ready",
+      });
+    } catch {
+      /* runPageSync already logged the failure into its own sheet */
+    } finally {
+      setIsCurriculumSyncing(false);
+    }
+  }, [isCurriculumSyncing]);
 
   /**
    * The Search Course sheet's visible list: query, locked-only, then the
@@ -3211,6 +3265,8 @@ export default function FFCSTimetableTab({
           uniqueCourseCodes={uniqueCourseCodes}
           onImportCourses={handleImportCourses}
           onImportToTimetable={(added) => handleLoadRegisteredCourses(added, [], false)}
+          onSyncCurriculum={isLoggedIn ? handleSyncCurriculum : undefined}
+          curriculumSyncing={isCurriculumSyncing}
         />
 
         <PasteRegisteredCoursesModal
@@ -3315,6 +3371,8 @@ export default function FFCSTimetableTab({
                 onCurriculumOnlyChange={setCatalogCurriculumOnly}
                 categories={catalogCategories}
                 onCategoriesChange={setCatalogCategories}
+                onSyncCurriculum={isLoggedIn ? handleSyncCurriculum : undefined}
+                curriculumSyncing={isCurriculumSyncing}
               />
               {courseLocks.length > 0 && (
                 <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs">
@@ -4189,24 +4247,46 @@ export default function FFCSTimetableTab({
                 </button>
               </ListShell>
 
-              {layoutMode === "modern" && (
-                <Link
-                  href="/"
-                  onClick={() => setIsShareSheetOpen(false)}
-                  className="flex items-center gap-3 rounded-2xl border border-indigo-500/25 bg-gradient-to-r from-indigo-500/10 to-fuchsia-500/10 p-4 transition-colors hover:from-indigo-500/15 hover:to-fuchsia-500/15"
-                >
-                  <span className="w-10 h-10 rounded-2xl border border-indigo-500/20 bg-surface flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
-                    <LogIn className="w-4 h-4" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-bold text-text-heading">Sign in to AmazeCC</span>
-                    <span className="block text-xs text-muted-foreground mt-0.5">
-                      Save your plans and unlock more features.
+              {layoutMode === "modern" &&
+                (shareAccount ? (
+                  <div className="flex items-center gap-3 rounded-2xl border border-border-strong bg-surface-secondary/50 p-4">
+                    {shareAccount.photo ? (
+                      <img
+                        src={shareAccount.photo}
+                        alt=""
+                        decoding="async"
+                        className="w-10 h-10 rounded-2xl object-cover border border-border-strong shrink-0"
+                      />
+                    ) : (
+                      <span className="w-10 h-10 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                        <BadgeCheck className="w-4 h-4" />
+                      </span>
+                    )}
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-bold text-text-heading truncate">{shareAccount.name}</span>
+                      <span className="block text-xs text-muted-foreground mt-0.5 truncate">
+                        {shareAccount.username ? `Signed in as ${shareAccount.username}` : "Signed in to AmazeCC"}
+                      </span>
                     </span>
-                  </span>
-                  <ExternalLink className="w-4 h-4 text-muted-foreground shrink-0" />
-                </Link>
-              )}
+                  </div>
+                ) : (
+                  <Link
+                    href="/"
+                    onClick={() => setIsShareSheetOpen(false)}
+                    className="flex items-center gap-3 rounded-2xl border border-indigo-500/25 bg-gradient-to-r from-indigo-500/10 to-fuchsia-500/10 p-4 transition-colors hover:from-indigo-500/15 hover:to-fuchsia-500/15"
+                  >
+                    <span className="w-10 h-10 rounded-2xl border border-indigo-500/20 bg-surface flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+                      <LogIn className="w-4 h-4" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-bold text-text-heading">Sign in to AmazeCC</span>
+                      <span className="block text-xs text-muted-foreground mt-0.5">
+                        Save your plans and unlock more features.
+                      </span>
+                    </span>
+                    <ExternalLink className="w-4 h-4 text-muted-foreground shrink-0" />
+                  </Link>
+                ))}
             </div>
           </BottomSheet>
         )}
