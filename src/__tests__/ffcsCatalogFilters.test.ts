@@ -132,6 +132,96 @@ describe("buildCurriculumIndex", () => {
   });
 });
 
+/**
+ * Prefix matching: a catalogue course counts when it shares a common start
+ * with a curriculum code — the full code down to a bare leading letter
+ * (`B`, `BA`, `IA`, `I`…). Longest shared start decides the category.
+ */
+const prefixDetails: CategoryDetail[] = [
+  {
+    code: "PC",
+    name: "Programme Core Courses",
+    baskets: [{ title: "Core", credits: 24, items: [{ code: "BCSE101", name: "Programming", credits: 4 }] }],
+  },
+  {
+    code: "UC",
+    name: "University Core Courses",
+    baskets: [
+      {
+        title: "Sciences",
+        credits: 12,
+        items: [
+          { code: "BASTS101", name: "Physics I", credits: 3 },
+          { code: "CHM101", name: "Chemistry", credits: 3 },
+        ],
+      },
+    ],
+  },
+  {
+    code: "IC",
+    name: "Interdisciplinary Core",
+    baskets: [{ title: "ID", credits: 3, items: [{ code: "IAMAT203", name: "Material Science", credits: 3 }] }],
+  },
+];
+
+describe("curriculum prefix matching", () => {
+  const curriculum = buildCurriculumIndex(prefixDetails)!;
+
+  it("answers with the category of the longest start the code shares", () => {
+    // The exact listing still answers with its own category.
+    expect(courseCategory("BCSE101", curriculum)).toBe("Programme Core Courses");
+    // An embedded/lab-style variant claims its base code: "BCSE101" ⊂ BCSE101E.
+    expect(courseCategory("BCSE101E", curriculum)).toBe("Programme Core Courses");
+    // Shares "BASTS1" with BASTS101 — not just its first letter.
+    expect(courseCategory("BASTS102", curriculum)).toBe("University Core Courses");
+    // "BC" (from BCSE101) beats the bare "B" that BASTS101 also claims.
+    expect(courseCategory("BCHY105", curriculum)).toBe("Programme Core Courses");
+  });
+
+  it("claims a family from as short a start as the codes allow", () => {
+    // "IA" with IAMAT203 — two letters.
+    expect(courseCategory("IACHY101", curriculum)).toBe("Interdisciplinary Core");
+    // "I" alone when nothing more specific exists: the bare-letter case.
+    expect(courseCategory("IBIOM101", curriculum)).toBe("Interdisciplinary Core");
+    // A bare "C": only CHM101's family claims it.
+    expect(courseCategory("CHM999", curriculum)).toBe("University Core Courses");
+    // A bare "B" is claimed by both B-codes, so the first in curriculum
+    // order keeps it — the same rule as a code listed in two categories.
+    expect(courseCategory("BFSD1001", curriculum)).toBe("Programme Core Courses");
+  });
+
+  it("stays null for a family no curriculum code starts", () => {
+    expect(courseCategory("UASTS102", curriculum)).toBeNull();
+    expect(courseCategory("TLAW101", curriculum)).toBeNull();
+  });
+
+  it("keeps prefix-matched courses in the list and drops the rest", () => {
+    const only = state({ curriculumOnly: true });
+    expect(matchesCatalogFilters("BCSE101E", undefined, only, curriculum)).toBe(true);
+    expect(matchesCatalogFilters("BASTS102", undefined, only, curriculum)).toBe(true);
+    expect(matchesCatalogFilters("IBIOM101", undefined, only, curriculum)).toBe(true);
+    expect(matchesCatalogFilters("UASTS102", undefined, only, curriculum)).toBe(false);
+  });
+
+  it("hands the inherited category to the chips, filter and chip agreeing", () => {
+    const only = state({ curriculumOnly: true });
+    // BASTS102 inherits University Core… so that chip keeps it…
+    expect(
+      matchesCatalogFilters("BASTS102", undefined, { ...only, categories: ["University Core Courses"] }, curriculum),
+    ).toBe(true);
+    // …and the Programme Core chip drops it.
+    expect(
+      matchesCatalogFilters("BASTS102", undefined, { ...only, categories: ["Programme Core Courses"] }, curriculum),
+    ).toBe(false);
+    // BCHY105 inherits Programme Core through "BC" — same agreement.
+    expect(courseCategory("BCHY105", curriculum)).toBe("Programme Core Courses");
+    expect(matchesCatalogFilters("BCHY105", undefined, only, curriculum)).toBe(true);
+    expect(
+      matchesCatalogFilters("BCHY105", undefined, { ...only, categories: ["Programme Core Courses"] }, curriculum),
+    ).toBe(true);
+  });
+});
+
 describe("matchesCatalogFilters", () => {
   const curriculum = buildCurriculumIndex(details)!;
 
@@ -153,8 +243,9 @@ describe("matchesCatalogFilters", () => {
     expect(matchesCatalogFilters("TLAW101", new Set(["TEE"]), state({ slots: ["S11"] }), null)).toBe(true);
   });
 
-  it("hides codes the curriculum does not list when curriculum-only is on", () => {
+  it("hides codes that share no start with the curriculum when curriculum-only is on", () => {
     expect(matchesCatalogFilters("PHY101", undefined, state({ curriculumOnly: true }), curriculum)).toBe(true);
+    // Prefix match is on, but "NOTIN1"'s N appears in no curriculum code.
     expect(matchesCatalogFilters("NOTIN1", undefined, state({ curriculumOnly: true }), curriculum)).toBe(false);
   });
 

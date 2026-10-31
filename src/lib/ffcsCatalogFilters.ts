@@ -5,8 +5,9 @@
  * Two hosts share this — the Search Course sheet and the Target Courses modal
  * — so the matching lives here as pure functions: a chip list built from the
  * loaded catalogue, a course-code → curriculum-category index built from
- * VTOP's `/curriculum` payload (see `sync-engine`'s `curriculum` op), and one
- * predicate both sheets call while filtering their lists.
+ * VTOP's `/curriculum` payload (see `sync-engine`'s `curriculum` op) that
+ * matches on shared code prefixes as well as exact codes, and one predicate
+ * both sheets call while filtering their lists.
  */
 import type { CategoryDetail } from "@/lib/curriculum";
 import { hasSlot, schemaSlotFor, splitSlots } from "@/lib/slots";
@@ -18,8 +19,17 @@ export type CatalogSlotIndex = Map<string, Set<string>>;
 export interface CatalogCurriculum {
   /** Category names in curriculum order — "University Core Courses", … */
   categories: string[];
-  /** course code (upper-cased) → the category it counts toward. */
+  /** Exact course code (upper-cased) → the category it counts toward. */
   categoryByCode: Map<string, string>;
+  /**
+   * Every prefix of every curriculum code, down to a single character, → the
+   * category it counts toward. The catalogue matches on a shared start of any
+   * length — `BASTS101` claims `BASTS102` through `BASTS1`, an embedded or lab
+   * variant claims its base code, and a bare `B`/`I`/`MA` still claims the
+   * rest of that family. `courseCategory` walks a code from its full length
+   * down, so the longest shared start always wins the category.
+   */
+  categoryByPrefix: Map<string, string>;
 }
 
 export interface CatalogFilterState {
@@ -108,6 +118,13 @@ export function catalogSlotChips(index: CatalogSlotIndex): { theory: string[]; l
  * The student's curriculum as code → category ("University Core Courses",
  * "Programme Core Courses", "Concentration", "Open Elective", …).
  *
+ * Matching is prefix-based, not exact-only: a catalogue course counts when it
+ * shares a common start with a curriculum code — anything from the full code
+ * down to its first letter. The index therefore stores every prefix of every
+ * curriculum code; the exact `categoryByCode` map stays for callers that want
+ * the literal listing, but filtering and chips go through `courseCategory`,
+ * which answers with the longest shared start's category.
+ *
  * Null when there is nothing to match — logged out, never synced, or a
  * payload without course items — so hosts branch on null alone. A course
  * appearing in two categories keeps the first; VTOP should not do that and
@@ -140,18 +157,47 @@ export function buildCurriculumIndex(details: readonly CategoryDetail[] | null |
   }
 
   if (!categoryByCode.size) return null;
+
+  // Every prefix of every code, longest first per code, first claimant wins
+  // each key. The KEY set is what matters: it is exactly the set of strings
+  // that are a prefix of both some catalogue code and some curriculum code,
+  // so walking a code's own prefixes longest-first lands on the longest
+  // shared start — the shortest keys (a bare first letter) only ever decide
+  // the category of a course nothing more specific claims.
+  const categoryByPrefix = new Map<string, string>();
+  for (const [code, name] of categoryByCode) {
+    for (let len = code.length; len >= 1; len--) {
+      const prefix = code.slice(0, len);
+      if (!categoryByPrefix.has(prefix)) categoryByPrefix.set(prefix, name);
+    }
+  }
+
   // A category with no course codes of its own would render a chip that can
   // only ever empty the list.
   return {
     categories: order.filter((name) => (counts.get(name) ?? 0) > 0),
     categoryByCode,
+    categoryByPrefix,
   };
 }
 
-/** Which curriculum category a code counts toward, or null. */
+/**
+ * Which curriculum category a code counts toward, or null.
+ *
+ * Prefix match: the answer comes from the longest start the code shares with
+ * a curriculum code, so a listed course still answers with its own category
+ * while `BCSE101E`-style variants and same-family codes inherit the closest
+ * relative's. The filter and the category chip both call this, so a course
+ * can never be visible under a category the chip does not show.
+ */
 export function courseCategory(code: string, curriculum: CatalogCurriculum | null | undefined): string | null {
   if (!curriculum) return null;
-  return curriculum.categoryByCode.get(normaliseCode(code)) ?? null;
+  const normalised = normaliseCode(code);
+  for (let len = normalised.length; len >= 1; len--) {
+    const hit = curriculum.categoryByPrefix.get(normalised.slice(0, len));
+    if (hit) return hit;
+  }
+  return null;
 }
 
 /** Do the active filters narrow anything? For empty-state copy. */
@@ -165,10 +211,13 @@ export function catalogFiltersActive(state: CatalogFilterState): boolean {
  * `slotsOfCourse` comes from the caller's own slot index (or is skipped when
  * the caller has no index for that code) because the index is built per host
  * from whatever catalogue is loaded. Slot chips match with `hasSlot` so a
- * law-spelled course answers to its engineering chip. A curriculum-only state
- * with no curriculum to check is a no-op rather than an empty list — the
- * switch cannot be on without curriculum, so a stale true means the data
- * left, not that the student asked for nothing.
+ * law-spelled course answers to its engineering chip. Curriculum-only keeps a
+ * course when `courseCategory` does — exact listing OR any shared code start,
+ * so lab/embedded variants and the rest of a curriculum code's family come
+ * along with the courses themselves. A curriculum-only state with no
+ * curriculum to check is a no-op rather than an empty list — the switch
+ * cannot be on without curriculum, so a stale true means the data left, not
+ * that the student asked for nothing.
  */
 export function matchesCatalogFilters(
   code: string,
@@ -184,7 +233,7 @@ export function matchesCatalogFilters(
   }
 
   if (state.curriculumOnly && curriculum) {
-    const category = curriculum.categoryByCode.get(normaliseCode(code));
+    const category = courseCategory(code, curriculum);
     if (!category) return false;
     if (state.categories.length > 0 && !state.categories.includes(category)) return false;
   }
