@@ -14,6 +14,18 @@ import {
 import type { ParsedCourse } from "@/components/custom/exams/FFCS/types";
 import { buildFacultyRatingLookup, type FacultyRatingLookup } from "./ffcsFacultyRanking";
 
+/**
+ * Snapshot/contract versions this client understands. Any 1.x.y is accepted so a
+ * newer minor/patch published by the Worker never blanks the catalog; an unknown
+ * major is skipped (fail closed to the legacy vitfac data).
+ */
+export const SUPPORTED_REVIEWS_SCHEMA_MAJOR = 1;
+export function isSupportedReviewsSchemaVersion(v: unknown): boolean {
+  if (typeof v !== "string") return false;
+  const m = /^(\d+)\.\d+\.\d+$/.exec(v);
+  return !!m && parseInt(m[1], 10) === SUPPORTED_REVIEWS_SCHEMA_MAJOR;
+}
+
 export type AmazeReviewsMode = "vitfac_only" | "amaze_only" | "hybrid";
 
 export const ENABLE_AMAZE_REVIEWS =
@@ -260,7 +272,7 @@ export async function loadAmazeCatalog(forceRefresh: boolean = false): Promise<M
         const contentType = res.headers.get("content-type") || "";
         if (res.ok && contentType.includes("application/json")) {
           const json = await res.json().catch(() => null);
-          if (!json || json.schemaVersion !== "1.0.0") {
+          if (!json || !isSupportedReviewsSchemaVersion(json.schemaVersion)) {
             continue;
           }
           const list: AmazeFacultyCatalogItem[] = json?.faculty || [];
