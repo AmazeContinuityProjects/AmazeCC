@@ -44,7 +44,14 @@ class SyncEngine {
   private ids: Ids | null = null;
 
   private ensureIds(): Ids {
-    if (!this.ids) throw new Error("SyncEngine: not logged in");
+    if (!this.ids) {
+      // After a reload the engine is cold while the account is still stored:
+      // fall back to persisted credentials instead of demanding a login the
+      // student already gave once. `sync` restores the session itself below.
+      const stored = storage.ids.get();
+      if (!stored?.VtopUsername) throw new Error("SyncEngine: not logged in");
+      this.ids = stored;
+    }
     return this.ids;
   }
 
@@ -123,6 +130,15 @@ class SyncEngine {
     const opCtx = { ...ctx, emit };
     emit({ op: name, phase: "start" });
     try {
+      // Sign in first when the op talks to VTOP and the session is missing or
+      // stale — after a reload the session lives only in memory, so without
+      // this every sync from a page that *looks* signed in would fail with
+      // "Not authenticated". `ensureVtopSession` is a no-op while the session
+      // is fresh, single-flights concurrent callers (a login costs a captcha
+      // solve), and is skipped in demo mode, which never talks to VTOP.
+      if (op.auth === "vtop" && !storage.demoMode.get()) {
+        await credentialManager.ensureVtopSession();
+      }
       const result = (await op.run(opCtx, args)) as T;
       emit({ op: name, phase: "done" });
       return result;
@@ -136,11 +152,12 @@ class SyncEngine {
    * Run one op as a background backfill: silently, and without demanding a
    * login from *this* page session.
    *
-   * After a reload the engine has never logged in (only `login`/`syncSocial`
-   * set `ids`), so `sync()` would refuse before the first request — ids fall
-   * back to storage the way `syncSocial` does. The request layer's auth
-   * provider re-authenticates a stale VTOP session on its own, so nothing
-   * here has to prompt anyone.
+   * After a reload the engine has never logged in (only `login` sets `ids`),
+   * so `sync()` would refuse before the first request — ids fall back to the
+   * persisted credentials inside `ensureIds`, and `sync` restores a missing
+   * VTOP session on its own (signing in costs a captcha solve, so it is left
+   * to the single-flight `ensureVtopSession` rather than duplicated here).
+   * Nothing in this path has to prompt anyone.
    *
    * Used by callers that only want the op's persisted result and no visible
    * "VTOP Sync" sheet — e.g. the FFCS catalog's curriculum match fetching a
