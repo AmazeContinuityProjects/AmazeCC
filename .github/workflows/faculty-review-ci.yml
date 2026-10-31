@@ -24,7 +24,7 @@ concurrency:
 
 jobs:
   worker:
-    name: Worker — Typecheck · Test · Secret scan
+    name: Worker — Typecheck · Lint · Test · Build · Audit · Secret scan
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -45,8 +45,20 @@ jobs:
       - name: Typecheck
         run: pnpm --dir faculty-review typecheck
 
+      # The Worker has no separate linter: `tsc --strict` is its lint gate.
+      - name: Lint
+        run: pnpm --dir faculty-review lint
+
       - name: Tests
         run: pnpm --dir faculty-review test
+
+      # Credential-free bundle check (wrangler --dry-run). Confirms the config
+      # parses and the Worker bundles with every REPLACE_WITH_* placeholder unset.
+      - name: Build (dry run)
+        run: pnpm --dir faculty-review build
+
+      - name: Dependency audit
+        run: pnpm --dir faculty-review audit --audit-level=high
 
       # Pattern-based secret scan; gitleaks/trufflehog can be added later.
       # Fails on private keys or 64-hex-char values in code/config.

@@ -46,16 +46,4 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: Smoke test
-        shell: bash
-        env:
-          BASE: https://reviews-api-staging.amazecc.com
-        run: |
-          set -e
-          code=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/api/reviews/catalog")
-          echo "catalog => $code"
-          # 200 (flag on) or 503 (flag off) are both acceptable; anything else fails.
-          case "$code" in 200|503) ;; *) exit 1;; esac
-          code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-            "$BASE/internal/ingest" -H "Content-Type: application/json" --data '{}')
-          echo "unsigned ingest => $code (expect 401)"
-          [ "$code" = "401" ]
+        run: bash faculty-review/scripts/smoke-test.sh https://reviews-api-staging.amazecc.com
