@@ -57,7 +57,7 @@ import { getBatchColorClass } from "@/lib/utils";
 import { ParsedCourse, AddedCourse, TimetableState, CourseLock, Friend, FriendGroup, TimetablePeriod } from "../types";
 import { COLORS, DAYS } from "../constants";
 import { splitSlots, sameSlotFacultyAlternatives } from "../logic/generate";
-import { useVitfacReview, getFacultyReview, loadVitfacRankingData } from "@/lib/vitfacService";
+import { useVitfacReview, useVitfacEnabled, getFacultyReview, loadVitfacRankingData } from "@/lib/vitfacService";
 import { acquireBodyScrollLock } from "@/lib/bodyScrollLock";
 import { CourseImportPanel, type ImportMode } from "./CourseImportPanel";
 import { useGenerationRun } from "../hooks/useGenerationRun";
@@ -236,6 +236,11 @@ function FacultyScoreBadge({
   className?: string;
 }) {
   const { review, loading } = useVitfacReview(employeeId, name);
+  const vitfacEnabled = useVitfacEnabled();
+
+  // Off, the chip goes too: it would say "Unrated" for everything *and*
+  // open a review pane that no longer renders.
+  if (!vitfacEnabled) return null;
 
   if (loading) {
     return (
@@ -352,6 +357,11 @@ function FacultySingleReviewStat({
   onOpenReviewModal: () => void;
 }) {
   const { review, loading } = useVitfacReview(employeeId, name);
+  const vitfacEnabled = useVitfacEnabled();
+
+  // This whole row exists to point at Vitfac (rating, or the directory when
+  // unreviewed) — with the integration off there is nothing to point at.
+  if (!vitfacEnabled) return null;
 
   if (loading) {
     return (
@@ -586,6 +596,7 @@ export default function FFCSGuidedSelector({
   onToggleBlockSlot,
   settings,
 }: FFCSGuidedSelectorProps) {
+  const vitfacEnabled = useVitfacEnabled();
   const effectiveTimetables = useMemo(
     () =>
       (allTimetables && allTimetables.length > 0
@@ -793,7 +804,7 @@ export default function FFCSGuidedSelector({
   const effectiveBlockedSlots = setBlockedSlots && blockedSlots ? blockedSlots : internalBlockedSlots;
   const [timeBlockedSlots, setTimeBlockedSlots] = useState<Set<string>>(new Set());
   const [blockingActiveDay, setBlockingActiveDay] = useState<string>("mon");
-  const [autoResultCap, setAutoResultCap] = useState<number>(() => settings?.resultCap ?? 50);
+  const [autoResultCap, setAutoResultCap] = useState<number>(() => settings?.resultCap ?? 30_000);
   const [autoNoLimit, setAutoNoLimit] = useState<boolean>(false);
 
   useEffect(() => {
@@ -1322,7 +1333,9 @@ export default function FFCSGuidedSelector({
         maxEndTime: autoMaxEndTime,
         uniqueFaculties: autoUniqueFaculties,
         noLimit: autoNoLimit,
-        removeHardResultLimit: settings?.removeHardResultLimit ?? false,
+        // The per-run switch carries the opt-out: "Unlimited" means no
+        // ceiling, not the engine's 30K fallback ceiling.
+        removeHardResultLimit: autoNoLimit,
         resultCap: autoNoLimit ? undefined : autoResultCap,
         minHalfDays: autoMinHalfDays,
         sortBy: autoSortBy,
@@ -3514,16 +3527,12 @@ export default function FFCSGuidedSelector({
                 </span>
               </div>
               <span className="text-xs font-black text-indigo-400 font-mono">
-                {autoNoLimit
-                  ? settings?.removeHardResultLimit
-                    ? "Unlimited"
-                    : "Unlimited (30k max)"
-                  : `${autoResultCap} Timetables`}
+                {autoNoLimit ? "Unlimited" : `${autoResultCap.toLocaleString()} Timetables`}
               </span>
             </div>
 
             <div className="flex flex-wrap gap-1.5">
-              {[...new Set([10, 25, 50, 100, 250, 500, settings?.resultCap ?? 50])]
+              {[...new Set([10, 25, 50, 100, 250, 500, 30_000, settings?.resultCap ?? 30_000])]
                 .sort((a, b) => a - b)
                 .map((cap) => {
                   const isSelected = !autoNoLimit && autoResultCap === cap;
@@ -3541,7 +3550,7 @@ export default function FFCSGuidedSelector({
                           : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700"
                       }`}
                     >
-                      {cap}
+                      {cap >= 1_000 ? `${cap / 1_000}K` : cap}
                     </button>
                   );
                 })}
@@ -3558,10 +3567,10 @@ export default function FFCSGuidedSelector({
                 Unlimited ✨
               </button>
             </div>
-            {autoNoLimit && !settings?.removeHardResultLimit && (
-              <p className="mt-2 text-[10px] text-amber-300">
-                Unlimited runs still stop at 30,000 results. The Planner Settings opt-in can remove that safety ceiling,
-                but may make the browser unstable.
+            {autoNoLimit && (
+              <p className="mt-2 text-[10px] text-zinc-400">
+                No ceiling — the search keeps every conflict-free option it finds. A very wide selection can take a
+                while.
               </p>
             )}
           </div>
@@ -3828,7 +3837,7 @@ export default function FFCSGuidedSelector({
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-zinc-400">Max Timetables</span>
               <span className="text-xs font-extrabold text-indigo-300">
-                {autoNoLimit ? "Unlimited" : `${autoResultCap}`}
+                {autoNoLimit ? "Unlimited" : autoResultCap.toLocaleString()}
               </span>
             </div>
             <div className="flex items-center justify-between">
@@ -4248,22 +4257,24 @@ export default function FFCSGuidedSelector({
                     </button>
                   )}
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onOpenFacultyReview &&
-                      onOpenFacultyReview({
-                        name: course.faculty,
-                        employeeId: course.employeeId,
-                        courseCode: course.code,
-                      })
-                    }
-                    className="px-2 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-[10.5px] font-bold border border-amber-500/20 flex items-center gap-1 cursor-pointer"
-                    title="View Vitfac Review"
-                  >
-                    <Star className="w-3 h-3 text-amber-400" />
-                    <span>Review</span>
-                  </button>
+                  {vitfacEnabled && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onOpenFacultyReview &&
+                        onOpenFacultyReview({
+                          name: course.faculty,
+                          employeeId: course.employeeId,
+                          courseCode: course.code,
+                        })
+                      }
+                      className="px-2 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-[10.5px] font-bold border border-amber-500/20 flex items-center gap-1 cursor-pointer"
+                      title="View Vitfac Review"
+                    >
+                      <Star className="w-3 h-3 text-amber-400" />
+                      <span>Review</span>
+                    </button>
+                  )}
 
                   <button
                     type="button"
@@ -5000,7 +5011,7 @@ export default function FFCSGuidedSelector({
         </div>
       )}
 
-      {selectedOffering && selectedCourseMeta && (
+      {vitfacEnabled && selectedOffering && selectedCourseMeta && (
         <div className="space-y-2 pt-1">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">

@@ -5,7 +5,6 @@ import { Search, MapPin, Loader2, Clock, CalendarDays, RefreshCw } from "lucide-
 
 import SelectField from "../shared/primitives/SelectField";
 import type { ParsedCourse } from "../exams/FFCS/types";
-import { parseCachedCourses } from "@/lib/freeClassrooms";
 import {
   buildDayIndex,
   buildPeriodSlots,
@@ -26,7 +25,7 @@ import bhopalSchema from "@/data/campus/bhopal.json";
 const CAMPUS_SCHEMAS: Record<string, any> = {
   chennai: chennaiSchema,
   ap: apSchema,
-  bhopal: bhopalSchema
+  bhopal: bhopalSchema,
 };
 
 const GLOBAL_CAMPUS = "chennai"; // Since FFCSTimetableTab hardcodes it
@@ -42,18 +41,6 @@ const GLOBAL_CAMPUS = "chennai"; // Since FFCSTimetableTab hardcodes it
  * `ROOM`/`VENUE` aliases into `VENUE`, and returns nothing rather than
  * throwing when the cache is corrupt. Every field is then guaranteed a string.
  */
-function coursesFromCache(raw: string): ParsedCourse[] {
-  return parseCachedCourses(raw).map((c) => ({
-    CODE: c.CODE ?? "",
-    TITLE: c.TITLE ?? "",
-    TYPE: c.TYPE ?? "",
-    CREDITS: "0",
-    ROOM: c.VENUE ?? "",
-    SLOT: c.SLOT ?? "",
-    FACULTY: c.FACULTY ?? "",
-  }));
-}
-
 /**
  * The three filter fields share this chrome: an icon sits in the left gutter,
  * so the trigger needs left padding for it and a smaller label than the default.
@@ -90,10 +77,7 @@ export default function FreeClassroomsWidget() {
    * the same period list the full page shows, so the two agree on what
    * "8:55 AM" means.
    */
-  const periods = useMemo(
-    () => resolvePeriods(schema, selectedDay),
-    [schema, selectedDay]
-  );
+  const periods = useMemo(() => resolvePeriods(schema, selectedDay), [schema, selectedDay]);
 
   /** The VTOP slots running in each period of the day. */
   const slots = useMemo(() => buildPeriodSlots(periods), [periods]);
@@ -104,9 +88,7 @@ export default function FreeClassroomsWidget() {
     if (periods.length === 0) return;
     setSelectedDay(now.day);
     setSelectedPeriod((current) =>
-      periods.some((p) => p.key === current)
-        ? current
-        : (now.period?.key ?? periods[0].key)
+      periods.some((p) => p.key === current) ? current : (now.period?.key ?? periods[0].key),
     );
   }, [periods]);
 
@@ -116,19 +98,9 @@ export default function FreeClassroomsWidget() {
       setLoading(true);
       setError(null);
 
-      // Try local cache first to avoid re-parsing if they visited FFCS tab
-      try {
-        const cached = localStorage.getItem("ffcs_raw_courses");
-        if (cached) {
-          const parsedCached = coursesFromCache(cached);
-          if (parsedCached.length > 0) {
-            setCourses(parsedCached);
-            setLoading(false);
-            return;
-          }
-        }
-      } catch (e) {}
-
+      // Resolve from the shipped fall-semester report (ffcsReport.csv) so the
+      // mobile home reflects the current course list rather than a stale
+      // cached report from another semester.
       try {
         const XLSX = await import("xlsx");
         const response = await fetch("/ffcs/ffcsReport.csv");
@@ -139,22 +111,27 @@ export default function FreeClassroomsWidget() {
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const jsonData = XLSX.utils.sheet_to_json<any>(sheet);
 
-        const parsed: ParsedCourse[] = jsonData.map((row: any) => {
-          const cleanRow: any = {};
-          for (const k in row) {
-            const cleanKey = k.replace(/^\uFEFF/, '').trim().toUpperCase();
-            cleanRow[cleanKey] = row[k];
-          }
-          return {
-            CODE: String(cleanRow.CODE || cleanRow["COURSE CODE"] || cleanRow.COURSE_CODE || "").trim(),
-            TITLE: String(cleanRow.TITLE || cleanRow["COURSE TITLE"] || cleanRow.COURSE_TITLE || "").trim(),
-            TYPE: String(cleanRow.TYPE || "").trim(),
-            CREDITS: String(cleanRow.CREDITS || "0").trim(),
-            ROOM: String(cleanRow.ROOM || cleanRow.VENUE || "").trim(),
-            SLOT: String(cleanRow.SLOT || "").trim(),
-            FACULTY: String(cleanRow.FACULTY || "").trim()
-          };
-        }).filter(c => c.CODE);
+        const parsed: ParsedCourse[] = jsonData
+          .map((row: any) => {
+            const cleanRow: any = {};
+            for (const k in row) {
+              const cleanKey = k
+                .replace(/^\uFEFF/, "")
+                .trim()
+                .toUpperCase();
+              cleanRow[cleanKey] = row[k];
+            }
+            return {
+              CODE: String(cleanRow.CODE || cleanRow["COURSE CODE"] || cleanRow.COURSE_CODE || "").trim(),
+              TITLE: String(cleanRow.TITLE || cleanRow["COURSE TITLE"] || cleanRow.COURSE_TITLE || "").trim(),
+              TYPE: String(cleanRow.TYPE || "").trim(),
+              CREDITS: String(cleanRow.CREDITS || "0").trim(),
+              ROOM: String(cleanRow.ROOM || cleanRow.VENUE || "").trim(),
+              SLOT: String(cleanRow.SLOT || "").trim(),
+              FACULTY: String(cleanRow.FACULTY || "").trim(),
+            };
+          })
+          .filter((c) => c.CODE);
 
         setCourses(parsed);
       } catch (err: any) {
@@ -219,7 +196,7 @@ export default function FreeClassroomsWidget() {
     if (!period) return {};
 
     const roomByCode = new Map(merged.rooms.map((r) => [r.code, r]));
-    const grouped: Record<string, { theory: string[], lab: string[] }> = {};
+    const grouped: Record<string, { theory: string[]; lab: string[] }> = {};
     for (const code of period.free.rooms) {
       const room = roomByCode.get(code);
       if (!room) continue;
@@ -228,7 +205,7 @@ export default function FreeClassroomsWidget() {
       (room.kind === "lab" ? grouped[block].lab : grouped[block].theory).push(code);
     }
 
-    Object.keys(grouped).forEach(block => {
+    Object.keys(grouped).forEach((block) => {
       grouped[block].theory.sort();
       grouped[block].lab.sort();
     });
@@ -317,7 +294,8 @@ export default function FreeClassroomsWidget() {
         </div>
       ) : (
         <div className="space-y-4 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
-          {Object.keys(freeVenuesByBlock).length === 0 || (selectedBlock !== "All" && !freeVenuesByBlock[selectedBlock]) ? (
+          {Object.keys(freeVenuesByBlock).length === 0 ||
+          (selectedBlock !== "All" && !freeVenuesByBlock[selectedBlock]) ? (
             <div className="text-center py-6 text-gray-400">
               <MapPin className="w-8 h-8 mx-auto mb-2 opacity-50" />
               <p className="text-sm font-medium">No free venues found for this slot.</p>
@@ -327,45 +305,48 @@ export default function FreeClassroomsWidget() {
               .filter(([block]) => selectedBlock === "All" || block === selectedBlock)
               .sort(([a], [b]) => a.localeCompare(b))
               .map(([block, { theory, lab }]) => (
-              <div key={block} className="bg-gray-50/50 dark:bg-slate-800/30 rounded-2xl p-3 border border-gray-100 dark:border-gray-800/50">
-                <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
-                  {block} Block ({theory.length + lab.length})
-                </h4>
+                <div
+                  key={block}
+                  className="bg-gray-50/50 dark:bg-slate-800/30 rounded-2xl p-3 border border-gray-100 dark:border-gray-800/50"
+                >
+                  <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                    {block} Block ({theory.length + lab.length})
+                  </h4>
 
-                {theory.length > 0 && (
-                  <div className="mb-2">
-                    <p className="text-[10px] uppercase font-bold text-gray-400 mb-1 tracking-wider">Theory</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {theory.map(room => (
-                        <span
-                          key={room}
-                          className="px-2 py-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-lg text-[11px] font-bold text-gray-600 dark:text-gray-300 shadow-sm"
-                        >
-                          {room.split("-")[1] || room}
-                        </span>
-                      ))}
+                  {theory.length > 0 && (
+                    <div className="mb-2">
+                      <p className="text-[10px] uppercase font-bold text-gray-400 mb-1 tracking-wider">Theory</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {theory.map((room) => (
+                          <span
+                            key={room}
+                            className="px-2 py-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-lg text-[11px] font-bold text-gray-600 dark:text-gray-300 shadow-sm"
+                          >
+                            {room.split("-")[1] || room}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {lab.length > 0 && (
-                  <div>
-                    <p className="text-[10px] uppercase font-bold text-gray-400 mb-1 tracking-wider">Lab</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {lab.map(room => (
-                        <span
-                          key={room}
-                          className="px-2 py-1 bg-blue-50/50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-lg text-[11px] font-bold text-blue-600 dark:text-blue-400 shadow-sm"
-                        >
-                          {room.split("-")[1] || room}
-                        </span>
-                      ))}
+                  {lab.length > 0 && (
+                    <div>
+                      <p className="text-[10px] uppercase font-bold text-gray-400 mb-1 tracking-wider">Lab</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {lab.map((room) => (
+                          <span
+                            key={room}
+                            className="px-2 py-1 bg-blue-50/50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-lg text-[11px] font-bold text-blue-600 dark:text-blue-400 shadow-sm"
+                          >
+                            {room.split("-")[1] || room}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            ))
+                  )}
+                </div>
+              ))
           )}
         </div>
       )}

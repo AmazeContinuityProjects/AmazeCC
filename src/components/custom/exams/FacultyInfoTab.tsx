@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, memo } from "react";
 import { api } from "@/lib/sync-engine";
 import {
   loadFacultyRoster,
@@ -75,193 +75,195 @@ function parseSchoolName(fullName: string) {
  * that the public portal did not publish an email, which is information, not
  * decoration.
  */
-const FacultyCard = ({
-  profile,
-  onDetailFetched,
-  hasSchedule,
-  onViewSchedule,
-  onViewReview,
-}: {
-  profile: FacultyProfile;
-  onDetailFetched: (p: FacultyProfile) => void;
-  /** Whether the FFCS report is loaded, so the affordance is only offered when it can work. */
-  hasSchedule?: boolean;
-  onViewSchedule?: () => void;
-  onViewReview?: () => void;
-}) => {
-  const [expanded, setExpanded] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [copiedEmail, setCopiedEmail] = useState(false);
+const FacultyCard = memo(
+  ({
+    profile,
+    onDetailFetched,
+    hasSchedule,
+    onViewSchedule,
+    onViewReview,
+  }: {
+    profile: FacultyProfile;
+    onDetailFetched: (p: FacultyProfile) => void;
+    /** Whether the FFCS report is loaded, so the affordance is only offered when it can work. */
+    hasSchedule?: boolean;
+    onViewSchedule?: () => void;
+    onViewReview?: () => void;
+  }) => {
+    const [expanded, setExpanded] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [copiedEmail, setCopiedEmail] = useState(false);
 
-  useEffect(() => {
-    if (expanded && !profile.email && profile.employeeId) {
-      setLoading(true);
-      (async () => {
-        try {
-          // Prefer the cached worker directory profile (cache.amazecc.com):
-          // it carries email/intercom/designation + image + links + education
-          // without a VTOP round-trip. Fall back to VTOP when it is missing
-          // the fields we need.
-          const dir = await getFacultyDirectoryProfile(profile.employeeId);
-          if (dir && (dir.email || dir.intercom || dir.designation)) {
-            onDetailFetched({
-              ...profile,
-              designation: dir.designation || profile.designation,
-              email: dir.email || "",
-              intercom: dir.intercom || "",
-              imageUrl: dir.image ? `data:image/jpeg;base64,${dir.image}` : dir.imageUrl || profile.imageUrl,
-            });
-            return;
+    useEffect(() => {
+      if (expanded && !profile.email && profile.employeeId) {
+        setLoading(true);
+        (async () => {
+          try {
+            // Prefer the cached worker directory profile (cache.amazecc.com):
+            // it carries email/intercom/designation + image + links + education
+            // without a VTOP round-trip. Fall back to VTOP when it is missing
+            // the fields we need.
+            const dir = await getFacultyDirectoryProfile(profile.employeeId);
+            if (dir && (dir.email || dir.intercom || dir.designation)) {
+              onDetailFetched({
+                ...profile,
+                designation: dir.designation || profile.designation,
+                email: dir.email || "",
+                intercom: dir.intercom || "",
+                imageUrl: dir.image ? `data:image/jpeg;base64,${dir.image}` : dir.imageUrl || profile.imageUrl,
+              });
+              return;
+            }
+          } catch {
+            // fall through to VTOP
           }
-        } catch {
-          // fall through to VTOP
-        }
-        try {
-          const r = await api(`faculty-profile/${profile.employeeId}`, { parse: "raw" });
-          const data = r.ok ? await r.json() : { success: false };
-          if (data?.success && data.profile) {
-            onDetailFetched({
-              ...profile,
-              designation: data.profile.designation || profile.designation,
-              email: data.profile.email || "",
-              intercom: data.profile.intercom || "",
-            });
+          try {
+            const r = await api(`faculty-profile/${profile.employeeId}`, { parse: "raw" });
+            const data = r.ok ? await r.json() : { success: false };
+            if (data?.success && data.profile) {
+              onDetailFetched({
+                ...profile,
+                designation: data.profile.designation || profile.designation,
+                email: data.profile.email || "",
+                intercom: data.profile.intercom || "",
+              });
+            }
+          } catch {
+            // ignore
           }
-        } catch {
-          // ignore
-        }
-      })().finally(() => setLoading(false));
-    }
-  }, [expanded, profile.email, profile.employeeId]);
+        })().finally(() => setLoading(false));
+      }
+    }, [expanded, profile.email, profile.employeeId]);
 
-  const handleCopyEmail = (e: React.MouseEvent, email: string) => {
-    e.stopPropagation();
-    navigator.clipboard.writeText(email);
-    setCopiedEmail(true);
-    setTimeout(() => setCopiedEmail(false), 2000);
-  };
+    const handleCopyEmail = (e: React.MouseEvent, email: string) => {
+      e.stopPropagation();
+      navigator.clipboard.writeText(email);
+      setCopiedEmail(true);
+      setTimeout(() => setCopiedEmail(false), 2000);
+    };
 
-  const facts = [
-    profile.employeeId ? ["ID", profile.employeeId] : null,
-    profile.intercom ? ["Intercom", profile.intercom] : null,
-  ].filter(Boolean) as [string, string][];
+    const facts = [
+      profile.employeeId ? ["ID", profile.employeeId] : null,
+      profile.intercom ? ["Intercom", profile.intercom] : null,
+    ].filter(Boolean) as [string, string][];
 
-  return (
-    <div className={TILE_CARD}>
-      <div className="flex items-center gap-3.5">
-        <FacultyAvatar
-          employeeId={profile.employeeId}
-          name={profile.name}
-          fallbackImageUrl={profile.imageUrl}
-          size="md"
-          tone="indigo"
-          className="w-12 h-12 rounded-2xl"
-        />
-        <ListRowText
-          title={profile.name}
-          titleTooltip={profile.name}
-          titleTag="h3"
-          subtitle={
-            <span className="flex items-center gap-1.5 flex-wrap">
-              <span>{profile.designation || "Faculty Member"}</span>
-              <VitfacReviewPill
-                employeeId={profile.employeeId}
-                name={profile.name}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onViewReview?.();
-                }}
-              />
-            </span>
-          }
-          right={
-            profile.profileUrl ? (
-              <a
-                href={profile.profileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                title={`Open ${profile.name}'s public profile`}
-                aria-label={`Open ${profile.name}'s public profile`}
-                className="shrink-0 text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
-              >
-                <ExternalLink className="w-4 h-4" />
-              </a>
-            ) : null
-          }
-        />
-      </div>
-
-      {facts.length > 0 && (
-        <div className="mt-3 grid grid-cols-2 gap-2.5">
-          {facts.map(([label, value]) => (
-            <KeyValue key={label} label={label} value={value} />
-          ))}
+    return (
+      <div className={TILE_CARD}>
+        <div className="flex items-center gap-3.5">
+          <FacultyAvatar
+            employeeId={profile.employeeId}
+            name={profile.name}
+            fallbackImageUrl={profile.imageUrl}
+            size="md"
+            tone="indigo"
+            className="w-12 h-12 rounded-2xl"
+          />
+          <ListRowText
+            title={profile.name}
+            titleTooltip={profile.name}
+            titleTag="h3"
+            subtitle={
+              <span className="flex items-center gap-1.5 flex-wrap">
+                <span>{profile.designation || "Faculty Member"}</span>
+                <VitfacReviewPill
+                  employeeId={profile.employeeId}
+                  name={profile.name}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onViewReview?.();
+                  }}
+                />
+              </span>
+            }
+            right={
+              profile.profileUrl ? (
+                <a
+                  href={profile.profileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={`Open ${profile.name}'s public profile`}
+                  aria-label={`Open ${profile.name}'s public profile`}
+                  className="shrink-0 text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                </a>
+              ) : null
+            }
+          />
         </div>
-      )}
 
-      {profile.email && (
-        <div className="mt-3 flex items-center justify-between gap-2 border-t border-border-muted pt-3">
-          <a
-            href={`mailto:${profile.email}`}
-            onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-2 min-w-0 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
-          >
-            <Mail className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate">{profile.email}</span>
-          </a>
-          <button
-            type="button"
-            onClick={(e) => handleCopyEmail(e, profile.email)}
-            className={`${CHIP} shrink-0 cursor-pointer`}
-            title="Copy email"
-          >
-            {copiedEmail ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-            {copiedEmail ? "Copied" : "Copy"}
-          </button>
-        </div>
-      )}
+        {facts.length > 0 && (
+          <div className="mt-3 grid grid-cols-2 gap-2.5">
+            {facts.map(([label, value]) => (
+              <KeyValue key={label} label={label} value={value} />
+            ))}
+          </div>
+        )}
 
-      {/* The full schedule is a lookup against the FFCS report, so the card only
+        {profile.email && (
+          <div className="mt-3 flex items-center justify-between gap-2 border-t border-border-muted pt-3">
+            <a
+              href={`mailto:${profile.email}`}
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center gap-2 min-w-0 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
+            >
+              <Mail className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">{profile.email}</span>
+            </a>
+            <button
+              type="button"
+              onClick={(e) => handleCopyEmail(e, profile.email)}
+              className={`${CHIP} shrink-0 cursor-pointer`}
+              title="Copy email"
+            >
+              {copiedEmail ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+              {copiedEmail ? "Copied" : "Copy"}
+            </button>
+          </div>
+        )}
+
+        {/* The full schedule is a lookup against the FFCS report, so the card only
           offers it once that report is available. The match is by name against
           the first faculty group that matches, which the modal owns. */}
-      {hasSchedule && (
+        {hasSchedule && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onViewSchedule?.();
+            }}
+            className="mt-3 w-full flex items-center justify-center gap-2 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 py-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 transition-colors cursor-pointer"
+          >
+            <CalendarDays className="w-3.5 h-3.5" />
+            <span>View full schedule</span>
+          </button>
+        )}
+
+        {/* The expansion is a real fetch, so the row that triggers it has to say so
+          and has to show progress — otherwise a slow portal reads as "no data". */}
         <button
           type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onViewSchedule?.();
-          }}
-          className="mt-3 w-full flex items-center justify-center gap-2 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 py-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 transition-colors cursor-pointer"
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+          className="mt-3 w-full flex items-center justify-between gap-2 border-t border-border-muted pt-3 text-[10px] font-bold text-zinc-500 dark:text-zinc-400 hover:text-text-heading transition-colors"
         >
-          <CalendarDays className="w-3.5 h-3.5" />
-          <span>View full schedule</span>
+          <span>{expanded ? "Show less" : "View full details"}</span>
+          {loading ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+          ) : (
+            <GraduationCap className="w-3.5 h-3.5 shrink-0" />
+          )}
         </button>
-      )}
 
-      {/* The expansion is a real fetch, so the row that triggers it has to say so
-          and has to show progress — otherwise a slow portal reads as "no data". */}
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        aria-expanded={expanded}
-        className="mt-3 w-full flex items-center justify-between gap-2 border-t border-border-muted pt-3 text-[10px] font-bold text-zinc-500 dark:text-zinc-400 hover:text-text-heading transition-colors"
-      >
-        <span>{expanded ? "Show less" : "View full details"}</span>
-        {loading ? (
-          <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
-        ) : (
-          <GraduationCap className="w-3.5 h-3.5 shrink-0" />
+        {expanded && !loading && !profile.email && !profile.intercom && (
+          <p className="mt-2 text-[11px] text-text-muted">
+            Additional contact details are not published on the public portal.
+          </p>
         )}
-      </button>
-
-      {expanded && !loading && !profile.email && !profile.intercom && (
-        <p className="mt-2 text-[11px] text-text-muted">
-          Additional contact details are not published on the public portal.
-        </p>
-      )}
-    </div>
-  );
-};
+      </div>
+    );
+  },
+);
 
 /**
  * Two screens, one hop apart.

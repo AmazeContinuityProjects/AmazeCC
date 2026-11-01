@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import BottomSheet from "../../../shared/BottomSheet";
 import {
-  ENABLE_VITFAC_INTEGRATION,
+  useVitfacEnabled,
   useVitfacReview,
   getFacultyProfileBundle,
   getVitfacProfileUrl,
@@ -65,12 +65,15 @@ export default function FacultyReviewSheet({
   courseCode,
 }: FacultyReviewSheetProps) {
   const { review, loading } = useVitfacReview(employeeId, facultyName);
+  const vitfacEnabled = useVitfacEnabled();
   const [bundle, setBundle] = useState<VitfacProfileBundle | null>(null);
   const [loadingBundle, setLoadingBundle] = useState(false);
   const [activeCourseFilter, setActiveCourseFilter] = useState<string>("global");
 
   useEffect(() => {
-    if (!open) {
+    // Off means no profile-bundle request either — the pane can't render
+    // anyway (see the guard below), so don't pay for data it would show.
+    if (!open || !vitfacEnabled) {
       setBundle(null);
       setActiveCourseFilter("global");
       return;
@@ -91,9 +94,9 @@ export default function FacultyReviewSheet({
         })
         .finally(() => setLoadingBundle(false));
     }
-  }, [open, review?.id, employeeId, courseCode]);
+  }, [open, review?.id, employeeId, courseCode, vitfacEnabled]);
 
-  if (!ENABLE_VITFAC_INTEGRATION || !open) return null;
+  if (!vitfacEnabled || !open) return null;
 
   const prof = bundle?.prof || review;
   const profileUrl = prof?.id || employeeId ? getVitfacProfileUrl(prof?.id || employeeId!) : "https://vitfac.pages.dev";

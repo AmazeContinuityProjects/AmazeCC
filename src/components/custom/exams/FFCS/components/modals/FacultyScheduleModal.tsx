@@ -68,11 +68,7 @@ export function FacultyScheduleModal({
 }: FacultyScheduleModalProps) {
   const [query, setQuery] = useState("");
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const {
-    target: reviewTarget,
-    open: openFacultyReview,
-    close: closeFacultyReview,
-  } = useFacultyReviewSheet();
+  const { target: reviewTarget, open: openFacultyReview, close: closeFacultyReview } = useFacultyReviewSheet();
   const [selectedSwapOffering, setSelectedSwapOffering] = useState<FacultyOffering | null>(null);
   const autoSelectedRef = useRef(false);
 
@@ -89,7 +85,7 @@ export function FacultyScheduleModal({
         ROOM: off.ROOM || off.VENUE || "TBA",
         FACULTY: off.FACULTY,
         ERP_ID: off.ERP_ID,
-      }))
+      })),
     );
   }, [groups, masterCourses]);
 
@@ -116,10 +112,7 @@ export function FacultyScheduleModal({
   const selected = groups.find((group) => group.key === selectedKey) ?? null;
   const selectedEmpId = selected?.offerings.find((o) => o.ERP_ID)?.ERP_ID;
   const { profile: directoryProfile } = useVitfacDirectoryProfile(selectedEmpId);
-  const courses = useMemo(
-    () => (selected ? facultyGroupToAddedCourses(selected) : []),
-    [selected]
-  );
+  const courses = useMemo(() => (selected ? facultyGroupToAddedCourses(selected) : []), [selected]);
 
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -128,7 +121,7 @@ export function FacultyScheduleModal({
       (group) =>
         group.canonical.toLowerCase().includes(term) ||
         group.key.toLowerCase().includes(term) ||
-        group.names.some((name) => name.toLowerCase().includes(term))
+        group.names.some((name) => name.toLowerCase().includes(term)),
     );
   }, [groups, query]);
 
@@ -197,10 +190,15 @@ export function FacultyScheduleModal({
                       ? `${selected.offerings.length} class${selected.offerings.length === 1 ? "" : "es"} · tap a slot for day, time & venue`
                       : "Search every faculty, or pick one to see their week"}
                   </p>
-                  {selected && (directoryProfile?.designation || directoryProfile?.email || directoryProfile?.intercom) ? (
+                  {selected &&
+                  (directoryProfile?.designation || directoryProfile?.email || directoryProfile?.intercom) ? (
                     <p className="text-[11px] text-muted-foreground truncate">
                       {directoryProfile?.designation ? `${directoryProfile.designation} · ` : ""}
-                      {directoryProfile?.email ? directoryProfile.email : directoryProfile?.intercom ? `Intercom ${directoryProfile.intercom}` : ""}
+                      {directoryProfile?.email
+                        ? directoryProfile.email
+                        : directoryProfile?.intercom
+                          ? `Intercom ${directoryProfile.intercom}`
+                          : ""}
                       {directoryProfile?.directoryAvailable ? (
                         <a
                           href={`https://directorycc.vit.ac.in/faculty/${selectedEmpId}`}
@@ -222,220 +220,233 @@ export function FacultyScheduleModal({
             </div>
 
             {selected ? (
-          <div className="space-y-5">
-            <button
-              type="button"
-              onClick={() => setSelectedKey(null)}
-              className="inline-flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-text-heading transition-colors cursor-pointer"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to faculty list
-            </button>
+              <div className="space-y-5">
+                <button
+                  type="button"
+                  onClick={() => setSelectedKey(null)}
+                  className="inline-flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-text-heading transition-colors cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Back to faculty list
+                </button>
 
-            {selected.names.length > 1 && (
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                  Also listed as
-                </span>
-                {selected.names.map((name) => (
-                  <span
-                    key={name}
-                    className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-surface-secondary text-text-heading border border-border-strong"
-                  >
-                    {name}
-                  </span>
-                ))}
-              </div>
-            )}
+                {selected.names.length > 1 && (
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Also listed as
+                    </span>
+                    {selected.names.map((name) => (
+                      <span
+                        key={name}
+                        className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-surface-secondary text-text-heading border border-border-strong"
+                      >
+                        {name}
+                      </span>
+                    ))}
+                  </div>
+                )}
 
-            {/*
+                {/*
               The vertical grid is deliberate: it is the only renderer whose tap
               opens the slot detail sheet (day, time, course, venue). The sheet
               portals to <body> at its own z-55/60, which would sit behind this
               modal's z-300, so the z-index pair is raised to 400.
             */}
-            <VerticalTimetableGrid
-              courses={courses}
-              theoryPeriods={periods.theory}
-              labPeriods={periods.lab}
-              days={DAYS}
-              blockedSlots={new Set()}
-              selectedGapDetails={null}
-              backdropZIndex={400}
-              panelZIndex={400}
-            />
+                <VerticalTimetableGrid
+                  courses={courses}
+                  theoryPeriods={periods.theory}
+                  labPeriods={periods.lab}
+                  days={DAYS}
+                  blockedSlots={new Set()}
+                  selectedGapDetails={null}
+                  backdropZIndex={400}
+                  panelZIndex={400}
+                />
 
-            <div className="overflow-x-auto rounded-xl border border-border-strong custom-scrollbar">
-              <table className="w-full text-left text-sm min-w-[520px]">
-                <thead>
-                  <tr className="border-b border-border-strong bg-surface-secondary/40">
-                    <th className="py-2.5 px-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">Course</th>
-                    <th className="py-2.5 px-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">Type</th>
-                    <th className="py-2.5 px-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">Slot</th>
-                    <th className="py-2.5 px-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">Venue</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {selected.offerings.map((offering, index) => {
-                    const slotTokens = splitSlots(offering.SLOT);
-                    const alts = sameSlotFacultyAlternatives(
-                      offering.CODE,
-                      slotTokens,
-                      { faculty: offering.FACULTY, employeeId: offering.ERP_ID },
-                      allMasterCourses
-                    );
-                    const count = 1 + alts.length;
-                    const countTitle =
-                      count === 1
-                        ? "1 faculty teaching this slot"
-                        : `${count} faculties teaching this slot · Click to view`;
-
-                    return (
-                      <tr key={`${offering.CODE}-${offering.SLOT}-${index}`} className="hover:bg-surface-secondary/20 transition-colors">
-                        <td className="py-2.5 px-3">
-                          <span className="font-bold text-xs text-text-heading">{offering.CODE}</span>
-                          <span className="block text-xs text-muted-foreground truncate max-w-[220px]">
-                            {offering.TITLE}
-                          </span>
-                        </td>
-                        <td className="py-2.5 px-3 text-xs text-text-heading/80">{offering.TYPE}</td>
-                        <td className="py-2.5 px-3 font-mono text-xs text-text-heading/80">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span>{offering.SLOT}</span>
-                            <button
-                              type="button"
-                              onClick={() => setSelectedSwapOffering(offering)}
-                              title={countTitle}
-                              className="relative hit-expand inline-flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-surface-secondary/70 border border-border-strong/70 text-muted-foreground hover:text-amber-500 hover:border-amber-500/40 transition-colors shrink-0 cursor-pointer"
-                            >
-                              <Users className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-amber-500 shrink-0" />
-                              <span>{count}</span>
-                            </button>
-                          </div>
-                        </td>
-                        <td className="py-2.5 px-3 text-xs text-text-heading/80">{offering.ROOM || offering.VENUE || "TBA"}</td>
+                <div className="overflow-x-auto rounded-xl border border-border-strong custom-scrollbar">
+                  <table className="w-full text-left text-sm min-w-[520px]">
+                    <thead>
+                      <tr className="border-b border-border-strong bg-surface-secondary/40">
+                        <th className="py-2.5 px-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                          Course
+                        </th>
+                        <th className="py-2.5 px-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                          Type
+                        </th>
+                        <th className="py-2.5 px-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                          Slot
+                        </th>
+                        <th className="py-2.5 px-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                          Venue
+                        </th>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                type="text"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search faculty by name…"
-                aria-label="Search faculty"
-                className="w-full bg-surface border border-border-strong rounded-xl pl-11 pr-4 py-2.5 text-sm text-text-heading focus:outline-none focus:border-blue-500/50 transition-colors"
-              />
-            </div>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {selected.offerings.map((offering, index) => {
+                        const slotTokens = splitSlots(offering.SLOT);
+                        const alts = sameSlotFacultyAlternatives(
+                          offering.CODE,
+                          slotTokens,
+                          { faculty: offering.FACULTY, employeeId: offering.ERP_ID },
+                          allMasterCourses,
+                        );
+                        const count = 1 + alts.length;
+                        const countTitle =
+                          count === 1
+                            ? "1 faculty teaching this slot"
+                            : `${count} faculties teaching this slot · Click to view`;
 
-            {loading ? (
-              <ListSkeleton rows={5} leading="dot" />
-            ) : filtered.length === 0 ? (
-              <EmptyPanel
-                icon={<CalendarDays className="h-7 w-7" />}
-                tone="indigo"
-                title={query ? "No faculty found" : "No course report loaded"}
-                description={
-                  query
-                    ? `Nothing in the report matches “${query}”.`
-                    : "Open the FFCS Planner once to load the course report, then come back."
-                }
-                action={
-                  query ? (
-                    <button
-                      type="button"
-                      onClick={() => setQuery("")}
-                      className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-black text-white transition-colors hover:bg-indigo-700 cursor-pointer"
-                    >
-                      Clear search
-                    </button>
-                  ) : null
-                }
-              />
+                        return (
+                          <tr
+                            key={`${offering.CODE}-${offering.SLOT}-${index}`}
+                            className="hover:bg-surface-secondary/20 transition-colors"
+                          >
+                            <td className="py-2.5 px-3">
+                              <span className="font-bold text-xs text-text-heading">{offering.CODE}</span>
+                              <span className="block text-xs text-muted-foreground truncate max-w-[220px]">
+                                {offering.TITLE}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3 text-xs text-text-heading/80">{offering.TYPE}</td>
+                            <td className="py-2.5 px-3 font-mono text-xs text-text-heading/80">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span>{offering.SLOT}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedSwapOffering(offering)}
+                                  title={countTitle}
+                                  className="relative hit-expand inline-flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-surface-secondary/70 border border-border-strong/70 text-muted-foreground hover:text-amber-500 hover:border-amber-500/40 transition-colors shrink-0 cursor-pointer"
+                                >
+                                  <Users className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-amber-500 shrink-0" />
+                                  <span>{count}</span>
+                                </button>
+                              </div>
+                            </td>
+                            <td className="py-2.5 px-3 text-xs text-text-heading/80">
+                              {offering.ROOM || offering.VENUE || "TBA"}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             ) : (
-              <div className="rounded-xl border border-border-strong overflow-hidden divide-y divide-border">
-                {filtered.map((group) => {
-                  const empId = group.offerings.find((o) => o.ERP_ID)?.ERP_ID;
-                  return (
-                    <div
-                      key={group.key}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => setSelectedKey(group.key)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          setSelectedKey(group.key);
-                        }
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface-secondary/30 transition-colors cursor-pointer"
-                    >
-                      <FacultyAvatar
-                        employeeId={empId}
-                        name={group.canonical}
-                        size="sm"
-                        tone="blue"
-                      />
-                      <span className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-bold text-text-heading truncate">
-                            {group.canonical}
+              <div className="space-y-4">
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Search faculty by name…"
+                    aria-label="Search faculty"
+                    className="w-full bg-surface border border-border-strong rounded-xl pl-11 pr-4 py-2.5 text-sm text-text-heading focus:outline-none focus:border-blue-500/50 transition-colors"
+                  />
+                </div>
+
+                {loading ? (
+                  <ListSkeleton rows={5} leading="dot" />
+                ) : filtered.length === 0 ? (
+                  <EmptyPanel
+                    icon={<CalendarDays className="h-7 w-7" />}
+                    tone="indigo"
+                    title={query ? "No faculty found" : "No course report loaded"}
+                    description={
+                      query
+                        ? `Nothing in the report matches “${query}”.`
+                        : "Open the FFCS Planner once to load the course report, then come back."
+                    }
+                    action={
+                      query ? (
+                        <button
+                          type="button"
+                          onClick={() => setQuery("")}
+                          className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-black text-white transition-colors hover:bg-indigo-700 cursor-pointer"
+                        >
+                          Clear search
+                        </button>
+                      ) : null
+                    }
+                  />
+                ) : (
+                  <div className="rounded-xl border border-border-strong overflow-hidden divide-y divide-border">
+                    {filtered.map((group) => {
+                      const empId = group.offerings.find((o) => o.ERP_ID)?.ERP_ID;
+                      return (
+                        <div
+                          key={group.key}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => setSelectedKey(group.key)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              setSelectedKey(group.key);
+                            }
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface-secondary/30 transition-colors cursor-pointer"
+                        >
+                          {/*
+                        Avatars in the (possibly huge) list view must not trigger
+                        a per-row image fetch: hundreds of concurrent
+                        chennai.vit.ac.in lookups decode hundreds of images and
+                        crash the renderer. Images are resolved only for the
+                        selected faculty below.
+                      */}
+                          <FacultyAvatar employeeId={null} name={group.canonical} size="sm" tone="blue" />
+                          <span className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-sm font-bold text-text-heading truncate">{group.canonical}</span>
+                              <VitfacReviewPill
+                                employeeId={empId}
+                                name={group.canonical}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openFacultyReview({
+                                    name: group.canonical,
+                                    employeeId: empId,
+                                  });
+                                }}
+                              />
+                            </div>
+                            <span className="block text-xs text-muted-foreground truncate">
+                              {group.offerings.length} class{group.offerings.length === 1 ? "" : "es"}
+                              {group.names.length > 1
+                                ? ` · ${group.names.length} spelling${group.names.length === 1 ? "" : "s"}`
+                                : ""}
+                            </span>
                           </span>
-                          <VitfacReviewPill
-                            employeeId={empId}
-                            name={group.canonical}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openFacultyReview({
-                                name: group.canonical,
-                                employeeId: empId,
-                              });
-                            }}
-                          />
+                          <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
                         </div>
-                        <span className="block text-xs text-muted-foreground truncate">
-                          {group.offerings.length} class{group.offerings.length === 1 ? "" : "es"}
-                          {group.names.length > 1
-                            ? ` · ${group.names.length} spelling${group.names.length === 1 ? "" : "s"}`
-                            : ""}
-                        </span>
-                      </span>
-                      <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-                    </div>
-                  );
-                })}
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground flex-wrap gap-2">
+                  <span>
+                    Schedules come from the FFCS course report. A faculty member appears here only if they teach a class
+                    in it.
+                  </span>
+                  {ENABLE_VITFAC_INTEGRATION && (
+                    <a
+                      href="https://vitfac.pages.dev"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold hover:underline"
+                    >
+                      <span>Leave a review on vitfac</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
               </div>
             )}
-
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground flex-wrap gap-2">
-              <span>Schedules come from the FFCS course report. A faculty member appears here only if they teach a class in it.</span>
-              {ENABLE_VITFAC_INTEGRATION && (
-                <a
-                  href="https://vitfac.pages.dev"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold hover:underline"
-                >
-                  <span>Leave a review on vitfac</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              )}
-            </div>
-          </div>
-            )}
           </div>
 
-          <FacultyReviewSheetHost
-            target={reviewTarget}
-            onClose={closeFacultyReview}
-          />
+          <FacultyReviewSheetHost target={reviewTarget} onClose={closeFacultyReview} />
 
           <AnimatePresence>
             {selectedSwapOffering && (

@@ -33,10 +33,7 @@ import {
   X,
 } from "lucide-react";
 import { isLoggedInAtom } from "@/store";
-import {
-  useSyncSession,
-  type SyncLogLine,
-} from "@/lib/sync-engine/sync-session";
+import { useSyncSession, type SyncLogLine } from "@/lib/sync-engine/sync-session";
 import { classifyAuthFailure, type AuthFailureKind } from "@/lib/sync-engine/errors";
 import { getActiveApiUrl, setActiveApiUrl, PRIMARY_API_URL, BACKUP_API_URL, hasBackupApi } from "@/lib/fetch-utils";
 import { UNICC_API_URL } from "@/lib/unicc-fallback";
@@ -78,7 +75,9 @@ function Shell({ children }: { children: React.ReactNode }) {
         <div className="absolute -top-40 left-1/2 h-[550px] w-[550px] -translate-x-1/2 rounded-full bg-indigo-600/10 blur-[150px]" />
         <div className="absolute -bottom-40 left-1/2 h-[550px] w-[550px] -translate-x-1/2 rounded-full bg-violet-600/10 blur-[150px]" />
       </div>
-      <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-y-auto pt-[calc(env(safe-area-inset-top,0px)+1.25rem)] pb-[calc(env(safe-area-inset-bottom,0px)+1.25rem)] sm:pt-[calc(env(safe-area-inset-top,0px)+1.75rem)] sm:pb-[calc(env(safe-area-inset-bottom,0px)+1.75rem)]">{children}</div>
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-y-auto pt-[calc(env(safe-area-inset-top,0px)+1.25rem)] pb-[calc(env(safe-area-inset-bottom,0px)+1.25rem)] sm:pt-[calc(env(safe-area-inset-top,0px)+1.75rem)] sm:pb-[calc(env(safe-area-inset-bottom,0px)+1.75rem)]">
+        {children}
+      </div>
     </div>
   );
 }
@@ -87,6 +86,7 @@ function Brand() {
   return (
     <div className="flex shrink-0 items-center gap-2.5">
       <img
+        loading="lazy"
         src="/logo.png"
         alt=""
         width={28}
@@ -100,7 +100,9 @@ function Brand() {
 }
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
-  return <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 font-outfit">{children}</label>;
+  return (
+    <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 font-outfit">{children}</label>
+  );
 }
 
 const inputClass =
@@ -225,8 +227,8 @@ export default function OnboardingIntro({ initialPhase, login, onDone }: Onboard
                 </span>
               </h1>
               <p className="max-w-md text-sm leading-relaxed text-zinc-400">
-                Sign in with your VTOP credentials and we will pull attendance, grades, your timetable and campus services
-                straight from the source.
+                Sign in with your VTOP credentials and we will pull attendance, grades, your timetable and campus
+                services straight from the source.
               </p>
               <ul className="flex flex-wrap gap-2 text-[10px] font-bold text-zinc-400">
                 {[
@@ -249,7 +251,9 @@ export default function OnboardingIntro({ initialPhase, login, onDone }: Onboard
             <div className="rounded-[28px] border border-zinc-800/80 bg-zinc-900/80 p-5 shadow-2xl backdrop-blur-xl sm:p-6">
               <form onSubmit={submit} className="space-y-4 text-left">
                 <div className="space-y-1 border-b border-zinc-800 pb-3">
-                  <h2 className="text-sm font-black uppercase tracking-wider text-white font-outfit">Sign in to VTOP</h2>
+                  <h2 className="text-sm font-black uppercase tracking-wider text-white font-outfit">
+                    Sign in to VTOP
+                  </h2>
                   <p className="text-[11px] text-zinc-500">Just your user ID and password.</p>
                 </div>
 
@@ -393,10 +397,7 @@ function SignInRejection({
   const badCredentials = authFailure === "bad-credentials";
 
   return (
-    <div
-      role="alert"
-      className="space-y-3 rounded-xl border border-amber-500/25 bg-amber-500/10 p-3.5 text-left"
-    >
+    <div role="alert" className="space-y-3 rounded-xl border border-amber-500/25 bg-amber-500/10 p-3.5 text-left">
       <div className="flex items-start gap-2">
         <KeyRound size={14} className="mt-0.5 shrink-0 text-amber-400" />
         <div className="min-w-0 space-y-1">
@@ -412,8 +413,8 @@ function SignInRejection({
             ) : (
               <>
                 VTOP refused the sign-in (a captcha, a rate limit or a lock-out). A new password here won&apos;t clear
-                it — please log in to{" "}
-                <span className="font-black text-amber-400">vtopcc.vit.ac.in</span> and change your password there.
+                it — please log in to <span className="font-black text-amber-400">vtopcc.vit.ac.in</span> and change
+                your password there.
               </>
             )}
           </p>
@@ -486,7 +487,10 @@ function SyncFace({ progress, lines, title }: { progress: number; lines: SyncLog
           />
         </svg>
         {/* Loading icon: a comet that keeps sweeping while the bar itself is honest. */}
-        <svg viewBox="0 0 200 200" className="absolute inset-0 h-full w-full animate-spin -rotate-90 [animation-duration:1.15s]">
+        <svg
+          viewBox="0 0 200 200"
+          className="absolute inset-0 h-full w-full animate-spin -rotate-90 [animation-duration:1.15s]"
+        >
           <circle
             cx="100"
             cy="100"
@@ -511,7 +515,9 @@ function SyncFace({ progress, lines, title }: { progress: number; lines: SyncLog
         <h2 className="text-xl font-black tracking-tight text-white font-outfit sm:text-2xl">
           Preparing your workspace
         </h2>
-        <p className="text-xs text-zinc-400">A one-time full sync — attendance, grades, timetable and campus services.</p>
+        <p className="text-xs text-zinc-400">
+          A one-time full sync — attendance, grades, timetable and campus services.
+        </p>
       </div>
 
       <div className="w-full max-w-md space-y-3">
@@ -549,10 +555,7 @@ function WelcomeFace({ onDone }: { onDone: () => void }) {
   return (
     <div className="flex animate-in fade-in zoom-in-95 duration-300 flex-col items-center justify-center gap-6 text-center">
       <div className="relative">
-        <span
-          aria-hidden="true"
-          className="absolute inset-0 animate-ping rounded-full bg-indigo-500/20 blur-xl"
-        />
+        <span aria-hidden="true" className="absolute inset-0 animate-ping rounded-full bg-indigo-500/20 blur-xl" />
         <div className="relative flex h-24 w-24 items-center justify-center rounded-full border border-indigo-500/30 bg-indigo-500/10">
           <CheckCircle2 className="h-12 w-12 text-indigo-400" strokeWidth={1.75} />
         </div>
@@ -580,7 +583,11 @@ function WelcomeFace({ onDone }: { onDone: () => void }) {
         ))}
       </ul>
 
-      <button type="button" onClick={onDone} className="flex w-full max-w-xs items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-5 py-3.5 font-black text-sm text-white shadow-xl shadow-indigo-600/20 transition-all hover:bg-indigo-500 active:scale-[0.98] cursor-pointer font-outfit tracking-wide">
+      <button
+        type="button"
+        onClick={onDone}
+        className="flex w-full max-w-xs items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-5 py-3.5 font-black text-sm text-white shadow-xl shadow-indigo-600/20 transition-all hover:bg-indigo-500 active:scale-[0.98] cursor-pointer font-outfit tracking-wide"
+      >
         Let&apos;s set up my workspace
         <ArrowRight size={15} />
       </button>

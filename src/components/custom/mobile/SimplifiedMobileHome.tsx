@@ -29,14 +29,19 @@ import {
   Sun,
   CalendarOff,
   Building,
-    DoorOpen,
-    WifiOff,
-    X,
-    ChevronDown,
-  } from "lucide-react";
+  DoorOpen,
+  WifiOff,
+  X,
+  ChevronDown,
+} from "lucide-react";
 
 import { AnimatePresence, m } from "framer-motion";
-import { buildAttendanceDayCardsMap, AttendanceDay, ATTENDANCE_DAYS, parseAttendanceTime } from "@/lib/attendanceTimetable";
+import {
+  buildAttendanceDayCardsMap,
+  AttendanceDay,
+  ATTENDANCE_DAYS,
+  parseAttendanceTime,
+} from "@/lib/attendanceTimetable";
 import { summariseAttendance } from "@/lib/attendanceSummary";
 import { shouldShowGpa, shouldShowProfilePhoto } from "@/lib/settingsVisibility";
 import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
@@ -74,7 +79,6 @@ import {
 import TaskBadge from "../tasks/TaskBadge";
 import { KIND_CONFIG } from "../tasks/TaskCard";
 
-
 interface SimplifiedMobileHomeProps {
   attendanceData: any;
   marksData: any;
@@ -103,12 +107,18 @@ interface SimplifiedMobileHomeProps {
 // Helper to extract day order override from academic calendar text
 function extractDayOrderOverride(eventText: string): AttendanceDay | null {
   const norm = String(eventText || "").toLowerCase();
-  if (norm.includes("mon") && (norm.includes("order") || norm.includes("timetable") || norm.includes("table"))) return "MON";
-  if (norm.includes("tue") && (norm.includes("order") || norm.includes("timetable") || norm.includes("table"))) return "TUE";
-  if (norm.includes("wed") && (norm.includes("order") || norm.includes("timetable") || norm.includes("table"))) return "WED";
-  if (norm.includes("thu") && (norm.includes("order") || norm.includes("timetable") || norm.includes("table"))) return "THU";
-  if (norm.includes("fri") && (norm.includes("order") || norm.includes("timetable") || norm.includes("table"))) return "FRI";
-  if (norm.includes("sat") && (norm.includes("order") || norm.includes("timetable") || norm.includes("table"))) return "SAT";
+  if (norm.includes("mon") && (norm.includes("order") || norm.includes("timetable") || norm.includes("table")))
+    return "MON";
+  if (norm.includes("tue") && (norm.includes("order") || norm.includes("timetable") || norm.includes("table")))
+    return "TUE";
+  if (norm.includes("wed") && (norm.includes("order") || norm.includes("timetable") || norm.includes("table")))
+    return "WED";
+  if (norm.includes("thu") && (norm.includes("order") || norm.includes("timetable") || norm.includes("table")))
+    return "THU";
+  if (norm.includes("fri") && (norm.includes("order") || norm.includes("timetable") || norm.includes("table")))
+    return "FRI";
+  if (norm.includes("sat") && (norm.includes("order") || norm.includes("timetable") || norm.includes("table")))
+    return "SAT";
   return null;
 }
 
@@ -181,15 +191,11 @@ function LabFatExamSlot({
             <div className="px-4 pb-3.5 pt-2.5 border-t border-red-200/60 dark:border-red-900/40 grid grid-cols-2 gap-x-3 gap-y-2 text-[11px]">
               <p className="text-zinc-500 dark:text-zinc-400">
                 Session{" "}
-                <span className="block font-bold text-zinc-800 dark:text-zinc-200">
-                  {paper.examSession || "—"}
-                </span>
+                <span className="block font-bold text-zinc-800 dark:text-zinc-200">{paper.examSession || "—"}</span>
               </p>
               <p className="text-zinc-500 dark:text-zinc-400">
                 Reporting{" "}
-                <span className="block font-bold text-zinc-800 dark:text-zinc-200">
-                  {paper.reportingTime || "—"}
-                </span>
+                <span className="block font-bold text-zinc-800 dark:text-zinc-200">{paper.reportingTime || "—"}</span>
               </p>
               <p className="text-zinc-500 dark:text-zinc-400">
                 Seat{" "}
@@ -231,8 +237,18 @@ function parseExamDateTimestamp(dateStr: string): number {
     const year = parseInt(parts[2], 10);
 
     const MONTHS: Record<string, number> = {
-      jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
-      jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
+      jan: 0,
+      feb: 1,
+      mar: 2,
+      apr: 3,
+      may: 4,
+      jun: 5,
+      jul: 6,
+      aug: 7,
+      sep: 8,
+      oct: 9,
+      nov: 10,
+      dec: 11,
     };
 
     let month = -1;
@@ -301,7 +317,9 @@ export default function SimplifiedMobileHome({
 
   const handleCourseClick = (courseCode: string) => {
     if (!courseCode) return;
-    const cleanCode = String(courseCode).replace(/\([LPT]\)$/i, "").trim();
+    const cleanCode = String(courseCode)
+      .replace(/\([LPT]\)$/i, "")
+      .trim();
     try {
       localStorage.setItem("course_dashboard_target", cleanCode);
       localStorage.setItem("course_dashboard_tab", "overview");
@@ -316,7 +334,7 @@ export default function SimplifiedMobileHome({
   const todayDayIndex = new Date().getDay();
   const dayNames: AttendanceDay[] = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
   const todayDayCode: AttendanceDay = dayNames[todayDayIndex];
-  
+
   const [selectedDay, setSelectedDay] = useState<AttendanceDay>(todayDayCode);
 
   /**
@@ -401,7 +419,8 @@ export default function SimplifiedMobileHome({
   const { isOffline, triggerSync: handleSyncClick } = useSyncTrigger(handleRefresh);
 
   const toggleDashboardMode = () => {
-    const nextMode = (settings?.dashboardViewMode === "simplified" || !settings?.dashboardViewMode) ? "classic" : "simplified";
+    const nextMode =
+      settings?.dashboardViewMode === "simplified" || !settings?.dashboardViewMode ? "classic" : "simplified";
     setSettings((prev: any) => {
       const next = { ...prev, dashboardViewMode: nextMode };
       localStorage.setItem("settings", JSON.stringify(next));
@@ -433,7 +452,7 @@ export default function SimplifiedMobileHome({
   // two screens can never show different percentages for the same student.
   const overallAttendance = useMemo(
     () => summariseAttendance(attendanceData?.attendance, targetAttendancePct),
-    [attendanceData, targetAttendancePct]
+    [attendanceData, targetAttendancePct],
   );
 
   // Approved OD Hours
@@ -447,8 +466,12 @@ export default function SimplifiedMobileHome({
     if (!attendanceData?.attendance || !Array.isArray(attendanceData.attendance)) return 0;
     return attendanceData.attendance.filter((c: any) => {
       if (!c) return false;
-      const slot = String(c.slotName || "").trim().toUpperCase();
-      const code = String(c.courseCode || "").trim().toUpperCase();
+      const slot = String(c.slotName || "")
+        .trim()
+        .toUpperCase();
+      const code = String(c.courseCode || "")
+        .trim()
+        .toUpperCase();
       const total = parseInt(c.totalClasses, 10) || 0;
       if (slot.includes("NULL") || slot === "NIL" || code === "NIL" || total === 0) return false;
       const pct = parseFloat(c.attendancePercentage);
@@ -474,13 +497,10 @@ export default function SimplifiedMobileHome({
   // lets a lab slot say it has become its own exam.
   const labFatByDate = useMemo(
     () => labFatPapersByDate(ScheduleData?.Schedule || ScheduleData?.schedule, calendarData?.calendars),
-    [ScheduleData, calendarData]
+    [ScheduleData, calendarData],
   );
 
-  const allExams = useMemo(
-    () => scheduleRows.map((r) => ({ ...r.raw, examCategory: r.examType })),
-    [scheduleRows]
-  );
+  const allExams = useMemo(() => scheduleRows.map((r) => ({ ...r.raw, examCategory: r.examType })), [scheduleRows]);
 
   // Earliest paper that has NOT finished yet. Judged on the clock, not the
   // calendar: a CAT that ended at 12:30 PM is done at 3 PM even though it is
@@ -522,9 +542,7 @@ export default function SimplifiedMobileHome({
       slides.push({
         id: "cgpa",
         title: "CGPA",
-        headline: marksData?.cgpa?.cgpa
-          ? `${Number(marksData.cgpa.cgpa).toFixed(2)}`
-          : "—",
+        headline: marksData?.cgpa?.cgpa ? `${Number(marksData.cgpa.cgpa).toFixed(2)}` : "—",
         subline: "VTOP Verified Grade",
         badge: "Academic",
         onClick: () => {
@@ -541,9 +559,7 @@ export default function SimplifiedMobileHome({
     slides.push({
       id: "credits",
       title: "Credits",
-      headline: marksData?.cgpa?.creditsEarned
-        ? `${Number(marksData.cgpa.creditsEarned)} cr`
-        : "—",
+      headline: marksData?.cgpa?.creditsEarned ? `${Number(marksData.cgpa.creditsEarned)} cr` : "—",
       subline: "Degree Curriculum Earned",
       badge: "Degree",
       onClick: () => {
@@ -638,13 +654,10 @@ export default function SimplifiedMobileHome({
         sub: s.subline,
         badge: s.badge,
         badgeClassName: s.badgeColor,
-        blur:
-          s.id === "cgpa" && (settings?.CGPAHidden || settings?.blurGrades)
-            ? "blur-[5px]"
-            : undefined,
+        blur: s.id === "cgpa" && (settings?.CGPAHidden || settings?.blurGrades) ? "blur-[5px]" : undefined,
         onClick: s.onClick,
       })),
-    [insightSlides, settings?.CGPAHidden, settings?.blurGrades]
+    [insightSlides, settings?.CGPAHidden, settings?.blurGrades],
   );
 
   // All weekly timetable cards map
@@ -681,8 +694,18 @@ export default function SimplifiedMobileHome({
     if (userCals.length === 0) userCals = baseCals;
 
     const MONTH_NAME_MAP: Record<string, number> = {
-      jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
-      jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
+      jan: 0,
+      feb: 1,
+      mar: 2,
+      apr: 3,
+      may: 4,
+      jun: 5,
+      jul: 6,
+      aug: 7,
+      sep: 8,
+      oct: 9,
+      nov: 10,
+      dec: 11,
     };
 
     return ATTENDANCE_DAYS.map((code, index) => {
@@ -756,9 +779,7 @@ export default function SimplifiedMobileHome({
           if (isLabFatMarked(text, ev.category)) isLabFatDay = true;
 
           const hasNoInstructional =
-            norm.includes("no instructional") ||
-            norm.includes("non instructional") ||
-            norm.includes("noinstructional");
+            norm.includes("no instructional") || norm.includes("non instructional") || norm.includes("noinstructional");
 
           const hasInstructionalWord =
             norm.includes("instructional day") ||
@@ -814,7 +835,7 @@ export default function SimplifiedMobileHome({
         orderInfo,
         hasDeadline,
         isLabFatDay,
-        labFatPapers: isLabFatDay ? labFatByDate.get(dateKey(d)) ?? [] : [],
+        labFatPapers: isLabFatDay ? (labFatByDate.get(dateKey(d)) ?? []) : [],
       };
     });
   }, [weekOffset, allExams, calendarData, settings?.calendarType, moodleData, labFatByDate]);
@@ -853,22 +874,18 @@ export default function SimplifiedMobileHome({
    * exam-time order, so a Lab FAT never renders as an ordinary class hour.
    */
   const dayRows = useMemo(() => {
-    type DayRow =
-      | { kind: "class"; cls: any; index: number }
-      | { kind: "labFat"; paper: LabFatPaper; time?: string };
+    type DayRow = { kind: "class"; cls: any; index: number } | { kind: "labFat"; paper: LabFatPaper; time?: string };
     const rows: DayRow[] = [];
     const remaining = [...selectedDayLabFat];
 
     selectedDayClasses.forEach((cls: any, index: number) => {
       const classTokens = labSlotTokens(cls.slotName);
       const isLabClass = classTokens.length > 0;
-      const paperIdx =
-        isLabClass
-          ? remaining.findIndex(
-              (p) =>
-                p.labTokens.some((t) => classTokens.includes(t)) || p.courseCode === cls.courseCode
-            )
-          : -1;
+      const paperIdx = isLabClass
+        ? remaining.findIndex(
+            (p) => p.labTokens.some((t) => classTokens.includes(t)) || p.courseCode === cls.courseCode,
+          )
+        : -1;
       if (paperIdx !== -1) {
         const [paper] = remaining.splice(paperIdx, 1);
         rows.push({ kind: "labFat", paper, time: cls.time });
@@ -879,7 +896,9 @@ export default function SimplifiedMobileHome({
 
     remaining
       .slice()
-      .sort((a, b) => String(a.examTime ?? a.reportingTime ?? "").localeCompare(String(b.examTime ?? b.reportingTime ?? "")))
+      .sort((a, b) =>
+        String(a.examTime ?? a.reportingTime ?? "").localeCompare(String(b.examTime ?? b.reportingTime ?? "")),
+      )
       .forEach((paper) => rows.push({ kind: "labFat", paper }));
 
     return rows;
@@ -939,7 +958,10 @@ export default function SimplifiedMobileHome({
     const attended = Number(cls.attendedClasses) || 0;
     const total = Number(cls.totalClasses) || 0;
     const currentPct = total > 0 ? (attended / total) * 100 : parseFloat(cls.attendancePercentage || "0");
-    const isLab = String(cls.slotName || "").trim().toUpperCase().startsWith("L");
+    const isLab = String(cls.slotName || "")
+      .trim()
+      .toUpperCase()
+      .startsWith("L");
     const thresholdDec = targetAttendancePct / 100;
 
     let bunkStatus: "safe" | "warning" | "critical" = "safe";
@@ -996,21 +1018,18 @@ export default function SimplifiedMobileHome({
     return selectedDay;
   };
 
-
   // State checks for the active view
   // Calendar-marked or paper-derived: either signal alone marks the day.
   const isLabFatDay = Boolean(selectedDayMeta?.isLabFatDay) || selectedDayLabFat.length > 0;
   // A Lab FAT day is a working day — other classes still run, so the day keeps
   // its timetable and only the lab slot becomes the exam (see dayRows).
-  const isExamDay =
-    selectedDayMeta && selectedDayMeta.exams && selectedDayMeta.exams.length > 0 && !isLabFatDay;
+  const isExamDay = selectedDayMeta && selectedDayMeta.exams && selectedDayMeta.exams.length > 0 && !isLabFatDay;
   const isHolidayOrOff = selectedDayMeta && selectedDayMeta.holidayInfo && !isExamDay && !isLabFatDay;
   // Sessions still running: the slot list minus the labs that became exams.
   const stillOnCount = dayRows.filter((row) => row.kind === "class").length;
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6 pt-3 sm:pt-5 md:pb-8 animate-in fade-in duration-300">
-      
       {/* ── TOP APP BAR: AVATAR / ICON ABOVE GREETING & CONTROLS ── */}
       <div className="flex items-start justify-between px-1">
         <div className="flex flex-col items-start min-w-0 text-left">
@@ -1018,6 +1037,7 @@ export default function SimplifiedMobileHome({
           <div className="mb-3">
             {shouldDisplayProfilePhoto && profileImage ? (
               <img
+                loading="lazy"
                 src={profileImage}
                 alt=""
                 decoding="async"
@@ -1025,6 +1045,7 @@ export default function SimplifiedMobileHome({
               />
             ) : (
               <img
+                loading="lazy"
                 src={getAssetPath("/logo.png")}
                 alt="AmazeCC"
                 decoding="async"
@@ -1034,9 +1055,7 @@ export default function SimplifiedMobileHome({
           </div>
 
           {/* Multiline Greeting & Name Below */}
-          <p className="text-xs font-semibold text-zinc-400 dark:text-zinc-500 leading-none mb-1">
-            {getGreeting()},
-          </p>
+          <p className="text-xs font-semibold text-zinc-400 dark:text-zinc-500 leading-none mb-1">{getGreeting()},</p>
           <h1 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white tracking-tight leading-tight font-outfit truncate">
             {profileName}
           </h1>
@@ -1078,14 +1097,16 @@ export default function SimplifiedMobileHome({
 
       {/* ── STATS: SPACIOUS, MINIMAL SIDE-BY-SIDE CARDS ── */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4">
-        
         {/* CARD 1: PINNED HERO ATTENDANCE (NAVIGATES TO PREDICTOR) */}
         <div
           onClick={() => {
             setActiveTab("attendance");
             setActiveAttendanceSubTab("predictor");
           }}
-          className={cn(TILE, "h-32 sm:h-36 transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer group")}
+          className={cn(
+            TILE,
+            "h-32 sm:h-36 transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer group",
+          )}
         >
           <div className="flex items-center justify-between gap-1">
             <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">
@@ -1096,8 +1117,8 @@ export default function SimplifiedMobileHome({
                 overallAttendance.status === "Safe"
                   ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
                   : overallAttendance.status === "Warning"
-                  ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
-                  : "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20"
+                    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                    : "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20"
               }`}
             >
               {overallAttendance.status}
@@ -1111,8 +1132,8 @@ export default function SimplifiedMobileHome({
                 overallAttendance.status === "Safe"
                   ? "text-emerald-600 dark:text-emerald-400"
                   : overallAttendance.status === "Warning"
-                  ? "text-amber-500 dark:text-amber-400"
-                  : "text-red-500 dark:text-red-400"
+                    ? "text-amber-500 dark:text-amber-400"
+                    : "text-red-500 dark:text-red-400"
               }`}
             >
               {overallAttendance.percentage > 0
@@ -1127,16 +1148,11 @@ export default function SimplifiedMobileHome({
         </div>
 
         {/* CARD 2: ROTATING DYNAMIC INSIGHT CAROUSEL (SPACIOUS & MINIMAL) */}
-        <InsightCarousel
-          slides={carouselSlides}
-          carousel={carousel}
-          ariaLabel="Rotating insights"
-        />
+        <InsightCarousel slides={carouselSlides} carousel={carousel} ariaLabel="Rotating insights" />
       </div>
 
       {/* ── TIMETABLE & INTEGRATED ACADEMIC CALENDAR SECTION ── */}
       <div className="space-y-4 text-left">
-        
         {/* Calendar Header: Week Navigation (left) & Display Controls (right)
 
             `gap-2` and `flex-wrap` are load-bearing on this row, not polish. It
@@ -1231,8 +1247,18 @@ export default function SimplifiedMobileHome({
             {!isExamDay && !isHolidayOrOff && (
               <SegmentedControl
                 options={[
-                  { value: "compact" as const, label: "Compact", icon: <List className="w-3.5 h-3.5" />, title: "2-Line Compact Pill View" },
-                  { value: "detailed" as const, label: "Detailed", icon: <Layers className="w-3.5 h-3.5" />, title: "Spacious Detailed Card View" },
+                  {
+                    value: "compact" as const,
+                    label: "Compact",
+                    icon: <List className="w-3.5 h-3.5" />,
+                    title: "2-Line Compact Pill View",
+                  },
+                  {
+                    value: "detailed" as const,
+                    label: "Detailed",
+                    icon: <Layers className="w-3.5 h-3.5" />,
+                    title: "Spacious Detailed Card View",
+                  },
                 ]}
                 value={pillStyle}
                 onChange={setPillStyle}
@@ -1240,8 +1266,6 @@ export default function SimplifiedMobileHome({
             )}
           </div>
         </div>
-
-
 
         {/* ── INTEGRATED CALENDAR WEEK ROW ──
             Seven circles, one per day, each tinted by what kind of day it is.
@@ -1291,10 +1315,7 @@ export default function SimplifiedMobileHome({
                 // Today keeps its green number only when nothing more
                 // important is going on that day. An exam outranks "it is
                 // Tuesday" for attention, and the emerald ring still marks it.
-                const ink =
-                  flavour === "teaching" && item.isToday && !isSelected
-                    ? TODAY_INK
-                    : tint.ink;
+                const ink = flavour === "teaching" && item.isToday && !isSelected ? TODAY_INK : tint.ink;
                 const title = weekStripTitle(item, count);
                 const labFatNote = item.isLabFatDay ? " · Lab FAT" : "";
 
@@ -1317,20 +1338,13 @@ export default function SimplifiedMobileHome({
                         ? cn(SELECTED_RING, "scale-105")
                         : item.isToday
                           ? TODAY_RING
-                          : "hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
+                          : "hover:bg-zinc-100 dark:hover:bg-zinc-800/60",
                     )}
                   >
                     <span className="text-[10px] font-bold uppercase tracking-wider leading-none text-zinc-400 dark:text-zinc-500">
                       {item.dayCode}
                     </span>
-                    <span
-                      className={cn(
-                        "text-[15px] font-black font-outfit leading-none",
-                        ink
-                      )}
-                    >
-                      {item.dayNumber}
-                    </span>
+                    <span className={cn("text-[15px] font-black font-outfit leading-none", ink)}>{item.dayNumber}</span>
                   </button>
                 );
               })}
@@ -1351,16 +1365,16 @@ export default function SimplifiedMobileHome({
                     Lab FAT{selectedDayLabFat.length > 1 ? ` ×${selectedDayLabFat.length}` : ""}
                   </span>
                   {stillOnCount > 0
-                    ? `· ${stillOnCount} ${
-                        stillOnCount === 1 ? "session" : "sessions"
-                      } still on`
+                    ? `· ${stillOnCount} ${stillOnCount === 1 ? "session" : "sessions"} still on`
                     : null}
                 </span>
-              ) : isExamDay
-                ? `${selectedDayMeta.exams.length} ${selectedDayMeta.exams.length === 1 ? "exam" : "exams"} scheduled`
-                : isHolidayOrOff
-                ? "Academic Holiday / Non-Instructional"
-                : `${selectedDayClasses.length} ${selectedDayClasses.length === 1 ? "session" : "sessions"} scheduled`}
+              ) : isExamDay ? (
+                `${selectedDayMeta.exams.length} ${selectedDayMeta.exams.length === 1 ? "exam" : "exams"} scheduled`
+              ) : isHolidayOrOff ? (
+                "Academic Holiday / Non-Instructional"
+              ) : (
+                `${selectedDayClasses.length} ${selectedDayClasses.length === 1 ? "session" : "sessions"} scheduled`
+              )}
             </p>
           </div>
 
@@ -1410,9 +1424,7 @@ export default function SimplifiedMobileHome({
                       </span>
                     )}
                   </div>
-                  <span className="text-xs font-bold text-zinc-400 dark:text-zinc-500">
-                    Slot {ex.slot || "—"}
-                  </span>
+                  <span className="text-xs font-bold text-zinc-400 dark:text-zinc-500">Slot {ex.slot || "—"}</span>
                 </div>
 
                 {/* Course Details */}
@@ -1420,9 +1432,7 @@ export default function SimplifiedMobileHome({
                   <h2 className="text-lg sm:text-xl font-black text-zinc-900 dark:text-white font-outfit leading-snug">
                     {ex.courseTitle || "Course Examination"}
                   </h2>
-                  <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 mt-1">
-                    {ex.courseCode}
-                  </p>
+                  <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 mt-1">{ex.courseCode}</p>
                 </div>
 
                 {/* Timing, Venue & Seating Grid */}
@@ -1434,7 +1444,8 @@ export default function SimplifiedMobileHome({
                     </div>
                     {ex.reportingTime && (
                       <p className="text-[11px] text-zinc-500 dark:text-zinc-400 pl-6">
-                        Reporting: <span className="font-bold text-zinc-800 dark:text-zinc-200">{ex.reportingTime}</span>
+                        Reporting:{" "}
+                        <span className="font-bold text-zinc-800 dark:text-zinc-200">{ex.reportingTime}</span>
                       </p>
                     )}
                   </div>
@@ -1442,11 +1453,18 @@ export default function SimplifiedMobileHome({
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-2 text-xs text-zinc-700 dark:text-zinc-300 font-semibold">
                       <Building className="w-4 h-4 text-red-500 shrink-0" />
-                      <span>Venue: <strong className="text-zinc-900 dark:text-white font-bold">{ex.venue || "Hall Assigned"}</strong></span>
+                      <span>
+                        Venue:{" "}
+                        <strong className="text-zinc-900 dark:text-white font-bold">
+                          {ex.venue || "Hall Assigned"}
+                        </strong>
+                      </span>
                     </div>
                     {(ex.seatNo || ex.seatLocation) && (
                       <p className="text-[11px] text-zinc-500 dark:text-zinc-400 pl-6">
-                        Seat: <strong className="text-zinc-900 dark:text-white font-bold">No. {ex.seatNo || "—"}</strong> ({ex.seatLocation || "Row"})
+                        Seat:{" "}
+                        <strong className="text-zinc-900 dark:text-white font-bold">No. {ex.seatNo || "—"}</strong> (
+                        {ex.seatLocation || "Row"})
                       </p>
                     )}
                   </div>
@@ -1508,12 +1526,12 @@ export default function SimplifiedMobileHome({
             <div className="flex justify-center gap-2 pt-1">
               <button
                 onClick={() => {
-                    // Free Classrooms lives in Tools, so it is opened there
-                    // directly rather than through an Academics value that
-                    // Dashboard used to translate into a Tools section switch.
-                    setActiveTab("tools");
-                    setActiveToolsSubTab?.("free-class");
-                  }}
+                  // Free Classrooms lives in Tools, so it is opened there
+                  // directly rather than through an Academics value that
+                  // Dashboard used to translate into a Tools section switch.
+                  setActiveTab("tools");
+                  setActiveToolsSubTab?.("free-class");
+                }}
                 className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/30 px-3.5 py-2 rounded-xl active:scale-95 transition-all cursor-pointer"
               >
                 Free Classrooms <ChevronRight className="w-3.5 h-3.5" />
@@ -1556,7 +1574,9 @@ export default function SimplifiedMobileHome({
               const isCompleted = status === "completed";
               const isUpcoming = status === "upcoming";
 
-              const [startTimeStr, endTimeStr] = String(cls.time || "").split("-").map((t) => t.trim());
+              const [startTimeStr, endTimeStr] = String(cls.time || "")
+                .split("-")
+                .map((t) => t.trim());
               const clsTimeRange =
                 startTimeStr && endTimeStr
                   ? {
@@ -1564,28 +1584,21 @@ export default function SimplifiedMobileHome({
                       end: parseAttendanceTime(endTimeStr),
                     }
                   : undefined;
-              const taskSummary = classTaskSummary(
-                tasks,
-                cls,
-                effectiveTimetableDay,
-                clsTimeRange,
-                {
-                  dayDate: viewedDayDate,
-                  // "…today" labels + the red tint are reserved for the real
-                  // current date; browsing another weekday stays generic.
-                  literalToday: isTodayView,
-                }
-              );
-              const showTaskBadgeInline =
-                settings?.tasksInlineOnHome !== false || taskSummary.total > 0;
+              const taskSummary = classTaskSummary(tasks, cls, effectiveTimetableDay, clsTimeRange, {
+                dayDate: viewedDayDate,
+                // "…today" labels + the red tint are reserved for the real
+                // current date; browsing another weekday stays generic.
+                literalToday: isTodayView,
+              });
+              const showTaskBadgeInline = settings?.tasksInlineOnHome !== false || taskSummary.total > 0;
               // Red is reserved for a test sitting in today's session; every
               // other linked-task state gets the softer amber treatment.
               const taskBorderClass =
                 taskSummary.today.tests > 0 && taskSummary.today.sessionTotal > 0
                   ? "border-red-400 dark:border-red-500/60 ring-1 ring-red-500/20"
                   : taskSummary.total > 0
-                  ? "border-amber-400 dark:border-amber-500/60 ring-1 ring-amber-500/20"
-                  : "";
+                    ? "border-amber-400 dark:border-amber-500/60 ring-1 ring-amber-500/20"
+                    : "";
 
               if (pillStyle === "compact") {
                 /* ── OPTION A: COMPACT 2-LINE PILL (HIGH DENSITY WITH PERCENTAGE ON RIGHT) ── */
@@ -1597,11 +1610,10 @@ export default function SimplifiedMobileHome({
                       isLive
                         ? "bg-white dark:bg-zinc-900 border-indigo-500 dark:border-indigo-500 shadow-md ring-1 ring-indigo-500/20"
                         : isCompleted
-                        ? "bg-zinc-50/70 dark:bg-zinc-900/40 border-zinc-200/50 dark:border-zinc-800 opacity-75 hover:opacity-100"
-                        : "card-surface border-zinc-200/70 dark:border-zinc-800/80 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700"
+                          ? "bg-zinc-50/70 dark:bg-zinc-900/40 border-zinc-200/50 dark:border-zinc-800 opacity-75 hover:opacity-100"
+                          : "card-surface border-zinc-200/70 dark:border-zinc-800/80 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700"
                     } hover:scale-[1.006] active:scale-[0.99]`}
                   >
-
                     {/* Live Progress Background Fill Bar */}
                     {isLive && (
                       <div
@@ -1618,7 +1630,10 @@ export default function SimplifiedMobileHome({
                           <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 shrink-0 border border-indigo-100 dark:border-indigo-900/30">
                             {cls.slotName}
                           </span>
-                          <h3 className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight" title={cls.courseTitle}>
+                          <h3
+                            className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight"
+                            title={cls.courseTitle}
+                          >
                             {cls.courseTitle}
                           </h3>
                           {isLive && (
@@ -1651,8 +1666,8 @@ export default function SimplifiedMobileHome({
                               bunkStatus === "safe"
                                 ? "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30"
                                 : bunkStatus === "warning"
-                                ? "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30"
-                                : "text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/30"
+                                  ? "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30"
+                                  : "text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/30"
                             }`}
                           >
                             <span
@@ -1660,8 +1675,8 @@ export default function SimplifiedMobileHome({
                                 bunkStatus === "safe"
                                   ? "bg-emerald-500"
                                   : bunkStatus === "warning"
-                                  ? "bg-amber-500"
-                                  : "bg-red-500"
+                                    ? "bg-amber-500"
+                                    : "bg-red-500"
                               }`}
                             />
                             {bunkText}
@@ -1682,7 +1697,6 @@ export default function SimplifiedMobileHome({
                         )}
                       </div>
 
-
                       {/* Right: Attendance Percentage & Ratio */}
                       <div className="text-right shrink-0 flex flex-col items-end justify-center pl-2">
                         <span
@@ -1690,8 +1704,8 @@ export default function SimplifiedMobileHome({
                             currentPct >= targetAttendancePct + 5
                               ? "text-emerald-600 dark:text-emerald-400"
                               : currentPct >= targetAttendancePct
-                              ? "text-amber-600 dark:text-amber-400"
-                              : "text-red-600 dark:text-red-400"
+                                ? "text-amber-600 dark:text-amber-400"
+                                : "text-red-600 dark:text-red-400"
                           }`}
                         >
                           {currentPct.toFixed(0)}%
@@ -1724,12 +1738,10 @@ export default function SimplifiedMobileHome({
                     isLive
                       ? "bg-white dark:bg-zinc-900 border-indigo-500 dark:border-indigo-500 shadow-md ring-1 ring-indigo-500/20"
                       : isCompleted
-                      ? "bg-zinc-50/70 dark:bg-zinc-900/40 border-zinc-200/50 dark:border-zinc-800 opacity-75 hover:opacity-100"
-                      : "card-surface border-zinc-200/70 dark:border-zinc-800/80 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700"
+                        ? "bg-zinc-50/70 dark:bg-zinc-900/40 border-zinc-200/50 dark:border-zinc-800 opacity-75 hover:opacity-100"
+                        : "card-surface border-zinc-200/70 dark:border-zinc-800/80 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700"
                   } hover:scale-[1.008] active:scale-[0.99]`}
                 >
-
-                  
                   {/* Dynamic Progress Fill Bar */}
                   {isLive && (
                     <div
@@ -1740,7 +1752,6 @@ export default function SimplifiedMobileHome({
 
                   {/* Main Pill Content */}
                   <div className="relative p-5 z-10 flex flex-col justify-between gap-3">
-                    
                     {/* Top Row: Slot & Status Badges */}
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -1757,9 +1768,7 @@ export default function SimplifiedMobileHome({
 
                         {isUpcoming && selectedDay === todayDayCode && weekOffset === 0 && (
                           <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-lg">
-                            {minutesUntilStart <= 60
-                              ? `In ${minutesUntilStart} mins`
-                              : `Upcoming`}
+                            {minutesUntilStart <= 60 ? `In ${minutesUntilStart} mins` : `Upcoming`}
                           </span>
                         )}
 
@@ -1780,8 +1789,8 @@ export default function SimplifiedMobileHome({
                             currentPct >= targetAttendancePct + 5
                               ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                               : currentPct >= targetAttendancePct
-                              ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                              : "bg-red-500/10 text-red-600 dark:text-red-400"
+                                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                                : "bg-red-500/10 text-red-600 dark:text-red-400"
                           }`}
                         >
                           {currentPct.toFixed(0)}%
@@ -1803,7 +1812,6 @@ export default function SimplifiedMobileHome({
 
                     {/* Bottom Row: Time, Venue & Bunkable Subtext */}
                     <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                      
                       {/* Time & Venue */}
                       <div className="flex items-center gap-3.5 text-xs text-zinc-600 dark:text-zinc-300 font-medium">
                         <span className="flex items-center gap-1.5 shrink-0 font-bold">
@@ -1825,8 +1833,8 @@ export default function SimplifiedMobileHome({
                             bunkStatus === "safe"
                               ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-900/30"
                               : bunkStatus === "warning"
-                              ? "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200/50 dark:border-amber-900/30"
-                              : "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border border-red-200/50 dark:border-red-900/30"
+                                ? "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200/50 dark:border-amber-900/30"
+                                : "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border border-red-200/50 dark:border-red-900/30"
                           }`}
                         >
                           <span
@@ -1834,8 +1842,8 @@ export default function SimplifiedMobileHome({
                               bunkStatus === "safe"
                                 ? "bg-emerald-500"
                                 : bunkStatus === "warning"
-                                ? "bg-amber-500"
-                                : "bg-red-500"
+                                  ? "bg-amber-500"
+                                  : "bg-red-500"
                             }`}
                           />
                           {bunkText}
@@ -1852,7 +1860,6 @@ export default function SimplifiedMobileHome({
                         )}
                       </div>
                     </div>
-
 
                     {/* Progress Bar for Ongoing Class */}
                     {isLive && (
@@ -1871,86 +1878,83 @@ export default function SimplifiedMobileHome({
         )}
 
         {/* ── TODAY'S TASKS SECTION (WHEN TASKSINLINEONHOME IS FALSE) ── */}
-        {settings?.tasksInlineOnHome === false && (() => {
-          // Chunked on this day, plus (on the real current date) tasks that are
-          // only due today — otherwise a Moodle DA is invisible in this mode.
-          const todayTasks = (() => {
-            const chunked = tasksForDay(effectiveTimetableDay, tasks);
-            if (!isTodayView || !viewedDayDate) return chunked;
-            const seen = new Set(chunked.map((t) => t.id));
-            const dueOnly = tasks.filter(
-              (t) =>
-                t.status !== "done" &&
-                !seen.has(t.id) &&
-                isDueOnDay(t.dueDate, viewedDayDate as Date)
-            );
-            return [...chunked, ...dueOnly];
-          })();
-          if (todayTasks.length === 0) return null;
-          return (
-            <div className="pt-2 space-y-2.5">
-              <div className="flex items-center justify-between px-1">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-indigo-500" />
-                  <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
-                    Today&apos;s Tasks &amp; Schedule
-                  </h3>
-                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
-                    {todayTasks.length}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab("tools");
-                    setActiveToolsSubTab?.("tasks");
-                  }}
-                  className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
-                >
-                  View All Tasks
-                </button>
-              </div>
-
-              <ListShell>
-                {todayTasks.map((t) => (
-                  <div
-                    key={t.id}
+        {settings?.tasksInlineOnHome === false &&
+          (() => {
+            // Chunked on this day, plus (on the real current date) tasks that are
+            // only due today — otherwise a Moodle DA is invisible in this mode.
+            const todayTasks = (() => {
+              const chunked = tasksForDay(effectiveTimetableDay, tasks);
+              if (!isTodayView || !viewedDayDate) return chunked;
+              const seen = new Set(chunked.map((t) => t.id));
+              const dueOnly = tasks.filter(
+                (t) => t.status !== "done" && !seen.has(t.id) && isDueOnDay(t.dueDate, viewedDayDate as Date),
+              );
+              return [...chunked, ...dueOnly];
+            })();
+            if (todayTasks.length === 0) return null;
+            return (
+              <div className="pt-2 space-y-2.5">
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-indigo-500" />
+                    <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
+                      Today&apos;s Tasks &amp; Schedule
+                    </h3>
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
+                      {todayTasks.length}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
                     onClick={() => {
                       setActiveTab("tools");
                       setActiveToolsSubTab?.("tasks");
                     }}
-                    className="p-3.5 flex items-center justify-between gap-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/40 cursor-pointer transition-colors"
+                    className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
                   >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <span
-                          className={`text-[9.5px] font-extrabold uppercase px-1.5 py-0.2 rounded border ${
-                            (KIND_CONFIG[t.kind] || KIND_CONFIG.homework).badgeClass
-                          }`}
-                        >
-                          {(KIND_CONFIG[t.kind] || KIND_CONFIG.homework).label}
-                        </span>
-                        {t.courseCode && (
-                          <span className="text-[10px] font-bold text-zinc-600 dark:text-zinc-400">
-                            {t.courseCode}
+                    View All Tasks
+                  </button>
+                </div>
+
+                <ListShell>
+                  {todayTasks.map((t) => (
+                    <div
+                      key={t.id}
+                      onClick={() => {
+                        setActiveTab("tools");
+                        setActiveToolsSubTab?.("tasks");
+                      }}
+                      className="p-3.5 flex items-center justify-between gap-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/40 cursor-pointer transition-colors"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span
+                            className={`text-[9.5px] font-extrabold uppercase px-1.5 py-0.2 rounded border ${
+                              (KIND_CONFIG[t.kind] || KIND_CONFIG.homework).badgeClass
+                            }`}
+                          >
+                            {(KIND_CONFIG[t.kind] || KIND_CONFIG.homework).label}
                           </span>
-                        )}
+                          {t.courseCode && (
+                            <span className="text-[10px] font-bold text-zinc-600 dark:text-zinc-400">
+                              {t.courseCode}
+                            </span>
+                          )}
+                        </div>
+                        <h4 className="text-xs font-bold text-zinc-900 dark:text-white truncate font-outfit">
+                          {t.title}
+                        </h4>
                       </div>
-                      <h4 className="text-xs font-bold text-zinc-900 dark:text-white truncate font-outfit">
-                        {t.title}
-                      </h4>
+                      <ChevronRight className="w-4 h-4 text-zinc-400 shrink-0" />
                     </div>
-                    <ChevronRight className="w-4 h-4 text-zinc-400 shrink-0" />
-                  </div>
-                ))}
-              </ListShell>
-            </div>
-          );
-        })()}
+                  ))}
+                </ListShell>
+              </div>
+            );
+          })()}
 
         {/* ── TIMETABLE & QUICK TOOLS BUTTONS (PLACED CLEANLY AFTER ALL CLASSES) ── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2">
-
           <button
             onClick={() => setShowTimetableModal(true)}
             className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-white/80 dark:bg-zinc-900/80 hover:bg-white dark:hover:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-300 dark:hover:border-indigo-800/60 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
@@ -1979,47 +1983,46 @@ export default function SimplifiedMobileHome({
 
       {/* Full Timetable Sheet */}
       <AnimatePresence>
-      {showTimetableModal && (
-        <BottomSheet
-          onClose={() => setShowTimetableModal(false)}
-          overlayId="home-timetable"
-          maxWidth="max-w-5xl"
-          showClose={false}
-        >
-          <div className="flex flex-col min-h-0">
-            <div className="p-4 sm:p-5 border border-zinc-200/70 dark:border-zinc-800/80 rounded-2xl flex items-center justify-between gap-3 bg-zinc-50/80 dark:bg-zinc-900/70">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="p-2 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/30 shrink-0">
-                  <CalendarIcon className="w-5 h-5" />
+        {showTimetableModal && (
+          <BottomSheet
+            onClose={() => setShowTimetableModal(false)}
+            overlayId="home-timetable"
+            maxWidth="max-w-5xl"
+            showClose={false}
+          >
+            <div className="flex flex-col min-h-0">
+              <div className="p-4 sm:p-5 border border-zinc-200/70 dark:border-zinc-800/80 rounded-2xl flex items-center justify-between gap-3 bg-zinc-50/80 dark:bg-zinc-900/70">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="p-2 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/30 shrink-0">
+                    <CalendarIcon className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <h2 className="text-base font-black text-zinc-900 dark:text-white font-outfit truncate">
+                      Full Weekly Timetable
+                    </h2>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
+                      Slot matrix, timeslots & classroom venues
+                    </p>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <h2 className="text-base font-black text-zinc-900 dark:text-white font-outfit truncate">
-                    Full Weekly Timetable
-                  </h2>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
-                    Slot matrix, timeslots & classroom venues
-                  </p>
-                </div>
-              </div>
-              {/*
+                {/*
                 The sheet's own floating X is off (`showClose={false}`) so the
                 close affordance lives in this box, next to the thing it closes.
                 "Free Classrooms" and "Attendance" are reachable from the home
                 screen, and links inside a dismissible overlay that only swap the
                 surface out from under it are a trap to tap by accident.
               */}
-              <IconButton onClick={() => setShowTimetableModal(false)} title="Close timetable">
-                <X className="w-4 h-4" />
-              </IconButton>
+                <IconButton onClick={() => setShowTimetableModal(false)} title="Close timetable">
+                  <X className="w-4 h-4" />
+                </IconButton>
+              </div>
+              <div className="p-4 sm:p-5">
+                <TimetableGrid attendance={attendanceData?.attendance || []} />
+              </div>
             </div>
-            <div className="p-4 sm:p-5">
-              <TimetableGrid attendance={attendanceData?.attendance || []} />
-            </div>
-          </div>
-        </BottomSheet>
-      )}
+          </BottomSheet>
+        )}
       </AnimatePresence>
-
     </div>
   );
 }

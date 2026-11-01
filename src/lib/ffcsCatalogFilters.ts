@@ -23,7 +23,7 @@ export type CatalogSlotIndex = Map<string, Set<string>>;
  * own "Open Elective" listing, which stays spelled that way — and that
  * split is how the pickers "tell it is curriculum".
  */
-export const OPEN_ELECTIVE_CATEGORY = "NC Open Elective";
+export const OPEN_ELECTIVE_CATEGORY = "Addendum Open Elective";
 
 /** The student's curriculum as a lookup, for matching catalogue codes. */
 export interface CatalogCurriculum {

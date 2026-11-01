@@ -1,3 +1,5 @@
+import { WORKER_BASE } from "./workerBase";
+
 export interface GitHubCommit {
   sha: string;
   shortSha: string;
@@ -18,12 +20,25 @@ export interface CommitGroup {
 
 const REPO_OWNER = "AmazeContinuityProjects";
 const REPO_NAME = "AmazeCC";
-const GITHUB_API_URL = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/commits?per_page=30`;
+
+/**
+ * Served by the AmazeCC worker, not called directly.
+ *
+ * Unauthenticated `api.github.com` allows 60 requests/hour *per IP*. A campus
+ * full of students behind a shared NAT would exhaust that almost immediately,
+ * and every student would see an empty changelog for the rest of the hour. The
+ * worker caches one copy for five minutes and serves it to everyone, which
+ * turns the limit into 12 upstream calls an hour regardless of how many people
+ * open the modal.
+ */
+const GITHUB_API_URL = `${WORKER_BASE}/github/commits?per_page=30`;
 
 let memoryCache: { data: GitHubCommit[]; timestamp: number } | null = null;
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes cache
 
-export function parseCommitType(message: string): "feat" | "fix" | "refactor" | "docs" | "style" | "perf" | "chore" | "other" {
+export function parseCommitType(
+  message: string,
+): "feat" | "fix" | "refactor" | "docs" | "style" | "perf" | "chore" | "other" {
   const lower = message.toLowerCase();
   if (lower.startsWith("feat")) return "feat";
   if (lower.startsWith("fix")) return "fix";

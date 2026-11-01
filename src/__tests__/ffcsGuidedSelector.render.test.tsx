@@ -556,7 +556,9 @@ describe("FFCSGuidedSelector", () => {
     fireEvent.click(screen.getByRole("button", { name: "50" }));
     expect(screen.getByText("50 Timetables")).toBeDefined();
     fireEvent.click(screen.getByRole("button", { name: "Unlimited ✨" }));
-    expect(screen.getByText("Unlimited (30k max)")).toBeDefined();
+    // "Unlimited" means no ceiling now — the switch itself lifts the engine's
+    // 30K limit, so there is no "(30k max)" qualifier left to show.
+    expect(screen.getByText("Unlimited")).toBeDefined();
     fireEvent.click(screen.getByRole("checkbox", { name: /Avoid consecutive lab slots/i }));
     expect(screen.getByRole("checkbox", { name: /Treat lunch as a break/i })).toBeDefined();
 

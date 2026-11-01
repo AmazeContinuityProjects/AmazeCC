@@ -1,17 +1,17 @@
 "use client";
 
 import React, { useEffect, useMemo, useState, useCallback } from "react";
-import { 
-  CalendarCheck, 
-  GraduationCap, 
-  Clock, 
-  MapPin, 
-  AlertCircle, 
-  Calendar, 
-  Coffee, 
-  Search, 
-  ArrowRight, 
-  Plus, 
+import {
+  CalendarCheck,
+  GraduationCap,
+  Clock,
+  MapPin,
+  AlertCircle,
+  Calendar,
+  Coffee,
+  Search,
+  ArrowRight,
+  Plus,
   Minus,
   RefreshCcw,
   Sparkles,
@@ -31,7 +31,7 @@ import {
   Maximize2,
   Minimize2,
   GripVertical,
-  WifiOff
+  WifiOff,
 } from "lucide-react";
 import { AnimatePresence, Reorder, m } from "framer-motion";
 import { Switch } from "@amazecontinuityprojects/amazeui";
@@ -113,7 +113,7 @@ export default function MobileHome({
 }: MobileHomeProps) {
   const [isSpinning, setIsSpinning] = useState(false);
   const [cachedProfile, setCachedProfile] = useState<any>(profileDataProp || null);
-  
+
   // Customizable Widgets State
   const [showCustomizer, setShowCustomizer] = useState(false);
   const [widgets, setWidgets] = useState<WidgetItem[]>(() => {
@@ -124,13 +124,13 @@ export default function MobileHome({
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) {
             const merged = parsed.map((p: any) => {
-              const def = DEFAULT_WIDGETS.find(d => d.id === p.id);
+              const def = DEFAULT_WIDGETS.find((d) => d.id === p.id);
               return {
                 ...p,
-                span: p.span || def?.span || "full"
+                span: p.span || def?.span || "full",
               };
             });
-            DEFAULT_WIDGETS.forEach(def => {
+            DEFAULT_WIDGETS.forEach((def) => {
               if (!merged.some((m: any) => m.id === def.id)) {
                 merged.push(def);
               }
@@ -148,14 +148,14 @@ export default function MobileHome({
   }, [widgets]);
 
   const toggleWidgetSpan = (id: string) => {
-    setWidgets(prev =>
-      prev.map(w => {
+    setWidgets((prev) =>
+      prev.map((w) => {
         if (w.id === id) {
           const nextSpan = w.span === "full" ? "half" : "full";
           return { ...w, span: nextSpan };
         }
         return w;
-      })
+      }),
     );
   };
 
@@ -186,7 +186,7 @@ export default function MobileHome({
 
   // Dynamic laundry schedule loaders
   const [laundrySchedule, setLaundrySchedule] = useState<any[]>([]);
-  
+
   const laundryInfo = useMemo(() => {
     if (!hostelData?.hostelInfo?.isHosteller) return null;
     const normalizedGender = hostelData.hostelInfo.gender?.toLowerCase() === "female" ? "Female" : "Male";
@@ -199,7 +199,7 @@ export default function MobileHome({
     if (!laundryInfo) return;
     const { gender, hostel } = laundryInfo;
     const fileName = `VITC-${hostel}-${gender[0]}-L.json`;
-    
+
     try {
       const cached = localStorage.getItem(fileName);
       if (cached) {
@@ -208,8 +208,8 @@ export default function MobileHome({
     } catch (e) {}
 
     fetch(`/data/laundry/${fileName}`)
-      .then(res => res.json())
-      .then(data => {
+      .then((res) => res.json())
+      .then((data) => {
         if (data?.list) {
           setLaundrySchedule(data.list);
           localStorage.setItem(fileName, JSON.stringify(data));
@@ -221,9 +221,11 @@ export default function MobileHome({
   const laundryStatus = useMemo(() => {
     if (!laundryInfo || laundrySchedule.length === 0) return null;
     const todayNum = new Date().getDate();
-    
+
     const cleanRoomNum = laundryInfo.roomNo
-      ? (laundryInfo.roomNo.match(/\d+/) ? parseInt(laundryInfo.roomNo.match(/\d+/)![0], 10) : null)
+      ? laundryInfo.roomNo.match(/\d+/)
+        ? parseInt(laundryInfo.roomNo.match(/\d+/)![0], 10)
+        : null
       : null;
 
     const isRoomInSlotRange = (roomRangeStr: any) => {
@@ -265,7 +267,7 @@ export default function MobileHome({
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
     const parseTime = (timeStr: string) => {
-      const [start, end] = timeStr.split("-").map(t => t.trim());
+      const [start, end] = timeStr.split("-").map((t) => t.trim());
       const parseSingle = (str: string) => {
         let [h, m] = str.split(":").map(Number);
         if (h < 8) h += 12;
@@ -323,7 +325,7 @@ export default function MobileHome({
     const percentage = totalClasses > 0 ? (attendedClasses / totalClasses) * 100 : 0;
     return {
       percentage,
-      status: percentage >= 80 ? "Safe" : percentage >= 75 ? "Warning" : "Critical"
+      status: percentage >= 80 ? "Safe" : percentage >= 75 ? "Warning" : "Critical",
     };
   }, [attendanceData]);
 
@@ -332,9 +334,15 @@ export default function MobileHome({
     if (!attendanceData?.attendance || !Array.isArray(attendanceData.attendance)) return [];
     return attendanceData.attendance.filter((c: any) => {
       if (!c) return false;
-      const slot = String(c.slotName || "").trim().toUpperCase();
-      const code = String(c.courseCode || "").trim().toUpperCase();
-      const title = String(c.courseTitle || "").trim().toUpperCase();
+      const slot = String(c.slotName || "")
+        .trim()
+        .toUpperCase();
+      const code = String(c.courseCode || "")
+        .trim()
+        .toUpperCase();
+      const title = String(c.courseTitle || "")
+        .trim()
+        .toUpperCase();
       const total = parseInt(c.totalClasses, 10) || 0;
 
       if (slot.includes("NULL") || slot === "NIL" || slot === "N/A") return false;
@@ -387,8 +395,8 @@ export default function MobileHome({
   };
 
   const moveWidget = (id: string, direction: "up" | "down") => {
-    const enabledWidgets = widgets.filter(w => w.enabled);
-    const indexInEnabled = enabledWidgets.findIndex(w => w.id === id);
+    const enabledWidgets = widgets.filter((w) => w.enabled);
+    const indexInEnabled = enabledWidgets.findIndex((w) => w.id === id);
     if (indexInEnabled === -1) return;
 
     const nextIndexInEnabled = direction === "up" ? indexInEnabled - 1 : indexInEnabled + 1;
@@ -396,8 +404,8 @@ export default function MobileHome({
 
     const targetWidget = enabledWidgets[nextIndexInEnabled];
 
-    const absIndex1 = widgets.findIndex(w => w.id === id);
-    const absIndex2 = widgets.findIndex(w => w.id === targetWidget.id);
+    const absIndex1 = widgets.findIndex((w) => w.id === id);
+    const absIndex2 = widgets.findIndex((w) => w.id === targetWidget.id);
 
     if (absIndex1 === -1 || absIndex2 === -1) return;
 
@@ -409,7 +417,7 @@ export default function MobileHome({
   };
 
   const toggleWidget = (id: string) => {
-    setWidgets(prev => prev.map(w => w.id === id ? { ...w, enabled: !w.enabled } : w));
+    setWidgets((prev) => prev.map((w) => (w.id === id ? { ...w, enabled: !w.enabled } : w)));
   };
 
   const profileName = settings?.friendlyName || cachedProfile?.name || IDs?.VtopUsername || "Student";
@@ -441,8 +449,12 @@ export default function MobileHome({
             className="min-w-[125px] flex-1 snap-center p-4 rounded-[20px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between h-24 text-left relative overflow-hidden transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer"
           >
             <div className="absolute top-0 right-0 w-8 h-8 bg-emerald-500/5 rounded-bl-full pointer-events-none" />
-            <span className="text-[9px] font-black text-emerald-655 dark:text-emerald-400 uppercase tracking-widest font-outfit font-black">Cumulative GPA</span>
-            <p className={`text-xl font-black text-zinc-900 dark:text-white leading-none mt-1 transition-all duration-300 ${settings?.CGPAHidden || settings?.blurGrades ? "blur-[5px] select-none hover:blur-none" : ""}`}>
+            <span className="text-[9px] font-black text-emerald-655 dark:text-emerald-400 uppercase tracking-widest font-outfit font-black">
+              Cumulative GPA
+            </span>
+            <p
+              className={`text-xl font-black text-zinc-900 dark:text-white leading-none mt-1 transition-all duration-300 ${settings?.CGPAHidden || settings?.blurGrades ? "blur-[5px] select-none hover:blur-none" : ""}`}
+            >
               {marksData?.cgpa?.cgpa ? Number(marksData.cgpa.cgpa).toFixed(2) : "—"}
             </p>
             <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-bold leading-none">VTOP Verified</span>
@@ -452,8 +464,12 @@ export default function MobileHome({
         {/* Credits Card */}
         <div className="min-w-[125px] flex-1 snap-center p-4 rounded-[20px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between h-24 text-left relative overflow-hidden">
           <div className="absolute top-0 right-0 w-8 h-8 bg-blue-500/5 rounded-bl-full pointer-events-none" />
-          <span className="text-[9px] font-black text-blue-655 dark:text-blue-400 uppercase tracking-widest font-outfit font-black">Credits Earned</span>
-          <p className={`text-xl font-black text-zinc-900 dark:text-white leading-none mt-1 transition-all duration-300 ${settings?.blurGrades ? "blur-[5px] select-none hover:blur-none" : ""}`}>
+          <span className="text-[9px] font-black text-blue-655 dark:text-blue-400 uppercase tracking-widest font-outfit font-black">
+            Credits Earned
+          </span>
+          <p
+            className={`text-xl font-black text-zinc-900 dark:text-white leading-none mt-1 transition-all duration-300 ${settings?.blurGrades ? "blur-[5px] select-none hover:blur-none" : ""}`}
+          >
             {marksData?.cgpa?.creditsEarned ? Number(marksData.cgpa.creditsEarned) : "—"}
           </p>
           <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-bold leading-none">Total Degree</span>
@@ -468,13 +484,19 @@ export default function MobileHome({
           className="min-w-[125px] flex-1 snap-center p-4 rounded-[20px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between h-24 text-left relative overflow-hidden transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer"
         >
           <div className="absolute top-0 right-0 w-8 h-8 bg-amber-500/5 rounded-bl-full pointer-events-none" />
-          <span className="text-[9px] font-black text-amber-600 dark:text-amber-455 uppercase tracking-widest font-outfit font-black">OD Approved</span>
+          <span className="text-[9px] font-black text-amber-600 dark:text-amber-455 uppercase tracking-widest font-outfit font-black">
+            OD Approved
+          </span>
           <p className="text-xl font-black text-zinc-900 dark:text-white leading-none mt-1">
-            {totalODHours || (ODhoursData && ODhoursData.length > 0 && ODhoursData[0].courses
-              ? ODhoursData.reduce((sum: number, day: any) => sum + day.total, 0)
-              : 0)} hrs
+            {totalODHours ||
+              (ODhoursData && ODhoursData.length > 0 && ODhoursData[0].courses
+                ? ODhoursData.reduce((sum: number, day: any) => sum + day.total, 0)
+                : 0)}{" "}
+            hrs
           </p>
-          <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-bold leading-none font-outfit">On-Duty History</span>
+          <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-bold leading-none font-outfit">
+            On-Duty History
+          </span>
         </button>
       </div>
     );
@@ -486,44 +508,73 @@ export default function MobileHome({
         <div className="absolute top-0 right-0 w-36 h-36 bg-blue-500/5 rounded-bl-full pointer-events-none" />
         <div className="relative w-20 h-20 shrink-0">
           <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-            <circle cx="18" cy="18" r="15.5" fill="none" stroke="currentColor" strokeWidth="3.2" className="text-gray-250 dark:text-zinc-800" />
-            <circle 
-              cx="18" 
-              cy="18" 
-              r="15.5" 
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="3.4" 
-              strokeDasharray={`${overallAttendance.percentage} 100`} 
-              strokeLinecap="round" 
-              className={overallAttendance.status === "Safe" ? "text-emerald-500" : overallAttendance.status === "Warning" ? "text-amber-500" : "text-red-500"} 
+            <circle
+              cx="18"
+              cy="18"
+              r="15.5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3.2"
+              className="text-gray-250 dark:text-zinc-800"
+            />
+            <circle
+              cx="18"
+              cy="18"
+              r="15.5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3.4"
+              strokeDasharray={`${overallAttendance.percentage} 100`}
+              strokeLinecap="round"
+              className={
+                overallAttendance.status === "Safe"
+                  ? "text-emerald-500"
+                  : overallAttendance.status === "Warning"
+                    ? "text-amber-500"
+                    : "text-red-500"
+              }
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span className="text-base font-black text-gray-900 dark:text-white leading-none font-outfit">
               {overallAttendance.percentage.toFixed(0)}%
             </span>
-            <span className="text-[10px] text-gray-400 dark:text-gray-500 font-extrabold uppercase mt-0.5">Overall</span>
+            <span className="text-[10px] text-gray-400 dark:text-gray-500 font-extrabold uppercase mt-0.5">
+              Overall
+            </span>
           </div>
         </div>
         <div className="flex-1 min-w-0 text-left">
-          <h3 className="font-extrabold text-sm text-gray-900 dark:text-white uppercase tracking-wider font-outfit">Attendance Summary</h3>
+          <h3 className="font-extrabold text-sm text-gray-900 dark:text-white uppercase tracking-wider font-outfit">
+            Attendance Summary
+          </h3>
           <div className="mt-1.5 flex items-center">
-            <span className={`inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${
-              overallAttendance.status === "Safe" 
-                ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-450" 
-                : overallAttendance.status === "Warning"
-                  ? "bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-450"
-                  : "bg-red-500/10 border-red-500/20 text-red-655 dark:text-red-450"
-            }`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${
-                overallAttendance.status === "Safe" ? "bg-emerald-500 animate-pulse [animation-duration:2.5s]" : overallAttendance.status === "Warning" ? "bg-amber-500" : "bg-red-500"
-              }`} />
+            <span
+              className={`inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                overallAttendance.status === "Safe"
+                  ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-450"
+                  : overallAttendance.status === "Warning"
+                    ? "bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-450"
+                    : "bg-red-500/10 border-red-500/20 text-red-655 dark:text-red-450"
+              }`}
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  overallAttendance.status === "Safe"
+                    ? "bg-emerald-500 animate-pulse [animation-duration:2.5s]"
+                    : overallAttendance.status === "Warning"
+                      ? "bg-amber-500"
+                      : "bg-red-500"
+                }`}
+              />
               {overallAttendance.status}
             </span>
           </div>
-          <button 
-            onClick={() => { setActiveTab("attendance"); setActiveAttendanceSubTab("attendance"); }}
+          <button
+            onClick={() => {
+              setActiveTab("attendance");
+              setActiveAttendanceSubTab("attendance");
+            }}
             className="relative hit-expand mt-3.5 flex items-center gap-1.5 text-[10px] font-black text-indigo-600 dark:text-indigo-400 bg-white/50 dark:bg-zinc-900/50 border border-indigo-100/50 dark:border-indigo-900/20 px-3.5 py-1.5 rounded-xl w-fit active:scale-95 transition-all shadow-2xs hover:shadow-xs uppercase tracking-wider cursor-pointer font-outfit"
           >
             Predict Attendance <ChevronRight className="w-3.5 h-3.5 shrink-0" />
@@ -534,14 +585,25 @@ export default function MobileHome({
   };
 
   const renderAttendanceCoursesWidget = () => {
-    if (!attendanceData?.attendance || !Array.isArray(attendanceData.attendance) || attendanceData.attendance.length === 0) return null;
+    if (
+      !attendanceData?.attendance ||
+      !Array.isArray(attendanceData.attendance) ||
+      attendanceData.attendance.length === 0
+    )
+      return null;
 
     // Filter out invalid/NULL slots and empty/NIL course codes
     const validItems = attendanceData.attendance.filter((c: any) => {
       if (!c) return false;
-      const slot = String(c.slotName || "").trim().toUpperCase();
-      const code = String(c.courseCode || "").trim().toUpperCase();
-      const title = String(c.courseTitle || "").trim().toUpperCase();
+      const slot = String(c.slotName || "")
+        .trim()
+        .toUpperCase();
+      const code = String(c.courseCode || "")
+        .trim()
+        .toUpperCase();
+      const title = String(c.courseTitle || "")
+        .trim()
+        .toUpperCase();
 
       if (slot.includes("NULL") || slot === "NIL" || slot === "N/A") return false;
       if (code === "NIL" || code === "NULL" || !code) return false;
@@ -566,27 +628,44 @@ export default function MobileHome({
     };
 
     const getComponentType = (c: any): "Theory" | "Lab" | "Practical" => {
-      const code = String(c.courseCode || "").trim().toUpperCase();
-      const type = String(c.courseType || "").trim().toUpperCase();
-      const slot = String(c.slotName || "").trim().toUpperCase();
+      const code = String(c.courseCode || "")
+        .trim()
+        .toUpperCase();
+      const type = String(c.courseType || "")
+        .trim()
+        .toUpperCase();
+      const slot = String(c.slotName || "")
+        .trim()
+        .toUpperCase();
 
-      if (code.endsWith("(L)") || code.endsWith("(P)") || type.includes("LAB") || type.includes("PRACTICAL") || type === "ELA" || type === "EPJ" || slot.startsWith("L")) {
+      if (
+        code.endsWith("(L)") ||
+        code.endsWith("(P)") ||
+        type.includes("LAB") ||
+        type.includes("PRACTICAL") ||
+        type === "ELA" ||
+        type === "EPJ" ||
+        slot.startsWith("L")
+      ) {
         return type.includes("PRACTICAL") ? "Practical" : "Lab";
       }
       return "Theory";
     };
 
-    const groupedMap: Record<string, {
-      courseCode: string;
-      courseTitle: string;
-      components: Array<{
-        type: string;
-        slotName: string;
-        attendedClasses: number;
-        totalClasses: number;
-        pct: number;
-      }>;
-    }> = {};
+    const groupedMap: Record<
+      string,
+      {
+        courseCode: string;
+        courseTitle: string;
+        components: Array<{
+          type: string;
+          slotName: string;
+          attendedClasses: number;
+          totalClasses: number;
+          pct: number;
+        }>;
+      }
+    > = {};
 
     validItems.forEach((c: any) => {
       const rawCode = String(c.courseCode || "").trim();
@@ -627,8 +706,11 @@ export default function MobileHome({
             <CalendarCheck className="w-4 h-4 text-emerald-500" />
             <span>Course Attendance</span>
           </h2>
-          <button 
-            onClick={() => { setActiveTab("attendance"); setActiveAttendanceSubTab("attendance"); }}
+          <button
+            onClick={() => {
+              setActiveTab("attendance");
+              setActiveAttendanceSubTab("attendance");
+            }}
             className="text-xs font-bold text-indigo-650 dark:text-indigo-400 cursor-pointer"
           >
             Predict Attendance
@@ -638,15 +720,23 @@ export default function MobileHome({
           {clubbedCourses.map((c, index) => {
             const isGrouped = c.components.length > 1;
             return (
-              <div 
+              <div
                 key={`${c.courseCode}-${index}`}
-                onClick={() => { setActiveTab("attendance"); setActiveAttendanceSubTab("attendance"); }}
+                onClick={() => {
+                  setActiveTab("attendance");
+                  setActiveAttendanceSubTab("attendance");
+                }}
                 className="p-4 rounded-[22px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 hover:bg-white/90 dark:hover:bg-zinc-900/80 hover:scale-[1.01] hover:shadow-xs active:scale-[0.99] transition-all cursor-pointer flex flex-col justify-between relative overflow-hidden"
               >
                 <div className="absolute top-0 right-0 w-16 h-16 bg-zinc-500/5 dark:bg-zinc-500/10 rounded-bl-full pointer-events-none" />
                 <div className="min-w-0 pr-1 mb-2.5">
                   <div className="flex items-center justify-between gap-1">
-                    <h4 className="text-xs font-black text-zinc-900 dark:text-white truncate font-outfit" title={c.courseTitle}>{c.courseTitle}</h4>
+                    <h4
+                      className="text-xs font-black text-zinc-900 dark:text-white truncate font-outfit"
+                      title={c.courseTitle}
+                    >
+                      {c.courseTitle}
+                    </h4>
                     {isGrouped && (
                       <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0 border border-indigo-500/20">
                         Theory + Lab
@@ -657,7 +747,7 @@ export default function MobileHome({
                     {c.courseCode}
                   </p>
                 </div>
-                
+
                 <div className="space-y-2.5">
                   {c.components.map((comp, compIdx) => {
                     const pct = comp.pct;
@@ -667,15 +757,21 @@ export default function MobileHome({
                       <div key={compIdx} className="space-y-1">
                         <div className="flex items-center justify-between text-[9.5px]">
                           <span className="font-bold text-zinc-700 dark:text-zinc-300 truncate">
-                            {isGrouped ? comp.type : "Attendance"} <span className="text-zinc-400 font-medium">• Slot {comp.slotName || "N/A"}</span>
+                            {isGrouped ? comp.type : "Attendance"}{" "}
+                            <span className="text-zinc-400 font-medium">• Slot {comp.slotName || "N/A"}</span>
                           </span>
                           <div className="flex items-center gap-1.5 shrink-0 pl-1">
-                            <span className="text-zinc-500 dark:text-zinc-400 font-medium text-[9px]">{comp.attendedClasses}/{comp.totalClasses}</span>
+                            <span className="text-zinc-500 dark:text-zinc-400 font-medium text-[9px]">
+                              {comp.attendedClasses}/{comp.totalClasses}
+                            </span>
                             <span className={`font-black text-xs ${color}`}>{pct.toFixed(0)}%</span>
                           </div>
                         </div>
                         <div className="w-full bg-zinc-100 dark:bg-zinc-800 h-1.5 rounded-full overflow-hidden">
-                          <div className={`h-full ${bgProgress} rounded-full transition-all duration-500`} style={{ width: `${Math.min(100, pct)}%` }} />
+                          <div
+                            className={`h-full ${bgProgress} rounded-full transition-all duration-500`}
+                            style={{ width: `${Math.min(100, pct)}%` }}
+                          />
                         </div>
                       </div>
                     );
@@ -693,8 +789,12 @@ export default function MobileHome({
     const rawList = marksData?.courses || attendanceData?.attendance || [];
     const coursesList = rawList.filter((c: any) => {
       if (!c) return false;
-      const slot = String(c.slotName || "").trim().toUpperCase();
-      const code = String(c.courseCode || "").trim().toUpperCase();
+      const slot = String(c.slotName || "")
+        .trim()
+        .toUpperCase();
+      const code = String(c.courseCode || "")
+        .trim()
+        .toUpperCase();
       if (slot.includes("NULL") || slot === "NIL") return false;
       if (code === "NIL" || code === "NULL" || !code) return false;
       return true;
@@ -707,8 +807,11 @@ export default function MobileHome({
             <GraduationCap className="w-4 h-4 text-violet-500" />
             <span>Academic Courses</span>
           </h2>
-          <button 
-            onClick={() => { setActiveTab("academics"); setActiveSubTab("overview"); }}
+          <button
+            onClick={() => {
+              setActiveTab("academics");
+              setActiveSubTab("overview");
+            }}
             className="text-xs font-bold text-violet-500 cursor-pointer"
           >
             Course Dashboard
@@ -716,19 +819,31 @@ export default function MobileHome({
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 text-left">
           {coursesList.map((c: any, index: number) => (
-            <div 
-              key={`${c.courseCode}-${c.slotName || ''}-${index}`}
-              onClick={() => { setActiveTab("academics"); setActiveSubTab("overview"); }}
+            <div
+              key={`${c.courseCode}-${c.slotName || ""}-${index}`}
+              onClick={() => {
+                setActiveTab("academics");
+                setActiveSubTab("overview");
+              }}
               className="p-4 rounded-[22px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 hover:bg-white/90 dark:hover:bg-zinc-900/80 hover:scale-[1.01] hover:shadow-xs active:scale-[0.99] transition-all cursor-pointer flex flex-col justify-between h-[105px] relative overflow-hidden"
             >
               <div className="absolute top-0 right-0 w-16 h-16 bg-violet-500/5 dark:bg-violet-500/10 rounded-bl-full pointer-events-none" />
               <div className="min-w-0 pr-1">
-                <h4 className="text-xs font-black text-zinc-900 dark:text-white truncate font-outfit" title={c.courseTitle}>{c.courseTitle}</h4>
-                <p className="text-[9.5px] text-zinc-400 dark:text-zinc-500 font-bold mt-0.5">{c.courseCode} • {c.courseType || "Theory/Lab"}</p>
+                <h4
+                  className="text-xs font-black text-zinc-900 dark:text-white truncate font-outfit"
+                  title={c.courseTitle}
+                >
+                  {c.courseTitle}
+                </h4>
+                <p className="text-[9.5px] text-zinc-400 dark:text-zinc-500 font-bold mt-0.5">
+                  {c.courseCode} • {c.courseType || "Theory/Lab"}
+                </p>
               </div>
-              
+
               <div className="flex items-center justify-between mt-3">
-                <span className="text-[9.5px] font-black text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/20 px-2 py-0.5 rounded-md">Credits: {c.credits || "4"}</span>
+                <span className="text-[9.5px] font-black text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/20 px-2 py-0.5 rounded-md">
+                  Credits: {c.credits || "4"}
+                </span>
                 <span className="text-[9.5px] font-bold text-zinc-400 dark:text-zinc-500">{c.slotName || "N/A"}</span>
               </div>
             </div>
@@ -748,17 +863,24 @@ export default function MobileHome({
         </div>
         <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
           {criticalCourses.map((c: any) => (
-            <div 
-              key={c.courseCode} 
-              onClick={() => { setActiveTab("attendance"); setActiveAttendanceSubTab("attendance"); }}
+            <div
+              key={c.courseCode}
+              onClick={() => {
+                setActiveTab("attendance");
+                setActiveAttendanceSubTab("attendance");
+              }}
               className="flex items-center justify-between p-3.5 rounded-[20px] bg-red-500/5 dark:bg-red-500/10 border border-red-500/15 dark:border-red-500/20 active:scale-[0.99] transition-all hover:bg-red-500/10 dark:hover:bg-red-500/15 cursor-pointer text-left"
             >
               <div className="min-w-0 flex-1 pr-2">
                 <p className="text-xs font-bold text-zinc-900 dark:text-white truncate">{c.courseTitle}</p>
-                <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-semibold mt-0.5">{c.courseCode} • Slot {c.slotName}</p>
+                <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-semibold mt-0.5">
+                  {c.courseCode} • Slot {c.slotName}
+                </p>
               </div>
               <div className="text-right shrink-0">
-                <span className="text-sm font-black text-red-600 dark:text-red-455">{parseFloat(c.attendancePercentage).toFixed(0)}%</span>
+                <span className="text-sm font-black text-red-600 dark:text-red-455">
+                  {parseFloat(c.attendancePercentage).toFixed(0)}%
+                </span>
                 <p className="text-[10px] text-red-500/80 font-bold uppercase mt-0.5">Below 75%</p>
               </div>
             </div>
@@ -776,7 +898,9 @@ export default function MobileHome({
             <Clock className="w-4 h-4" />
             <span>Today's Classes</span>
           </h2>
-          <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500">{todayClasses.length} Scheduled</span>
+          <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500">
+            {todayClasses.length} Scheduled
+          </span>
         </div>
 
         {todayClasses.length === 0 ? (
@@ -798,22 +922,32 @@ export default function MobileHome({
                   {classStatus.current.courseTitle}
                 </h4>
                 <div className="flex items-center gap-4 mt-3 text-xs text-white/80 font-semibold">
-                  <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" />{classStatus.current.time}</span>
-                  <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" />{classStatus.current.slotVenue || "N/A"}</span>
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5" />
+                    {classStatus.current.time}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5" />
+                    {classStatus.current.slotVenue || "N/A"}
+                  </span>
                 </div>
               </div>
             )}
 
             {classStatus.next ? (
-              <div 
-                onClick={() => { setActiveTab("attendance"); }}
+              <div
+                onClick={() => {
+                  setActiveTab("attendance");
+                }}
                 className="p-4.5 rounded-[24px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 flex items-center gap-3 active:scale-[0.99] transition-all hover:bg-white/90 dark:hover:bg-zinc-900/80 cursor-pointer"
               >
                 <div className="p-2.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 shrink-0">
                   <Clock className="w-5 h-5" />
                 </div>
                 <div className="flex-1 min-w-0 text-left">
-                  <span className="text-[9px] text-indigo-600 dark:text-indigo-400 font-black uppercase tracking-wider font-outfit font-black">Next Class</span>
+                  <span className="text-[9px] text-indigo-600 dark:text-indigo-400 font-black uppercase tracking-wider font-outfit font-black">
+                    Next Class
+                  </span>
                   <h4 className="font-bold text-sm text-zinc-900 dark:text-white truncate mt-0.5">
                     {classStatus.next.courseTitle}
                   </h4>
@@ -832,8 +966,12 @@ export default function MobileHome({
 
             <div className="rounded-[24px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 p-4 text-left">
               <div className="pb-3 border-b border-zinc-200/30 dark:border-zinc-800/50 flex items-center justify-between mb-3.5">
-                <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit">Full Schedule</span>
-                <span className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500">{todayClasses.length} sessions</span>
+                <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit">
+                  Full Schedule
+                </span>
+                <span className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500">
+                  {todayClasses.length} sessions
+                </span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                 {todayClasses.map((cls: any) => {
@@ -842,17 +980,33 @@ export default function MobileHome({
                   return (
                     <button
                       key={`${cls.courseCode}-${cls.slotName}-${cls.time}`}
-                      onClick={() => { setActiveTab("attendance"); }}
+                      onClick={() => {
+                        setActiveTab("attendance");
+                      }}
                       className="px-4 py-3 flex items-center gap-3 text-left rounded-[20px] bg-zinc-50/20 dark:bg-zinc-950/10 border border-zinc-200/30 dark:border-zinc-800 hover:bg-zinc-100/50 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
                     >
-                      <div className={`w-1 h-8 rounded-full shrink-0 ${
-                        isCurrent ? "bg-emerald-500 animate-pulse [animation-duration:2.5s]" : isNext ? "bg-indigo-500" : "bg-zinc-200 dark:bg-zinc-800"
-                      }`} />
+                      <div
+                        className={`w-1 h-8 rounded-full shrink-0 ${
+                          isCurrent
+                            ? "bg-emerald-500 animate-pulse [animation-duration:2.5s]"
+                            : isNext
+                              ? "bg-indigo-500"
+                              : "bg-zinc-200 dark:bg-zinc-800"
+                        }`}
+                      />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 min-w-0">
                           <p className="text-xs font-bold text-zinc-900 dark:text-white truncate">{cls.courseTitle}</p>
-                          {isCurrent && <span className="shrink-0 text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 bg-emerald-100/60 dark:bg-emerald-950/20 px-1 rounded">Now</span>}
-                          {isNext && <span className="shrink-0 text-[10px] font-black uppercase text-indigo-650 dark:text-indigo-400 bg-indigo-100/60 dark:bg-indigo-950/20 px-1 rounded">Next</span>}
+                          {isCurrent && (
+                            <span className="shrink-0 text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 bg-emerald-100/60 dark:bg-emerald-950/20 px-1 rounded">
+                              Now
+                            </span>
+                          )}
+                          {isNext && (
+                            <span className="shrink-0 text-[10px] font-black uppercase text-indigo-650 dark:text-indigo-400 bg-indigo-100/60 dark:bg-indigo-950/20 px-1 rounded">
+                              Next
+                            </span>
+                          )}
                         </div>
                         <p className="mt-0.5 text-[9px] font-bold text-zinc-400 dark:text-zinc-500 truncate">
                           {cls.courseCode} • Slot {cls.slotName}
@@ -860,7 +1014,9 @@ export default function MobileHome({
                       </div>
                       <div className="shrink-0 text-right">
                         <p className="text-[10px] font-bold text-zinc-700 dark:text-zinc-300">{cls.time}</p>
-                        <p className="mt-0.5 max-w-24 truncate text-[9px] font-semibold text-zinc-400 dark:text-zinc-500">{cls.slotVenue || "N/A"}</p>
+                        <p className="mt-0.5 max-w-24 truncate text-[9px] font-semibold text-zinc-400 dark:text-zinc-500">
+                          {cls.slotVenue || "N/A"}
+                        </p>
                       </div>
                     </button>
                   );
@@ -880,64 +1036,90 @@ export default function MobileHome({
           Quick Actions
         </h2>
         <div className="grid grid-cols-3 gap-2.5 md:grid-cols-6">
-          <button 
-            onClick={() => { setActiveTab("attendance"); setActiveAttendanceSubTab("attendance"); }}
+          <button
+            onClick={() => {
+              setActiveTab("attendance");
+              setActiveAttendanceSubTab("attendance");
+            }}
             className="flex flex-col items-center justify-center p-3 rounded-[20px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 text-center active:scale-95 transition-all shadow-2xs hover:shadow-xs cursor-pointer"
           >
             <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center mb-1.5 text-indigo-500 shrink-0">
               <Sliders className="w-4.5 h-4.5 stroke-[2.5]" />
             </div>
-            <span className="text-[10px] font-black text-zinc-700 dark:text-zinc-300 font-outfit uppercase tracking-wide">Predict Att.</span>
+            <span className="text-[10px] font-black text-zinc-700 dark:text-zinc-300 font-outfit uppercase tracking-wide">
+              Predict Att.
+            </span>
           </button>
-          
-          <button 
-            onClick={() => { setActiveTab("academics"); setActiveSubTab("cgpa-predictor"); }}
+
+          <button
+            onClick={() => {
+              setActiveTab("academics");
+              setActiveSubTab("cgpa-predictor");
+            }}
             className="flex flex-col items-center justify-center p-3 rounded-[20px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 text-center active:scale-95 transition-all shadow-2xs hover:shadow-xs cursor-pointer"
           >
             <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center mb-1.5 text-emerald-600 dark:text-emerald-450 shrink-0">
               <TrendingUp className="w-4.5 h-4.5 stroke-[2.5]" />
             </div>
-            <span className="text-[10px] font-black text-zinc-700 dark:text-zinc-300 font-outfit uppercase tracking-wide">GPA Calc</span>
+            <span className="text-[10px] font-black text-zinc-700 dark:text-zinc-300 font-outfit uppercase tracking-wide">
+              GPA Calc
+            </span>
           </button>
 
-          <button 
-            onClick={() => { setActiveTab("hostel"); setHostelActiveSubTab("leave"); }}
+          <button
+            onClick={() => {
+              setActiveTab("hostel");
+              setHostelActiveSubTab("leave");
+            }}
             className="flex flex-col items-center justify-center p-3 rounded-[20px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 text-center active:scale-95 transition-all shadow-2xs hover:shadow-xs cursor-pointer"
           >
             <div className="w-9 h-9 rounded-xl bg-rose-50 dark:bg-rose-950/30 flex items-center justify-center mb-1.5 text-rose-600 dark:text-rose-455 shrink-0">
               <Plane className="w-4.5 h-4.5 stroke-[2.5]" />
             </div>
-            <span className="text-[10px] font-black text-zinc-700 dark:text-zinc-300 font-outfit uppercase tracking-wide">Apply Leave</span>
+            <span className="text-[10px] font-black text-zinc-700 dark:text-zinc-300 font-outfit uppercase tracking-wide">
+              Apply Leave
+            </span>
           </button>
 
-          <button 
-            onClick={() => { setActiveTab("dayscholar"); }}
+          <button
+            onClick={() => {
+              setActiveTab("dayscholar");
+            }}
             className="flex flex-col items-center justify-center p-3 rounded-[20px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 text-center active:scale-95 transition-all shadow-2xs hover:shadow-xs cursor-pointer"
           >
             <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-955/30 flex items-center justify-center mb-1.5 text-amber-605 dark:text-amber-400 shrink-0">
               <Bus className="w-4.5 h-4.5 stroke-[2.5]" />
             </div>
-            <span className="text-[10px] font-black text-zinc-700 dark:text-zinc-300 font-outfit uppercase tracking-wide">Bus Routes</span>
+            <span className="text-[10px] font-black text-zinc-700 dark:text-zinc-300 font-outfit uppercase tracking-wide">
+              Bus Routes
+            </span>
           </button>
 
-          <button 
-            onClick={() => { setActiveTab("academics"); setActiveSubTab("wishlist"); }}
+          <button
+            onClick={() => {
+              setActiveTab("academics");
+              setActiveSubTab("wishlist");
+            }}
             className="flex flex-col items-center justify-center p-3 rounded-[20px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 text-center active:scale-95 transition-all shadow-2xs hover:shadow-xs cursor-pointer"
           >
             <div className="w-9 h-9 rounded-xl bg-violet-50 dark:bg-violet-950/30 flex items-center justify-center mb-1.5 text-violet-600 dark:text-violet-400 shrink-0">
               <Bookmark className="w-4.5 h-4.5 stroke-[2.5]" />
             </div>
-            <span className="text-[10px] font-black text-zinc-700 dark:text-zinc-300 font-outfit uppercase tracking-wide">Wishlist</span>
+            <span className="text-[10px] font-black text-zinc-700 dark:text-zinc-300 font-outfit uppercase tracking-wide">
+              Wishlist
+            </span>
           </button>
 
-          <button 
+          <button
             onClick={onOpenCommandPalette}
             className="flex flex-col items-center justify-center p-3 rounded-[20px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 text-center active:scale-95 transition-all shadow-2xs hover:shadow-xs cursor-pointer"
           >
             <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-955/30 flex items-center justify-center mb-1.5 text-blue-650 dark:text-blue-400 shrink-0">
               <FolderOpen className="w-4.5 h-4.5 stroke-[2.5]" />
             </div>
-            <span className="text-[10px] font-black text-zinc-700 dark:text-zinc-300 font-outfit uppercase tracking-wide">All Modules</span>
+            <span className="text-[10px] font-black text-zinc-700 dark:text-zinc-300 font-outfit uppercase tracking-wide">
+              All Modules
+            </span>
           </button>
         </div>
       </div>
@@ -945,7 +1127,10 @@ export default function MobileHome({
   };
 
   const renderLaundryWidget = () => {
-    const isDayscholar = settings?.residentialStatus === "dayscholar" || cachedProfile?.residentialStatus === "dayscholar" || hostelData?.hostelInfo?.isHosteller === false;
+    const isDayscholar =
+      settings?.residentialStatus === "dayscholar" ||
+      cachedProfile?.residentialStatus === "dayscholar" ||
+      hostelData?.hostelInfo?.isHosteller === false;
     if (isDayscholar) return null;
     if (!hostelData?.hostelInfo?.isHosteller) return null;
 
@@ -956,22 +1141,28 @@ export default function MobileHome({
             <Shirt className="w-4 h-4 text-sky-500" />
             <span>Laundry Status</span>
           </h2>
-          <button 
-            onClick={() => { setActiveTab("hostel"); setHostelActiveSubTab("laundry"); }}
+          <button
+            onClick={() => {
+              setActiveTab("hostel");
+              setHostelActiveSubTab("laundry");
+            }}
             className="text-xs font-bold text-sky-500 cursor-pointer"
           >
             Open Laundry Hub
           </button>
         </div>
-        
-        <div 
-          onClick={() => { setActiveTab("hostel"); setHostelActiveSubTab("laundry"); }}
+
+        <div
+          onClick={() => {
+            setActiveTab("hostel");
+            setHostelActiveSubTab("laundry");
+          }}
           className="p-4 rounded-[24px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 active:scale-[0.99] transition-all hover:bg-white/90 dark:hover:bg-zinc-900/80 cursor-pointer text-left flex items-center gap-4"
         >
           <div className="w-12 h-12 rounded-2xl bg-sky-500/10 dark:bg-sky-950/30 flex items-center justify-center text-sky-500 shrink-0">
             <Shirt className="w-6 h-6" />
           </div>
-          
+
           <div className="flex-1 min-w-0">
             {laundryStatus ? (
               laundryStatus.hasSlotToday ? (
@@ -1001,7 +1192,9 @@ export default function MobileHome({
               ) : (
                 <div>
                   <p className="text-xs font-bold text-zinc-800 dark:text-zinc-200">No scheduled slots found.</p>
-                  <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">Check for block updates in VTOP.</p>
+                  <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">
+                    Check for block updates in VTOP.
+                  </p>
                 </div>
               )
             ) : (
@@ -1017,7 +1210,10 @@ export default function MobileHome({
   };
 
   const renderMessMenu = () => {
-    const isDayscholar = settings?.residentialStatus === "dayscholar" || cachedProfile?.residentialStatus === "dayscholar" || hostelData?.hostelInfo?.isHosteller === false;
+    const isDayscholar =
+      settings?.residentialStatus === "dayscholar" ||
+      cachedProfile?.residentialStatus === "dayscholar" ||
+      hostelData?.hostelInfo?.isHosteller === false;
     if (isDayscholar) return null;
     if (!todayMeal) return null;
     return (
@@ -1027,20 +1223,24 @@ export default function MobileHome({
             <Coffee className="w-4 h-4 text-amber-500" />
             <span>Mess Menu • {currentMealType}</span>
           </h2>
-          <button 
-            onClick={() => { setActiveTab("hostel"); setHostelActiveSubTab("mess"); }}
+          <button
+            onClick={() => {
+              setActiveTab("hostel");
+              setHostelActiveSubTab("mess");
+            }}
             className="text-xs font-bold text-indigo-650 dark:text-indigo-400 cursor-pointer"
           >
             Full Menu
           </button>
         </div>
-        <div 
-          onClick={() => { setActiveTab("hostel"); setHostelActiveSubTab("mess"); }}
+        <div
+          onClick={() => {
+            setActiveTab("hostel");
+            setHostelActiveSubTab("mess");
+          }}
           className="p-4 rounded-[24px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 text-left hover:bg-white/90 dark:hover:bg-zinc-900/80 cursor-pointer"
         >
-          <p className="text-sm text-zinc-800 dark:text-zinc-200 leading-relaxed font-semibold">
-            {todayMeal}
-          </p>
+          <p className="text-sm text-zinc-800 dark:text-zinc-200 leading-relaxed font-semibold">{todayMeal}</p>
         </div>
       </div>
     );
@@ -1059,10 +1259,10 @@ export default function MobileHome({
               month: "short",
               day: "numeric",
               hour: "2-digit",
-              minute: "2-digit"
+              minute: "2-digit",
             });
             return (
-              <div 
+              <div
                 key={task.url || task.title}
                 onClick={() => {
                   if (task.url) {
@@ -1076,10 +1276,14 @@ export default function MobileHome({
               >
                 <div className="min-w-0 flex-1 pr-2">
                   <p className="text-xs font-bold text-zinc-800 dark:text-zinc-200 truncate">{task.title}</p>
-                  <p className="text-[9px] text-zinc-400 dark:text-zinc-500 font-semibold mt-0.5 truncate">{task.courseName || "General Assignment"}</p>
+                  <p className="text-[9px] text-zinc-400 dark:text-zinc-500 font-semibold mt-0.5 truncate">
+                    {task.courseName || "General Assignment"}
+                  </p>
                 </div>
                 <div className="shrink-0 text-right">
-                  <span className="text-[10px] font-black text-red-505 uppercase bg-red-100/50 dark:bg-red-950/20 px-1 py-0.5 rounded">Due</span>
+                  <span className="text-[10px] font-black text-red-505 uppercase bg-red-100/50 dark:bg-red-950/20 px-1 py-0.5 rounded">
+                    Due
+                  </span>
                   <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-bold mt-1">{dueStr}</p>
                 </div>
               </div>
@@ -1090,9 +1294,7 @@ export default function MobileHome({
     );
   };
 
-  const renderFreeClassrooms = () => (
-    <FreeClassroomsWidget />
-  );
+  const renderFreeClassrooms = () => <FreeClassroomsWidget />;
 
   const renderRegisteredEvents = () => {
     if (!registeredEvents || registeredEvents.length === 0) return null;
@@ -1101,21 +1303,30 @@ export default function MobileHome({
         <h2 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider px-1 text-left font-outfit font-black">
           Registered Events
         </h2>
-        <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory md:grid md:grid-cols-3 md:overflow-visible" data-prevent-swipe="true">
+        <div
+          className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory md:grid md:grid-cols-3 md:overflow-visible"
+          data-prevent-swipe="true"
+        >
           {registeredEvents.map((ev: any, idx: number) => (
-            <div 
+            <div
               key={idx}
-              onClick={() => { setActiveTab("events"); }}
+              onClick={() => {
+                setActiveTab("events");
+              }}
               className="min-w-[75vw] snap-center p-4 rounded-[24px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 active:scale-[0.99] transition-all hover:bg-white/95 dark:hover:bg-zinc-900/85 cursor-pointer md:min-w-0"
             >
               <h4 className="font-bold text-sm text-zinc-800 dark:text-white truncate text-left">{ev.name}</h4>
               <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-1.5 flex items-center gap-1.5 text-left font-medium">
                 <Calendar className="w-3.5 h-3.5 text-zinc-400" />
-                <span>{ev.date} • {ev.time}</span>
+                <span>
+                  {ev.date} • {ev.time}
+                </span>
               </p>
               <div className="flex items-center justify-between text-[10px] font-bold mt-3.5 pt-3.5 border-t border-zinc-100/50 dark:border-zinc-800/50 gap-2 min-w-0">
                 <span className="text-zinc-500 dark:text-zinc-400 truncate flex-1 text-left">{ev.venue}</span>
-                <span className="text-indigo-650 dark:text-indigo-400 shrink-0 uppercase tracking-wider text-[9px] font-extrabold">{ev.paymentStatus}</span>
+                <span className="text-indigo-650 dark:text-indigo-400 shrink-0 uppercase tracking-wider text-[9px] font-extrabold">
+                  {ev.paymentStatus}
+                </span>
               </div>
             </div>
           ))}
@@ -1132,15 +1343,17 @@ export default function MobileHome({
             <Sliders className="w-4 h-4 text-zinc-500" />
             <span>Quick Settings Toggles</span>
           </h2>
-          <button 
-            onClick={() => { setActiveTab("profile"); setActiveProfileSubTab("settings"); }}
+          <button
+            onClick={() => {
+              setActiveTab("profile");
+              setActiveProfileSubTab("settings");
+            }}
             className="text-xs font-bold text-indigo-650 dark:text-indigo-400 cursor-pointer"
           >
             All Settings
           </button>
         </div>
         <div className="p-4 rounded-[24px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 text-left space-y-3.5 divide-y divide-zinc-100 dark:divide-zinc-800/50">
-          
           {/* Hide CGPA */}
           <div className="flex items-center justify-between text-xs pt-0">
             <div>
@@ -1271,7 +1484,9 @@ export default function MobileHome({
           <div className="flex items-center justify-between text-xs pt-3">
             <div>
               <p className="font-bold text-zinc-800 dark:text-zinc-200">Smart Mess Menu Filter</p>
-              <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium">Auto-filter mess menu items for current week</p>
+              <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium">
+                Auto-filter mess menu items for current week
+              </p>
             </div>
             <Switch
               checked={settings?.smartMessFilter ?? false}
@@ -1284,7 +1499,6 @@ export default function MobileHome({
               }}
             />
           </div>
-
         </div>
       </div>
     );
@@ -1323,8 +1537,11 @@ export default function MobileHome({
             <Calendar className="w-4 h-4 text-blue-500" />
             <span>Exam Schedule</span>
           </h2>
-          <button 
-            onClick={() => { setActiveTab("academics"); setActiveSubTab("schedule"); }}
+          <button
+            onClick={() => {
+              setActiveTab("academics");
+              setActiveSubTab("schedule");
+            }}
             className="text-xs font-bold text-blue-600 dark:text-blue-400 cursor-pointer hover:underline"
           >
             Full Schedule
@@ -1338,8 +1555,12 @@ export default function MobileHome({
                 <Calendar className="w-5 h-5" />
               </div>
               <div className="min-w-0">
-                <h4 className="text-xs font-bold text-zinc-800 dark:text-zinc-200 font-outfit">No exam schedule loaded</h4>
-                <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">Fetch your CAT & FAT timetables from VTOP</p>
+                <h4 className="text-xs font-bold text-zinc-800 dark:text-zinc-200 font-outfit">
+                  No exam schedule loaded
+                </h4>
+                <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">
+                  Fetch your CAT & FAT timetables from VTOP
+                </p>
               </div>
             </div>
             <button
@@ -1381,7 +1602,9 @@ export default function MobileHome({
                     </div>
                     <div>
                       <p className="text-[9px] text-white/70 uppercase">Venue & Seat</p>
-                      <p className="font-bold">{exam.venue || "TBA"} • #{exam.seatNo || "-"}</p>
+                      <p className="font-bold">
+                        {exam.venue || "TBA"} • #{exam.seatNo || "-"}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -1391,8 +1614,11 @@ export default function MobileHome({
         ) : nextExam ? (
           <div className="space-y-3">
             {/* Spotlight next upcoming exam */}
-            <div 
-              onClick={() => { setActiveTab("academics"); setActiveSubTab("schedule"); }}
+            <div
+              onClick={() => {
+                setActiveTab("academics");
+                setActiveSubTab("schedule");
+              }}
               className="p-4.5 rounded-[24px] bg-gradient-to-br from-blue-50/70 to-indigo-50/50 dark:from-blue-950/20 dark:to-indigo-950/20 border border-blue-200/60 dark:border-blue-900/40 text-left cursor-pointer hover:border-blue-400 dark:hover:border-blue-700 transition-all relative overflow-hidden shadow-2xs"
             >
               <div className="flex items-center justify-between gap-2 mb-2">
@@ -1410,14 +1636,20 @@ export default function MobileHome({
 
               <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-blue-100 dark:border-blue-900/30 text-xs">
                 <div>
-                  <p className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Date & Time</p>
+                  <p className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                    Date & Time
+                  </p>
                   <p className="font-bold text-zinc-800 dark:text-zinc-200 mt-0.5">{nextExam.examDate}</p>
                   <p className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400">{nextExam.examTime}</p>
                 </div>
                 <div>
-                  <p className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Venue & Seat</p>
+                  <p className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                    Venue & Seat
+                  </p>
                   <p className="font-bold text-zinc-800 dark:text-zinc-200 mt-0.5">{nextExam.venue || "TBA"}</p>
-                  <p className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400">Seat #{nextExam.seatNo || "-"}</p>
+                  <p className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400">
+                    Seat #{nextExam.seatNo || "-"}
+                  </p>
                 </div>
               </div>
             </div>
@@ -1426,9 +1658,12 @@ export default function MobileHome({
             {upcomingExams.length > 1 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-left">
                 {upcomingExams.slice(1, 3).map((exam, idx) => (
-                  <div 
+                  <div
                     key={idx}
-                    onClick={() => { setActiveTab("academics"); setActiveSubTab("schedule"); }}
+                    onClick={() => {
+                      setActiveTab("academics");
+                      setActiveSubTab("schedule");
+                    }}
                     className="p-3 rounded-[18px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 hover:bg-white/90 dark:hover:bg-zinc-900/80 transition-all cursor-pointer flex items-center justify-between gap-2"
                   >
                     <div className="min-w-0 flex-1">
@@ -1436,9 +1671,13 @@ export default function MobileHome({
                         <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 shrink-0">
                           {exam.examType}
                         </span>
-                        <p className="text-xs font-bold text-zinc-900 dark:text-white truncate font-outfit">{exam.courseCode}</p>
+                        <p className="text-xs font-bold text-zinc-900 dark:text-white truncate font-outfit">
+                          {exam.courseCode}
+                        </p>
                       </div>
-                      <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-semibold truncate mt-0.5">{exam.courseTitle}</p>
+                      <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-semibold truncate mt-0.5">
+                        {exam.courseTitle}
+                      </p>
                     </div>
                     <div className="text-right shrink-0">
                       <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">{exam.examDate}</span>
@@ -1453,10 +1692,15 @@ export default function MobileHome({
           <div className="p-4 rounded-[24px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 text-left flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-bold text-zinc-800 dark:text-zinc-200 font-outfit">No upcoming exams</p>
-              <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">All scheduled exams for this term are completed</p>
+              <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">
+                All scheduled exams for this term are completed
+              </p>
             </div>
-            <button 
-              onClick={() => { setActiveTab("academics"); setActiveSubTab("schedule"); }}
+            <button
+              onClick={() => {
+                setActiveTab("academics");
+                setActiveSubTab("schedule");
+              }}
               className="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline shrink-0"
             >
               View History
@@ -1504,12 +1748,12 @@ export default function MobileHome({
 
   return (
     <div className="w-full space-y-6 md:pb-0 animate-in fade-in duration-300">
-      
       {/* ── HEADER & GREETING ── */}
       <div className="flex justify-between items-center px-1">
         <div className="flex items-center gap-3.5 min-w-0">
           {shouldDisplayProfilePhoto && profileImage ? (
             <img
+              loading="lazy"
               src={profileImage}
               alt=""
               decoding="async"
@@ -1534,7 +1778,7 @@ export default function MobileHome({
           <button
             onClick={() => setShowCustomizer(!showCustomizer)}
             className={`p-3 rounded-2xl border transition-all active:scale-95 cursor-pointer ${
-              showCustomizer 
+              showCustomizer
                 ? "bg-indigo-650 border-indigo-650 text-white shadow-sm"
                 : "bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 shadow-xs"
             }`}
@@ -1579,9 +1823,11 @@ export default function MobileHome({
                     <Sliders className="w-4 h-4 text-indigo-500" />
                     <span>Customize Dashboard Layout</span>
                   </h3>
-                  <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium">Toggle visibility and size of your dashboard cards</p>
+                  <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium">
+                    Toggle visibility and size of your dashboard cards
+                  </p>
                 </div>
-                <button 
+                <button
                   onClick={() => {
                     setWidgets(DEFAULT_WIDGETS);
                     localStorage.removeItem("amaze_dashboard_widgets");
@@ -1633,7 +1879,10 @@ export default function MobileHome({
                         <div className="flex items-center gap-1 shrink-0">
                           {/* Size Pill */}
                           <button
-                            onClick={(e) => { e.stopPropagation(); toggleWidgetSpan(w.id); }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleWidgetSpan(w.id);
+                            }}
                             className="px-2 py-0.5 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-[10px] font-black text-indigo-600 dark:text-indigo-400 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
                             title="Toggle width between 1-Column and Full Width"
                           >
@@ -1641,7 +1890,10 @@ export default function MobileHome({
                           </button>
                           {/* Reorder Up/Down */}
                           <button
-                            onClick={(e) => { e.stopPropagation(); moveWidget(w.id, "up"); }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              moveWidget(w.id, "up");
+                            }}
                             disabled={index === 0}
                             className="p-1 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-30 text-zinc-500 cursor-pointer"
                             title="Move Up"
@@ -1649,7 +1901,10 @@ export default function MobileHome({
                             <ArrowUp className="w-3.5 h-3.5" />
                           </button>
                           <button
-                            onClick={(e) => { e.stopPropagation(); moveWidget(w.id, "down"); }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              moveWidget(w.id, "down");
+                            }}
                             disabled={index === widgets.length - 1}
                             className="p-1 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-30 text-zinc-500 cursor-pointer"
                             title="Move Down"
@@ -1675,13 +1930,17 @@ export default function MobileHome({
                     });
                   }}
                   className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                    !settings?.hideHomeSearchBar 
+                    !settings?.hideHomeSearchBar
                       ? "bg-indigo-50/50 dark:bg-indigo-950/20 border-indigo-200/60 dark:border-indigo-850/60 text-indigo-700 dark:text-indigo-400"
                       : "bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-400 dark:text-zinc-500"
                   }`}
                 >
                   <span className="flex items-center gap-2">
-                    {!settings?.hideHomeSearchBar ? <Eye className="w-4 h-4 text-indigo-500" /> : <EyeOff className="w-4 h-4" />}
+                    {!settings?.hideHomeSearchBar ? (
+                      <Eye className="w-4 h-4 text-indigo-500" />
+                    ) : (
+                      <EyeOff className="w-4 h-4" />
+                    )}
                     <span>Home Page Search Bar</span>
                   </span>
                   <span className="text-[10px] font-black uppercase">
@@ -1689,7 +1948,6 @@ export default function MobileHome({
                   </span>
                 </button>
               </div>
-
             </div>
           </m.div>
         )}
@@ -1697,14 +1955,18 @@ export default function MobileHome({
 
       {/* ── QUICK SPOTLIGHT SEARCH ── */}
       {!settings?.hideHomeSearchBar && (
-        <button 
+        <button
           onClick={onOpenCommandPalette}
           className="w-full flex items-center gap-3 px-4 py-3.5 rounded-[20px] card-surface border border-border-strong dark:border-border shadow-xs text-gray-400 dark:text-gray-550 hover:text-gray-600 dark:hover:text-gray-300 text-left transition-all active:scale-[0.99] relative overflow-hidden group cursor-pointer"
         >
           <div className="absolute inset-0 bg-indigo-50/10 dark:bg-indigo-950/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
           <Search className="w-5 h-5 text-gray-400 dark:text-gray-500 shrink-0" />
-          <span className="text-sm font-bold flex-1 text-gray-400 dark:text-gray-550">Search anything... (Spotlight)</span>
-          <span className="text-[10px] font-black bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 px-2 py-1 rounded-lg">⌘K</span>
+          <span className="text-sm font-bold flex-1 text-gray-400 dark:text-gray-550">
+            Search anything... (Spotlight)
+          </span>
+          <span className="text-[10px] font-black bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 px-2 py-1 rounded-lg">
+            ⌘K
+          </span>
         </button>
       )}
 
@@ -1712,7 +1974,7 @@ export default function MobileHome({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
         <AnimatePresence mode="popLayout">
           {(() => {
-            const enabledWidgets = widgets.filter(w => w.enabled);
+            const enabledWidgets = widgets.filter((w) => w.enabled);
             return enabledWidgets.map((w, index) => {
               const element = renderWidget(w.id);
               if (!element) return null;
@@ -1738,13 +2000,19 @@ export default function MobileHome({
                       </span>
                       <div className="flex items-center gap-1.5">
                         <button
-                          onClick={(e) => { e.stopPropagation(); toggleWidgetSpan(w.id); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleWidgetSpan(w.id);
+                          }}
                           className="px-2 py-0.5 rounded-lg bg-white dark:bg-zinc-800 border border-indigo-200 dark:border-indigo-800 text-[10px] font-black text-indigo-600 dark:text-indigo-400 cursor-pointer shadow-2xs hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
                         >
                           {isFull ? "Full Width" : "Half Width"}
                         </button>
                         <button
-                          onClick={(e) => { e.stopPropagation(); moveWidget(w.id, "up"); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            moveWidget(w.id, "up");
+                          }}
                           disabled={index === 0}
                           className="p-1 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/60 disabled:opacity-30 text-indigo-700 dark:text-indigo-300 cursor-pointer"
                           title="Move Up"
@@ -1752,7 +2020,10 @@ export default function MobileHome({
                           <ArrowUp className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={(e) => { e.stopPropagation(); moveWidget(w.id, "down"); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            moveWidget(w.id, "down");
+                          }}
                           disabled={index === enabledWidgets.length - 1}
                           className="p-1 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/60 disabled:opacity-30 text-indigo-700 dark:text-indigo-300 cursor-pointer"
                           title="Move Down"
@@ -1760,7 +2031,10 @@ export default function MobileHome({
                           <ArrowDown className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={(e) => { e.stopPropagation(); toggleWidget(w.id); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleWidget(w.id);
+                          }}
                           className="p-1 rounded-lg hover:bg-red-100 dark:hover:bg-red-950/50 text-red-500 dark:text-red-400 cursor-pointer"
                           title="Hide Card"
                         >
@@ -1770,7 +2044,13 @@ export default function MobileHome({
                     </div>
                   )}
 
-                  <div className={showCustomizer ? "border border-indigo-200/80 dark:border-indigo-850 border-t-0 rounded-b-[24px] overflow-hidden" : ""}>
+                  <div
+                    className={
+                      showCustomizer
+                        ? "border border-indigo-200/80 dark:border-indigo-850 border-t-0 rounded-b-[24px] overflow-hidden"
+                        : ""
+                    }
+                  >
                     {element}
                   </div>
                 </m.div>
@@ -1782,7 +2062,6 @@ export default function MobileHome({
 
       {/* Tab Help & Guide Footer */}
       <TabHelpFooter tabId="home" />
-
     </div>
   );
 }

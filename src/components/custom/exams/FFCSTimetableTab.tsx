@@ -73,7 +73,7 @@ import { groupSelectedCourses } from "./FFCS/logic/groupSelectedCourses";
 import { sameSlotFacultyAlternatives, expandCourseHalves } from "./FFCS/logic/generate";
 import { VitfacReviewPill, FacultyAvatar } from "./FFCS/components/FacultyAvatar";
 import type { GuidedPhase } from "./FFCS/components/FFCSGuidedSelector";
-import { ENABLE_VITFAC_INTEGRATION } from "@/lib/vitfacService";
+import { setVitfacIntegrationEnabled, useVitfacEnabled } from "@/lib/vitfacService";
 import { buildFacultyNameGroups } from "./FFCS/logic/facultyGroups";
 import { mergeCourses } from "@/features/import/importFile";
 import { processParsedCourses } from "@/lib/ffcsCourseGrouping";
@@ -476,12 +476,52 @@ export default function FFCSTimetableTab({
   const { settings, update: updateSetting, reset: resetSettings } = useFFCSSettings();
   const { visible: hints, dismiss: dismissHint } = useTips();
 
+  // The Vitfac switch has two homes: this settings record (what the row
+  // shows, restores, and resets with) and the service's own flag, which is
+  // read at import time — long before the record hydrates — so no screen
+  // can paint vitfac data on a visit where the student left it off. Reconcile
+  // the two after every commit: the first pass still carries the
+  // pre-hydration defaults, so it must not push them over a stored "off".
+  // Deps are the two reconciled values: the effect only needs to run when
+  // one of them actually changes (including the hydration flip of
+  // settings.vitfacIntegration from default -> stored). Running on every render
+  // (no deps) made the steady-state equality check fire on every render and
+  // could cascade into repeated setVitfacIntegrationEnabled notifications.
+  const vitfacEnabled = useVitfacEnabled();
+  const vitfacHydrated = useRef(false);
+  useEffect(() => {
+    if (!vitfacHydrated.current) {
+      vitfacHydrated.current = true;
+      return;
+    }
+    if (typeof settings.vitfacIntegration === "boolean" && settings.vitfacIntegration !== vitfacEnabled) {
+      setVitfacIntegrationEnabled(settings.vitfacIntegration);
+    }
+  }, [settings.vitfacIntegration, vitfacEnabled]);
+
   // App-level identity (not FFCS settings): the share sheet signs the card
   // with it — logged in, the student's own name and photo; logged out, the
   // sign-in promo. Photo honours the show-profile-photo visibility setting,
   // the same gate every other avatar in the app applies.
   const appSettings = useAtomValue(settingsAtom);
   const isLoggedIn = useAtomValue(isLoggedInAtom);
+  const setIsLoggedIn = useSetAtom(isLoggedInAtom);
+  /*
+    `/ffcs` is its OWN route: it renders this tab without Main's
+    `useAppBootstrap`, so a student landing here directly held a stored
+    session the page refused to recognise — every sync stayed "logged out"
+    until they clicked the share banner's "Sign in to AmazeCC" link to `/`,
+    which bootstraps this very flag into the module-shared store.
+
+    Hydrate it from the same source the home page uses
+    (`hasStoredAppSession`: demo mode or stored VTOP credentials). Deliberately
+    one-directional — it can only RECOGNISE a stored session, never talk a
+    logout out of itself — and parity by construction: wherever the student
+    is "signed in" on the home page, the planner now agrees.
+  */
+  useEffect(() => {
+    if (!isLoggedIn && hasStoredAppSession()) setIsLoggedIn(true);
+  }, [isLoggedIn, setIsLoggedIn]);
   const shareAccount = useMemo(() => {
     if (!isLoggedIn) return null;
     const profile = storage.profile.get() as {
@@ -2177,6 +2217,7 @@ export default function FFCSTimetableTab({
                     className="mb-2 shrink-0 transition-transform active:scale-95"
                   >
                     <img
+                      loading="lazy"
                       src={getAssetPath("/favicon/favicon.svg")}
                       alt=""
                       className="h-9 w-9 sm:h-10 sm:w-10 object-contain"
@@ -2683,7 +2724,7 @@ export default function FFCSTimetableTab({
                   </button>
 
                   {/* Vitfac Community Review Link */}
-                  {ENABLE_VITFAC_INTEGRATION && (
+                  {vitfacEnabled && (
                     <div className="flex flex-col gap-1">
                       <a
                         href="https://vitfac.pages.dev"
@@ -3015,7 +3056,7 @@ export default function FFCSTimetableTab({
               onOpenFriendsManager={() => setIsFriendsManagerOpen(true)}
               facultyGroupsCount={facultyGroups.length}
               onOpenFacultySchedule={handleOpenFacultySchedule}
-              enableVitfacIntegration={ENABLE_VITFAC_INTEGRATION}
+              enableVitfacIntegration={vitfacEnabled}
               isDownloading={isDownloading}
               onDownloadHtmlDossier={downloadDossierHtml}
               onDownloadClashReport={downloadClashReport}
@@ -4337,6 +4378,7 @@ export default function FFCSTimetableTab({
                   <div className="flex items-center gap-3 rounded-2xl border border-border-strong bg-surface-secondary/50 p-4">
                     {shareAccount.photo ? (
                       <img
+                        loading="lazy"
                         src={shareAccount.photo}
                         alt=""
                         decoding="async"

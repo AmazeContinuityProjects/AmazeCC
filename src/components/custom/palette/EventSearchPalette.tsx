@@ -27,15 +27,18 @@ interface EventItem {
   _source?: "registered" | "discover";
 }
 
-interface EventSearchPaletteProps {
-}
+interface EventSearchPaletteProps {}
 
 const badge = {
-  violet: "bg-violet-100 text-violet-800 border-violet-300    dark:bg-violet-900/80 dark:text-violet-300 dark:border-violet-800/50",
+  violet:
+    "bg-violet-100 text-violet-800 border-violet-300    dark:bg-violet-900/80 dark:text-violet-300 dark:border-violet-800/50",
   rose: "bg-rose-100 text-rose-800 border-rose-300    dark:bg-rose-900/80 dark:text-rose-300 dark:border-rose-800/50",
-  amber: "bg-amber-100 text-amber-800 border-amber-300    dark:bg-amber-900/80 dark:text-amber-300 dark:border-amber-800/50",
-  emerald: "bg-emerald-100 text-emerald-800 border-emerald-300    dark:bg-emerald-900/80 dark:text-emerald-300 dark:border-emerald-800/50",
-  indigo: "bg-indigo-100 text-indigo-800 border-indigo-300    dark:bg-indigo-900/80 dark:text-indigo-300 dark:border-indigo-800/50",
+  amber:
+    "bg-amber-100 text-amber-800 border-amber-300    dark:bg-amber-900/80 dark:text-amber-300 dark:border-amber-800/50",
+  emerald:
+    "bg-emerald-100 text-emerald-800 border-emerald-300    dark:bg-emerald-900/80 dark:text-emerald-300 dark:border-emerald-800/50",
+  indigo:
+    "bg-indigo-100 text-indigo-800 border-indigo-300    dark:bg-indigo-900/80 dark:text-indigo-300 dark:border-indigo-800/50",
   gray: "bg-gray-100 text-gray-700 border-gray-300    dark:bg-gray-800/80 dark:text-gray-300 dark:border-gray-700/50",
 };
 
@@ -66,7 +69,11 @@ function mergeEvents(events: EventItem[]): EventItem[] {
         byEid.set(ev.eid, { ...ev });
       } else {
         const existing = byEid.get(ev.eid)!;
-        byEid.set(ev.eid, { ...existing, ...ev, _source: existing._source === "registered" || ev._source === "registered" ? "registered" : "discover" });
+        byEid.set(ev.eid, {
+          ...existing,
+          ...ev,
+          _source: existing._source === "registered" || ev._source === "registered" ? "registered" : "discover",
+        });
       }
     } else {
       noEid.push(ev);
@@ -82,7 +89,11 @@ function mergeEvents(events: EventItem[]): EventItem[] {
     for (const [, eidEv] of byEid) {
       const eidName = (eidEv.name || eidEv.title || "").toLowerCase().trim();
       if (namesMatch(name, eidName)) {
-        byEid.set(eidEv.eid!, { ...eidEv, ...ev, _source: eidEv._source === "registered" || ev._source === "registered" ? "registered" : "discover" });
+        byEid.set(eidEv.eid!, {
+          ...eidEv,
+          ...ev,
+          _source: eidEv._source === "registered" || ev._source === "registered" ? "registered" : "discover",
+        });
         matched = true;
         break;
       }
@@ -92,7 +103,12 @@ function mergeEvents(events: EventItem[]): EventItem[] {
     for (const [, existing] of byName) {
       const prevName = (existing.name || existing.title || "").toLowerCase().trim();
       if (namesMatch(name, prevName)) {
-        const merged = { ...existing, ...ev, _source: (existing._source === "registered" || ev._source === "registered" ? "registered" : "discover") as "registered" | "discover" };
+        const merged = {
+          ...existing,
+          ...ev,
+          _source: (existing._source === "registered" || ev._source === "registered" ? "registered" : "discover") as
+            "registered" | "discover",
+        };
         const key = existing.name || existing.title || name;
         byName.delete(key);
         byName.set(name, merged);
@@ -105,7 +121,7 @@ function mergeEvents(events: EventItem[]): EventItem[] {
     byName.set(name, { ...ev });
   }
 
-  const unnamed = noEid.filter(ev => !ev.name && !ev.title);
+  const unnamed = noEid.filter((ev) => !ev.name && !ev.title);
   return [...Array.from(byEid.values()), ...Array.from(byName.values()), ...unnamed];
 }
 
@@ -127,7 +143,9 @@ export default function EventSearchPalette() {
     let cancelled = false;
     const stored = localStorage.getItem("registeredEvents");
     let reg: EventItem[] = [];
-    try { if (stored) reg = JSON.parse(stored); } catch {}
+    try {
+      if (stored) reg = JSON.parse(stored);
+    } catch {}
     setRegisteredEvents(reg);
     const isDemo = localStorage.getItem("demoMode") === "true";
     if (isDemo) {
@@ -149,24 +167,39 @@ export default function EventSearchPalette() {
           date: "2026-07-22",
           location: "MG Block Lab 202",
           price: "Paid",
-        }
+        },
       ]);
       setLoading(false);
       return;
     }
-    api("events").then((data: any) => {
-      if (cancelled) return;
-      setEventHubEvents(Array.isArray(data) ? data : []);
-      setLoading(false);
-    }).catch(() => { if (!cancelled) { setEventHubEvents([]); setLoading(false); } });
-    return () => { cancelled = true; };
+    api("events")
+      .then((data: any) => {
+        if (cancelled) return;
+        setEventHubEvents(Array.isArray(data) ? data : []);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setEventHubEvents([]);
+          setLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  useEffect(() => { inputRef.current?.focus(); }, []);
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
 
   // Fetch preview data when event is selected
   useEffect(() => {
-    if (!selectedEvent?.eid) { setPreviewData(null); setPreviewError(null); return; }
+    if (!selectedEvent?.eid) {
+      setPreviewData(null);
+      setPreviewError(null);
+      return;
+    }
     let cancelled = false;
     setPreviewLoading(true);
     setPreviewData(null);
@@ -180,15 +213,20 @@ export default function EventSearchPalette() {
         password = ids.VtopPassword || "";
       } catch {}
     }
-    if (!username || !password) { setPreviewLoading(false); setPreviewError("VTOP credentials not found. Login to view posters."); return; }
+    if (!username || !password) {
+      setPreviewLoading(false);
+      setPreviewError("VTOP credentials not found. Login to view posters.");
+      return;
+    }
     const isDemo = localStorage.getItem("demoMode") === "true";
     if (isDemo) {
       setTimeout(() => {
         if (cancelled) return;
         setPreviewData({
-          description: selectedEvent.eid === "evt-001"
-            ? "Build innovative products and compete for cash prizes at the annual flagship dev sprint event hosted by VIT Chennai's Coding Club."
-            : "Hands-on calibration workshop for micro-controllers and servo engines to build autonomous soccer robots.",
+          description:
+            selectedEvent.eid === "evt-001"
+              ? "Build innovative products and compete for cash prizes at the annual flagship dev sprint event hosted by VIT Chennai's Coding Club."
+              : "Hands-on calibration workshop for micro-controllers and servo engines to build autonomous soccer robots.",
         });
         setPreviewLoading(false);
       }, 100);
@@ -197,12 +235,20 @@ export default function EventSearchPalette() {
     api("events/preview", { method: "POST", body: { username, password, eid: selectedEvent.eid } })
       .then((data: any) => {
         if (cancelled) return;
-        if (data?.imageSrc || data?.description) setPreviewData({ imageSrc: data.imageSrc, description: data.description });
+        if (data?.imageSrc || data?.description)
+          setPreviewData({ imageSrc: data.imageSrc, description: data.description });
         else setPreviewError("No poster or description available");
         setPreviewLoading(false);
       })
-      .catch(() => { if (!cancelled) { setPreviewError("Network error fetching poster"); setPreviewLoading(false); } });
-    return () => { cancelled = true; };
+      .catch(() => {
+        if (!cancelled) {
+          setPreviewError("Network error fetching poster");
+          setPreviewLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [selectedEvent?.eid]);
 
   const totalCount = (registeredEvents?.length || 0) + (eventHubEvents?.length || 0);
@@ -213,30 +259,33 @@ export default function EventSearchPalette() {
   ];
 
   const allEvents = useMemo(() => {
-    const registered = (registeredEvents || []).map(e => ({ ...e, _source: "registered" as const }));
-    const discover = (eventHubEvents || []).map(e => ({ ...e, _source: "discover" as const }));
+    const registered = (registeredEvents || []).map((e) => ({ ...e, _source: "registered" as const }));
+    const discover = (eventHubEvents || []).map((e) => ({ ...e, _source: "discover" as const }));
     return mergeEvents([...registered, ...discover]);
   }, [registeredEvents, eventHubEvents]);
 
   const results = useMemo(() => {
     let filtered = allEvents;
-    if (activeTab === "registered") filtered = allEvents.filter(e => e._source === "registered");
-    if (activeTab === "discover") filtered = allEvents.filter(e => e._source === "discover");
+    if (activeTab === "registered") filtered = allEvents.filter((e) => e._source === "registered");
+    if (activeTab === "discover") filtered = allEvents.filter((e) => e._source === "discover");
     if (!query.trim()) return filtered;
     return filtered.filter(
-      e => (e.title || e.name || "").toLowerCase().includes(query.toLowerCase()) ||
-           (e.description || "").toLowerCase().includes(query.toLowerCase()) ||
-           (e.venue || e.location || "").toLowerCase().includes(query.toLowerCase()) ||
-           (e.type || "").toLowerCase().includes(query.toLowerCase()) ||
-           (e.price || "").toLowerCase().includes(query.toLowerCase()) ||
-           (e.paymentStatus || "").toLowerCase().includes(query.toLowerCase()) ||
-           (e.eligibility || "").toLowerCase().includes(query.toLowerCase())
+      (e) =>
+        (e.title || e.name || "").toLowerCase().includes(query.toLowerCase()) ||
+        (e.description || "").toLowerCase().includes(query.toLowerCase()) ||
+        (e.venue || e.location || "").toLowerCase().includes(query.toLowerCase()) ||
+        (e.type || "").toLowerCase().includes(query.toLowerCase()) ||
+        (e.price || "").toLowerCase().includes(query.toLowerCase()) ||
+        (e.paymentStatus || "").toLowerCase().includes(query.toLowerCase()) ||
+        (e.eligibility || "").toLowerCase().includes(query.toLowerCase()),
     );
   }, [query, activeTab, allEvents]);
 
   const safeIndex = Math.min(selectedIndex, Math.max(0, results.length - 1));
 
-  useEffect(() => { setSelectedIndex(0); }, [query, activeTab]);
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [query, activeTab]);
 
   useEffect(() => {
     const container = listRef.current;
@@ -255,26 +304,74 @@ export default function EventSearchPalette() {
     }
   }, [selectedIndex]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (selectedEvent) {
-      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); setSelectedEvent(null); setPreviewData(null); setPreviewError(null); setTimeout(() => inputRef.current?.focus(), 0); }
-      return;
-    }
-    switch (e.key) {
-      case "ArrowDown": e.preventDefault(); setSelectedIndex(prev => Math.min(prev + 1, results.length - 1)); break;
-      case "ArrowUp": e.preventDefault(); setSelectedIndex(prev => Math.max(prev - 1, 0)); break;
-      case "ArrowLeft": e.preventDefault(); if (!query) { const idx = tabs.findIndex(t => t.id === activeTab); if (idx > 0) { setActiveTab(tabs[idx - 1].id); setSelectedEvent(null); setPreviewData(null); setPreviewError(null); } } break;
-      case "ArrowRight": e.preventDefault(); if (!query) { const idx = tabs.findIndex(t => t.id === activeTab); if (idx < tabs.length - 1) { setActiveTab(tabs[idx + 1].id); setSelectedEvent(null); setPreviewData(null); setPreviewError(null); } } break;
-      case "Enter": e.preventDefault(); if (results[safeIndex]) { setSelectedEvent(results[safeIndex]); setPreviewData(null); setPreviewError(null); } break;
-      case "Escape": break;
-    }
-  }, [results, safeIndex, selectedEvent, activeTab, query, tabs]);
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (selectedEvent) {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          e.stopPropagation();
+          setSelectedEvent(null);
+          setPreviewData(null);
+          setPreviewError(null);
+          setTimeout(() => inputRef.current?.focus(), 0);
+        }
+        return;
+      }
+      switch (e.key) {
+        case "ArrowDown":
+          e.preventDefault();
+          setSelectedIndex((prev) => Math.min(prev + 1, results.length - 1));
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          setSelectedIndex((prev) => Math.max(prev - 1, 0));
+          break;
+        case "ArrowLeft":
+          e.preventDefault();
+          if (!query) {
+            const idx = tabs.findIndex((t) => t.id === activeTab);
+            if (idx > 0) {
+              setActiveTab(tabs[idx - 1].id);
+              setSelectedEvent(null);
+              setPreviewData(null);
+              setPreviewError(null);
+            }
+          }
+          break;
+        case "ArrowRight":
+          e.preventDefault();
+          if (!query) {
+            const idx = tabs.findIndex((t) => t.id === activeTab);
+            if (idx < tabs.length - 1) {
+              setActiveTab(tabs[idx + 1].id);
+              setSelectedEvent(null);
+              setPreviewData(null);
+              setPreviewError(null);
+            }
+          }
+          break;
+        case "Enter":
+          e.preventDefault();
+          if (results[safeIndex]) {
+            setSelectedEvent(results[safeIndex]);
+            setPreviewData(null);
+            setPreviewError(null);
+          }
+          break;
+        case "Escape":
+          break;
+      }
+    },
+    [results, safeIndex, selectedEvent, activeTab, query, tabs],
+  );
 
   const getTitle = (e: EventItem) => e.title || e.name || "Untitled Event";
   const posterSrc = selectedEvent?.eid ? eventhubImageUrl(selectedEvent.eid) : "";
   const [posterFailed, setPosterFailed] = useState(false);
   const [showEnlarged, setShowEnlarged] = useState(false);
-  useEffect(() => { setPosterFailed(false); }, [posterSrc]);
+  useEffect(() => {
+    setPosterFailed(false);
+  }, [posterSrc]);
 
   if (loading) {
     return (
@@ -301,7 +398,13 @@ export default function EventSearchPalette() {
           className="flex-1 bg-transparent text-sm text-gray-900  dark:text-gray-100 placeholder-gray-400  dark:placeholder-gray-500 outline-none"
         />
         {query ? (
-          <button onClick={() => { setQuery(""); inputRef.current?.focus(); }} className="relative hit-expand p-1 rounded-lg hover:bg-gray-200/60 dark:hover:bg-gray-700/40 dark:hover:bg-gray-800/40 text-gray-400 transition-colors">
+          <button
+            onClick={() => {
+              setQuery("");
+              inputRef.current?.focus();
+            }}
+            className="relative hit-expand p-1 rounded-lg hover:bg-gray-200/60 dark:hover:bg-gray-700/40 dark:hover:bg-gray-800/40 text-gray-400 transition-colors"
+          >
             <X className="w-4 h-4" />
           </button>
         ) : (
@@ -316,21 +419,29 @@ export default function EventSearchPalette() {
         {tabs.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => { setActiveTab(tab.id); setSelectedEvent(null); setPreviewData(null); setPreviewError(null); inputRef.current?.focus(); }}
+            onClick={() => {
+              setActiveTab(tab.id);
+              setSelectedEvent(null);
+              setPreviewData(null);
+              setPreviewError(null);
+              inputRef.current?.focus();
+            }}
             className={cn(
               "relative px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
               activeTab === tab.id
                 ? "bg-gradient-to-r from-fuchsia-500/10 to-pink-500/10 text-fuchsia-700  dark:text-fuchsia-300 shadow-sm"
-                : "text-gray-500  dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800/60 dark:hover:bg-gray-800/40"
+                : "text-gray-500  dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800/60 dark:hover:bg-gray-800/40",
             )}
           >
             {tab.label}
-            <span className={cn(
-              "ml-1.5 px-1.5 py-0.5 rounded text-[9px] font-bold",
-              activeTab === tab.id
-                ? "bg-fuchsia-200/50 dark:bg-fuchsia-800/30 text-fuchsia-600 dark:text-fuchsia-300"
-                : "bg-gray-200/50 dark:bg-gray-700/30 text-gray-500 dark:text-gray-400"
-            )}>
+            <span
+              className={cn(
+                "ml-1.5 px-1.5 py-0.5 rounded text-[9px] font-bold",
+                activeTab === tab.id
+                  ? "bg-fuchsia-200/50 dark:bg-fuchsia-800/30 text-fuchsia-600 dark:text-fuchsia-300"
+                  : "bg-gray-200/50 dark:bg-gray-700/30 text-gray-500 dark:text-gray-400",
+              )}
+            >
               {tab.count}
             </span>
           </button>
@@ -347,12 +458,19 @@ export default function EventSearchPalette() {
         /* Detail view */
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           <button
-            onClick={() => { setSelectedEvent(null); setPreviewData(null); setPreviewError(null); setTimeout(() => inputRef.current?.focus(), 0); }}
+            onClick={() => {
+              setSelectedEvent(null);
+              setPreviewData(null);
+              setPreviewError(null);
+              setTimeout(() => inputRef.current?.focus(), 0);
+            }}
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-fuchsia-600  dark:text-fuchsia-400 hover:text-fuchsia-700 dark:hover:text-fuchsia-300 transition-colors group"
           >
             <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
             Back to results
-            <kbd className="ml-1 px-1.5 py-0.5 rounded bg-gray-100  dark:bg-gray-900 text-[10px] text-gray-400">esc</kbd>
+            <kbd className="ml-1 px-1.5 py-0.5 rounded bg-gray-100  dark:bg-gray-900 text-[10px] text-gray-400">
+              esc
+            </kbd>
           </button>
 
           {previewLoading && (
@@ -370,8 +488,18 @@ export default function EventSearchPalette() {
           <div className="space-y-4">
             <div className="flex gap-4">
               {posterSrc && !posterFailed ? (
-                <button onClick={() => setShowEnlarged(true)} className="shrink-0 w-28 h-36 rounded-xl overflow-hidden bg-gray-100  dark:bg-gray-900 shadow-md ring-1 ring-black/5 cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98]">
-                  <img src={posterSrc} alt="" className="w-full h-full object-cover" onError={() => setPosterFailed(true)} />
+                <button
+                  onClick={() => setShowEnlarged(true)}
+                  className="shrink-0 w-28 h-36 rounded-xl overflow-hidden bg-gray-100  dark:bg-gray-900 shadow-md ring-1 ring-black/5 cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <img
+                    loading="lazy"
+                    decoding="async"
+                    src={posterSrc}
+                    alt=""
+                    className="w-full h-full object-cover"
+                    onError={() => setPosterFailed(true)}
+                  />
                 </button>
               ) : (
                 <div className="shrink-0 w-28 h-36 rounded-xl bg-gray-100  dark:bg-gray-900/60 flex items-center justify-center shadow-sm ring-1 ring-black/5">
@@ -381,64 +509,82 @@ export default function EventSearchPalette() {
               <div className="min-w-0 flex-1 space-y-2">
                 <div className="flex items-center gap-3">
                   {!posterSrc && !selectedEvent.eid && (
-                    <div className={cn(
-                      "p-3 rounded-xl shrink-0 shadow-sm",
-                      selectedEvent._source === "registered"
-                        ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600"
-                        : "bg-fuchsia-100 dark:bg-fuchsia-900/30 text-fuchsia-600"
-                    )}>
+                    <div
+                      className={cn(
+                        "p-3 rounded-xl shrink-0 shadow-sm",
+                        selectedEvent._source === "registered"
+                          ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600"
+                          : "bg-fuchsia-100 dark:bg-fuchsia-900/30 text-fuchsia-600",
+                      )}
+                    >
                       <CalendarDays className="w-5 h-5" />
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold text-gray-900  dark:text-white truncate">{getTitle(selectedEvent)}</p>
-                    <span className={cn(
-                      "inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded text-[10px] font-semibold",
-                      selectedEvent._source === "registered"
-                        ? "bg-emerald-100 text-emerald-800   dark:bg-emerald-900/80 dark:text-emerald-300"
-                        : "bg-fuchsia-100 text-fuchsia-800   dark:bg-fuchsia-900/80 dark:text-fuchsia-300"
-                    )}>
+                    <p className="text-sm font-bold text-gray-900  dark:text-white truncate">
+                      {getTitle(selectedEvent)}
+                    </p>
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded text-[10px] font-semibold",
+                        selectedEvent._source === "registered"
+                          ? "bg-emerald-100 text-emerald-800   dark:bg-emerald-900/80 dark:text-emerald-300"
+                          : "bg-fuchsia-100 text-fuchsia-800   dark:bg-fuchsia-900/80 dark:text-fuchsia-300",
+                      )}
+                    >
                       {selectedEvent._source === "registered" ? "Registered" : "Discover"}
                     </span>
                   </div>
                 </div>
                 {selectedEvent.eligibility && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400">Eligibility: <span className="font-medium text-gray-700 dark:text-gray-300">{selectedEvent.eligibility}</span></p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400">
+                    Eligibility:{" "}
+                    <span className="font-medium text-gray-700 dark:text-gray-300">{selectedEvent.eligibility}</span>
+                  </p>
                 )}
               </div>
             </div>
 
             <div className="flex flex-wrap gap-1.5">
               {(selectedEvent.date || selectedEvent.time) && (
-                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold border ${badge.violet}`}>
+                <span
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold border ${badge.violet}`}
+                >
                   <CalendarDays className="w-3 h-3" />
-                  {selectedEvent.date}{selectedEvent.time ? ` · ${selectedEvent.time}` : ""}
+                  {selectedEvent.date}
+                  {selectedEvent.time ? ` · ${selectedEvent.time}` : ""}
                 </span>
               )}
               {(selectedEvent.venue || selectedEvent.location) && (
-                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold border ${badge.rose}`}>
+                <span
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold border ${badge.rose}`}
+                >
                   <MapPin className="w-3 h-3" />
                   {selectedEvent.venue || selectedEvent.location}
                 </span>
               )}
               {(selectedEvent.price || selectedEvent.paymentStatus) && (
-                <span className={cn(
-                  "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold border",
-                  (selectedEvent.paymentStatus || "").toLowerCase().includes("paid")
-                    ? badge.amber
-                    : badge.emerald
-                )}>
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold border",
+                    (selectedEvent.paymentStatus || "").toLowerCase().includes("paid") ? badge.amber : badge.emerald,
+                  )}
+                >
                   <DollarSign className="w-3 h-3" />
                   {selectedEvent.paymentStatus || selectedEvent.price}
                 </span>
               )}
               {selectedEvent.type && (
-                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold border ${badge.indigo}`}>
+                <span
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold border ${badge.indigo}`}
+                >
                   {selectedEvent.type}
                 </span>
               )}
               {selectedEvent.eligibility && !selectedEvent.type && (
-                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold border ${badge.gray}`}>
+                <span
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold border ${badge.gray}`}
+                >
                   {selectedEvent.eligibility}
                 </span>
               )}
@@ -446,13 +592,19 @@ export default function EventSearchPalette() {
 
             {(previewData?.description || selectedEvent.description) && (
               <div className="px-4 py-3 rounded-xl bg-gray-50/80  dark:bg-gray-900/40 border border-gray-200/50  dark:border-gray-800/30">
-                <p className="text-[10px] font-semibold text-gray-500  dark:text-gray-400 mb-1.5 uppercase tracking-wider">Description</p>
-                <p className="text-xs font-medium text-gray-900  dark:text-white leading-relaxed">{previewData?.description || selectedEvent.description}</p>
+                <p className="text-[10px] font-semibold text-gray-500  dark:text-gray-400 mb-1.5 uppercase tracking-wider">
+                  Description
+                </p>
+                <p className="text-xs font-medium text-gray-900  dark:text-white leading-relaxed">
+                  {previewData?.description || selectedEvent.description}
+                </p>
               </div>
             )}
 
             {selectedEvent.eid && (
-              <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold border ${badge.gray}`}>
+              <div
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold border ${badge.gray}`}
+              >
                 Event ID: {selectedEvent.eid}
               </div>
             )}
@@ -463,33 +615,51 @@ export default function EventSearchPalette() {
         <div ref={listRef} className="flex-1 overflow-y-auto p-2 space-y-0.5 scroll-smooth">
           {query && (
             <div className="flex items-center justify-between px-3 py-1.5">
-              <p className="text-[11px] font-medium text-gray-400  dark:text-gray-500">{results.length} result{results.length !== 1 ? "s" : ""}</p>
-              <kbd className="px-1.5 py-0.5 rounded bg-gray-100  dark:bg-gray-900/60 text-[10px] text-gray-400 dark:text-gray-500">↑↓ navigate · enter to view</kbd>
+              <p className="text-[11px] font-medium text-gray-400  dark:text-gray-500">
+                {results.length} result{results.length !== 1 ? "s" : ""}
+              </p>
+              <kbd className="px-1.5 py-0.5 rounded bg-gray-100  dark:bg-gray-900/60 text-[10px] text-gray-400 dark:text-gray-500">
+                ↑↓ navigate · enter to view
+              </kbd>
             </div>
           )}
           {results.map((ev, idx) => (
             <button
               key={`${ev.eid || ev._source}-${idx}`}
-              onClick={() => { setSelectedEvent(ev); setPreviewData(null); }}
+              onClick={() => {
+                setSelectedEvent(ev);
+                setPreviewData(null);
+              }}
               onMouseEnter={() => setSelectedIndex(idx)}
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-150 group",
                 idx === safeIndex
                   ? "bg-gradient-to-r from-fuchsia-50 to-pink-50   dark:from-fuchsia-900/20 dark:to-pink-900/10 text-gray-900  dark:text-gray-100 shadow-sm ring-1 ring-fuchsia-500/10"
-                  : "text-gray-700  dark:text-gray-300 hover:bg-gray-50/80 dark:hover:bg-gray-800/40 dark:hover:bg-gray-800/30"
+                  : "text-gray-700  dark:text-gray-300 hover:bg-gray-50/80 dark:hover:bg-gray-800/40 dark:hover:bg-gray-800/30",
               )}
             >
               {ev.eid ? (
                 <span className="shrink-0 w-9 h-12 rounded-lg overflow-hidden bg-gray-100  dark:bg-gray-900 shadow-sm ring-1 ring-black/5">
-                  <img src={eventhubImageUrl(ev.eid)} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                  <img
+                    loading="lazy"
+                    decoding="async"
+                    src={eventhubImageUrl(ev.eid)}
+                    alt=""
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = "none";
+                    }}
+                  />
                 </span>
               ) : (
-                <span className={cn(
-                  "shrink-0 w-9 h-9 flex items-center justify-center rounded-xl text-sm transition-all",
-                  idx === safeIndex
-                    ? "bg-white  dark:bg-gray-900 shadow-sm ring-1 ring-black/5"
-                    : "bg-gray-100/80  dark:bg-gray-900/60"
-                )}>
+                <span
+                  className={cn(
+                    "shrink-0 w-9 h-9 flex items-center justify-center rounded-xl text-sm transition-all",
+                    idx === safeIndex
+                      ? "bg-white  dark:bg-gray-900 shadow-sm ring-1 ring-black/5"
+                      : "bg-gray-100/80  dark:bg-gray-900/60",
+                  )}
+                >
                   {ev._source === "registered" ? (
                     <span className="text-sm">✅</span>
                   ) : (
@@ -498,27 +668,37 @@ export default function EventSearchPalette() {
                 </span>
               )}
               <div className="flex-1 min-w-0">
-                <p className={cn(
-                  "text-sm font-semibold truncate leading-tight",
-                  idx === safeIndex ? "text-gray-900  dark:text-gray-100" : "text-gray-800  dark:text-gray-200"
-                )}>{getTitle(ev)}</p>
+                <p
+                  className={cn(
+                    "text-sm font-semibold truncate leading-tight",
+                    idx === safeIndex ? "text-gray-900  dark:text-gray-100" : "text-gray-800  dark:text-gray-200",
+                  )}
+                >
+                  {getTitle(ev)}
+                </p>
                 <p className="text-[11px] text-gray-400  dark:text-gray-500 truncate mt-0.5">
-                  {ev.date || ""}{ev.date && (ev.venue || ev.location) ? " · " : ""}{ev.venue || ev.location || ""}
+                  {ev.date || ""}
+                  {ev.date && (ev.venue || ev.location) ? " · " : ""}
+                  {ev.venue || ev.location || ""}
                 </p>
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 {ev._source && (
-                  <span className={cn(
-                    "px-1.5 py-0.5 rounded text-[9px] font-bold",
-                    ev._source === "registered"
-                      ? "bg-emerald-100 text-emerald-800   dark:bg-emerald-900/80 dark:text-emerald-300"
-                      : "bg-fuchsia-100 text-fuchsia-800   dark:bg-fuchsia-900/80 dark:text-fuchsia-300"
-                  )}>
+                  <span
+                    className={cn(
+                      "px-1.5 py-0.5 rounded text-[9px] font-bold",
+                      ev._source === "registered"
+                        ? "bg-emerald-100 text-emerald-800   dark:bg-emerald-900/80 dark:text-emerald-300"
+                        : "bg-fuchsia-100 text-fuchsia-800   dark:bg-fuchsia-900/80 dark:text-fuchsia-300",
+                    )}
+                  >
                     {ev._source === "registered" ? "REG" : "DSC"}
                   </span>
                 )}
                 {ev.price && (
-                  <span className={`inline-flex items-center justify-center min-w-[2.5rem] h-7 rounded-lg text-[10px] font-bold border ${badge.gray}`}>
+                  <span
+                    className={`inline-flex items-center justify-center min-w-[2.5rem] h-7 rounded-lg text-[10px] font-bold border ${badge.gray}`}
+                  >
                     {ev.price}
                   </span>
                 )}
@@ -530,10 +710,14 @@ export default function EventSearchPalette() {
         /* Empty / no results state */
         <div className="flex-1 flex items-center justify-center">
           <div className="flex flex-col items-center gap-2 py-16">
-            <div className={cn(
-              "p-4 rounded-2xl",
-              query ? "bg-gray-100  dark:bg-gray-900" : "bg-gradient-to-br from-fuchsia-500/10 to-pink-500/10 ring-1 ring-fuchsia-500/10"
-            )}>
+            <div
+              className={cn(
+                "p-4 rounded-2xl",
+                query
+                  ? "bg-gray-100  dark:bg-gray-900"
+                  : "bg-gradient-to-br from-fuchsia-500/10 to-pink-500/10 ring-1 ring-fuchsia-500/10",
+              )}
+            >
               {query ? (
                 <CalendarDays className="w-10 h-10 text-gray-400  dark:text-gray-500" />
               ) : (
@@ -544,7 +728,11 @@ export default function EventSearchPalette() {
               {allEvents.length === 0 ? "No events available" : query ? "No events found" : "Event Search"}
             </p>
             <p className="text-xs text-gray-400  dark:text-gray-500 text-center max-w-[260px]">
-              {allEvents.length === 0 ? "Check back later for new events" : query ? "Try a different name, venue, or category" : `Search through ${allEvents.length} available events`}
+              {allEvents.length === 0
+                ? "Check back later for new events"
+                : query
+                  ? "Try a different name, venue, or category"
+                  : `Search through ${allEvents.length} available events`}
             </p>
           </div>
         </div>
@@ -554,18 +742,33 @@ export default function EventSearchPalette() {
         <div
           className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70  p-4"
           onClick={() => setShowEnlarged(false)}
-          onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); setShowEnlarged(false); } }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              e.stopPropagation();
+              setShowEnlarged(false);
+            }
+          }}
           tabIndex={0}
           role="dialog"
         >
-          <div className="relative max-w-[90vw] max-h-[90vh] rounded-2xl overflow-hidden shadow-2xl bg-black/10" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="relative max-w-[90vw] max-h-[90vh] rounded-2xl overflow-hidden shadow-2xl bg-black/10"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
               onClick={() => setShowEnlarged(false)}
               className="absolute top-3 right-3 z-10 hit-expand w-8 h-8 flex items-center justify-center rounded-full bg-black/50 text-white/90 hover:bg-black/70 transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
-            <img src={posterSrc} alt="" className="w-auto h-auto max-w-full max-h-[85vh] object-contain" />
+
+            <img
+              loading="lazy"
+              decoding="async"
+              src={posterSrc}
+              alt=""
+              className="w-auto h-auto max-w-full max-h-[85vh] object-contain"
+            />
           </div>
         </div>
       )}

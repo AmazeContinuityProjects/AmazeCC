@@ -155,11 +155,20 @@ export interface GenerateParams {
    * cap in settings is a real ceiling on the search rather than a display
    * number trimmed after the fact; `noLimit` still outranks it, because the
    * per-run switch is the more recent thing the student chose. Unlimited runs
-   * retain {@link HARD_RESULT_LIMIT} unless Planner Settings explicitly opts
-   * out via `removeHardResultLimit`.
+   * retain {@link HARD_RESULT_LIMIT} unless the caller lifts it via
+   * `removeHardResultLimit`.
    */
   resultCap?: number;
-  /** Explicit Planner Settings opt-in to remove the unlimited run safety ceiling. */
+  /**
+   * Lift the {@link HARD_RESULT_LIMIT} ceiling an unlimited run would
+   * otherwise keep.
+   *
+   * The screens pass this alongside `noLimit` when the student flips the
+   * per-run "Unlimited" switch, so that switch means what it says — no
+   * ceiling, rather than a 30,000 one. Left unset, an unlimited run still
+   * stops at {@link HARD_RESULT_LIMIT}: a caller that never asks for the
+   * lift gets the engine's safety net.
+   */
   removeHardResultLimit?: boolean;
   minHalfDays: number;
   sortBy: SortBy;
@@ -349,17 +358,24 @@ const COURSE_COLORS = [
  * not keep pace with a list growing past what a browser can paint — the
  * screen sat on "Searching for conflict-free weeks" and looked infinite even
  * though the solve itself ran on a background thread. A ceiling answers both
- * the paint problem and the posterion of no result ever arriving: the walk
+ * the paint problem and the posterior of no result ever arriving: the walk
  * halts here, the kept list still streams in batches as it was found, and the
  * run's answer says it was capped.
  *
- * Exported so the streaming test can pin the exact stop, and so it reads as a
- * product number next to the settings cap: 30,000 is tens of grips above the
- * 1,000 a student can set, so the switch still means "much wider", never
- * "nothing can stop this".
+ * Exported so the streaming test can pin the exact stop. It doubles as the
+ * widest selectable result cap (30K in the settings sheet and the per-run
+ * pickers); the per-run Unlimited switch is the one thing above it, and it
+ * lifts this ceiling outright via `removeHardResultLimit` rather than sitting
+ * underneath it.
  */
 export const HARD_RESULT_LIMIT = 30_000;
-/** Exported because the settings sheet offers it as the cap to come back to. */
+/**
+ * The cap for a capped run that names none.
+ *
+ * The planner's screens always name one — seeded from settings, which now
+ * defaults to the full 30K — so this fifty is the engine-level fallback for
+ * callers that pass no `resultCap` at all, not a product default.
+ */
 export const DEFAULT_RESULT_LIMIT = 50;
 /**
  * Accepted timetables per streamed batch.

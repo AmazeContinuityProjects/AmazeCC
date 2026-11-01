@@ -1,11 +1,31 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
-import { 
-  Sparkles, LayoutGrid, CheckCircle2, ArrowRight, ChevronLeft, ChevronRight, 
-  Check, GraduationCap, Bus, Bell, Palette, ShieldCheck, Loader2, 
-  Sliders, User, Calendar, CalendarCheck, Car, CreditCard, Key, Smartphone,
-  Download, Share, Plus
+import {
+  Sparkles,
+  LayoutGrid,
+  CheckCircle2,
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  Check,
+  GraduationCap,
+  Bus,
+  Bell,
+  Palette,
+  ShieldCheck,
+  Loader2,
+  Sliders,
+  User,
+  Calendar,
+  CalendarCheck,
+  Car,
+  CreditCard,
+  Key,
+  Smartphone,
+  Download,
+  Share,
+  Plus,
 } from "lucide-react";
 import { AnimatePresence, m } from "framer-motion";
 import { getAssetPath } from "@/lib/utils";
@@ -229,8 +249,8 @@ export default function AmazeOnboardingFlow({
   const initialModeIdx = Math.max(
     0,
     interfaces.findIndex(
-      (i) => i.id === (temp.defaultLandingTab === "attendance" ? "attendance" : temp.dashboardViewMode || "simplified")
-    )
+      (i) => i.id === (temp.defaultLandingTab === "attendance" ? "attendance" : temp.dashboardViewMode || "simplified"),
+    ),
   );
   const [activeInterfaceIdx, setActiveInterfaceIdx] = useState(initialModeIdx >= 0 ? initialModeIdx : 0);
 
@@ -454,9 +474,7 @@ export default function AmazeOnboardingFlow({
         aspectRatio: isLandscapeMode ? "9 / 19" : `${viewportRatio}`,
       }}
       className={`${
-        isLandscapeMode
-          ? "h-[76vh] max-h-[660px] max-w-[85%]"
-          : "h-[52vh] sm:h-[58vh] max-h-[600px] max-w-[88vw]"
+        isLandscapeMode ? "h-[76vh] max-h-[660px] max-w-[85%]" : "h-[52vh] sm:h-[58vh] max-h-[600px] max-w-[88vw]"
       } rounded-[34px] sm:rounded-[42px] border-2 border-zinc-800/90 bg-zinc-900/95 backdrop-blur-2xl shadow-2xl overflow-hidden flex flex-col relative text-left ring-1 ring-white/10`}
     >
       {/* Top Island Notch / Camera Pill */}
@@ -534,12 +552,8 @@ export default function AmazeOnboardingFlow({
               {currentOption.id === "attendance" && (
                 <div className="space-y-4">
                   <div className="p-3.5 rounded-2xl bg-indigo-950/30 border border-indigo-900/40 text-left">
-                    <h4 className="text-xs font-bold text-indigo-300 font-outfit">
-                      Direct Attendance Mode
-                    </h4>
-                    <p className="text-[11px] text-zinc-400 mt-0.5">
-                      Opens straight into your Course Attendance list.
-                    </p>
+                    <h4 className="text-xs font-bold text-indigo-300 font-outfit">Direct Attendance Mode</h4>
+                    <p className="text-[11px] text-zinc-400 mt-0.5">Opens straight into your Course Attendance list.</p>
                   </div>
                   {attendanceData?.attendance && (
                     <AttendanceTabs
@@ -600,6 +614,7 @@ export default function AmazeOnboardingFlow({
             }`}
           >
             <img
+              loading="lazy"
               src={getAssetPath("/logo.png")}
               alt="AmazeCC"
               decoding="async"
@@ -619,9 +634,7 @@ export default function AmazeOnboardingFlow({
           <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 font-outfit">
             Target Attendance Goal
           </label>
-          <span className="text-xs font-black text-indigo-400">
-            {temp.targetAttendance || 75}%
-          </span>
+          <span className="text-xs font-black text-indigo-400">{temp.targetAttendance || 75}%</span>
         </div>
         <div className="grid grid-cols-3 gap-2">
           {[75, 80, 85].map((pct) => {
@@ -651,20 +664,19 @@ export default function AmazeOnboardingFlow({
         </label>
         <div className="flex items-center gap-2 justify-between">
           {COLOR_PALETTES.map((p) => {
-            const isSelected = (temp.colorPalette === p.id) || (!temp.colorPalette && p.id === "default");
+            const isSelected = temp.colorPalette === p.id || (!temp.colorPalette && p.id === "default");
             return (
               <button
                 key={p.id}
                 type="button"
                 onClick={() => update("colorPalette", p.id)}
                 className={`flex-1 py-2 px-1 rounded-xl border flex flex-col items-center gap-1.5 transition-all cursor-pointer ${
-                  isSelected ? "border-white bg-zinc-800 shadow-xs" : "border-zinc-800/80 bg-zinc-950/40 hover:border-zinc-700"
+                  isSelected
+                    ? "border-white bg-zinc-800 shadow-xs"
+                    : "border-zinc-800/80 bg-zinc-950/40 hover:border-zinc-700"
                 }`}
               >
-                <span
-                  className="w-4 h-4 rounded-full shadow-xs"
-                  style={{ backgroundColor: p.color }}
-                />
+                <span className="w-4 h-4 rounded-full shadow-xs" style={{ backgroundColor: p.color }} />
                 <span className="text-[9px] font-bold text-zinc-400">{p.label}</span>
               </button>
             );
@@ -798,7 +810,9 @@ export default function AmazeOnboardingFlow({
           <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-400">
             Fresher Schedule Active
           </span>
-          <p className="text-[11px] font-bold text-zinc-300">EPT & Orientation Schedule integrated into your calendar.</p>
+          <p className="text-[11px] font-bold text-zinc-300">
+            EPT & Orientation Schedule integrated into your calendar.
+          </p>
         </div>
       )}
     </div>
@@ -872,18 +886,11 @@ export default function AmazeOnboardingFlow({
   };
 
   if (!introDone && intro) {
-    return (
-      <OnboardingIntro
-        initialPhase={intro.initialPhase}
-        login={intro.login}
-        onDone={() => setIntroDone(true)}
-      />
-    );
+    return <OnboardingIntro initialPhase={intro.initialPhase} login={intro.login} onDone={() => setIntroDone(true)} />;
   }
 
   return (
     <div className="fixed inset-0 z-50 bg-zinc-950 text-zinc-100 flex flex-col justify-between overflow-hidden select-none px-5 sm:px-8 pt-[calc(env(safe-area-inset-top,0px)+1rem)] pb-[calc(env(safe-area-inset-bottom,0px)+1rem)] sm:pt-[calc(env(safe-area-inset-top,0px)+1.5rem)] sm:pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)] animate-in fade-in duration-300">
-      
       {/* Background ambient lighting */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[550px] h-[550px] rounded-full bg-indigo-600/10 blur-[150px]" />
@@ -905,10 +912,8 @@ export default function AmazeOnboardingFlow({
       {/* ── RESPONSIVE DUAL PANE LAYOUT (WHEN VIEWPORT IS HORIZONTAL > VERTICAL) ── */}
       {isHorizontal ? (
         <div className="relative z-20 w-full max-w-6xl mx-auto flex-1 flex flex-row items-center justify-between gap-8 lg:gap-14 h-full min-h-0 py-2">
-          
           {/* LEFT PANE: Little bit smaller than right pane (~40-42%) */}
           <div className="w-[42%] max-w-md shrink-0 flex flex-col justify-between h-full max-h-[640px] py-1 select-none">
-            
             {/* Top: Back Button, Progress Bar & Step Indicator */}
             <div className="flex items-center justify-between gap-3 shrink-0">
               {step > 0 && !isStandaloneInterfacePicker ? (
@@ -931,7 +936,11 @@ export default function AmazeOnboardingFlow({
                     <div
                       key={i}
                       className={`h-1.5 rounded-full transition-all duration-300 ${
-                        i === step ? "w-7 bg-indigo-500 shadow-xs shadow-indigo-500/50" : i < step ? "w-2.5 bg-indigo-400/50" : "w-2 bg-zinc-800"
+                        i === step
+                          ? "w-7 bg-indigo-500 shadow-xs shadow-indigo-500/50"
+                          : i < step
+                            ? "w-2.5 bg-indigo-400/50"
+                            : "w-2 bg-zinc-800"
                       }`}
                     />
                   ))}
@@ -954,10 +963,11 @@ export default function AmazeOnboardingFlow({
                 scroll container here the Continue button gets clipped and the step
                 becomes un-completable. Header and actions above/below stay pinned. */}
             <div className="flex flex-col items-start text-left space-y-4 my-auto min-h-0 overflow-y-auto py-2">
-              {(step === 1 || isStandaloneInterfacePicker) ? (
+              {step === 1 || isStandaloneInterfacePicker ? (
                 <>
                   <div className="flex items-center gap-3">
                     <img
+                      loading="lazy"
                       src={getAssetPath("/logo.png")}
                       alt="AmazeCC"
                       decoding="async"
@@ -973,7 +983,8 @@ export default function AmazeOnboardingFlow({
                     </div>
                   </div>
                   <p className="text-xs text-zinc-400 font-medium leading-relaxed">
-                    Pick how you want AmazeCC to look and feel. Switch between simplified, classic, or attendance anytime.
+                    Pick how you want AmazeCC to look and feel. Switch between simplified, classic, or attendance
+                    anytime.
                   </p>
 
                   {/* Icon-Only Option Bar */}
@@ -1012,8 +1023,8 @@ export default function AmazeOnboardingFlow({
                         {currentOption.id === "simplified"
                           ? "Clean, focused single-page view with essential widgets, quick timetable glance, and simplified cards."
                           : currentOption.id === "classic"
-                          ? "Power-user dashboard with multi-widgets, od hours history, grade analytics, and full customizability."
-                          : "Direct launcher that opens straight into your Course Attendance list and live Bunk Margin calculations."}
+                            ? "Power-user dashboard with multi-widgets, od hours history, grade analytics, and full customizability."
+                            : "Direct launcher that opens straight into your Course Attendance list and live Bunk Margin calculations."}
                       </p>
                     </div>
                   </div>
@@ -1022,6 +1033,7 @@ export default function AmazeOnboardingFlow({
                 <>
                   <div className="flex items-center gap-3">
                     <img
+                      loading="lazy"
                       src={getAssetPath("/logo.png")}
                       alt="AmazeCC"
                       decoding="async"
@@ -1141,10 +1153,10 @@ export default function AmazeOnboardingFlow({
                   {isStandaloneInterfacePicker
                     ? `Select ${currentOption.title}`
                     : step === 5
-                    ? "Launch AmazeCC"
-                    : step === 1
-                    ? `Continue with ${currentOption.title}`
-                    : "Continue"}
+                      ? "Launch AmazeCC"
+                      : step === 1
+                        ? `Continue with ${currentOption.title}`
+                        : "Continue"}
                 </span>
                 <ArrowRight className="w-4 h-4 shrink-0" />
               </button>
@@ -1164,7 +1176,7 @@ export default function AmazeOnboardingFlow({
 
           {/* RIGHT PANE: Big island view on the right (~58%) */}
           <div className="w-[58%] flex-1 flex items-center justify-center h-full min-h-0 pl-2 lg:pl-6 overflow-y-auto">
-            {(step === 1 || isStandaloneInterfacePicker) ? (
+            {step === 1 || isStandaloneInterfacePicker ? (
               renderPreviewIsland(true)
             ) : step === 0 ? (
               <div className="w-full max-w-md py-4">{renderProfileCard()}</div>
@@ -1204,7 +1216,11 @@ export default function AmazeOnboardingFlow({
                   <div
                     key={i}
                     className={`h-1.5 rounded-full transition-all duration-300 ${
-                      i === step ? "w-7 bg-indigo-500 shadow-xs shadow-indigo-500/50" : i < step ? "w-2.5 bg-indigo-400/50" : "w-2 bg-zinc-800"
+                      i === step
+                        ? "w-7 bg-indigo-500 shadow-xs shadow-indigo-500/50"
+                        : i < step
+                          ? "w-2.5 bg-indigo-400/50"
+                          : "w-2 bg-zinc-800"
                     }`}
                   />
                 ))}
@@ -1230,7 +1246,6 @@ export default function AmazeOnboardingFlow({
               of being centred — centred overflow leaves the top unreachable. */}
           <main className="relative z-20 w-full max-w-md sm:max-w-lg mx-auto flex-1 flex flex-col items-center justify-center my-auto min-h-0 overflow-y-auto py-2">
             <AnimatePresence mode="wait">
-              
               {/* ──── STEP 0: WELCOME, SEMESTER & CAMPUS/BUS RESIDENCY ──── */}
               {step === 0 && !isStandaloneInterfacePicker && (
                 <m.div
@@ -1243,6 +1258,7 @@ export default function AmazeOnboardingFlow({
                 >
                   <div className="flex flex-col items-center gap-2.5">
                     <img
+                      loading="lazy"
                       src={getAssetPath("/logo.png")}
                       alt="AmazeCC"
                       decoding="async"
@@ -1274,6 +1290,7 @@ export default function AmazeOnboardingFlow({
                   {/* Header inside interface picker */}
                   <div className="flex flex-col items-center text-center space-y-2 shrink-0">
                     <img
+                      loading="lazy"
                       src={getAssetPath("/logo.png")}
                       alt="AmazeCC"
                       decoding="async"
@@ -1445,10 +1462,10 @@ export default function AmazeOnboardingFlow({
                 {isStandaloneInterfacePicker
                   ? `Select ${currentOption.title}`
                   : step === 5
-                  ? "Launch AmazeCC"
-                  : step === 1
-                  ? `Continue with ${currentOption.title}`
-                  : "Continue"}
+                    ? "Launch AmazeCC"
+                    : step === 1
+                      ? `Continue with ${currentOption.title}`
+                      : "Continue"}
               </span>
               <ArrowRight className="w-4 h-4 shrink-0" />
             </button>

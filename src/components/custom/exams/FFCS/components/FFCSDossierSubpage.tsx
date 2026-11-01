@@ -28,7 +28,7 @@ import ModernHorizontalTimetableGrid from "../../../timetable/ModernHorizontalTi
 import VerticalTimetableGrid from "../../../timetable/VerticalTimetableGrid";
 import type { AddedCourse, TimetablePeriod, ParsedCourse, TimetableState } from "../types";
 import { COLOR_HEX_MAP, typeLabels, getCourseBadgeProps } from "../constants";
-import { getFacultyReview, getVitfacProfileUrl } from "@/lib/vitfacService";
+import { getFacultyReview, getVitfacProfileUrl, useVitfacEnabled } from "@/lib/vitfacService";
 import { sameSlotFacultyAlternatives, expandCourseHalves } from "../logic/generate";
 import { downloadModernDossierHtml } from "@/lib/exportTimetable";
 import PdfGenerationBadge from "./PdfGenerationBadge";
@@ -56,6 +56,9 @@ export default function FFCSDossierSubpage({
 }: FFCSDossierSubpageProps) {
   const [isLightMode, setIsLightMode] = useState(false);
   const [viewMode, setViewMode] = useState<"horizontal" | "vertical">(initialViewMode);
+  // The sentiment report below *is* the Vitfac integration, so the whole
+  // card (and the memos feeding it) follow the planner's switch live.
+  const vitfacEnabled = useVitfacEnabled();
 
   useOverlayBack("ffcs-dossier", true, onClose);
 
@@ -82,7 +85,12 @@ export default function FFCSDossierSubpage({
         }
         g.credits = String(parseFloat(g.credits || "0") + parseFloat(c.credits || "0"));
       } else {
-        const batches = c.batch ? c.batch.split(",").map((b) => b.trim()).filter(Boolean) : [];
+        const batches = c.batch
+          ? c.batch
+              .split(",")
+              .map((b) => b.trim())
+              .filter(Boolean)
+          : [];
         map.set(c.code, {
           ...c,
           ids: [c.id],
@@ -145,14 +153,16 @@ export default function FFCSDossierSubpage({
     }
 
     return Array.from(map.values()).map((f) => {
-      const review = getFacultyReview({ employeeId: f.employeeId, name: f.name });
+      const review = vitfacEnabled ? getFacultyReview({ employeeId: f.employeeId, name: f.name }) : null;
       return {
         ...f,
         review,
         profileUrl: f.employeeId ? getVitfacProfileUrl(f.employeeId) : null,
       };
     });
-  }, [courses]);
+    // `vitfacEnabled`: review lookups are a memo dependency so flipping the
+    // switch re-derives them instead of showing stale ratings.
+  }, [courses, vitfacEnabled]);
 
   // Drop-in replacements for every course component
   const dropInAnalysis = useMemo(() => {
@@ -164,11 +174,11 @@ export default function FFCSDossierSubpage({
         half.code,
         half.slots,
         { faculty: half.faculty, employeeId: half.employeeId },
-        masterCourses
+        masterCourses,
       );
 
       const enrichedAlts = alts.map((alt) => {
-        const review = getFacultyReview({ employeeId: alt.ERP_ID, name: alt.FACULTY });
+        const review = vitfacEnabled ? getFacultyReview({ employeeId: alt.ERP_ID, name: alt.FACULTY }) : null;
         return {
           faculty: alt.FACULTY,
           employeeId: alt.ERP_ID,
@@ -184,7 +194,7 @@ export default function FFCSDossierSubpage({
         alternatives: enrichedAlts,
       };
     });
-  }, [courses, masterCourses]);
+  }, [courses, masterCourses, vitfacEnabled]);
 
   const dateStr = useMemo(() => {
     return new Date().toLocaleDateString(undefined, {
@@ -229,9 +239,7 @@ export default function FFCSDossierSubpage({
 
   // Base theme classes
   const themeBg = isLightMode ? "bg-slate-50 text-slate-900" : "bg-[#090d16] text-slate-100";
-  const cardBg = isLightMode
-    ? "bg-white border-slate-200 shadow-xs"
-    : "bg-slate-900/85 border-white/10 shadow-xl";
+  const cardBg = isLightMode ? "bg-white border-slate-200 shadow-xs" : "bg-slate-900/85 border-white/10 shadow-xl";
   const subcardBg = isLightMode
     ? "bg-slate-50 border-slate-200 text-slate-800"
     : "bg-slate-800/60 border-white/8 text-slate-200";
@@ -240,10 +248,7 @@ export default function FFCSDossierSubpage({
   const borderSubtle = isLightMode ? "border-slate-200" : "border-white/10";
 
   return (
-    <div
-      data-prevent-swipe="true"
-      className={`min-h-screen w-full transition-colors duration-200 ${themeBg}`}
-    >
+    <div data-prevent-swipe="true" className={`min-h-screen w-full transition-colors duration-200 ${themeBg}`}>
       {/* Global Print Style for In-App Native Print */}
       <style>{`
         @page {
@@ -314,9 +319,7 @@ export default function FFCSDossierSubpage({
       {/* Floating In-App Toolbar */}
       <div
         className={`sticky top-0 z-50 dossier-no-print backdrop-blur-md px-4 md:px-8 pb-3.5 pt-[calc(env(safe-area-inset-top,0px)+0.875rem)] border-b flex flex-wrap items-center justify-between gap-3 shadow-md ${
-          isLightMode
-            ? "bg-white/90 border-slate-200"
-            : "bg-[#0f172a]/90 border-white/10"
+          isLightMode ? "bg-white/90 border-slate-200" : "bg-[#0f172a]/90 border-white/10"
         }`}
       >
         <div className="flex items-center gap-3">
@@ -357,8 +360,8 @@ export default function FFCSDossierSubpage({
                 viewMode === "horizontal"
                   ? "bg-blue-600 text-white shadow-xs"
                   : isLightMode
-                  ? "text-slate-600 hover:text-slate-900"
-                  : "text-slate-400 hover:text-white"
+                    ? "text-slate-600 hover:text-slate-900"
+                    : "text-slate-400 hover:text-white"
               }`}
             >
               <LayoutGrid className="w-3.5 h-3.5" />
@@ -371,8 +374,8 @@ export default function FFCSDossierSubpage({
                 viewMode === "vertical"
                   ? "bg-blue-600 text-white shadow-xs"
                   : isLightMode
-                  ? "text-slate-600 hover:text-slate-900"
-                  : "text-slate-400 hover:text-white"
+                    ? "text-slate-600 hover:text-slate-900"
+                    : "text-slate-400 hover:text-white"
               }`}
             >
               <Smartphone className="w-3.5 h-3.5" />
@@ -410,7 +413,7 @@ export default function FFCSDossierSubpage({
             onClick={handleDownloadPdf}
             disabled={isGeneratingPdf}
             className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-black bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white shadow-md shadow-indigo-500/20 active:scale-95 transition-all cursor-pointer"
-                title="Download a standalone HTML dossier"
+            title="Download a standalone HTML dossier"
           >
             {isGeneratingPdf ? (
               <>
@@ -510,9 +513,7 @@ export default function FFCSDossierSubpage({
           <div className="flex items-center justify-between mb-4 pb-3 border-b border-inherit">
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-blue-500" />
-              <h2 className={`text-base font-bold dossier-heading-text ${textHeading}`}>
-                Weekly Academic Schedule
-              </h2>
+              <h2 className={`text-base font-bold dossier-heading-text ${textHeading}`}>Weekly Academic Schedule</h2>
             </div>
             <span className={`text-xs ${textMuted}`}>Official VIT Chennai Slot Matrix</span>
           </div>
@@ -542,9 +543,7 @@ export default function FFCSDossierSubpage({
           <div className="flex items-center justify-between mb-4 pb-3 border-b border-inherit">
             <div className="flex items-center gap-2">
               <BookOpen className="w-4 h-4 text-indigo-500" />
-              <h2 className={`text-base font-bold dossier-heading-text ${textHeading}`}>
-                Enrolled Courses Summary
-              </h2>
+              <h2 className={`text-base font-bold dossier-heading-text ${textHeading}`}>Enrolled Courses Summary</h2>
             </div>
             <span className={`text-xs ${textMuted}`}>{groupedCourses.length} Registered Offerings</span>
           </div>
@@ -574,8 +573,8 @@ export default function FFCSDossierSubpage({
                             ? "bg-white"
                             : "bg-slate-900/30"
                           : isLightMode
-                          ? "bg-slate-50/80"
-                          : "bg-slate-900/60"
+                            ? "bg-slate-50/80"
+                            : "bg-slate-900/60"
                       }
                     >
                       <td className={`py-3 px-3 text-center font-bold ${textMuted}`}>{i + 1}</td>
@@ -607,7 +606,9 @@ export default function FFCSDossierSubpage({
                           {typeLabels[c.type] || c.type}
                         </span>
                       </td>
-                      <td className={`py-3 px-3 text-center font-black ${isLightMode ? "text-slate-900" : "text-white"}`}>
+                      <td
+                        className={`py-3 px-3 text-center font-black ${isLightMode ? "text-slate-900" : "text-white"}`}
+                      >
                         {c.credits}
                       </td>
                       <td className="py-3 px-3">
@@ -640,175 +641,178 @@ export default function FFCSDossierSubpage({
           </div>
         </div>
 
-        {/* Faculty Intelligence & Sentiment Report */}
-        <div className={`dossier-card rounded-2xl border p-4 md:p-6 ${cardBg}`}>
-          <div className="flex items-center justify-between mb-4 pb-3 border-b border-inherit">
-            <div className="flex items-center gap-2">
-              <Award className="w-4 h-4 text-amber-500" />
-              <h2 className={`text-base font-bold dossier-heading-text ${textHeading}`}>
-                Faculty Intelligence &amp; Sentiment Report
-              </h2>
+        {/* Faculty Intelligence & Sentiment Report — 100% Vitfac data, so it
+            leaves the dossier (screen *and* export) when the switch is off. */}
+        {vitfacEnabled && (
+          <div className={`dossier-card rounded-2xl border p-4 md:p-6 ${cardBg}`}>
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-inherit">
+              <div className="flex items-center gap-2">
+                <Award className="w-4 h-4 text-amber-500" />
+                <h2 className={`text-base font-bold dossier-heading-text ${textHeading}`}>
+                  Faculty Intelligence &amp; Sentiment Report
+                </h2>
+              </div>
+              <span className={`text-xs ${textMuted}`}>Powered by Vitfac Student Ratings</span>
             </div>
-            <span className={`text-xs ${textMuted}`}>Powered by Vitfac Student Ratings</span>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {evaluatedFaculties.map((f) => {
-              const rev = f.review;
-              const hasReviews = rev && rev.reviews > 0;
-              const wPct = rev?.wPct ?? 0;
-              const isGreen = wPct >= 70;
-              const isAmber = wPct >= 40 && wPct < 70;
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {evaluatedFaculties.map((f) => {
+                const rev = f.review;
+                const hasReviews = rev && rev.reviews > 0;
+                const wPct = rev?.wPct ?? 0;
+                const isGreen = wPct >= 70;
+                const isAmber = wPct >= 40 && wPct < 70;
 
-              const badgeColor = isGreen
-                ? isLightMode
-                  ? "bg-emerald-50 text-emerald-800 border-emerald-300"
-                  : "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
-                : isAmber
-                ? isLightMode
-                  ? "bg-amber-50 text-amber-800 border-amber-300"
-                  : "bg-amber-500/15 text-amber-300 border-amber-500/30"
-                : isLightMode
-                ? "bg-rose-50 text-rose-800 border-rose-300"
-                : "bg-rose-500/15 text-rose-300 border-rose-500/30";
+                const badgeColor = isGreen
+                  ? isLightMode
+                    ? "bg-emerald-50 text-emerald-800 border-emerald-300"
+                    : "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                  : isAmber
+                    ? isLightMode
+                      ? "bg-amber-50 text-amber-800 border-amber-300"
+                      : "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                    : isLightMode
+                      ? "bg-rose-50 text-rose-800 border-rose-300"
+                      : "bg-rose-500/15 text-rose-300 border-rose-500/30";
 
-              const initials = f.name
-                .split(" ")
-                .filter(Boolean)
-                .slice(0, 2)
-                .map((n) => n[0]?.toUpperCase() || "")
-                .join("");
+                const initials = f.name
+                  .split(" ")
+                  .filter(Boolean)
+                  .slice(0, 2)
+                  .map((n) => n[0]?.toUpperCase() || "")
+                  .join("");
 
-              return (
-                <div
-                  key={f.name + (f.employeeId || "")}
-                  className={`dossier-subcard rounded-xl border p-4 flex flex-col justify-between ${subcardBg}`}
-                >
-                  <div>
-                    <div className="flex items-start justify-between gap-2 mb-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-black text-xs flex items-center justify-center shrink-0 shadow-xs">
-                          {initials || "FAC"}
+                return (
+                  <div
+                    key={f.name + (f.employeeId || "")}
+                    className={`dossier-subcard rounded-xl border p-4 flex flex-col justify-between ${subcardBg}`}
+                  >
+                    <div>
+                      <div className="flex items-start justify-between gap-2 mb-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-black text-xs flex items-center justify-center shrink-0 shadow-xs">
+                            {initials || "FAC"}
+                          </div>
+                          <div>
+                            <h3
+                              className={`text-xs font-bold leading-tight ${
+                                isLightMode ? "text-slate-900" : "text-white"
+                              }`}
+                            >
+                              {f.name}
+                            </h3>
+                            <div className={`text-[10.5px] mt-0.5 ${textMuted}`}>
+                              {f.employeeId ? `ID: ${f.employeeId} • ` : ""}
+                              {f.courses.map((x) => x.code).join(", ")}
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <h3
-                            className={`text-xs font-bold leading-tight ${
-                              isLightMode ? "text-slate-900" : "text-white"
+
+                        {hasReviews ? (
+                          <span
+                            className={`text-[10px] font-black px-2 py-0.5 rounded-md border shrink-0 ${badgeColor}`}
+                          >
+                            ★ {wPct}% W ({rev.reviews})
+                          </span>
+                        ) : (
+                          <span
+                            className={`text-[10px] font-semibold px-2 py-0.5 rounded border shrink-0 ${
+                              isLightMode
+                                ? "bg-slate-100 text-slate-600 border-slate-300"
+                                : "bg-slate-800 text-slate-400 border-white/10"
                             }`}
                           >
-                            {f.name}
-                          </h3>
-                          <div className={`text-[10.5px] mt-0.5 ${textMuted}`}>
-                            {f.employeeId ? `ID: ${f.employeeId} • ` : ""}
-                            {f.courses.map((x) => x.code).join(", ")}
-                          </div>
-                        </div>
+                            Unreviewed
+                          </span>
+                        )}
                       </div>
 
-                      {hasReviews ? (
-                        <span
-                          className={`text-[10px] font-black px-2 py-0.5 rounded-md border shrink-0 ${badgeColor}`}
-                        >
-                          ★ {wPct}% W ({rev.reviews})
-                        </span>
-                      ) : (
-                        <span
-                          className={`text-[10px] font-semibold px-2 py-0.5 rounded border shrink-0 ${
-                            isLightMode
-                              ? "bg-slate-100 text-slate-600 border-slate-300"
-                              : "bg-slate-800 text-slate-400 border-white/10"
-                          }`}
-                        >
-                          Unreviewed
-                        </span>
+                      {/* Numerical Metrics */}
+                      {hasReviews && rev.metrics && (
+                        <div className="grid grid-cols-3 gap-2 my-2.5 text-center">
+                          <div
+                            className={`p-1.5 rounded-lg border ${
+                              isLightMode ? "bg-white border-slate-200" : "bg-slate-900/50 border-white/5"
+                            }`}
+                          >
+                            <div className="text-[10px] font-bold uppercase text-slate-500">🎓 Teaching</div>
+                            <div className="text-xs font-black text-blue-600 dark:text-blue-400">
+                              {rev.metrics.lecture.toFixed(1)}/5
+                            </div>
+                          </div>
+                          <div
+                            className={`p-1.5 rounded-lg border ${
+                              isLightMode ? "bg-white border-slate-200" : "bg-slate-900/50 border-white/5"
+                            }`}
+                          >
+                            <div className="text-[10px] font-bold uppercase text-slate-500">📝 DA Score</div>
+                            <div className="text-xs font-black text-purple-600 dark:text-purple-400">
+                              {rev.metrics.da.toFixed(1)}/5
+                            </div>
+                          </div>
+                          <div
+                            className={`p-1.5 rounded-lg border ${
+                              isLightMode ? "bg-white border-slate-200" : "bg-slate-900/50 border-white/5"
+                            }`}
+                          >
+                            <div className="text-[10px] font-bold uppercase text-slate-500">✨ Vibe</div>
+                            <div className="text-xs font-black text-emerald-600 dark:text-emerald-400">
+                              {rev.metrics.vibe.toFixed(1)}/5
+                            </div>
+                          </div>
+                        </div>
                       )}
+
+                      {/* Lore Tags */}
+                      {hasReviews && (rev.lore?.green?.length || rev.lore?.red?.length) ? (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {(rev.lore?.green || []).slice(0, 2).map((item) => (
+                            <span
+                              key={item.text}
+                              className={`text-[9.5px] font-semibold px-1.5 py-0.5 rounded border ${
+                                isLightMode
+                                  ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                                  : "bg-emerald-500/10 text-emerald-300 border-emerald-500/20"
+                              }`}
+                            >
+                              ✓ {item.text}
+                            </span>
+                          ))}
+                          {(rev.lore?.red || []).slice(0, 1).map((item) => (
+                            <span
+                              key={item.text}
+                              className={`text-[9.5px] font-semibold px-1.5 py-0.5 rounded border ${
+                                isLightMode
+                                  ? "bg-rose-50 text-rose-800 border-rose-200"
+                                  : "bg-rose-500/10 text-rose-300 border-rose-500/20"
+                              }`}
+                            >
+                              ⚠ {item.text}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
                     </div>
 
-                    {/* Numerical Metrics */}
-                    {hasReviews && rev.metrics && (
-                      <div className="grid grid-cols-3 gap-2 my-2.5 text-center">
-                        <div
-                          className={`p-1.5 rounded-lg border ${
-                            isLightMode ? "bg-white border-slate-200" : "bg-slate-900/50 border-white/5"
-                          }`}
+                    {f.profileUrl && (
+                      <div className="mt-3 pt-2 border-t border-inherit text-right">
+                        <a
+                          href={f.profileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[10.5px] font-bold text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1"
                         >
-                          <div className="text-[10px] font-bold uppercase text-slate-500">🎓 Teaching</div>
-                          <div className="text-xs font-black text-blue-600 dark:text-blue-400">
-                            {rev.metrics.lecture.toFixed(1)}/5
-                          </div>
-                        </div>
-                        <div
-                          className={`p-1.5 rounded-lg border ${
-                            isLightMode ? "bg-white border-slate-200" : "bg-slate-900/50 border-white/5"
-                          }`}
-                        >
-                          <div className="text-[10px] font-bold uppercase text-slate-500">📝 DA Score</div>
-                          <div className="text-xs font-black text-purple-600 dark:text-purple-400">
-                            {rev.metrics.da.toFixed(1)}/5
-                          </div>
-                        </div>
-                        <div
-                          className={`p-1.5 rounded-lg border ${
-                            isLightMode ? "bg-white border-slate-200" : "bg-slate-900/50 border-white/5"
-                          }`}
-                        >
-                          <div className="text-[10px] font-bold uppercase text-slate-500">✨ Vibe</div>
-                          <div className="text-xs font-black text-emerald-600 dark:text-emerald-400">
-                            {rev.metrics.vibe.toFixed(1)}/5
-                          </div>
-                        </div>
+                          <span>Vitfac Profile</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
                       </div>
                     )}
-
-                    {/* Lore Tags */}
-                    {hasReviews && (rev.lore?.green?.length || rev.lore?.red?.length) ? (
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {(rev.lore?.green || []).slice(0, 2).map((item) => (
-                          <span
-                            key={item.text}
-                            className={`text-[9.5px] font-semibold px-1.5 py-0.5 rounded border ${
-                              isLightMode
-                                ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                                : "bg-emerald-500/10 text-emerald-300 border-emerald-500/20"
-                            }`}
-                          >
-                            ✓ {item.text}
-                          </span>
-                        ))}
-                        {(rev.lore?.red || []).slice(0, 1).map((item) => (
-                          <span
-                            key={item.text}
-                            className={`text-[9.5px] font-semibold px-1.5 py-0.5 rounded border ${
-                              isLightMode
-                                ? "bg-rose-50 text-rose-800 border-rose-200"
-                                : "bg-rose-500/10 text-rose-300 border-rose-500/20"
-                            }`}
-                          >
-                            ⚠ {item.text}
-                          </span>
-                        ))}
-                      </div>
-                    ) : null}
                   </div>
-
-                  {f.profileUrl && (
-                    <div className="mt-3 pt-2 border-t border-inherit text-right">
-                      <a
-                        href={f.profileUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[10.5px] font-bold text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1"
-                      >
-                        <span>Vitfac Profile</span>
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Emergency Drop-In Slot Replacements Matrix */}
         <div className={`dossier-card rounded-2xl border p-4 md:p-6 ${cardBg}`}>
@@ -824,7 +828,8 @@ export default function FFCSDossierSubpage({
                 </span>
               </div>
               <p className={`text-xs dossier-muted-text ${textMuted}`}>
-                Identical-slot backup faculties teaching the exact same schedule. Swap safely if your target seat fills up during FFCS.
+                Identical-slot backup faculties teaching the exact same schedule. Swap safely if your target seat fills
+                up during FFCS.
               </p>
             </div>
           </div>
@@ -864,7 +869,8 @@ export default function FFCSDossierSubpage({
                         Slots: {half.slots.join("+")}
                       </span>
                       <span className={textMuted}>
-                        Current: <strong className={isLightMode ? "text-slate-900" : "text-white"}>{currentTeacher}</strong>
+                        Current:{" "}
+                        <strong className={isLightMode ? "text-slate-900" : "text-white"}>{currentTeacher}</strong>
                       </span>
                     </div>
                   </div>
@@ -901,8 +907,8 @@ export default function FFCSDossierSubpage({
                                         ? "bg-emerald-50 text-emerald-800 border-emerald-300"
                                         : "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
                                       : isLightMode
-                                      ? "bg-amber-50 text-amber-800 border-amber-300"
-                                      : "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                                        ? "bg-amber-50 text-amber-800 border-amber-300"
+                                        : "bg-amber-500/15 text-amber-300 border-amber-500/30"
                                   }`}
                                 >
                                   ★ {rev.wPct}% ({rev.reviews})
@@ -927,7 +933,7 @@ export default function FFCSDossierSubpage({
         {/* Footer / Legal Disclaimer */}
         <div className="pt-4 border-t border-inherit flex flex-col md:flex-row items-center justify-between gap-2 text-xs text-slate-500">
           <span>Generated via AmazeCC FFCS Engine • VIT Chennai</span>
-          <span>Faculty sentiment &amp; ratings sourced via Vitfac (vitfac.pages.dev)</span>
+          {vitfacEnabled && <span>Faculty sentiment &amp; ratings sourced via Vitfac (vitfac.pages.dev)</span>}
         </div>
       </div>
     </div>

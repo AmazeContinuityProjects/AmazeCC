@@ -55,7 +55,7 @@ import { getTimetableSchema } from "@/lib/campusSchema";
 import { sameSlotFacultyAlternatives } from "../logic/generate";
 import { FacultyAvatar, VitfacReviewPill } from "./FacultyAvatar";
 import ExportDossierWidget from "./ExportDossierWidget";
-import { getFacultyReview, loadVitfacCatalog, useVitfacReview } from "@/lib/vitfacService";
+import { getFacultyReview, loadVitfacCatalog, useVitfacEnabled, useVitfacReview } from "@/lib/vitfacService";
 import type { TourStep } from "../features/tour/tourSteps";
 
 export interface FFCSDashboardHeaderProps {
@@ -404,6 +404,7 @@ function ClashDetails({
 
 function WeeklyRhythmDetails({ courses, onClose }: { courses: AddedCourse[]; onClose: () => void }) {
   const schema = getTimetableSchema();
+  const vitfacEnabled = useVitfacEnabled();
   const metrics = useMemo(() => timetableMetrics(courses, schema), [courses, schema]);
   const free = useMemo(() => new Set(freeHalfDays(courses, schema)), [courses, schema]);
   const days = useMemo(
@@ -507,30 +508,35 @@ function WeeklyRhythmDetails({ courses, onClose }: { courses: AddedCourse[]; onC
     { label: "Long weekend", value: metrics.isLongWeekend ? "Yes" : "No" },
     { label: "Morning theory", value: hasMorningTheory ? "Yes" : "No" },
     { label: "Evening theory", value: hasEveningTheory ? "Yes" : "No" },
-    {
-      label: "Faculty average win rate",
-      value: facultyLoading ? "Loading…" : averageWinRate === null ? "No reviews" : `${averageWinRate}%`,
-    },
-    {
-      label: "Faculty average DA marks",
-      value: facultyLoading ? "Loading…" : averageDa === null ? "No reviews" : `${averageDa.toFixed(1)} / 5`,
-    },
-    {
-      label: "Best faculty",
-      value: facultyLoading
-        ? "Loading…"
-        : bestFaculty
-          ? `${bestFaculty.course.faculty} · ${bestFaculty.review.wPct}% W`
-          : "No reviews",
-    },
-    {
-      label: "Worst faculty",
-      value: facultyLoading
-        ? "Loading…"
-        : worstFaculty
-          ? `${worstFaculty.course.faculty} · ${worstFaculty.review.wPct}% W`
-          : "No reviews",
-    },
+    // Faculty ratings are Vitfac data; off, they leave the stats board too.
+    ...(vitfacEnabled
+      ? [
+          {
+            label: "Faculty average win rate",
+            value: facultyLoading ? "Loading…" : averageWinRate === null ? "No reviews" : `${averageWinRate}%`,
+          },
+          {
+            label: "Faculty average DA marks",
+            value: facultyLoading ? "Loading…" : averageDa === null ? "No reviews" : `${averageDa.toFixed(1)} / 5`,
+          },
+          {
+            label: "Best faculty",
+            value: facultyLoading
+              ? "Loading…"
+              : bestFaculty
+                ? `${bestFaculty.course.faculty} · ${bestFaculty.review.wPct}% W`
+                : "No reviews",
+          },
+          {
+            label: "Worst faculty",
+            value: facultyLoading
+              ? "Loading…"
+              : worstFaculty
+                ? `${worstFaculty.course.faculty} · ${worstFaculty.review.wPct}% W`
+                : "No reviews",
+          },
+        ]
+      : []),
     { label: "Earliest class start", value: firstClass ? `${firstClass.start} · ${firstClass.day}` : "No classes" },
     { label: "Latest class end", value: lastClass ? `${lastClass.end} · ${lastClass.day}` : "No classes" },
     {
@@ -550,49 +556,52 @@ function WeeklyRhythmDetails({ courses, onClose }: { courses: AddedCourse[]; onC
       accent="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400"
     >
       <div className="space-y-4">
-        <section className="space-y-2">
-          <h3 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-            Faculty ratings in this timetable
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {[
-              { label: "Best faculty", entry: bestFaculty, tone: "emerald" },
-              { label: "Worst faculty", entry: worstFaculty, tone: "amber" },
-            ].map(({ label, entry, tone }) => (
-              <div
-                key={label}
-                className={`rounded-xl border p-3 ${tone === "emerald" ? "border-emerald-500/20 bg-emerald-500/5" : "border-amber-500/20 bg-amber-500/5"}`}
-              >
-                <p className="text-[10px] uppercase font-bold tracking-wide text-muted-foreground">{label}</p>
-                {entry ? (
-                  <>
-                    <div className="mt-1 flex items-center gap-2">
-                      <FacultyAvatar employeeId={entry.course.employeeId} name={entry.course.faculty} size="md" />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-extrabold text-text-heading">{entry.course.faculty}</p>
-                        <span
-                          className={`text-xs font-black ${tone === "emerald" ? "text-emerald-700 dark:text-emerald-400" : "text-amber-700 dark:text-amber-400"}`}
-                        >
-                          {entry.review.wPct}% W
-                        </span>
+        {vitfacEnabled && (
+          <section className="space-y-2">
+            <h3 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+              Faculty ratings in this timetable
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {[
+                { label: "Best faculty", entry: bestFaculty, tone: "emerald" },
+                { label: "Worst faculty", entry: worstFaculty, tone: "amber" },
+              ].map(({ label, entry, tone }) => (
+                <div
+                  key={label}
+                  className={`rounded-xl border p-3 ${tone === "emerald" ? "border-emerald-500/20 bg-emerald-500/5" : "border-amber-500/20 bg-amber-500/5"}`}
+                >
+                  <p className="text-[10px] uppercase font-bold tracking-wide text-muted-foreground">{label}</p>
+                  {entry ? (
+                    <>
+                      <div className="mt-1 flex items-center gap-2">
+                        <FacultyAvatar employeeId={entry.course.employeeId} name={entry.course.faculty} size="md" />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-extrabold text-text-heading">{entry.course.faculty}</p>
+                          <span
+                            className={`text-xs font-black ${tone === "emerald" ? "text-emerald-700 dark:text-emerald-400" : "text-amber-700 dark:text-amber-400"}`}
+                          >
+                            {entry.review.wPct}% W
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                    <p className="text-[10px] leading-relaxed text-muted-foreground mt-1">
-                      {facultyQualitySummary(entry)}
+                      <p className="text-[10px] leading-relaxed text-muted-foreground mt-1">
+                        {facultyQualitySummary(entry)}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        {entry.review.reviews} student review{entry.review.reviews === 1 ? "" : "s"}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {facultyLoading ? "Loading faculty reviews…" : "No reviewed faculty in this timetable."}
                     </p>
-                    <p className="text-[10px] text-muted-foreground mt-1">
-                      {entry.review.reviews} student review{entry.review.reviews === 1 ? "" : "s"}
-                    </p>
-                  </>
-                ) : (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {facultyLoading ? "Loading faculty reviews…" : "No reviewed faculty in this timetable."}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         <section className="space-y-2">
           <h3 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Day-by-day schedule</h3>
           <div className="space-y-2">
@@ -691,6 +700,7 @@ function CourseOptionQuality({
   onSelect: () => void;
 }) {
   const { review, loading } = useVitfacReview(employeeId, faculty);
+  const vitfacEnabled = useVitfacEnabled();
   const lore = review?.lore?.green?.slice(0, 2) ?? [];
   const cautionLore = review?.lore?.red?.slice(0, 2) ?? [];
   return (
@@ -719,7 +729,7 @@ function CourseOptionQuality({
         </span>
       </div>
       <div className="flex flex-wrap items-center gap-1.5 mt-2">
-        {loading ? (
+        {!vitfacEnabled ? null : loading ? (
           <span className="text-[10px] text-muted-foreground">Loading Vitfac…</span>
         ) : review && review.reviews > 0 ? (
           <>

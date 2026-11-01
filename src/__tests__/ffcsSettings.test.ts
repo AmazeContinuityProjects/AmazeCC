@@ -97,15 +97,34 @@ describe("sanitizeFFCSSettings", () => {
   });
 
   it("clamps the result cap into the range the sheet offers", () => {
+    // The ceiling is the engine's own 30K: the widest a capped run can be
+    // asked for, with only the per-run Unlimited switch above it.
     expect(sanitizeFFCSSettings({ resultCap: 1 }).resultCap).toBe(10);
-    expect(sanitizeFFCSSettings({ resultCap: 99999 }).resultCap).toBe(1000);
+    expect(sanitizeFFCSSettings({ resultCap: 99999 }).resultCap).toBe(30000);
+    expect(sanitizeFFCSSettings({ resultCap: 30000 }).resultCap).toBe(30000);
     expect(sanitizeFFCSSettings({ resultCap: 250 }).resultCap).toBe(250);
   });
 
-  it("keeps removal of the unlimited search safety ceiling off unless opted in", () => {
-    expect(FFCSSettingsDefaults.removeHardResultLimit).toBe(false);
-    expect(sanitizeFFCSSettings({ removeHardResultLimit: true }).removeHardResultLimit).toBe(true);
-    expect(sanitizeFFCSSettings({ removeHardResultLimit: "yes" }).removeHardResultLimit).toBe(false);
+  it("defaults the result cap to the full 30K depth", () => {
+    // Generation is uncapped-by-default now: thirty thousand is the engine's
+    // own ceiling, and only the per-run Unlimited switch goes above it.
+    expect(FFCSSettingsDefaults.resultCap).toBe(30000);
+    // A record with no cap at all (hand-edited, or from a much older
+    // schema) reads as the default too, never as a silent 50.
+    expect(sanitizeFFCSSettings({}).resultCap).toBe(30000);
+  });
+
+  it("upgrades a stored fifty — the old shipped default — to 30K exactly once", () => {
+    // Every pre-30K record holds a 50 whether or not its student ever opened
+    // the cap picker (any other settings save wrote the whole record), so an
+    // unstamped 50 is the old default riding along and gets the new one.
+    expect(sanitizeFFCSSettings({ ...FFCSSettingsDefaults, revision: 1, resultCap: 50 }).resultCap).toBe(30000);
+    // Once the record carries the current stamp, a 50 was picked with the
+    // new defaults in view — the student wants fifty, and fifty is kept.
+    expect(sanitizeFFCSSettings({ ...FFCSSettingsDefaults, resultCap: 50 }).resultCap).toBe(50);
+    // Deliberate non-default caps were never ambiguous; they survive
+    // unstamped too.
+    expect(sanitizeFFCSSettings({ resultCap: 250 }).resultCap).toBe(250);
   });
 
   it("defaults All Subjects Mode on and only accepts a real boolean off", () => {
@@ -115,6 +134,15 @@ describe("sanitizeFFCSSettings", () => {
     // A wrong-typed value falls back rather than silently switching modes —
     // "off" changes what a run means, so it must be asked for explicitly.
     expect(sanitizeFFCSSettings({ allSubjectsMode: "false" }).allSubjectsMode).toBe(true);
+  });
+
+  it("defaults the Vitfac integration on and only accepts a real boolean off", () => {
+    // ON is the shipped experience: review scores, photos, and profile links.
+    expect(FFCSSettingsDefaults.vitfacIntegration).toBe(true);
+    expect(sanitizeFFCSSettings({ vitfacIntegration: false }).vitfacIntegration).toBe(false);
+    // Wrong-typed → default. "Off" stops every Vitfac request outright, so it
+    // has to be asked for with a real boolean, never coerced into by accident.
+    expect(sanitizeFFCSSettings({ vitfacIntegration: "false" }).vitfacIntegration).toBe(true);
   });
 });
 

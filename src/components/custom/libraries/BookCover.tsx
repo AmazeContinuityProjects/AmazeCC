@@ -33,7 +33,8 @@ interface BookCoverProps {
   url?: string | null;
   /** Tailwind sizing + radius for the frame, e.g. "w-9 h-12 rounded-lg". */
   className?: string;
-  /** Tailwind sizing for the <img> inside the frame. Defaults to filling it. */
+  /** Tailwind sizing for the 
+<img loading="lazy" decoding="async"> inside the frame. Defaults to filling it. */
   imgClassName?: string;
   alt?: string;
 }
