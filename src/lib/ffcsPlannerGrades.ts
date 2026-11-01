@@ -146,6 +146,43 @@ export const GRADE_BADGE_TONE_CLASSES: Record<GradeBadge["tone"], string> = {
   blue: "text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-blue-500/30 bg-blue-500/10 text-blue-500",
 };
 
+/**
+ * The recorded grade set big at a row's right edge.
+ *
+ * The badge on the left says what the RULE is ("Completed · S"); this says
+ * what the student actually HAS, at a glance. Coloured by disposition so
+ * the tone matches the badge beside it, and a grade no rule applies to
+ * (`P`, …) still shows — in neutral — because "I have a grade here" is
+ * itself worth seeing.
+ */
+export interface GradeLetter {
+  /** The recorded grade itself (`"B"`, `"NX2"`). */
+  text: string;
+  /** Big, heavy, tone-coloured — single letters larger than `NX*` runs. */
+  className: string;
+  title: string;
+}
+
+const LETTER_TONE: Record<GradeDisposition, string> = {
+  completed: "text-red-500",
+  improvement: "text-amber-500 dark:text-amber-400",
+  retry: "text-blue-500",
+  clear: "text-zinc-400 dark:text-zinc-500",
+};
+
+export function gradeLetter(code: string, index: GradeIndex | null | undefined): GradeLetter | null {
+  const record = courseGrade(code, index);
+  if (!record) return null;
+  // `NX2` at the size a single letter wears would crowd the row; the weight
+  // keeps it prominent either way.
+  const size = record.grade.length === 1 ? "text-2xl" : "text-base";
+  return {
+    text: record.grade,
+    className: `${size} font-black leading-none tracking-tight select-none ${LETTER_TONE[record.disposition]}`,
+    title: `Recorded grade: ${record.grade}`,
+  };
+}
+
 export function gradeBadge(code: string, index: GradeIndex | null | undefined): GradeBadge | null {
   const record = courseGrade(code, index);
   if (!record || record.disposition === "clear") return null;

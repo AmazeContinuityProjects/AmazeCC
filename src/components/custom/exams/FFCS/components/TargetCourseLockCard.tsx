@@ -5,7 +5,7 @@ import { getBatchColorClass } from "@/lib/utils";
 import { splitSlots } from "@/lib/slots";
 import type { CourseLock, ParsedCourse } from "../types";
 import { renderCourseTypeChips } from "./CourseTypeChips";
-import { GRADE_BADGE_TONE_CLASSES, type GradeBadge } from "@/lib/ffcsPlannerGrades";
+import { GRADE_BADGE_TONE_CLASSES, type GradeBadge, type GradeLetter } from "@/lib/ffcsPlannerGrades";
 
 export interface TargetCourseLockOption {
   code: string;
@@ -34,6 +34,11 @@ interface TargetCourseLockCardProps {
    * this card renders the badge either way.
    */
   grade?: GradeBadge | null;
+  /**
+   * The same record, set big at the card's right edge (see `gradeLetter`):
+   * the badge says the RULE, the letter says what was actually earned.
+   */
+  letter?: GradeLetter | null;
   /** Selection disallowed (a completed `S` subject). Mutes the whole card. */
   disabled?: boolean;
 }
@@ -48,6 +53,7 @@ export function TargetCourseLockCard({
   category,
   curriculumListed = true,
   grade = null,
+  letter = null,
   disabled = false,
 }: TargetCourseLockCardProps) {
   const isSelected = Boolean(selection);
@@ -159,9 +165,9 @@ export function TargetCourseLockCard({
                 )}
               </span>
             </span>
-            {course.batches && course.batches.length > 0 && (
+            {(letter || (course.batches && course.batches.length > 0)) && (
               <span className="flex flex-wrap items-center gap-1.5 sm:shrink-0">
-                {course.batches.map((batch) => (
+                {course.batches?.map((batch) => (
                   <span
                     key={batch}
                     className={`rounded-md border px-2 py-0.5 text-xs font-bold ${getBatchColorClass(batch)}`}
@@ -169,6 +175,11 @@ export function TargetCourseLockCard({
                     {batch}
                   </span>
                 ))}
+                {letter && (
+                  <span title={letter.title} className={letter.className}>
+                    {letter.text}
+                  </span>
+                )}
               </span>
             )}
           </span>

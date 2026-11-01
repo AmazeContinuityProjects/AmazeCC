@@ -81,7 +81,7 @@ export { processParsedCourses } from "@/lib/ffcsCourseGrouping";
 import { track } from "@/lib/analytics";
 import { useFFCSSettings } from "@/lib/ffcsSettings";
 import { storage } from "@/lib/storage";
-import { useAtomValue } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
 import { isLoggedInAtom } from "@/store";
 import { settingsAtom } from "@/store/settingsAtoms";
 import { shouldShowProfilePhoto } from "@/lib/settingsVisibility";
@@ -97,7 +97,8 @@ import {
 import { CourseCatalogFilters } from "./FFCS/components/CourseCatalogFilters";
 import { notifyCatalogCurriculumChanged, useCatalogCurriculum } from "./FFCS/hooks/useCatalogCurriculum";
 import { notifyCatalogGradesChanged, useCatalogGrades } from "./FFCS/hooks/useCatalogGrades";
-import { gradeBadge, retriesFirst, GRADE_BADGE_TONE_CLASSES } from "@/lib/ffcsPlannerGrades";
+import { gradeBadge, gradeLetter, retriesFirst, GRADE_BADGE_TONE_CLASSES } from "@/lib/ffcsPlannerGrades";
+import { hasStoredAppSession } from "@/components/custom/app/readBootstrapSnapshot";
 import { runPageSync } from "@/lib/sync-engine/single-sync";
 import {
   encodeTimetableShare,
@@ -3461,6 +3462,9 @@ export default function FFCSTimetableTab({
                   // Grade rule: an `S` in this subject makes it unselectable —
                   // nothing to improve, nothing to retake.
                   const grade = gradeBadge(c.code, catalogGrades);
+                  // The same record, set big at the row's right edge: the
+                  // badge says the RULE, the letter says what was earned.
+                  const letter = gradeLetter(c.code, catalogGrades);
                   const disabled = fullyAdded || !!grade?.blocked;
                   const curriculumCategory =
                     catalogCurriculumOnly && catalogCurriculum ? courseCategory(c.code, catalogCurriculum) : null;
@@ -3535,6 +3539,11 @@ export default function FFCSTimetableTab({
                                 Selected
                               </span>
                             )
+                          )}
+                          {letter && (
+                            <span title={letter.title} className={letter.className}>
+                              {letter.text}
+                            </span>
                           )}
                         </div>
                       </div>

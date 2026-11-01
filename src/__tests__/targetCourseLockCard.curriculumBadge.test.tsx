@@ -143,3 +143,36 @@ describe("TargetCourseLockCard grade rule", () => {
     expect(screen.getByText(/Programming/)).toBeTruthy();
   });
 });
+
+/**
+ * The big letter answers a different question than the badge: the badge says
+ * the RULE ("Retake · F"), the letter says what the student HAS. It arrives
+ * as a prop (the host derives it with `gradeLetter`) and must render big,
+ * tone-coloured, and — crucially — NOT render anything when there is none.
+ */
+describe("TargetCourseLockCard grade letter", () => {
+  it("sets the recorded grade big at the card's right edge", () => {
+    render(
+      <TargetCourseLockCard
+        course={course}
+        offerings={[]}
+        selection={undefined}
+        onSelectionChange={() => {}}
+        letter={{ text: "B", className: "text-2xl font-black text-amber-500", title: "Recorded grade: B" }}
+      />,
+    );
+
+    const letter = screen.getByText("B");
+    expect(letter.getAttribute("title")).toBe("Recorded grade: B");
+    expect(letter.className).toContain("text-2xl");
+    expect(letter.className).toContain("text-amber-500");
+  });
+
+  it("renders no empty span when the host passes no letter", () => {
+    const { container } = render(
+      <TargetCourseLockCard course={course} offerings={[]} selection={undefined} onSelectionChange={() => {}} />,
+    );
+    // Nothing to show — and no stray right-edge container left behind.
+    expect(container.querySelector('[title^="Recorded grade"]')).toBeNull();
+  });
+});

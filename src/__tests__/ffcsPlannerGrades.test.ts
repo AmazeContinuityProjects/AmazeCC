@@ -4,6 +4,7 @@ import {
   courseGrade,
   dispositionForGrade,
   gradeBadge,
+  gradeLetter,
   retriesFirst,
   GRADE_BADGE_TONE_CLASSES,
 } from "../lib/ffcsPlannerGrades";
@@ -146,6 +147,52 @@ describe("gradeBadge", () => {
     expect(GRADE_BADGE_TONE_CLASSES.amber).toContain("border-amber-500/30");
     expect(GRADE_BADGE_TONE_CLASSES.amber).toContain("text-amber-600");
     expect(GRADE_BADGE_TONE_CLASSES.blue).toContain("text-blue-500");
+  });
+});
+
+describe("gradeLetter", () => {
+  const index = buildGradeIndex(
+    payload({ CH1: [item("BCSE101", "S"), item("BCSE102", "B"), item("BCSE103", "F"), item("BCSE104", "NX2")] }),
+  );
+
+  it("is null when the course has no recorded grade", () => {
+    expect(gradeLetter("UNKNOWN101", index)).toBeNull();
+    expect(gradeLetter("BCSE101", null)).toBeNull();
+  });
+
+  it("shows the recorded grade itself, big, coloured by disposition", () => {
+    // A completed `S`: the same red as its "Completed · S" badge, one size
+    // up from everything around it — the glance answer to "do I have this?".
+    const s = gradeLetter("BCSE101", index)!;
+    expect(s.text).toBe("S");
+    expect(s.className).toContain("text-2xl");
+    expect(s.className).toContain("text-red-500");
+
+    // `NX2` is three characters: same weight, one step smaller so a two-line
+    // row never happens, and the retake blue matching its badge.
+    const nx2 = gradeLetter("BCSE104", index)!;
+    expect(nx2.text).toBe("NX2");
+    expect(nx2.className).toContain("text-base");
+    expect(nx2.className).not.toContain("text-2xl");
+    expect(nx2.className).toContain("text-blue-500");
+
+    const b = gradeLetter("BCSE102", index)!;
+    expect(b.className).toContain("text-amber");
+  });
+
+  it("still shows a grade no rule applies to — in neutral", () => {
+    // `P` wears no badge (no rule), but "I have a grade here" is worth
+    // seeing; it just must not borrow a tone that implies a rule.
+    const passIndex = buildGradeIndex(payload({ CH1: [item("PHY101", "P")] }));
+    const p = gradeLetter("PHY101", passIndex)!;
+    expect(p.text).toBe("P");
+    expect(p.className).toContain("text-zinc-400");
+    expect(p.className).not.toMatch(/text-(red|amber|blue)-/);
+  });
+
+  it("says what the letter is on hover", () => {
+    expect(gradeLetter("BCSE101", index)!.title).toBe("Recorded grade: S");
+    expect(gradeLetter("BCSE104", index)!.title).toBe("Recorded grade: NX2");
   });
 });
 

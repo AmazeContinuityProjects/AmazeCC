@@ -10,7 +10,7 @@ import { TargetCourseLockCard } from "../TargetCourseLockCard";
 import { CourseCatalogFilters } from "../CourseCatalogFilters";
 import { useCatalogCurriculum } from "../../hooks/useCatalogCurriculum";
 import { useCatalogGrades } from "../../hooks/useCatalogGrades";
-import { gradeBadge, retriesFirst } from "@/lib/ffcsPlannerGrades";
+import { gradeBadge, gradeLetter, retriesFirst } from "@/lib/ffcsPlannerGrades";
 import { buildSlotIndex, courseCategory, isListedInCurriculum, matchesCatalogFilters } from "@/lib/ffcsCatalogFilters";
 
 interface TargetCoursesModalProps {
@@ -195,6 +195,8 @@ export const TargetCoursesModal: React.FC<TargetCoursesModalProps> = ({
                   const offerings = masterCourses.filter((course) => course.CODE === c.code);
                   // An `S` in this subject makes it unselectable here too.
                   const grade = gradeBadge(c.code, grades);
+                  // The same record, big at the card's right edge.
+                  const letter = gradeLetter(c.code, grades);
                   return (
                     <TargetCourseLockCard
                       key={c.code}
@@ -202,6 +204,7 @@ export const TargetCoursesModal: React.FC<TargetCoursesModalProps> = ({
                       offerings={offerings}
                       selection={selection}
                       grade={grade}
+                      letter={letter}
                       disabled={!!grade?.blocked}
                       category={
                         curriculumOnly && curriculum ? (courseCategory(c.code, curriculum) ?? undefined) : undefined
