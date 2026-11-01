@@ -1,5 +1,5 @@
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
-import { BackgroundSyncQueue, Serwist, CacheFirst, NetworkFirst, StaleWhileRevalidate, ExpirationPlugin } from "serwist";
+import { Serwist, CacheFirst, NetworkFirst, StaleWhileRevalidate, ExpirationPlugin } from "serwist";
 import { defaultCache, PAGES_CACHE_NAME } from "@serwist/next/worker";
 
 declare global {
@@ -24,8 +24,6 @@ const precacheEntries = (self.__SW_MANIFEST ?? []).filter((entry) => {
   const url = typeof entry === "string" ? entry : (entry as PrecacheEntry).url;
   return !url?.includes("campus-twilight") && !url?.includes("hero-artwork");
 });
-
-const queue = new BackgroundSyncQueue("myQueueName");
 
 /*
  * Runtime caching, persistence-first.
@@ -130,27 +128,11 @@ const serwist = new Serwist({
   },
 });
 
-self.addEventListener("fetch", (event) => {
-  const url = new URL(event.request.url);
-  if (event.request.method === "POST" && url.origin === location.origin && url.pathname === "/legacy-post") {
-    const backgroundSync = async () => {
-      try {
-        const response = await fetch(event.request.clone());
-        return response;
-      } catch (error) {
-        await queue.pushRequest({ request: event.request });
-        return Response.error();
-      }
-    };
-    event.respondWith(backgroundSync());
-  }
-});
-
 serwist.addEventListeners();
 
-const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
-self.addEventListener('push', function (event: any) {
+self.addEventListener("push", function (event: any) {
   if (event.data) {
     try {
       const data = event.data.json();
@@ -161,7 +143,7 @@ self.addEventListener('push', function (event: any) {
         vibrate: data.vibrate || [100, 50, 100],
         tag: data.tag || "amazecc-push",
         data: {
-          url: data.url || basePath || '/',
+          url: data.url || basePath || "/",
           dateOfArrival: Date.now(),
         },
       };
@@ -171,18 +153,18 @@ self.addEventListener('push', function (event: any) {
     }
   }
 });
- 
-self.addEventListener('notificationclick', function (event: any) {
+
+self.addEventListener("notificationclick", function (event: any) {
   event.notification.close();
-  const rawUrl = event.notification.data?.url || basePath || '/';
+  const rawUrl = event.notification.data?.url || basePath || "/";
   const urlToOpen = new URL(rawUrl, self.location.origin).href;
 
   event.waitUntil(
-    (self as any).clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (clientList: any[]) => {
+    (self as any).clients.matchAll({ type: "window", includeUncontrolled: true }).then(async (clientList: any[]) => {
       for (const client of clientList) {
-        if ('focus' in client) {
+        if ("focus" in client) {
           try {
-            if ('navigate' in client && client.url !== urlToOpen) {
+            if ("navigate" in client && client.url !== urlToOpen) {
               await client.navigate(urlToOpen);
             }
           } catch (e) {}
@@ -192,6 +174,6 @@ self.addEventListener('notificationclick', function (event: any) {
       if ((self as any).clients && (self as any).clients.openWindow) {
         return (self as any).clients.openWindow(urlToOpen);
       }
-    })
+    }),
   );
 });
