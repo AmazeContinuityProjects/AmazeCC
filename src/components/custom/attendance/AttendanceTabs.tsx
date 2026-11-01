@@ -17,33 +17,34 @@ import { AnimatePresence } from "framer-motion";
 import TabHelpFooter from "../shared/TabHelpFooter";
 import { useIsMobile } from "../shared";
 import { ATTENDANCE_DAYS, buildAttendanceDayCardsMap } from "@/lib/attendanceTimetable";
+import { getTargetAttendancePct } from "@/store/settingsAtoms";
 import SelectField from "../shared/primitives/SelectField";
 
 const DesktopCourseDetail = dynamic(() => import("./DesktopCourseDetail"), {
   loading: () => (
     <div className="space-y-4 p-4 animate-in fade-in zoom-in-95 duration-200">
-        <Skeleton className="h-20 w-full" />
-        <Skeleton className="h-64 w-full" />
-        <div className="grid grid-cols-2 gap-4">
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-32 w-full" />
-        </div>
+      <Skeleton className="h-20 w-full" />
+      <Skeleton className="h-64 w-full" />
+      <div className="grid grid-cols-2 gap-4">
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-32 w-full" />
+      </div>
     </div>
-  )
+  ),
 });
-export default function AttendanceTabs({ 
-  data, 
-  activeDay: propActiveDay, 
-  setActiveDay: propSetActiveDay, 
-  calendars, 
-  decimalValues, 
-  isDayscholarWithBus, 
-  setIsSubpageOpen, 
-  ODhoursData, 
-  ODhoursIsOpen, 
-  setODhoursIsOpen, 
-  setActiveTab, 
-  setActiveSubTab 
+export default function AttendanceTabs({
+  data,
+  activeDay: propActiveDay,
+  setActiveDay: propSetActiveDay,
+  calendars,
+  decimalValues,
+  isDayscholarWithBus,
+  setIsSubpageOpen,
+  ODhoursData,
+  ODhoursIsOpen,
+  setODhoursIsOpen,
+  setActiveTab,
+  setActiveSubTab,
 }: any) {
   const isMobile = useIsMobile();
   const days = [...ATTENDANCE_DAYS];
@@ -65,7 +66,7 @@ export default function AttendanceTabs({
   useOverlayBack(
     "attendance-predictor",
     showPredictor,
-    useCallback(() => setShowPredictor(false), [])
+    useCallback(() => setShowPredictor(false), []),
   );
 
   const [dashboardFriends, setDashboardFriends] = useState<Friend[]>([]);
@@ -96,7 +97,7 @@ export default function AttendanceTabs({
 
     const idx = dayClasses.findIndex((a) => {
       if (!a.time) return false;
-      const [startStr, endStr] = a.time.split("-").map(t => t.trim());
+      const [startStr, endStr] = a.time.split("-").map((t) => t.trim());
       if (!startStr || !endStr) return false;
       const start = parseTime(startStr);
       const end = parseTime(endStr);
@@ -115,7 +116,7 @@ export default function AttendanceTabs({
   useEffect(() => {
     // Load friends meant for dashboard
     const allFriends = getFriends();
-    setDashboardFriends(allFriends.filter(f => f.showInHomePage));
+    setDashboardFriends(allFriends.filter((f) => f.showInHomePage));
   }, []);
 
   const dayCardsMap = useMemo(() => {
@@ -126,14 +127,9 @@ export default function AttendanceTabs({
 
   const today = new Date();
   const todayDate = today.getDate();
-  const todayMonth =
-    today.toLocaleString("default", { month: "long" }).toUpperCase() +
-    " " +
-    today.getFullYear();
+  const todayMonth = today.toLocaleString("default", { month: "long" }).toUpperCase() + " " + today.getFullYear();
 
-  const monthData = results.find(
-    (m) => m.month === todayMonth && m.year === today.getFullYear()
-  );
+  const monthData = results.find((m) => m.month === todayMonth && m.year === today.getFullYear());
 
   let isHoliday = false;
   if (monthData) {
@@ -166,16 +162,24 @@ export default function AttendanceTabs({
 
   const getDayDetails = (d: Date, dayName: string) => {
     const monthNames = [
-      "january", "february", "march", "april", "may", "june",
-      "july", "august", "september", "october", "november", "december"
+      "january",
+      "february",
+      "march",
+      "april",
+      "may",
+      "june",
+      "july",
+      "august",
+      "september",
+      "october",
+      "november",
+      "december",
     ];
     const monthStr = monthNames[d.getMonth()];
     const year = d.getFullYear();
     const dateNum = d.getDate();
 
-    const monthData = results.find(
-      (m) => m.month?.toString().toLowerCase().includes(monthStr) && m.year === year
-    );
+    const monthData = results.find((m) => m.month?.toString().toLowerCase().includes(monthStr) && m.year === year);
 
     let isHoliday = false;
     let eventName = "";
@@ -186,13 +190,12 @@ export default function AttendanceTabs({
           isHoliday = true;
           eventName = dayInfo.events?.[0]?.text || "Holiday";
         } else if (dayInfo.events && dayInfo.events.length > 0) {
-          const hasHolidayEvent = dayInfo.events.some(ev =>
-            ev.type?.toLowerCase().includes("holiday") ||
-            /holiday|no instructional/i.test(ev.text)
+          const hasHolidayEvent = dayInfo.events.some(
+            (ev) => ev.type?.toLowerCase().includes("holiday") || /holiday|no instructional/i.test(ev.text),
           );
           if (hasHolidayEvent) {
             isHoliday = true;
-            eventName = dayInfo.events.find(ev => /holiday/i.test(ev.text))?.text || dayInfo.events[0].text;
+            eventName = dayInfo.events.find((ev) => /holiday/i.test(ev.text))?.text || dayInfo.events[0].text;
           }
         }
       }
@@ -211,12 +214,12 @@ export default function AttendanceTabs({
       isWeekend,
       eventName,
       classesCount: classes.length,
-      status
+      status,
     };
   };
 
   const weekDaysInfo = getWeekDates();
-  const activeDayInfo = weekDaysInfo.find(w => w.dayName === activeDay);
+  const activeDayInfo = weekDaysInfo.find((w) => w.dayName === activeDay);
   const activeDate = activeDayInfo?.dateObj || new Date();
 
   useEffect(() => {
@@ -235,10 +238,7 @@ export default function AttendanceTabs({
   // copies. This used to exact-match the display string against literals of
   // mixed casing ("CAT I", "lid for laboratory classes", "LID FOR THEORY
   // CLASSES"), so a reworded display name would have silently produced nulls.
-  const impDates = useMemo(
-    () => buildMilestoneDates(calendars).impDates,
-    [calendars]
-  );
+  const impDates = useMemo(() => buildMilestoneDates(calendars).impDates, [calendars]);
 
   const overallSimStats = useMemo(() => {
     let totalAttended = 0;
@@ -246,7 +246,7 @@ export default function AttendanceTabs({
     let hasSimulation = false;
 
     if (data && Array.isArray(data.attendance)) {
-      data.attendance.forEach(c => {
+      data.attendance.forEach((c) => {
         if (c.slotName === "NILL") return;
         const skips = simulatedSkips[c.courseCode] || 0;
         if (skips > 0) hasSimulation = true;
@@ -259,17 +259,19 @@ export default function AttendanceTabs({
       });
     }
 
-    const origAttended = data?.attendance?.reduce((sum, c) => {
-      const isLab = c.courseCode.endsWith("(L)");
-      const CLASS_WEIGHT = isLab ? 2 : 1;
-      return sum + (parseInt(c.attendedClasses) * CLASS_WEIGHT);
-    }, 0) || 0;
+    const origAttended =
+      data?.attendance?.reduce((sum, c) => {
+        const isLab = c.courseCode.endsWith("(L)");
+        const CLASS_WEIGHT = isLab ? 2 : 1;
+        return sum + parseInt(c.attendedClasses) * CLASS_WEIGHT;
+      }, 0) || 0;
 
-    const origTotal = data?.attendance?.reduce((sum, c) => {
-      const isLab = c.courseCode.endsWith("(L)");
-      const CLASS_WEIGHT = isLab ? 2 : 1;
-      return sum + (parseInt(c.totalClasses) * CLASS_WEIGHT);
-    }, 0) || 0;
+    const origTotal =
+      data?.attendance?.reduce((sum, c) => {
+        const isLab = c.courseCode.endsWith("(L)");
+        const CLASS_WEIGHT = isLab ? 2 : 1;
+        return sum + parseInt(c.totalClasses) * CLASS_WEIGHT;
+      }, 0) || 0;
 
     const originalAvg = origTotal > 0 ? (origAttended / origTotal) * 100 : 0;
     const simAvg = totalClasses > 0 ? (totalAttended / totalClasses) * 100 : 0;
@@ -277,23 +279,14 @@ export default function AttendanceTabs({
     return {
       originalAvg: parseFloat(originalAvg.toFixed(1)),
       simAvg: parseFloat(simAvg.toFixed(1)),
-      hasSimulation
+      hasSimulation,
     };
   }, [simulatedSkips, data]);
 
   const dayHasCriticalCourse = (dayName: string) => {
     const courses = dayCardsMap[dayName] || [];
-    let threshold = 75;
-    if (typeof window !== "undefined") {
-      try {
-        const saved = localStorage.getItem("settings");
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed.targetAttendance) threshold = Number(parsed.targetAttendance);
-        }
-      } catch (e) {}
-    }
-    return courses.some(c => {
+    const threshold = getTargetAttendancePct();
+    return courses.some((c) => {
       const skips = simulatedSkips[c.courseCode] || 0;
       const attended = parseInt(c.attendedClasses);
       const total = parseInt(c.totalClasses) + skips;
@@ -325,23 +318,45 @@ export default function AttendanceTabs({
       <PageHeader
         icon={<Calendar className="w-5.5 h-5.5 text-blue-605 dark:text-blue-400" />}
         title="Weekly attendance"
-        meta={overallSimStats.hasSimulation && (
+        meta={
+          overallSimStats.hasSimulation && (
             <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-gray-500 dark:text-gray-400 bg-gray-100/85 dark:bg-slate-800/80 px-2 py-0.5 rounded border border-gray-200/60 dark:border-gray-700/60">
-              Simulated: <span className={overallSimStats.simAvg >= (isDayscholarWithBus ? 85 : 75) ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"}>{overallSimStats.simAvg}%</span>
-              <span className="text-[9px] text-gray-400 dark:text-gray-500 font-medium">(Original: {overallSimStats.originalAvg}%)</span>
+              Simulated:{" "}
+              <span
+                className={
+                  overallSimStats.simAvg >= (isDayscholarWithBus ? 85 : 75)
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-red-500 dark:text-red-400"
+                }
+              >
+                {overallSimStats.simAvg}%
+              </span>
+              <span className="text-[9px] text-gray-400 dark:text-gray-500 font-medium">
+                (Original: {overallSimStats.originalAvg}%)
+              </span>
             </span>
-        )}
+          )
+        }
         actions={
           <>
             {dashboardFriends.length > 0 && (
-            <button onClick={() => setShowCommonFree(true)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-green-500/10 hover:bg-green-500/20 text-green-700 dark:text-green-400 border border-green-500/20 font-extrabold text-[11px] uppercase tracking-wider transition-colors cursor-pointer">
-              <Users className="w-4 h-4" /> <span className="hidden md:inline">Free Time</span>
-            </button>
+              <button
+                onClick={() => setShowCommonFree(true)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-green-500/10 hover:bg-green-500/20 text-green-700 dark:text-green-400 border border-green-500/20 font-extrabold text-[11px] uppercase tracking-wider transition-colors cursor-pointer"
+              >
+                <Users className="w-4 h-4" /> <span className="hidden md:inline">Free Time</span>
+              </button>
             )}
-            <button onClick={() => setShowTimetable(true)} className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-extrabold transition-colors shadow-sm text-[11px] uppercase tracking-wider cursor-pointer">
+            <button
+              onClick={() => setShowTimetable(true)}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-extrabold transition-colors shadow-sm text-[11px] uppercase tracking-wider cursor-pointer"
+            >
               <Calendar className="w-4 h-4" /> <span>Timetable</span>
             </button>
-            <button onClick={() => setShowPredictor(true)} className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold transition-colors shadow-sm text-xs cursor-pointer">
+            <button
+              onClick={() => setShowPredictor(true)}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold transition-colors shadow-sm text-xs cursor-pointer"
+            >
               <CalendarCheck className="w-4 h-4" /> <span>Predictor</span>
             </button>
           </>
@@ -380,7 +395,9 @@ export default function AttendanceTabs({
                     ? "text-blue-600 dark:text-blue-400 font-black"
                     : "text-gray-400 dark:text-gray-500 font-semibold";
                 const numStyle = isSelected ? "text-white font-black" : "text-gray-900 dark:text-gray-100 font-black";
-                const monthStyle = isSelected ? "text-blue-200 font-semibold" : "text-gray-450 dark:text-gray-500 font-semibold";
+                const monthStyle = isSelected
+                  ? "text-blue-200 font-semibold"
+                  : "text-gray-450 dark:text-gray-500 font-semibold";
 
                 let badgeLabel = "Free Day";
                 let badgeClass = isSelected
@@ -412,11 +429,17 @@ export default function AttendanceTabs({
                   mobileBadgeLabel = `${details.classesCount} Cls`;
                 }
 
-                const todayBorder = info.isToday && !isSelected ? (isMobile ? "border-t-2 border-t-blue-500" : "border-t-[3px] border-t-blue-550 dark:border-t-blue-500") : "";
-                const isNextSelected = (idx < weekDaysInfo.length - 1) && (activeDay === weekDaysInfo[idx + 1].dayName);
-                const dividerClass = (isSelected || isNextSelected || idx === weekDaysInfo.length - 1)
-                  ? "border-r border-transparent"
-                  : "border-r border-gray-205  dark:border-gray-800/80";
+                const todayBorder =
+                  info.isToday && !isSelected
+                    ? isMobile
+                      ? "border-t-2 border-t-blue-500"
+                      : "border-t-[3px] border-t-blue-550 dark:border-t-blue-500"
+                    : "";
+                const isNextSelected = idx < weekDaysInfo.length - 1 && activeDay === weekDaysInfo[idx + 1].dayName;
+                const dividerClass =
+                  isSelected || isNextSelected || idx === weekDaysInfo.length - 1
+                    ? "border-r border-transparent"
+                    : "border-r border-gray-205  dark:border-gray-800/80";
 
                 return (
                   <button
@@ -429,21 +452,36 @@ export default function AttendanceTabs({
                     } ${todayBorder} ${dividerClass}`}
                   >
                     <div className="flex flex-col items-center w-full">
-                      <span className={`${isMobile ? "text-[10px]" : "text-[9px]"} tracking-wider uppercase flex items-center justify-center gap-1 ${dayStyle}`}>
+                      <span
+                        className={`${isMobile ? "text-[10px]" : "text-[9px]"} tracking-wider uppercase flex items-center justify-center gap-1 ${dayStyle}`}
+                      >
                         {isMobile ? info.dayName.slice(0, 3) : info.dayName}
-                        {info.isToday && !isSelected && <span className="w-1 h-1 rounded-full bg-blue-605 dark:bg-blue-400" />}
+                        {info.isToday && !isSelected && (
+                          <span className="w-1 h-1 rounded-full bg-blue-605 dark:bg-blue-400" />
+                        )}
                         {!details.isHoliday && !details.isWeekend && dayHasCriticalCourse(info.dayName) && (
-                          <span className="w-1 h-1 rounded-full bg-red-550 animate-pulse" title="Critical attendance subject today" />
+                          <span
+                            className="w-1 h-1 rounded-full bg-red-550 animate-pulse"
+                            title="Critical attendance subject today"
+                          />
                         )}
                       </span>
 
                       <div className="flex flex-col items-center mt-0.5 sm:mt-1">
-                        <span className={`${isMobile ? "text-base" : "text-xl sm:text-2xl"} leading-none ${numStyle}`}>{dayNum}</span>
-                        <span className={`${isMobile ? "text-[10px]" : "text-[10px]"} tracking-widest mt-0.5 ${monthStyle}`}>{monthName}</span>
+                        <span className={`${isMobile ? "text-base" : "text-xl sm:text-2xl"} leading-none ${numStyle}`}>
+                          {dayNum}
+                        </span>
+                        <span
+                          className={`${isMobile ? "text-[10px]" : "text-[10px]"} tracking-widest mt-0.5 ${monthStyle}`}
+                        >
+                          {monthName}
+                        </span>
                       </div>
                     </div>
                     <div className="w-full flex justify-center mt-1 sm:mt-1.5 px-0.5">
-                      <span className={`${isMobile ? "flex min-h-[20px] w-full max-w-[44px] items-center justify-center text-[9px] leading-none" : "text-[9px]"} font-semibold px-1 sm:px-1.5 py-0.5 rounded border ${badgeClass}`}>
+                      <span
+                        className={`${isMobile ? "flex min-h-[20px] w-full max-w-[44px] items-center justify-center text-[9px] leading-none" : "text-[9px]"} font-semibold px-1 sm:px-1.5 py-0.5 rounded border ${badgeClass}`}
+                      >
                         {isMobile ? mobileBadgeLabel : badgeLabel}
                       </span>
                     </div>
@@ -508,9 +546,10 @@ export default function AttendanceTabs({
             isDayscholarWithBus={isDayscholarWithBus}
             saturdayOverride={saturdayOverride}
             onClassClick={(item) => {
-              const idx = activeDayClasses.findIndex(c => 
-                c.courseCode === item.course.courseCode &&
-                c.slotName.split("+").some(slot => item.slots.includes(slot))
+              const idx = activeDayClasses.findIndex(
+                (c) =>
+                  c.courseCode === item.course.courseCode &&
+                  c.slotName.split("+").some((slot) => item.slots.includes(slot)),
               );
               if (idx !== -1) {
                 setDesktopSelectedIdx(idx);
@@ -546,9 +585,9 @@ export default function AttendanceTabs({
               }}
               simulatedSkips={simulatedSkips[dayCardsMap[activeDay][desktopSelectedIdx].courseCode] || 0}
               onSimulateSkipsChange={(val) => {
-                setSimulatedSkips(prev => ({
+                setSimulatedSkips((prev) => ({
                   ...prev,
-                  [dayCardsMap[activeDay][desktopSelectedIdx].courseCode]: Math.max(0, val)
+                  [dayCardsMap[activeDay][desktopSelectedIdx].courseCode]: Math.max(0, val),
                 }));
               }}
             />

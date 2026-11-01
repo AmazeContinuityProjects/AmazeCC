@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import config from "../../../../config.json";
 import { Coffee, Pizza, MapPin, User, CheckCircle2 } from "lucide-react";
+import { getTargetAttendancePct } from "@/store/settingsAtoms";
 
 function toMinutes(t: string) {
   if (!t) return 0;
@@ -56,15 +57,15 @@ interface DailyPlannerProps {
   selectedIndex?: number;
 }
 
-export default function DailyPlanner({ 
-  attendance, 
-  activeDay: controlledDay, 
-  onActiveDayChange, 
-  onClassClick, 
-  simulatedSkips = {}, 
-  isDayscholarWithBus = false, 
+export default function DailyPlanner({
+  attendance,
+  activeDay: controlledDay,
+  onActiveDayChange,
+  onClassClick,
+  simulatedSkips = {},
+  isDayscholarWithBus = false,
   saturdayOverride,
-  selectedIndex
+  selectedIndex,
 }: DailyPlannerProps) {
   const slotMap = (config as any).slotMap || {};
   const [internalDay, setInternalDay] = useState(getTodayDay());
@@ -77,7 +78,9 @@ export default function DailyPlanner({
     onActiveDayChange?.(day);
   };
 
-  const effectiveSatOverride = saturdayOverride || (typeof window !== "undefined" ? localStorage.getItem("saturday_timetable_override") || "SAT" : "SAT");
+  const effectiveSatOverride =
+    saturdayOverride ||
+    (typeof window !== "undefined" ? localStorage.getItem("saturday_timetable_override") || "SAT" : "SAT");
 
   useEffect(() => {
     const updateTime = () => {
@@ -142,19 +145,21 @@ export default function DailyPlanner({
     if (dayClasses.length === 0) return [];
 
     const merged: any[] = [];
-    dayClasses.sort((a, b) => a.start - b.start).forEach((item) => {
-      if (merged.length === 0) {
-        merged.push({ ...item, slots: [item.slot] });
-        return;
-      }
-      const last = merged[merged.length - 1];
-      if (last.course.courseCode === item.course.courseCode && Math.abs(last.end - item.start) <= 10) {
-        last.end = Math.max(last.end, item.end);
-        last.slots.push(item.slot);
-      } else {
-        merged.push({ ...item, slots: [item.slot] });
-      }
-    });
+    dayClasses
+      .sort((a, b) => a.start - b.start)
+      .forEach((item) => {
+        if (merged.length === 0) {
+          merged.push({ ...item, slots: [item.slot] });
+          return;
+        }
+        const last = merged[merged.length - 1];
+        if (last.course.courseCode === item.course.courseCode && Math.abs(last.end - item.start) <= 10) {
+          last.end = Math.max(last.end, item.end);
+          last.slots.push(item.slot);
+        } else {
+          merged.push({ ...item, slots: [item.slot] });
+        }
+      });
 
     const DAY_START = 480;
     const LUNCH_START = 800;
@@ -209,8 +214,11 @@ export default function DailyPlanner({
 
   const activeTargetDay = getTargetDay(activeDay);
   const dayHasClasses = (attendance || []).some((course: any) => {
-    const slots = String(course.slotName || "").split("+").map(s => s.trim()).filter(Boolean);
-    return slots.some(slot => (slotMap as any)[activeTargetDay]?.[slot]);
+    const slots = String(course.slotName || "")
+      .split("+")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    return slots.some((slot) => (slotMap as any)[activeTargetDay]?.[slot]);
   });
 
   return (
@@ -233,12 +241,12 @@ export default function DailyPlanner({
                     : "bg-white dark:bg-[#060606] border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 text-gray-650 dark:text-gray-300"
                 }`}
               >
-                <span className={`text-[10px] font-bold uppercase tracking-wider ${isActive ? "text-blue-100" : "text-gray-400 dark:text-gray-500"}`}>
+                <span
+                  className={`text-[10px] font-bold uppercase tracking-wider ${isActive ? "text-blue-100" : "text-gray-400 dark:text-gray-500"}`}
+                >
                   {day}
                 </span>
-                <span className="text-sm font-black mt-1">
-                  {count > 0 ? count : "\u2014"}
-                </span>
+                <span className="text-sm font-black mt-1">{count > 0 ? count : "\u2014"}</span>
                 {isDayToday && (
                   <span className={`w-1 h-1 rounded-full mt-1 ${isActive ? "bg-white" : "bg-blue-600"}`} />
                 )}
@@ -251,7 +259,9 @@ export default function DailyPlanner({
       {/* Timeline */}
       {!dayHasClasses ? (
         <div className="flex flex-col items-center justify-center p-8 text-center bg-gray-55/50 dark:bg-black/30 border border-dashed border-gray-250 dark:border-gray-800 rounded-2xl py-12">
-          <span className="text-4xl mb-3" role="img" aria-label="party">🎉</span>
+          <span className="text-4xl mb-3" role="img" aria-label="party">
+            🎉
+          </span>
           <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">No Classes Scheduled</h3>
           <p className="text-xs text-gray-500 dark:text-gray-400 max-w-xs mt-1">
             Enjoy your day off! Use this time to rest, study, or pursue hobbies.
@@ -290,9 +300,7 @@ export default function DailyPlanner({
                       <Pizza size={16} />
                     </div>
                     <div className="flex-1">
-                      <p className="text-xs font-bold text-amber-800 dark:text-amber-300">
-                        Lunch Break 🍔
-                      </p>
+                      <p className="text-xs font-bold text-amber-800 dark:text-amber-300">Lunch Break 🍔</p>
                       <p className="text-[10px] text-amber-650 dark:text-amber-400/60 mt-0.5">
                         {minutesToTimeStr(item.start)} to {minutesToTimeStr(item.end)}
                       </p>
@@ -313,20 +321,12 @@ export default function DailyPlanner({
             const originalPercentage = parseFloat(c.attendancePercentage);
             const attendedClassesCount = parseInt(c.attendedClasses);
             const totalClassesCount = parseInt(c.totalClasses) + courseSkips;
-            const simulatedPercentage = totalClassesCount > 0
-              ? parseFloat(((attendedClassesCount / totalClassesCount) * 100).toFixed(1))
-              : originalPercentage;
+            const simulatedPercentage =
+              totalClassesCount > 0
+                ? parseFloat(((attendedClassesCount / totalClassesCount) * 100).toFixed(1))
+                : originalPercentage;
 
-            let thresholdPct = 75;
-            if (typeof window !== "undefined") {
-              try {
-                const saved = localStorage.getItem("settings");
-                if (saved) {
-                  const parsed = JSON.parse(saved);
-                  if (parsed.targetAttendance) thresholdPct = Number(parsed.targetAttendance);
-                }
-              } catch (e) {}
-            }
+            const thresholdPct = getTargetAttendancePct();
 
             let classSlotIdx = 0;
             let classIdxCounter = 0;
@@ -336,19 +336,22 @@ export default function DailyPlanner({
             classSlotIdx = classIdxCounter;
 
             const itemKey = `${item.slots.join("-")}-${c.courseCode}`;
-            const isSelected = selectedIndex !== undefined ? (classSlotIdx === selectedIndex) : (selectedSlotKey === itemKey);
+            const isSelected =
+              selectedIndex !== undefined ? classSlotIdx === selectedIndex : selectedSlotKey === itemKey;
 
-            let borderStyle = isLab 
-              ? "border-l-4 border-l-purple-500 dark:border-l-purple-500" 
+            let borderStyle = isLab
+              ? "border-l-4 border-l-purple-500 dark:border-l-purple-500"
               : "border-l-4 border-l-blue-500 dark:border-l-blue-500";
             let cardStyle = "bg-white dark:bg-[#060606] border-gray-200 dark:border-gray-800";
             let dotColor = isLab ? "bg-purple-500" : "bg-blue-500";
 
             if (isSelected) {
-              cardStyle = "bg-gradient-to-r from-indigo-50/70 via-indigo-50/30 to-purple-50/20 dark:from-indigo-950/40 dark:via-zinc-900 dark:to-purple-950/20 border-indigo-500 dark:border-indigo-400 ring-2 ring-indigo-500/70 dark:ring-indigo-400/70 shadow-md scale-[1.015]";
+              cardStyle =
+                "bg-gradient-to-r from-indigo-50/70 via-indigo-50/30 to-purple-50/20 dark:from-indigo-950/40 dark:via-zinc-900 dark:to-purple-950/20 border-indigo-500 dark:border-indigo-400 ring-2 ring-indigo-500/70 dark:ring-indigo-400/70 shadow-md scale-[1.015]";
               dotColor = "bg-indigo-600 dark:bg-indigo-400 ring-4 ring-indigo-500/50 scale-125 font-bold";
             } else if (isOngoing) {
-              cardStyle = "bg-blue-50/10 dark:bg-blue-950/5 border-blue-500 dark:border-blue-400 ring-1 ring-blue-500/20 shadow-sm";
+              cardStyle =
+                "bg-blue-50/10 dark:bg-blue-950/5 border-blue-500 dark:border-blue-400 ring-1 ring-blue-500/20 shadow-sm";
               dotColor = "bg-amber-500 ring-4 ring-amber-400/35";
             } else if (isCompleted) {
               cardStyle = "bg-white dark:bg-[#060606] border-gray-100 dark:border-gray-800 opacity-60";
@@ -371,9 +374,15 @@ export default function DailyPlanner({
 
             return (
               <div key={index} className="relative">
-                <div className={`absolute left-[-21px] sm:left-[-29px] top-[24px] w-2.5 h-2.5 rounded-full transition-all duration-300 ${dotColor}`}>
-                  {isOngoing && !isSelected && <span className="absolute inset-0 rounded-full bg-amber-400 opacity-75 animate-ping" />}
-                  {isSelected && <span className="absolute inset-0 rounded-full bg-indigo-500 opacity-75 animate-ping" />}
+                <div
+                  className={`absolute left-[-21px] sm:left-[-29px] top-[24px] w-2.5 h-2.5 rounded-full transition-all duration-300 ${dotColor}`}
+                >
+                  {isOngoing && !isSelected && (
+                    <span className="absolute inset-0 rounded-full bg-amber-400 opacity-75 animate-ping" />
+                  )}
+                  {isSelected && (
+                    <span className="absolute inset-0 rounded-full bg-indigo-500 opacity-75 animate-ping" />
+                  )}
                 </div>
 
                 <div
@@ -385,7 +394,9 @@ export default function DailyPlanner({
                 >
                   <div className="flex-1 min-w-0 space-y-1 pr-14">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-black uppercase ${isSelected ? "bg-indigo-600 text-white shadow-2xs" : "bg-gray-100 dark:bg-gray-850 text-gray-500 dark:text-gray-400"}`}>
+                      <span
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-black uppercase ${isSelected ? "bg-indigo-600 text-white shadow-2xs" : "bg-gray-100 dark:bg-gray-850 text-gray-500 dark:text-gray-400"}`}
+                      >
                         {item.slots.join(" + ")}
                       </span>
                       <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500">
@@ -431,11 +442,15 @@ export default function DailyPlanner({
                   </div>
 
                   <div className="absolute top-3 right-3 flex flex-col items-end gap-0.5">
-                    <div className={`px-2.5 py-1 rounded-lg font-black text-sm sm:text-base leading-none ${pctBg} ${pctColor}`}>
+                    <div
+                      className={`px-2.5 py-1 rounded-lg font-black text-sm sm:text-base leading-none ${pctBg} ${pctColor}`}
+                    >
                       {courseSkips > 0 ? `${simulatedPercentage}%` : `${originalPercentage}%`}
                     </div>
                     {courseSkips > 0 && (
-                      <span className="text-[9px] text-gray-400 dark:text-gray-500 line-through">{originalPercentage}%</span>
+                      <span className="text-[9px] text-gray-400 dark:text-gray-500 line-through">
+                        {originalPercentage}%
+                      </span>
                     )}
                   </div>
                 </div>

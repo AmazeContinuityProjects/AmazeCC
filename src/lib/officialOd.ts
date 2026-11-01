@@ -1,14 +1,27 @@
 import { storage } from "./storage";
+import { readSettings } from "@/store/settingsAtoms";
 import type { OfficialOdRecord, OfficialOdResponse } from "@/types/data/od";
 
 const MONTHS: Record<string, number> = {
-  jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
-  jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
+  jan: 0,
+  feb: 1,
+  mar: 2,
+  apr: 3,
+  may: 4,
+  jun: 5,
+  jul: 6,
+  aug: 7,
+  sep: 8,
+  oct: 9,
+  nov: 10,
+  dec: 11,
 };
 
 /** "15-Dec-2025" -> midnight timestamp (NaN if unparseable) */
 export function parseVtopDay(dateStr: string): number {
-  const m = String(dateStr || "").trim().match(/^(\d{1,2})-([A-Za-z]{3})-(\d{4})$/);
+  const m = String(dateStr || "")
+    .trim()
+    .match(/^(\d{1,2})-([A-Za-z]{3})-(\d{4})$/);
   if (!m) return NaN;
   const month = MONTHS[m[2].toLowerCase()];
   if (month === undefined) return NaN;
@@ -17,7 +30,9 @@ export function parseVtopDay(dateStr: string): number {
 
 /** "03-Aug-2026 to 03-Aug-2026" (or a single day) -> [from, to] timestamps */
 export function parseOdDateRange(range: string): [number, number] {
-  const parts = String(range || "").split(/\s+to\s+/i).map((s) => s.trim());
+  const parts = String(range || "")
+    .split(/\s+to\s+/i)
+    .map((s) => s.trim());
   const from = parseVtopDay(parts[0] || "");
   const to = parseVtopDay(parts[1] || parts[0] || "");
   return [from, to];
@@ -38,14 +53,8 @@ export function matchOfficialOdForDate(
 }
 
 export function getCurrentSemesterId(): string {
-  try {
-    const raw = localStorage.getItem("settings");
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed?.currSemesterID) return String(parsed.currSemesterID);
-    }
-  } catch {}
-  return "";
+  const sem = readSettings().currSemesterID;
+  return sem ? String(sem) : "";
 }
 
 /** Read synced official OD for a semester (defaults to current). */

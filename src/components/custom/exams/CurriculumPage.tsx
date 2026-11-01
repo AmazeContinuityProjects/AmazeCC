@@ -41,25 +41,29 @@ import {
 } from "../shared/primitives";
 import SelectField from "../shared/primitives/SelectField";
 import { CHIP, LIST_ROW, LIST_SHELL, SEARCH_FIELD, TILE } from "@/lib/uiTokens";
+import { readSettings, updateSettings } from "@/store/settingsAtoms";
 import { storage } from "@/lib/storage";
-import {
-  buildCategoryRows,
-  splitCurriculumRows,
-  num,
-  type CategoryRow,
-} from "@/lib/curriculum";
+import { buildCategoryRows, splitCurriculumRows, num, type CategoryRow } from "@/lib/curriculum";
 
 // ── helpers & constants ──────────────────────────────────────────────
 const normalizeDistributionType = (raw?: string) => {
   switch (raw?.toUpperCase()) {
-    case "TH": return "Theory";
-    case "LO": return "Lab Only";
-    case "ETL": return "Embedded Theory & Lab";
-    case "ELA": return "Embedded Lab";
-    case "PJT": return "Project";
-    case "SS": return "Soft Skill";
-    case "OC": return "Online Course";
-    default: return raw || "Other";
+    case "TH":
+      return "Theory";
+    case "LO":
+      return "Lab Only";
+    case "ETL":
+      return "Embedded Theory & Lab";
+    case "ELA":
+      return "Embedded Lab";
+    case "PJT":
+      return "Project";
+    case "SS":
+      return "Soft Skill";
+    case "OC":
+      return "Online Course";
+    default:
+      return raw || "Other";
   }
 };
 
@@ -83,7 +87,14 @@ const GRADE_COLORS: Record<string, string> = {
  * overstate it, so it stays in and reads as a risk.
  */
 const GRADE_POINTS: Record<string, number> = {
-  S: 10, A: 9, B: 8, C: 7, D: 6, E: 5, F: 0, N: 0,
+  S: 10,
+  A: 9,
+  B: 8,
+  C: 7,
+  D: 6,
+  E: 5,
+  F: 0,
+  N: 0,
 };
 
 /**
@@ -95,8 +106,14 @@ const GRADE_POINTS: Record<string, number> = {
  * per-grade text in the completed list, where all eight are distinguishable.
  */
 const GRADE_TONE: Record<string, string> = {
-  S: "amber", A: "emerald", B: "blue", C: "cyan",
-  D: "violet", E: "red", F: "red", N: "zinc",
+  S: "amber",
+  A: "emerald",
+  B: "blue",
+  C: "cyan",
+  D: "violet",
+  E: "red",
+  F: "red",
+  N: "zinc",
 };
 
 const GRADE_CHOICES = ["S", "A", "B", "C", "D", "E", "F", "N"] as const;
@@ -179,8 +196,7 @@ const VIEW_META: ViewMeta[] = [
     title: "Credit Baskets",
     desc: "Category-wise earned, ongoing and remaining credits",
     icon: BookOpen,
-    iconClass:
-      "bg-indigo-500/10 border-indigo-500/20 text-indigo-600 dark:text-indigo-400",
+    iconClass: "bg-indigo-500/10 border-indigo-500/20 text-indigo-600 dark:text-indigo-400",
   },
   {
     id: "catalog",
@@ -196,8 +212,7 @@ const VIEW_META: ViewMeta[] = [
     title: "Completed Courses",
     desc: "Cleared courses grouped by distribution type",
     icon: CheckCircle2,
-    iconClass:
-      "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400",
+    iconClass: "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400",
   },
   {
     id: "planner",
@@ -205,15 +220,13 @@ const VIEW_META: ViewMeta[] = [
     title: "CGPA Predictor",
     desc: "Set expected grades and see the SGPA and CGPA they produce",
     icon: Calculator,
-    iconClass:
-      "bg-violet-500/10 border-violet-500/20 text-violet-600 dark:text-violet-400",
+    iconClass: "bg-violet-500/10 border-violet-500/20 text-violet-600 dark:text-violet-400",
   },
 ];
 
 // ── design tokens ─────────────────────────────────────────────────────
 // The page surfaces used to be re-declared here, verbatim copies of the shared
 // tokens. They now come from one place, like every other page.
-
 
 // ── main component ──────────────────────────────────────────────────
 export default function CurriculumPage({
@@ -255,7 +268,8 @@ export default function CurriculumPage({
     onExit: () => setActiveSubTab("courses-simplified"),
   });
   const { screen, isRoot } = stack;
-  const setScreen = stack.go;  const [creds, setCreds] = useState<Creds | null>(null);
+  const setScreen = stack.go;
+  const [creds, setCreds] = useState<Creds | null>(null);
 
   // `useSubpageStack` seeds its state from `initial` exactly once, so a repeat
   // visit — the Academics hub card tapped again, or a back-and-forth between
@@ -277,27 +291,16 @@ export default function CurriculumPage({
 
   // ─ CGPA Blur State (persisted, single source of truth in the top bar) ─
   const [isCgpaBlurred, setIsCgpaBlurred] = useState<boolean>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const raw = localStorage.getItem("settings");
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (typeof parsed.CGPAHidden === "boolean") return parsed.CGPAHidden;
-          if (typeof parsed.blurGrades === "boolean") return parsed.blurGrades;
-        }
-      } catch {}
-    }
+    const stored = readSettings();
+    if (typeof stored.CGPAHidden === "boolean") return stored.CGPAHidden;
+    if (typeof stored.blurGrades === "boolean") return stored.blurGrades;
     return false;
   });
 
   const toggleCgpaBlur = () => {
     setIsCgpaBlurred((prev) => {
       const next = !prev;
-      try {
-        const raw = localStorage.getItem("settings");
-        const parsed = raw ? JSON.parse(raw) : {};
-        localStorage.setItem("settings", JSON.stringify({ ...parsed, CGPAHidden: next }));
-      } catch {}
+      updateSettings({ CGPAHidden: next });
       return next;
     });
   };
@@ -399,9 +402,7 @@ export default function CurriculumPage({
         throw new Error(errBody.error || `Download failed (${res.status})`);
       }
       const ct = res.headers.get("content-type") || "";
-      const filename = ct.includes("zip")
-        ? `${courseCode}_syllabus.zip`
-        : `${courseCode}_syllabus.pdf`;
+      const filename = ct.includes("zip") ? `${courseCode}_syllabus.zip` : `${courseCode}_syllabus.pdf`;
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -451,10 +452,7 @@ export default function CurriculumPage({
     }
   };
 
-  const toggleIn = (
-    setter: React.Dispatch<React.SetStateAction<Set<string>>>,
-    key: string
-  ) => {
+  const toggleIn = (setter: React.Dispatch<React.SetStateAction<Set<string>>>, key: string) => {
     setter((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
@@ -505,60 +503,39 @@ export default function CurriculumPage({
   };
 
   const curriculum = findCurriculum();
-  const effectiveGrades = findEffectiveGrades().filter(
-    (eg) => !isNaN(parseFloat(eg.creditsEarned))
-  );
+  const effectiveGrades = findEffectiveGrades().filter((eg) => !isNaN(parseFloat(eg.creditsEarned)));
 
   const currentCgpa = useMemo(
-    () =>
-      Number(
-        marksData?.cgpa?.cgpa || gradesData?.cgpa?.cgpa || allGradesData?.cgpa?.cgpa || 0
-      ),
-    [marksData, gradesData, allGradesData]
+    () => Number(marksData?.cgpa?.cgpa || gradesData?.cgpa?.cgpa || allGradesData?.cgpa?.cgpa || 0),
+    [marksData, gradesData, allGradesData],
   );
 
   // ─ Totals ─
-  const totalRow = curriculum.find((c) =>
-    (c.basketTitle || "").toLowerCase().includes("total credits")
-  );
+  const totalRow = curriculum.find((c) => (c.basketTitle || "").toLowerCase().includes("total credits"));
   let totalRequired = totalRow ? num(totalRow.creditsRequired) : curricTotal || 160;
   let totalEarned = totalRow ? num(totalRow.creditsEarned) : 0;
 
   if (totalEarned === 0 && marksData?.cgpa?.creditsEarned) {
-    totalEarned =
-      num(marksData.cgpa.creditsEarned) + num(marksData.cgpa.nonGradedRequirement);
+    totalEarned = num(marksData.cgpa.creditsEarned) + num(marksData.cgpa.nonGradedRequirement);
     totalRequired = num(marksData.cgpa.creditsRequired) || curricTotal || 160;
   }
   if (totalEarned === 0 && effectiveGrades.length > 0) {
-    totalEarned = effectiveGrades.reduce(
-      (acc, curr) => acc + (num(curr.creditsEarned) || 0),
-      0
-    );
+    totalEarned = effectiveGrades.reduce((acc, curr) => acc + (num(curr.creditsEarned) || 0), 0);
   }
 
-  const safeAttendance = useMemo(
-    () => (Array.isArray(attendance) ? attendance : []),
-    [attendance]
-  );
+  const safeAttendance = useMemo(() => (Array.isArray(attendance) ? attendance : []), [attendance]);
 
   // ─ Ongoing credits, keyed by the same category names the curriculum uses ─
   const ongoingCreditsByCategory = useMemo(() => {
     return safeAttendance.reduce<Record<string, number>>((acc, item) => {
       let category = item.category || "Uncategorized";
       const credits = num(item.credits);
-      if (
-        category ===
-        "Foundation Core - Humanities, Social Sciences and Management (LANGUAGE Basket)"
-      ) {
+      if (category === "Foundation Core - Humanities, Social Sciences and Management (LANGUAGE Basket)") {
         category = "Foreign Language";
-      } else if (
-        category ===
-        "Foundation Core - Humanities, Social Sciences and Management (GENERAL Basket)"
-      ) {
+      } else if (category === "Foundation Core - Humanities, Social Sciences and Management (GENERAL Basket)") {
         category = "HSM Elective";
       } else if (
-        category ===
-        "Foundation Core - Humanities, Social Sciences and Management (EXTRA CURRICULAR Basket)"
+        category === "Foundation Core - Humanities, Social Sciences and Management (EXTRA CURRICULAR Basket)"
       ) {
         category = "Extra curricular activities";
       }
@@ -577,15 +554,12 @@ export default function CurriculumPage({
 
   const totalOngoing = useMemo(
     () => Object.values(ongoingCreditsByCategory).reduce((s, v) => s + v, 0),
-    [ongoingCreditsByCategory]
+    [ongoingCreditsByCategory],
   );
 
   // Electives/extras are listed separately; `main` is consumed via
   // buildCategoryRows, which re-applies the same split internally.
-  const { sub: subCategories } = useMemo(
-    () => splitCurriculumRows(curriculum),
-    [curriculum]
-  );
+  const { sub: subCategories } = useMemo(() => splitCurriculumRows(curriculum), [curriculum]);
 
   /**
    * One row per credit category, from whichever source has data — the flat
@@ -600,10 +574,8 @@ export default function CurriculumPage({
         details: curricDetails,
         ongoingByCategory: ongoingCreditsByCategory,
       }),
-    [curriculum, curricCategories, curricDetails, ongoingCreditsByCategory]
+    [curriculum, curricCategories, curricDetails, ongoingCreditsByCategory],
   );
-
-
 
   const completedCourseCodes = useMemo(() => {
     const set = new Set<string>();
@@ -632,8 +604,7 @@ export default function CurriculumPage({
 
   const earnedPct = Math.min((totalEarned / totalRequired) * 100, 100);
   const remainingCredits = Math.max(totalRequired - totalEarned - totalOngoing, 0);
-  const expectedGraduation =
-    remainingCredits <= 0 ? "Ready" : `${Math.max(Math.ceil(remainingCredits / 24), 1)} sem`;
+  const expectedGraduation = remainingCredits <= 0 ? "Ready" : `${Math.max(Math.ceil(remainingCredits / 24), 1)} sem`;
 
   const inProgressCount = ongoingCourseCodes.size;
   const completedCount = completedCourseCodes.size;
@@ -641,9 +612,9 @@ export default function CurriculumPage({
     () =>
       (curricDetails || []).reduce(
         (sum, cat) => sum + (cat.baskets || []).reduce((s, b) => s + (b.items?.length || 0), 0),
-        0
+        0,
       ),
-    [curricDetails]
+    [curricDetails],
   );
 
   // ─ Catalog: one flat course list, then filter ─
@@ -714,7 +685,6 @@ export default function CurriculumPage({
 
   // ─ Landing carousel slides (each one lands somewhere real) ─
   const slides = useMemo(() => {
-
     const list: {
       id: string;
       title: string;
@@ -745,8 +715,7 @@ export default function CurriculumPage({
       headline: String(inProgressCount),
       subline: "courses being taken",
       badge: "Ongoing",
-      badgeClass:
-        "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20",
+      badgeClass: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20",
       tone: "text-amber-600 dark:text-amber-400",
       onClick: () => {
         setStatusFilter("in_progress");
@@ -759,8 +728,7 @@ export default function CurriculumPage({
       headline: String(completedCount),
       subline: "courses completed",
       badge: "Cleared",
-      badgeClass:
-        "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20",
+      badgeClass: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20",
       tone: "text-emerald-600 dark:text-emerald-400",
       onClick: () => setScreen("completed"),
     });
@@ -770,20 +738,12 @@ export default function CurriculumPage({
       headline: expectedGraduation,
       subline: `${remainingCredits.toFixed(1)} credits remaining`,
       badge: "ETA",
-      badgeClass:
-        "bg-zinc-500/10 text-zinc-600 dark:text-zinc-300 border border-zinc-500/20",
+      badgeClass: "bg-zinc-500/10 text-zinc-600 dark:text-zinc-300 border border-zinc-500/20",
       tone: "text-zinc-700 dark:text-zinc-200",
       onClick: () => setScreen("planner"),
     });
     return list;
-  }, [
-    currentCgpa,
-    inProgressCount,
-    completedCount,
-    expectedGraduation,
-    remainingCredits,
-    setActiveSubTab,
-  ]);
+  }, [currentCgpa, inProgressCount, completedCount, expectedGraduation, remainingCredits, setActiveSubTab]);
 
   const carousel = useCarousel(slides.length);
   const insightSlides = useMemo<InsightSlide[]>(
@@ -799,9 +759,8 @@ export default function CurriculumPage({
         blur: s.id === "cgpa" && isCgpaBlurred ? "blur-[5px]" : undefined,
         onClick: s.onClick,
       })),
-    [slides, isCgpaBlurred]
+    [slides, isCgpaBlurred],
   );
-
 
   const hasAnyData =
     curriculum.length > 0 ||
@@ -810,7 +769,6 @@ export default function CurriculumPage({
     (curricDetails?.length || 0) > 0;
 
   const StatusPill = ({ status }: { status: CourseStatus }) => {
-
     if (status === "completed") {
       return (
         <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
@@ -846,11 +804,7 @@ export default function CurriculumPage({
         aria-label={`Download ${code} syllabus`}
         className="p-1.5 rounded-lg bg-zinc-100 hover:bg-indigo-50 dark:bg-zinc-800 dark:hover:bg-indigo-950/40 text-zinc-500 hover:text-indigo-600 dark:text-zinc-400 dark:hover:text-indigo-400 transition-colors cursor-pointer shrink-0"
       >
-        {busy ? (
-          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-        ) : (
-          <Download className="w-3.5 h-3.5" />
-        )}
+        {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
       </button>
     );
   };
@@ -902,17 +856,12 @@ export default function CurriculumPage({
                       {earned.toFixed(1)} earned · {required.toFixed(1)} required
                     </p>
                     <div className="mt-1.5 max-w-[160px]">
-                      <MiniBar
-                        pct={pct}
-                        tone={pct >= 100 ? "bg-emerald-500" : "bg-indigo-500"}
-                      />
+                      <MiniBar pct={pct} tone={pct >= 100 ? "bg-emerald-500" : "bg-indigo-500"} />
                     </div>
                   </div>
                   {baskets.length > 0 && (
                     <ChevronRight
-                      className={`w-4 h-4 text-zinc-400 shrink-0 transition-transform ${
-                        isOpen ? "rotate-90" : ""
-                      }`}
+                      className={`w-4 h-4 text-zinc-400 shrink-0 transition-transform ${isOpen ? "rotate-90" : ""}`}
                     />
                   )}
                 </button>
@@ -944,9 +893,7 @@ export default function CurriculumPage({
                               <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300 truncate flex-1">
                                 {b.title}
                               </span>
-                              <span className="text-[10px] font-bold text-zinc-400 shrink-0">
-                                {b.credits} cr
-                              </span>
+                              <span className="text-[10px] font-bold text-zinc-400 shrink-0">{b.credits} cr</span>
                             </button>
 
                             <AnimatePresence initial={false}>
@@ -959,10 +906,7 @@ export default function CurriculumPage({
                                   className="overflow-hidden"
                                 >
                                   {(b.items || []).map((item) => (
-                                    <div
-                                      key={item.code}
-                                      className="flex items-center gap-2 py-2 pl-14 pr-4"
-                                    >
+                                    <div key={item.code} className="flex items-center gap-2 py-2 pl-14 pr-4">
                                       <span className="text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
                                         {item.code}
                                       </span>
@@ -993,11 +937,7 @@ export default function CurriculumPage({
 
       {subCategories.length > 0 && (
         <div className="space-y-3 pt-2">
-          <SectionHeader
-            icon={Award}
-            title="Electives & extras"
-            count={subCategories.length}
-          />
+          <SectionHeader icon={Award} title="Electives & extras" count={subCategories.length} />
           <div className={LIST_SHELL}>
             {subCategories.map((cat) => {
               const required = num(cat.creditsRequired);
@@ -1006,9 +946,7 @@ export default function CurriculumPage({
               return (
                 <div key={cat.basketTitle} className={LIST_ROW}>
                   <span
-                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                      pct >= 100 ? "bg-emerald-500" : "bg-violet-500"
-                    }`}
+                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${pct >= 100 ? "bg-emerald-500" : "bg-violet-500"}`}
                   />
                   <div className="min-w-0 flex-1">
                     <p className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight">
@@ -1033,11 +971,7 @@ export default function CurriculumPage({
   // ─ CATALOG ───────────────────────────────────────────────────────────
   const catalogList = (
     <div className="space-y-3">
-      <SectionHeader
-        icon={Search}
-        title="Course catalog"
-        count={catalogMatches.length}
-      />
+      <SectionHeader icon={Search} title="Course catalog" count={catalogMatches.length} />
 
       {/* Filter bar: search + status pills (attendance-log style) */}
       <div className="px-1 space-y-2.5">
@@ -1063,18 +997,19 @@ export default function CurriculumPage({
         </div>
 
         <SegmentedControl
-          options={[
-            { value: "all", label: "All" },
-            { value: "completed", label: "Done" },
-            { value: "in_progress", label: "Ongoing" },
-            { value: "remaining", label: "Left" },
-          ] as const}
+          options={
+            [
+              { value: "all", label: "All" },
+              { value: "completed", label: "Done" },
+              { value: "in_progress", label: "Ongoing" },
+              { value: "remaining", label: "Left" },
+            ] as const
+          }
           value={statusFilter}
           onChange={setStatusFilter}
           grow
           scroll
         />
-
       </div>
 
       {catalogMatches.length === 0 ? (
@@ -1097,7 +1032,6 @@ export default function CurriculumPage({
           }
         />
       ) : q || statusFilter !== "all" ? (
-
         /* Searching: one flat list, never a forced-open accordion */
         <div className={LIST_SHELL}>
           {catalogMatches.map((c) => (
@@ -1107,17 +1041,11 @@ export default function CurriculumPage({
                 {c.code}
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-zinc-900 dark:text-white truncate">
-                  {c.name}
-                </p>
-                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5 truncate">
-                  {c.category}
-                </p>
+                <p className="text-xs font-bold text-zinc-900 dark:text-white truncate">{c.name}</p>
+                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5 truncate">{c.category}</p>
               </div>
               <StatusPill status={c.status} />
-              <span className="text-[10px] font-bold text-zinc-400 w-8 text-right shrink-0">
-                {c.credits} cr
-              </span>
+              <span className="text-[10px] font-bold text-zinc-400 w-8 text-right shrink-0">{c.credits} cr</span>
               <SyllabusButton code={c.code} />
             </div>
           ))}
@@ -1144,9 +1072,7 @@ export default function CurriculumPage({
                     {doneCount}/{courses.length}
                   </span>
                   <ChevronRight
-                    className={`w-4 h-4 text-zinc-400 shrink-0 transition-transform ${
-                      isOpen ? "rotate-90" : ""
-                    }`}
+                    className={`w-4 h-4 text-zinc-400 shrink-0 transition-transform ${isOpen ? "rotate-90" : ""}`}
                   />
                 </button>
                 <AnimatePresence initial={false}>
@@ -1164,9 +1090,7 @@ export default function CurriculumPage({
                           <span className="text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
                             {c.code}
                           </span>
-                          <span className="text-xs text-zinc-700 dark:text-zinc-300 truncate flex-1">
-                            {c.name}
-                          </span>
+                          <span className="text-xs text-zinc-700 dark:text-zinc-300 truncate flex-1">{c.name}</span>
                           <StatusPill status={c.status} />
                           <span className="text-[10px] font-bold text-zinc-400 w-8 text-right shrink-0">
                             {c.credits} cr
@@ -1188,15 +1112,10 @@ export default function CurriculumPage({
   // ─ COMPLETED ─────────────────────────────────────────────────────────
   const completedList = (
     <div className="space-y-3">
-      <SectionHeader
-        icon={CheckCircle2}
-        title="Completed courses"
-        count={effectiveGrades.length}
-      />
+      <SectionHeader icon={CheckCircle2} title="Completed courses" count={effectiveGrades.length} />
 
       {completedGroups.length === 0 ? (
         <EmptyPanel variant="dashed" title="No cleared courses yet." />
-
       ) : (
         <div className="space-y-2.5">
           {completedGroups.map(([type, courses]) => {
@@ -1218,9 +1137,7 @@ export default function CurriculumPage({
                     {courses.length} · {credits.toFixed(0)} cr
                   </span>
                   <ChevronRight
-                    className={`w-4 h-4 text-zinc-400 shrink-0 transition-transform ${
-                      isOpen ? "rotate-90" : ""
-                    }`}
+                    className={`w-4 h-4 text-zinc-400 shrink-0 transition-transform ${isOpen ? "rotate-90" : ""}`}
                   />
                 </button>
                 <AnimatePresence initial={false}>
@@ -1236,9 +1153,7 @@ export default function CurriculumPage({
                         <div key={`${c.basketTitle}-${i}`} className={LIST_ROW}>
                           <span className="w-1.5 shrink-0" />
                           <div className="min-w-0 flex-1">
-                            <p className="text-xs font-bold text-zinc-900 dark:text-white truncate">
-                              {c.basketTitle}
-                            </p>
+                            <p className="text-xs font-bold text-zinc-900 dark:text-white truncate">{c.basketTitle}</p>
                             <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
                               {num(c.creditsEarned).toFixed(1)} credits earned
                             </p>
@@ -1325,12 +1240,8 @@ export default function CurriculumPage({
       let changed = false;
       for (const c of plannerCourses) {
         if (next[c.code]) continue;
-        const cleared = effectiveGrades.find(
-          (g) => String(g.courseCode || "").toUpperCase() === c.code.toUpperCase()
-        );
-        const known = cleared?.grade && GRADE_POINTS[cleared.grade] !== undefined
-          ? cleared.grade
-          : "A";
+        const cleared = effectiveGrades.find((g) => String(g.courseCode || "").toUpperCase() === c.code.toUpperCase());
+        const known = cleared?.grade && GRADE_POINTS[cleared.grade] !== undefined ? cleared.grade : "A";
         next[c.code] = known;
         changed = true;
       }
@@ -1341,20 +1252,13 @@ export default function CurriculumPage({
   // ─ The maths ─
   const currentTotalPoints = currentCgpa * totalEarned;
   const semCredits = plannerCourses.reduce((s, c) => s + c.credits, 0);
-  const semPoints = plannerCourses.reduce(
-    (s, c) => s + (GRADE_POINTS[expectedGrades[c.code]] ?? 0) * c.credits,
-    0
-  );
+  const semPoints = plannerCourses.reduce((s, c) => s + (GRADE_POINTS[expectedGrades[c.code]] ?? 0) * c.credits, 0);
   const predictedSgpa = semCredits > 0 ? semPoints / semCredits : 0;
   const projectedTotalPoints = currentTotalPoints + predictedSgpa * semCredits;
-  const projectedCgpa =
-    totalEarned + semCredits > 0 ? projectedTotalPoints / (totalEarned + semCredits) : currentCgpa;
+  const projectedCgpa = totalEarned + semCredits > 0 ? projectedTotalPoints / (totalEarned + semCredits) : currentCgpa;
 
   /** SGPA this term alone must average for the cumulative total to land on target. */
-  const requiredSgpa =
-    semCredits > 0
-      ? (targetCgpa * (totalEarned + semCredits) - currentTotalPoints) / semCredits
-      : 0;
+  const requiredSgpa = semCredits > 0 ? (targetCgpa * (totalEarned + semCredits) - currentTotalPoints) / semCredits : 0;
   const targetReachable = semCredits === 0 || requiredSgpa <= 10;
 
   /**
@@ -1367,9 +1271,7 @@ export default function CurriculumPage({
    */
   const creditsAfterTerm = Math.max(totalRequired - totalEarned - semCredits, 0);
   const requiredRemainingAverage =
-    creditsAfterTerm > 0
-      ? Math.max(0, (targetCgpa * totalRequired - projectedTotalPoints) / creditsAfterTerm)
-      : 0;
+    creditsAfterTerm > 0 ? Math.max(0, (targetCgpa * totalRequired - projectedTotalPoints) / creditsAfterTerm) : 0;
 
   const sgpaGap = predictedSgpa - requiredSgpa;
   const verdict = !targetReachable
@@ -1390,9 +1292,7 @@ export default function CurriculumPage({
       <div className={LIST_SHELL}>
         <div className="px-4 py-3.5 space-y-2.5">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-black text-zinc-700 dark:text-zinc-300">
-              Target graduation CGPA
-            </span>
+            <span className="text-xs font-black text-zinc-700 dark:text-zinc-300">Target graduation CGPA</span>
             <span className={`text-sm font-black text-indigo-600 dark:text-indigo-400 font-outfit ${blurGrades}`}>
               {targetCgpa.toFixed(2)}
             </span>
@@ -1416,17 +1316,13 @@ export default function CurriculumPage({
           </div>
         </div>
         <div className="px-4 py-3 flex items-center justify-between">
-          <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400">
-            Credits this term
-          </span>
+          <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400">Credits this term</span>
           <span className="text-sm font-black font-outfit text-amber-600 dark:text-amber-400">
             {semCredits.toFixed(1)}
           </span>
         </div>
         <div className="px-4 py-3 flex items-center justify-between">
-          <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400">
-            Credits still open after it
-          </span>
+          <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400">Credits still open after it</span>
           <span className="text-sm font-black font-outfit text-amber-600 dark:text-amber-400">
             {creditsAfterTerm.toFixed(1)}
           </span>
@@ -1510,9 +1406,7 @@ export default function CurriculumPage({
                     <SelectField
                       value={grade}
                       options={GRADE_CHOICES.map((g) => ({ value: g, label: `${g} · ${GRADE_POINTS[g]}` }))}
-                      onChange={(g) =>
-                        setExpectedGrades((prev) => ({ ...prev, [c.code]: g }))
-                      }
+                      onChange={(g) => setExpectedGrades((prev) => ({ ...prev, [c.code]: g }))}
                     />
                   </label>
                   <span className={`shrink-0 w-8 text-right text-[11px] font-black font-outfit ${blurGrades}`}>
@@ -1537,19 +1431,16 @@ export default function CurriculumPage({
         </p>
         <p className="mt-1 text-sm font-semibold leading-relaxed text-white/90">
           {semCredits === 0 ? (
-            <>
-              Set an expected grade for each course above to see what this term does to your CGPA.
-            </>
+            <>Set an expected grade for each course above to see what this term does to your CGPA.</>
           ) : !targetReachable ? (
             <>
-              Hitting a <strong>{targetCgpa.toFixed(2)}</strong> CGPA needs more than a 10.0 SGPA
-              from here &mdash; {requiredSgpa.toFixed(2)} this term alone. Try a lower target.
+              Hitting a <strong>{targetCgpa.toFixed(2)}</strong> CGPA needs more than a 10.0 SGPA from here &mdash;{" "}
+              {requiredSgpa.toFixed(2)} this term alone. Try a lower target.
             </>
           ) : (
             <>
-              At this plan you average <strong className={blurGrades}>{predictedSgpa.toFixed(2)}</strong>{" "}
-              this term, taking your CGPA to{" "}
-              <strong className={blurGrades}>{projectedCgpa.toFixed(2)}</strong>.{" "}
+              At this plan you average <strong className={blurGrades}>{predictedSgpa.toFixed(2)}</strong> this term,
+              taking your CGPA to <strong className={blurGrades}>{projectedCgpa.toFixed(2)}</strong>.{" "}
               {sgpaGap >= 0 ? (
                 <>
                   That is <strong className={blurGrades}>{sgpaGap.toFixed(2)}</strong> more than the{" "}
@@ -1557,17 +1448,15 @@ export default function CurriculumPage({
                 </>
               ) : (
                 <>
-                  That is <strong className={blurGrades}>{Math.abs(sgpaGap).toFixed(2)}</strong> below
-                  the {requiredSgpa.toFixed(2)} needed to stay on {targetCgpa.toFixed(2)}.
+                  That is <strong className={blurGrades}>{Math.abs(sgpaGap).toFixed(2)}</strong> below the{" "}
+                  {requiredSgpa.toFixed(2)} needed to stay on {targetCgpa.toFixed(2)}.
                 </>
               )}{" "}
               {creditsAfterTerm > 0 ? (
                 <>
                   From there you would need{" "}
-                  <strong className={blurGrades}>
-                    {requiredRemainingAverage.toFixed(2)}
-                  </strong>{" "}
-                  across your remaining {creditsAfterTerm.toFixed(1)} credits.
+                  <strong className={blurGrades}>{requiredRemainingAverage.toFixed(2)}</strong> across your remaining{" "}
+                  {creditsAfterTerm.toFixed(1)} credits.
                 </>
               ) : (
                 <>These are your last credits for the degree.</>
@@ -1598,9 +1487,7 @@ export default function CurriculumPage({
       actions={
         <>
           <IconButton onClick={() => void onSync()} title="Sync grades & curriculum">
-            <RefreshCcw
-              className={`w-4 h-4 ${isSyncing ? "animate-spin text-indigo-500" : ""}`}
-            />
+            <RefreshCcw className={`w-4 h-4 ${isSyncing ? "animate-spin text-indigo-500" : ""}`} />
           </IconButton>
           <IconButton
             onClick={() => void downloadCurriculum()}
@@ -1619,7 +1506,9 @@ export default function CurriculumPage({
         </>
       }
     >
-      {inSubpage ? subpage : (
+      {inSubpage ? (
+        subpage
+      ) : (
         <>
           {!hasAnyData ? (
             <EmptyPanel
@@ -1644,8 +1533,8 @@ export default function CurriculumPage({
           {/* Inline footnote, OD-page style */}
           {hasAnyData && (
             <p className="px-1 -mt-3 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
-              Credit baskets, the catalog and your planner all read from the same VTOP sync -
-              one download keeps every section current.
+              Credit baskets, the catalog and your planner all read from the same VTOP sync - one download keeps every
+              section current.
             </p>
           )}
         </>
@@ -1655,7 +1544,6 @@ export default function CurriculumPage({
 
   // ─ Landing ───────────────────────────────────────────────────────────
   const landing = (
-
     <>
       {/* Two cards: credits + rotating insight carousel */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 px-1">
@@ -1693,7 +1581,6 @@ export default function CurriculumPage({
         </button>
 
         <InsightCarousel slides={insightSlides} carousel={carousel} />
-
       </div>
 
       {/* Single slim credits bar — same px-1 inset as the cards above */}
@@ -1703,7 +1590,7 @@ export default function CurriculumPage({
           const earnedWidth = Math.max(0, Math.min(earnedPctRaw, 100));
           const ongoingWidth = Math.max(
             0,
-            Math.min(totalRequired > 0 ? (totalOngoing / totalRequired) * 100 : 0, 100 - earnedWidth)
+            Math.min(totalRequired > 0 ? (totalOngoing / totalRequired) * 100 : 0, 100 - earnedWidth),
           );
           return (
             <>
@@ -1739,24 +1626,19 @@ export default function CurriculumPage({
               v.id === "overview"
                 ? categoryRows.length
                 : v.id === "catalog"
-                ? totalCourses
-                : v.id === "completed"
-                ? effectiveGrades.length
-                : remainingCredits.toFixed(0);
+                  ? totalCourses
+                  : v.id === "completed"
+                    ? effectiveGrades.length
+                    : remainingCredits.toFixed(0);
             const suffix = v.id === "planner" ? "cr left" : "";
             return (
-              <button
-                key={v.id}
-                type="button"
-                onClick={() => setScreen(v.id)}
-                className={`${LIST_ROW} cursor-pointer`}
-              >
+              <button key={v.id} type="button" onClick={() => setScreen(v.id)} className={`${LIST_ROW} cursor-pointer`}>
                 <div
                   className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${v.iconClass}`}
                 >
                   <Icon className="w-4.5 h-4.5" />
                 </div>
-              <ListRowText title={v.title} subtitle={v.desc} />
+                <ListRowText title={v.title} subtitle={v.desc} />
 
                 <span className={CHIP}>
                   {count} {suffix}

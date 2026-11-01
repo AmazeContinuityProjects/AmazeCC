@@ -1,4 +1,5 @@
 import { atom } from "jotai";
+import { storage } from "@/lib/storage";
 import config from "../../config.json";
 
 export type Settings = {
@@ -163,3 +164,34 @@ export const defaultSettings: Settings = {
 };
 
 export const settingsAtom = atom<Settings>(defaultSettings);
+
+/**
+ * The persisted settings blob, parsed once per call. `{}` when absent or
+ * corrupt. Read stored settings through this instead of re-implementing
+ * `localStorage.getItem("settings")` + `JSON.parse` — a dozen components used
+ * to carry their own copy of that block and they drift.
+ */
+export function readSettings(): Partial<Settings> {
+  return (storage.settings.get() || {}) as Partial<Settings>;
+}
+
+/**
+ * The attendance percentage the user is aiming at, or `fallback` when unset.
+ *
+ * Mirrors the per-component copies this replaced exactly: a stored-but-falsy
+ * `targetAttendance` falls through to the fallback, and a stored non-numeric
+ * value stays non-numeric (`NaN >= threshold` is `false`, which is how the
+ * callers have always painted it).
+ */
+export function getTargetAttendancePct(fallback = 75): number {
+  const value = readSettings().targetAttendance;
+  return value ? Number(value) : fallback;
+}
+
+/**
+ * Merge `patch` into the persisted settings blob. The read-modify-write lives
+ * here so a one-field update can never clobber the fields it does not mention.
+ */
+export function updateSettings(patch: Partial<Settings>): void {
+  storage.settings.set({ ...readSettings(), ...patch });
+}

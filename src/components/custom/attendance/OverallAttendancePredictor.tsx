@@ -19,6 +19,7 @@ import {
   type InsightSlide,
 } from "../shared/primitives";
 import { SEARCH_FIELD, TILE_CARD } from "@/lib/uiTokens";
+import { getTargetAttendancePct, updateSettings } from "@/store/settingsAtoms";
 import {
   buildEffectiveDayMap,
   courseCeiling,
@@ -148,19 +149,11 @@ export default function OverallAttendancePredictor({
   const [openSubject, setOpenSubject] = useState<Prediction | null>(null);
 
   // Target threshold state (default from localStorage or bus status)
-  const [targetThreshold, setTargetThreshold] = useState<number>(() => {    if (typeof window !== "undefined") {
-      try {
-        const saved = localStorage.getItem("settings");
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed.targetAttendance) return Number(parsed.targetAttendance);
-        }
-      } catch (e) {}
-    }
-    return isDayscholarWithBus ? 85 : 75;
-  });
+  const [targetThreshold, setTargetThreshold] = useState<number>(() =>
+    getTargetAttendancePct(isDayscholarWithBus ? 85 : 75),
+  );
 
-// Simulation mode: "CAT1" | "CAT2" | "LID" | "ALL"
+  // Simulation mode: "CAT1" | "CAT2" | "LID" | "ALL"
   const [mode, setMode] = useState<SimulationMode>(() => {
     const now = new Date();
     if (impDates.cat1Date && impDates.cat1Date > now) return "CAT1";
@@ -196,8 +189,18 @@ export default function OverallAttendancePredictor({
     if (!Array.isArray(analyzeCalendars) || analyzeCalendars.length === 0) return [];
 
     const monthNames = [
-      "january", "february", "march", "april", "may", "june",
-      "july", "august", "september", "october", "november", "december"
+      "january",
+      "february",
+      "march",
+      "april",
+      "may",
+      "june",
+      "july",
+      "august",
+      "september",
+      "october",
+      "november",
+      "december",
     ];
 
     return analyzeCalendars.flatMap((monthObj) => {
@@ -205,8 +208,7 @@ export default function OverallAttendancePredictor({
       // VTOP sends the year inside the month string ("JULY 2026") and leaves
       // `year` undefined, so reading it off the string is the only thing that
       // survives a calendar fetched for a different year than the one we are in.
-      const year =
-        Number(monthStr.split(" ").pop()) || monthObj.year || new Date().getFullYear();
+      const year = Number(monthStr.split(" ").pop()) || monthObj.year || new Date().getFullYear();
       const foundMonth = monthNames.find((m) => monthStr.includes(m));
       const mIndex = foundMonth ? monthNames.indexOf(foundMonth) : -1;
 
@@ -241,10 +243,7 @@ export default function OverallAttendancePredictor({
    * Each course still gets its own ceiling in the arithmetic below - lab stops
    * at LID Lab and theory at LID Theory - but one grid can only show one window.
    */
-  const cutoffDate = useMemo(
-    () => gridCeiling(mode, impDates),
-    [mode, impDates]
-  );
+  const cutoffDate = useMemo(() => gridCeiling(mode, impDates), [mode, impDates]);
 
   // Available months list for navigation
   const monthsAvailable = useMemo(() => {
@@ -367,15 +366,12 @@ export default function OverallAttendancePredictor({
     today,
   ]);
 
-  const overallStats = useMemo(() => summarise(predictions, targetThreshold), [
-    predictions,
-    targetThreshold,
-  ]);
+  const overallStats = useMemo(() => summarise(predictions, targetThreshold), [predictions, targetThreshold]);
 
   // Working days still ahead inside the selected window.
   const totalRemainingWorkingDays = useMemo(
     () => allWorkingDays.filter((d) => !cutoffDate || d.date <= cutoffDate).length,
-    [allWorkingDays, cutoffDate]
+    [allWorkingDays, cutoffDate],
   );
 
   /**
@@ -384,11 +380,8 @@ export default function OverallAttendancePredictor({
    * the value it had when the row was tapped.
    */
   const activeSubject = useMemo(
-    () =>
-      openSubject
-        ? predictions.find((p) => p.courseCode === openSubject.courseCode) ?? null
-        : null,
-    [openSubject, predictions]
+    () => (openSubject ? (predictions.find((p) => p.courseCode === openSubject.courseCode) ?? null) : null),
+    [openSubject, predictions],
   );
   // Filtered courses based on search and status filter
   const filteredCourses = useMemo(() => {
@@ -445,7 +438,7 @@ export default function OverallAttendancePredictor({
 
   const activeMilestone = useMemo(
     () => milestoneOptions.find((o) => o.id === mode) ?? milestoneOptions[0],
-    [milestoneOptions, mode]
+    [milestoneOptions, mode],
   );
 
   /**
@@ -470,10 +463,7 @@ export default function OverallAttendancePredictor({
         id: "risk",
         label: "Courses At Risk",
         value: overallStats.atRiskCount,
-        sub:
-          overallStats.atRiskCount === 0
-            ? "All courses compliant"
-            : `Below ${targetThreshold}%`,
+        sub: overallStats.atRiskCount === 0 ? "All courses compliant" : `Below ${targetThreshold}%`,
         badge: `under ${targetThreshold}%`,
         tone: overallStats.atRiskCount > 0 ? "red" : "emerald",
         dotLabel: "Courses at risk",
@@ -498,23 +488,14 @@ export default function OverallAttendancePredictor({
         id: `milestone-${opt.id}`,
         label: opt.label,
         value: days > 0 ? `${days}d` : "now",
-        sub:
-          days > 0
-            ? `Attendance locks ${formatShortDate(opt.date)}`
-            : `Locked ${formatShortDate(opt.date)}`,
+        sub: days > 0 ? `Attendance locks ${formatShortDate(opt.date)}` : `Locked ${formatShortDate(opt.date)}`,
         badge: "milestone",
         tone: days > 0 ? (days <= 7 ? "amber" : "indigo") : "zinc",
         dotLabel: `${opt.label} countdown`,
       });
     }
     return slides;
-  }, [
-    overallStats,
-    totalRemainingWorkingDays,
-    activeMilestone,
-    milestoneOptions,
-    targetThreshold,
-  ]);
+  }, [overallStats, totalRemainingWorkingDays, activeMilestone, milestoneOptions, targetThreshold]);
 
   const lockedNow = predictions.filter((p) => p.locked).length;
   const carousel = useCarousel(summarySlides.length);
@@ -537,12 +518,7 @@ export default function OverallAttendancePredictor({
             onChange={(next) => {
               const th = Number(next);
               setTargetThreshold(th);
-              try {
-                const saved = localStorage.getItem("settings");
-                const parsed = saved ? JSON.parse(saved) : {};
-                parsed.targetAttendance = th;
-                localStorage.setItem("settings", JSON.stringify(parsed));
-              } catch {}
+              updateSettings({ targetAttendance: th });
             }}
           />
           <GhostButton onClick={handleResetAll} title="Reset all simulated leaves and skips">
@@ -584,14 +560,13 @@ export default function OverallAttendancePredictor({
             <>
               Attendance freezes <strong>{CAT_LOCK_OFFSET_DAYS} days before</strong>{" "}
               {mode === "CAT1" ? "CAT I" : "CAT II"}
-              {activeMilestone.date ? <> — {formatShortDate(activeMilestone.date)}</> : null}. Classes
-              from that day on are not counted.
+              {activeMilestone.date ? <> — {formatShortDate(activeMilestone.date)}</> : null}. Classes from that day on
+              are not counted.
             </>
           ) : mode === "LID" || mode === "ALL" ? (
             <>
               Lab attendance locks at LID — Lab
-              {impDates.lidLabDate ? <> ({formatShortDate(impDates.lidLabDate)})</> : null}; theory at
-              LID — Theory
+              {impDates.lidLabDate ? <> ({formatShortDate(impDates.lidLabDate)})</> : null}; theory at LID — Theory
               {impDates.lidTheoryDate ? <> ({formatShortDate(impDates.lidTheoryDate)})</> : null}.
               {lockedNow > 0 ? ` ${lockedNow} course${lockedNow === 1 ? " is" : "s are"} already frozen.` : null}
             </>
@@ -693,7 +668,9 @@ export default function OverallAttendancePredictor({
 
               const isToday = d.date.toDateString() === today.toDateString();
               const dateNumber = d.date.getDate();
-              const shortWeekday = d.weekday?.slice(0, 3).toUpperCase() || d.date.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
+              const shortWeekday =
+                d.weekday?.slice(0, 3).toUpperCase() ||
+                d.date.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
 
               // Classes scheduled that weekday. A published day order means the
               // real weekday's cards apply, which the raw weekday lookup misses.
@@ -716,22 +693,20 @@ export default function OverallAttendancePredictor({
                           : "bg-white dark:bg-zinc-950 text-gray-800 dark:text-zinc-100 border-gray-200/80 dark:border-zinc-800/90 hover:border-blue-400 dark:hover:border-blue-500 shadow-2xs"
                   }`}
                 >
-                  <span className="text-[10px] font-black uppercase tracking-wider opacity-80">
-                    {shortWeekday}
-                  </span>
-                  <span className="text-base sm:text-lg font-black my-0.5">
-                    {dateNumber}
-                  </span>
+                  <span className="text-[10px] font-black uppercase tracking-wider opacity-80">{shortWeekday}</span>
+                  <span className="text-base sm:text-lg font-black my-0.5">{dateNumber}</span>
                   <div className="flex items-center gap-1">
-                    <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${
-                      state === 1
-                        ? "bg-rose-600 text-white"
-                        : state === 2
-                          ? "bg-gray-300 dark:bg-zinc-700 text-gray-600 dark:text-zinc-300"
-                          : isToday
-                            ? "bg-blue-700 text-white"
-                            : "bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-zinc-400"
-                    }`}>
+                    <span
+                      className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${
+                        state === 1
+                          ? "bg-rose-600 text-white"
+                          : state === 2
+                            ? "bg-gray-300 dark:bg-zinc-700 text-gray-600 dark:text-zinc-300"
+                            : isToday
+                              ? "bg-blue-700 text-white"
+                              : "bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-zinc-400"
+                      }`}
+                    >
                       {state === 1 ? "Absent" : state === 2 ? "Off" : `${classCount} cl`}
                     </span>
                   </div>
@@ -809,7 +784,7 @@ export default function OverallAttendancePredictor({
                     allWorkingDays,
                     effectiveDayMap,
                     course.ceiling,
-                    course.lockDate
+                    course.lockDate,
                   )
                 : [];
               const skips = skipSetFor(courseSkips, course.courseCode);
@@ -820,9 +795,7 @@ export default function OverallAttendancePredictor({
                       course subpage overview: tile, title, value, chevron. */}
                   <button
                     type="button"
-                    onClick={() =>
-                      setOpenSubject(expanded ? null : course)
-                    }
+                    onClick={() => setOpenSubject(expanded ? null : course)}
                     aria-expanded={expanded}
                     aria-label={`${expanded ? "Hide" : "Choose dates to skip for"} ${course.courseCode}`}
                     className="w-full py-3 px-4 flex items-center gap-3 text-left cursor-pointer transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/40 active:bg-zinc-100/70 dark:active:bg-zinc-800/60"
@@ -852,7 +825,10 @@ export default function OverallAttendancePredictor({
                           </span>
                         )}
                         {course.locked && (
-                          <Snowflake className="h-3 w-3 shrink-0 text-zinc-400 dark:text-zinc-500" aria-label="Attendance locked" />
+                          <Snowflake
+                            className="h-3 w-3 shrink-0 text-zinc-400 dark:text-zinc-500"
+                            aria-label="Attendance locked"
+                          />
                         )}
                       </h3>
                       <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5 truncate">
@@ -983,7 +959,7 @@ export default function OverallAttendancePredictor({
       </div>
 
       {/* ── SMART ATTENDANCE ADVISOR & EXAM LOCK RULES ── */}
-        <div className={`${TILE_CARD} p-5 space-y-3 border-sky-500/20`}>
+      <div className={`${TILE_CARD} p-5 space-y-3 border-sky-500/20`}>
         <div className="flex items-center gap-2">
           <Zap className="w-4 h-4 text-blue-600 dark:text-blue-400" />
           <h4 className="text-xs font-black uppercase tracking-wider text-blue-900 dark:text-blue-200 font-outfit">
@@ -994,31 +970,33 @@ export default function OverallAttendancePredictor({
           <div className="flex items-start gap-2">
             <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0" />
             <p>
-              <strong>Exam Freeze Rule:</strong> Attendance freezes three days before CAT I and CAT II, so classes from that day onward are no longer counted.
+              <strong>Exam Freeze Rule:</strong> Attendance freezes three days before CAT I and CAT II, so classes from
+              that day onward are no longer counted.
             </p>
           </div>
           <div className="flex items-start gap-2">
             <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0" />
             <p>
-              <strong>Lab Session Weight:</strong> Each scheduled lab session accounts for 2 continuous hours, meaning 1 lab absence is equal to 2 missed classes.
+              <strong>Lab Session Weight:</strong> Each scheduled lab session accounts for 2 continuous hours, meaning 1
+              lab absence is equal to 2 missed classes.
             </p>
           </div>
           <div className="flex items-start gap-2">
             <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0" />
             <p>
-              <strong>Target Safety:</strong> Keeping attendance at or above {targetThreshold}% ensures full eligibility for CAT examinations and FAT hall tickets.
+              <strong>Target Safety:</strong> Keeping attendance at or above {targetThreshold}% ensures full eligibility
+              for CAT examinations and FAT hall tickets.
             </p>
           </div>
-            <div className="flex items-start gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-sky-500 mt-1.5 shrink-0" />
-              <p>
-                <strong>Real-Time Simulation:</strong> Whole-day toggles and per-subject skipped
-                dates simulate your projected percentages instantly without modifying actual
-                portal records.
-              </p>
-            </div>
+          <div className="flex items-start gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-sky-500 mt-1.5 shrink-0" />
+            <p>
+              <strong>Real-Time Simulation:</strong> Whole-day toggles and per-subject skipped dates simulate your
+              projected percentages instantly without modifying actual portal records.
+            </p>
           </div>
         </div>
+      </div>
     </PageShell>
   );
 }

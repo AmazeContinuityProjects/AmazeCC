@@ -5,19 +5,7 @@ import CircularProgress from "../shared/CircularProgress";
 import { ToneBadge } from "../shared/primitives";
 import { TILE_CARD } from "@/lib/uiTokens";
 import { AlertTriangle, ShieldCheck, TriangleAlert } from "lucide-react";
-
-function getTargetAttendancePct(): number {
-  if (typeof window !== "undefined") {
-    try {
-      const saved = localStorage.getItem("settings");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.targetAttendance) return Number(parsed.targetAttendance);
-      }
-    } catch (e) {}
-  }
-  return 75;
-}
+import { getTargetAttendancePct } from "@/store/settingsAtoms";
 
 interface AttendanceSummaryProps {
   attendance: any[];
@@ -69,7 +57,18 @@ export default function AttendanceSummary({
     const aggPct = totalClasses > 0 ? Math.round((totalAttended / totalClasses) * 100) : 0;
     const needsAttention = crit + warn;
 
-    return { thresholdPct, warnPct, totalAttended, totalClasses, aggPct, safe, warn, crit, criticalCourses, needsAttention };
+    return {
+      thresholdPct,
+      warnPct,
+      totalAttended,
+      totalClasses,
+      aggPct,
+      safe,
+      warn,
+      crit,
+      criticalCourses,
+      needsAttention,
+    };
   }, [attendance, simulatedSkips, isDayscholarWithBus]);
 
   return (

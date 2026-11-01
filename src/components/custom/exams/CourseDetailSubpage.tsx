@@ -21,22 +21,32 @@ import {
   useCarousel,
   type InsightSlide,
 } from "../shared/primitives";
-import {
-  LIST_ROW,
-  TILE_CARD,
-  TONE_BADGE,
-  TONE_ICON_TILE,
-  TONE_TEXT,
-} from "@/lib/uiTokens";
+import { LIST_ROW, TILE_CARD, TONE_BADGE, TONE_ICON_TILE, TONE_TEXT } from "@/lib/uiTokens";
 import { toneForGrade, gradePoints } from "@/lib/gradeHistory";
 import { buildGradeBoundaries } from "@/lib/gradeBoundaries";
 import { buildAttendanceDayCardsMap, ATTENDANCE_DAYS } from "@/lib/attendanceTimetable";
 import GradeLadderChart from "./marks-predictor/GradeLadderChart";
 import {
-  XCircle, BookOpen, Target, Clock, Info, Activity,
-  ChevronRight, FileText, Calendar, Calendar as CalendarIcon, MessageSquare,
-  Grid3x3, CheckCircle2, Gauge,
-  FileText as FileTextIcon, Sparkles, CheckSquare, Plus, ShieldCheck, StickyNote
+  XCircle,
+  BookOpen,
+  Target,
+  Clock,
+  Info,
+  Activity,
+  ChevronRight,
+  FileText,
+  Calendar,
+  Calendar as CalendarIcon,
+  MessageSquare,
+  Grid3x3,
+  CheckCircle2,
+  Gauge,
+  FileText as FileTextIcon,
+  Sparkles,
+  CheckSquare,
+  Plus,
+  ShieldCheck,
+  StickyNote,
 } from "lucide-react";
 import { useAtom } from "jotai";
 import { cn } from "@amazecontinuityprojects/amazeui";
@@ -51,13 +61,11 @@ import HeatMap from "@uiw/react-heat-map";
 import dynamic from "next/dynamic";
 import CourseQBankTab from "./CourseQBankTab";
 import CoursePredictorPage from "./marks-predictor/CoursePredictorPage";
-
+import { getTargetAttendancePct } from "@/store/settingsAtoms";
 
 // Dedicated whitespace between the heatmap card and the log section.
 // Nulls out the parent stack gap so the total separation is exactly its height.
-const LogGap = () => (
-  <div aria-hidden="true" className="h-3" style={{ marginBlockStart: 0 }} />
-);
+const LogGap = () => <div aria-hidden="true" className="h-3" style={{ marginBlockStart: 0 }} />;
 import {
   Creds,
   formatSemesterName,
@@ -74,10 +82,7 @@ import {
   AssessmentRow,
 } from "./courseHelpers";
 
-const AttendanceCalendarView = dynamic(
-  () => import("../attendance/AttendanceCalendarView"),
-  { ssr: false }
-);
+const AttendanceCalendarView = dynamic(() => import("../attendance/AttendanceCalendarView"), { ssr: false });
 
 interface CourseDetailSubpageProps {
   marksData: any;
@@ -158,9 +163,17 @@ function scoreBarTone(score: number | null): string {
 }
 
 export default function CourseDetailSubpage({
-  marksData, attendanceData, allGradesData, pastSemesterData, loginToVTOP, setActiveSubTab,
-  calendars, isDayscholarWithBus,
-  selectedCode, initialTab, onBack
+  marksData,
+  attendanceData,
+  allGradesData,
+  pastSemesterData,
+  loginToVTOP,
+  setActiveSubTab,
+  calendars,
+  isDayscholarWithBus,
+  selectedCode,
+  initialTab,
+  onBack,
 }: CourseDetailSubpageProps) {
   const [creds, setCreds] = useState<Creds | null>(null);
   const [marksStats] = useAtom(marksStatsAtom);
@@ -187,7 +200,12 @@ export default function CourseDetailSubpage({
   const [notesTracker, setNotesTracker] = useState<Record<string, Record<string, boolean>>>({});
 
   useEffect(() => {
-    loginToVTOP().then(c => { credsRef.current = c; setCreds(c); }).catch(() => {});
+    loginToVTOP()
+      .then((c) => {
+        credsRef.current = c;
+        setCreds(c);
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -206,7 +224,8 @@ export default function CourseDetailSubpage({
 
   // Overview hero carousels: reset on course/tab change (auto-advance wired after marks helpers)
   useEffect(() => {
-    ovActiveCarousel.reset(); ovAttCarousel.reset();
+    ovActiveCarousel.reset();
+    ovAttCarousel.reset();
     setInnerTab(initialTab || "overview");
     // `reset` is a stable useCallback, so it is intentionally not a dep here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -224,7 +243,7 @@ export default function CourseDetailSubpage({
 
   const uniqueCourses = useMemo(() => {
     const coursesBySemester = new Map<string, any[]>();
-    
+
     // Process current semester
     const currentMap = new Map();
     if (marksData?.courses && Array.isArray(marksData.courses)) {
@@ -271,7 +290,10 @@ export default function CourseDetailSubpage({
         if (!baseCode) return;
 
         const courseTitle = sanitizeCourseTitle(rawTitle, baseCode);
-        const isLab = c.courseType?.toLowerCase().includes("lab") || c.slot?.toLowerCase().startsWith("l") || c.slotName?.toLowerCase().startsWith("l");
+        const isLab =
+          c.courseType?.toLowerCase().includes("lab") ||
+          c.slot?.toLowerCase().startsWith("l") ||
+          c.slotName?.toLowerCase().startsWith("l");
 
         if (!currentMap.has(baseCode)) {
           currentMap.set(baseCode, {
@@ -283,8 +305,22 @@ export default function CourseDetailSubpage({
           });
         } else {
           const existing = currentMap.get(baseCode);
-          if (isLab) existing.lab = { ...(existing.lab || {}), ...c, classNbr: c.classId || existing.lab?.classNbr, courseCode: baseCode, courseTitle };
-          else existing.theory = { ...(existing.theory || {}), ...c, classNbr: c.classId || existing.theory?.classNbr, courseCode: baseCode, courseTitle };
+          if (isLab)
+            existing.lab = {
+              ...(existing.lab || {}),
+              ...c,
+              classNbr: c.classId || existing.lab?.classNbr,
+              courseCode: baseCode,
+              courseTitle,
+            };
+          else
+            existing.theory = {
+              ...(existing.theory || {}),
+              ...c,
+              classNbr: c.classId || existing.theory?.classNbr,
+              courseCode: baseCode,
+              courseTitle,
+            };
           if (existing.courseTitle === baseCode && !isJunkOrEmpty(rawTitle)) {
             existing.courseTitle = courseTitle;
           }
@@ -295,13 +331,13 @@ export default function CourseDetailSubpage({
 
     // Process past semesters
     if (pastSemesterData) {
-      Object.keys(pastSemesterData).forEach(semId => {
+      Object.keys(pastSemesterData).forEach((semId) => {
         // Explicitly skip the current semester which is already loaded via marksData & attendanceData
         if (attendanceData?.semester && semId === attendanceData.semester) return;
-        
+
         const data = pastSemesterData[semId];
         const semMap = new Map();
-        
+
         if (data.marks?.courses && Array.isArray(data.marks.courses)) {
           data.marks.courses.forEach((c: any) => {
             if (!c || typeof c !== "object") return;
@@ -313,7 +349,14 @@ export default function CourseDetailSubpage({
 
             const courseTitle = sanitizeCourseTitle(rawTitle, baseCode);
             const isLab = c.courseType?.toLowerCase().includes("lab") || c.slot?.toLowerCase().startsWith("l");
-            if (!semMap.has(baseCode)) semMap.set(baseCode, { courseCode: baseCode, courseTitle, semesterSubId: semId, theory: !isLab ? { ...c, courseCode: baseCode, courseTitle } : null, lab: isLab ? { ...c, courseCode: baseCode, courseTitle } : null });
+            if (!semMap.has(baseCode))
+              semMap.set(baseCode, {
+                courseCode: baseCode,
+                courseTitle,
+                semesterSubId: semId,
+                theory: !isLab ? { ...c, courseCode: baseCode, courseTitle } : null,
+                lab: isLab ? { ...c, courseCode: baseCode, courseTitle } : null,
+              });
             else {
               const existing = semMap.get(baseCode);
               if (isLab) existing.lab = { ...c, courseCode: baseCode, courseTitle };
@@ -334,22 +377,43 @@ export default function CourseDetailSubpage({
 
             const courseTitle = sanitizeCourseTitle(rawTitle, baseCode);
             const isLab = c.courseType?.toLowerCase().includes("lab") || c.slot?.toLowerCase().startsWith("l");
-            if (!semMap.has(baseCode)) semMap.set(baseCode, { courseCode: baseCode, courseTitle, semesterSubId: semId, theory: !isLab ? { ...c, classNbr: c.classId, courseCode: baseCode, courseTitle } : null, lab: isLab ? { ...c, classNbr: c.classId, courseCode: baseCode, courseTitle } : null });
+            if (!semMap.has(baseCode))
+              semMap.set(baseCode, {
+                courseCode: baseCode,
+                courseTitle,
+                semesterSubId: semId,
+                theory: !isLab ? { ...c, classNbr: c.classId, courseCode: baseCode, courseTitle } : null,
+                lab: isLab ? { ...c, classNbr: c.classId, courseCode: baseCode, courseTitle } : null,
+              });
             else {
               const existing = semMap.get(baseCode);
-              if (isLab) existing.lab = { ...(existing.lab || {}), ...c, classNbr: c.classId || existing.lab?.classNbr, courseCode: baseCode, courseTitle };
-              else existing.theory = { ...(existing.theory || {}), ...c, classNbr: c.classId || existing.theory?.classNbr, courseCode: baseCode, courseTitle };
+              if (isLab)
+                existing.lab = {
+                  ...(existing.lab || {}),
+                  ...c,
+                  classNbr: c.classId || existing.lab?.classNbr,
+                  courseCode: baseCode,
+                  courseTitle,
+                };
+              else
+                existing.theory = {
+                  ...(existing.theory || {}),
+                  ...c,
+                  classNbr: c.classId || existing.theory?.classNbr,
+                  courseCode: baseCode,
+                  courseTitle,
+                };
             }
           });
         }
         let isDuplicate = false;
         if (semMap.size > 0 && currentMap.size > 0) {
           const currentClassNbrs = new Set();
-          currentMap.forEach(group => {
+          currentMap.forEach((group) => {
             if (group.theory?.classNbr) currentClassNbrs.add(group.theory.classNbr);
             if (group.lab?.classNbr) currentClassNbrs.add(group.lab.classNbr);
           });
-          
+
           let matchCount = 0;
           for (const group of Array.from(semMap.values())) {
             const tNbr = group.theory?.classNbr;
@@ -368,18 +432,18 @@ export default function CourseDetailSubpage({
 
     // Add any remaining courses from allGradesData that aren't in pastSemesterData
     if (allGradesData?.grades && !Array.isArray(allGradesData.grades)) {
-      Object.keys(allGradesData.grades).forEach(semId => {
+      Object.keys(allGradesData.grades).forEach((semId) => {
         if (semId === "Current" || semId === "curriculum" || semId === "effectiveGrades") return;
-        
+
         // Explicitly skip the current semester which is already loaded via marksData & attendanceData
         if (attendanceData?.semester && semId === attendanceData.semester) return;
-        
+
         const sem = allGradesData.grades[semId];
         const courseList = sem?.grades || sem?.courseGrades || sem?.courses || sem || [];
         const items = Array.isArray(courseList) ? courseList : Object.values(courseList);
-        
-        let semMap = coursesBySemester.has(semId) 
-          ? new Map(coursesBySemester.get(semId).map((c: any) => [c.courseCode, c])) 
+
+        let semMap = coursesBySemester.has(semId)
+          ? new Map(coursesBySemester.get(semId).map((c: any) => [c.courseCode, c]))
           : new Map();
 
         let addedNew = false;
@@ -392,14 +456,14 @@ export default function CourseDetailSubpage({
           if (!cleanCode) return;
 
           const courseTitle = sanitizeCourseTitle(rawTitle, cleanCode);
-          
+
           if (!semMap.has(cleanCode)) {
             semMap.set(cleanCode, {
               courseCode: cleanCode,
               courseTitle,
               semesterSubId: semId,
               theory: { courseType: c.courseType || "Theory", courseCode: cleanCode, courseTitle },
-              lab: null
+              lab: null,
             });
             addedNew = true;
           }
@@ -408,8 +472,8 @@ export default function CourseDetailSubpage({
         // Deduplicate logic for grades-only semesters (same as above)
         if (addedNew && semMap.size > 0 && currentMap.size > 0) {
           const currentCodes = new Set();
-          currentMap.forEach(group => currentCodes.add(group.courseCode));
-          
+          currentMap.forEach((group) => currentCodes.add(group.courseCode));
+
           let matchCount = 0;
           for (const key of Array.from(semMap.keys())) {
             if (currentCodes.has(key)) matchCount++;
@@ -427,18 +491,19 @@ export default function CourseDetailSubpage({
 
     // Flatten into a single array but maintain order (Current first, then past semesters)
     let flatCourses: any[] = [];
-    coursesBySemester.forEach(semCourses => {
+    coursesBySemester.forEach((semCourses) => {
       flatCourses = flatCourses.concat(semCourses);
     });
 
-    return flatCourses.filter(c => 
-      !isJunkOrEmpty(c.courseCode) && 
-      !isJunkOrEmpty(c.courseTitle) &&
-      Boolean(c.theory || c.lab)
+    return flatCourses.filter(
+      (c) => !isJunkOrEmpty(c.courseCode) && !isJunkOrEmpty(c.courseTitle) && Boolean(c.theory || c.lab),
     );
   }, [marksData, attendanceData, pastSemesterData]);
 
-  const selectedGroup = useMemo(() => uniqueCourses.find(c => c.courseCode === selectedCode), [selectedCode, uniqueCourses]);
+  const selectedGroup = useMemo(
+    () => uniqueCourses.find((c) => c.courseCode === selectedCode),
+    [selectedCode, uniqueCourses],
+  );
   const mainCourse = selectedGroup?.theory || selectedGroup?.lab;
 
   useEffect(() => {
@@ -464,7 +529,7 @@ export default function CourseDetailSubpage({
         if (Object.keys(stored).length === 0) {
           console.warn(
             "[marks/stats] No cohort statistics in this sync's payload. If this " +
-              "persists after a Reload, the API process predates the engine op."
+              "persists after a Reload, the API process predates the engine op.",
           );
           return;
         }
@@ -485,19 +550,24 @@ export default function CourseDetailSubpage({
     if (!selectedCode) return { theoryAttItem: null, labAttItem: null };
 
     let sourceAttendance = attendanceData?.attendance || [];
-    if (selectedGroup?.semesterSubId && selectedGroup.semesterSubId !== "Current" && pastSemesterData?.[selectedGroup.semesterSubId]?.attendance?.attendance) {
+    if (
+      selectedGroup?.semesterSubId &&
+      selectedGroup.semesterSubId !== "Current" &&
+      pastSemesterData?.[selectedGroup.semesterSubId]?.attendance?.attendance
+    ) {
       sourceAttendance = pastSemesterData[selectedGroup.semesterSubId].attendance.attendance;
     }
 
-    const items = sourceAttendance.filter((a: any) =>
-      a.courseCode?.replace(/\([LPT]\)$/i, "").trim() === selectedCode.trim()
+    const items = sourceAttendance.filter(
+      (a: any) => a.courseCode?.replace(/\([LPT]\)$/i, "").trim() === selectedCode.trim(),
     );
-    const theoryItem = items.find((a: any) => !a.courseCode?.endsWith("(L)") && !a.courseCode?.endsWith("(P)")) || items[0];
+    const theoryItem =
+      items.find((a: any) => !a.courseCode?.endsWith("(L)") && !a.courseCode?.endsWith("(P)")) || items[0];
     const labItem = items.find((a: any) => a.courseCode?.endsWith("(L)") || a.courseCode?.endsWith("(P)"));
 
     return {
       theoryAttItem: theoryItem,
-      labAttItem: labItem
+      labAttItem: labItem,
     };
   }, [attendanceData, selectedCode]);
 
@@ -525,13 +595,16 @@ export default function CourseDetailSubpage({
   // holds or in what order.
   const dayCardsMap = useMemo(() => {
     let arr = attendanceData?.attendance || [];
-    if (selectedGroup?.semesterSubId && selectedGroup.semesterSubId !== "Current" && pastSemesterData?.[selectedGroup.semesterSubId]?.attendance?.attendance) {
+    if (
+      selectedGroup?.semesterSubId &&
+      selectedGroup.semesterSubId !== "Current" &&
+      pastSemesterData?.[selectedGroup.semesterSubId]?.attendance?.attendance
+    ) {
       arr = pastSemesterData[selectedGroup.semesterSubId].attendance.attendance;
     }
 
     const isLabRow = (r: any) =>
-      String(r?.courseCode || "").endsWith("(L)") ||
-      String(r?.courseCode || "").endsWith("(P)");
+      String(r?.courseCode || "").endsWith("(L)") || String(r?.courseCode || "").endsWith("(P)");
 
     const theoryMap = buildAttendanceDayCardsMap(arr.filter((r: any) => !isLabRow(r)));
     const labRows = arr.filter(isLabRow);
@@ -559,9 +632,7 @@ export default function CourseDetailSubpage({
 
   const impDates = useMemo(() => {
     const findEventDate = (eventName: string) => {
-      const ev = [...importantEvents.values()].find(
-        (e: any) => e.event?.toLowerCase() === eventName.toLowerCase()
-      );
+      const ev = [...importantEvents.values()].find((e: any) => e.event?.toLowerCase() === eventName.toLowerCase());
       if (!ev) return null;
       return (ev as any).formattedDate;
     };
@@ -576,10 +647,10 @@ export default function CourseDetailSubpage({
 
   const toggleNotes = (dateStr: string, courseKey?: string) => {
     const key = courseKey || "";
-    setNotesTracker(prev => {
+    setNotesTracker((prev) => {
       const newState = {
         ...prev,
-        [key]: { ...(prev[key] || {}), [dateStr]: !(prev[key]?.[dateStr]) },
+        [key]: { ...(prev[key] || {}), [dateStr]: !prev[key]?.[dateStr] },
       };
       localStorage.setItem("uniCC_notes_tracker", JSON.stringify(newState));
       return newState;
@@ -589,19 +660,22 @@ export default function CourseDetailSubpage({
   const resolveFacultyForComp = async (comp: any) => {
     // If it already looks like a valid VTOP faculty ID string (e.g. "12345 - NAME" or "12345-NAME")
     if (comp.faculty && /^\w+\s*-/.test(comp.faculty.trim())) return comp.faculty;
-    
+
     try {
-      const d = await api("course-page", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+      const d = (await api("course-page", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: {
-          cookies: creds?.cookies, authorizedID: creds?.authorizedID, csrf: creds?.csrf,
-          formData: { 
-            semesterSubId: selectedGroup?.semesterSubId === "Current" ? "" : (selectedGroup?.semesterSubId || ""), 
-            courseCode: comp.classNbr, 
-            slotId: comp.slot 
-          }
+          cookies: creds?.cookies,
+          authorizedID: creds?.authorizedID,
+          csrf: creds?.csrf,
+          formData: {
+            semesterSubId: selectedGroup?.semesterSubId === "Current" ? "" : selectedGroup?.semesterSubId || "",
+            courseCode: comp.classNbr,
+            slotId: comp.slot,
+          },
         },
-      }) as any;
+      })) as any;
       if (d.success !== false && d.results?.selectOptions?.faculty?.length > 1) {
         const options = d.results.selectOptions.faculty.slice(1);
         let selectedOpt = options[0];
@@ -612,13 +686,16 @@ export default function CourseDetailSubpage({
         comp.faculty = selectedOpt.value;
         return comp.faculty;
       }
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+    }
     return "";
   };
 
   const fetchCoursePlan = async () => {
     if (!selectedGroup || !creds) return;
-    setPlanLoading(true); setError(null);
+    setPlanLoading(true);
+    setError(null);
     try {
       const components: Array<{ comp: any; scope: "theory" | "lab" }> = [];
       if (selectedGroup.theory) components.push({ comp: selectedGroup.theory, scope: "theory" });
@@ -626,23 +703,35 @@ export default function CourseDetailSubpage({
       const planData: any[] = [];
       for (const { comp, scope } of components) {
         const resolvedFaculty = await resolveFacultyForComp(comp);
-        const d = await api("course-page", {
-          method: "POST", headers: { "Content-Type": "application/json" },
+        const d = (await api("course-page", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: {
-            cookies: creds.cookies, authorizedID: creds.authorizedID, csrf: creds.csrf,
-            formData: { semesterSubId: selectedGroup.semesterSubId === "Current" ? "" : (selectedGroup.semesterSubId || ""), courseCode: comp.classNbr, slotId: comp.slot, faculty: resolvedFaculty }
+            cookies: creds.cookies,
+            authorizedID: creds.authorizedID,
+            csrf: creds.csrf,
+            formData: {
+              semesterSubId: selectedGroup.semesterSubId === "Current" ? "" : selectedGroup.semesterSubId || "",
+              courseCode: comp.classNbr,
+              slotId: comp.slot,
+              faculty: resolvedFaculty,
+            },
           },
-        }) as any;
+        })) as any;
         if (d.success !== false && d.results) planData.push({ scope, type: comp.courseType, data: d.results });
       }
       setCoursePlan(planData.length > 0 ? planData : null);
-    } catch (err: any) { setError(err.message); }
-    finally { setPlanLoading(false); }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setPlanLoading(false);
+    }
   };
 
   const fetchViewDetail = async () => {
     if (!selectedGroup || !creds) return;
-    setViewLoading(true); setError(null);
+    setViewLoading(true);
+    setError(null);
     try {
       const components: Array<{ comp: any; scope: "theory" | "lab" }> = [];
       if (selectedGroup.theory) components.push({ comp: selectedGroup.theory, scope: "theory" });
@@ -651,72 +740,48 @@ export default function CourseDetailSubpage({
       for (const { comp, scope } of components) {
         const resolvedFaculty = await resolveFacultyForComp(comp);
         const erpId = resolvedFaculty?.split("-")[0]?.trim() || "";
-        const d = await api("course-page", {
-          method: "POST", headers: { "Content-Type": "application/json" },
+        const d = (await api("course-page", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: {
-            cookies: creds.cookies, authorizedID: creds.authorizedID, csrf: creds.csrf,
-            formData: { viewDetail: "true", semSubId: selectedGroup.semesterSubId === "Current" ? "" : (selectedGroup.semesterSubId || ""), erpId, classId: comp.classNbr, slotId: comp.slot, faculty: resolvedFaculty }
+            cookies: creds.cookies,
+            authorizedID: creds.authorizedID,
+            csrf: creds.csrf,
+            formData: {
+              viewDetail: "true",
+              semSubId: selectedGroup.semesterSubId === "Current" ? "" : selectedGroup.semesterSubId || "",
+              erpId,
+              classId: comp.classNbr,
+              slotId: comp.slot,
+              faculty: resolvedFaculty,
+            },
           },
-        }) as any;
+        })) as any;
         if (d.success !== false && d.results) detailData.push({ scope, type: comp.courseType, data: d.results });
       }
       setViewDetail(detailData.length > 0 ? detailData : null);
-    } catch (err: any) { setError(err.message); }
-    finally { setViewLoading(false); }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setViewLoading(false);
+    }
   };
 
-  useEffect(() => { 
-    if (selectedCode) { 
-      setCoursePlan(null); 
-      setViewDetail(null); 
-      setQcmError(""); 
-      fetchCoursePlan(); 
+  useEffect(() => {
+    if (selectedCode) {
+      setCoursePlan(null);
+      setViewDetail(null);
+      setQcmError("");
+      fetchCoursePlan();
 
       const cached = localStorage.getItem("qcmData");
       if (cached) {
-         try {
-           const d = JSON.parse(cached);
-           let courseQcmTables: any[] = [];
-           for (const [key, sem] of Object.entries(d)) {
-              if ((sem as any).tables) {
-                for (const table of (sem as any).tables) {
-                   const matchingRows = table.rows.filter((row: any) => {
-                     return Object.values(row).some((val: any) => typeof val === "string" && val.includes(selectedCode));
-                   });
-                   if (matchingRows.length > 0) {
-                     courseQcmTables.push({
-                       caption: table.caption,
-                       headers: table.headers,
-                       rows: matchingRows
-                     });
-                   }
-                }
-              }
-           }
-           setQcmData(courseQcmTables.length > 0 ? courseQcmTables : []);
-         } catch (e) {
-           setQcmData(null);
-         }
-      } else {
-         setQcmData(null);
-      }
-    } 
-  }, [selectedCode]);
-
-  const fetchQcmForCourse = async () => {
-    if (!selectedGroup || !creds) return;
-    setQcmLoading(true); setQcmError("");
-    try {
-      const semId = selectedGroup.semesterSubId === "Current" ? "" : (selectedGroup.semesterSubId || "");
-      const d = await api("qcm-view", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: { cookies: creds.cookies, authorizedID: creds.authorizedID, csrf: creds.csrf, semesterId: semId },
-      }) as any;
-      if (d.success && d.data) {
-        let courseQcmTables = [];
-        for (const [key, sem] of Object.entries(d.data)) {
-           if ((sem as any).tables) {
-             for (const table of (sem as any).tables) {
+        try {
+          const d = JSON.parse(cached);
+          let courseQcmTables: any[] = [];
+          for (const [key, sem] of Object.entries(d)) {
+            if ((sem as any).tables) {
+              for (const table of (sem as any).tables) {
                 const matchingRows = table.rows.filter((row: any) => {
                   return Object.values(row).some((val: any) => typeof val === "string" && val.includes(selectedCode));
                 });
@@ -724,11 +789,50 @@ export default function CourseDetailSubpage({
                   courseQcmTables.push({
                     caption: table.caption,
                     headers: table.headers,
-                    rows: matchingRows
+                    rows: matchingRows,
                   });
                 }
-             }
-           }
+              }
+            }
+          }
+          setQcmData(courseQcmTables.length > 0 ? courseQcmTables : []);
+        } catch (e) {
+          setQcmData(null);
+        }
+      } else {
+        setQcmData(null);
+      }
+    }
+  }, [selectedCode]);
+
+  const fetchQcmForCourse = async () => {
+    if (!selectedGroup || !creds) return;
+    setQcmLoading(true);
+    setQcmError("");
+    try {
+      const semId = selectedGroup.semesterSubId === "Current" ? "" : selectedGroup.semesterSubId || "";
+      const d = (await api("qcm-view", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: { cookies: creds.cookies, authorizedID: creds.authorizedID, csrf: creds.csrf, semesterId: semId },
+      })) as any;
+      if (d.success && d.data) {
+        let courseQcmTables = [];
+        for (const [key, sem] of Object.entries(d.data)) {
+          if ((sem as any).tables) {
+            for (const table of (sem as any).tables) {
+              const matchingRows = table.rows.filter((row: any) => {
+                return Object.values(row).some((val: any) => typeof val === "string" && val.includes(selectedCode));
+              });
+              if (matchingRows.length > 0) {
+                courseQcmTables.push({
+                  caption: table.caption,
+                  headers: table.headers,
+                  rows: matchingRows,
+                });
+              }
+            }
+          }
         }
         setQcmData(courseQcmTables.length > 0 ? courseQcmTables : []);
       } else {
@@ -754,16 +858,7 @@ export default function CourseDetailSubpage({
 
   const isEmbedded = selectedGroup?.theory && selectedGroup?.lab;
 
-  let thresholdPct = 75;
-  if (typeof window !== "undefined") {
-    try {
-      const saved = localStorage.getItem("settings");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.targetAttendance) thresholdPct = Number(parsed.targetAttendance);
-      }
-    } catch (e) {}
-  }
+  const thresholdPct = getTargetAttendancePct();
   const thresholdDec = thresholdPct / 100;
 
   // Per-component attendance data (log + predictor), OD-page style. Called
@@ -771,14 +866,21 @@ export default function CourseDetailSubpage({
   // Reactive inputs arrive as arguments so memo deps stay lint-clean.
   const useScopeAttendance = (item: any, filter: string, tracker: Record<string, Record<string, boolean>>) => {
     const historyList = useMemo(() => (Array.isArray(item?.viewLink) ? item.viewLink : []), [item]);
-    const filteredHistory = useMemo(() => historyList.filter((d: any) => {
-      if (filter === "All") return true;
-      return d.status.toLowerCase() === filter.toLowerCase();
-    }), [historyList, filter]);
-    const missingNotesCount = useMemo(() => historyList.filter((d: any) =>
-      d.status.toLowerCase() !== "present" &&
-      !tracker[item?.courseCode || ""]?.[d.date]
-    ).length, [historyList, tracker, item]);
+    const filteredHistory = useMemo(
+      () =>
+        historyList.filter((d: any) => {
+          if (filter === "All") return true;
+          return d.status.toLowerCase() === filter.toLowerCase();
+        }),
+      [historyList, filter],
+    );
+    const missingNotesCount = useMemo(
+      () =>
+        historyList.filter(
+          (d: any) => d.status.toLowerCase() !== "present" && !tracker[item?.courseCode || ""]?.[d.date],
+        ).length,
+      [historyList, tracker, item],
+    );
     const isLab = String(item?.courseCode || "").endsWith("(L)") || String(item?.courseCode || "").endsWith("(P)");
     const isTheory = String(item?.courseCode || "").endsWith("(T)");
 
@@ -789,26 +891,31 @@ export default function CourseDetailSubpage({
 
       const filteredMonths = analyzeCalendars.map((monthObj: any) => ({
         ...monthObj,
-        days: monthObj.days?.filter((d: any) => {
-          if (!d.date || !d.weekday) return false;
-          const monthStr = String(monthObj.month ?? "").toLowerCase();
-          const mIndex = [
-            "january", "february", "march", "april", "may", "june",
-            "july", "august", "september", "october", "november", "december"
-          ].findIndex((m) => monthStr.includes(m));
-          const dFull = new Date(monthObj.year, mIndex, d.date);
-          dFull.setHours(0, 0, 0, 0);
-          return dFull <= endMid;
-        }) || [],
+        days:
+          monthObj.days?.filter((d: any) => {
+            if (!d.date || !d.weekday) return false;
+            const monthStr = String(monthObj.month ?? "").toLowerCase();
+            const mIndex = [
+              "january",
+              "february",
+              "march",
+              "april",
+              "may",
+              "june",
+              "july",
+              "august",
+              "september",
+              "october",
+              "november",
+              "december",
+            ].findIndex((m) => monthStr.includes(m));
+            const dFull = new Date(monthObj.year, mIndex, d.date);
+            dFull.setHours(0, 0, 0, 0);
+            return dFull <= endMid;
+          }) || [],
       }));
 
-      return countRemainingClasses(
-        item?.courseCode || "",
-        item?.time || "",
-        dayCardsMap,
-        filteredMonths,
-        new Date()
-      );
+      return countRemainingClasses(item?.courseCode || "", item?.time || "", dayCardsMap, filteredMonths, new Date());
     };
 
     let classesTillCAT1: any[] | null = null;
@@ -816,32 +923,35 @@ export default function CourseDetailSubpage({
     let classesTillMidSem: any[] | null = null;
     let classesTillLID: any[] | null = null;
     if (Array.isArray(analyzeCalendars) && analyzeCalendars.length > 0) {
-        const allMonthsAreHolidays = analyzeCalendars.every((month: any) => month?.summary?.working === 0);
-        if (!allMonthsAreHolidays) {
-            if (isLab) {
-                classesTillCAT1 = countTillDate(impDates.cat1Date);
-                classesTillCAT2 = countTillDate(impDates.cat2Date);
-                classesTillMidSem = countTillDate(impDates.midsemStart);
-                classesTillLID = countTillDate(impDates.lidLabDate);
-            } else if (isTheory) {
-                classesTillCAT1 = countTillDate(impDates.cat1Date);
-                classesTillCAT2 = countTillDate(impDates.cat2Date);
-                classesTillMidSem = countTillDate(impDates.midsemStart);
-                classesTillLID = countTillDate(impDates.lidTheoryDate);
-            }
+      const allMonthsAreHolidays = analyzeCalendars.every((month: any) => month?.summary?.working === 0);
+      if (!allMonthsAreHolidays) {
+        if (isLab) {
+          classesTillCAT1 = countTillDate(impDates.cat1Date);
+          classesTillCAT2 = countTillDate(impDates.cat2Date);
+          classesTillMidSem = countTillDate(impDates.midsemStart);
+          classesTillLID = countTillDate(impDates.lidLabDate);
+        } else if (isTheory) {
+          classesTillCAT1 = countTillDate(impDates.cat1Date);
+          classesTillCAT2 = countTillDate(impDates.cat2Date);
+          classesTillMidSem = countTillDate(impDates.midsemStart);
+          classesTillLID = countTillDate(impDates.lidTheoryDate);
         }
+      }
     }
 
-    const hasPredictor = [classesTillCAT1, classesTillCAT2, classesTillMidSem, classesTillLID]
-      .some(data => Array.isArray(data) && data.length > 0);
-    const upcomingTotal = [classesTillCAT1, classesTillCAT2, classesTillMidSem, classesTillLID]
-      .reduce((n, d) => n + (Array.isArray(d) ? d.length : 0), 0);
+    const hasPredictor = [classesTillCAT1, classesTillCAT2, classesTillMidSem, classesTillLID].some(
+      (data) => Array.isArray(data) && data.length > 0,
+    );
+    const upcomingTotal = [classesTillCAT1, classesTillCAT2, classesTillMidSem, classesTillLID].reduce(
+      (n, d) => n + (Array.isArray(d) ? d.length : 0),
+      0,
+    );
 
     const heatmapData = useMemo(() => {
       const dateMap: Record<string, { present: number; absent: number; od: number }> = {};
       historyList.forEach((d: any) => {
         const dateObj = new Date(d.date);
-        const dateStr = `${dateObj.getFullYear()}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${String(dateObj.getDate()).padStart(2, '0')}`;
+        const dateStr = `${dateObj.getFullYear()}/${String(dateObj.getMonth() + 1).padStart(2, "0")}/${String(dateObj.getDate()).padStart(2, "0")}`;
         if (!dateMap[dateStr]) dateMap[dateStr] = { present: 0, absent: 0, od: 0 };
         const status = d.status.toLowerCase();
         if (status === "present") dateMap[dateStr].present++;
@@ -849,10 +959,18 @@ export default function CourseDetailSubpage({
         else if (status === "on duty") dateMap[dateStr].od++;
       });
       return Object.entries(dateMap).map(([dateStr, counts]) => {
-        let val = 0, status = "";
-        if (counts.absent > 0) { val = 2; status = "Absent"; }
-        else if (counts.od > 0) { val = 3; status = "On Duty"; }
-        else if (counts.present > 0) { val = 1; status = "Present"; }
+        let val = 0,
+          status = "";
+        if (counts.absent > 0) {
+          val = 2;
+          status = "Absent";
+        } else if (counts.od > 0) {
+          val = 3;
+          status = "On Duty";
+        } else if (counts.present > 0) {
+          val = 1;
+          status = "Present";
+        }
         return { date: dateStr, count: val, status };
       });
     }, [historyList]);
@@ -860,7 +978,8 @@ export default function CourseDetailSubpage({
     const attended = Number(item?.attendedClasses) || 0;
     const total = Number(item?.totalClasses) || 0;
     const pct = total > 0 ? (attended / total) * 100 : 0;
-    const status = total === 0 ? "N/A" : pct >= thresholdPct + 5 ? "Safe" : pct >= thresholdPct ? "Warning" : "Critical";
+    const status =
+      total === 0 ? "N/A" : pct >= thresholdPct + 5 ? "Safe" : pct >= thresholdPct ? "Warning" : "Critical";
     let marginHeadline = "—";
     let marginSubline = "No classes held yet";
     let marginTone: "emerald" | "amber" | "red" | "zinc" = "zinc";
@@ -885,10 +1004,24 @@ export default function CourseDetailSubpage({
     }
 
     return {
-      historyList, filteredHistory, missingNotesCount,
-      classesTillCAT1, classesTillCAT2, classesTillMidSem, classesTillLID,
-      hasPredictor, upcomingTotal, heatmapData,
-      attended, total, pct, status, marginHeadline, marginSubline, marginTone, isLab,
+      historyList,
+      filteredHistory,
+      missingNotesCount,
+      classesTillCAT1,
+      classesTillCAT2,
+      classesTillMidSem,
+      classesTillLID,
+      hasPredictor,
+      upcomingTotal,
+      heatmapData,
+      attended,
+      total,
+      pct,
+      status,
+      marginHeadline,
+      marginSubline,
+      marginTone,
+      isLab,
     };
   };
   const theoryData = useScopeAttendance(theoryAttItem, attFilter, notesTracker);
@@ -897,8 +1030,24 @@ export default function CourseDetailSubpage({
   const heatmapStartDate = useMemo(() => {
     if (analyzeCalendars && analyzeCalendars.length > 0) {
       const firstMonth = analyzeCalendars[0];
-      const mIndex = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"]
-        .findIndex((m: string) => String(firstMonth.month ?? "").toLowerCase().includes(m));
+      const mIndex = [
+        "january",
+        "february",
+        "march",
+        "april",
+        "may",
+        "june",
+        "july",
+        "august",
+        "september",
+        "october",
+        "november",
+        "december",
+      ].findIndex((m: string) =>
+        String(firstMonth.month ?? "")
+          .toLowerCase()
+          .includes(m),
+      );
       if (mIndex !== -1) return new Date(firstMonth.year, mIndex, 1);
     }
     const date = new Date();
@@ -909,8 +1058,24 @@ export default function CourseDetailSubpage({
   const heatmapEndDate = useMemo(() => {
     if (analyzeCalendars && analyzeCalendars.length > 0) {
       const lastMonth = analyzeCalendars[analyzeCalendars.length - 1];
-      const mIndex = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"]
-        .findIndex((m: string) => String(lastMonth.month ?? "").toLowerCase().includes(m));
+      const mIndex = [
+        "january",
+        "february",
+        "march",
+        "april",
+        "may",
+        "june",
+        "july",
+        "august",
+        "september",
+        "october",
+        "november",
+        "december",
+      ].findIndex((m: string) =>
+        String(lastMonth.month ?? "")
+          .toLowerCase()
+          .includes(m),
+      );
       if (mIndex !== -1) return new Date(lastMonth.year, mIndex + 1, 0);
     }
     return new Date();
@@ -919,10 +1084,13 @@ export default function CourseDetailSubpage({
   /* ---- MARKS TAB HELPERS ---- */
   const courseTypeLabel = isEmbedded ? "Embedded" : mainCourse?.courseType;
   const isRelative = checkIsRelative(mainCourse?.courseSystem, courseTypeLabel);
-  const courseTotalString = getCourseTotal(selectedGroup?.theory || selectedGroup?.lab, selectedGroup?.theory ? selectedGroup?.lab : null);
+  const courseTotalString = getCourseTotal(
+    selectedGroup?.theory || selectedGroup?.lab,
+    selectedGroup?.theory ? selectedGroup?.lab : null,
+  );
   const courseStats = selectedGroup ? getCourseStats(selectedGroup) : { maxPossible: 0, projected: 0 };
   const stats = selectedGroup ? allStats[mainCourse?.classNbr]?.overall : null;
-  const asmStats = selectedGroup ? (allStats[mainCourse?.classNbr]?.assessments || {}) : {};
+  const asmStats = selectedGroup ? allStats[mainCourse?.classNbr]?.assessments || {} : {};
 
   // Assessments the server holds that this device cannot update — no local previous
   // mark to state, so they stand as recorded. Counted per course for the badge below;
@@ -933,8 +1101,8 @@ export default function CourseDetailSubpage({
     if (!selectedGroup) return 0;
     const ids = new Set(
       [selectedGroup.theory?.classNbr, selectedGroup.lab?.classNbr].filter(
-        (id): id is string => typeof id === "string" && id.length > 0
-      )
+        (id): id is string => typeof id === "string" && id.length > 0,
+      ),
     );
     if (ids.size === 0) return 0;
     return getFrozenKeys().filter((k) => {
@@ -963,28 +1131,90 @@ export default function CourseDetailSubpage({
   // ---- OVERVIEW HERO DERIVED DATA (SimplifiedMobileHome + OD page pattern) ----
   const ovTheoryTotals = getAssessmentTotals(selectedGroup?.theory?.assessments || []);
   const ovLabTotals = getAssessmentTotals(selectedGroup?.lab?.assessments || []);
-  const ovTheoryPct = ovTheoryTotals.weightPercent > 0 ? (ovTheoryTotals.weighted / ovTheoryTotals.weightPercent) * 100 : (ovTheoryTotals.max > 0 ? (ovTheoryTotals.scored / ovTheoryTotals.max) * 100 : null);
-  const ovLabPct = ovLabTotals.weightPercent > 0 ? (ovLabTotals.weighted / ovLabTotals.weightPercent) * 100 : (ovLabTotals.max > 0 ? (ovLabTotals.scored / ovLabTotals.max) * 100 : null);
+  const ovTheoryPct =
+    ovTheoryTotals.weightPercent > 0
+      ? (ovTheoryTotals.weighted / ovTheoryTotals.weightPercent) * 100
+      : ovTheoryTotals.max > 0
+        ? (ovTheoryTotals.scored / ovTheoryTotals.max) * 100
+        : null;
+  const ovLabPct =
+    ovLabTotals.weightPercent > 0
+      ? (ovLabTotals.weighted / ovLabTotals.weightPercent) * 100
+      : ovLabTotals.max > 0
+        ? (ovLabTotals.scored / ovLabTotals.max) * 100
+        : null;
   const ovMarksSlides = useMemo(() => {
     if (!selectedGroup) return [];
     if (isSelectedPastSemester && selectedPastGrade) {
-      return [{ id: "grade", title: "Grades", headline: `Grade ${selectedPastGrade}`, subline: "Published grade", badge: "Final", badgeColor: TONE_BADGE.emerald, headlineColor: TONE_TEXT.emerald }];
+      return [
+        {
+          id: "grade",
+          title: "Grades",
+          headline: `Grade ${selectedPastGrade}`,
+          subline: "Published grade",
+          badge: "Final",
+          badgeColor: TONE_BADGE.emerald,
+          headlineColor: TONE_TEXT.emerald,
+        },
+      ];
     }
     const slides: any[] = [];
     const hasTheory = (selectedGroup?.theory?.assessments?.length || 0) > 0;
     const hasLab = (selectedGroup?.lab?.assessments?.length || 0) > 0;
     if (selectedGroup?.theory && selectedGroup?.lab) {
-      slides.push({ id: "combined", title: "Marks", headline: String(courseTotalString), subline: `Projected ${courseStats.projected}% · Max ${formatNumber(courseStats.maxPossible)}%`, badge: "Overall" });
-      slides.push({ id: "theory", title: "Marks", headline: hasTheory ? `${formatNumber(ovTheoryTotals.weighted)} / ${formatNumber(ovTheoryTotals.weightPercent)}` : "—", subline: ovTheoryPct !== null ? `${formatNumber(ovTheoryPct)}% scored` : "No theory marks yet", badge: "Theory", badgeColor: TONE_BADGE.blue });
-      slides.push({ id: "lab", title: "Marks", headline: hasLab ? `${formatNumber(ovLabTotals.weighted)} / ${formatNumber(ovLabTotals.weightPercent)}` : "—", subline: ovLabPct !== null ? `${formatNumber(ovLabPct)}% scored` : "No lab marks yet", badge: "Lab", badgeColor: TONE_BADGE.emerald });
+      slides.push({
+        id: "combined",
+        title: "Marks",
+        headline: String(courseTotalString),
+        subline: `Projected ${courseStats.projected}% · Max ${formatNumber(courseStats.maxPossible)}%`,
+        badge: "Overall",
+      });
+      slides.push({
+        id: "theory",
+        title: "Marks",
+        headline: hasTheory
+          ? `${formatNumber(ovTheoryTotals.weighted)} / ${formatNumber(ovTheoryTotals.weightPercent)}`
+          : "—",
+        subline: ovTheoryPct !== null ? `${formatNumber(ovTheoryPct)}% scored` : "No theory marks yet",
+        badge: "Theory",
+        badgeColor: TONE_BADGE.blue,
+      });
+      slides.push({
+        id: "lab",
+        title: "Marks",
+        headline: hasLab ? `${formatNumber(ovLabTotals.weighted)} / ${formatNumber(ovLabTotals.weightPercent)}` : "—",
+        subline: ovLabPct !== null ? `${formatNumber(ovLabPct)}% scored` : "No lab marks yet",
+        badge: "Lab",
+        badgeColor: TONE_BADGE.emerald,
+      });
     } else {
       const t = selectedGroup?.lab ? ovLabTotals : ovTheoryTotals;
       const pct = selectedGroup?.lab ? ovLabPct : ovTheoryPct;
       const has = hasTheory || hasLab;
-      slides.push({ id: "total", title: "Marks", headline: has ? `${formatNumber(t.weighted)} / ${formatNumber(t.weightPercent)}` : "—", subline: pct !== null ? `${formatNumber(pct)}% scored · Max ${formatNumber(courseStats.maxPossible)}%` : "No marks yet", badge: selectedGroup?.lab ? "Lab" : "Theory", badgeColor: selectedGroup?.lab ? TONE_BADGE.emerald : TONE_BADGE.blue });
+      slides.push({
+        id: "total",
+        title: "Marks",
+        headline: has ? `${formatNumber(t.weighted)} / ${formatNumber(t.weightPercent)}` : "—",
+        subline:
+          pct !== null
+            ? `${formatNumber(pct)}% scored · Max ${formatNumber(courseStats.maxPossible)}%`
+            : "No marks yet",
+        badge: selectedGroup?.lab ? "Lab" : "Theory",
+        badgeColor: selectedGroup?.lab ? TONE_BADGE.emerald : TONE_BADGE.blue,
+      });
     }
     return slides;
-  }, [selectedGroup, isSelectedPastSemester, selectedPastGrade, courseTotalString, courseStats, ovTheoryTotals, ovLabTotals, ovTheoryPct, ovLabPct]);
+  }, [
+    selectedGroup,
+    isSelectedPastSemester,
+    selectedPastGrade,
+    courseTotalString,
+    courseStats,
+    ovTheoryTotals,
+    ovLabTotals,
+    ovTheoryPct,
+    ovLabPct,
+  ]);
   const ovSlideCount = innerTab === "overview" && selectedCode ? ovMarksSlides.length : 0;
   // Attendance hero carousel slides (theory + lab rotate on their own, like the marks card)
   const ovAttSlides = useMemo(() => {
@@ -992,22 +1222,36 @@ export default function CourseDetailSubpage({
       const pct = Number(item?.attendancePercentage) || 0;
       const attended = Number(item?.attendedClasses) || 0;
       const total = Number(item?.totalClasses) || 0;
-      const status = total === 0 ? "N/A" : pct >= thresholdPct + 5 ? "Safe" : pct >= thresholdPct ? "Warning" : "Critical";
+      const status =
+        total === 0 ? "N/A" : pct >= thresholdPct + 5 ? "Safe" : pct >= thresholdPct ? "Warning" : "Critical";
       return {
-        id: badge.toLowerCase(), title: "Attendance",
+        id: badge.toLowerCase(),
+        title: "Attendance",
         headline: total > 0 ? `${Number(pct.toFixed(1))}%` : "—",
-        subline: total > 0 ? `${attended}/${total}${item?.slotVenue ? ` · ${item.slotVenue}` : ""}` : "No attendance data",
-        badge, badgeColor, status, pct, attended, total,
+        subline:
+          total > 0 ? `${attended}/${total}${item?.slotVenue ? ` · ${item.slotVenue}` : ""}` : "No attendance data",
+        badge,
+        badgeColor,
+        status,
+        pct,
+        attended,
+        total,
       };
     };
     if (theoryAttItem && labAttItem) {
-      return [
-        toSlide(theoryAttItem, "Theory", TONE_BADGE.blue),
-        toSlide(labAttItem, "Lab", TONE_BADGE.emerald),
-      ];
+      return [toSlide(theoryAttItem, "Theory", TONE_BADGE.blue), toSlide(labAttItem, "Lab", TONE_BADGE.emerald)];
     }
     const item = theoryAttItem || labAttItem;
-    return [toSlide(item, item ? (String(item.courseCode || "").endsWith("(L)") || String(item.courseCode || "").endsWith("(P)") ? "Lab" : "Theory") : "Theory")];
+    return [
+      toSlide(
+        item,
+        item
+          ? String(item.courseCode || "").endsWith("(L)") || String(item.courseCode || "").endsWith("(P)")
+            ? "Lab"
+            : "Theory"
+          : "Theory",
+      ),
+    ];
   }, [theoryAttItem, labAttItem, thresholdPct]);
   const ovAttSlideCount = innerTab === "overview" && selectedCode ? ovAttSlides.length : 0;
   const ovAttCarousel = useCarousel(ovAttSlideCount);
@@ -1028,7 +1272,7 @@ export default function CourseDetailSubpage({
         tone: ATT_TONE[s.status],
         onClick: () => setInnerTab(`${defaultAttScope}-log`),
       })),
-    [ovAttSlides, defaultAttScope]
+    [ovAttSlides, defaultAttScope],
   );
   const ovGo = useCallback(
     (id: string) => {
@@ -1036,7 +1280,7 @@ export default function CourseDetailSubpage({
       setInnerTab(id);
       if (id === "plan" && !coursePlan && !planLoading) fetchCoursePlan();
     },
-    [ovActiveCarousel.reset, setInnerTab, coursePlan, planLoading]
+    [ovActiveCarousel.reset, setInnerTab, coursePlan, planLoading],
   );
   const ovMarksInsightSlides = useMemo<InsightSlide[]>(
     () =>
@@ -1051,7 +1295,7 @@ export default function CourseDetailSubpage({
         valueClassName: s.headlineColor,
         onClick: () => ovGo("marks"),
       })),
-    [ovMarksSlides, ovGo]
+    [ovMarksSlides, ovGo],
   );
   // Review-tab scope helpers: theory/lab plan + schedule stay separated.
   const reviewScopes: Array<"theory" | "lab"> = isEmbedded
@@ -1069,10 +1313,17 @@ export default function CourseDetailSubpage({
   const renderCourseDetailCard = (courseComp: any, attItem: any, badge: "Theory" | "Lab" | null) => {
     if (!courseComp && !attItem) return null;
     const tiles: Array<[string, string]> = [
-      ["Type", isEmbedded ? "Embedded" : (courseComp?.courseType || "—")],
+      ["Type", isEmbedded ? "Embedded" : courseComp?.courseType || "—"],
       ["Slot", courseComp?.slot || attItem?.slotName || "—"],
       ["System", courseComp?.courseSystem || "—"],
-      ["Credits", attItem?.credits != null ? String(attItem.credits) : (courseComp?.credits != null ? String(courseComp.credits) : "—")],
+      [
+        "Credits",
+        attItem?.credits != null
+          ? String(attItem.credits)
+          : courseComp?.credits != null
+            ? String(courseComp.credits)
+            : "—",
+      ],
     ];
     const faculty = courseComp?.faculty || attItem?.faculty || "";
     const venue = attItem?.slotVenue || "";
@@ -1087,13 +1338,11 @@ export default function CourseDetailSubpage({
         {(faculty || venue) && (
           <div className="space-y-0.5">
             {faculty && (
-              <p title={faculty} className="text-xs font-bold text-text-heading truncate">{faculty}</p>
-            )}
-            {venue && (
-              <p className="text-[10px] text-text-muted font-medium">
-                Venue: {venue}
+              <p title={faculty} className="text-xs font-bold text-text-heading truncate">
+                {faculty}
               </p>
             )}
+            {venue && <p className="text-[10px] text-text-muted font-medium">Venue: {venue}</p>}
           </div>
         )}
       </div>
@@ -1128,7 +1377,9 @@ export default function CourseDetailSubpage({
         }
       />
       <div className="flex items-center gap-2 shrink-0">
-        <span className={`text-base font-black font-outfit tracking-tight leading-none ${TONE_TEXT[ATT_TONE[d.status] ?? "zinc"]}`}>
+        <span
+          className={`text-base font-black font-outfit tracking-tight leading-none ${TONE_TEXT[ATT_TONE[d.status] ?? "zinc"]}`}
+        >
           {d.total > 0 ? `${Number(d.pct.toFixed(1))}%` : "—"}
         </span>
         <ChevronRight className="w-4 h-4 text-zinc-400" />
@@ -1160,13 +1411,7 @@ export default function CourseDetailSubpage({
         tone={ATT_TONE[d.status] ?? "zinc"}
         sub={d.total > 0 ? `${d.attended}/${d.total} attended` : "No attendance data"}
       />
-      <StatTile
-        label="Margin"
-        value={d.marginHeadline}
-        badge={d.status}
-        tone={d.marginTone}
-        sub={d.marginSubline}
-      />
+      <StatTile label="Margin" value={d.marginHeadline} badge={d.status} tone={d.marginTone} sub={d.marginSubline} />
     </div>
   );
 
@@ -1202,40 +1447,52 @@ export default function CourseDetailSubpage({
         <div className="space-y-3">
           <SectionHeader icon={Grid3x3} title="Heatmap" />
           <div className={TILE_CARD}>
-          <div className="flex justify-start w-full overflow-x-auto hide-scrollbar" style={{ direction: "rtl" }}>
-            <div style={{ direction: "ltr", minWidth: "500px" }} className="flex flex-col items-center">
-              <HeatMap
-                value={d.heatmapData}
-                startDate={heatmapStartDate}
-                endDate={heatmapEndDate}
-                width={550}
-                rectSize={15}
-                space={3}
-                legendCellSize={0}
-                rectProps={{ rx: 4, ry: 4 }}
-                rectRender={(props: any, dayData: any) => {
-                  const data = dayData as any;
-                  const status = data.count === 1 ? "Present" : data.count === 2 ? "Absent" : data.count === 3 ? "On Duty" : "No Class";
-                  // NB: the library resolves discrete count maps to the NEXT
-                  // bucket's color (off-by-one), so set the fill explicitly.
-                  const fill = typeof data?.count === "number" && HEAT_STATUS_COLORS[data.count]
-                    ? HEAT_STATUS_COLORS[data.count]
-                    : (props as any).fill;
-                  return <rect {...props} fill={fill}><title>{`${data.date}: ${status}`}</title></rect>;
-                }}
-                panelColors={HEAT_STATUS_COLORS}
-              />
-              <div className="mt-4">
-                <ToneLegend
-                  items={[
-                    { tone: "emerald", label: "Present" },
-                    { tone: "red", label: "Absent" },
-                    { tone: "amber", label: "On Duty" },
-                  ]}
+            <div className="flex justify-start w-full overflow-x-auto hide-scrollbar" style={{ direction: "rtl" }}>
+              <div style={{ direction: "ltr", minWidth: "500px" }} className="flex flex-col items-center">
+                <HeatMap
+                  value={d.heatmapData}
+                  startDate={heatmapStartDate}
+                  endDate={heatmapEndDate}
+                  width={550}
+                  rectSize={15}
+                  space={3}
+                  legendCellSize={0}
+                  rectProps={{ rx: 4, ry: 4 }}
+                  rectRender={(props: any, dayData: any) => {
+                    const data = dayData as any;
+                    const status =
+                      data.count === 1
+                        ? "Present"
+                        : data.count === 2
+                          ? "Absent"
+                          : data.count === 3
+                            ? "On Duty"
+                            : "No Class";
+                    // NB: the library resolves discrete count maps to the NEXT
+                    // bucket's color (off-by-one), so set the fill explicitly.
+                    const fill =
+                      typeof data?.count === "number" && HEAT_STATUS_COLORS[data.count]
+                        ? HEAT_STATUS_COLORS[data.count]
+                        : (props as any).fill;
+                    return (
+                      <rect {...props} fill={fill}>
+                        <title>{`${data.date}: ${status}`}</title>
+                      </rect>
+                    );
+                  }}
+                  panelColors={HEAT_STATUS_COLORS}
                 />
+                <div className="mt-4">
+                  <ToneLegend
+                    items={[
+                      { tone: "emerald", label: "Present" },
+                      { tone: "red", label: "Absent" },
+                      { tone: "amber", label: "On Duty" },
+                    ]}
+                  />
+                </div>
               </div>
             </div>
-          </div>
           </div>
         </div>
         <LogGap />
@@ -1267,8 +1524,7 @@ export default function CourseDetailSubpage({
             />
           </div>
           {d.filteredHistory.length === 0 ? (
-        <EmptyPanel variant="dashed" title="No records under this filter." />
-
+            <EmptyPanel variant="dashed" title="No records under this filter." />
           ) : (
             <ListShell>
               {d.filteredHistory.map((h: any, i: number) => {
@@ -1282,7 +1538,9 @@ export default function CourseDetailSubpage({
                     <span className="flex items-center gap-3 min-w-0 flex-1">
                       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${ATT_DOT[st] ?? "bg-amber-500"}`} />
                       <span className="min-w-0">
-                        <span className="block font-bold text-sm text-text-heading truncate font-outfit leading-tight">{h.date}</span>
+                        <span className="block font-bold text-sm text-text-heading truncate font-outfit leading-tight">
+                          {h.date}
+                        </span>
                         <span className={`block text-[11px] font-medium mt-0.5 ${TONE_TEXT[tone]}`}>{h.status}</span>
                       </span>
                     </span>
@@ -1311,9 +1569,7 @@ export default function CourseDetailSubpage({
 
   const renderPredictorPage = (item: any, d: any, badge: "Theory" | "Lab") => {
     if (!item) {
-      return (
-        <EmptyPanel variant="dashed" title="No attendance data available for this course." />
-      );
+      return <EmptyPanel variant="dashed" title="No attendance data available for this course." />;
     }
     const blocks = milestoneBlocks(d).filter((b) => Array.isArray(b.data) && b.data.length > 0);
     return (
@@ -1322,8 +1578,7 @@ export default function CourseDetailSubpage({
         <div className="space-y-4">
           <SectionHeader icon={Activity} title="Predictor" count={d.upcomingTotal} />
           {blocks.length === 0 ? (
-      <EmptyPanel variant="dashed" title="No upcoming milestones to simulate." />
-
+            <EmptyPanel variant="dashed" title="No upcoming milestones to simulate." />
           ) : (
             <div className="space-y-2.5">
               {blocks.map(({ key, label, data }) => (
@@ -1356,7 +1611,7 @@ export default function CourseDetailSubpage({
     if (!selectedGroup || !allGradesData?.grades) return [];
     let history: any[] = [];
     const gradeObj = allGradesData.grades;
-    
+
     if (Array.isArray(gradeObj)) {
       history = gradeObj.filter((g: any) => (g.courseCode || g.code) === selectedGroup.courseCode);
     } else {
@@ -1364,12 +1619,12 @@ export default function CourseDetailSubpage({
         const semGrades = (semData as any)?.grades || semData || [];
         const items = Array.isArray(semGrades) ? semGrades : Object.values(semGrades);
         const found = items.filter((g: any) => (g.courseCode || g.code) === selectedGroup.courseCode);
-        found.forEach(f => {
+        found.forEach((f) => {
           history.push({ ...f, semester: semName });
         });
       }
     }
-    return history.filter((v, i, a) => a.findIndex(t => t.semester === v.semester) === i);
+    return history.filter((v, i, a) => a.findIndex((t) => t.semester === v.semester) === i);
   }, [selectedGroup, allGradesData]);
 
   // Grade-history tab state: which term is open. A stale id (course switch)
@@ -1417,8 +1672,8 @@ export default function CourseDetailSubpage({
           }
         />
         <p className="px-1 -mt-1 text-[11px] text-text-secondary dark:text-text-muted font-medium">
-          {formatNumber(remaining)} weightage points still available across these {assessments.length}{" "}
-          assessment{assessments.length === 1 ? "" : "s"}.
+          {formatNumber(remaining)} weightage points still available across these {assessments.length} assessment
+          {assessments.length === 1 ? "" : "s"}.
         </p>
         <ListShell>
           {assessments.map((detail: any, idx: number) => {
@@ -1475,23 +1730,23 @@ export default function CourseDetailSubpage({
         <div className="w-full space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
           {/* ── HERO STATS ── */}
           <div className="grid grid-cols-2 gap-3 sm:gap-4">
-          {/* CARD 1: ATTENDANCE CAROUSEL (theory + lab rotate on their own) */}
-          <InsightCarousel
-            slides={ovAttInsightSlides}
-            carousel={ovAttCarousel}
-            height="min-h-36 sm:min-h-40"
-            ariaLabel="Attendance insights"
-          />
-          
-          {/* CARD 2: MARKS CAROUSEL (combined + theory + lab) */}
-          <InsightCarousel
-            slides={ovMarksInsightSlides}
-            carousel={ovActiveCarousel}
-            headlineSize="lg"
-            height="min-h-36 sm:min-h-40"
-            interactiveDots
-            ariaLabel="Marks insights"
-          />
+            {/* CARD 1: ATTENDANCE CAROUSEL (theory + lab rotate on their own) */}
+            <InsightCarousel
+              slides={ovAttInsightSlides}
+              carousel={ovAttCarousel}
+              height="min-h-36 sm:min-h-40"
+              ariaLabel="Attendance insights"
+            />
+
+            {/* CARD 2: MARKS CAROUSEL (combined + theory + lab) */}
+            <InsightCarousel
+              slides={ovMarksInsightSlides}
+              carousel={ovActiveCarousel}
+              headlineSize="lg"
+              height="min-h-36 sm:min-h-40"
+              interactiveDots
+              ariaLabel="Marks insights"
+            />
           </div>
 
           {/* ── COURSE SECTIONS (joined grouped list) ── */}
@@ -1513,13 +1768,23 @@ export default function CourseDetailSubpage({
                 </>
               ) : (
                 <>
-                  {renderLogRow(theoryAttItem || labAttItem, (theoryAttItem ? theoryData : labData), theoryAttItem ? "Theory" : "Lab")}
-                  {renderPredictorRow(theoryAttItem || labAttItem, (theoryAttItem ? theoryData : labData), theoryAttItem ? "Theory" : "Lab")}
+                  {renderLogRow(
+                    theoryAttItem || labAttItem,
+                    theoryAttItem ? theoryData : labData,
+                    theoryAttItem ? "Theory" : "Lab",
+                  )}
+                  {renderPredictorRow(
+                    theoryAttItem || labAttItem,
+                    theoryAttItem ? theoryData : labData,
+                    theoryAttItem ? "Theory" : "Lab",
+                  )}
                 </>
               )}
               {/* Marks */}
               <button onClick={() => ovGo("marks")} className={LIST_ROW}>
-                <span className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.indigo}`}>
+                <span
+                  className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.indigo}`}
+                >
                   <Target className="w-5 h-5" />
                 </span>
                 <ListRowText
@@ -1532,20 +1797,21 @@ export default function CourseDetailSubpage({
                 />
                 <span className="flex items-center gap-2 shrink-0">
                   <span className="text-base font-black font-outfit tracking-tight leading-none text-indigo-600 dark:text-indigo-400">
-                    {isSelectedPastSemester && selectedPastGrade ? `Grade ${selectedPastGrade}` : `${courseStats.projected}%`}
+                    {isSelectedPastSemester && selectedPastGrade
+                      ? `Grade ${selectedPastGrade}`
+                      : `${courseStats.projected}%`}
                   </span>
                   <ChevronRight className="w-4 h-4 text-zinc-400" />
                 </span>
               </button>
               {/* Grade Predictor */}
               <button onClick={() => ovGo("grade-predictor")} className={LIST_ROW}>
-                <span className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.violet}`}>
+                <span
+                  className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.violet}`}
+                >
                   <Sparkles className="w-5 h-5" />
                 </span>
-                <ListRowText
-                  title="Grade Predictor"
-                  subtitle="Simulate what-if scores and see what the FAT needs"
-                />
+                <ListRowText title="Grade Predictor" subtitle="Simulate what-if scores and see what the FAT needs" />
                 <span className="flex items-center gap-2 shrink-0">
                   <span className="text-base font-black font-outfit tracking-tight leading-none text-violet-600 dark:text-violet-400">
                     {selectedGroup?.theory?.assessments?.length || selectedGroup?.lab?.assessments?.length
@@ -1557,7 +1823,9 @@ export default function CourseDetailSubpage({
               </button>
               {/* Grade History */}
               <button onClick={() => ovGo("grades")} className={LIST_ROW}>
-                <span className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.emerald}`}>
+                <span
+                  className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.emerald}`}
+                >
                   <CheckCircle2 className="w-5 h-5" />
                 </span>
                 <ListRowText
@@ -1573,7 +1841,9 @@ export default function CourseDetailSubpage({
               </button>
               {/* Course Plan */}
               <button onClick={() => ovGo("plan")} className={LIST_ROW}>
-                <span className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.amber}`}>
+                <span
+                  className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.amber}`}
+                >
                   <FileText className="w-5 h-5" />
                 </span>
                 <ListRowText
@@ -1589,20 +1859,25 @@ export default function CourseDetailSubpage({
               </button>
               {/* QBank */}
               <button onClick={() => ovGo("qbank")} className={LIST_ROW}>
-                <span className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.violet}`}>
+                <span
+                  className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.violet}`}
+                >
                   <Sparkles className="w-5 h-5" />
                 </span>
                 <ListRowText title="QBank" subtitle="Papers & extracted questions" />
                 <span className="flex items-center gap-2 shrink-0">
                   <span className="text-base font-black font-outfit tracking-tight leading-none text-text-heading">
-                    {(selectedGroup?.theory?.assessments?.length || 0) + (selectedGroup?.lab?.assessments?.length || 0)} tests
+                    {(selectedGroup?.theory?.assessments?.length || 0) + (selectedGroup?.lab?.assessments?.length || 0)}{" "}
+                    tests
                   </span>
                   <ChevronRight className="w-4 h-4 text-zinc-400" />
                 </span>
               </button>
               {/* Tasks & Homework */}
               <div className={LIST_ROW}>
-                <span className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.emerald}`}>
+                <span
+                  className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.emerald}`}
+                >
                   <CheckSquare className="w-5 h-5" />
                 </span>
                 <ListRowText
@@ -1619,7 +1894,6 @@ export default function CourseDetailSubpage({
                 </button>
               </div>
             </ListShell>
-
           </div>
         </div>
       )}
@@ -1676,7 +1950,9 @@ export default function CourseDetailSubpage({
               onClick={() => ovGo("grade-predictor")}
               className={`${TILE_CARD} w-full flex items-center gap-3 text-left cursor-pointer hover:border-border-strong dark:hover:border-border transition-colors`}
             >
-              <span className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.violet}`}>
+              <span
+                className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.violet}`}
+              >
                 <Sparkles className="h-4.5 w-4.5" />
               </span>
               <span className="min-w-0 flex-1">
@@ -1694,7 +1970,7 @@ export default function CourseDetailSubpage({
           {renderAssessmentTable(selectedGroup?.theory?.assessments, "Theory")}
           {renderAssessmentTable(selectedGroup?.lab?.assessments, "Lab")}
 
-          {(!selectedGroup?.theory?.assessments?.length && !selectedGroup?.lab?.assessments?.length) && (
+          {!selectedGroup?.theory?.assessments?.length && !selectedGroup?.lab?.assessments?.length && (
             <EmptyPanel
               icon={<Activity className="w-7 h-7" />}
               tone="indigo"
@@ -1706,29 +1982,23 @@ export default function CourseDetailSubpage({
 
           {/* Grade Insights */}
           <div className="space-y-3">
-            <SectionHeader
-              icon={Gauge}
-              title="Grade insights"
-              right={<ToneBadge tone="blue">Beta</ToneBadge>}
-            />
+            <SectionHeader icon={Gauge} title="Grade insights" right={<ToneBadge tone="blue">Beta</ToneBadge>} />
             <details className="group text-[11px] leading-relaxed text-text-secondary dark:text-text-muted">
               <summary className="cursor-pointer list-none inline-flex items-center gap-1 font-semibold text-text-heading hover:underline">
                 <Info className="h-3.5 w-3.5" /> How this works &amp; why it is safe
               </summary>
               <div className={`${TILE_CARD} mt-3 space-y-2 text-[11px] font-medium`}>
                 <p>
-                  <strong>Proof of concept:</strong> an accurate class curve needs the class
-                  average and standard deviation, which means aggregating the marks of every
-                  student. That cannot be done securely on your device alone — your device would
-                  need the rest of the class&apos;s performance to work out your relative rank.
+                  <strong>Proof of concept:</strong> an accurate class curve needs the class average and standard
+                  deviation, which means aggregating the marks of every student. That cannot be done securely on your
+                  device alone — your device would need the rest of the class&apos;s performance to work out your
+                  relative rank.
                 </p>
                 <p>
-                  <strong>Privacy first:</strong> when you sync fresh marks, your client
-                  transmits only the changes, wrapped in a scrambled anonymous hash of your ID
-                  so the server can skip a duplicate. The server aggregates the numbers
-                  in-memory with Welford&apos;s algorithm, updates the class-wide statistics and
-                  then <strong>immediately discards</strong> them. Your individual marks are
-                  never stored.
+                  <strong>Privacy first:</strong> when you sync fresh marks, your client transmits only the changes,
+                  wrapped in a scrambled anonymous hash of your ID so the server can skip a duplicate. The server
+                  aggregates the numbers in-memory with Welford&apos;s algorithm, updates the class-wide statistics and
+                  then <strong>immediately discards</strong> them. Your individual marks are never stored.
                 </p>
               </div>
             </details>
@@ -1742,123 +2012,132 @@ export default function CourseDetailSubpage({
             )}
           </div>
 
-            {!isRelative && (
-              <div className={`${TILE_CARD} flex items-center gap-3.5`}>
-                <span className={`h-11 w-11 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.emerald}`}>
-                  <ShieldCheck className="h-5 w-5" />
-                </span>
-                <div className="min-w-0">
-                  <h4 className="text-sm font-bold text-text-heading font-outfit tracking-tight">
-                    Absolute grading enforced
-                  </h4>
-                  <p className="text-[11px] text-text-secondary dark:text-text-muted font-medium mt-0.5">
-                    Your grade comes from fixed percentage boundaries, not from how the class
-                    performed.
-                  </p>
-                </div>
+          {!isRelative && (
+            <div className={`${TILE_CARD} flex items-center gap-3.5`}>
+              <span
+                className={`h-11 w-11 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.emerald}`}
+              >
+                <ShieldCheck className="h-5 w-5" />
+              </span>
+              <div className="min-w-0">
+                <h4 className="text-sm font-bold text-text-heading font-outfit tracking-tight">
+                  Absolute grading enforced
+                </h4>
+                <p className="text-[11px] text-text-secondary dark:text-text-muted font-medium mt-0.5">
+                  Your grade comes from fixed percentage boundaries, not from how the class performed.
+                </p>
               </div>
-            )}
+            </div>
+          )}
 
-            <div className="space-y-4">
-                {(() => {
-                  // The band table reads the shared ladder (`gradeBoundaries.ts` —
-                  // the same builder feeding the marks predictor), so the marks
-                  // page and the predictor cannot disagree about where a band
-                  // starts again. Chart-only figures below (`width`, `range`)
-                  // derive locally from those shared limits.
-                  const [sBoundary, aLower, bLower, cLower, dLower, eLower] =
-                    buildGradeBoundaries(isRelative ? stats : null, isRelative).map(
-                      (band) => band.limit
-                    );
+          <div className="space-y-4">
+            {(() => {
+              // The band table reads the shared ladder (`gradeBoundaries.ts` —
+              // the same builder feeding the marks predictor), so the marks
+              // page and the predictor cannot disagree about where a band
+              // starts again. Chart-only figures below (`width`, `range`)
+              // derive locally from those shared limits.
+              const [sBoundary, aLower, bLower, cLower, dLower, eLower] = buildGradeBoundaries(
+                isRelative ? stats : null,
+                isRelative,
+              ).map((band) => band.limit);
 
-                  // `width` is how many percentage points the band spans, so the
-                  // bar reads as "how much room is in this grade" rather than a
-                  // second copy of the threshold.
-                  const boundaries = [
-                    { grade: "S", limit: sBoundary, width: 100 - sBoundary, range: `≥ ${sBoundary}` },
-                    { grade: "A", limit: aLower, width: sBoundary - aLower, range: `≥ ${aLower}` },
-                    { grade: "B", limit: bLower, width: aLower - bLower, range: `≥ ${bLower}` },
-                    { grade: "C", limit: cLower, width: bLower - cLower, range: `≥ ${cLower}` },
-                    { grade: "D", limit: dLower, width: cLower - dLower, range: `≥ ${dLower}` },
-                    { grade: "E", limit: eLower, width: dLower - eLower, range: `≥ ${eLower}` },
-                    { grade: "F", limit: 0, width: eLower, range: `< ${eLower}` },
-                  ];
+              // `width` is how many percentage points the band spans, so the
+              // bar reads as "how much room is in this grade" rather than a
+              // second copy of the threshold.
+              const boundaries = [
+                { grade: "S", limit: sBoundary, width: 100 - sBoundary, range: `≥ ${sBoundary}` },
+                { grade: "A", limit: aLower, width: sBoundary - aLower, range: `≥ ${aLower}` },
+                { grade: "B", limit: bLower, width: aLower - bLower, range: `≥ ${bLower}` },
+                { grade: "C", limit: cLower, width: bLower - cLower, range: `≥ ${cLower}` },
+                { grade: "D", limit: dLower, width: cLower - dLower, range: `≥ ${dLower}` },
+                { grade: "E", limit: eLower, width: dLower - eLower, range: `≥ ${eLower}` },
+                { grade: "F", limit: 0, width: eLower, range: `< ${eLower}` },
+              ];
 
-                  let theoryScored = 0, theoryPercent = 0;
-                  let labScored = 0, labPercent = 0;
-                  if (selectedGroup?.theory) {
-                    const t = getAssessmentTotals(selectedGroup.theory.assessments || []);
-                    theoryScored = t.weighted; theoryPercent = t.weightPercent;
-                  }
-                  if (selectedGroup?.lab) {
-                    const t = getAssessmentTotals(selectedGroup.lab.assessments || []);
-                    labScored = t.weighted; labPercent = t.weightPercent;
-                  }
-                  const theoryCredits = selectedGroup?.theory ? getCourseCredits(selectedGroup.theory) : 0;
-                  const labCredits = selectedGroup?.lab ? getCourseCredits(selectedGroup.lab) : 0;
-                  const totalCredits = theoryCredits + labCredits;
-                  const currentWeightedScore = totalCredits > 0 ? ((theoryCredits * theoryScored) + (labCredits * labScored)) / totalCredits : theoryScored;
-                  const currentWeightPercent = totalCredits > 0 ? ((theoryCredits * theoryPercent) + (labCredits * labPercent)) / totalCredits : theoryPercent;
+              let theoryScored = 0,
+                theoryPercent = 0;
+              let labScored = 0,
+                labPercent = 0;
+              if (selectedGroup?.theory) {
+                const t = getAssessmentTotals(selectedGroup.theory.assessments || []);
+                theoryScored = t.weighted;
+                theoryPercent = t.weightPercent;
+              }
+              if (selectedGroup?.lab) {
+                const t = getAssessmentTotals(selectedGroup.lab.assessments || []);
+                labScored = t.weighted;
+                labPercent = t.weightPercent;
+              }
+              const theoryCredits = selectedGroup?.theory ? getCourseCredits(selectedGroup.theory) : 0;
+              const labCredits = selectedGroup?.lab ? getCourseCredits(selectedGroup.lab) : 0;
+              const totalCredits = theoryCredits + labCredits;
+              const currentWeightedScore =
+                totalCredits > 0
+                  ? (theoryCredits * theoryScored + labCredits * labScored) / totalCredits
+                  : theoryScored;
+              const currentWeightPercent =
+                totalCredits > 0
+                  ? (theoryCredits * theoryPercent + labCredits * labPercent) / totalCredits
+                  : theoryPercent;
 
-                  // The ladder is a 0-100 percentage scale; the two figures above are
-                  // raw weightage-point totals, which mid-term are out of whatever has
-                  // been released rather than out of 100. Comparing them directly put a
-                  // student on a genuine 90% into band D. So normalise before comparing.
-                  const currentPct = normalisedPct(currentWeightedScore, currentWeightPercent);
+              // The ladder is a 0-100 percentage scale; the two figures above are
+              // raw weightage-point totals, which mid-term are out of whatever has
+              // been released rather than out of 100. Comparing them directly put a
+              // student on a genuine 90% into band D. So normalise before comparing.
+              const currentPct = normalisedPct(currentWeightedScore, currentWeightPercent);
 
-                  // The band the student is standing in right now. Drives the
-                  // "You are here" marker and the target-grade emphasis.
-                  // Grade reads ceil the student's weightage to the next whole
-                  // number — how the boundary tables calculate — so a 79.5
-                  // standing is read against 80. The displayed percentages
-                  // below stay fractional; only this band read ceils.
-                  const standing = boundaries.find(b => Math.ceil(currentPct) >= b.limit);
-                  const statsMissing = isRelative && !stats;
+              // The band the student is standing in right now. Drives the
+              // "You are here" marker and the target-grade emphasis.
+              // Grade reads ceil the student's weightage to the next whole
+              // number — how the boundary tables calculate — so a 79.5
+              // standing is read against 80. The displayed percentages
+              // below stay fractional; only this band read ceils.
+              const standing = boundaries.find((b) => Math.ceil(currentPct) >= b.limit);
+              const statsMissing = isRelative && !stats;
 
-                  return (
-                    <>
-                      <div className="space-y-3">
-                        <SectionHeader
-                          icon={Gauge}
-                          title="Grade boundaries"
-                          count={boundaries.length}
-                          right={
-                            statsMissing ? <ToneBadge tone="zinc">Awaiting class data</ToneBadge> : null
-                          }
-                        />
-                        {/* One proportional bar rather than seven stacked rows — the
+              return (
+                <>
+                  <div className="space-y-3">
+                    <SectionHeader
+                      icon={Gauge}
+                      title="Grade boundaries"
+                      count={boundaries.length}
+                      right={statsMissing ? <ToneBadge tone="zinc">Awaiting class data</ToneBadge> : null}
+                    />
+                    {/* One proportional bar rather than seven stacked rows — the
                             shared GradeLadderChart the course predictor page renders
                             too, so the two screens cannot disagree about where a
                             band starts again. */}
-                        <div className={`${TILE_CARD} ${statsMissing ? "opacity-60 grayscale" : ""}`}>
-                          {isRelative && (
-                            <p className="mb-2.5 flex items-center gap-2 text-[11px] font-medium text-text-secondary dark:text-text-muted flex-wrap">
-                              <ToneDot tone={statsMissing ? "zinc" : stats.count < 30 ? "amber" : "emerald"} />
-                              {statsMissing ? (
-                                <span>No class data yet — showing default bands</span>
-                              ) : (
-                                <span>
-                                  <span className="font-bold text-text-heading">{stats.count}</span>{" "}
-                                  {stats.count === 1 ? "peer" : "peers"}
-                                  <span aria-hidden="true"> · </span>μ{" "}
-                                  <span className="font-bold text-text-heading">{formatNumber(stats.mean)}</span>
-                                  <span aria-hidden="true"> · </span>σ{" "}
-                                  <span className="font-bold text-text-heading">{formatNumber(stats.sd)}</span>
-                                </span>
-                              )}
-                            </p>
+                    <div className={`${TILE_CARD} ${statsMissing ? "opacity-60 grayscale" : ""}`}>
+                      {isRelative && (
+                        <p className="mb-2.5 flex items-center gap-2 text-[11px] font-medium text-text-secondary dark:text-text-muted flex-wrap">
+                          <ToneDot tone={statsMissing ? "zinc" : stats.count < 30 ? "amber" : "emerald"} />
+                          {statsMissing ? (
+                            <span>No class data yet — showing default bands</span>
+                          ) : (
+                            <span>
+                              <span className="font-bold text-text-heading">{stats.count}</span>{" "}
+                              {stats.count === 1 ? "peer" : "peers"}
+                              <span aria-hidden="true"> · </span>μ{" "}
+                              <span className="font-bold text-text-heading">{formatNumber(stats.mean)}</span>
+                              <span aria-hidden="true"> · </span>σ{" "}
+                              <span className="font-bold text-text-heading">{formatNumber(stats.sd)}</span>
+                            </span>
                           )}
-                          <GradeLadderChart
-                            bands={boundaries}
-                            standingGrade={statsMissing ? null : standing?.grade ?? null}
-                            currentPct={statsMissing ? null : currentPct}
-                          />
-                        </div>
-                      </div>
-                    </>
-                  );
-                })()}
-              </div>
+                        </p>
+                      )}
+                      <GradeLadderChart
+                        bands={boundaries}
+                        standingGrade={statsMissing ? null : (standing?.grade ?? null)}
+                        currentPct={statsMissing ? null : currentPct}
+                      />
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
         </div>
       )}
 
@@ -1926,28 +2205,41 @@ export default function CourseDetailSubpage({
                   const showBadge = reviewScopes.filter((s) => planEntriesByScope(s).length > 0).length > 1;
                   return (
                     <div key={scope} className="space-y-4">
-                      {showBadge && (
-                        <div className="px-1">{renderScopeBadge(scope)}</div>
-                      )}
+                      {showBadge && <div className="px-1">{renderScopeBadge(scope)}</div>}
                       {entries.map((cp: any, ci: number) => (
                         <div key={ci} className="space-y-4">
                           {cp.data.tables?.map((t: any, ti: number) => (
                             <div key={ti} className={TILE_CARD}>
-                              {t.caption && <h4 className="mb-4 text-[11px] font-black text-text-muted uppercase tracking-wider">{t.caption}</h4>}
+                              {t.caption && (
+                                <h4 className="mb-4 text-[11px] font-black text-text-muted uppercase tracking-wider">
+                                  {t.caption}
+                                </h4>
+                              )}
                               <div className="overflow-x-auto hide-scrollbar">
                                 <table className="w-full text-sm">
                                   <thead>
                                     <tr className="border-b border-border-muted dark:border-border">
                                       {t.headers?.map((h: string, hi: number) => (
-                                        <th key={hi} className="text-left py-3 px-3 text-[10px] font-black text-text-muted uppercase tracking-widest whitespace-nowrap">{h}</th>
+                                        <th
+                                          key={hi}
+                                          className="text-left py-3 px-3 text-[10px] font-black text-text-muted uppercase tracking-widest whitespace-nowrap"
+                                        >
+                                          {h}
+                                        </th>
                                       ))}
                                     </tr>
                                   </thead>
                                   <tbody>
                                     {t.rows?.map((row: any, ri: number) => (
-                                      <tr key={ri} className="border-b border-border-muted/60 dark:border-border/60 last:border-0 hover:bg-surface-secondary dark:hover:bg-surface-hover/40 transition-colors">
+                                      <tr
+                                        key={ri}
+                                        className="border-b border-border-muted/60 dark:border-border/60 last:border-0 hover:bg-surface-secondary dark:hover:bg-surface-hover/40 transition-colors"
+                                      >
                                         {t.headers.map((h: string, hi: number) => (
-                                          <td key={hi} className="py-3 px-3 text-sm font-medium text-text-secondary dark:text-text-secondary">
+                                          <td
+                                            key={hi}
+                                            className="py-3 px-3 text-sm font-medium text-text-secondary dark:text-text-secondary"
+                                          >
                                             {row[h] || "—"}
                                           </td>
                                         ))}
@@ -1977,7 +2269,10 @@ export default function CourseDetailSubpage({
               right={
                 <button
                   type="button"
-                  onClick={() => { if (viewDetail) setViewDetail(null); else fetchViewDetail(); }}
+                  onClick={() => {
+                    if (viewDetail) setViewDetail(null);
+                    else fetchViewDetail();
+                  }}
                   disabled={viewLoading}
                   className="text-[11px] font-black uppercase tracking-widest px-4 py-2 rounded-xl bg-surface-tertiary dark:bg-surface-secondary text-text-secondary dark:text-text-muted hover:bg-border-muted dark:hover:bg-surface-hover disabled:opacity-50 transition-colors cursor-pointer"
                 >
@@ -1998,20 +2293,37 @@ export default function CourseDetailSubpage({
                         <div key={ci} className="space-y-4">
                           {vd.data.tables?.slice(1).map((t: any, ti: number) => (
                             <div key={ti} className="overflow-x-auto hide-scrollbar">
-                              {t.caption && <h5 className="mb-3 text-[10px] font-black text-text-muted uppercase tracking-widest">{t.caption}</h5>}
+                              {t.caption && (
+                                <h5 className="mb-3 text-[10px] font-black text-text-muted uppercase tracking-widest">
+                                  {t.caption}
+                                </h5>
+                              )}
                               <table className="w-full text-sm">
                                 <thead>
                                   <tr className="border-b border-border-muted dark:border-border">
                                     {t.headers?.map((h: string, hi: number) => (
-                                      <th key={hi} className="text-left py-2 px-2 text-[10px] font-black text-text-muted uppercase tracking-widest whitespace-nowrap">{h}</th>
+                                      <th
+                                        key={hi}
+                                        className="text-left py-2 px-2 text-[10px] font-black text-text-muted uppercase tracking-widest whitespace-nowrap"
+                                      >
+                                        {h}
+                                      </th>
                                     ))}
                                   </tr>
                                 </thead>
                                 <tbody>
                                   {t.rows?.map((row: any, ri: number) => (
-                                    <tr key={ri} className="border-b border-border-muted/60 dark:border-border/60 last:border-0 hover:bg-surface-secondary dark:hover:bg-surface-hover/40 transition-colors">
+                                    <tr
+                                      key={ri}
+                                      className="border-b border-border-muted/60 dark:border-border/60 last:border-0 hover:bg-surface-secondary dark:hover:bg-surface-hover/40 transition-colors"
+                                    >
                                       {t.headers.map((h: string, ci: number) => (
-                                        <td key={ci} className="py-2.5 px-2 text-sm font-medium text-text-secondary dark:text-text-secondary whitespace-nowrap">{row[h] || "—"}</td>
+                                        <td
+                                          key={ci}
+                                          className="py-2.5 px-2 text-sm font-medium text-text-secondary dark:text-text-secondary whitespace-nowrap"
+                                        >
+                                          {row[h] || "—"}
+                                        </td>
                                       ))}
                                     </tr>
                                   ))}
@@ -2048,63 +2360,75 @@ export default function CourseDetailSubpage({
               }
             />
 
-               {qcmError && <p className="px-1 text-sm text-red-500">{qcmError}</p>}
+            {qcmError && <p className="px-1 text-sm text-red-500">{qcmError}</p>}
 
-               {qcmData && qcmData.length === 0 && (
-                 <EmptyPanel variant="dashed" title={`No QCM data for ${selectedCode} this semester.`} />
-               )}
+            {qcmData && qcmData.length === 0 && (
+              <EmptyPanel variant="dashed" title={`No QCM data for ${selectedCode} this semester.`} />
+            )}
 
-               {qcmData && qcmData.length > 0 && (
-                 <div className="space-y-4">
-                   {qcmData.map((table: any, ti: number) => (
-                      <div key={ti} className="space-y-4">
-                        {table.caption && <p className="px-1 text-sm font-semibold text-text-secondary dark:text-text-muted">{table.caption}</p>}
-                        {table.rows.map((row: any, ri: number) => {
-                          const findCol = (keywords: string[]) => {
-                             const key = Object.keys(row).find(k => keywords.some(kw => k.toLowerCase().includes(kw)));
-                             return key ? row[key] : null;
-                          };
+            {qcmData && qcmData.length > 0 && (
+              <div className="space-y-4">
+                {qcmData.map((table: any, ti: number) => (
+                  <div key={ti} className="space-y-4">
+                    {table.caption && (
+                      <p className="px-1 text-sm font-semibold text-text-secondary dark:text-text-muted">
+                        {table.caption}
+                      </p>
+                    )}
+                    {table.rows.map((row: any, ri: number) => {
+                      const findCol = (keywords: string[]) => {
+                        const key = Object.keys(row).find((k) => keywords.some((kw) => k.toLowerCase().includes(kw)));
+                        return key ? row[key] : null;
+                      };
 
-                          const qcmNo = findCol(["qcm no", "qcm"]);
-                          const action = findCol(["action"]);
-                          const suggestions = findCol(["suggestion", "feedback", "remarks"]);
-                          const facultyReply = findCol(["faculty reply", "faculty comment"]);
-                          const hodComments = findCol(["hod comment", "hod reply", "hod"]);
+                      const qcmNo = findCol(["qcm no", "qcm"]);
+                      const action = findCol(["action"]);
+                      const suggestions = findCol(["suggestion", "feedback", "remarks"]);
+                      const facultyReply = findCol(["faculty reply", "faculty comment"]);
+                      const hodComments = findCol(["hod comment", "hod reply", "hod"]);
 
-                          return (
-                            <div key={ri} className={TILE_CARD}>
-                               <div className="mb-3 flex justify-between items-center gap-2">
-                                  <span className="text-xs font-bold text-text-muted uppercase tracking-wider">QCM {qcmNo || ri + 1}</span>
-                                  {action && <ToneBadge tone="blue">{action}</ToneBadge>}
-                               </div>
-                               <div className="space-y-3">
-                                  {suggestions && (
-                                     <div>
-                                        <p className="mb-0.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Suggestions / Feedback</p>
-                                        <p className="text-sm text-text-heading">{suggestions}</p>
-                                     </div>
-                                  )}
-                                  {facultyReply && (
-                                     <div className="border-l-2 border-emerald-200 pl-3 dark:border-emerald-900/50">
-                                        <p className="mb-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Faculty Reply</p>
-                                        <p className="text-sm text-text-secondary dark:text-text-secondary">{facultyReply}</p>
-                                     </div>
-                                  )}
-                                  {hodComments && (
-                                     <div className="border-l-2 border-violet-200 pl-3 dark:border-violet-900/50">
-                                        <p className="mb-0.5 text-[10px] font-bold uppercase tracking-wider text-violet-600 dark:text-violet-400">HOD Comments</p>
-                                        <p className="text-sm text-text-secondary dark:text-text-secondary">{hodComments}</p>
-                                     </div>
-                                  )}
-                               </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                   ))}
-                 </div>
-               )}
-               </div>
+                      return (
+                        <div key={ri} className={TILE_CARD}>
+                          <div className="mb-3 flex justify-between items-center gap-2">
+                            <span className="text-xs font-bold text-text-muted uppercase tracking-wider">
+                              QCM {qcmNo || ri + 1}
+                            </span>
+                            {action && <ToneBadge tone="blue">{action}</ToneBadge>}
+                          </div>
+                          <div className="space-y-3">
+                            {suggestions && (
+                              <div>
+                                <p className="mb-0.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">
+                                  Suggestions / Feedback
+                                </p>
+                                <p className="text-sm text-text-heading">{suggestions}</p>
+                              </div>
+                            )}
+                            {facultyReply && (
+                              <div className="border-l-2 border-emerald-200 pl-3 dark:border-emerald-900/50">
+                                <p className="mb-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                                  Faculty Reply
+                                </p>
+                                <p className="text-sm text-text-secondary dark:text-text-secondary">{facultyReply}</p>
+                              </div>
+                            )}
+                            {hodComments && (
+                              <div className="border-l-2 border-violet-200 pl-3 dark:border-violet-900/50">
+                                <p className="mb-0.5 text-[10px] font-bold uppercase tracking-wider text-violet-600 dark:text-violet-400">
+                                  HOD Comments
+                                </p>
+                                <p className="text-sm text-text-secondary dark:text-text-secondary">{hodComments}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -2113,15 +2437,11 @@ export default function CourseDetailSubpage({
         <CourseQBankTab courseCode={selectedCode} username={creds?.authorizedID || "unknown"} />
       )}
 
-{/* GRADES HISTORY — same grammar as the overall Grade History page: hero
+      {/* GRADES HISTORY — same grammar as the overall Grade History page: hero
     tiles, an across-terms list, and the open term's assessments + scale. */}
       {innerTab === "grades" && (
         <div className="mt-6 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <SectionHeader
-            icon={BookOpen}
-            title="Grade history"
-            count={courseGradeHistory.length}
-          />
+          <SectionHeader icon={BookOpen} title="Grade history" count={courseGradeHistory.length} />
           {courseGradeHistory.length === 0 ? (
             <EmptyPanel
               variant="dashed"
@@ -2134,9 +2454,7 @@ export default function CourseDetailSubpage({
                 <StatTile
                   label="Latest"
                   value={latestHistory ? historyLetter(latestHistory) || "—" : "—"}
-                  badge={
-                    latestHistory ? historyTermLabel(latestHistory.semester) : undefined
-                  }
+                  badge={latestHistory ? historyTermLabel(latestHistory.semester) : undefined}
                   tone={latestHistory ? toneForGrade(historyLetter(latestHistory)) : "neutral"}
                   sub={
                     latestHistory && historyScore(latestHistory) != null
@@ -2147,9 +2465,7 @@ export default function CourseDetailSubpage({
                 <StatTile
                   label="Best"
                   value={bestHistory ? historyLetter(bestHistory) || "—" : "—"}
-                  badge={
-                    bestHistory ? historyTermLabel(bestHistory.semester) : undefined
-                  }
+                  badge={bestHistory ? historyTermLabel(bestHistory.semester) : undefined}
                   tone={bestHistory ? toneForGrade(historyLetter(bestHistory)) : "neutral"}
                   sub={
                     bestHistory
@@ -2160,17 +2476,12 @@ export default function CourseDetailSubpage({
               </div>
 
               <div className="space-y-3">
-                <SectionHeader
-                  icon={Activity}
-                  title="Across terms"
-                  count={courseGradeHistory.length}
-                />
+                <SectionHeader icon={Activity} title="Across terms" count={courseGradeHistory.length} />
                 <ListShell>
                   {courseGradeHistory.map((gh: any, idx: number) => {
                     const letter = historyLetter(gh);
                     const score = historyScore(gh);
-                    const isActive =
-                      activeHistory != null && gh.semester === activeHistory.semester;
+                    const isActive = activeHistory != null && gh.semester === activeHistory.semester;
                     return (
                       <button
                         key={`${gh.semester}-${idx}`}
@@ -2187,9 +2498,7 @@ export default function CourseDetailSubpage({
                         <span
                           className={cn(
                             "shrink-0 text-sm font-black font-outfit tracking-tight leading-none w-16 text-right",
-                            isActive
-                              ? "text-indigo-600 dark:text-indigo-400"
-                              : "text-zinc-800 dark:text-zinc-100"
+                            isActive ? "text-indigo-600 dark:text-indigo-400" : "text-zinc-800 dark:text-zinc-100",
                           )}
                         >
                           {score != null ? `${score.toFixed(1)}%` : "—"}
@@ -2208,15 +2517,10 @@ export default function CourseDetailSubpage({
                     const letter = historyLetter(gh);
                     const details = Array.isArray(gh.details)
                       ? [...gh.details].sort(
-                          (a: any, b: any) =>
-                            (Number(b.weightagePercent) || 0) -
-                            (Number(a.weightagePercent) || 0)
+                          (a: any, b: any) => (Number(b.weightagePercent) || 0) - (Number(a.weightagePercent) || 0),
                         )
                       : [];
-                    const rangeEntries =
-                      gh.range && typeof gh.range === "object"
-                        ? Object.entries(gh.range)
-                        : [];
+                    const rangeEntries = gh.range && typeof gh.range === "object" ? Object.entries(gh.range) : [];
                     return (
                       <>
                         <div className="space-y-3">
@@ -2234,16 +2538,13 @@ export default function CourseDetailSubpage({
                           ) : (
                             <ListShell>
                               {details.map((d: any, dIdx: number) => (
-                                <div
-                                  key={`${d.component}-${dIdx}`}
-                                  className="flex items-center gap-3 py-2.5 px-4"
-                                >
+                                <div key={`${d.component}-${dIdx}`} className="flex items-center gap-3 py-2.5 px-4">
                                   <ListRowText
                                     title={d.component}
                                     subtitle={
                                       d.weightagePercent != null
                                         ? `${d.weightagePercent}% weightage`
-                                        : (d.type || "Theory")
+                                        : d.type || "Theory"
                                     }
                                   />
                                   <span className="shrink-0 text-sm font-black font-outfit text-zinc-800 dark:text-zinc-100">
@@ -2260,11 +2561,7 @@ export default function CourseDetailSubpage({
 
                         {rangeEntries.length > 0 && (
                           <div className="space-y-3">
-                            <SectionHeader
-                              icon={Gauge}
-                              title="Grade scale"
-                              count={rangeEntries.length}
-                            />
+                            <SectionHeader icon={Gauge} title="Grade scale" count={rangeEntries.length} />
                             <ListShell>
                               {rangeEntries.map(([grade, rangeStr]: any) => (
                                 <div key={grade} className={LIST_ROW}>
@@ -2274,8 +2571,7 @@ export default function CourseDetailSubpage({
                                   <span className="text-xs font-bold text-zinc-600 dark:text-zinc-300 truncate">
                                     {String(rangeStr)}
                                   </span>
-                                  {String(grade).toUpperCase() ===
-                                    String(letter ?? "").toUpperCase() && (
+                                  {String(grade).toUpperCase() === String(letter ?? "").toUpperCase() && (
                                     <ToneBadge tone="indigo" className="ml-auto">
                                       Yours
                                     </ToneBadge>
@@ -2309,4 +2605,3 @@ export default function CourseDetailSubpage({
     </div>
   );
 }
-
