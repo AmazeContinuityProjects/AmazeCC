@@ -888,7 +888,16 @@ export default function FFCSTimetableTab({
         const parsed = JSON.parse(savedTimetables);
         if (parsed && Array.isArray(parsed) && parsed.length > 0) {
           setTimetables(parsed);
-          setActiveTimetableId(parsed[0].id);
+          // Honour the saved active plan. "Open in planner" on a share link
+          // appends the shared plan to the END of the list and names it active
+          // through `ffcs_activeTimetableId` — always taking `parsed[0]`
+          // silently reopened the student's first plan instead of the one they
+          // just imported. Fall back to the first plan when the saved id no
+          // longer matches (deleted/renamed plan), the same rule
+          // `FacultyScheduleTab` and `useTimetables` already use.
+          const savedActiveId = safeStorage.getItem("ffcs_activeTimetableId");
+          const active = savedActiveId ? parsed.find((t: TimetableState) => t?.id === savedActiveId) : null;
+          setActiveTimetableId(active ? active.id : parsed[0].id);
         }
       } catch {}
     }
@@ -1069,8 +1078,12 @@ export default function FFCSTimetableTab({
   useEffect(() => {
     if (isLoaded) {
       safeStorage.setItem("ffcs_timetables", JSON.stringify(timetables));
+      // Persist which plan is open alongside the list: the share hand-off
+      // arrives through this key, and a reload must return to the plan the
+      // student was actually looking at — not always the first in the list.
+      safeStorage.setItem("ffcs_activeTimetableId", activeTimetableId);
     }
-  }, [timetables, isLoaded]);
+  }, [timetables, activeTimetableId, isLoaded]);
 
   useEffect(() => {
     if (isLoaded) {

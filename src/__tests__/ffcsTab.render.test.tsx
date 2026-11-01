@@ -182,6 +182,47 @@ describe("FFCSTimetableTab", () => {
     expect(screen.queryByText("Weekly Rhythm")).toBeNull();
   }, 30_000);
 
+  /*
+    "Open in planner" on a /share/ffcs link appends the shared plan to the END
+    of `ffcs_timetables` and names it active via `ffcs_activeTimetableId`. The
+    planner used to activate `parsed[0]` unconditionally — so the shared plan
+    was saved but the student's FIRST plan opened instead, and the button
+    looked broken. It must honour the saved active id.
+  */
+  it("opens the plan named by ffcs_activeTimetableId, not always the first", () => {
+    storage.setItem(
+      "ffcs_timetables",
+      JSON.stringify([
+        { id: "default", name: "My First Plan", courses: [] },
+        { id: "shared-plan", name: "Imported Shared Plan", courses: [] },
+      ]),
+    );
+    storage.setItem("ffcs_activeTimetableId", "shared-plan");
+
+    render(<FFCSTimetableTab />);
+
+    // Both plans are empty, so the empty-state names whichever is active.
+    expect(screen.getByText("No Courses Added to Imported Shared Plan")).toBeTruthy();
+    expect(screen.queryByText("No Courses Added to My First Plan")).toBeNull();
+  }, 30_000);
+
+  it("falls back to the first plan when the saved active id no longer matches", () => {
+    // The named plan was deleted/renamed: the planner must not crash or show
+    // nothing — it lands on the first plan, exactly as `useTimetables` does.
+    storage.setItem(
+      "ffcs_timetables",
+      JSON.stringify([
+        { id: "default", name: "My First Plan", courses: [] },
+        { id: "other", name: "Other Plan", courses: [] },
+      ]),
+    );
+    storage.setItem("ffcs_activeTimetableId", "deleted-plan");
+
+    render(<FFCSTimetableTab />);
+
+    expect(screen.getByText("No Courses Added to My First Plan")).toBeTruthy();
+  }, 30_000);
+
   it("shows one mobile stat card beside the remaining-stat carousel", async () => {
     storage.setItem(
       "ffcs_timetables",
