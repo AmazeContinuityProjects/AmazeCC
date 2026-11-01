@@ -218,54 +218,6 @@ function LabFatExamSlot({
   );
 }
 
-// Helper to parse exam dates reliably across diverse date formats (DD-MMM-YYYY, DD-MM-YYYY, ISO)
-function parseExamDateTimestamp(dateStr: string): number {
-  if (!dateStr) return 0;
-  const str = String(dateStr).trim();
-
-  // Try standard parse
-  const standard = new Date(str);
-  if (!isNaN(standard.getTime())) {
-    return new Date(standard.getFullYear(), standard.getMonth(), standard.getDate(), 23, 59, 59).getTime();
-  }
-
-  // Handle DD-MMM-YYYY (e.g. 28-Nov-2025) or DD-MM-YYYY (e.g. 28-11-2025)
-  const parts = str.split(/[-/]/);
-  if (parts.length === 3) {
-    const day = parseInt(parts[0], 10);
-    const monthPart = parts[1].toLowerCase();
-    const year = parseInt(parts[2], 10);
-
-    const MONTHS: Record<string, number> = {
-      jan: 0,
-      feb: 1,
-      mar: 2,
-      apr: 3,
-      may: 4,
-      jun: 5,
-      jul: 6,
-      aug: 7,
-      sep: 8,
-      oct: 9,
-      nov: 10,
-      dec: 11,
-    };
-
-    let month = -1;
-    if (MONTHS[monthPart.slice(0, 3)] !== undefined) {
-      month = MONTHS[monthPart.slice(0, 3)];
-    } else if (!isNaN(parseInt(monthPart, 10))) {
-      month = parseInt(monthPart, 10) - 1;
-    }
-
-    if (!isNaN(day) && month !== -1 && !isNaN(year)) {
-      return new Date(year, month, day, 23, 59, 59).getTime();
-    }
-  }
-
-  return 0;
-}
-
 export default function SimplifiedMobileHome({
   attendanceData,
   marksData,
@@ -490,7 +442,10 @@ export default function SimplifiedMobileHome({
     [ScheduleData, calendarData],
   );
 
-  const allExams = useMemo(() => scheduleRows.map((r) => ({ ...r.raw, examCategory: r.examType })), [scheduleRows]);
+  const allExams = useMemo(
+    () => scheduleRows.map((r) => ({ ...r.raw, examCategory: r.examType, date: r.date })),
+    [scheduleRows],
+  );
 
   // Earliest paper that has NOT finished yet. Judged on the clock, not the
   // calendar: a CAT that ended at 12:30 PM is done at 3 PM even though it is
@@ -718,8 +673,8 @@ export default function SimplifiedMobileHome({
       const targetDateEnd = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59).getTime();
 
       const matchingDayExams = allExams.filter((ex) => {
-        if (!ex.examDate) return false;
-        const examTs = parseExamDateTimestamp(ex.examDate);
+        if (!ex.date) return false;
+        const examTs = ex.date.getTime();
         return examTs >= targetDateStart && examTs <= targetDateEnd;
       });
 
