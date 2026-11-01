@@ -418,16 +418,6 @@ export default function SimplifiedMobileHome({
 
   const { isOffline, triggerSync: handleSyncClick } = useSyncTrigger(handleRefresh);
 
-  const toggleDashboardMode = () => {
-    const nextMode =
-      settings?.dashboardViewMode === "simplified" || !settings?.dashboardViewMode ? "classic" : "simplified";
-    setSettings((prev: any) => {
-      const next = { ...prev, dashboardViewMode: nextMode };
-      localStorage.setItem("settings", JSON.stringify(next));
-      return next;
-    });
-  };
-
   const getGreeting = () => {
     const hr = currentTime.getHours();
     if (hr < 12) return "Good morning";

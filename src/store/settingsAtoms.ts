@@ -43,7 +43,6 @@ export type Settings = {
   lowDataMode?: boolean;
   soundEnabled?: boolean;
   smartMessFilter?: boolean;
-  dashboardViewMode?: "simplified" | "classic";
   timetablePillStyle?: "compact" | "detailed";
   /**
    * Which timetable grid to draw. "auto" means vertical under 768px (the
@@ -94,7 +93,6 @@ export type Settings = {
   taskDefaultReminderMinutes?: number;
 };
 
-
 export type settings = Settings;
 
 export const defaultSettings: Settings = {
@@ -132,7 +130,6 @@ export const defaultSettings: Settings = {
   lowDataMode: false,
   soundEnabled: true,
   smartMessFilter: false,
-  dashboardViewMode: "simplified",
   timetablePillStyle: "compact",
   timetableViewMode: "auto",
   timetableCellDensity: "full",
@@ -164,6 +161,5 @@ export const defaultSettings: Settings = {
   taskPomodoroRounds: 4,
   taskDefaultReminderMinutes: 30,
 };
-
 
 export const settingsAtom = atom<Settings>(defaultSettings);

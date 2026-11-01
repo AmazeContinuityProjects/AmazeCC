@@ -33,7 +33,6 @@ import { usePwaInstall } from "@/lib/pwaInstall";
 import config from "../../../../config.json";
 import { api } from "@/lib/sync-engine";
 import SimplifiedMobileHome from "../mobile/SimplifiedMobileHome";
-import MobileHome from "../mobile/MobileHome";
 import AttendanceTabs from "../attendance/AttendanceTabs";
 import SelectField from "../shared/primitives/SelectField";
 import OnboardingIntro, { type IntroPhase } from "./OnboardingIntro";
@@ -44,7 +43,7 @@ import {
   useSyncSession,
 } from "@/lib/sync-engine/sync-session";
 
-export type InterfaceOptionId = "simplified" | "classic" | "attendance";
+export type InterfaceOptionId = "simplified" | "attendance";
 
 const COLOR_PALETTES = [
   { id: "default", label: "Ocean", color: "#0ea5e9" },
@@ -235,11 +234,6 @@ export default function AmazeOnboardingFlow({
       icon: Sparkles,
     },
     {
-      id: "classic",
-      title: "Classic Multi-Widget",
-      icon: LayoutGrid,
-    },
-    {
       id: "attendance",
       title: "Direct Attendance",
       icon: CheckCircle2,
@@ -248,9 +242,7 @@ export default function AmazeOnboardingFlow({
 
   const initialModeIdx = Math.max(
     0,
-    interfaces.findIndex(
-      (i) => i.id === (temp.defaultLandingTab === "attendance" ? "attendance" : temp.dashboardViewMode || "simplified"),
-    ),
+    interfaces.findIndex((i) => i.id === (temp.defaultLandingTab === "attendance" ? "attendance" : "simplified")),
   );
   const [activeInterfaceIdx, setActiveInterfaceIdx] = useState(initialModeIdx >= 0 ? initialModeIdx : 0);
 
@@ -280,7 +272,6 @@ export default function AmazeOnboardingFlow({
   const finish = () => {
     const finalSettings = {
       ...temp,
-      dashboardViewMode: currentOption.id === "classic" ? "classic" : "simplified",
       defaultLandingTab: currentOption.id === "attendance" ? "attendance" : "home",
       interfaceChosen: true,
     };
@@ -362,7 +353,6 @@ export default function AmazeOnboardingFlow({
   // Preview settings proxy for live dashboard render
   const previewSettings = {
     ...temp,
-    dashboardViewMode: currentOption.id === "classic" ? "classic" : "simplified",
     defaultLandingTab: currentOption.id === "attendance" ? "attendance" : "home",
     timetablePillStyle: temp.timetablePillStyle || "compact",
   };
@@ -524,28 +514,6 @@ export default function AmazeOnboardingFlow({
                   ScheduleData={ScheduleData}
                   setGradesDisplayIsOpen={setGradesDisplayIsOpen}
                   setODhoursIsOpen={setODhoursIsOpen}
-                />
-              )}
-
-              {currentOption.id === "classic" && (
-                <MobileHome
-                  attendanceData={attendanceData}
-                  marksData={marksData}
-                  hostelData={hostelData}
-                  registeredEvents={registeredEvents}
-                  moodleData={moodleData}
-                  settings={previewSettings}
-                  setSettings={setSettings}
-                  IDs={IDs}
-                  setActiveTab={() => {}}
-                  setActiveSubTab={() => {}}
-                  setHostelActiveSubTab={() => {}}
-                  setActiveAttendanceSubTab={() => {}}
-                  setActiveProfileSubTab={() => {}}
-                  handleReloadRequest={handleReloadRequest}
-                  onOpenCommandPalette={onOpenCommandPalette}
-                  profileData={profileData}
-                  ODhoursData={ODhoursData}
                 />
               )}
 
@@ -983,8 +951,7 @@ export default function AmazeOnboardingFlow({
                     </div>
                   </div>
                   <p className="text-xs text-zinc-400 font-medium leading-relaxed">
-                    Pick how you want AmazeCC to look and feel. Switch between simplified, classic, or attendance
-                    anytime.
+                    Pick how you want AmazeCC to look and feel. Switch between simplified or attendance anytime.
                   </p>
 
                   {/* Icon-Only Option Bar */}
@@ -1022,9 +989,7 @@ export default function AmazeOnboardingFlow({
                       <p className="text-[11px] text-zinc-400 leading-relaxed">
                         {currentOption.id === "simplified"
                           ? "Clean, focused single-page view with essential widgets, quick timetable glance, and simplified cards."
-                          : currentOption.id === "classic"
-                            ? "Power-user dashboard with multi-widgets, od hours history, grade analytics, and full customizability."
-                            : "Direct launcher that opens straight into your Course Attendance list and live Bunk Margin calculations."}
+                          : "Direct launcher that opens straight into your Course Attendance list and live Bunk Margin calculations."}
                       </p>
                     </div>
                   </div>

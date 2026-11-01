@@ -1496,22 +1496,17 @@ export default function ProfilePage({
             </p>
           </div>
           <SelectField
-            value={
-              settings?.defaultLandingTab === "attendance" ? "attendance" : settings?.dashboardViewMode || "simplified"
-            }
+            value={settings?.defaultLandingTab === "attendance" ? "attendance" : "simplified"}
             onChange={(val) => {
               if (val === "attendance") {
                 updateSetting("defaultLandingTab", "attendance");
-                updateSetting("dashboardViewMode", "simplified");
               } else {
                 updateSetting("defaultLandingTab", "home");
-                updateSetting("dashboardViewMode", val);
               }
               updateSetting("interfaceChosen", true);
             }}
             options={[
               { value: "simplified", label: "✨ Minimal (Timetable & Stat Cards)" },
-              { value: "classic", label: "📱 Classic (Multi-Widget View)" },
               { value: "attendance", label: "📊 Direct Attendance (Instant Tracker)" },
             ]}
             className="shrink-0"
