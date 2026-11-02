@@ -5,6 +5,7 @@ import { getBatchColorClass } from "@/lib/utils";
 import { splitSlots } from "@/lib/slots";
 import type { CourseLock, ParsedCourse } from "../types";
 import { renderCourseTypeChips } from "./CourseTypeChips";
+import { GRADE_BADGE_TONE_CLASSES, type GradeBadge, type GradeLetter } from "@/lib/ffcsPlannerGrades";
 
 export interface TargetCourseLockOption {
   code: string;
@@ -21,6 +22,25 @@ interface TargetCourseLockCardProps {
   tone?: "purple" | "neutral";
   /** The student's curriculum category, shown only when the picker filters by it. */
   category?: string;
+  /**
+   * Did `category` come from an exact curriculum listing, or from a mere
+   * shared code start (default: listed)? A candidate wears the amber
+   * open-elective look instead of the curriculum emerald.
+   */
+  curriculumListed?: boolean;
+  /**
+   * The grade-history rule for this course, or null when none applies. A
+   * blocked badge (`S` already earned) comes with `disabled` from the host —
+   * this card renders the badge either way.
+   */
+  grade?: GradeBadge | null;
+  /**
+   * The same record, set big at the card's right edge (see `gradeLetter`):
+   * the badge says the RULE, the letter says what was actually earned.
+   */
+  letter?: GradeLetter | null;
+  /** Selection disallowed (a completed `S` subject). Mutes the whole card. */
+  disabled?: boolean;
 }
 
 /** Search result row shared by planner target locks and generator focus locks. */
@@ -31,10 +51,15 @@ export function TargetCourseLockCard({
   onSelectionChange,
   tone = "purple",
   category,
+  curriculumListed = true,
+  grade = null,
+  letter = null,
+  disabled = false,
 }: TargetCourseLockCardProps) {
   const isSelected = Boolean(selection);
-  const cardToneClass =
-    tone === "neutral"
+  const cardToneClass = disabled
+    ? "border-border-strong/50 bg-surface-secondary/20 opacity-60"
+    : tone === "neutral"
       ? isSelected
         ? "border-zinc-500/50 bg-zinc-500/[0.08] shadow-sm dark:border-zinc-400/40 dark:bg-zinc-400/[0.08]"
         : "border-zinc-200/80 bg-zinc-500/[0.025] hover:border-zinc-300 hover:bg-zinc-500/[0.06] dark:border-zinc-800 dark:bg-zinc-500/[0.04] dark:hover:border-zinc-700 dark:hover:bg-zinc-500/[0.08]"
@@ -92,11 +117,12 @@ export function TargetCourseLockCard({
 
   return (
     <div className={`w-full min-w-0 flex flex-col gap-2 rounded-xl border p-3 transition-colors ${cardToneClass}`}>
-      <label className="flex items-start gap-3 cursor-pointer">
+      <label className={`flex items-start gap-3 ${disabled ? "cursor-not-allowed" : "cursor-pointer"}`}>
         <input
           type="checkbox"
-          className="mt-1 rounded bg-surface border-border-strong text-purple-500 focus:ring-purple-500/30"
+          className="mt-1 rounded bg-surface border-border-strong text-purple-500 focus:ring-purple-500/30 disabled:opacity-50"
           checked={isSelected}
+          disabled={disabled}
           onChange={(event) => {
             if (event.target.checked) {
               onSelectionChange({
@@ -116,19 +142,32 @@ export function TargetCourseLockCard({
               <span className="font-bold text-base text-text-heading">{course.code}</span>
               <span className="flex flex-wrap items-center gap-1">
                 {renderCourseTypeChips(course.types ?? [], "sm")}
+                {grade && (
+                  <span title={grade.title} className={GRADE_BADGE_TONE_CLASSES[grade.tone]}>
+                    {grade.text}
+                  </span>
+                )}
                 {category && (
                   <span
-                    title={`Counts toward ${category}`}
-                    className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-500"
+                    title={
+                      curriculumListed
+                        ? `In your curriculum — counts toward ${category}`
+                        : "Not in your curriculum — shares a code start with a course that is (open-elective candidate)"
+                    }
+                    className={`rounded-md border px-1.5 py-0.5 text-[10px] font-bold ${
+                      curriculumListed
+                        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
+                        : "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                    }`}
                   >
                     {category}
                   </span>
                 )}
               </span>
             </span>
-            {course.batches && course.batches.length > 0 && (
+            {(letter || (course.batches && course.batches.length > 0)) && (
               <span className="flex flex-wrap items-center gap-1.5 sm:shrink-0">
-                {course.batches.map((batch) => (
+                {course.batches?.map((batch) => (
                   <span
                     key={batch}
                     className={`rounded-md border px-2 py-0.5 text-xs font-bold ${getBatchColorClass(batch)}`}
@@ -136,6 +175,11 @@ export function TargetCourseLockCard({
                     {batch}
                   </span>
                 ))}
+                {letter && (
+                  <span title={letter.title} className={letter.className}>
+                    {letter.text}
+                  </span>
+                )}
               </span>
             )}
           </span>

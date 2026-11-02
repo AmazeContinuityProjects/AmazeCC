@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { safeSessionStorage } from "./ffcsGeneratorSessionPrefs";
 import type { ParsedCourse } from "@/components/custom/exams/FFCS/types";
 import { buildFacultyRatingLookup, type FacultyRatingLookup } from "@/lib/ffcsFacultyRanking";
@@ -122,8 +122,93 @@ export interface FacultyDirectoryProfile {
 /**
  * Master killswitch to enable or disable the entire vitfac integration.
  * Set to `false` to instantly turn off all network calls, review pills, and modals across the application.
+ *
+ * This is the *build-time* switch. Students flip the same integration from
+ * Planner Settings at runtime through {@link setVitfacIntegrationEnabled};
+ * every gate in this file checks both via {@link isVitfacIntegrationEnabled}.
  */
 export const ENABLE_VITFAC_INTEGRATION = true;
+
+/**
+ * The student's runtime preference, persisted beside the planner's other
+ * settings (localStorage, not the settings record itself: this module is the
+ * only thing that reads it, and it must be correct at import time — long
+ * before `useFFCSSettings` hydrates — so no screen can paint vitfac data on a
+ * visit where the student turned it off).
+ */
+const VITFAC_ENABLED_KEY = "ffcs_vitfac_enabled";
+
+function readVitfacEnabled(): boolean {
+  try {
+    const raw = globalThis.localStorage?.getItem(VITFAC_ENABLED_KEY);
+    if (raw === "false") return false;
+    if (raw === "true") return true;
+  } catch {
+    // Storage unavailable (private mode, SSR) — integration stays on.
+  }
+  return true;
+}
+
+let vitfacEnabled = readVitfacEnabled();
+const enableListeners = new Set<() => void>();
+
+/** Both switches: built into this app *and* switched on by the student. */
+export function isVitfacIntegrationEnabled(): boolean {
+  return ENABLE_VITFAC_INTEGRATION && vitfacEnabled;
+}
+
+/**
+ * Turn the integration on or off at runtime (Planner Settings → Faculty
+ * filters), notifying every hook that renders vitfac state.
+ *
+ * Disabling drops the in-memory catalog and roster indexes so *nothing* can
+ * resolve a review while off — including work already in flight when the
+ * toggle flipped (see the guard in `indexCatalog`). The sessionStorage
+ * caches are deliberately left alone: they are data at rest, no request
+ * happens to keep them, and re-enabling re-indexes them instantly instead of
+ * paying for a fresh download.
+ */
+export function setVitfacIntegrationEnabled(enabled: boolean): void {
+  if (enabled === vitfacEnabled) return;
+  vitfacEnabled = enabled;
+  try {
+    globalThis.localStorage?.setItem(VITFAC_ENABLED_KEY, String(enabled));
+  } catch {
+    // Preference simply won't persist; the live value still applies.
+  }
+  if (!enabled) {
+    byEmployeeId = new Map();
+    byNormalizedName = new Map();
+    isCatalogLoaded = false;
+    catalogPromise = null;
+    rosterLoaded = false;
+    rosterPromise = null;
+  }
+  // Review hooks re-derive their null state from these two notifications.
+  notifyListeners();
+  enableListeners.forEach((fn) => {
+    try {
+      fn();
+    } catch {}
+  });
+}
+
+/** Server snapshot: the build switch's answer, before any local preference. */
+const VITFAC_ENABLED_SSR = () => true;
+
+/** Live subscription to {@link isVitfacIntegrationEnabled} for components. */
+export function useVitfacEnabled(): boolean {
+  return useSyncExternalStore(
+    (onChange) => {
+      enableListeners.add(onChange);
+      return () => {
+        enableListeners.delete(onChange);
+      };
+    },
+    isVitfacIntegrationEnabled,
+    VITFAC_ENABLED_SSR,
+  );
+}
 
 export const VITFAC_WORKER_BASE = "https://cache.amazecc.com";
 export const CACHE_BASE = VITFAC_WORKER_BASE;
@@ -183,6 +268,10 @@ function notifyListeners() {
 }
 
 function indexCatalog(list: VitfacFaculty[]) {
+  // A fetch that started before the student switched vitfac off must not
+  // repopulate the indexes the switch just cleared.
+  if (!isVitfacIntegrationEnabled()) return new Map();
+
   const empMap = new Map<string, VitfacFaculty>();
   const nameMap = new Map<string, VitfacFaculty>();
 
@@ -219,7 +308,7 @@ function indexCatalog(list: VitfacFaculty[]) {
  * Load the faculty review catalog from the worker.
  */
 export async function loadVitfacCatalog(): Promise<Map<string, VitfacFaculty>> {
-  if (!ENABLE_VITFAC_INTEGRATION) {
+  if (!isVitfacIntegrationEnabled()) {
     return new Map();
   }
 
@@ -284,7 +373,7 @@ export async function loadVitfacCatalog(): Promise<Map<string, VitfacFaculty>> {
  * Synchronous lookup from memory index.
  */
 export function getFacultyReview(params: { employeeId?: string | null; name?: string | null }): VitfacFaculty | null {
-  if (!ENABLE_VITFAC_INTEGRATION) return null;
+  if (!isVitfacIntegrationEnabled()) return null;
 
   if (!isCatalogLoaded) {
     loadVitfacCatalog().catch(() => {});
@@ -321,7 +410,7 @@ export function getFacultyReview(params: { employeeId?: string | null; name?: st
 export async function loadVitfacRankingData(
   courses: readonly ParsedCourse[],
 ): Promise<{ available: boolean; ratings: FacultyRatingLookup }> {
-  if (!ENABLE_VITFAC_INTEGRATION) return { available: false, ratings: {} };
+  if (!isVitfacIntegrationEnabled()) return { available: false, ratings: {} };
   const catalog = await loadVitfacCatalog();
   const ratings = buildFacultyRatingLookup(courses, ({ employeeId, faculty }) => {
     const review = getFacultyReview({ employeeId, name: faculty });
@@ -359,7 +448,7 @@ export function updateFacultyInCatalog(updatedProf: VitfacFaculty) {
  * Fetch detailed profile bundle for a specific professor.
  */
 export async function getFacultyProfileBundle(idOrEmpId: string): Promise<VitfacProfileBundle | null> {
-  if (!ENABLE_VITFAC_INTEGRATION) return null;
+  if (!isVitfacIntegrationEnabled()) return null;
 
   const b64Id = /^[0-9]+$/.test(idOrEmpId.trim()) ? encodeVitfacId(idOrEmpId.trim()) : idOrEmpId.trim();
 
@@ -407,6 +496,8 @@ const rosterListeners = new Set<() => void>();
 
 function indexRoster(list: FacultyRosterEntry[]) {
   // roster is consumed as a list; nothing to index here beyond the cache.
+  // Same in-flight rule as `indexCatalog`: off means nothing lands in memory.
+  if (!isVitfacIntegrationEnabled()) return;
   rosterLoaded = list.length > 0;
   rosterListeners.forEach((fn) => {
     try {
@@ -416,7 +507,7 @@ function indexRoster(list: FacultyRosterEntry[]) {
 }
 
 export async function loadFacultyRoster(): Promise<FacultyRosterEntry[]> {
-  if (!ENABLE_VITFAC_INTEGRATION) return [];
+  if (!isVitfacIntegrationEnabled()) return [];
 
   if (rosterLoaded) {
     try {
@@ -505,7 +596,7 @@ export async function searchFacultyDirectory(params: {
   q?: string | null;
   school?: string | null;
 }): Promise<FacultyRosterEntry[]> {
-  if (!ENABLE_VITFAC_INTEGRATION) return [];
+  if (!isVitfacIntegrationEnabled()) return [];
   const roster = await loadFacultyRoster();
   const q = (params.q || "").toLowerCase().trim();
   const school = (params.school || "").toLowerCase().trim();
@@ -519,7 +610,7 @@ export async function searchFacultyDirectory(params: {
 }
 
 export async function getFacultyDirectoryProfile(idOrEmpId: string): Promise<FacultyDirectoryProfile | null> {
-  if (!ENABLE_VITFAC_INTEGRATION) return null;
+  if (!isVitfacIntegrationEnabled()) return null;
 
   const empId = idOrEmpId.trim();
   const b64Id = /^[0-9]+$/.test(empId) ? encodeVitfacId(empId) : empId;
@@ -625,11 +716,15 @@ export async function getFacultyDirectoryProfile(idOrEmpId: string): Promise<Fac
 }
 
 export function useVitfacDirectoryProfile(employeeId?: string | null) {
+  const enabled = useVitfacEnabled();
   const [profile, setProfile] = useState<FacultyDirectoryProfile | null>(() => (employeeId ? null : null));
   const [loading, setLoading] = useState<boolean>(!!employeeId);
 
   useEffect(() => {
-    if (!ENABLE_VITFAC_INTEGRATION || !employeeId) {
+    if (!enabled || !employeeId) {
+      // Off means *nothing* vitfac stays on screen, including a profile a
+      // previous render already fetched.
+      setProfile(null);
       setLoading(false);
       return;
     }
@@ -645,7 +740,7 @@ export function useVitfacDirectoryProfile(employeeId?: string | null) {
     return () => {
       active = false;
     };
-  }, [employeeId]);
+  }, [employeeId, enabled]);
 
   return { profile, loading };
 }
@@ -654,13 +749,20 @@ export function useVitfacDirectoryProfile(employeeId?: string | null) {
  * React hook to access a faculty's vitfac review in components with auto-updating.
  */
 export function useVitfacReview(employeeId?: string | null, name?: string | null) {
+  const enabled = useVitfacEnabled();
   const [review, setReview] = useState<VitfacFaculty | null>(() =>
-    ENABLE_VITFAC_INTEGRATION ? getFacultyReview({ employeeId, name }) : null,
+    isVitfacIntegrationEnabled() ? getFacultyReview({ employeeId, name }) : null,
   );
-  const [loading, setLoading] = useState<boolean>(ENABLE_VITFAC_INTEGRATION ? !isCatalogLoaded : false);
+  const [loading, setLoading] = useState<boolean>(isVitfacIntegrationEnabled() ? !isCatalogLoaded : false);
 
   useEffect(() => {
-    if (!ENABLE_VITFAC_INTEGRATION) return;
+    // Reacting to `enabled` is what makes the settings toggle clear review
+    // pills already on screen without remounting the components showing them.
+    if (!enabled) {
+      setReview(null);
+      setLoading(false);
+      return;
+    }
     let active = true;
 
     const update = () => {
@@ -686,7 +788,7 @@ export function useVitfacReview(employeeId?: string | null, name?: string | null
     return () => {
       active = false;
     };
-  }, [employeeId, name]);
+  }, [employeeId, name, enabled]);
 
   return { review, loading };
 }
@@ -790,9 +892,37 @@ const CHENNAI_IMG_URL_PREFIX = "chennai_img_url_";
 const CHENNAI_IMG_URL_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days for a resolved URL
 const CHENNAI_IMG_NONE_TTL_MS = 60 * 60 * 1000; // 1 hour for "no image" (retry transient failures)
 
+/** The photo URL behind a WordPress media id, or null if it has none. */
+function readMediaSrc(data: any): string | null {
+  return data?.source_url || data?.guid?.rendered || null;
+}
+
+/**
+ * Resolve a `featured_media` id to the faculty member's photo URL.
+ *
+ * Returns `null` when the lookup definitively says "no photo", and
+ * `undefined` when it could not find out — the distinction matters because
+ * only the former is worth caching as "no image".
+ *
+ * Images are fetched directly by AmazeCC itself (the browser) from
+ * chennai.vit.ac.in — never routed through the cache worker. workerd's strict
+ * TLS verification rejects VIT's incomplete certificate chain, so the worker
+ * path silently lost photos; the browser repairs that chain via AIA fetching.
+ */
+async function resolveChennaiImageUrl(featuredMedia: number): Promise<string | null | undefined> {
+  try {
+    const res = await fetch(`https://chennai.vit.ac.in/wp-json/wp/v2/media/${featuredMedia}`);
+    if (!res.ok) return null;
+    return readMediaSrc(await res.json().catch(() => null));
+  } catch {
+    return undefined;
+  }
+}
+
 export function useChennaiImage(employeeId?: string | null): string | null {
+  const enabled = useVitfacEnabled();
   const [url, setUrl] = useState<string | null>(() => {
-    if (!employeeId) return null;
+    if (!employeeId || !isVitfacIntegrationEnabled()) return null;
     try {
       const cached = safeSessionStorage.getItem(CHENNAI_IMG_URL_PREFIX + employeeId);
       if (cached) {
@@ -811,7 +941,11 @@ export function useChennaiImage(employeeId?: string | null): string | null {
   });
 
   useEffect(() => {
-    if (!employeeId) {
+    // Off: resolve nothing and write nothing — the roster below would be
+    // empty anyway, and caching its "__none__" answer would suppress a real
+    // photo for an hour after the student switches back on. The URL cache in
+    // sessionStorage is left intact (data at rest) for that re-enable.
+    if (!employeeId || !enabled) {
       setUrl(null);
       return;
     }
@@ -838,18 +972,6 @@ export function useChennaiImage(employeeId?: string | null): string | null {
       try {
         const roster = await loadFacultyRoster();
         const entry = roster.find((r) => r.employeeId === employeeId);
-        // Prefer an already-resolved imageUrl from the worker roster.
-        if (entry?.imageUrl) {
-          if (cancelled) return;
-          setUrl(entry.imageUrl);
-          try {
-            safeSessionStorage.setItem(
-              CHENNAI_IMG_URL_PREFIX + employeeId,
-              JSON.stringify({ v: entry.imageUrl, t: Date.now() }),
-            );
-          } catch {}
-          return;
-        }
         const fm = entry?.featuredMedia;
         if (!fm) {
           try {
@@ -860,8 +982,12 @@ export function useChennaiImage(employeeId?: string | null): string | null {
           } catch {}
           return;
         }
-        const res = await fetch(`https://chennai.vit.ac.in/wp-json/wp/v2/media/${fm}`);
-        if (!res.ok) {
+        // Resolved by AmazeCC itself, directly from chennai.vit.ac.in (the
+        // browser repairs VIT's incomplete certificate chain via AIA fetching).
+        const src = await resolveChennaiImageUrl(fm);
+        if (src === undefined) {
+          // Neither path resolved. Cache "no image" briefly so a transient
+          // failure does not retry on every render.
           try {
             safeSessionStorage.setItem(
               CHENNAI_IMG_URL_PREFIX + employeeId,
@@ -870,8 +996,6 @@ export function useChennaiImage(employeeId?: string | null): string | null {
           } catch {}
           return;
         }
-        const data = await res.json();
-        const src = data?.source_url || data?.guid?.rendered || null;
         if (cancelled) return;
         setUrl(src);
         try {
@@ -887,7 +1011,7 @@ export function useChennaiImage(employeeId?: string | null): string | null {
     return () => {
       cancelled = true;
     };
-  }, [employeeId]);
+  }, [employeeId, enabled]);
 
   return url;
 }

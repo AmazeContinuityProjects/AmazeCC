@@ -2,7 +2,14 @@
 
 import { api } from "@/lib/sync-engine";
 import TabHelpFooter from "../shared/TabHelpFooter";
-import { switchApiHost, hasBackupApi, getActiveApiUrl, PRIMARY_API_URL, BACKUP_API_URL, type ApiHostChoice } from "@/lib/fetch-utils";
+import {
+  switchApiHost,
+  hasBackupApi,
+  getActiveApiUrl,
+  PRIMARY_API_URL,
+  BACKUP_API_URL,
+  type ApiHostChoice,
+} from "@/lib/fetch-utils";
 import {
   X,
   Save,
@@ -87,15 +94,7 @@ import { useTheme } from "next-themes";
 import { AnimatePresence, m } from "framer-motion";
 
 export type SectionId =
-  | "profile"
-  | "credentials"
-  | "preferences"
-  | "academic"
-  | "sync"
-  | "sync-modes"
-  | "navigation"
-  | "advanced"
-  | "about";
+  "profile" | "credentials" | "preferences" | "academic" | "sync" | "sync-modes" | "navigation" | "advanced" | "about";
 
 export interface SectionConfig {
   id: SectionId;
@@ -275,7 +274,7 @@ export default function ProfilePage({
   // history key, so it decides whether we arrive deep-linked on a section
   // (credentials, from the app library) or on the hub.
   const initialSection: SectionId | null =
-    mode === "credentials" || mode === "profile" || mode === "info" ? mode === "info" ? "profile" : mode : null;
+    mode === "credentials" || mode === "profile" || mode === "info" ? (mode === "info" ? "profile" : mode) : null;
 
   /**
    * Where "back" goes from here.
@@ -293,13 +292,9 @@ export default function ProfilePage({
    * hierarchy the page actually has.
    */
   const [screen, setScreen] = useState<SettingsScreen>(initialSection ?? "hub");
-  const activeSection: Exclude<SettingsScreen, "hub"> | null =
-    screen === "hub" ? null : screen;
+  const activeSection: Exclude<SettingsScreen, "hub"> | null = screen === "hub" ? null : screen;
 
-  const goBack = useCallback(
-    () => setScreen((cur) => parentOf(cur) as SettingsScreen),
-    []
-  );
+  const goBack = useCallback(() => setScreen((cur) => parentOf(cur) as SettingsScreen), []);
   const resetScreen = useCallback(() => setScreen("hub"), []);
 
   const screens = useMemo(
@@ -311,7 +306,7 @@ export default function ProfilePage({
       back: goBack,
       reset: resetScreen,
     }),
-    [screen, goBack, resetScreen]
+    [screen, goBack, resetScreen],
   );
 
   // System back (incl. Android predictive back) walks drill-down -> section ->
@@ -375,9 +370,7 @@ export default function ProfilePage({
   const [credData, setCredData] = useState<any>(null);
   const [credLoading, setCredLoading] = useState(true);
   const [changedUsername, setChangedUsername] = useState(username || "");
-  const [changedPassword, setChangedPassword] = useState(
-    Array.isArray(password) ? password[0] : password || ""
-  );
+  const [changedPassword, setChangedPassword] = useState(Array.isArray(password) ? password[0] : password || "");
   const [showPasswords, setShowPasswords] = useState<Record<number, boolean>>({});
   const [showAppPassword, setShowAppPassword] = useState(false);
   const [refreshingCreds, setRefreshingCreds] = useState(false);
@@ -396,8 +389,7 @@ export default function ProfilePage({
   // at a dark-mode user on every first paint.
   const { theme, resolvedTheme, setTheme } = useTheme();
 
-  const activePalette =
-    settings?.colorPalette === "ocean" ? "neonPink" : settings?.colorPalette || "default";
+  const activePalette = settings?.colorPalette === "ocean" ? "neonPink" : settings?.colorPalette || "default";
   const customPalette = settings?.customPalette || {
     accent: "#0ea5e9",
     background: "#f8fafc",
@@ -559,10 +551,7 @@ export default function ProfilePage({
     try {
       const raw = localStorage.getItem("IDs");
       const ids = raw ? JSON.parse(raw) : {};
-      localStorage.setItem(
-        "IDs",
-        JSON.stringify({ ...ids, MoodleUsername: lmsUsername, MoodlePassword: lmsPassword })
-      );
+      localStorage.setItem("IDs", JSON.stringify({ ...ids, MoodleUsername: lmsUsername, MoodlePassword: lmsPassword }));
       localStorage.setItem("moodle_username", lmsUsername);
       localStorage.setItem("moodle_password", lmsPassword);
     } catch {}
@@ -799,9 +788,7 @@ export default function ProfilePage({
     const q = searchQuery.toLowerCase().trim();
     return availableSections.filter(
       (s) =>
-        s.label.toLowerCase().includes(q) ||
-        s.subtitle.toLowerCase().includes(q) ||
-        s.id.toLowerCase().includes(q)
+        s.label.toLowerCase().includes(q) || s.subtitle.toLowerCase().includes(q) || s.id.toLowerCase().includes(q),
     );
   }, [availableSections, searchQuery]);
 
@@ -817,17 +804,12 @@ export default function ProfilePage({
     const sync = settings?.autoSyncInterval || "off";
     return {
       profile: { value: profileData?.branch || "—" },
-      credentials: isLoggedIn
-        ? { value: "Active", tone: "emerald" }
-        : { value: "Signed out", tone: "red" },
+      credentials: isLoggedIn ? { value: "Active", tone: "emerald" } : { value: "Signed out", tone: "red" },
       preferences: {
         // A pinned "System" is worth showing as such rather than as the theme
         // the OS happens to be in right now.
-        value: (theme ?? resolvedTheme) === "system"
-          ? "System"
-          : (resolvedTheme ?? theme) === "dark"
-            ? "Dark"
-            : "Light",
+        value:
+          (theme ?? resolvedTheme) === "system" ? "System" : (resolvedTheme ?? theme) === "dark" ? "Dark" : "Light",
       },
       academic: { value: semesterLabel(currSemesterID) },
       sync: {
@@ -840,12 +822,7 @@ export default function ProfilePage({
         value: `${(settings?.pinnedNavTabs ?? []).length} pinned`,
       },
       advanced: {
-        value:
-          apiChoice === "backup"
-            ? "Mirror API"
-            : apiChoice === "custom"
-              ? "Custom API"
-              : "Default API",
+        value: apiChoice === "backup" ? "Mirror API" : apiChoice === "custom" ? "Custom API" : "Default API",
       },
       about: { value: "v3.2.0" },
     };
@@ -897,6 +874,8 @@ export default function ProfilePage({
         <div className="flex flex-col sm:flex-row sm:items-center gap-4 min-w-0">
           {displayProfileImage && profileData?.image ? (
             <img
+              loading="lazy"
+              decoding="async"
               src={profileData.image}
               alt="Profile"
               className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl object-cover shadow-sm ring-2 ring-indigo-500/20 border border-zinc-200 dark:border-zinc-800 shrink-0"
@@ -972,11 +951,7 @@ export default function ProfilePage({
             <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500 px-1">
               Academic & Identity Status
             </h3>
-            <ProfileStatusCards
-              creds={creds}
-              refreshKey={refreshKey}
-              onCardClick={handleCardClick}
-            />
+            <ProfileStatusCards creds={creds} refreshKey={refreshKey} onCardClick={handleCardClick} />
           </div>
 
           <AcknowledgementCards creds={creds} refreshKey={refreshKey} />
@@ -1036,9 +1011,7 @@ export default function ProfilePage({
                               <span className="capitalize font-semibold text-zinc-400 dark:text-zinc-500">
                                 {k.replace(/([A-Z])/g, " $1").trim()}:{" "}
                               </span>
-                              <span className="font-medium text-zinc-800 dark:text-zinc-200">
-                                {String(val)}
-                              </span>
+                              <span className="font-medium text-zinc-800 dark:text-zinc-200">{String(val)}</span>
                             </div>
                           ))}
                       </div>
@@ -1062,9 +1035,7 @@ export default function ProfilePage({
         ].some(Boolean) && (
           <div className="space-y-4">
             <div>
-              <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
-                Personal Information
-              </h3>
+              <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">Personal Information</h3>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
                 Official profile records retrieved from university portal
               </p>
@@ -1110,9 +1081,7 @@ export default function ProfilePage({
         {(profileData?.currentAddress || profileData?.permanentAddress) && (
           <div className="space-y-4 border-t border-zinc-100 dark:border-zinc-800/80 pt-5">
             <div>
-              <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
-                Address Records
-              </h3>
+              <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">Address Records</h3>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
                 Registered residential and communication addresses
               </p>
@@ -1129,9 +1098,7 @@ export default function ProfilePage({
                       .map(([k, val]) => (
                         <div key={k}>
                           <p className="text-[10px] text-zinc-400 capitalize mb-0.5">{k}</p>
-                          <p className="font-bold text-zinc-800 dark:text-zinc-200 break-words">
-                            {String(val)}
-                          </p>
+                          <p className="font-bold text-zinc-800 dark:text-zinc-200 break-words">{String(val)}</p>
                         </div>
                       ))}
                   </div>
@@ -1148,9 +1115,7 @@ export default function ProfilePage({
                       .map(([k, val]) => (
                         <div key={k}>
                           <p className="text-[10px] text-zinc-400 capitalize mb-0.5">{k}</p>
-                          <p className="font-bold text-zinc-800 dark:text-zinc-200 break-words">
-                            {String(val)}
-                          </p>
+                          <p className="font-bold text-zinc-800 dark:text-zinc-200 break-words">{String(val)}</p>
                         </div>
                       ))}
                   </div>
@@ -1251,9 +1216,7 @@ export default function ProfilePage({
           <p className="text-sm font-bold text-text-heading font-outfit tracking-tight mb-3">LMS (Moodle)</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <label className="block space-y-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted block">
-                LMS username
-              </span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted block">LMS username</span>
               <input
                 type="text"
                 value={lmsUsername}
@@ -1264,9 +1227,7 @@ export default function ProfilePage({
             </label>
 
             <label className="block space-y-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted block">
-                LMS password
-              </span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted block">LMS password</span>
               <span className="relative block">
                 <input
                   type={showLmsPassword ? "text" : "password"}
@@ -1293,16 +1254,15 @@ export default function ProfilePage({
             </GhostButton>
           </div>
           <p className="mt-3 text-[11px] text-text-secondary dark:text-text-muted font-medium">
-            Used for course materials and deadline tracking. The app reloads once after saving so the new login takes effect.
+            Used for course materials and deadline tracking. The app reloads once after saving so the new login takes
+            effect.
           </p>
         </div>
         <div className={TILE_CARD}>
           <p className="text-sm font-bold text-text-heading font-outfit tracking-tight mb-3">Koha library</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <label className="block space-y-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted block">
-                Card number
-              </span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted block">Card number</span>
               <input
                 type="text"
                 value={kohaCard}
@@ -1335,8 +1295,7 @@ export default function ProfilePage({
       </div>
 
       <p className="px-1 -mt-3 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
-        These are the logins VTOP itself reports for your account — read live from your
-        session, never stored.
+        These are the logins VTOP itself reports for your account — read live from your session, never stored.
       </p>
 
       {/* Linked portal accounts */}
@@ -1383,17 +1342,16 @@ export default function ProfilePage({
               return (
                 <div key={idx} className={`${TILE_CARD} space-y-3`}>
                   <div className="flex items-center gap-2.5">
-                    <span className={`h-9 w-9 shrink-0 rounded-xl border flex items-center justify-center ${TONE_ICON_TILE.indigo}`}>
+                    <span
+                      className={`h-9 w-9 shrink-0 rounded-xl border flex items-center justify-center ${TONE_ICON_TILE.indigo}`}
+                    >
                       <User className="w-4 h-4" />
                     </span>
                     <p className="text-sm font-bold text-text-heading truncate font-outfit tracking-tight flex-1 min-w-0">
                       {accountName}
                     </p>
                     {userName && (
-                      <IconButton
-                        title="Copy username"
-                        onClick={() => copyToClipboard(userName)}
-                      >
+                      <IconButton title="Copy username" onClick={() => copyToClipboard(userName)}>
                         <Copy className="w-3.5 h-3.5" />
                       </IconButton>
                     )}
@@ -1421,10 +1379,7 @@ export default function ProfilePage({
                           >
                             {showPasswords[idx] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                           </IconButton>
-                          <IconButton
-                            title="Copy password"
-                            onClick={() => copyToClipboard(pass)}
-                          >
+                          <IconButton title="Copy password" onClick={() => copyToClipboard(pass)}>
                             <Copy className="w-3.5 h-3.5" />
                           </IconButton>
                         </div>
@@ -1457,13 +1412,13 @@ export default function ProfilePage({
         </p>
         <div className={TILE_CARD}>
           <div className="flex items-center gap-3">
-            <span className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.red}`}>
+            <span
+              className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.red}`}
+            >
               <LogOut className="w-5 h-5" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold text-text-heading font-outfit tracking-tight">
-                End this session
-              </p>
+              <p className="text-sm font-bold text-text-heading font-outfit tracking-tight">End this session</p>
               <p className="text-[11px] text-text-secondary dark:text-text-muted font-medium mt-0.5">
                 You can sign back in anytime with the stored logins above.
               </p>
@@ -1489,9 +1444,7 @@ export default function ProfilePage({
     <div className="space-y-6">
       {/* Theme & Layout Card */}
       <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-5 shadow-2xs">
-        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
-          Theme & Display Mode
-        </h3>
+        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">Theme & Display Mode</h3>
 
         {/* Theme Mode Switcher */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
@@ -1544,9 +1497,7 @@ export default function ProfilePage({
           </div>
           <SelectField
             value={
-              settings?.defaultLandingTab === "attendance"
-                ? "attendance"
-                : settings?.dashboardViewMode || "simplified"
+              settings?.defaultLandingTab === "attendance" ? "attendance" : settings?.dashboardViewMode || "simplified"
             }
             onChange={(val) => {
               if (val === "attendance") {
@@ -1570,9 +1521,7 @@ export default function ProfilePage({
         {/* Timetable Pill Style */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
           <div>
-            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
-              Timetable Class Density
-            </p>
+            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Timetable Class Density</p>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
               Choose between compact 2-line cards or spacious multi-line cards
             </p>
@@ -1591,12 +1540,9 @@ export default function ProfilePage({
         {/* Timetable Grid Layout */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
           <div>
-            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
-              Timetable Grid Layout
-            </p>
+            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Timetable Grid Layout</p>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              Auto uses the vertical day-by-time heatmap on phones and the full
-              grid on larger screens
+              Auto uses the vertical day-by-time heatmap on phones and the full grid on larger screens
             </p>
           </div>
           <SelectField
@@ -1614,20 +1560,14 @@ export default function ProfilePage({
         {/* Vertical Grid Cell Density */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
           <div>
-            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
-              Vertical Grid Cell Density
-            </p>
+            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Vertical Grid Cell Density</p>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              Compact shows the slot only and fits the whole week on screen
-              without swiping — phones default to it until you pick
+              Compact shows the slot only and fits the whole week on screen without swiping — phones default to it until
+              you pick
             </p>
           </div>
           <SelectField
-            value={effectiveCellDensity(
-              settings?.timetableCellDensity,
-              settings?.timetableDensityTouched,
-              isMobile
-            )}
+            value={effectiveCellDensity(settings?.timetableCellDensity, settings?.timetableDensityTouched, isMobile)}
             onChange={(val) => setTimetableDensity(val as "full" | "compact")}
             options={[
               { value: "full", label: "📋 Full (Slot + Course Code)" },
@@ -1640,9 +1580,7 @@ export default function ProfilePage({
         {/* Tasks Placement on Home */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
           <div>
-            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
-              Home Tasks Placement
-            </p>
+            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Home Tasks Placement</p>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
               Display task badges inline with timetable classes or in a dedicated section below
             </p>
@@ -1659,19 +1597,14 @@ export default function ProfilePage({
         </div>
       </div>
 
-
       {/* Privacy & Visibility Toggles Card */}
       <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-4 shadow-2xs">
-        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
-          Privacy & Visibility
-        </h3>
+        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">Privacy & Visibility</h3>
 
         <div className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
           <div className="flex items-center justify-between py-3">
             <div>
-              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
-                Grades Anonymizer Mode
-              </p>
+              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Grades Anonymizer Mode</p>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
                 Blur CGPA, GPA, and course grades to protect privacy in public (hover to reveal)
               </p>
@@ -1684,24 +1617,17 @@ export default function ProfilePage({
 
           <div className="flex items-center justify-between py-3">
             <div>
-              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
-                Show GPA on Dashboard
-              </p>
+              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Show GPA on Dashboard</p>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
                 Display cumulative CGPA score cards on the home page and sidebar
               </p>
             </div>
-            <Switch
-              checked={settings?.showGpa ?? false}
-              onCheckedChange={(val) => updateSetting("showGpa", val)}
-            />
+            <Switch checked={settings?.showGpa ?? false} onCheckedChange={(val) => updateSetting("showGpa", val)} />
           </div>
 
           <div className="flex items-center justify-between py-3">
             <div>
-              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
-                Show Profile Photo
-              </p>
+              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Show Profile Photo</p>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
                 Render student avatar in headers, navigation rails, and profile cards
               </p>
@@ -1714,9 +1640,7 @@ export default function ProfilePage({
 
           <div className="flex items-center justify-between py-3">
             <div>
-              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
-                Sound & Action Audio
-              </p>
+              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Sound & Action Audio</p>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
                 Play subtle audio feedback when completing tasks or toggling states
               </p>
@@ -1731,9 +1655,7 @@ export default function ProfilePage({
 
       {/* Color Palette Card */}
       <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-4 shadow-2xs">
-        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
-          Color Palette & Accent
-        </h3>
+        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">Color Palette & Accent</h3>
         <p className="text-xs text-zinc-500 dark:text-zinc-400">
           Personalize the interface accent colors and gradient accents
         </p>
@@ -1750,9 +1672,7 @@ export default function ProfilePage({
                   : "border-zinc-200/80 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
               }`}
             >
-              <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200">
-                {palette.label}
-              </span>
+              <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200">{palette.label}</span>
               <span className="flex -space-x-1">
                 {palette.swatches.map((color) => (
                   <span
@@ -1781,9 +1701,7 @@ export default function ProfilePage({
                 <input
                   type="color"
                   value={customPalette[key as "accent" | "background" | "surface"]}
-                  onChange={(e) =>
-                    updateCustomPalette(key as "accent" | "background" | "surface", e.target.value)
-                  }
+                  onChange={(e) => updateCustomPalette(key as "accent" | "background" | "surface", e.target.value)}
                   className="h-8 w-12 cursor-pointer rounded-lg border border-zinc-200 dark:border-zinc-800 bg-transparent p-0.5"
                 />
               </label>
@@ -1796,12 +1714,10 @@ export default function ProfilePage({
             `.card-surface` rule the surface tokens ride. */}
         <div className="flex items-center justify-between border-t border-zinc-100 dark:border-zinc-800/60 pt-4 mt-1">
           <div>
-            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
-              Classic Zinc Glass Cards
-            </p>
+            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Classic Zinc Glass Cards</p>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              Off — the solid gray card interior the grade insights card uses. On
-              — the older translucent zinc cards with a backdrop blur.
+              Off — the solid gray card interior the grade insights card uses. On — the older translucent zinc cards
+              with a backdrop blur.
             </p>
           </div>
           <Switch
@@ -1813,9 +1729,7 @@ export default function ProfilePage({
 
       {/* App Icon Card */}
       <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-4 shadow-2xs">
-        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
-          Application Icon
-        </h3>
+        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">Application Icon</h3>
         <p className="text-xs text-zinc-500 dark:text-zinc-400">
           Choose which icon is displayed across header brandings
         </p>
@@ -1830,6 +1744,8 @@ export default function ProfilePage({
             }`}
           >
             <img
+              loading="lazy"
+              decoding="async"
               src={getAssetPath("/logo.png")}
               alt="Default Icon"
               className="w-12 h-12 rounded-xl shadow-xs object-cover"
@@ -1845,6 +1761,8 @@ export default function ProfilePage({
             }`}
           >
             <img
+              loading="lazy"
+              decoding="async"
               src={getAssetPath("/images/icons/fire.png")}
               alt="Fire Icon"
               className="w-12 h-12 rounded-xl shadow-xs object-cover"
@@ -1860,9 +1778,7 @@ export default function ProfilePage({
   const renderAcademicContent = () => (
     <div className="space-y-6">
       <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-5 shadow-2xs">
-        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
-          Semester & Terms
-        </h3>
+        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">Semester & Terms</h3>
 
         {/* Active Semester Selector */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
@@ -1921,9 +1837,7 @@ export default function ProfilePage({
         {/* Target Attendance Threshold */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
           <div>
-            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
-              Target Attendance Goal
-            </p>
+            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Target Attendance Goal</p>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
               Target threshold for safe bunk margin calculations
             </p>
@@ -1944,9 +1858,7 @@ export default function ProfilePage({
         {/* Precision Decimal Toggle */}
         <div className="flex items-center justify-between py-1">
           <div>
-            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
-              Use One Decimal Place
-            </p>
+            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Use One Decimal Place</p>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
               Round attendance stats and scores to 1 decimal place instead of 2
             </p>
@@ -2014,12 +1926,9 @@ export default function ProfilePage({
         </div>
       </div>
 
-
       {/* Residential & Hostel Card */}
       <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-4 shadow-2xs">
-        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
-          Residential Status & Mess
-        </h3>
+        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">Residential Status & Mess</h3>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
           <div>
@@ -2071,9 +1980,7 @@ export default function ProfilePage({
 
         <div className="flex items-center justify-between py-1">
           <div>
-            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
-              Smart Mess Menu Auto-Filter
-            </p>
+            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Smart Mess Menu Auto-Filter</p>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
               Auto-select meal schedule based on current week of the month
             </p>
@@ -2092,13 +1999,10 @@ export default function ProfilePage({
     <div className="space-y-6">
       <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-5 shadow-2xs">
         <div>
-          <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
-            Default Sync Mode
-          </h3>
+          <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">Default Sync Mode</h3>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-            Used by the reload button, the sync sheet and the command palette. The
-            starred mode below is the current default — picking here, starring a
-            row, or tapping a mode in the sync sheet all change it.
+            Used by the reload button, the sync sheet and the command palette. The starred mode below is the current
+            default — picking here, starring a row, or tapping a mode in the sync sheet all change it.
           </p>
         </div>
         <SelectField
@@ -2153,9 +2057,7 @@ export default function ProfilePage({
         {/* Background Sync Frequency */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
           <div>
-            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
-              Background Auto-Refresh Frequency
-            </p>
+            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Background Auto-Refresh Frequency</p>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
               Periodic timetable and marks check in the background
             </p>
@@ -2176,12 +2078,10 @@ export default function ProfilePage({
         {/* Default Sync Mode */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
           <div>
-            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
-              Default Sync Mode
-            </p>
+            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Default Sync Mode</p>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              Quick for daily checks, Balanced for routine reloads, Full for a complete sweep — or
-              one of your custom modes
+              Quick for daily checks, Balanced for routine reloads, Full for a complete sweep — or one of your custom
+              modes
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -2220,9 +2120,7 @@ export default function ProfilePage({
         <div className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
           <div className="flex items-center justify-between py-3">
             <div>
-              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
-                Sync Profile & Hosteller Data
-              </p>
+              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Sync Profile & Hosteller Data</p>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
                 Credentials, contact numbers, and hostel room information
               </p>
@@ -2235,9 +2133,7 @@ export default function ProfilePage({
 
           <div className="flex items-center justify-between py-3">
             <div>
-              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
-                Sync Additional Bulk Data
-              </p>
+              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Sync Additional Bulk Data</p>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
                 Master switch for background records: EXC, minor/honour and course completions
               </p>
@@ -2265,9 +2161,7 @@ export default function ProfilePage({
 
           <div className="flex items-center justify-between py-3">
             <div>
-              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
-                Sync Minor & Honour Registrations
-              </p>
+              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Sync Minor & Honour Registrations</p>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
                 Minor degrees and honour program course completions
               </p>
@@ -2280,9 +2174,7 @@ export default function ProfilePage({
 
           <div className="flex items-center justify-between py-3">
             <div>
-              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
-                Sync Course Completion Records
-              </p>
+              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Sync Course Completion Records</p>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
                 Completed coursework and credit eligibility records
               </p>
@@ -2295,9 +2187,7 @@ export default function ProfilePage({
 
           <div className="flex items-center justify-between py-3">
             <div>
-              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
-                Reload All Data on Global Refresh
-              </p>
+              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Reload All Data on Global Refresh</p>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
                 Refresh button triggers a full multi-module sweep instead of attendance only
               </p>
@@ -2307,9 +2197,7 @@ export default function ProfilePage({
 
           <div className="flex items-center justify-between py-3">
             <div>
-              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
-                Low Data Saver Mode
-              </p>
+              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Low Data Saver Mode</p>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
                 Disables automatic prefetching of heavy assets on metered connections
               </p>
@@ -2332,8 +2220,7 @@ export default function ProfilePage({
           Mobile Bottom Navigation Bar
         </h3>
         <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          Pin up to 4 custom shortcuts to your bottom navigation bar for quick access. Home is
-          always present.
+          Pin up to 4 custom shortcuts to your bottom navigation bar for quick access. Home is always present.
         </p>
 
         <div className="flex flex-wrap gap-2 pt-1">
@@ -2359,17 +2246,15 @@ export default function ProfilePage({
                 disabled={atLimit}
                 onClick={() => {
                   const current = settings?.pinnedNavTabs ?? [];
-                  const next = isPinned
-                    ? current.filter((id: string) => id !== tab.id)
-                    : [...current, tab.id];
+                  const next = isPinned ? current.filter((id: string) => id !== tab.id) : [...current, tab.id];
                   updateSetting("pinnedNavTabs", next);
                 }}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                   isPinned
                     ? "bg-indigo-600 border-indigo-600 text-white shadow-xs"
                     : atLimit
-                    ? "bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-400 dark:text-zinc-600 cursor-not-allowed opacity-50"
-                    : "bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-indigo-400"
+                      ? "bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-400 dark:text-zinc-600 cursor-not-allowed opacity-50"
+                      : "bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-indigo-400"
                 }`}
               >
                 {isPinned && <Check className="w-3.5 h-3.5" />}
@@ -2381,9 +2266,7 @@ export default function ProfilePage({
 
         <div className="flex items-center justify-between py-3 border-t border-zinc-100 dark:border-zinc-800/80">
           <div>
-            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
-              Compact Mobile Header
-            </p>
+            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Compact Mobile Header</p>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
               Hide bulky headers on small screens to maximize reading area
             </p>
@@ -2394,9 +2277,7 @@ export default function ProfilePage({
 
       {/* Push Notifications Card */}
       <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-4 shadow-2xs">
-        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
-          Push Notifications
-        </h3>
+        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">Push Notifications</h3>
         <p className="text-xs text-zinc-500 dark:text-zinc-400">
           Receive exam reminders, attendance alerts, and moodle deadline notifications
         </p>
@@ -2427,9 +2308,7 @@ export default function ProfilePage({
               <Database size={18} />
             </div>
             <div className="min-w-0">
-              <span className="font-bold text-xs text-zinc-900 dark:text-white block">
-                Local Storage Viewer
-              </span>
+              <span className="font-bold text-xs text-zinc-900 dark:text-white block">Local Storage Viewer</span>
               <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block truncate mt-0.5">
                 Inspect raw client cache entries, tokens, and database keys
               </span>
@@ -2445,9 +2324,7 @@ export default function ProfilePage({
               <Link2 size={18} />
             </div>
             <div className="min-w-0 flex-1">
-              <span className="font-bold text-xs text-zinc-900 dark:text-white block">
-                API Endpoint
-              </span>
+              <span className="font-bold text-xs text-zinc-900 dark:text-white block">API Endpoint</span>
               <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block mt-0.5">
                 Switch between the production API and its mirror
               </span>
@@ -2467,9 +2344,7 @@ export default function ProfilePage({
             }}
             options={[
               { value: "default", label: "Default" },
-              ...(hasBackupApi()
-                ? [{ value: "backup" as ApiHostChoice, label: "Mirror" }]
-                : []),
+              ...(hasBackupApi() ? [{ value: "backup" as ApiHostChoice, label: "Mirror" }] : []),
               { value: "custom", label: "Custom" },
             ]}
           />
@@ -2505,7 +2380,12 @@ export default function ProfilePage({
           role="button"
           tabIndex={0}
           onClick={handleExportSettings}
-          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleExportSettings(); } }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleExportSettings();
+            }
+          }}
           className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-3.5 min-w-0 pr-4">
@@ -2513,9 +2393,7 @@ export default function ProfilePage({
               <Save size={18} />
             </div>
             <div className="min-w-0">
-              <span className="font-bold text-xs text-zinc-900 dark:text-white block">
-                Backup / Export Settings
-              </span>
+              <span className="font-bold text-xs text-zinc-900 dark:text-white block">Backup / Export Settings</span>
               <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block truncate mt-0.5">
                 Save application preferences, layout options, and custom name to file
               </span>
@@ -2529,7 +2407,12 @@ export default function ProfilePage({
           role="button"
           tabIndex={0}
           onClick={handleImportSettings}
-          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleImportSettings(); } }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleImportSettings();
+            }
+          }}
           className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-3.5 min-w-0 pr-4">
@@ -2537,9 +2420,7 @@ export default function ProfilePage({
               <ExternalLink size={18} />
             </div>
             <div className="min-w-0">
-              <span className="font-bold text-xs text-zinc-900 dark:text-white block">
-                Restore / Import Settings
-              </span>
+              <span className="font-bold text-xs text-zinc-900 dark:text-white block">Restore / Import Settings</span>
               <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block truncate mt-0.5">
                 Import and restore configuration from a settings backup JSON file
               </span>
@@ -2553,7 +2434,12 @@ export default function ProfilePage({
           role="button"
           tabIndex={0}
           onClick={onOpenShortcutsHelp}
-          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpenShortcutsHelp(); } }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onOpenShortcutsHelp();
+            }
+          }}
           className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-3.5 min-w-0 pr-4">
@@ -2577,7 +2463,12 @@ export default function ProfilePage({
           role="button"
           tabIndex={0}
           onClick={handleResetCache}
-          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleResetCache(); } }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleResetCache();
+            }
+          }}
           className="flex items-center justify-between p-4 hover:bg-red-500/5 transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-3.5 min-w-0 pr-4">
@@ -2585,9 +2476,7 @@ export default function ProfilePage({
               <RefreshCcw size={18} />
             </div>
             <div className="min-w-0">
-              <span className="font-bold text-xs text-red-600 block">
-                Reset Application Cache
-              </span>
+              <span className="font-bold text-xs text-red-600 block">Reset Application Cache</span>
               <span className="text-[11px] text-red-500/80 block truncate mt-0.5">
                 Clear all stored data, cached timetables, and reload fresh
               </span>
@@ -2601,7 +2490,12 @@ export default function ProfilePage({
           role="button"
           tabIndex={0}
           onClick={handleLogOutRequest}
-          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleLogOutRequest(); } }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleLogOutRequest();
+            }
+          }}
           className="flex items-center justify-between p-4 hover:bg-red-500/5 transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-3.5 min-w-0 pr-4">
@@ -2768,13 +2662,7 @@ export default function ProfilePage({
           <PageShell
             eyebrow="Settings"
             title={sec?.label ?? drill?.label ?? "Settings"}
-            subtitle={
-              sec
-                ? sec.subtitle
-                : drill
-                  ? drill.subtitle
-                  : "Categories, appearance, sync and account"
-            }
+            subtitle={sec ? sec.subtitle : drill ? drill.subtitle : "Categories, appearance, sync and account"}
             onBack={screens.canGoBack ? screens.back : undefined}
           >
             <SubpageScreen id={screens.screen}>
@@ -2796,119 +2684,115 @@ export default function ProfilePage({
                       consults it. While this field sat in the page-level header
                       it appeared over every section too, where typing into it
                       appeared to do nothing. */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 dark:text-zinc-500" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search all settings, credentials, profile, themes, semesters..."
-              className="w-full pl-9 pr-4 py-2 text-xs font-medium border border-zinc-200 dark:border-zinc-800 bg-white/60 dark:bg-zinc-900/60 rounded-xl text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                aria-label="Clear search"
-                className="absolute right-3 top-1/2 -translate-y-1/2 hit-expand p-1 text-zinc-400 hover:text-zinc-600 text-xs"
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 dark:text-zinc-500" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search all settings, credentials, profile, themes, semesters..."
+                      className="w-full pl-9 pr-4 py-2 text-xs font-medium border border-zinc-200 dark:border-zinc-800 bg-white/60 dark:bg-zinc-900/60 rounded-xl text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery("")}
+                        aria-label="Clear search"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 hit-expand p-1 text-zinc-400 hover:text-zinc-600 text-xs"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
 
-          {/* Cross-section search results, as the desktop rail used to do */}
-          {searchQuery.trim() ? (
-            <div className="space-y-8">
-              {filteredSections.map((sec) => (
-                <div key={sec.id} className="space-y-4">
-                  <SectionHeader icon={sec.icon} title={sec.label} />
-                  {getSectionContent(sec.id)}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <>
-              {/* Rows, not tiles — the same `ListShell` / row / `ListRowText` /
+                  {/* Cross-section search results, as the desktop rail used to do */}
+                  {searchQuery.trim() ? (
+                    <div className="space-y-8">
+                      {filteredSections.map((sec) => (
+                        <div key={sec.id} className="space-y-4">
+                          <SectionHeader icon={sec.icon} title={sec.label} />
+                          {getSectionContent(sec.id)}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <>
+                      {/* Rows, not tiles — the same `ListShell` / row / `ListRowText` /
                   value + chevron shape the course sub-page's overview uses
                   (`CourseDetailSubpage.tsx`). The 2-up tile grid this replaced
                   forced a line-clamped subtitle per card, truncated every
                   category name to three words on a phone, and had nowhere to put
                   the current value. */}
-              {/* The empty `ListShell` is only rendered when there is something
+                      {/* The empty `ListShell` is only rendered when there is something
                   to put in it — otherwise a search with no hits drew a bare
                   2px-bordered box above the "no match" panel. */}
-              {filteredSections.length > 0 ? (
-                <ListShell>
-                  {filteredSections.map((sec) => {
-                    const Icon = sec.icon;
-                    const summary = sectionSummary[sec.id];
-                    return (
-                      <button
-                        key={sec.id}
-                        type="button"
-                        onClick={() => screens.go(sec.id)}
-                        className={`${LIST_ROW} cursor-pointer active:bg-zinc-100/70 dark:active:bg-zinc-800/60`}
-                      >
-                        <div
-                          className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${sec.iconBg} ${sec.iconColor}`}
-                        >
-                          <Icon className="w-5 h-5" />
-                        </div>
-                        <ListRowText
-                          title={sec.label}
-                          subtitle={sec.subtitle}
-                          titleTag="h3"
-                          titleTooltip={sec.label}
+                      {filteredSections.length > 0 ? (
+                        <ListShell>
+                          {filteredSections.map((sec) => {
+                            const Icon = sec.icon;
+                            const summary = sectionSummary[sec.id];
+                            return (
+                              <button
+                                key={sec.id}
+                                type="button"
+                                onClick={() => screens.go(sec.id)}
+                                className={`${LIST_ROW} cursor-pointer active:bg-zinc-100/70 dark:active:bg-zinc-800/60`}
+                              >
+                                <div
+                                  className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${sec.iconBg} ${sec.iconColor}`}
+                                >
+                                  <Icon className="w-5 h-5" />
+                                </div>
+                                <ListRowText
+                                  title={sec.label}
+                                  subtitle={sec.subtitle}
+                                  titleTag="h3"
+                                  titleTooltip={sec.label}
+                                />
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <span
+                                    className={cn(
+                                      "text-sm font-black font-outfit tracking-tight leading-none truncate max-w-24 sm:max-w-32",
+                                      summary.tone === "emerald"
+                                        ? "text-emerald-600 dark:text-emerald-400"
+                                        : summary.tone === "red"
+                                          ? "text-red-600 dark:text-red-400"
+                                          : summary.tone === "amber"
+                                            ? "text-amber-600 dark:text-amber-400"
+                                            : "text-zinc-700 dark:text-zinc-200",
+                                    )}
+                                  >
+                                    {summary.value}
+                                  </span>
+                                  <ChevronRight className="w-4 h-4 text-zinc-400" />
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </ListShell>
+                      ) : (
+                        <EmptyPanel
+                          icon={<Search className="h-7 w-7" />}
+                          title="No settings match"
+                          description={`Nothing matches "${searchQuery}". Try a different word.`}
                         />
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span
-                            className={cn(
-                              "text-sm font-black font-outfit tracking-tight leading-none truncate max-w-24 sm:max-w-32",
-                              summary.tone === "emerald"
-                                ? "text-emerald-600 dark:text-emerald-400"
-                                : summary.tone === "red"
-                                  ? "text-red-600 dark:text-red-400"
-                                  : summary.tone === "amber"
-                                    ? "text-amber-600 dark:text-amber-400"
-                                    : "text-zinc-700 dark:text-zinc-200"
-                            )}
-                          >
-                            {summary.value}
-                          </span>
-                          <ChevronRight className="w-4 h-4 text-zinc-400" />
-                        </div>
-                      </button>
-                    );
-                  })}
-                </ListShell>
-              ) : (
-                <EmptyPanel
-                  icon={<Search className="h-7 w-7" />}
-                  title="No settings match"
-                  description={`Nothing matches "${searchQuery}". Try a different word.`}
-                />
-              )}
+                      )}
 
-
-              {/* Quick actions */}
-              <div className="space-y-2">
-                <GhostButton
-                  onClick={onOpenShortcutsHelp}
-                  className="w-full justify-center py-2.5"
-                >
-                  <Keyboard size={14} className="text-indigo-500" />
-                  <span>Keyboard Hotkeys &amp; Shortcuts</span>
-                </GhostButton>
-                <button
-                  onClick={handleLogOutRequest}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200/80 dark:border-red-900/40 text-xs font-bold text-red-600 dark:text-red-400 transition-colors cursor-pointer"
-                >
-                  <LogOut size={14} />
-                  <span>Sign Out of Account</span>
-                </button>
-              </div>
-            </>
-          )}
+                      {/* Quick actions */}
+                      <div className="space-y-2">
+                        <GhostButton onClick={onOpenShortcutsHelp} className="w-full justify-center py-2.5">
+                          <Keyboard size={14} className="text-indigo-500" />
+                          <span>Keyboard Hotkeys &amp; Shortcuts</span>
+                        </GhostButton>
+                        <button
+                          onClick={handleLogOutRequest}
+                          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200/80 dark:border-red-900/40 text-xs font-bold text-red-600 dark:text-red-400 transition-colors cursor-pointer"
+                        >
+                          <LogOut size={14} />
+                          <span>Sign Out of Account</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               ) : activeSection === "storage" ? (
                 <LocalStorageSubpage />
@@ -2922,7 +2806,6 @@ export default function ProfilePage({
     </div>
   );
 }
-
 
 function RegistrationModalContent({ creds, onClose }: { creds: any; onClose: () => void }) {
   const [loading, setLoading] = useState(true);
@@ -2938,8 +2821,7 @@ function RegistrationModalContent({ creds, onClose }: { creds: any; onClose: () 
       body: { cookies, authorizedID, csrf },
     })
       .then((res: any) => {
-        const hasContent =
-          res?.tables?.length > 0 && res.tables.some((t: any) => t.rows?.length > 0);
+        const hasContent = res?.tables?.length > 0 && res.tables.some((t: any) => t.rows?.length > 0);
         setHasData(hasContent);
         if (hasContent) {
           let foundDate = "";
@@ -2971,9 +2853,7 @@ function RegistrationModalContent({ creds, onClose }: { creds: any; onClose: () 
               const idx = headers.findIndex((h: string) => /date/i.test(h));
               if (idx >= 0) {
                 foundDate = String(
-                  typeof firstRow === "object"
-                    ? firstRow[headers[idx]] || firstRow[idx] || ""
-                    : firstRow[idx] || ""
+                  typeof firstRow === "object" ? firstRow[headers[idx]] || firstRow[idx] || "" : firstRow[idx] || "",
                 );
               }
             }
@@ -2981,9 +2861,7 @@ function RegistrationModalContent({ creds, onClose }: { creds: any; onClose: () 
               const idx = headers.findIndex((h: string) => /time|session/i.test(h));
               if (idx >= 0) {
                 foundTime = String(
-                  typeof firstRow === "object"
-                    ? firstRow[headers[idx]] || firstRow[idx] || ""
-                    : firstRow[idx] || ""
+                  typeof firstRow === "object" ? firstRow[headers[idx]] || firstRow[idx] || "" : firstRow[idx] || "",
                 );
               }
             }
@@ -3010,9 +2888,7 @@ function RegistrationModalContent({ creds, onClose }: { creds: any; onClose: () 
         <div className="p-3 rounded-full bg-amber-50 dark:bg-amber-900/30">
           <Clock className="w-8 h-8 text-amber-500" />
         </div>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          No registration schedule available
-        </p>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">No registration schedule available</p>
         <button
           onClick={onClose}
           className="px-4 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
@@ -3029,9 +2905,7 @@ function RegistrationModalContent({ creds, onClose }: { creds: any; onClose: () 
         <Clock className="w-10 h-10 text-blue-600 dark:text-blue-400" />
       </div>
       <div>
-        <p className="text-lg font-bold text-zinc-900 dark:text-zinc-100 font-outfit">
-          Registration Scheduled
-        </p>
+        <p className="text-lg font-bold text-zinc-900 dark:text-zinc-100 font-outfit">Registration Scheduled</p>
         <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
           {date && <span>Date: {date}</span>}
           {date && time && <span>{" • "}</span>}
@@ -3049,15 +2923,7 @@ function RegistrationModalContent({ creds, onClose }: { creds: any; onClose: () 
   );
 }
 
-function BankDayStatusModal({
-  endpoint,
-  title,
-  creds,
-}: {
-  endpoint: string;
-  title: string;
-  creds: any;
-}) {
+function BankDayStatusModal({ endpoint, title, creds }: { endpoint: string; title: string; creds: any }) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -3075,9 +2941,7 @@ function BankDayStatusModal({
 
   if (loading) return <Skeleton className="h-24 w-full rounded-2xl" />;
 
-  const hasContent =
-    data?.tables?.length > 0 ||
-    (data?.keyValuePairs && Object.keys(data.keyValuePairs).length > 0);
+  const hasContent = data?.tables?.length > 0 || (data?.keyValuePairs && Object.keys(data.keyValuePairs).length > 0);
 
   return (
     <div className="flex items-center gap-4 p-4 rounded-xl">
@@ -3087,9 +2951,7 @@ function BankDayStatusModal({
             <CheckCircle className="w-8 h-8" />
           </div>
           <div>
-            <p className="font-semibold text-emerald-700 dark:text-emerald-300 text-lg">
-              {title} Filled
-            </p>
+            <p className="font-semibold text-emerald-700 dark:text-emerald-300 text-lg">{title} Filled</p>
             <p className="text-sm text-emerald-600/70 dark:text-emerald-400/70">
               Your {title.toLowerCase()} has been submitted successfully
             </p>
@@ -3101,12 +2963,8 @@ function BankDayStatusModal({
             <AlertCircle className="w-8 h-8" />
           </div>
           <div>
-            <p className="font-semibold text-zinc-700 dark:text-zinc-300 text-lg">
-              {title} Not Filled
-            </p>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              No {title.toLowerCase()} found in the system
-            </p>
+            <p className="font-semibold text-zinc-700 dark:text-zinc-300 text-lg">{title} Not Filled</p>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">No {title.toLowerCase()} found in the system</p>
           </div>
         </>
       )}

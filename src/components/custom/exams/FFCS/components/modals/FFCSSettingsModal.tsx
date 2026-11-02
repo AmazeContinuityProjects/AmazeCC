@@ -168,6 +168,7 @@ const CAP_OPTIONS = [
   { value: "100", label: "100" },
   { value: "250", label: "250" },
   { value: "500", label: "500" },
+  { value: "30000", label: "30K", title: "The engine's full 30,000-result depth — the default" },
 ];
 
 const RANKING_PRIORITY_LABELS: Record<RankingPriority, string> = {
@@ -193,14 +194,14 @@ function defaultLabel(key: keyof typeof FFCSSettingsDefaults): string {
     case "minHalfDays":
       return HALF_DAY_OPTIONS.find((o) => o.value === String(value))?.label ?? "Off";
     case "resultCap":
-      return String(value);
-    case "removeHardResultLimit":
+      return Number(value).toLocaleString();
     case "separateCourseListExport":
     case "showVerticalTimetableBesideWidgets":
       return "Off";
     case "showGeneratorOptionPane":
     case "showTour":
     case "allSubjectsMode":
+    case "vitfacIntegration":
       return "On";
     case "exportFormat":
       return value === "png" ? "PNG" : "JPG";
@@ -505,8 +506,8 @@ export function FFCSSettingsModal({
                 title="Result cap"
                 description={
                   settings.resultCap === FFCSSettingsDefaults.resultCap
-                    ? "How many weeks a search keeps — the planner's classic fifty."
-                    : 'How many weeks a search keeps before the "unlimited" switch.'
+                    ? "How many weeks a capped search keeps — 30,000, the engine's full depth, by default."
+                    : "How many weeks a capped search keeps. 30K is the engine's full depth; the Unlimited switch lifts the cap entirely."
                 }
                 control={
                   <ChipTabs
@@ -541,26 +542,6 @@ export function FFCSSettingsModal({
                 changed={!isDefault("allSubjectsMode")}
                 onRestore={() => restoreSetting("allSubjectsMode")}
                 restoreName="all subjects mode"
-              />
-            </div>
-            <div>
-              <SettingRow
-                stacked
-                title="Remove 30,000-result safety ceiling"
-                description="When a generator run uses Unlimited, allow it to search beyond 30,000 results. This can consume substantial memory, freeze the page, or make the browser unstable. Keep this off unless you understand the risk."
-                control={
-                  <Switch
-                    checked={settings.removeHardResultLimit}
-                    onCheckedChange={(checked) => update("removeHardResultLimit", checked)}
-                    label="Remove 30,000-result safety ceiling"
-                  />
-                }
-              />
-              <DefaultHint
-                label={defaultLabel("removeHardResultLimit")}
-                changed={!isDefault("removeHardResultLimit")}
-                onRestore={() => restoreSetting("removeHardResultLimit")}
-                restoreName="safety ceiling"
               />
             </div>
             <div>
@@ -616,6 +597,25 @@ export function FFCSSettingsModal({
         <section className="space-y-1">
           <SectionHeader icon={Filter} title="Faculty filters" className="mb-2" />
           <div className="divide-y divide-border/40 -mx-4 px-1">
+            <div>
+              <SettingRow
+                title="Vitfac faculty reviews"
+                description="Fetch review scores, faculty photos and profile links from Vitfac. Off stops every Vitfac request; the filters below then run without review data."
+                control={
+                  <Switch
+                    checked={settings.vitfacIntegration}
+                    onCheckedChange={(checked) => update("vitfacIntegration", checked)}
+                    label="Vitfac faculty reviews"
+                  />
+                }
+              />
+              <DefaultHint
+                label={defaultLabel("vitfacIntegration")}
+                changed={!isDefault("vitfacIntegration")}
+                onRestore={() => restoreSetting("vitfacIntegration")}
+                restoreName="Vitfac faculty reviews"
+              />
+            </div>
             <div>
               <SettingRow
                 stacked

@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   EMPTY_CATALOG_FILTERS,
+  OPEN_ELECTIVE_CATEGORY,
   buildCurriculumIndex,
   buildSlotIndex,
   canonicalSlot,
   catalogFiltersActive,
   catalogSlotChips,
   courseCategory,
+  isListedInCurriculum,
   matchesCatalogFilters,
   type CatalogFilterState,
 } from "../lib/ffcsCatalogFilters";
@@ -96,9 +98,14 @@ describe("buildCurriculumIndex", () => {
   it("maps upper-cased codes to their category, only counting categories with courses", () => {
     const curriculum = buildCurriculumIndex(details);
     expect(curriculum).not.toBeNull();
-    // "Open Elective" has no course items and must not render a chip that
-    // can only ever empty the list.
-    expect(curriculum!.categories).toEqual(["University Core Courses", "Programme Core Courses"]);
+    // An empty category normally renders a chip that can only ever empty the
+    // list — but "NC Open Elective" is the label shared-start candidates
+    // carry, so it is offered whatever the payload's own basket holds.
+    expect(curriculum!.categories).toEqual([
+      "University Core Courses",
+      "Programme Core Courses",
+      OPEN_ELECTIVE_CATEGORY,
+    ]);
     expect(courseCategory("phy101", curriculum)).toBe("University Core Courses");
     expect(courseCategory(" BCSE101 ", curriculum)).toBe("Programme Core Courses");
     expect(courseCategory("NOTIN1", curriculum)).toBeNull();
@@ -132,6 +139,131 @@ describe("buildCurriculumIndex", () => {
   });
 });
 
+/**
+ * Shared starts are candidates, not curriculum: a full code match keeps its
+ * own category ("it IS curriculum"), anything that merely shares a start
+ * (`B`, `BA`, `IA`, `I`…) is labelled a non-curriculum open elective, and a
+ * code sharing no start with the payload is hidden.
+ */
+const prefixDetails: CategoryDetail[] = [
+  {
+    code: "PC",
+    name: "Programme Core Courses",
+    baskets: [{ title: "Core", credits: 24, items: [{ code: "BCSE101", name: "Programming", credits: 4 }] }],
+  },
+  {
+    code: "UC",
+    name: "University Core Courses",
+    baskets: [
+      {
+        title: "Sciences",
+        credits: 12,
+        items: [
+          { code: "BASTS101", name: "Physics I", credits: 3 },
+          { code: "CHM101", name: "Chemistry", credits: 3 },
+        ],
+      },
+    ],
+  },
+  {
+    code: "IC",
+    name: "Interdisciplinary Core",
+    baskets: [{ title: "ID", credits: 3, items: [{ code: "IAMAT203", name: "Material Science", credits: 3 }] }],
+  },
+];
+
+describe("shared course-code starts", () => {
+  const curriculum = buildCurriculumIndex(prefixDetails)!;
+
+  it("tells a full code match apart from a mere shared start", () => {
+    // Listed verbatim: this IS curriculum, under its own category.
+    expect(courseCategory("BCSE101", curriculum)).toBe("Programme Core Courses");
+    expect(isListedInCurriculum("BCSE101", curriculum)).toBe(true);
+    expect(courseCategory(" BASTS101 ", curriculum)).toBe("University Core Courses");
+    expect(isListedInCurriculum("BASTS101", curriculum)).toBe(true);
+
+    // Shares a start with that listing — a candidate, not a curriculum course.
+    expect(courseCategory("BCSE101E", curriculum)).toBe(OPEN_ELECTIVE_CATEGORY);
+    expect(isListedInCurriculum("BCSE101E", curriculum)).toBe(false);
+  });
+
+  it("calls a candidate the same whatever depth it matched at", () => {
+    // "BASTS1" — nearly the whole code.
+    expect(courseCategory("BASTS102", curriculum)).toBe(OPEN_ELECTIVE_CATEGORY);
+    // "IA" — two letters.
+    expect(courseCategory("IACHY101", curriculum)).toBe(OPEN_ELECTIVE_CATEGORY);
+    // A bare leading letter — the shallowest match there is.
+    expect(courseCategory("BFSD1001", curriculum)).toBe(OPEN_ELECTIVE_CATEGORY); // B
+    expect(courseCategory("IBIOM101", curriculum)).toBe(OPEN_ELECTIVE_CATEGORY); // I
+    expect(courseCategory("CHM999", curriculum)).toBe(OPEN_ELECTIVE_CATEGORY); // C
+    expect(isListedInCurriculum("CHM999", curriculum)).toBe(false);
+  });
+
+  it("stays null for a family no curriculum code starts", () => {
+    expect(courseCategory("UASTS102", curriculum)).toBeNull();
+    expect(courseCategory("TLAW101", curriculum)).toBeNull();
+    expect(isListedInCurriculum("UASTS102", curriculum)).toBe(false);
+  });
+
+  it("keeps listed courses and candidates alike while curriculum-only is on", () => {
+    const only = state({ curriculumOnly: true });
+    expect(matchesCatalogFilters("BCSE101", undefined, only, curriculum)).toBe(true);
+    expect(matchesCatalogFilters("BASTS102", undefined, only, curriculum)).toBe(true);
+    expect(matchesCatalogFilters("IBIOM101", undefined, only, curriculum)).toBe(true);
+    expect(matchesCatalogFilters("UASTS102", undefined, only, curriculum)).toBe(false);
+  });
+
+  it("narrows to a pure-curriculum or a candidates-only view with the chips", () => {
+    const only = state({ curriculumOnly: true });
+    // A real curriculum chip: the listed course stays, the candidate drops.
+    expect(
+      matchesCatalogFilters("BCSE101", undefined, { ...only, categories: ["Programme Core Courses"] }, curriculum),
+    ).toBe(true);
+    expect(
+      matchesCatalogFilters("BASTS102", undefined, { ...only, categories: ["Programme Core Courses"] }, curriculum),
+    ).toBe(false);
+    // The NC Open Elective chip is the mirror image: candidates, not listings.
+    expect(
+      matchesCatalogFilters("BASTS102", undefined, { ...only, categories: [OPEN_ELECTIVE_CATEGORY] }, curriculum),
+    ).toBe(true);
+    expect(
+      matchesCatalogFilters("BCSE101", undefined, { ...only, categories: [OPEN_ELECTIVE_CATEGORY] }, curriculum),
+    ).toBe(false);
+  });
+
+  it("offers the NC Open Elective chip alongside the payload's own categories", () => {
+    expect(curriculum.categories).toEqual([
+      "Programme Core Courses",
+      "University Core Courses",
+      "Interdisciplinary Core",
+      OPEN_ELECTIVE_CATEGORY,
+    ]);
+  });
+
+  it("keeps a payload's own Open Elective listing apart from the NC label", () => {
+    const withOpenElective: CategoryDetail[] = [
+      ...prefixDetails,
+      {
+        code: "OE",
+        name: "Open Elective",
+        baskets: [{ title: "OE basket", credits: 3, items: [{ code: "UASTS102", name: "Soft Skills", credits: 3 }] }],
+      },
+    ];
+    const index = buildCurriculumIndex(withOpenElective)!;
+
+    // The listed open elective IS curriculum — exact match, payload spelling.
+    expect(courseCategory("UASTS102", index)).toBe("Open Elective");
+    expect(isListedInCurriculum("UASTS102", index)).toBe(true);
+    // A code sharing a start with it is the non-curriculum one instead.
+    expect(courseCategory("UASTS103", index)).toBe(OPEN_ELECTIVE_CATEGORY);
+    expect(isListedInCurriculum("UASTS103", index)).toBe(false);
+
+    // Both chips exist, so the two are selectable — and therefore visible — apart.
+    expect(index.categories).toContain("Open Elective");
+    expect(index.categories).toContain(OPEN_ELECTIVE_CATEGORY);
+  });
+});
+
 describe("matchesCatalogFilters", () => {
   const curriculum = buildCurriculumIndex(details)!;
 
@@ -153,8 +285,9 @@ describe("matchesCatalogFilters", () => {
     expect(matchesCatalogFilters("TLAW101", new Set(["TEE"]), state({ slots: ["S11"] }), null)).toBe(true);
   });
 
-  it("hides codes the curriculum does not list when curriculum-only is on", () => {
+  it("hides codes that share no start with the curriculum when curriculum-only is on", () => {
     expect(matchesCatalogFilters("PHY101", undefined, state({ curriculumOnly: true }), curriculum)).toBe(true);
+    // Prefix match is on, but "NOTIN1"'s N appears in no curriculum code.
     expect(matchesCatalogFilters("NOTIN1", undefined, state({ curriculumOnly: true }), curriculum)).toBe(false);
   });
 

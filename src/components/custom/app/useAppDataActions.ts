@@ -370,6 +370,20 @@ export function useAppDataActions({
 
         const { cookies, authorizedID, csrf } = await syncEngine.login(IDs, demoMode);
 
+        // The FFCS pickers match catalogue codes against the student's
+        // curriculum, so fetch it at least once even when the chosen mode
+        // skips the op (quick sync and most custom modes do). Only when it
+        // is missing — a mode that already syncs it pays nothing here, and
+        // a failure is the same honest "no curriculum" state as before.
+        if (!storage.curriculum.get()) {
+          try {
+            await syncEngine.sync("curriculum");
+            appendSyncLine("Curriculum fetched for the FFCS pickers", "success");
+          } catch {
+            console.warn("Curriculum ensure-once sync failed");
+          }
+        }
+
         // Shared post-processing for engine attendance results: derived
         // percentages/OD lists plus the cohort-drift log lines. The balanced
         // path below has its own inline copy; these branches reuse this one.

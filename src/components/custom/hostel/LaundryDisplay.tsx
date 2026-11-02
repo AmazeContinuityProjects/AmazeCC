@@ -2,18 +2,29 @@
 
 import { useEffect, useState } from "react";
 import { RefreshCcw, Sparkles, Info, Clock, CheckCircle2, Search, CalendarDays } from "lucide-react";
+import { WORKER_BASE } from "@/lib/workerBase";
 
+/**
+ * Laundry slots, served by the AmazeCC worker instead of unmessify's GitHub
+ * Pages. Same reason as the mess menus: the worker caches each file for six
+ * hours, so one upstream fetch covers the campus.
+ *
+ * Note the filenames here differ from the bundled fallbacks in
+ * `public/data/laundry/` — the remote files are not gender-suffixed and use
+ * `CB`/`CG` for the combined blocks. The map is the source of truth for the
+ * remote names; the local copies keep their own naming.
+ */
 const LaundryLinks: Record<string, Record<string, string>> = {
   Male: {
-    A: "https://kanishka-developer.github.io/unmessify/json/en/VITC-A-L.json",
-    C: "https://kanishka-developer.github.io/unmessify/json/en/VITC-CB-L.json",
-    D1: "https://kanishka-developer.github.io/unmessify/json/en/VITC-D1-L.json",
-    D2: "https://kanishka-developer.github.io/unmessify/json/en/VITC-D2-L.json",
-    E: "https://kanishka-developer.github.io/unmessify/json/en/VITC-E-L.json",
+    A: `${WORKER_BASE}/unmessify/VITC-A-L.json`,
+    C: `${WORKER_BASE}/unmessify/VITC-CB-L.json`,
+    D1: `${WORKER_BASE}/unmessify/VITC-D1-L.json`,
+    D2: `${WORKER_BASE}/unmessify/VITC-D2-L.json`,
+    E: `${WORKER_BASE}/unmessify/VITC-E-L.json`,
   },
   Female: {
-    B: "https://kanishka-developer.github.io/unmessify/json/en/VITC-B-L.json",
-    C: "https://kanishka-developer.github.io/unmessify/json/en/VITC-CG-L.json",
+    B: `${WORKER_BASE}/unmessify/VITC-B-L.json`,
+    C: `${WORKER_BASE}/unmessify/VITC-CG-L.json`,
   },
 };
 
@@ -36,7 +47,7 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
   const [hostel, setHostel] = useState("");
   const [schedule, setSchedule] = useState<any[]>([]);
   const [searchRoom, setSearchRoom] = useState("");
-  
+
   // Interactive calendar selection state
   const today = new Date().getDate();
   const [selectedDay, setSelectedDay] = useState<number | null>(today);
@@ -49,8 +60,7 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
   useEffect(() => {
     if (!hostelData.hostelInfo) return;
 
-    const normalizedGender =
-      hostelData.hostelInfo.gender?.toLowerCase() === "female" ? "Female" : "Male";
+    const normalizedGender = hostelData.hostelInfo.gender?.toLowerCase() === "female" ? "Female" : "Male";
     const blockName = hostelData.hostelInfo.blockName?.split(" ")[0] || "A";
     const roomNo = hostelData.hostelInfo.roomNo || "";
 
@@ -103,9 +113,12 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
     fetchLaundryWithCache(gender, hostel);
   }, [gender, hostel]);
 
-  const cleanSearchRoomNum = (searchRoom && typeof searchRoom === "string")
-    ? (searchRoom.match(/\d+/) ? parseInt(searchRoom.match(/\d+/)![0], 10) : null)
-    : null;
+  const cleanSearchRoomNum =
+    searchRoom && typeof searchRoom === "string"
+      ? searchRoom.match(/\d+/)
+        ? parseInt(searchRoom.match(/\d+/)![0], 10)
+        : null
+      : null;
 
   const isRoomInSlotRange = (roomRangeStr: any) => {
     if (!cleanSearchRoomNum || !roomRangeStr || typeof roomRangeStr !== "string") return false;
@@ -127,11 +140,11 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth();
-    
+
     const rawFirstDay = new Date(year, month, 1).getDay();
     const firstDay = rawFirstDay === 0 ? 6 : rawFirstDay - 1; // Monday start
     const totalDays = new Date(year, month + 1, 0).getDate();
-    
+
     return { firstDay, totalDays };
   };
 
@@ -142,7 +155,7 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
   const weekDays = ["M", "T", "W", "T", "F", "S", "S"];
 
   const getDaySchedule = (dayNum: number) => {
-    return schedule.find(item => parseInt(item.Date, 10) === dayNum);
+    return schedule.find((item) => parseInt(item.Date, 10) === dayNum);
   };
 
   // Details for currently clicked calendar day
@@ -208,11 +221,12 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
 
       {/* Interactive Personalized Slot Checker */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
         {/* Slot Quick Finder panel */}
         <div className="bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-5 shadow-2xs space-y-4">
           <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400 block">Personal Slot Finder</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400 block">
+              Personal Slot Finder
+            </span>
             <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">Find slots by Room</h3>
           </div>
 
@@ -234,7 +248,10 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
                   <CheckCircle2 size={16} />
                   <span>Laundry Slot is Today!</span>
                 </div>
-                <p className="text-[10px] text-gray-500">You can drop off clothes for room range {matchingSlots.find(s => parseInt(s.Date, 10) === today)?.RoomNumber} today.</p>
+                <p className="text-[10px] text-gray-500">
+                  You can drop off clothes for room range{" "}
+                  {matchingSlots.find((s) => parseInt(s.Date, 10) === today)?.RoomNumber} today.
+                </p>
               </div>
             ) : nextSlot ? (
               <div className="bg-sky-500/10 border border-sky-400/20 p-4 rounded-xl space-y-2 text-xs text-sky-600 dark:text-sky-400">
@@ -255,9 +272,13 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
         {/* Dynamic slots preview */}
         <div className="lg:col-span-2 bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-5 shadow-2xs flex flex-col justify-between">
           <div className="space-y-3">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400 block">Your Scheduled Dates</span>
-            <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">All matching dates for Room {searchRoom || "—"}</h3>
-            
+            <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400 block">
+              Your Scheduled Dates
+            </span>
+            <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">
+              All matching dates for Room {searchRoom || "—"}
+            </h3>
+
             {matchingSlots.length > 0 ? (
               <div className="flex flex-wrap gap-2.5 pt-2">
                 {matchingSlots.map((slot, idx) => {
@@ -273,27 +294,33 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
                     >
                       <span className="block text-[10px] text-gray-400 font-semibold mb-0.5">Date</span>
                       <span className="text-sm">{slot.Date}</span>
-                      {isCurrentDay && <span className="block text-[10px] uppercase tracking-wider text-emerald-400 mt-0.5">Today</span>}
+                      {isCurrentDay && (
+                        <span className="block text-[10px] uppercase tracking-wider text-emerald-400 mt-0.5">
+                          Today
+                        </span>
+                      )}
                     </div>
                   );
                 })}
               </div>
             ) : (
-              <p className="text-xs text-gray-455 italic pt-2">No matching dates found. Change the block or input a correct room number.</p>
+              <p className="text-xs text-gray-455 italic pt-2">
+                No matching dates found. Change the block or input a correct room number.
+              </p>
             )}
           </div>
 
           <div className="flex items-center gap-2 text-[10px] text-gray-400 border-t border-gray-150 dark:border-gray-800/80 pt-3 mt-4">
             <Info size={12} className="text-sky-600 dark:text-sky-400" />
-            <span>Slots are mapped automatically from block records. Each room range is granted two drop-off days per month.</span>
+            <span>
+              Slots are mapped automatically from block records. Each room range is granted two drop-off days per month.
+            </span>
           </div>
         </div>
-
       </div>
 
       {/* Split pane: Compact widget calendar + Day details view */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
         {/* Left: Compact Monthly Grid */}
         <div className="bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-4 shadow-2xs space-y-3">
           <div className="flex items-center justify-between border-b border-gray-150 dark:border-gray-800 pb-2">
@@ -317,7 +344,9 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
               {/* Day headers */}
               <div className="grid grid-cols-7 gap-1 text-center text-[9px] font-bold text-gray-450">
                 {weekDays.map((wd, i) => (
-                  <div key={i} className="py-0.5">{wd}</div>
+                  <div key={i} className="py-0.5">
+                    {wd}
+                  </div>
                 ))}
               </div>
 
@@ -340,7 +369,8 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
                   } else if (isUserSlot) {
                     cellStyle = "bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 font-bold";
                   } else if (slot) {
-                    cellStyle = "bg-gray-100/50 dark:bg-slate-850/30 text-gray-900 dark:text-gray-100 border border-gray-150/40 dark:border-gray-800/40";
+                    cellStyle =
+                      "bg-gray-100/50 dark:bg-slate-850/30 text-gray-900 dark:text-gray-100 border border-gray-150/40 dark:border-gray-800/40";
                   }
 
                   if (isClicked) {
@@ -371,14 +401,18 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
         {/* Right: Selected Day details card */}
         <div className="bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-5 shadow-2xs flex flex-col justify-between">
           <div className="space-y-4">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400 block">Selected Slot Details</span>
-            
+            <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400 block">
+              Selected Slot Details
+            </span>
+
             {selectedDay ? (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h4 className="text-sm font-bold text-gray-900 dark:text-gray-150">Date of Month: {selectedDay}</h4>
                   {selectedDay === today && (
-                    <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-2.5 py-0.5 rounded-full font-bold uppercase">Today</span>
+                    <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-2.5 py-0.5 rounded-full font-bold uppercase">
+                      Today
+                    </span>
                   )}
                 </div>
 
@@ -386,10 +420,14 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
                   <div className="space-y-3">
                     <div className="bg-gray-50/50 dark:bg-slate-850/20 border border-gray-150 dark:border-gray-850/60 rounded-xl p-3.5 space-y-2 text-xs">
                       <div>
-                        <span className="text-[9px] font-bold uppercase tracking-wider text-gray-450 block mb-0.5">Room Slot Range</span>
-                        <span className="font-bold text-gray-850 dark:text-gray-100 text-sm">{selectedSlot.RoomNumber}</span>
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-gray-450 block mb-0.5">
+                          Room Slot Range
+                        </span>
+                        <span className="font-bold text-gray-850 dark:text-gray-100 text-sm">
+                          {selectedSlot.RoomNumber}
+                        </span>
                       </div>
-                      
+
                       <div className="pt-2 border-t border-gray-150 dark:border-gray-800/80 flex items-center justify-between text-[10px]">
                         <span>Status:</span>
                         {isSelectedUserSlot ? (
@@ -415,10 +453,11 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
 
           <div className="flex items-start gap-2 text-[10px] text-gray-405 border-t border-gray-150 dark:border-gray-800/80 pt-3 mt-4">
             <Info size={12} className="text-sky-600 dark:text-sky-400 shrink-0 mt-0.5" />
-            <span>Select the date matching your room range, take your bag to the laundry drop counter before 5:00 PM.</span>
+            <span>
+              Select the date matching your room range, take your bag to the laundry drop counter before 5:00 PM.
+            </span>
           </div>
         </div>
-
       </div>
     </div>
   );

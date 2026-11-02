@@ -1,7 +1,14 @@
 import type { AddedCourse, TimetablePeriod, ParsedCourse } from "@/components/custom/exams/FFCS/types";
 import { buildVerticalGrid } from "@/components/custom/timetable";
 import { COLOR_HEX_MAP, typeLabels } from "@/components/custom/exams/FFCS/constants";
-import { getFacultyReview, getVitfacProfileUrl, loadVitfacCatalog, normalizeFacultyName, type VitfacFaculty } from "./vitfacService";
+import {
+  getFacultyReview,
+  getVitfacProfileUrl,
+  isVitfacIntegrationEnabled,
+  loadVitfacCatalog,
+  normalizeFacultyName,
+  type VitfacFaculty,
+} from "./vitfacService";
 import { ensureLunchPeriod, hasSlot } from "./slots";
 import { sameSlotFacultyAlternatives, expandCourseHalves } from "@/components/custom/exams/FFCS/logic/generate";
 
@@ -43,7 +50,7 @@ function renderVerticalGridHtml(
   theoryPeriods: TimetablePeriod[],
   labPeriods: TimetablePeriod[],
   daysList: { id: string; name: string }[],
-  isLight = false
+  isLight = false,
 ): string {
   const vGrid = buildVerticalGrid({
     courses,
@@ -80,7 +87,7 @@ function renderVerticalGridHtml(
     <th style="padding: 10px 8px; font-size: 12px; font-weight: 800; color: ${thColor}; background: ${thBg}; border: 1px solid ${borderColor}; text-align: center; text-transform: uppercase; letter-spacing: 0.5px;">
       ${escapeHtml(d.name.slice(0, 3).toUpperCase())}
     </th>
-  `
+  `,
     )
     .join("");
 
@@ -187,7 +194,7 @@ function renderHorizontalGridHtml(
   theoryPeriods: TimetablePeriod[],
   labPeriods: TimetablePeriod[],
   daysList: { id: string; name: string }[],
-  isLight = false
+  isLight = false,
 ): string {
   const effectiveTheory = ensureLunchPeriod(theoryPeriods);
   const effectiveLab = ensureLunchPeriod(labPeriods);
@@ -263,7 +270,7 @@ function renderHorizontalGridHtml(
                 <span style="font-size: 12px; font-weight: 900; color: ${lunchText}; letter-spacing: 1px; line-height: 1.25;">H</span>
                 <div style="width: 14px; height: 1px; background: ${lunchDivider}; margin: 6px 0;"></div>
                 <span style="font-size: 8px; font-weight: 900; color: ${lunchSubText}; line-height: 1.1;">1:20</span>
-                <span style="font-size: 7px; color: ${isLight ? '#b45309' : '#d97706'}; line-height: 1;">-</span>
+                <span style="font-size: 7px; color: ${isLight ? "#b45309" : "#d97706"}; line-height: 1;">-</span>
                 <span style="font-size: 8px; font-weight: 900; color: ${lunchSubText}; line-height: 1.1;">2:00</span>
               </div>
             </td>
@@ -344,7 +351,7 @@ function renderHorizontalGridHtml(
  */
 function renderCourseTableHtml(
   groupedCourses: (AddedCourse & { ids: string[]; batches: string[] })[],
-  isLight = false
+  isLight = false,
 ): string {
   const containerBg = isLight ? "#ffffff" : "rgba(15, 23, 42, 0.85)";
   const containerBorder = isLight ? "#cbd5e1" : "rgba(255, 255, 255, 0.1)";
@@ -383,17 +390,23 @@ function renderCourseTableHtml(
           if (rev && rev.reviews > 0) {
             const isGreen = rev.wPct >= 70;
             const isAmber = rev.wPct >= 40 && rev.wPct < 70;
-            const bg = isGreen
-              ? "rgba(16,185,129,0.18)"
-              : isAmber
-              ? "rgba(245,158,11,0.18)"
-              : "rgba(239,68,68,0.18)";
+            const bg = isGreen ? "rgba(16,185,129,0.18)" : isAmber ? "rgba(245,158,11,0.18)" : "rgba(239,68,68,0.18)";
             const border = isGreen
               ? "rgba(16,185,129,0.35)"
               : isAmber
-              ? "rgba(245,158,11,0.35)"
-              : "rgba(239,68,68,0.35)";
-            const text = isGreen ? (isLight ? "#059669" : "#34d399") : isAmber ? (isLight ? "#b45309" : "#fbbf24") : (isLight ? "#dc2626" : "#f87171");
+                ? "rgba(245,158,11,0.35)"
+                : "rgba(239,68,68,0.35)";
+            const text = isGreen
+              ? isLight
+                ? "#059669"
+                : "#34d399"
+              : isAmber
+                ? isLight
+                  ? "#b45309"
+                  : "#fbbf24"
+                : isLight
+                  ? "#dc2626"
+                  : "#f87171";
             const metricsStr = rev.metrics
               ? `<span style="font-size: 10px; color: ${metricsTextColor}; margin-left: 6px;">Vibe: ${rev.metrics.vibe.toFixed(1)} · DA: ${rev.metrics.da.toFixed(1)}</span>`
               : "";
@@ -405,7 +418,7 @@ function renderCourseTableHtml(
               ${metricsStr}
             </div>
           `;
-          } else {
+          } else if (isVitfacIntegrationEnabled()) {
             badgeHtml = `
             <span style="background: ${unreviewedBg}; border: 1px solid ${unreviewedBorder}; color: ${unreviewedText}; font-size: 10px; font-weight: 600; padding: 1px 5px; border-radius: 4px; margin-top: 2px; display: inline-block;">
               Unreviewed
@@ -424,14 +437,12 @@ function renderCourseTableHtml(
       const slotPills = c.slots
         .map(
           (s) =>
-            `<span style="background: ${slotBg}; border: 1px solid ${slotBorder}; color: ${slotColor}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-right: 3px; display: inline-block;">${escapeHtml(s)}</span>`
+            `<span style="background: ${slotBg}; border: 1px solid ${slotBorder}; color: ${slotColor}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-right: 3px; display: inline-block;">${escapeHtml(s)}</span>`,
         )
         .join("");
 
       return `
-      <tr style="border-bottom: 1px solid ${rowBorder}; background: ${
-        idx % 2 === 0 ? rowEvenBg : rowOddBg
-      };">
+      <tr style="border-bottom: 1px solid ${rowBorder}; background: ${idx % 2 === 0 ? rowEvenBg : rowOddBg};">
         <td style="padding: 10px 8px; font-size: 12px; font-weight: 700; color: #64748b; text-align: center; vertical-align: middle;">
           ${idx + 1}
         </td>
@@ -445,7 +456,7 @@ function renderCourseTableHtml(
               ${
                 c.batches && c.batches.length > 0
                   ? `<div style="font-size: 10px; color: ${batchColor}; font-weight: 600;">Batch: ${escapeHtml(
-                      c.batches.join(", ")
+                      c.batches.join(", "),
                     )}</div>`
                   : ""
               }
@@ -476,8 +487,8 @@ function renderCourseTableHtml(
     <div class="pdf-course-section" style="background: ${containerBg}; border: 1px solid ${containerBorder}; border-radius: 14px; padding: 18px 20px;">
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid ${headerBorder};">
         <div style="display: flex; align-items: center; gap: 8px;">
-          <span style="font-size: 14px; font-weight: 800; color: ${titleColor};">📋 ENROLLED COURSES &amp; FACULTY REVIEWS</span>
-          <span style="font-size: 11px; color: ${subColor};">(Vitfac Sentiment &amp; Ratings)</span>
+          <span style="font-size: 14px; font-weight: 800; color: ${titleColor};">📋 ENROLLED COURSES &amp; ${isVitfacIntegrationEnabled() ? "FACULTY REVIEWS" : "FACULTY"}</span>
+          ${isVitfacIntegrationEnabled() ? `<span style="font-size: 11px; color: ${subColor};">(Vitfac Sentiment &amp; Ratings)</span>` : ""}
         </div>
       </div>
       <table class="pdf-course-table" style="width: 100%; border-collapse: collapse; text-align: left;">
@@ -489,7 +500,7 @@ function renderCourseTableHtml(
             <th style="padding: 8px 8px; text-align: center; width: 60px;">Credits</th>
             <th style="padding: 8px 8px; width: 140px;">Slots</th>
             <th style="padding: 8px 8px; width: 90px;">Venue</th>
-            <th style="padding: 8px 12px;">Faculty &amp; Vitfac Review</th>
+            <th style="padding: 8px 12px;">${isVitfacIntegrationEnabled() ? "Faculty &amp; Vitfac Review" : "Faculty"}</th>
           </tr>
         </thead>
         <tbody>
@@ -504,15 +515,7 @@ function renderCourseTableHtml(
  * Generate Modern Standalone Timetable HTML Representation for Image Capture
  */
 export function generateModernTimetableHtml(params: ModernTimetableExportParams): string {
-  const {
-    timetableName,
-    courses,
-    theoryPeriods,
-    labPeriods,
-    days,
-    viewMode,
-    totalCredits,
-  } = params;
+  const { timetableName, courses, theoryPeriods, labPeriods, days, viewMode, totalCredits } = params;
 
   const defaultDays = [
     { id: "mon", name: "Monday" },
@@ -545,7 +548,12 @@ export function generateModernTimetableHtml(params: ModernTimetableExportParams)
       }
       g.credits = String(parseFloat(g.credits || "0") + parseFloat(c.credits || "0"));
     } else {
-      const batches = c.batch ? c.batch.split(",").map((b) => b.trim()).filter(Boolean) : [];
+      const batches = c.batch
+        ? c.batch
+            .split(",")
+            .map((b) => b.trim())
+            .filter(Boolean)
+        : [];
       groupedCoursesMap.set(c.code, {
         ...c,
         ids: [c.id],
@@ -558,8 +566,7 @@ export function generateModernTimetableHtml(params: ModernTimetableExportParams)
     }
   }
   const groupedCourses = Array.from(groupedCoursesMap.values());
-  const calculatedCredits =
-    totalCredits ?? groupedCourses.reduce((sum, c) => sum + (parseFloat(c.credits) || 0), 0);
+  const calculatedCredits = totalCredits ?? groupedCourses.reduce((sum, c) => sum + (parseFloat(c.credits) || 0), 0);
   const containerWidth = viewMode === "vertical" ? 1280 : 1540;
 
   const dateStr = new Date().toLocaleDateString(undefined, {
@@ -574,8 +581,7 @@ export function generateModernTimetableHtml(params: ModernTimetableExportParams)
       ? renderVerticalGridHtml(courses, theoryPeriods, labPeriods, daysList)
       : renderHorizontalGridHtml(courses, theoryPeriods, labPeriods, daysList);
 
-  const tableHtml =
-    params.includeCourseList === false ? "" : renderCourseTableHtml(groupedCourses);
+  const tableHtml = params.includeCourseList === false ? "" : renderCourseTableHtml(groupedCourses);
 
   return `
     <div style="width: ${containerWidth}px; background: #090d16; color: #f8fafc; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 32px; box-sizing: border-box; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);">
@@ -618,7 +624,7 @@ export function generateModernTimetableHtml(params: ModernTimetableExportParams)
       <!-- Footer Note -->
       <div style="margin-top: 20px; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.08); display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #64748b;">
         <span>Generated with AmazeCC FFCS Planner • All times reflect official VIT Chennai schema</span>
-        <span>Faculty sentiment data powered by Vitfac</span>
+        ${isVitfacIntegrationEnabled() ? `<span>Faculty sentiment data powered by Vitfac</span>` : ""}
       </div>
     </div>
   `;
@@ -627,9 +633,7 @@ export function generateModernTimetableHtml(params: ModernTimetableExportParams)
 /**
  * Downloads a modern, high-res timetable JPEG/PNG using offscreen container rendering
  */
-export async function downloadModernTimetableImage(
-  params: ModernTimetableExportParams
-): Promise<void> {
+export async function downloadModernTimetableImage(params: ModernTimetableExportParams): Promise<void> {
   const html = generateModernTimetableHtml(params);
   let container: HTMLElement | null = null;
   try {
@@ -658,9 +662,7 @@ export async function downloadModernTimetableImage(
     if (dataUrl) {
       const link = document.createElement("a");
       const cleanName = params.timetableName.replace(/[^a-zA-Z0-9_-]/g, "_");
-      link.download = `${cleanName}_${params.viewMode.toUpperCase()}_FFCS.${
-        format === "jpg" ? "jpeg" : "png"
-      }`;
+      link.download = `${cleanName}_${params.viewMode.toUpperCase()}_FFCS.${format === "jpg" ? "jpeg" : "png"}`;
       link.href = dataUrl;
       link.click();
     }
@@ -679,9 +681,7 @@ export interface ModernCourseListImageExportParams {
 }
 
 /** Downloads the selected courses as a standalone image in the chosen format. */
-export async function downloadModernCourseListImage(
-  params: ModernCourseListImageExportParams
-): Promise<void> {
+export async function downloadModernCourseListImage(params: ModernCourseListImageExportParams): Promise<void> {
   const format = params.format || "jpg";
   const htmlToImage = await loadHtmlToImage();
   const toImageFn = format === "png" ? htmlToImage.toPng : htmlToImage.toJpeg;
@@ -705,7 +705,7 @@ export async function downloadModernCourseListImage(
             <strong style="color:#93c5fd;font-size:14px">${escapeHtml(course.slots.join(" + "))}</strong>
             <span style="display:block;margin-top:6px;color:#94a3b8;font-size:12px">${escapeHtml(course.venue || "Venue unstated")}</span>
           </div>
-        </article>`
+        </article>`,
     )
     .join("");
   const html = `
@@ -760,9 +760,7 @@ export const EXPORT_CHROME_ATTR = "data-export-chrome";
 /** `innerHTML` of `element` with every chrome subtree removed. */
 export function exportableHtml(element: HTMLElement): string {
   const clone = element.cloneNode(true) as HTMLElement;
-  clone
-    .querySelectorAll<HTMLElement>(`[${EXPORT_CHROME_ATTR}]`)
-    .forEach((el) => el.remove());
+  clone.querySelectorAll<HTMLElement>(`[${EXPORT_CHROME_ATTR}]`).forEach((el) => el.remove());
   return clone.innerHTML;
 }
 
@@ -770,7 +768,7 @@ export async function downloadTimetableImage(
   element: HTMLElement,
   timetableName: string,
   themeBgColor: string,
-  format: "jpg" | "png" = "jpg"
+  format: "jpg" | "png" = "jpg",
 ): Promise<void> {
   const htmlToImage = await loadHtmlToImage();
   const originalStyle = element.style.cssText;
@@ -780,9 +778,7 @@ export async function downloadTimetableImage(
     container.classList.remove("overflow-x-auto");
   });
 
-  const chrome = Array.from(
-    element.querySelectorAll<HTMLElement>(`[${EXPORT_CHROME_ATTR}]`)
-  );
+  const chrome = Array.from(element.querySelectorAll<HTMLElement>(`[${EXPORT_CHROME_ATTR}]`));
   const chromeDisplay = chrome.map((el) => el.style.display);
   chrome.forEach((el) => {
     el.style.display = "none";
@@ -802,7 +798,7 @@ export async function downloadTimetableImage(
     const opts = {
       quality: 0.98,
       backgroundColor: themeBgColor,
-      pixelRatio: ((1 / scale) * 3),
+      pixelRatio: (1 / scale) * 3,
       width: scrollWidth * scale,
       height: scrollHeight * scale,
       style: {
@@ -816,10 +812,7 @@ export async function downloadTimetableImage(
       },
     };
 
-    const dataUrl =
-      format === "png"
-        ? await htmlToImage.toPng(element, opts)
-        : await htmlToImage.toJpeg(element, opts);
+    const dataUrl = format === "png" ? await htmlToImage.toPng(element, opts) : await htmlToImage.toJpeg(element, opts);
 
     const link = document.createElement("a");
     link.download = `${timetableName.replace(/\s+/g, "_")}_FFCS.${format}`;
@@ -881,7 +874,11 @@ function facultyImageLookupKeys(employeeId?: string | null, name?: string | null
   return keys;
 }
 
-function findFacultyImage(images: FacultyImageMap | undefined, employeeId?: string | null, name?: string | null): string | undefined {
+function findFacultyImage(
+  images: FacultyImageMap | undefined,
+  employeeId?: string | null,
+  name?: string | null,
+): string | undefined {
   for (const key of facultyImageLookupKeys(employeeId, name)) {
     const image = images?.get(key);
     if (image) return image;
@@ -889,7 +886,14 @@ function findFacultyImage(images: FacultyImageMap | undefined, employeeId?: stri
   return undefined;
 }
 
-function renderDetailedFacultyReviewsDossierHtml(courses: AddedCourse[], isLight = false, facultyImages?: FacultyImageMap): string {
+function renderDetailedFacultyReviewsDossierHtml(
+  courses: AddedCourse[],
+  isLight = false,
+  facultyImages?: FacultyImageMap,
+): string {
+  // The whole dossier is Vitfac review data — an empty export while the
+  // integration is off beats one full of "Unreviewed on Vitfac" cards.
+  if (!isVitfacIntegrationEnabled()) return "";
   interface FacEntry {
     name: string;
     employeeId?: string;
@@ -972,14 +976,24 @@ function renderDetailedFacultyReviewsDossierHtml(courses: AddedCourse[], isLight
         const bg = isGreen
           ? "rgba(16, 185, 129, 0.15)"
           : isAmber
-          ? "rgba(245, 158, 11, 0.15)"
-          : "rgba(239, 68, 68, 0.15)";
+            ? "rgba(245, 158, 11, 0.15)"
+            : "rgba(239, 68, 68, 0.15)";
         const border = isGreen
           ? "rgba(16, 185, 129, 0.35)"
           : isAmber
-          ? "rgba(245, 158, 11, 0.35)"
-          : "rgba(239, 68, 68, 0.35)";
-        const text = isGreen ? (isLight ? "#059669" : "#34d399") : isAmber ? (isLight ? "#b45309" : "#fbbf24") : (isLight ? "#dc2626" : "#f87171");
+            ? "rgba(245, 158, 11, 0.35)"
+            : "rgba(239, 68, 68, 0.35)";
+        const text = isGreen
+          ? isLight
+            ? "#059669"
+            : "#34d399"
+          : isAmber
+            ? isLight
+              ? "#b45309"
+              : "#fbbf24"
+            : isLight
+              ? "#dc2626"
+              : "#f87171";
 
         scoreBadge = `
           <div style="background: ${bg}; border: 1px solid ${border}; color: ${text}; padding: 4px 10px; border-radius: 6px; font-weight: 800; font-size: 11.5px; display: inline-flex; align-items: center; gap: 4px;">
@@ -1014,10 +1028,10 @@ function renderDetailedFacultyReviewsDossierHtml(courses: AddedCourse[], isLight
           .slice(0, 3)
           .map(
             (item) => `
-          <span style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.25); color: ${isLight ? '#059669' : '#34d399'}; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px;">
+          <span style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.25); color: ${isLight ? "#059669" : "#34d399"}; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px;">
             ✓ ${escapeHtml(item.text)}
           </span>
-        `
+        `,
           )
           .join("");
 
@@ -1025,10 +1039,10 @@ function renderDetailedFacultyReviewsDossierHtml(courses: AddedCourse[], isLight
           .slice(0, 2)
           .map(
             (item) => `
-          <span style="background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.25); color: ${isLight ? '#dc2626' : '#f87171'}; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px;">
+          <span style="background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.25); color: ${isLight ? "#dc2626" : "#f87171"}; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px;">
             ⚠ ${escapeHtml(item.text)}
           </span>
-        `
+        `,
           )
           .join("");
 
@@ -1069,8 +1083,8 @@ function renderDetailedFacultyReviewsDossierHtml(courses: AddedCourse[], isLight
                   </h4>
                   <div style="font-size: 10.5px; color: ${facMetaColor}; margin-top: 2px;">
                     ${f.employeeId ? `Emp ID: <strong>${escapeHtml(f.employeeId)}</strong> • ` : ""}${escapeHtml(
-        f.courseCodes.join(", ")
-      )}
+                      f.courseCodes.join(", "),
+                    )}
                   </div>
                 </div>
               </div>
@@ -1083,7 +1097,7 @@ function renderDetailedFacultyReviewsDossierHtml(courses: AddedCourse[], isLight
             profileUrl
               ? `<div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid ${linkDivider}; text-align: right;">
                   <a href="${escapeHtml(
-                    profileUrl
+                    profileUrl,
                   )}" target="_blank" rel="noopener noreferrer" style="font-size: 10.5px; color: ${linkColor}; text-decoration: none; font-weight: 700;">
                     View Detailed Vitfac Reviews ↗
                   </a>
@@ -1120,7 +1134,7 @@ function renderDropInReplacementsDossierHtml(
   courses: AddedCourse[],
   masterCourses?: readonly ParsedCourse[],
   isLight = false,
-  facultyImages?: FacultyImageMap
+  facultyImages?: FacultyImageMap,
 ): string {
   const cardBg = isLight ? "#ffffff" : "rgba(15, 23, 42, 0.88)";
   const cardBorder = isLight ? "#cbd5e1" : "rgba(255, 255, 255, 0.1)";
@@ -1162,7 +1176,7 @@ function renderDropInReplacementsDossierHtml(
         half.code,
         half.slots,
         { faculty: half.faculty, employeeId: half.employeeId },
-        masterCourses
+        masterCourses,
       );
 
       const slotStr = half.slots.join("+");
@@ -1181,12 +1195,26 @@ function renderDropInReplacementsDossierHtml(
           .map((alt) => {
             const rev = getFacultyReview({ employeeId: alt.ERP_ID, name: alt.FACULTY });
             const facultyImage = findFacultyImage(facultyImages, alt.ERP_ID, alt.FACULTY);
-            const initials = alt.FACULTY.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase() || "").join("");
+            const initials = alt.FACULTY.split(/\s+/)
+              .filter(Boolean)
+              .slice(0, 2)
+              .map((part) => part[0]?.toUpperCase() || "")
+              .join("");
             let revBadge = "";
             if (rev && rev.reviews > 0) {
               const isGood = rev.wPct >= 70;
               const isAmber = rev.wPct >= 40 && rev.wPct < 70;
-              const color = isGood ? (isLight ? "#059669" : "#34d399") : isAmber ? (isLight ? "#b45309" : "#fbbf24") : (isLight ? "#dc2626" : "#f87171");
+              const color = isGood
+                ? isLight
+                  ? "#059669"
+                  : "#34d399"
+                : isAmber
+                  ? isLight
+                    ? "#b45309"
+                    : "#fbbf24"
+                  : isLight
+                    ? "#dc2626"
+                    : "#f87171";
               revBadge = `
                 <span style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: ${color}; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px;">
                   ★ ${rev.wPct}% W (${rev.reviews})
@@ -1201,22 +1229,20 @@ function renderDropInReplacementsDossierHtml(
                     ${facultyImage ? `<img src="${facultyImage}" alt="${escapeHtml(alt.FACULTY)}" width="24" height="24" style="width:24px;height:24px;object-fit:cover;border-radius:50%;" />` : escapeHtml(initials || "FAC")}
                   </span>
                   <span style="font-weight: 800; font-size: 12.5px; color: ${altFacColor};">${escapeHtml(
-                    alt.FACULTY
+                    alt.FACULTY,
                   )}</span>
                   ${
                     alt.ERP_ID
-                      ? `<span style="font-size: 10.5px; color: ${altEmpColor};">(ID: ${escapeHtml(
-                          alt.ERP_ID
-                        )})</span>`
+                      ? `<span style="font-size: 10.5px; color: ${altEmpColor};">(ID: ${escapeHtml(alt.ERP_ID)})</span>`
                       : ""
                   }
                   ${revBadge}
                 </div>
                 <div style="display: flex; align-items: center; gap: 10px;">
                   <span style="font-size: 11px; color: ${altVenueColor}; font-weight: 700;">Venue: ${escapeHtml(
-                    alt.ROOM || "TBA"
+                    alt.ROOM || "TBA",
                   )}</span>
-                  <span style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.35); color: ${isLight ? '#059669' : '#34d399'}; font-size: 9.5px; font-weight: 900; padding: 2px 7px; border-radius: 4px; text-transform: uppercase;">
+                  <span style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.35); color: ${isLight ? "#059669" : "#34d399"}; font-size: 9.5px; font-weight: 900; padding: 2px 7px; border-radius: 4px; text-transform: uppercase;">
                     ✓ 0 Clash Risk
                   </span>
                 </div>
@@ -1263,7 +1289,7 @@ function renderDropInReplacementsDossierHtml(
         <div>
           <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
             <span style="font-size: 15px; font-weight: 900; color: ${titleColor};">🔄 EMERGENCY DROP-IN SLOT REPLACEMENTS</span>
-            <span style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: ${isLight ? '#059669' : '#34d399'}; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 4px; text-transform: uppercase;">
+            <span style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: ${isLight ? "#059669" : "#34d399"}; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 4px; text-transform: uppercase;">
               Registration Rush Guide
             </span>
           </div>
@@ -1285,7 +1311,7 @@ function renderDropInReplacementsDossierHtml(
 export function generateModernDossierInnerHtml(
   params: ModernPrintableReportParams,
   isLight: boolean,
-  facultyImages?: FacultyImageMap
+  facultyImages?: FacultyImageMap,
 ): string {
   const {
     timetableName,
@@ -1329,7 +1355,12 @@ export function generateModernDossierInnerHtml(
       }
       g.credits = String(parseFloat(g.credits || "0") + parseFloat(c.credits || "0"));
     } else {
-      const batches = c.batch ? c.batch.split(",").map((b) => b.trim()).filter(Boolean) : [];
+      const batches = c.batch
+        ? c.batch
+            .split(",")
+            .map((b) => b.trim())
+            .filter(Boolean)
+        : [];
       groupedCoursesMap.set(c.code, {
         ...c,
         ids: [c.id],
@@ -1342,8 +1373,7 @@ export function generateModernDossierInnerHtml(
     }
   }
   const groupedCourses = Array.from(groupedCoursesMap.values());
-  const calculatedCredits =
-    totalCredits ?? groupedCourses.reduce((sum, c) => sum + (parseFloat(c.credits) || 0), 0);
+  const calculatedCredits = totalCredits ?? groupedCourses.reduce((sum, c) => sum + (parseFloat(c.credits) || 0), 0);
 
   const dateStr = new Date().toLocaleDateString(undefined, {
     weekday: "short",
@@ -1375,7 +1405,7 @@ export function generateModernDossierInnerHtml(
   const dropInsHtml = renderDropInReplacementsDossierHtml(courses, masterCourses, isLight, facultyImages);
 
   return `
-    <div style="width: 100%; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: ${isLight ? '#0f172a' : '#f8fafc'};">
+    <div style="width: 100%; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: ${isLight ? "#0f172a" : "#f8fafc"};">
       <!-- Executive Header Banner -->
       <div style="background: ${cardBg}; border: 1px solid ${cardBorder}; border-radius: 16px; padding: 24px 28px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between;">
         <div>
@@ -1421,7 +1451,7 @@ export function generateModernDossierInnerHtml(
       <!-- Footer / Attribution -->
       <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid ${footerBorder}; display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: ${footerColor};">
         <span>Generated with AmazeCC FFCS Planner • All times reflect official VIT Chennai schema</span>
-        <span>Faculty sentiment &amp; reviews powered by Vitfac (vitfac.pages.dev)</span>
+        ${isVitfacIntegrationEnabled() ? `<span>Faculty sentiment &amp; reviews powered by Vitfac (vitfac.pages.dev)</span>` : ""}
       </div>
     </div>
   `;
@@ -1762,9 +1792,14 @@ export function generateModernPrintableHtml(params: ModernPrintableReportParams)
  * content used by the printable view. This document has no print controls or
  * print handlers and always uses the modern horizontal schedule.
  */
-export function generateModernDossierHtml(params: ModernPrintableReportParams, facultyImages?: FacultyImageMap): string {
+export function generateModernDossierHtml(
+  params: ModernPrintableReportParams,
+  facultyImages?: FacultyImageMap,
+): string {
   const timetableName = params.timetableName || "Timetable";
-  const isLight = params.theme === "light" || (!params.theme && (!params.themeHtmlClass?.includes("dark") || Boolean(params.themeHtmlClass?.includes("light"))));
+  const isLight =
+    params.theme === "light" ||
+    (!params.theme && (!params.themeHtmlClass?.includes("dark") || Boolean(params.themeHtmlClass?.includes("light"))));
   const pageBand = isLight ? "#e8eef7" : "#090d16";
   const surface = isLight ? "#ffffff" : "#0c1222";
   const border = isLight ? "#cbd5e1" : "rgba(255,255,255,0.12)";
@@ -1830,12 +1865,19 @@ function collectFacultyImageTargets(params: ModernPrintableReportParams): Facult
     const cleanId = employeeId?.trim();
     const cleanName = name?.trim();
     const key = cleanId ? `id:${cleanId}` : `name:${cleanName ? normalizeFacultyName(cleanName) : ""}`;
-    if ((cleanId || cleanName) && !targets.has(key)) targets.set(key, { employeeId: cleanId || undefined, name: cleanName || undefined });
+    if ((cleanId || cleanName) && !targets.has(key))
+      targets.set(key, { employeeId: cleanId || undefined, name: cleanName || undefined });
   };
 
   for (const course of params.courses) {
-    const names = (course.faculty || "").split(/\s*\/\s*/).map((name) => name.trim()).filter(Boolean);
-    const ids = (course.employeeId || "").split(/\s*\/\s*/).map((id) => id.trim()).filter(Boolean);
+    const names = (course.faculty || "")
+      .split(/\s*\/\s*/)
+      .map((name) => name.trim())
+      .filter(Boolean);
+    const ids = (course.employeeId || "")
+      .split(/\s*\/\s*/)
+      .map((id) => id.trim())
+      .filter(Boolean);
     names.forEach((name, index) => add(ids[index] || (ids.length === 1 ? ids[0] : undefined), name));
   }
 
@@ -1844,7 +1886,7 @@ function collectFacultyImageTargets(params: ModernPrintableReportParams): Facult
       half.code,
       half.slots,
       { faculty: half.faculty, employeeId: half.employeeId },
-      params.masterCourses
+      params.masterCourses,
     );
     alternatives.forEach((alternative) => add(alternative.ERP_ID, alternative.FACULTY));
   }
@@ -1879,18 +1921,22 @@ async function shrinkFacultyImageToDataUrl(sourceUrl: string): Promise<string | 
 
 async function buildFacultyImageMap(
   params: ModernPrintableReportParams,
-  catalog: Map<string, VitfacFaculty>
+  catalog: Map<string, VitfacFaculty>,
 ): Promise<Map<string, string>> {
   const targets = collectFacultyImageTargets(params);
   const facultyByTarget = new Map<string, VitfacFaculty>();
   const catalogEntries = [...new Set(catalog.values())];
   for (const target of targets) {
     const normalizedName = target.name ? normalizeFacultyName(target.name) : "";
-    const faculty = catalog.get(target.employeeId || "") || catalogEntries.find((entry) =>
-      (target.employeeId && entry.employeeId === target.employeeId) ||
-      (normalizedName && normalizeFacultyName(entry.name) === normalizedName)
-    );
-    if (faculty?.image_url) facultyByTarget.set(target.employeeId ? `id:${target.employeeId}` : `name:${normalizedName}`, faculty);
+    const faculty =
+      catalog.get(target.employeeId || "") ||
+      catalogEntries.find(
+        (entry) =>
+          (target.employeeId && entry.employeeId === target.employeeId) ||
+          (normalizedName && normalizeFacultyName(entry.name) === normalizedName),
+      );
+    if (faculty?.image_url)
+      facultyByTarget.set(target.employeeId ? `id:${target.employeeId}` : `name:${normalizedName}`, faculty);
   }
 
   const imageMap = new Map<string, string>();
@@ -1899,7 +1945,7 @@ async function buildFacultyImageMap(
       targetKey,
       faculty,
       dataUrl: await shrinkFacultyImageToDataUrl(faculty.image_url!),
-    }))
+    })),
   );
   for (const { targetKey, faculty, dataUrl } of embeddedImages) {
     if (!dataUrl) continue;
@@ -1915,7 +1961,9 @@ export async function downloadModernDossierHtml(params: ModernPrintableReportPar
   const catalog = await loadVitfacCatalog();
   const facultyImages = await buildFacultyImageMap(params, catalog);
   const html = generateModernDossierHtml({ ...params, viewMode: "horizontal" }, facultyImages);
-  const isLight = params.theme === "light" || (!params.theme && (!params.themeHtmlClass?.includes("dark") || Boolean(params.themeHtmlClass?.includes("light"))));
+  const isLight =
+    params.theme === "light" ||
+    (!params.theme && (!params.themeHtmlClass?.includes("dark") || Boolean(params.themeHtmlClass?.includes("light"))));
   const themeTag = isLight ? "LIGHT" : "DARK";
   const cleanName = (params.timetableName || "Timetable").replace(/[^a-zA-Z0-9_-]/g, "_");
   const blob = new Blob([html], { type: "text/html;charset=utf-8" });
@@ -1985,17 +2033,7 @@ export async function compileDossierPdfInline(params: {
     if (ctx) {
       ctx.fillStyle = isLight ? "#ffffff" : "#090d16";
       ctx.fillRect(0, 0, totalCanvasWidth, sliceHeightPx);
-      ctx.drawImage(
-        img,
-        0,
-        sourceY,
-        totalCanvasWidth,
-        sliceHeightPx,
-        0,
-        0,
-        totalCanvasWidth,
-        sliceHeightPx
-      );
+      ctx.drawImage(img, 0, sourceY, totalCanvasWidth, sliceHeightPx, 0, 0, totalCanvasWidth, sliceHeightPx);
       const sliceDataUrl = sliceCanvas.toDataURL("image/jpeg", 0.95);
       const sliceHeightMm = sliceHeightPx / pxPerMm;
       pdf.addImage(sliceDataUrl, "JPEG", margin, margin, printWidth, sliceHeightMm);
@@ -2028,10 +2066,9 @@ export async function compileDossierPdf(params: {
   // 1. Try background worker thread if Worker and OffscreenCanvas are available
   if (typeof Worker !== "undefined" && typeof OffscreenCanvas !== "undefined") {
     try {
-      const worker = new Worker(
-        new URL("../components/custom/exams/FFCS/workers/pdf.worker.ts", import.meta.url),
-        { type: "module" }
-      );
+      const worker = new Worker(new URL("../components/custom/exams/FFCS/workers/pdf.worker.ts", import.meta.url), {
+        type: "module",
+      });
 
       return await new Promise<{ pdfBuffer: ArrayBuffer; fileName: string }>((resolve, reject) => {
         const timeout = setTimeout(() => {
@@ -2079,11 +2116,12 @@ export async function compileDossierPdf(params: {
  * Automatically downloads a modern, high-res PDF dossier with Light and Dark mode compatibility
  */
 export async function downloadModernTimetablePdf(
-  params: ModernPrintableReportParams & { theme?: "light" | "dark" }
+  params: ModernPrintableReportParams & { theme?: "light" | "dark" },
 ): Promise<void> {
   const isLight =
     params.theme === "light" ||
-    (!params.theme && ((params.themeHtmlClass?.includes("light") && !params.themeHtmlClass?.includes("dark")) || false));
+    (!params.theme &&
+      ((params.themeHtmlClass?.includes("light") && !params.themeHtmlClass?.includes("dark")) || false));
 
   const dossierInnerHtml = generateModernDossierInnerHtml(params, isLight);
   let container: HTMLElement | null = null;
@@ -2181,7 +2219,7 @@ export function openTimetablePrintablePage(
   timetableName?: string,
   themeHtmlClass?: string,
   _themeBgColor?: string,
-  themeTextColor?: string
+  themeTextColor?: string,
 ): Window | null {
   if (typeof contentOrParams !== "string") {
     return openModernPrintableDossier(contentOrParams);
@@ -2200,9 +2238,7 @@ export function openTimetablePrintablePage(
     ? "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)"
     : "linear-gradient(135deg, #f8fafc 0%, #e0e7ff 30%, #fce7f3 70%, #f8fafc 100%)";
   const cardBg = isDarkMode ? "#1e293bcc" : "rgba(255,255,255,0.85)";
-  const cardBorder = isDarkMode
-    ? "1px solid rgba(99,102,241,0.25)"
-    : "1px solid rgba(99,102,241,0.15)";
+  const cardBorder = isDarkMode ? "1px solid rgba(99,102,241,0.25)" : "1px solid rgba(99,102,241,0.15)";
   const accentGrad = "linear-gradient(135deg, #6366f1, #a855f7, #ec4899)";
 
   const fullHtml = `

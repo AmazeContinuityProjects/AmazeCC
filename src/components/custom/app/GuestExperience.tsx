@@ -65,7 +65,15 @@ export default function GuestExperience({ onGetStarted, onTryDemo }: GuestExperi
       >
         <div className="flex min-w-0 items-center gap-7">
           <a href="/" className="flex shrink-0 items-center gap-2.5 font-bold tracking-tight" aria-label="AmazeCC home">
-            <img src="/logo.png" alt="" width="32" height="32" decoding="async" className="h-8 w-8 rounded-lg object-contain" />
+            <img
+              loading="lazy"
+              src="/logo.png"
+              alt=""
+              width="32"
+              height="32"
+              decoding="async"
+              className="h-8 w-8 rounded-lg object-contain"
+            />
             <span>AmazeCC</span>
           </a>
           <nav className="hidden items-center gap-5 text-xs font-semibold text-slate-500 dark:text-gray-400 lg:flex">
@@ -184,11 +192,17 @@ export default function GuestExperience({ onGetStarted, onTryDemo }: GuestExperi
             <span className="font-bold text-slate-900 dark:text-white">AmazeCC</span>
           </div>
           <div className="flex gap-4">
-            <a href="/ffcs/" className="transition-colors hover:text-slate-900 dark:hover:text-white">FFCS Planner</a>
+            <a href="/ffcs/" className="transition-colors hover:text-slate-900 dark:hover:text-white">
+              FFCS Planner
+            </a>
             <span className="text-slate-300 dark:text-neutral-800">•</span>
-            <a href="/privacy/" className="transition-colors hover:text-slate-900 dark:hover:text-white">Privacy</a>
+            <a href="/privacy/" className="transition-colors hover:text-slate-900 dark:hover:text-white">
+              Privacy
+            </a>
             <span className="text-slate-300 dark:text-neutral-800">•</span>
-            <a href="/terms/" className="transition-colors hover:text-slate-900 dark:hover:text-white">Terms</a>
+            <a href="/terms/" className="transition-colors hover:text-slate-900 dark:hover:text-white">
+              Terms
+            </a>
             <span className="text-slate-300 dark:text-neutral-800">•</span>
             <a
               href="https://github.com/AmazeContinuityProjects/AmazeCC"
@@ -200,8 +214,8 @@ export default function GuestExperience({ onGetStarted, onTryDemo }: GuestExperi
             </a>
           </div>
           <p className="flex items-center gap-1.5 text-[10px] font-semibold">
-            Made with <Heart size={10} className="inline shrink-0 fill-rose-500 text-rose-500" /> by students. Not affiliated
-            with VIT or VTOP.
+            Made with <Heart size={10} className="inline shrink-0 fill-rose-500 text-rose-500" /> by students. Not
+            affiliated with VIT or VTOP.
           </p>
         </div>
       </footer>

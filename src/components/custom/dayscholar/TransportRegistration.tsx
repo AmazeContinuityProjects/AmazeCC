@@ -171,7 +171,7 @@ export default function TransportRegistration({
           </div>
           <div className="mt-3 flex justify-center">
             <div className="rounded-2xl bg-white p-3 border border-border-muted">
-              <img
+              <img loading="lazy"
                 src={data.qrCode}
                 alt="Daily attendance QR code"
                 decoding="async"

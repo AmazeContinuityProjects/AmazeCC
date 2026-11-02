@@ -1,4 +1,5 @@
-import { API_BASE, fetchWithTimeout } from "../fetch-utils";
+import { fetchWithTimeout } from "../fetch-utils";
+import { resolveApiRoute } from "../workerBase";
 import { AuthError, TransientError, sleep, backoff, isAuthFailMessage } from "./errors";
 import type { AuthDomain } from "./types";
 
@@ -27,9 +28,7 @@ export interface AuthCreds {
   jsessionid?: string;
 }
 
-type AuthProvider = (
-  domain: AuthDomain,
-) => Promise<AuthCreds | null>;
+type AuthProvider = (domain: AuthDomain) => Promise<AuthCreds | null>;
 
 let authProvider: AuthProvider | null = null;
 export function setAuthProvider(p: AuthProvider): void {
@@ -38,14 +37,9 @@ export function setAuthProvider(p: AuthProvider): void {
 
 const inflight = new Map<string, Promise<unknown>>();
 
-export async function request(
-  path: string,
-  body?: unknown,
-  opts: RequestOpts = {},
-): Promise<any> {
+export async function request(path: string, body?: unknown, opts: RequestOpts = {}): Promise<any> {
   const method = opts.method ?? "POST";
-  const dedupeKey =
-    opts.dedupeKey ?? `${method}:${path}:${JSON.stringify(body ?? "")}`;
+  const dedupeKey = opts.dedupeKey ?? `${method}:${path}:${JSON.stringify(body ?? "")}`;
 
   if (!opts.bypassDedupe) {
     const existing = inflight.get(dedupeKey);
@@ -80,7 +74,7 @@ export async function request(
         }
 
         const res = await fetchWithTimeout(
-          `${API_BASE}/api/${path}`,
+          resolveApiRoute(path, opts.auth),
           {
             method,
             headers: { "Content-Type": "application/json" },
@@ -90,13 +84,11 @@ export async function request(
           opts.timeoutMs ?? 60000,
         );
 
-        const json = await res.json().catch(() => ({} as Record<string, unknown>));
+        const json = await res.json().catch(() => ({}) as Record<string, unknown>);
         const failed = json && (json as { success?: boolean }).success === false;
         if (failed && isAuthFailMessage((json as { message?: string }).message)) {
           const domain: AuthDomain =
-            opts.auth === "vtop" || opts.auth === "eventhub"
-              ? opts.auth
-              : (opts.authFailDomain ?? "vtop");
+            opts.auth === "vtop" || opts.auth === "eventhub" ? opts.auth : (opts.authFailDomain ?? "vtop");
           throw new AuthError((json as { message?: string }).message || "Authentication failed", domain);
         }
         if (!res.ok) throw new TransientError(`HTTP ${res.status}`, backoff(base, attempt));
@@ -109,11 +101,7 @@ export async function request(
         if (opts.signal?.aborted) {
           throw err;
         }
-        if (
-          err instanceof Error &&
-          (err.name === "AbortError" || err.name === "TimeoutError") &&
-          !opts.signal
-        ) {
+        if (err instanceof Error && (err.name === "AbortError" || err.name === "TimeoutError") && !opts.signal) {
           // No caller signal involved, so this abort came from our own timeout.
           // Retry it like any transient failure with a clear message.
           const timeoutErr = new TransientError(
@@ -181,7 +169,7 @@ export async function apiRequest(path: string, opts: ApiOptions = {}): Promise<a
     url = path;
   } else {
     const clean = path.replace(/^\/+/, "").replace(/^api\//, "");
-    url = `${API_BASE}/api/${clean}`;
+    url = resolveApiRoute(clean, auth);
   }
 
   if (opts.query && Object.keys(opts.query).length) {
@@ -207,10 +195,7 @@ export async function apiRequest(path: string, opts: ApiOptions = {}): Promise<a
       // `getCreds("vtop")` re-authenticates when its session is stale, and a
       // VTOP re-auth solves a captcha. So an unauthenticated EventHub action
       // could block for the length of a captcha solve before it was even sent.
-      const creds =
-        (auth === "vtop" || auth === "eventhub") && authProvider
-          ? await authProvider(auth)
-          : null;
+      const creds = (auth === "vtop" || auth === "eventhub") && authProvider ? await authProvider(auth) : null;
       const merged: Record<string, unknown> = { ...(opts.body as Record<string, unknown>) };
       if (auth === "vtop" && creds) {
         if (creds.cookies) merged.cookies = creds.cookies;
@@ -224,19 +209,22 @@ export async function apiRequest(path: string, opts: ApiOptions = {}): Promise<a
     }
   }
 
-  const res = await fetchWithTimeout(
-    url,
-    { method, headers, body, signal: opts.signal },
-    opts.timeoutMs ?? 60000,
-  );
+  const res = await fetchWithTimeout(url, { method, headers, body, signal: opts.signal }, opts.timeoutMs ?? 60000);
 
   if (opts.parse === "raw") return res;
   if (opts.parse === "blob") return await res.blob();
   if (opts.parse === "text") return await res.text();
 
-  const json = await res.json().catch(() => ({} as Record<string, unknown>));
-  if (json && (json as { success?: boolean }).success === false && isAuthFailMessage((json as { message?: string }).message)) {
-    throw new AuthError((json as { message?: string }).message || "Authentication failed", auth === "eventhub" ? "eventhub" : "vtop");
+  const json = await res.json().catch(() => ({}) as Record<string, unknown>);
+  if (
+    json &&
+    (json as { success?: boolean }).success === false &&
+    isAuthFailMessage((json as { message?: string }).message)
+  ) {
+    throw new AuthError(
+      (json as { message?: string }).message || "Authentication failed",
+      auth === "eventhub" ? "eventhub" : "vtop",
+    );
   }
   return json;
 }

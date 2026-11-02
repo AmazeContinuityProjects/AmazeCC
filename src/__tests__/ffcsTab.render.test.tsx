@@ -5,6 +5,7 @@ import { getDefaultStore } from "jotai";
 import FFCSTimetableTab from "../components/custom/exams/FFCSTimetableTab";
 import { getFittingStatTileCount } from "../components/custom/exams/FFCS/components/FFCSDashboardHeader";
 import { closeTopOverlayFromPop } from "../lib/overlayStack";
+import { syncEngine } from "../lib/sync-engine";
 import { isLoggedInAtom } from "../store";
 import { defaultSettings, settingsAtom } from "../store/settingsAtoms";
 import { installLocalStorage, stubScrollIntoView } from "./helpers/localStorage";
@@ -50,6 +51,36 @@ describe("FFCSTimetableTab", () => {
     // The tab's first mount is heavy (its report load, sheets and the planner
     // grid all come up together), so its budget is the suite's, not the 5s
     // default — under a full parallel run the default starves it.
+  }, 30_000);
+
+  /*
+    `/ffcs` is its OWN route: it renders this tab without Main's
+    `useAppBootstrap`, so a student landing here directly held a stored
+    session the page refused to recognise — every sync stayed "logged out"
+    until they clicked the share banner's "Sign in to AmazeCC" link to `/`,
+    which bootstraps this flag into the module-shared store. The tab now
+    hydrates the flag itself, from the same source the home page uses.
+  */
+  it("recognises a stored session on mount, without a detour to the home page", async () => {
+    // Flipping the flag re-runs the curriculum/grades hooks' one-shot
+    // backfill; stub the engine so a jsdom render never reaches VTOP.
+    vi.spyOn(syncEngine, "syncBackground").mockResolvedValue(undefined);
+    storage.setItem("IDs", JSON.stringify({ VtopUsername: "21BCE1234", VtopPassword: "secret" }));
+    expect(getDefaultStore().get(isLoggedInAtom)).toBe(false);
+
+    render(<FFCSTimetableTab />);
+
+    await waitFor(() => expect(getDefaultStore().get(isLoggedInAtom)).toBe(true));
+  }, 30_000);
+
+  it("stays signed out when no session is stored", async () => {
+    render(<FFCSTimetableTab />);
+    expect(screen.getByText("FFCS Planner")).toBeDefined();
+
+    // Mount effects have flushed; with nothing in storage the hydration may
+    // only ever RECOGNISE a session, never invent one.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(getDefaultStore().get(isLoggedInAtom)).toBe(false);
   }, 30_000);
 
   it("starts in Modern mode even when a previous layout preference was saved", () => {

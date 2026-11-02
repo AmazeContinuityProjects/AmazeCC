@@ -50,7 +50,7 @@ import SearchInput from "../../shared/SearchInput";
 import { GLOBAL_CAMPUS, getTimetableSchema, calculatePairwiseSocialScore, safeStorage } from "../FFCSTimetableTab";
 import { COLORS, DAYS } from "./constants";
 import { offeringId, offeringMatches } from "./reports";
-import { HARD_RESULT_LIMIT, sameSlotFacultyAlternatives, expandCourseHalves } from "./logic/generate";
+import { sameSlotFacultyAlternatives, expandCourseHalves } from "./logic/generate";
 import { TimetableGrid, GapDetail } from "./components/TimetableGrid";
 import SlotFacultySwapSheet from "./components/SlotFacultySwapSheet";
 import { getFittingStatTileCount, STAT_TILE_MIN_WIDTH } from "./components/FFCSDashboardHeader";
@@ -1018,7 +1018,9 @@ export function FFCSGeneratorSubpage({
         maxEndTimeByDay: generatorMaxEndTimeByDay,
         uniqueFaculties: generatorUniqueFaculties,
         noLimit: generatorNoLimit,
-        removeHardResultLimit: settings.removeHardResultLimit,
+        // The per-run switch carries the opt-out: "Remove result cap" means no
+        // ceiling, not the engine's 30K fallback ceiling.
+        removeHardResultLimit: generatorNoLimit,
         // The settings cap only binds while the per-run switch leaves the
         // search bounded — the switch is the more recent thing chosen.
         resultCap: generatorResultCap,
@@ -1089,12 +1091,12 @@ export function FFCSGeneratorSubpage({
           ? ` ${droppedCourses.length === 1 ? "One selected course had" : `${droppedCourses.length} selected courses had`} no clash-free slot with the rest and ${droppedCourses.length === 1 ? "was" : "were"} left out (All Subjects Mode is off): ${droppedCourses.join(", ")}.`
           : "") +
         // Worth saying out loud: the cap is a real limit, and a student who
-        // reads "50 found" as "there are 50" would be wrong. The two caps get
-        // different words: the settings one can truly be widened by the
-        // switch, while the switch's own ceiling cannot be widened by itself.
+        // reads "50 found" as "there are 50" would be wrong. With the switch
+        // now lifting the ceiling outright, only a capped run can say this —
+        // an unlimited run either finds everything or never reports a cap.
         (outcome.capped
           ? generatorNoLimit
-            ? ` The "unlimited" search stopped at its ${HARD_RESULT_LIMIT.toLocaleString()}-result ceiling — filters like the time window or a half-days floor will narrow what exists.`
+            ? " The search stopped at its result ceiling — filters like the time window or a half-days floor will narrow what exists."
             : " More may exist — try allowing unlimited results."
           : ""),
     );
@@ -1284,7 +1286,7 @@ export function FFCSGeneratorSubpage({
       id: "constraints" as const,
       label: "Search limits",
       icon: SlidersHorizontal,
-      detail: `${generatorNoLimit ? "No result cap" : generatorResultCap + " max"}`,
+      detail: `${generatorNoLimit ? "No result cap" : `${generatorResultCap.toLocaleString()} max`}`,
       tone: "amber",
     },
     {
@@ -2978,9 +2980,7 @@ export function FFCSGeneratorSubpage({
                             title="Remove result cap"
                             description={
                               generatorNoLimit
-                                ? settings.removeHardResultLimit
-                                  ? "No cap — the search keeps every conflict-free option it finds."
-                                  : "Search keeps going past the cap, up to the 30,000 hard limit."
+                                ? "No cap — the search keeps every conflict-free option it finds."
                                 : "Search stops once the result cap below is reached."
                             }
                             checked={generatorNoLimit}
@@ -2998,9 +2998,12 @@ export function FFCSGeneratorSubpage({
                             control={
                               <SegmentedControl
                                 grow
-                                options={[...new Set([50, 100, 250, 500, generatorResultCap])]
+                                options={[...new Set([50, 100, 250, 500, 30_000, generatorResultCap])]
                                   .sort((a, b) => a - b)
-                                  .map((cap) => ({ value: String(cap), label: String(cap) }))}
+                                  .map((cap) => ({
+                                    value: String(cap),
+                                    label: cap >= 1_000 ? `${cap / 1_000}K` : String(cap),
+                                  }))}
                                 value={String(generatorResultCap)}
                                 onChange={(val) => setGeneratorResultCap(Number(val))}
                                 className="[&>button]:min-h-10 [&>button]:text-xs"

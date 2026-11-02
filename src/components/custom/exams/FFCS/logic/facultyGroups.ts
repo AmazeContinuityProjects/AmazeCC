@@ -1,6 +1,6 @@
 import chennaiSchema from "@/data/campus/chennai.json";
 import type { TimetablePeriod } from "@amazecontinuityprojects/amazeui";
-import { parseCachedCourses, parseCourseRows } from "@/lib/freeClassrooms";
+import { parseCourseRows } from "@/lib/freeClassrooms";
 import { COLORS } from "../constants";
 import type { AddedCourse } from "../types";
 import { splitSlots } from "@/lib/slots";
@@ -63,20 +63,7 @@ export interface FacultyNameGroup {
 }
 
 /** Loose titles that prefix a portal name and never carry identity. */
-const HONORIFICS = new Set([
-  "DR",
-  "PROF",
-  "PROFESSOR",
-  "MR",
-  "MRS",
-  "MS",
-  "MISS",
-  "SMT",
-  "SHRI",
-  "SRI",
-  "ER",
-  "KUM",
-]);
+const HONORIFICS = new Set(["DR", "PROF", "PROFESSOR", "MR", "MRS", "MS", "MISS", "SMT", "SHRI", "SRI", "ER", "KUM"]);
 
 /**
  * Fold a name to its comparable form.
@@ -103,11 +90,7 @@ export function normalizeFacultyName(name: string): string {
 
 /** The group identity: normalised tokens, sorted, so word order cannot split a group. */
 export function facultyGroupKey(name: string): string {
-  return normalizeFacultyName(name)
-    .split(" ")
-    .filter(Boolean)
-    .sort()
-    .join(" ");
+  return normalizeFacultyName(name).split(" ").filter(Boolean).sort().join(" ");
 }
 
 /**
@@ -169,10 +152,7 @@ export function buildFacultyNameGroups(offerings: readonly FacultyOffering[]): F
  * the group list in report order, so the schedule shown is the one belonging to
  * the first spelling the report used for that person.
  */
-export function findFirstMatchingGroup(
-  groups: readonly FacultyNameGroup[],
-  name: string
-): FacultyNameGroup | null {
+export function findFirstMatchingGroup(groups: readonly FacultyNameGroup[], name: string): FacultyNameGroup | null {
   for (const group of groups) {
     if (group.names.some((candidate) => facultyNameMatches(candidate, name))) {
       return group;
@@ -250,29 +230,20 @@ function toOffering(row: OfferingLike): FacultyOffering {
  * nothing.
  */
 export async function loadFacultyOfferings(): Promise<FacultyOffering[]> {
-  if (typeof window !== "undefined") {
-    try {
-      const cached = parseCachedCourses(window.localStorage.getItem("ffcs_raw_courses"));
-      if (cached.length > 0) return cached.map(toOffering);
-    } catch {
-      // A cache this function cannot read is "no rows"; fall through to the fetch.
-    }
-  }
-
+  // Resolve from the shipped fall-semester report (ffcsReport.csv) rather
+  // than the shared `ffcs_raw_courses` cache, which may hold a stale or
+  // different-semester report and cause faculty names to stop matching the
+  // reader's current course list. The cache is still refreshed below so the
+  // free-classroom surfaces stay aligned with the same data.
   const XLSX = await import("xlsx");
   const response = await fetch("/ffcs/ffcsReport.csv");
   if (!response.ok) throw new Error("Failed to load FFCS course report");
   const workbook = XLSX.read(new Uint8Array(await response.arrayBuffer()), { type: "array" });
-  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(
-    workbook.Sheets[workbook.SheetNames[0]]
-  );
+  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[workbook.SheetNames[0]]);
   const parsed = parseCourseRows(rows);
-  if (typeof window !== "undefined") {
-    try {
-      window.localStorage.setItem("ffcs_raw_courses", JSON.stringify(parsed));
-    } catch {
-      // Quota or privacy mode: the schedule still renders from memory.
-    }
-  }
+  // Do not overwrite the shared `ffcs_raw_courses` cache here: that cache
+  // belongs to the planner's currently selected report (/ffcs and the
+  // free-classroom surfaces). The faculty schedule keeps its own copy in
+  // component state, resolved from the shipped fall report.
   return parsed.map(toOffering);
 }

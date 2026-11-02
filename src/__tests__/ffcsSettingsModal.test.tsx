@@ -150,13 +150,44 @@ describe("FFCSSettingsModal", () => {
     expect(p.update).toHaveBeenCalledWith("separateCourseListExport", true);
   });
 
-  it("updates the unlimited-search safety ceiling preference", () => {
+  it("updates the Vitfac integration preference through its labelled switch", () => {
     const p = props();
     render(<FFCSSettingsModal {...p} />);
 
-    act(() => screen.getByRole("switch", { name: "Remove 30,000-result safety ceiling" }).click());
+    // The row names its switch (aria-label), so the grouping row's
+    // deliberately unnamed switch stays this suite's "first switch with no
+    // label" contract.
+    act(() => screen.getByRole("switch", { name: "Vitfac faculty reviews" }).click());
 
-    expect(p.update).toHaveBeenCalledWith("removeHardResultLimit", true);
+    expect(p.update).toHaveBeenCalledWith("vitfacIntegration", false);
+  });
+
+  it("names the Vitfac row's default and offers the restore once it moves off", () => {
+    const p = props({ settings: { ...FFCSSettingsDefaults, vitfacIntegration: false } });
+    render(<FFCSSettingsModal {...p} />);
+
+    // "On" is the shipped default; every on-by-default row shows it, this
+    // row included — the restore button's key-specific name is the part only
+    // this row can claim.
+    expect(screen.getAllByText("Default: On").length).toBeGreaterThan(0);
+    act(() => screen.getByRole("button", { name: "Restore Vitfac faculty reviews default" }).click());
+
+    expect(p.update).toHaveBeenCalledWith("vitfacIntegration", true);
+  });
+
+  it("offers 30K as the widest result cap and applies it when picked", () => {
+    const p = props();
+    render(<FFCSSettingsModal {...p} />);
+
+    // 30K is the engine's own ceiling — the widest a capped search can go,
+    // with only the per-run Unlimited switch above it.
+    click("30K");
+
+    expect(p.update).toHaveBeenCalledWith("resultCap", 30000);
+    // The safety-ceiling opt-in is gone: the Unlimited switch lifts the
+    // ceiling itself, so Planner Settings no longer holds a second, weaker
+    // version of the same choice.
+    expect(screen.queryByRole("switch", { name: "Remove 30,000-result safety ceiling" })).toBeNull();
   });
 
   it("reorders the combined ranking priority through planner settings", () => {

@@ -3,21 +3,29 @@
 import { useEffect, useState, useMemo } from "react";
 import { useAtomValue } from "jotai";
 import { settingsAtom } from "@/store/settingsAtoms";
-import { 
-  RefreshCcw, Clock, Sparkles, Utensils, Sun, Coffee, Moon, CalendarCheck
-} from "lucide-react";
+import { RefreshCcw, Clock, Sparkles, Utensils, Sun, Coffee, Moon, CalendarCheck } from "lucide-react";
 import { useIsMobile } from "../shared";
+import { WORKER_BASE } from "@/lib/workerBase";
 
+/**
+ * Mess menus, served by the AmazeCC worker rather than fetched from unmessify's
+ * GitHub Pages in the browser.
+ *
+ * The worker caches each file for six hours, so one upstream fetch covers the
+ * whole campus instead of one per student per visit. The filename is also on an
+ * allowlist in the worker, which is why this is a plain map of known files and
+ * not something built from user input.
+ */
 const messLinks: Record<string, Record<string, string>> = {
   Male: {
-    "Non Veg": "https://kanishka-developer.github.io/unmessify/json/en/VITC-M-N.json",
-    Veg: "https://kanishka-developer.github.io/unmessify/json/en/VITC-M-V.json",
-    Special: "https://kanishka-developer.github.io/unmessify/json/en/VITC-M-S.json",
+    "Non Veg": `${WORKER_BASE}/unmessify/VITC-M-N.json`,
+    Veg: `${WORKER_BASE}/unmessify/VITC-M-V.json`,
+    Special: `${WORKER_BASE}/unmessify/VITC-M-S.json`,
   },
   Female: {
-    "Non Veg": "https://kanishka-developer.github.io/unmessify/json/en/VITC-W-N.json",
-    Veg: "https://kanishka-developer.github.io/unmessify/json/en/VITC-W-V.json",
-    Special: "https://kanishka-developer.github.io/unmessify/json/en/VITC-W-S.json",
+    "Non Veg": `${WORKER_BASE}/unmessify/VITC-W-N.json`,
+    Veg: `${WORKER_BASE}/unmessify/VITC-W-V.json`,
+    Special: `${WORKER_BASE}/unmessify/VITC-W-S.json`,
   },
 };
 
@@ -32,7 +40,7 @@ const fullToShortDay: Record<string, string> = {
 };
 
 const shortToFullDay: Record<string, string> = Object.fromEntries(
-  Object.entries(fullToShortDay).map(([full, short]) => [short, full])
+  Object.entries(fullToShortDay).map(([full, short]) => [short, full]),
 );
 
 // Helper to determine current week of month (Week 1: 1-7, Week 2: 8-14, Week 3: 15-21, Week 4: 22+)
@@ -103,9 +111,7 @@ const getSmartMenuText = (rawText: string, weekNum: number): string => {
     }
   });
 
-  return resultLines.length > 0
-    ? resultLines.join("\n")
-    : rawText.replace(/\s*\([^)]*week[^)]*\)/gi, "").trim();
+  return resultLines.length > 0 ? resultLines.join("\n") : rawText.replace(/\s*\([^)]*week[^)]*\)/gi, "").trim();
 };
 
 export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: any) {
@@ -117,7 +123,9 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
         </div>
         <div>
           <h3 className="text-base font-bold text-zinc-900 dark:text-white font-outfit">Hostel Mess Information</h3>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 font-medium max-w-sm">You are currently not registered as a Hosteller in VTOP records.</p>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 font-medium max-w-sm">
+            You are currently not registered as a Hosteller in VTOP records.
+          </p>
         </div>
         <button
           onClick={handleHostelDetailsFetch}
@@ -144,12 +152,8 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
   const currentMonth = new Date().toLocaleString("default", { month: "long" });
   const currentWeekNum = getCurrentWeekOfMonth();
 
-  const [gender, setGender] = useState(
-    normalizeGender(hostelData.hostelInfo?.gender) || "Male"
-  );
-  const [type, setType] = useState(
-    normalizeType(hostelData.hostelInfo?.messInfo) || "Veg"
-  );
+  const [gender, setGender] = useState(normalizeGender(hostelData.hostelInfo?.gender) || "Male");
+  const [type, setType] = useState(normalizeType(hostelData.hostelInfo?.messInfo) || "Veg");
   const settings = useAtomValue(settingsAtom);
   const smartMode = settings?.smartMessFilter ?? false;
   const [menu, setMenu] = useState<any[]>([]);
@@ -194,14 +198,14 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
     }
 
     fetch(remoteUrl, { cache: "no-store" })
-      .then(res => res.json())
-      .then(data => {
+      .then((res) => res.json())
+      .then((data) => {
         if (data?.list) {
           setMenu(data.list);
           localStorage.setItem(fileName, JSON.stringify(data));
         }
       })
-      .catch(err => {
+      .catch((err) => {
         console.warn("Remote fetch failed, using cached menu:", err);
       });
   }
@@ -224,34 +228,34 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
   }, []);
 
   const mealsList = [
-    { 
-      name: "Breakfast", 
-      Icon: Sun, 
-      time: "7:30 AM - 9:00 AM", 
-      key: "Breakfast", 
-      accentColor: "text-amber-500 dark:text-amber-400"
+    {
+      name: "Breakfast",
+      Icon: Sun,
+      time: "7:30 AM - 9:00 AM",
+      key: "Breakfast",
+      accentColor: "text-amber-500 dark:text-amber-400",
     },
-    { 
-      name: "Lunch", 
-      Icon: Utensils, 
-      time: "12:30 PM - 2:00 PM", 
-      key: "Lunch", 
-      accentColor: "text-indigo-500 dark:text-indigo-400"
+    {
+      name: "Lunch",
+      Icon: Utensils,
+      time: "12:30 PM - 2:00 PM",
+      key: "Lunch",
+      accentColor: "text-indigo-500 dark:text-indigo-400",
     },
-    { 
-      name: "Snacks", 
-      Icon: Coffee, 
-      time: "4:30 PM - 5:30 PM", 
-      key: "Snacks", 
-      accentColor: "text-emerald-500 dark:text-emerald-400"
+    {
+      name: "Snacks",
+      Icon: Coffee,
+      time: "4:30 PM - 5:30 PM",
+      key: "Snacks",
+      accentColor: "text-emerald-500 dark:text-emerald-400",
     },
-    { 
-      name: "Dinner", 
-      Icon: Moon, 
-      time: "7:30 PM - 9:00 PM", 
-      key: "Dinner", 
-      accentColor: "text-purple-500 dark:text-purple-400"
-    }
+    {
+      name: "Dinner",
+      Icon: Moon,
+      time: "7:30 PM - 9:00 PM",
+      key: "Dinner",
+      accentColor: "text-purple-500 dark:text-purple-400",
+    },
   ];
 
   const renderMenuContent = (rawText: string) => {
@@ -262,13 +266,16 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
     // Clean leading line numbers like "1. ", "2) ", etc. from every line
     const cleanedLines = rawText
       .split("\n")
-      .map(line => line.trim().replace(/^(\d+)[\.\)]\s*/, ""))
+      .map((line) => line.trim().replace(/^(\d+)[\.\)]\s*/, ""))
       .filter(Boolean);
 
     return (
       <ul className="space-y-2">
         {cleanedLines.map((line, idx) => (
-          <li key={idx} className="flex items-start gap-2 text-xs font-medium text-zinc-800 dark:text-zinc-200 leading-relaxed">
+          <li
+            key={idx}
+            className="flex items-start gap-2 text-xs font-medium text-zinc-800 dark:text-zinc-200 leading-relaxed"
+          >
             <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-indigo-500/60 mt-1.5" />
             <span className="flex-1">{line}</span>
           </li>
@@ -307,7 +314,7 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
         <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
           {/* Gender Segmented Control */}
           <div className="flex p-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200/60 dark:border-zinc-800">
-            {["Male", "Female"].map(g => (
+            {["Male", "Female"].map((g) => (
               <button
                 key={g}
                 onClick={() => setGender(g)}
@@ -328,7 +335,7 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
               { id: "Veg", label: "Veg" },
               { id: "Non Veg", label: "Non-Veg" },
               { id: "Special", label: "Special" },
-            ].map(t => (
+            ].map((t) => (
               <button
                 key={t.id}
                 onClick={() => setType(t.id)}
@@ -389,7 +396,7 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
             /* Mobile Tab Switcher & Single Active Meal View */
             <div className="space-y-4">
               <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl w-full border border-zinc-200/60 dark:border-zinc-800">
-                {mealsList.map(meal => {
+                {mealsList.map((meal) => {
                   const isActive = activeMealMobile === meal.name;
                   const isCurrentNow = activeDay === today && currentActiveMealName === meal.name;
                   const MealIcon = meal.Icon;
@@ -398,8 +405,8 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
                       key={meal.name}
                       onClick={() => setActiveMealMobile(meal.name)}
                       className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer ${
-                        isActive 
-                          ? "bg-white dark:bg-zinc-800 text-indigo-600 dark:text-indigo-400 shadow-xs" 
+                        isActive
+                          ? "bg-white dark:bg-zinc-800 text-indigo-600 dark:text-indigo-400 shadow-xs"
                           : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
                       }`}
                     >
@@ -413,7 +420,7 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
 
               {/* Mobile Single Active Meal Card */}
               {(() => {
-                const meal = mealsList.find(m => m.name === activeMealMobile);
+                const meal = mealsList.find((m) => m.name === activeMealMobile);
                 if (!meal) return null;
                 const rawText = todayMenu[meal.key] || "";
                 const displayText = smartMode ? getSmartMenuText(rawText, currentWeekNum) : rawText;
@@ -421,7 +428,9 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
                 const MealIcon = meal.Icon;
 
                 return (
-                  <div className={`card-surface border ${isCurrentNow ? "border-indigo-500/50 dark:border-indigo-500/40" : "border-zinc-200/50 dark:border-zinc-800/80"} rounded-2xl p-5 shadow-xs space-y-4`}>
+                  <div
+                    className={`card-surface border ${isCurrentNow ? "border-indigo-500/50 dark:border-indigo-500/40" : "border-zinc-200/50 dark:border-zinc-800/80"} rounded-2xl p-5 shadow-xs space-y-4`}
+                  >
                     <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-3">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
@@ -443,9 +452,7 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
                       </div>
                     </div>
 
-                    <div className="pt-1">
-                      {renderMenuContent(displayText)}
-                    </div>
+                    <div className="pt-1">{renderMenuContent(displayText)}</div>
                   </div>
                 );
               })()}
@@ -463,8 +470,8 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
                   <div
                     key={meal.name}
                     className={`card-surface border ${
-                      isCurrentNow 
-                        ? "border-indigo-500/50 dark:border-indigo-500/40 ring-1 ring-indigo-500/20" 
+                      isCurrentNow
+                        ? "border-indigo-500/50 dark:border-indigo-500/40 ring-1 ring-indigo-500/20"
                         : "border-zinc-200/50 dark:border-zinc-800/80"
                     } rounded-2xl p-4.5 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700 transition-all flex flex-col justify-between text-left`}
                   >
@@ -488,9 +495,7 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
                         )}
                       </div>
 
-                      <div className="pt-1 min-h-[140px]">
-                        {renderMenuContent(displayText)}
-                      </div>
+                      <div className="pt-1 min-h-[140px]">{renderMenuContent(displayText)}</div>
                     </div>
                   </div>
                 );

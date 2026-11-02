@@ -1,15 +1,6 @@
 "use client";
 
-import {
-  memo,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type KeyboardEvent,
-  type RefObject,
-} from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type RefObject } from "react";
 import SelectField from "../shared/primitives/SelectField";
 import OptionPicker from "../shared/primitives/OptionPicker";
 
@@ -66,11 +57,11 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { AnimatePresence, m } from "framer-motion";
-import { 
-  useTheme, 
-  Sidebar, 
-  SidebarHeader, 
-  SidebarContent, 
+import {
+  useTheme,
+  Sidebar,
+  SidebarHeader,
+  SidebarContent,
   SidebarFooter,
   SidebarGroup,
   SidebarGroupLabel,
@@ -116,11 +107,24 @@ function formatSemesterName(semId: string): string {
 function getTabIdFromLabel(label: string): string | null {
   const lower = label.toLowerCase();
   if (lower === "attendance") return "attendance";
-  if (lower === "my courses & marks" || lower === "my courses" || lower === "academics overview" || lower === "course dashboard" || lower === "academics") return "academics";
+  if (
+    lower === "my courses & marks" ||
+    lower === "my courses" ||
+    lower === "academics overview" ||
+    lower === "course dashboard" ||
+    lower === "academics"
+  )
+    return "academics";
   if (lower === "hostel payments" || lower === "payments") return "payments";
   if (lower === "libraries" || lower === "question bank") return "libraries";
   if (lower === "free classrooms" || lower === "free classroom" || lower === "free-class") return "free-class";
-  if (lower === "faculty schedule" || lower === "faculty schedules" || lower === "find faculty schedule" || lower === "faculty-schedule") return "faculty-schedule";
+  if (
+    lower === "faculty schedule" ||
+    lower === "faculty schedules" ||
+    lower === "find faculty schedule" ||
+    lower === "faculty-schedule"
+  )
+    return "faculty-schedule";
   if (lower === "event hub" || lower === "events hub" || lower === "events") return "events";
   if (lower === "club hub" || lower === "clubs") return "clubs";
   if (lower === "community feed" || lower === "community" || lower === "announcements") return "community";
@@ -130,8 +134,7 @@ function getTabIdFromLabel(label: string): string | null {
   return null;
 }
 
-const navButtonBase =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/40";
+const navButtonBase = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/40";
 
 export default function NavigationTabs({
   activeTab,
@@ -169,7 +172,7 @@ export default function NavigationTabs({
   setActiveProfileSubTab,
   onOpenFeedbackStatus,
   onOpenCommandPalette,
-  onCollapseScreenChange
+  onCollapseScreenChange,
 }: any) {
   // Suppress unused warnings to comply with ESLint configurations
   void handleLogOutRequest;
@@ -190,7 +193,7 @@ export default function NavigationTabs({
   const [isSpinning, setIsSpinning] = useState(false);
   const [currentIcon, setCurrentIcon] = useState(getAssetPath("/logo.png"));
   const [profileData, setProfileData] = useState<any>(null);
-  
+
   // Progressive disclosure
   const [showAcademicsPanel, setShowAcademicsPanel] = useState(activeTab === "academics");
   const [showToolsPanel, setShowToolsPanel] = useState(activeTab === "tools");
@@ -201,8 +204,6 @@ export default function NavigationTabs({
   // System back (incl. Android predictive back) dismisses the App Library
   // directly, before screen navigation does
   useOverlayBack("app-library", isAppLibraryOpen, () => setIsAppLibraryOpen(false));
-
-
 
   // Theme settings (next-themes)
   const { theme, setTheme } = useTheme();
@@ -238,7 +239,6 @@ export default function NavigationTabs({
   }, []);
 
   // No swipe-up gesture — App Library is opened only via the Modules button
-
 
   // Keep the matching drill-in panel open for section-level destinations.
   useEffect(() => {
@@ -307,10 +307,13 @@ export default function NavigationTabs({
     .slice(0, 2)
     .toUpperCase();
 
-  const persistSidebarState = useCallback((nextCollapsed: boolean) => {
-    setSettings(prev => ({ ...prev, isSidebarCollapsed: nextCollapsed }));
-    localStorage.setItem("settings", JSON.stringify({ ...settings, isSidebarCollapsed: nextCollapsed }));
-  }, [setSettings, settings]);
+  const persistSidebarState = useCallback(
+    (nextCollapsed: boolean) => {
+      setSettings((prev) => ({ ...prev, isSidebarCollapsed: nextCollapsed }));
+      localStorage.setItem("settings", JSON.stringify({ ...settings, isSidebarCollapsed: nextCollapsed }));
+    },
+    [setSettings, settings],
+  );
 
   const handleReloadClick = useCallback(async () => {
     setIsSpinning(true);
@@ -320,53 +323,59 @@ export default function NavigationTabs({
 
   const { isOffline, triggerSync: handleSyncClick } = useSyncTrigger(handleReloadClick);
 
-  const selectTab = useCallback((tab: string) => {
-    setActiveTab(tab);
-    window.scrollTo(0, 0);
-  }, [setActiveTab]);
-
-
+  const selectTab = useCallback(
+    (tab: string) => {
+      setActiveTab(tab);
+      window.scrollTo(0, 0);
+    },
+    [setActiveTab],
+  );
 
   const toggleRailPopover = useCallback((groupId: string) => {
-    setActiveRailGroup(current => (current === groupId ? null : groupId));
+    setActiveRailGroup((current) => (current === groupId ? null : groupId));
   }, []);
 
   // Removed old layout items as they are now fully isolated inside AppLibraryPortal
 
-  const tabIcons = useMemo<Record<string, { icon: React.ReactNode; label: string }>>(() => ({
-    attendance: activeAttendanceSubTab === "calendar"
-      ? { icon: <Calendar className="h-5 w-5 stroke-[2]" />, label: "Calendar" }
-      : { icon: <CalendarCheck className="h-5 w-5 stroke-[2]" />, label: "Attendance" },
-    academics: { icon: <GraduationCap className="h-5 w-5 stroke-[2]" />, label: "Academics" },
-    tools: { icon: <Layers className="h-5 w-5 stroke-[2]" />, label: "Tools" },
-    payments: { icon: <CreditCard className="h-5 w-5 stroke-[2]" />, label: "Payments" },
-    libraries: { icon: <Library className="h-5 w-5 stroke-[2]" />, label: "Libraries" },
-    events: { icon: <Calendar className="h-5 w-5 stroke-[2]" />, label: "Event Hub" },
-    clubs: { icon: <LayoutGrid className="h-5 w-5 stroke-[2]" />, label: "Club Hub" },
-    community: { icon: <Rss className="h-5 w-5 stroke-[2]" />, label: "Announcements" },
-    "free-class": { icon: <DoorOpen className="h-5 w-5 stroke-[2]" />, label: "Free Classrooms" },
-    "faculty-schedule": { icon: <UserSearch className="h-5 w-5 stroke-[2]" />, label: "Faculty Schedule" },
-    cabshare: { icon: <CarTaxiFront className="h-5 w-5 stroke-[2]" />, label: "Cab Share" },
-    transport: { icon: <Bus className="h-5 w-5 stroke-[2]" />, label: "Transport" },
-    more: { icon: <MoreHorizontal className="h-5 w-5 stroke-[2]" />, label: "More" },
-    profile: { icon: <User className="h-5 w-5 stroke-[2]" />, label: "Profile" },
-    credentials: { icon: <Key className="h-5 w-5 stroke-[2]" />, label: "Credentials" },
-  }), [activeAttendanceSubTab]);
+  const tabIcons = useMemo<Record<string, { icon: React.ReactNode; label: string }>>(
+    () => ({
+      attendance:
+        activeAttendanceSubTab === "calendar"
+          ? { icon: <Calendar className="h-5 w-5 stroke-[2]" />, label: "Calendar" }
+          : { icon: <CalendarCheck className="h-5 w-5 stroke-[2]" />, label: "Attendance" },
+      academics: { icon: <GraduationCap className="h-5 w-5 stroke-[2]" />, label: "Academics" },
+      tools: { icon: <Layers className="h-5 w-5 stroke-[2]" />, label: "Tools" },
+      payments: { icon: <CreditCard className="h-5 w-5 stroke-[2]" />, label: "Payments" },
+      libraries: { icon: <Library className="h-5 w-5 stroke-[2]" />, label: "Libraries" },
+      events: { icon: <Calendar className="h-5 w-5 stroke-[2]" />, label: "Event Hub" },
+      clubs: { icon: <LayoutGrid className="h-5 w-5 stroke-[2]" />, label: "Club Hub" },
+      community: { icon: <Rss className="h-5 w-5 stroke-[2]" />, label: "Announcements" },
+      "free-class": { icon: <DoorOpen className="h-5 w-5 stroke-[2]" />, label: "Free Classrooms" },
+      "faculty-schedule": { icon: <UserSearch className="h-5 w-5 stroke-[2]" />, label: "Faculty Schedule" },
+      cabshare: { icon: <CarTaxiFront className="h-5 w-5 stroke-[2]" />, label: "Cab Share" },
+      transport: { icon: <Bus className="h-5 w-5 stroke-[2]" />, label: "Transport" },
+      more: { icon: <MoreHorizontal className="h-5 w-5 stroke-[2]" />, label: "More" },
+      profile: { icon: <User className="h-5 w-5 stroke-[2]" />, label: "Profile" },
+      credentials: { icon: <Key className="h-5 w-5 stroke-[2]" />, label: "Credentials" },
+    }),
+    [activeAttendanceSubTab],
+  );
 
-  const togglePin = useCallback((tabId: string) => {
-    const current = settings?.pinnedNavTabs ?? [];
-    const isPinned = current.includes(tabId);
-    const atLimit = !isPinned && current.length >= 4;
-    if (atLimit) return;
-    const next = isPinned
-      ? current.filter((id: string) => id !== tabId)
-      : [...current, tabId];
-    setSettings((prev: any) => {
-      const updated = { ...prev, pinnedNavTabs: next };
-      localStorage.setItem("settings", JSON.stringify(updated));
-      return updated;
-    });
-  }, [settings, setSettings]);
+  const togglePin = useCallback(
+    (tabId: string) => {
+      const current = settings?.pinnedNavTabs ?? [];
+      const isPinned = current.includes(tabId);
+      const atLimit = !isPinned && current.length >= 4;
+      if (atLimit) return;
+      const next = isPinned ? current.filter((id: string) => id !== tabId) : [...current, tabId];
+      setSettings((prev: any) => {
+        const updated = { ...prev, pinnedNavTabs: next };
+        localStorage.setItem("settings", JSON.stringify(updated));
+        return updated;
+      });
+    },
+    [settings, setSettings],
+  );
 
   const rawNavItems = useMemo(() => {
     const pinnedTabs = settings?.pinnedNavTabs ?? [];
@@ -399,9 +408,10 @@ export default function NavigationTabs({
             id: tabId,
             icon: t.icon,
             label: t.label,
-            isActive: tabId === "credentials"
-              ? (activeTab === "profile" && activeProfileSubTab === "credentials" && !isAppLibraryOpen)
-              : (activeTab === tabId && !isAppLibraryOpen),
+            isActive:
+              tabId === "credentials"
+                ? activeTab === "profile" && activeProfileSubTab === "credentials" && !isAppLibraryOpen
+                : activeTab === tabId && !isAppLibraryOpen,
             onClick: () => {
               setIsAppLibraryOpen(false);
               if (tabId === "credentials") {
@@ -425,12 +435,23 @@ export default function NavigationTabs({
       label: "Modules",
       isActive: isAppLibraryOpen,
       onClick: () => {
-        setIsAppLibraryOpen(prev => !prev);
+        setIsAppLibraryOpen((prev) => !prev);
       },
     });
 
     return rawItems;
-  }, [settings?.pinnedNavTabs, activeTab, activeProfileSubTab, isAppLibraryOpen, selectTab, openCommandPalette, tabIcons, setIsAppLibraryOpen, setActiveAttendanceSubTab, setActiveProfileSubTab]);
+  }, [
+    settings?.pinnedNavTabs,
+    activeTab,
+    activeProfileSubTab,
+    isAppLibraryOpen,
+    selectTab,
+    openCommandPalette,
+    tabIcons,
+    setIsAppLibraryOpen,
+    setActiveAttendanceSubTab,
+    setActiveProfileSubTab,
+  ]);
 
   const sidebarActiveStyles = "bg-sidebar-accent border border-sidebar-border text-info font-semibold";
   const sidebarActiveIconStyles = "text-info font-semibold";
@@ -462,37 +483,40 @@ export default function NavigationTabs({
   }, []);
 
   // Navigation Items Memoization
-  const studyItems = useMemo<NavItem[]>(() => [
-    {
-      id: "home",
-      label: "Home",
-      icon: Home,
-      isActive: activeTab === "home",
-      onSelect: () => selectTab("home"),
-    },
-    {
-      id: "calendar",
-      label: "Timetable Calendar",
-      icon: Calendar,
-      isActive: activeTab === "attendance",
-      onSelect: () => {
-        selectTab("attendance");
-        setActiveAttendanceSubTab("calendar");
+  const studyItems = useMemo<NavItem[]>(
+    () => [
+      {
+        id: "home",
+        label: "Home",
+        icon: Home,
+        isActive: activeTab === "home",
+        onSelect: () => selectTab("home"),
       },
-    },
-    {
-      id: "academics",
-      label: "Academics",
-      icon: GraduationCap,
-      isActive: activeTab === "academics",
-      isExpandable: true,
-      onSelect: () => {
-        selectTab("academics");
-        if (!activeSubTab || activeSubTab === "overview") setActiveSubTab("courses-simplified");
-        setShowAcademicsPanel(true);
+      {
+        id: "calendar",
+        label: "Timetable Calendar",
+        icon: Calendar,
+        isActive: activeTab === "attendance",
+        onSelect: () => {
+          selectTab("attendance");
+          setActiveAttendanceSubTab("calendar");
+        },
       },
-    },
-  ], [activeTab, activeSubTab, selectTab, setActiveAttendanceSubTab, setActiveSubTab]);
+      {
+        id: "academics",
+        label: "Academics",
+        icon: GraduationCap,
+        isActive: activeTab === "academics",
+        isExpandable: true,
+        onSelect: () => {
+          selectTab("academics");
+          if (!activeSubTab || activeSubTab === "overview") setActiveSubTab("courses-simplified");
+          setShowAcademicsPanel(true);
+        },
+      },
+    ],
+    [activeTab, activeSubTab, selectTab, setActiveAttendanceSubTab, setActiveSubTab],
+  );
 
   const campusItems = useMemo<NavItem[]>(() => {
     const items: NavItem[] = [
@@ -543,9 +567,7 @@ export default function NavigationTabs({
         label: "Free Classrooms",
         icon: DoorOpen,
         // Preserve highlighting for older saved navigation state.
-        isActive:
-          activeTab === "free-class" ||
-          (activeTab === "tools" && activeToolsSubTab === "free-class"),
+        isActive: activeTab === "free-class" || (activeTab === "tools" && activeToolsSubTab === "free-class"),
         onSelect: () => selectTab("free-class"),
       },
       {
@@ -573,61 +595,81 @@ export default function NavigationTabs({
     }
 
     return items;
-  }, [activeTab, activeToolsSubTab, isHosteller, residentialStatus, selectTab, setActiveToolsSubTab, HostelActiveSubTab, setHostelActiveSubTab]);
+  }, [
+    activeTab,
+    activeToolsSubTab,
+    isHosteller,
+    residentialStatus,
+    selectTab,
+    setActiveToolsSubTab,
+    HostelActiveSubTab,
+    setHostelActiveSubTab,
+  ]);
 
-  const toolsItems = useMemo<NavItem[]>(() => [
-    {
-      id: "ffcs",
-      label: "FFCS Planner",
-      icon: Compass,
-      isActive: (activeTab === "more" && activeMoreSubTab === "ffcs") || (activeTab === "tools" && activeToolsSubTab === "ffcs"),
-      onSelect: navigateToFFCSPlanner,
-    },
-    {
-      id: "tools",
-      label: "Tools & Utilities Hub",
-      icon: Layers,
-      isActive: activeTab === "tools" && (!activeToolsSubTab || activeToolsSubTab === "overview"),
-      isExpandable: true,
-      onSelect: () => {
-        selectTab("tools");
-        setActiveToolsSubTab?.("overview");
-        setShowToolsPanel(true);
+  const toolsItems = useMemo<NavItem[]>(
+    () => [
+      {
+        id: "ffcs",
+        label: "FFCS Planner",
+        icon: Compass,
+        isActive:
+          (activeTab === "more" && activeMoreSubTab === "ffcs") ||
+          (activeTab === "tools" && activeToolsSubTab === "ffcs"),
+        onSelect: navigateToFFCSPlanner,
       },
-    },
-  ], [activeTab, activeToolsSubTab, selectTab, setActiveToolsSubTab]);
+      {
+        id: "tools",
+        label: "Tools & Utilities Hub",
+        icon: Layers,
+        isActive: activeTab === "tools" && (!activeToolsSubTab || activeToolsSubTab === "overview"),
+        isExpandable: true,
+        onSelect: () => {
+          selectTab("tools");
+          setActiveToolsSubTab?.("overview");
+          setShowToolsPanel(true);
+        },
+      },
+    ],
+    [activeTab, activeToolsSubTab, selectTab, setActiveToolsSubTab],
+  );
 
-  const accountItems = useMemo<NavItem[]>(() => [
-    {
-      id: "profile",
-      label: "Settings & Profile",
-      icon: User,
-      isActive: activeTab === "profile",
-      onSelect: () => {
-        // "settings" is the category hub. Without this the sidebar inherited
-        // whatever section was last open and could re-open mid-section on a
-        // return visit, or land on Student Profile on a cold start.
-        selectTab("profile");
-        setActiveProfileSubTab("settings");
+  const accountItems = useMemo<NavItem[]>(
+    () => [
+      {
+        id: "profile",
+        label: "Settings & Profile",
+        icon: User,
+        isActive: activeTab === "profile",
+        onSelect: () => {
+          // "settings" is the category hub. Without this the sidebar inherited
+          // whatever section was last open and could re-open mid-section on a
+          // return visit, or land on Student Profile on a cold start.
+          selectTab("profile");
+          setActiveProfileSubTab("settings");
+        },
       },
-    },
-    {
-      id: "about",
-      label: "About & Resources",
-      icon: Info,
-      isActive: activeTab === "about",
-      onSelect: () => {
-        selectTab("about");
+      {
+        id: "about",
+        label: "About & Resources",
+        icon: Info,
+        isActive: activeTab === "about",
+        onSelect: () => {
+          selectTab("about");
+        },
       },
-    },
-  ], [activeTab, selectTab, setActiveProfileSubTab]);
+    ],
+    [activeTab, selectTab, setActiveProfileSubTab],
+  );
 
-  const groups = useMemo<Group[]>(() => [
-    { id: "study", label: "Study", icon: BookOpen, items: studyItems },
-    { id: "campus", label: "Campus", icon: Building, items: campusItems },
-    { id: "tools", label: "Tools", icon: Wrench, items: toolsItems },
-    { id: "account", label: "Account", icon: Settings, items: accountItems },
-  ], [studyItems, campusItems, toolsItems, accountItems]);
+  const groups = useMemo<Group[]>(
+    () => [
+      { id: "study", label: "Study", icon: BookOpen, items: studyItems },
+      { id: "campus", label: "Campus", icon: Building, items: campusItems },
+      { id: "tools", label: "Tools", icon: Wrench, items: toolsItems },
+      { id: "account", label: "Account", icon: Settings, items: accountItems },
+    ],
+    [studyItems, campusItems, toolsItems, accountItems],
+  );
 
   const pinnedItems = useMemo(() => {
     const pinnedTabs = settings?.pinnedNavTabs ?? [];
@@ -636,262 +678,299 @@ export default function NavigationTabs({
         label: "Attendance",
         icon: CalendarCheck,
         isActive: activeTab === "attendance",
-        onSelect: () => { selectTab("attendance"); }
+        onSelect: () => {
+          selectTab("attendance");
+        },
       },
       academics: {
         label: "Academics",
         icon: GraduationCap,
         isActive: activeTab === "academics",
-        onSelect: () => { selectTab("academics"); }
+        onSelect: () => {
+          selectTab("academics");
+        },
       },
       tools: {
         label: "Tools",
         icon: Layers,
         isActive: activeTab === "tools",
-        onSelect: () => { selectTab("tools"); }
+        onSelect: () => {
+          selectTab("tools");
+        },
       },
       payments: {
         label: "Payments",
         icon: CreditCard,
         isActive: activeTab === "payments",
-        onSelect: () => { selectTab("payments"); }
+        onSelect: () => {
+          selectTab("payments");
+        },
       },
       libraries: {
         label: "Libraries",
         icon: Library,
         isActive: activeTab === "libraries",
-        onSelect: () => { selectTab("libraries"); }
+        onSelect: () => {
+          selectTab("libraries");
+        },
       },
       events: {
         label: "Event Hub",
         icon: Calendar,
         isActive: activeTab === "events",
-        onSelect: () => { selectTab("events"); }
+        onSelect: () => {
+          selectTab("events");
+        },
       },
       clubs: {
         label: "Club Hub",
         icon: LayoutGrid,
         isActive: activeTab === "clubs",
-        onSelect: () => { selectTab("clubs"); }
+        onSelect: () => {
+          selectTab("clubs");
+        },
       },
       community: {
         label: "Announcements",
         icon: Rss,
         isActive: activeTab === "community",
-        onSelect: () => { selectTab("community"); }
+        onSelect: () => {
+          selectTab("community");
+        },
       },
       "free-class": {
         label: "Free Classrooms",
         icon: DoorOpen,
-        isActive:
-          activeTab === "free-class" ||
-          (activeTab === "tools" && activeToolsSubTab === "free-class"),
-        onSelect: () => { selectTab("free-class"); }
+        isActive: activeTab === "free-class" || (activeTab === "tools" && activeToolsSubTab === "free-class"),
+        onSelect: () => {
+          selectTab("free-class");
+        },
       },
       "faculty-schedule": {
         label: "Faculty Schedule",
         icon: UserSearch,
         isActive: activeTab === "faculty-schedule",
-        onSelect: () => { selectTab("faculty-schedule"); }
+        onSelect: () => {
+          selectTab("faculty-schedule");
+        },
       },
       cabshare: {
         label: "Cab Share",
         icon: CarTaxiFront,
         isActive: activeTab === "cabshare",
-        onSelect: () => { selectTab("cabshare"); }
+        onSelect: () => {
+          selectTab("cabshare");
+        },
       },
       transport: {
         label: "Transport",
         icon: Bus,
         isActive: activeTab === "transport",
-        onSelect: () => { selectTab("transport"); }
+        onSelect: () => {
+          selectTab("transport");
+        },
       },
       more: {
         label: "More",
         icon: MoreHorizontal,
         isActive: activeTab === "more",
-        onSelect: () => { selectTab("more"); }
+        onSelect: () => {
+          selectTab("more");
+        },
       },
       profile: {
         label: "Profile",
         icon: User,
         isActive: activeTab === "profile",
-        onSelect: () => { selectTab("profile"); }
-      }
+        onSelect: () => {
+          selectTab("profile");
+        },
+      },
     };
-    return pinnedTabs
-      .map((id: string) => ({ id, ...tabData[id] }))
-      .filter((item: any) => item.label !== undefined);
+    return pinnedTabs.map((id: string) => ({ id, ...tabData[id] })).filter((item: any) => item.label !== undefined);
   }, [settings?.pinnedNavTabs, activeTab, selectTab]);
 
-  const academicsItems = useMemo(() => [
-    {
-      id: "courses-simplified",
-      label: "My Courses & Marks",
-      icon: Sparkles,
-      isActive: activeTab === "academics" && (activeSubTab === "courses-simplified" || activeSubTab === "simplified-academics" || activeSubTab === "overview"),
-      onSelect: () => {
-        selectTab("academics");
-        setActiveSubTab("courses-simplified");
+  const academicsItems = useMemo(
+    () => [
+      {
+        id: "courses-simplified",
+        label: "My Courses & Marks",
+        icon: Sparkles,
+        isActive:
+          activeTab === "academics" &&
+          (activeSubTab === "courses-simplified" ||
+            activeSubTab === "simplified-academics" ||
+            activeSubTab === "overview"),
+        onSelect: () => {
+          selectTab("academics");
+          setActiveSubTab("courses-simplified");
+        },
       },
-    },
-    {
-      id: "course-dashboard",
-      label: "Course Dashboard",
-      icon: LayoutGrid,
-      isActive: activeTab === "academics" && activeSubTab === "course-dashboard",
-      onSelect: () => {
-        selectTab("academics");
-        setActiveSubTab("course-dashboard");
+      {
+        id: "course-dashboard",
+        label: "Course Dashboard",
+        icon: LayoutGrid,
+        isActive: activeTab === "academics" && activeSubTab === "course-dashboard",
+        onSelect: () => {
+          selectTab("academics");
+          setActiveSubTab("course-dashboard");
+        },
       },
-    },
-    {
-      id: "schedule",
-      label: "Exam Schedule",
-      icon: Calendar,
-      isActive: activeTab === "academics" && activeSubTab === "schedule",
-      onSelect: () => {
-        selectTab("academics");
-        setActiveSubTab("schedule");
+      {
+        id: "schedule",
+        label: "Exam Schedule",
+        icon: Calendar,
+        isActive: activeTab === "academics" && activeSubTab === "schedule",
+        onSelect: () => {
+          selectTab("academics");
+          setActiveSubTab("schedule");
+        },
       },
-    },
-    {
-      id: "grades",
-      label: "Grade History",
-      icon: GraduationCap,
-      isActive: activeTab === "academics" && activeSubTab === "grades",
-      onSelect: () => {
-        selectTab("academics");
-        setActiveSubTab("grades");
+      {
+        id: "grades",
+        label: "Grade History",
+        icon: GraduationCap,
+        isActive: activeTab === "academics" && activeSubTab === "grades",
+        onSelect: () => {
+          selectTab("academics");
+          setActiveSubTab("grades");
+        },
       },
-    },
-    {
-      id: "curriculum",
-      label: "Curriculum",
-      icon: BookOpen,
-      isActive: activeTab === "academics" && activeSubTab === "curriculum",
-      onSelect: () => {
-        selectTab("academics");
-        setActiveSubTab("curriculum");
+      {
+        id: "curriculum",
+        label: "Curriculum",
+        icon: BookOpen,
+        isActive: activeTab === "academics" && activeSubTab === "curriculum",
+        onSelect: () => {
+          selectTab("academics");
+          setActiveSubTab("curriculum");
+        },
       },
-    },
-  ], [activeTab, activeSubTab, selectTab, setActiveSubTab]);
+    ],
+    [activeTab, activeSubTab, selectTab, setActiveSubTab],
+  );
 
-  const toolsSubItems = useMemo(() => [
-    {
-      id: "overview",
-      label: "Overview",
-      icon: Layers,
-      isActive: activeTab === "tools" && (activeToolsSubTab === "overview" || !activeToolsSubTab),
-      onSelect: () => {
-        selectTab("tools");
-        setActiveToolsSubTab?.("overview");
+  const toolsSubItems = useMemo(
+    () => [
+      {
+        id: "overview",
+        label: "Overview",
+        icon: Layers,
+        isActive: activeTab === "tools" && (activeToolsSubTab === "overview" || !activeToolsSubTab),
+        onSelect: () => {
+          selectTab("tools");
+          setActiveToolsSubTab?.("overview");
+        },
       },
-    },
-    {
-      id: "qbank",
-      label: "Question Bank",
-      icon: Database,
-      isActive: activeTab === "tools" && activeToolsSubTab === "qbank",
-      onSelect: () => {
-        selectTab("tools");
-        setActiveToolsSubTab?.("qbank");
+      {
+        id: "qbank",
+        label: "Question Bank",
+        icon: Database,
+        isActive: activeTab === "tools" && activeToolsSubTab === "qbank",
+        onSelect: () => {
+          selectTab("tools");
+          setActiveToolsSubTab?.("qbank");
+        },
       },
-    },
-    {
-      id: "faculty-info",
-      label: "Faculty Explorer",
-      icon: UserCheck,
-      isActive: activeTab === "tools" && activeToolsSubTab === "faculty-info",
-      onSelect: () => {
-        selectTab("tools");
-        setActiveToolsSubTab?.("faculty-info");
+      {
+        id: "faculty-info",
+        label: "Faculty Explorer",
+        icon: UserCheck,
+        isActive: activeTab === "tools" && activeToolsSubTab === "faculty-info",
+        onSelect: () => {
+          selectTab("tools");
+          setActiveToolsSubTab?.("faculty-info");
+        },
       },
-    },
-    {
-      id: "social",
-      label: "Timetable Sharing",
-      icon: Users,
-      isActive: activeTab === "tools" && activeToolsSubTab === "social",
-      onSelect: () => {
-        selectTab("tools");
-        setActiveToolsSubTab?.("social");
+      {
+        id: "social",
+        label: "Timetable Sharing",
+        icon: Users,
+        isActive: activeTab === "tools" && activeToolsSubTab === "social",
+        onSelect: () => {
+          selectTab("tools");
+          setActiveToolsSubTab?.("social");
+        },
       },
-    },
-    {
-      id: "cabshare",
-      label: "Cab Share",
-      icon: CarTaxiFront,
-      isActive: activeTab === "cabshare" || (activeTab === "tools" && activeToolsSubTab === "cabshare"),
-      onSelect: () => {
-        selectTab("tools");
-        setActiveToolsSubTab?.("cabshare");
+      {
+        id: "cabshare",
+        label: "Cab Share",
+        icon: CarTaxiFront,
+        isActive: activeTab === "cabshare" || (activeTab === "tools" && activeToolsSubTab === "cabshare"),
+        onSelect: () => {
+          selectTab("tools");
+          setActiveToolsSubTab?.("cabshare");
+        },
       },
-    },
-    {
-      id: "tasks",
-      label: "Tasks & Schedule",
-      icon: CheckSquare,
-      isActive: activeTab === "tools" && activeToolsSubTab === "tasks",
-      onSelect: () => {
-        selectTab("tools");
-        setActiveToolsSubTab?.("tasks");
+      {
+        id: "tasks",
+        label: "Tasks & Schedule",
+        icon: CheckSquare,
+        isActive: activeTab === "tools" && activeToolsSubTab === "tasks",
+        onSelect: () => {
+          selectTab("tools");
+          setActiveToolsSubTab?.("tasks");
+        },
       },
-    },
-  ], [activeTab, activeToolsSubTab, selectTab, setActiveToolsSubTab]);
+    ],
+    [activeTab, activeToolsSubTab, selectTab, setActiveToolsSubTab],
+  );
 
-  const hostelSubItems = useMemo(() => [
-    {
-      id: "overview",
-      label: "Overview",
-      icon: Building,
-      isActive: activeTab === "hostel" && HostelActiveSubTab === "overview",
-      onSelect: () => {
-        selectTab("hostel");
-        setHostelActiveSubTab("overview");
+  const hostelSubItems = useMemo(
+    () => [
+      {
+        id: "overview",
+        label: "Overview",
+        icon: Building,
+        isActive: activeTab === "hostel" && HostelActiveSubTab === "overview",
+        onSelect: () => {
+          selectTab("hostel");
+          setHostelActiveSubTab("overview");
+        },
       },
-    },
-    {
-      id: "mess",
-      label: "Mess Menu",
-      icon: Coffee,
-      isActive: activeTab === "hostel" && HostelActiveSubTab === "mess",
-      onSelect: () => {
-        selectTab("hostel");
-        setHostelActiveSubTab("mess");
+      {
+        id: "mess",
+        label: "Mess Menu",
+        icon: Coffee,
+        isActive: activeTab === "hostel" && HostelActiveSubTab === "mess",
+        onSelect: () => {
+          selectTab("hostel");
+          setHostelActiveSubTab("mess");
+        },
       },
-    },
-    {
-      id: "laundry",
-      label: "Laundry",
-      icon: Wrench,
-      isActive: activeTab === "hostel" && HostelActiveSubTab === "laundry",
-      onSelect: () => {
-        selectTab("hostel");
-        setHostelActiveSubTab("laundry");
+      {
+        id: "laundry",
+        label: "Laundry",
+        icon: Wrench,
+        isActive: activeTab === "hostel" && HostelActiveSubTab === "laundry",
+        onSelect: () => {
+          selectTab("hostel");
+          setHostelActiveSubTab("laundry");
+        },
       },
-    },
-    {
-      id: "leave",
-      label: "Leave Management",
-      icon: Compass,
-      isActive: activeTab === "hostel" && HostelActiveSubTab === "leave",
-      onSelect: () => {
-        selectTab("hostel");
-        setHostelActiveSubTab("leave");
+      {
+        id: "leave",
+        label: "Leave Management",
+        icon: Compass,
+        isActive: activeTab === "hostel" && HostelActiveSubTab === "leave",
+        onSelect: () => {
+          selectTab("hostel");
+          setHostelActiveSubTab("leave");
+        },
       },
-    },
-    {
-      id: "counselling",
-      label: "Counselling",
-      icon: User,
-      isActive: activeTab === "hostel" && HostelActiveSubTab === "counselling",
-      onSelect: () => {
-        selectTab("hostel");
-        setHostelActiveSubTab("counselling");
+      {
+        id: "counselling",
+        label: "Counselling",
+        icon: User,
+        isActive: activeTab === "hostel" && HostelActiveSubTab === "counselling",
+        onSelect: () => {
+          selectTab("hostel");
+          setHostelActiveSubTab("counselling");
+        },
       },
-    },
-  ], [activeTab, HostelActiveSubTab, selectTab, setHostelActiveSubTab]);
+    ],
+    [activeTab, HostelActiveSubTab, selectTab, setHostelActiveSubTab],
+  );
 
   /**
    * Single tap does the tab's normal thing; a second tap on the same icon inside
@@ -947,7 +1026,7 @@ export default function NavigationTabs({
       setActiveDayscholarSubTab,
       setActiveMoreSubTab,
       setActiveProfileSubTab,
-    ]
+    ],
   );
 
   const renderMobileNav = () => {
@@ -968,11 +1047,7 @@ export default function NavigationTabs({
                 key={item.id}
                 onClick={() => handleNavItemTap(item)}
                 whileTap={{ scale: 0.92 }}
-                aria-label={
-                  hasSectionHome(item.id)
-                    ? `${item.label} — double tap for home`
-                    : item.label
-                }
+                aria-label={hasSectionHome(item.id) ? `${item.label} — double tap for home` : item.label}
                 title={item.label}
                 className="flex items-center justify-center flex-1 py-2 relative select-none cursor-pointer group focus:outline-none"
               >
@@ -989,12 +1064,12 @@ export default function NavigationTabs({
 
                 {/* Relative container for icon with subtle scale effect on active */}
                 <div className="relative z-10 flex items-center justify-center">
-                  <m.div 
+                  <m.div
                     animate={isActive ? { scale: 1.15 } : { scale: 1 }}
                     transition={{ type: "tween", ease: "easeOut", duration: 0.15 }}
                     className={`p-1.5 transition-colors duration-200 ${
-                      isActive 
-                        ? "text-info" 
+                      isActive
+                        ? "text-info"
                         : "text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300"
                     }`}
                   >
@@ -1048,7 +1123,13 @@ export default function NavigationTabs({
           {/* Logo & Expand Toggle */}
           <div className={`flex items-center ${isOpen ? "justify-between w-full" : "justify-center w-full"}`}>
             <div className={`flex items-center min-w-0 ${isOpen ? "gap-2.5" : "justify-center"}`}>
-              <img src={currentIcon} alt="AmazeCC" className="h-7 w-7 rounded-lg object-contain shadow-xs" />
+              <img
+                loading="lazy"
+                decoding="async"
+                src={currentIcon}
+                alt="AmazeCC"
+                className="h-7 w-7 rounded-lg object-contain shadow-xs"
+              />
               {isOpen && (
                 <h2 className="truncate text-sm font-semibold tracking-tight text-sidebar-foreground">AmazeCC</h2>
               )}
@@ -1069,7 +1150,9 @@ export default function NavigationTabs({
                   {isOffline ? (
                     <WifiOff className="h-3.5 w-3.5 shrink-0" />
                   ) : (
-                    <RefreshCcw className={`h-3.5 w-3.5 transition-transform ${isSpinning ? "animate-spin text-indigo-500" : "group-hover:rotate-180 duration-500"}`} />
+                    <RefreshCcw
+                      className={`h-3.5 w-3.5 transition-transform ${isSpinning ? "animate-spin text-indigo-500" : "group-hover:rotate-180 duration-500"}`}
+                    />
                   )}
                   <span>{isOffline ? "Offline" : "Sync"}</span>
                 </button>
@@ -1099,25 +1182,23 @@ export default function NavigationTabs({
                 {/* Left-aligned clean Semester Summary Card */}
                 <div className="mt-3 rounded-lg border border-sidebar-border bg-sidebar-accent/50 p-2.5 text-[11px] space-y-1.5 shadow-2xs">
                   <div className="flex items-center justify-between">
-                    <div className="font-semibold text-sidebar-foreground/75 tracking-wide text-[10px] uppercase">Current Semester</div>
-                          <div
-                            role="group"
-                            aria-label="Current semester"
-                            className="flex max-w-[9rem] shrink-0"
-                          >
-                            <OptionPicker
-                              value={settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2]}
-                              onChange={(val) => {
-                                handleReloadRequest(val);
-                              }}
-                              options={config.semesterIDs.map((semId: string) => ({
-                                value: semId,
-                                label: formatSemesterName(semId),
-                              }))}
-                              searchable={false}
-                              className="w-full [&>button:first-child]:h-auto [&>button:first-child]:p-0 [&>button:first-child]:rounded-none [&>button:first-child]:border-none [&>button:first-child]:shadow-none [&>button:first-child]:justify-end [&>button:first-child]:text-info [&>button:first-child]:hover:underline [&>button:first-child_span]:text-[10px] [&>button:first-child_span]:font-semibold [&>button:first-child_span]:text-info [&>button:first-child_svg]:h-3 [&>button:first-child_svg]:w-3"
-                            />
-                          </div>
+                    <div className="font-semibold text-sidebar-foreground/75 tracking-wide text-[10px] uppercase">
+                      Current Semester
+                    </div>
+                    <div role="group" aria-label="Current semester" className="flex max-w-[9rem] shrink-0">
+                      <OptionPicker
+                        value={settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2]}
+                        onChange={(val) => {
+                          handleReloadRequest(val);
+                        }}
+                        options={config.semesterIDs.map((semId: string) => ({
+                          value: semId,
+                          label: formatSemesterName(semId),
+                        }))}
+                        searchable={false}
+                        className="w-full [&>button:first-child]:h-auto [&>button:first-child]:p-0 [&>button:first-child]:rounded-none [&>button:first-child]:border-none [&>button:first-child]:shadow-none [&>button:first-child]:justify-end [&>button:first-child]:text-info [&>button:first-child]:hover:underline [&>button:first-child_span]:text-[10px] [&>button:first-child_span]:font-semibold [&>button:first-child_span]:text-info [&>button:first-child_svg]:h-3 [&>button:first-child_svg]:w-3"
+                      />
+                    </div>
                   </div>
                   <div className="space-y-1">
                     {shouldDisplayGpa && (
@@ -1133,14 +1214,22 @@ export default function NavigationTabs({
                         title="Click to show/hide CGPA"
                       >
                         <span className="text-sidebar-foreground/">CGPA</span>
-                        <span className={`font-semibold text-sidebar-foreground transition-all duration-300 ${settings.CGPAHidden ? "blur-[4.5px] select-none" : ""}`}>{marksData?.cgpa?.cgpa || "-"}</span>
+                        <span
+                          className={`font-semibold text-sidebar-foreground transition-all duration-300 ${settings.CGPAHidden ? "blur-[4.5px] select-none" : ""}`}
+                        >
+                          {marksData?.cgpa?.cgpa || "-"}
+                        </span>
                       </button>
                     )}
 
                     <button
                       onClick={() => {
                         setSettings((prev: any) => {
-                          const next = { ...prev, attendancePercentageOrString: prev.attendancePercentageOrString === "percentage" ? "str" : "percentage" };
+                          const next = {
+                            ...prev,
+                            attendancePercentageOrString:
+                              prev.attendancePercentageOrString === "percentage" ? "str" : "percentage",
+                          };
                           localStorage.setItem("settings", JSON.stringify(next));
                           return next;
                         });
@@ -1149,7 +1238,9 @@ export default function NavigationTabs({
                       title="Click to toggle attendance format"
                     >
                       <span className="text-sidebar-foreground/">Attendance</span>
-                      <span className={`font-semibold ${attendancePercentage?.percentage < 75 ? "text-rose-400" : "text-emerald-400"}`}>
+                      <span
+                        className={`font-semibold ${attendancePercentage?.percentage < 75 ? "text-rose-400" : "text-emerald-400"}`}
+                      >
                         {attendanceValue}
                       </span>
                     </button>
@@ -1186,7 +1277,9 @@ export default function NavigationTabs({
                   aria-label="Open command palette"
                 >
                   <Command className="h-4 w-4 shrink-0 text-sidebar-foreground/ transition-colors group-hover:text-sidebar-foreground/" />
-                  <span className="flex-1 truncate transition-colors group-hover:text-sidebar-foreground/">Search anything...</span>
+                  <span className="flex-1 truncate transition-colors group-hover:text-sidebar-foreground/">
+                    Search anything...
+                  </span>
                   <kbd className="rounded-md bg-sidebar-accent border border-sidebar-border px-1.5 py-0.5 text-[9px] font-bold text-sidebar-foreground/ shadow-sm transition-colors group-hover:bg-sidebar-accent group-hover:text-sidebar-foreground">
                     ⌘K
                   </kbd>
@@ -1217,159 +1310,163 @@ export default function NavigationTabs({
         {isOpen ? (
           <SidebarContent>
             <AnimatePresence mode="wait" initial={false}>
-            <m.div
-              key={showAcademicsPanel ? "academics" : showToolsPanel ? "tools" : showHostelPanel ? "hostel" : "primary"}
-              initial={{ opacity: 0, x: 6 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -4 }}
-              transition={{ duration: 0.16, ease: "easeOut" }}
-            >
-            {!showAcademicsPanel && !showToolsPanel && !showHostelPanel ? (
-              <div className="space-y-4">
-                {pinnedItems.length > 0 && (
-                  <SidebarGroup>
-                    <SidebarGroupLabel>Pinned</SidebarGroupLabel>
-                    <div className="space-y-0.5">
-                      {pinnedItems.map((item) => (
-                        <SidebarItem
-                          key={item.id}
-                          icon={<item.icon className="h-4 w-4 stroke-[1.9]" aria-hidden="true" />}
-                          label={item.label}
-                          isActive={item.isActive}
-                          aria-current={item.isActive ? "page" : undefined}
-                          data-sidebar-nav="true"
-                          className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-info"
-                          onClick={item.onSelect}
-                          onKeyDown={(event) => handleNavKeyDown(event, item.onSelect)}
-                        />
-                      ))}
-                    </div>
-                  </SidebarGroup>
+              <m.div
+                key={
+                  showAcademicsPanel ? "academics" : showToolsPanel ? "tools" : showHostelPanel ? "hostel" : "primary"
+                }
+                initial={{ opacity: 0, x: 6 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -4 }}
+                transition={{ duration: 0.16, ease: "easeOut" }}
+              >
+                {!showAcademicsPanel && !showToolsPanel && !showHostelPanel ? (
+                  <div className="space-y-4">
+                    {pinnedItems.length > 0 && (
+                      <SidebarGroup>
+                        <SidebarGroupLabel>Pinned</SidebarGroupLabel>
+                        <div className="space-y-0.5">
+                          {pinnedItems.map((item) => (
+                            <SidebarItem
+                              key={item.id}
+                              icon={<item.icon className="h-4 w-4 stroke-[1.9]" aria-hidden="true" />}
+                              label={item.label}
+                              isActive={item.isActive}
+                              aria-current={item.isActive ? "page" : undefined}
+                              data-sidebar-nav="true"
+                              className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-info"
+                              onClick={item.onSelect}
+                              onKeyDown={(event) => handleNavKeyDown(event, item.onSelect)}
+                            />
+                          ))}
+                        </div>
+                      </SidebarGroup>
+                    )}
+
+                    {groups.map((group) => (
+                      <SidebarGroup key={group.id}>
+                        <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+                        <div className="space-y-0.5">
+                          {group.items.map((item) => (
+                            <SidebarItem
+                              key={item.id}
+                              icon={<item.icon className="h-4 w-4 stroke-[1.9]" aria-hidden="true" />}
+                              label={item.label}
+                              isActive={item.isActive}
+                              aria-current={item.isActive ? "page" : undefined}
+                              data-sidebar-nav="true"
+                              className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-info"
+                              rightElement={
+                                item.isExpandable ? <ChevronRight className="h-3.5 w-3.5 shrink-0" /> : undefined
+                              }
+                              onClick={item.onSelect}
+                              onKeyDown={(event) => handleNavKeyDown(event, item.onSelect)}
+                            />
+                          ))}
+                        </div>
+                      </SidebarGroup>
+                    ))}
+                  </div>
+                ) : showAcademicsPanel ? (
+                  <div className="space-y-4">
+                    <button
+                      onClick={() => setShowAcademicsPanel(false)}
+                      className="flex items-center gap-2 px-2 py-1 text-xs font-bold text-sidebar-foreground/70 hover:text-sidebar-foreground transition-colors"
+                    >
+                      <ArrowLeft className="h-3.5 w-3.5" />
+                      <span>Back</span>
+                    </button>
+
+                    <SidebarGroup>
+                      <SidebarGroupLabel>Academics</SidebarGroupLabel>
+                      <div className="space-y-0.5">
+                        {academicsItems.map((item) => (
+                          <SidebarItem
+                            key={item.id}
+                            icon={<item.icon className="h-4 w-4 stroke-[1.9]" aria-hidden="true" />}
+                            label={item.label}
+                            isActive={item.isActive}
+                            aria-current={item.isActive ? "page" : undefined}
+                            data-sidebar-nav="true"
+                            className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-info"
+                            onClick={item.onSelect}
+                            onKeyDown={(event) => handleNavKeyDown(event, item.onSelect)}
+                          />
+                        ))}
+                      </div>
+                    </SidebarGroup>
+                  </div>
+                ) : showToolsPanel ? (
+                  <div className="space-y-4">
+                    <button
+                      onClick={() => setShowToolsPanel(false)}
+                      className="flex items-center gap-2 px-2 py-1 text-xs font-bold text-sidebar-foreground/70 hover:text-sidebar-foreground transition-colors"
+                    >
+                      <ArrowLeft className="h-3.5 w-3.5" />
+                      <span>Back</span>
+                    </button>
+
+                    <SidebarGroup>
+                      <SidebarGroupLabel>Tools & Utilities</SidebarGroupLabel>
+                      <div className="space-y-0.5">
+                        {toolsSubItems.map((item) => (
+                          <SidebarItem
+                            key={item.id}
+                            icon={<item.icon className="h-4 w-4 stroke-[1.9]" aria-hidden="true" />}
+                            label={item.label}
+                            isActive={item.isActive}
+                            aria-current={item.isActive ? "page" : undefined}
+                            data-sidebar-nav="true"
+                            className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-info"
+                            onClick={item.onSelect}
+                            onKeyDown={(event) => handleNavKeyDown(event, item.onSelect)}
+                          />
+                        ))}
+                      </div>
+                    </SidebarGroup>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <button
+                      onClick={() => setShowHostelPanel(false)}
+                      className="flex items-center gap-2 px-2 py-1 text-xs font-bold text-sidebar-foreground/ hover:text-sidebar-foreground transition-colors"
+                    >
+                      <ArrowLeft className="h-3.5 w-3.5" />
+                      <span>Back</span>
+                    </button>
+
+                    <SidebarGroup>
+                      <SidebarGroupLabel>Hostel Hub</SidebarGroupLabel>
+                      <div className="space-y-0.5">
+                        {hostelSubItems.map((item) => (
+                          <SidebarItem
+                            key={item.id}
+                            icon={<item.icon className="h-4 w-4 stroke-[1.9]" aria-hidden="true" />}
+                            label={item.label}
+                            isActive={item.isActive}
+                            aria-current={item.isActive ? "page" : undefined}
+                            data-sidebar-nav="true"
+                            className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-info"
+                            onClick={item.onSelect}
+                            onKeyDown={(event) => handleNavKeyDown(event, item.onSelect)}
+                          />
+                        ))}
+                      </div>
+                    </SidebarGroup>
+                  </div>
                 )}
-
-                {groups.map((group) => (
-                  <SidebarGroup key={group.id}>
-                    <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-                    <div className="space-y-0.5">
-                      {group.items.map((item) => (
-                        <SidebarItem
-                          key={item.id}
-                          icon={<item.icon className="h-4 w-4 stroke-[1.9]" aria-hidden="true" />}
-                          label={item.label}
-                          isActive={item.isActive}
-                          aria-current={item.isActive ? "page" : undefined}
-                          data-sidebar-nav="true"
-                          className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-info"
-                          rightElement={item.isExpandable ? <ChevronRight className="h-3.5 w-3.5 shrink-0" /> : undefined}
-                          onClick={item.onSelect}
-                          onKeyDown={(event) => handleNavKeyDown(event, item.onSelect)}
-                        />
-                      ))}
-                    </div>
-                  </SidebarGroup>
-                ))}
-              </div>
-            ) : showAcademicsPanel ? (
-              <div className="space-y-4">
-                <button
-                  onClick={() => setShowAcademicsPanel(false)}
-                  className="flex items-center gap-2 px-2 py-1 text-xs font-bold text-sidebar-foreground/70 hover:text-sidebar-foreground transition-colors"
-                >
-                  <ArrowLeft className="h-3.5 w-3.5" />
-                  <span>Back</span>
-                </button>
-
-                <SidebarGroup>
-                  <SidebarGroupLabel>Academics</SidebarGroupLabel>
-                  <div className="space-y-0.5">
-                    {academicsItems.map((item) => (
-                      <SidebarItem
-                        key={item.id}
-                        icon={<item.icon className="h-4 w-4 stroke-[1.9]" aria-hidden="true" />}
-                        label={item.label}
-                        isActive={item.isActive}
-                        aria-current={item.isActive ? "page" : undefined}
-                        data-sidebar-nav="true"
-                        className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-info"
-                        onClick={item.onSelect}
-                        onKeyDown={(event) => handleNavKeyDown(event, item.onSelect)}
-                      />
-                    ))}
-                  </div>
-                </SidebarGroup>
-              </div>
-            ) : showToolsPanel ? (
-              <div className="space-y-4">
-                <button
-                  onClick={() => setShowToolsPanel(false)}
-                  className="flex items-center gap-2 px-2 py-1 text-xs font-bold text-sidebar-foreground/70 hover:text-sidebar-foreground transition-colors"
-                >
-                  <ArrowLeft className="h-3.5 w-3.5" />
-                  <span>Back</span>
-                </button>
-
-                <SidebarGroup>
-                  <SidebarGroupLabel>Tools & Utilities</SidebarGroupLabel>
-                  <div className="space-y-0.5">
-                    {toolsSubItems.map((item) => (
-                      <SidebarItem
-                        key={item.id}
-                        icon={<item.icon className="h-4 w-4 stroke-[1.9]" aria-hidden="true" />}
-                        label={item.label}
-                        isActive={item.isActive}
-                        aria-current={item.isActive ? "page" : undefined}
-                        data-sidebar-nav="true"
-                        className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-info"
-                        onClick={item.onSelect}
-                        onKeyDown={(event) => handleNavKeyDown(event, item.onSelect)}
-                      />
-                    ))}
-                  </div>
-                </SidebarGroup>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <button
-                  onClick={() => setShowHostelPanel(false)}
-                  className="flex items-center gap-2 px-2 py-1 text-xs font-bold text-sidebar-foreground/ hover:text-sidebar-foreground transition-colors"
-                >
-                  <ArrowLeft className="h-3.5 w-3.5" />
-                  <span>Back</span>
-                </button>
-
-                <SidebarGroup>
-                  <SidebarGroupLabel>Hostel Hub</SidebarGroupLabel>
-                  <div className="space-y-0.5">
-                    {hostelSubItems.map((item) => (
-                      <SidebarItem
-                        key={item.id}
-                        icon={<item.icon className="h-4 w-4 stroke-[1.9]" aria-hidden="true" />}
-                        label={item.label}
-                        isActive={item.isActive}
-                        aria-current={item.isActive ? "page" : undefined}
-                        data-sidebar-nav="true"
-                        className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-info"
-                        onClick={item.onSelect}
-                        onKeyDown={(event) => handleNavKeyDown(event, item.onSelect)}
-                      />
-                    ))}
-                  </div>
-                </SidebarGroup>
-              </div>
-            )}
-            </m.div>
+              </m.div>
             </AnimatePresence>
           </SidebarContent>
         ) : (
           /* Compact Mode Rail Content */
-            <div className="flex flex-1 min-h-0 flex-col items-center justify-start w-full mt-3">
+          <div className="flex flex-1 min-h-0 flex-col items-center justify-start w-full mt-3">
             {/* Divider */}
             <div className="w-8 border-t border-sidebar-border mb-3" />
 
             {pinnedItems.length > 0 && (
               <>
                 <nav className="flex flex-col items-center gap-2.5 w-full mb-3" aria-label="Pinned rail shortcuts">
-                  {pinnedItems.map(item => {
+                  {pinnedItems.map((item) => {
                     const ItemIcon = item.icon;
                     return (
                       <div key={item.id} className="relative flex justify-center group/rail">
@@ -1383,7 +1480,9 @@ export default function NavigationTabs({
                           title={item.label}
                           aria-label={`Open ${item.label}`}
                         >
-                          <ItemIcon className={`h-5 w-5 transition-transform duration-300 ${item.isActive ? 'scale-110 text-info' : ''}`} />
+                          <ItemIcon
+                            className={`h-5 w-5 transition-transform duration-300 ${item.isActive ? "scale-110 text-info" : ""}`}
+                          />
                         </button>
                       </div>
                     );
@@ -1396,15 +1495,26 @@ export default function NavigationTabs({
 
             {/* Navigation Rail Buttons */}
             <nav className="flex flex-col items-center gap-2.5 w-full" aria-label="Navigation rail">
-              {groups.map(group => {
+              {groups.map((group) => {
                 const GroupIcon = group.icon;
-                const isActive = group.id === "study"
-                  ? activeTab === "home" || activeTab === "attendance" || activeTab === "academics"
-                  : group.id === "campus"
-                  ? ["payments", "libraries", "events", "clubs", "community", "free-class", "faculty-schedule", "hostel", "transport"].includes(activeTab)
-                  : group.id === "tools"
-                  ? activeTab === "tools" || activeTab === "more" || activeTab === "cabshare"
-                  : activeTab === "profile" || activeTab === "about";
+                const isActive =
+                  group.id === "study"
+                    ? activeTab === "home" || activeTab === "attendance" || activeTab === "academics"
+                    : group.id === "campus"
+                      ? [
+                          "payments",
+                          "libraries",
+                          "events",
+                          "clubs",
+                          "community",
+                          "free-class",
+                          "faculty-schedule",
+                          "hostel",
+                          "transport",
+                        ].includes(activeTab)
+                      : group.id === "tools"
+                        ? activeTab === "tools" || activeTab === "more" || activeTab === "cabshare"
+                        : activeTab === "profile" || activeTab === "about";
 
                 return (
                   <div key={group.id} className="relative flex justify-center group/rail">
@@ -1419,7 +1529,9 @@ export default function NavigationTabs({
                       aria-label={`Open ${group.label} menu`}
                       aria-expanded={activeRailGroup === group.id}
                     >
-                      <GroupIcon className={`h-5 w-5 transition-transform duration-300 ${isActive ? 'scale-110 text-info' : ''}`} />
+                      <GroupIcon
+                        className={`h-5 w-5 transition-transform duration-300 ${isActive ? "scale-110 text-info" : ""}`}
+                      />
                     </button>
                   </div>
                 );
@@ -1431,50 +1543,53 @@ export default function NavigationTabs({
         {/* Profile, Theme, and Logout Footer */}
         <SidebarFooter>
           <AnimatePresence initial={false}>
-          {isOpen ? (
-            <m.div
-              key="footer-expanded"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.18 }}
-              className="shrink-0 space-y-2.5"
-            >
-              <SidebarProfile
-                name={profileName}
-                degree={(profileData?.program || profileData?.branch || profileData?.batch || "").replace("B.Tech ", "")}
-                avatarUrl={shouldDisplayProfilePhoto ? profileData?.image : undefined}
-                initials={initials || "ST"}
-                onLogout={handleLogOutRequest}
-              />
+            {isOpen ? (
+              <m.div
+                key="footer-expanded"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.18 }}
+                className="shrink-0 space-y-2.5"
+              >
+                <SidebarProfile
+                  name={profileName}
+                  degree={(profileData?.program || profileData?.branch || profileData?.batch || "").replace(
+                    "B.Tech ",
+                    "",
+                  )}
+                  avatarUrl={shouldDisplayProfilePhoto ? profileData?.image : undefined}
+                  initials={initials || "ST"}
+                  onLogout={handleLogOutRequest}
+                />
 
-              <div className="h-px bg-sidebar-accent" />
+                <div className="h-px bg-sidebar-accent" />
 
-              <SidebarThemeControl theme={theme} onThemeChange={handleThemeChange} />
-            </m.div>
-          ) : (
-            <m.div
-              key="footer-collapsed"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex flex-col items-center gap-3 w-full shrink-0"
-            >
-              {/* Expand Toggle Button */}
-              <SidebarExpandButton onClick={() => persistSidebarState(!settings.isSidebarCollapsed)} />
+                <SidebarThemeControl theme={theme} onThemeChange={handleThemeChange} />
+              </m.div>
+            ) : (
+              <m.div
+                key="footer-collapsed"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex flex-col items-center gap-3 w-full shrink-0"
+              >
+                {/* Expand Toggle Button */}
+                <SidebarExpandButton onClick={() => persistSidebarState(!settings.isSidebarCollapsed)} />
 
-              {/* Theme Toggler (Compact Icon) */}
-              <SidebarThemeControl theme={theme} onThemeChange={handleThemeChange} />
+                {/* Theme Toggler (Compact Icon) */}
+                <SidebarThemeControl theme={theme} onThemeChange={handleThemeChange} />
 
-              {/* Profile Avatar */}
-              <SidebarProfile
-                avatarUrl={shouldDisplayProfilePhoto ? profileData?.image : undefined}
-                initials={initials || "ST"}
-                onProfileClick={() => selectTab("profile")}
-              />
-            </m.div>
-          )}
-        </AnimatePresence>
+                {/* Profile Avatar */}
+                <SidebarProfile
+                  avatarUrl={shouldDisplayProfilePhoto ? profileData?.image : undefined}
+                  initials={initials || "ST"}
+                  onProfileClick={() => selectTab("profile")}
+                />
+              </m.div>
+            )}
+          </AnimatePresence>
         </SidebarFooter>
 
         {/* Floating popover beside the compact rail */}
@@ -1495,23 +1610,27 @@ export default function NavigationTabs({
                   </div>
                   <div className="space-y-1">
                     {/* My Info */}
-                    {groups.find(g => g.id === "account")?.items.map((item) => (
-                      <button
-                        key={item.id}
-                        onClick={() => {
-                          item.onSelect();
-                          setActiveRailGroup(null);
-                        }}
-                        className={`group relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} ${
-                          item.isActive
-                            ? sidebarActiveStyles
-                            : "text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                        }`}
-                      >
-                        <item.icon className={`h-4 w-4 shrink-0 ${item.isActive ? "text-info" : "text-sidebar-foreground/"}`} />
-                        <span className="truncate">{item.label}</span>
-                      </button>
-                    ))}
+                    {groups
+                      .find((g) => g.id === "account")
+                      ?.items.map((item) => (
+                        <button
+                          key={item.id}
+                          onClick={() => {
+                            item.onSelect();
+                            setActiveRailGroup(null);
+                          }}
+                          className={`group relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} ${
+                            item.isActive
+                              ? sidebarActiveStyles
+                              : "text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                          }`}
+                        >
+                          <item.icon
+                            className={`h-4 w-4 shrink-0 ${item.isActive ? "text-info" : "text-sidebar-foreground/"}`}
+                          />
+                          <span className="truncate">{item.label}</span>
+                        </button>
+                      ))}
 
                     {/* Theme */}
                     <div className="space-y-0.5">
@@ -1521,10 +1640,7 @@ export default function NavigationTabs({
                       >
                         <Wrench className="h-4 w-4 shrink-0 text-sidebar-foreground/ group-hover:text-sidebar-foreground" />
                         <span className="truncate flex-1 text-left">Theme</span>
-                        <m.div
-                          animate={{ rotate: isThemeExpanded ? 90 : 0 }}
-                          transition={{ duration: 0.18 }}
-                        >
+                        <m.div animate={{ rotate: isThemeExpanded ? 90 : 0 }} transition={{ duration: 0.18 }}>
                           <ChevronRight className="h-3 w-3 text-sidebar-foreground/" />
                         </m.div>
                       </button>
@@ -1539,7 +1655,9 @@ export default function NavigationTabs({
                             onClick={() => handleThemeChange("light")}
                             className="flex items-center gap-2 w-full text-left text-xs text-sidebar-foreground/ hover:text-sidebar-foreground py-0.5 transition-colors"
                           >
-                            <span className={`flex h-3 w-3 items-center justify-center rounded-full border transition-colors ${theme === "light" ? "border-info text-info bg-info-surface" : "border-sidebar-border"}`}>
+                            <span
+                              className={`flex h-3 w-3 items-center justify-center rounded-full border transition-colors ${theme === "light" ? "border-info text-info bg-info-surface" : "border-sidebar-border"}`}
+                            >
                               {theme === "light" && <span className="h-1 w-1 rounded-full bg-info" />}
                             </span>
                             <span className={theme === "light" ? "text-info font-medium" : ""}>Light</span>
@@ -1548,7 +1666,9 @@ export default function NavigationTabs({
                             onClick={() => handleThemeChange("dark")}
                             className="flex items-center gap-2 w-full text-left text-xs text-sidebar-foreground/ hover:text-sidebar-foreground py-0.5 transition-colors"
                           >
-                            <span className={`flex h-3 w-3 items-center justify-center rounded-full border transition-colors ${theme === "dark" ? "border-info text-info bg-info-surface" : "border-sidebar-border"}`}>
+                            <span
+                              className={`flex h-3 w-3 items-center justify-center rounded-full border transition-colors ${theme === "dark" ? "border-info text-info bg-info-surface" : "border-sidebar-border"}`}
+                            >
                               {theme === "dark" && <span className="h-1 w-1 rounded-full bg-info" />}
                             </span>
                             <span className={theme === "dark" ? "text-info font-medium" : ""}>Dark</span>
@@ -1584,9 +1704,7 @@ export default function NavigationTabs({
                       const showDivider = index === 6;
                       return (
                         <div key={item.id}>
-                          {showDivider && (
-                            <div className="my-1.5 border-t border-sidebar-border" />
-                          )}
+                          {showDivider && <div className="my-1.5 border-t border-sidebar-border" />}
                           <button
                             onClick={() => {
                               item.onSelect();
@@ -1598,7 +1716,9 @@ export default function NavigationTabs({
                                 : "text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground"
                             }`}
                           >
-                            <item.icon className={`h-4 w-4 shrink-0 ${item.isActive ? "text-info" : "text-sidebar-foreground/70"}`} />
+                            <item.icon
+                              className={`h-4 w-4 shrink-0 ${item.isActive ? "text-info" : "text-sidebar-foreground/70"}`}
+                            />
                             <span className="truncate">{item.label}</span>
                           </button>
                         </div>
@@ -1629,7 +1749,9 @@ export default function NavigationTabs({
                             : "text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground"
                         }`}
                       >
-                        <item.icon className={`h-4 w-4 shrink-0 ${item.isActive ? "text-info" : "text-sidebar-foreground/70"}`} />
+                        <item.icon
+                          className={`h-4 w-4 shrink-0 ${item.isActive ? "text-info" : "text-sidebar-foreground/70"}`}
+                        />
                         <span className="truncate">{item.label}</span>
                       </button>
                     ))}
@@ -1654,7 +1776,9 @@ export default function NavigationTabs({
                         }}
                         className={`group relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} ${item.isActive ? sidebarActiveStyles : "text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground"}`}
                       >
-                        <item.icon className={`h-4 w-4 shrink-0 ${item.isActive ? "text-info" : "text-sidebar-foreground/70"}`} />
+                        <item.icon
+                          className={`h-4 w-4 shrink-0 ${item.isActive ? "text-info" : "text-sidebar-foreground/70"}`}
+                        />
                         <span className="truncate">{item.label}</span>
                       </button>
                     ))}
@@ -1668,36 +1792,41 @@ export default function NavigationTabs({
                     {activeRailGroup === "tools" && "Tools"}
                   </div>
                   <div className="space-y-1">
-                    {groups.find(g => g.id === activeRailGroup)?.items.map((item) => {
-                      const activeStyles = railActiveStyles;
-                      const inactiveStyles = "border-transparent text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground hover:translate-x-1";
-                      return (
-                        <button
-                          key={item.id}
-                          onClick={() => {
-                            if (item.id === "academics") {
-                              setActiveRailGroup("academics");
-                            } else if (item.id === "hostel") {
-                              setActiveRailGroup("hostel-sub");
-                            } else if (item.id === "tools") {
-                              setActiveRailGroup("tools-sub");
-                            } else {
-                              item.onSelect();
-                              setActiveRailGroup(null);
-                            }
-                          }}
-                          className={`group relative flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-xs font-medium transition-all duration-200 ${navButtonBase} ${
-                            item.isActive ? activeStyles : inactiveStyles
-                          }`}
-                        >
-                          <item.icon className={`h-4.5 w-4.5 shrink-0 transition-all duration-300 ${item.isActive ? "text-info scale-110" : "text-sidebar-foreground/ group-hover:text-sidebar-foreground"}`} />
-                          <span className="truncate transition-transform duration-300">{item.label}</span>
-                          {item.isExpandable && (
-                            <ChevronRight className="h-3.5 w-3.5 ml-auto text-sidebar-foreground/" />
-                          )}
-                        </button>
-                      );
-                    })}
+                    {groups
+                      .find((g) => g.id === activeRailGroup)
+                      ?.items.map((item) => {
+                        const activeStyles = railActiveStyles;
+                        const inactiveStyles =
+                          "border-transparent text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground hover:translate-x-1";
+                        return (
+                          <button
+                            key={item.id}
+                            onClick={() => {
+                              if (item.id === "academics") {
+                                setActiveRailGroup("academics");
+                              } else if (item.id === "hostel") {
+                                setActiveRailGroup("hostel-sub");
+                              } else if (item.id === "tools") {
+                                setActiveRailGroup("tools-sub");
+                              } else {
+                                item.onSelect();
+                                setActiveRailGroup(null);
+                              }
+                            }}
+                            className={`group relative flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-xs font-medium transition-all duration-200 ${navButtonBase} ${
+                              item.isActive ? activeStyles : inactiveStyles
+                            }`}
+                          >
+                            <item.icon
+                              className={`h-4.5 w-4.5 shrink-0 transition-all duration-300 ${item.isActive ? "text-info scale-110" : "text-sidebar-foreground/ group-hover:text-sidebar-foreground"}`}
+                            />
+                            <span className="truncate transition-transform duration-300">{item.label}</span>
+                            {item.isExpandable && (
+                              <ChevronRight className="h-3.5 w-3.5 ml-auto text-sidebar-foreground/" />
+                            )}
+                          </button>
+                        );
+                      })}
                   </div>
                 </div>
               )}
@@ -1710,241 +1839,675 @@ export default function NavigationTabs({
 }
 
 // Optimized Sub-component to isolate App Library state & prevent parent re-renders
-const AppLibraryPortal = memo(({
-  open,
-  onClose,
-  settings,
-  setSettings,
-  selectTab,
-  setActiveAttendanceSubTab,
-  setActiveToolsSubTab,
-  setActiveSubTab,
-  setHostelActiveSubTab,
-  setActiveMoreSubTab,
-  setActiveProfileSubTab,
-  handleLogOutRequest,
-  handleReloadRequest,
-  isHosteller,
-  residentialStatus,
-  theme,
-  handleThemeChange,
-  openCommandPalette,
-  tabIcons,
-  togglePin,
-}: any) => {
-  const [librarySearchQuery, setLibrarySearchQuery] = useState("");
-  const [mobilePanel, setMobilePanel] = useState<"primary" | "academics" | "hostel">("primary");
+const AppLibraryPortal = memo(
+  ({
+    open,
+    onClose,
+    settings,
+    setSettings,
+    selectTab,
+    setActiveAttendanceSubTab,
+    setActiveToolsSubTab,
+    setActiveSubTab,
+    setHostelActiveSubTab,
+    setActiveMoreSubTab,
+    setActiveProfileSubTab,
+    handleLogOutRequest,
+    handleReloadRequest,
+    isHosteller,
+    residentialStatus,
+    theme,
+    handleThemeChange,
+    openCommandPalette,
+    tabIcons,
+    togglePin,
+  }: any) => {
+    const [librarySearchQuery, setLibrarySearchQuery] = useState("");
+    const [mobilePanel, setMobilePanel] = useState<"primary" | "academics" | "hostel">("primary");
 
-  // Cleanup state on close
-  useEffect(() => {
-    if (!open) {
-      setLibrarySearchQuery("");
-      setMobilePanel("primary");
-    }
-  }, [open]);
+    // Cleanup state on close
+    useEffect(() => {
+      if (!open) {
+        setLibrarySearchQuery("");
+        setMobilePanel("primary");
+      }
+    }, [open]);
 
-  // Memoized variables inside the portal to isolate changes
-  const allSearchableItems = useMemo(() => [
-    { label: "Timetable Calendar", group: "Study", icon: Calendar, action: () => { selectTab("attendance"); setActiveAttendanceSubTab("calendar"); } },
-    
-    { label: "My Courses & Marks", group: "Academics", icon: Sparkles, action: () => { selectTab("academics"); setActiveSubTab("courses-simplified"); } },
-    { label: "Course Dashboard", group: "Academics", icon: BookOpen, action: () => { selectTab("academics"); setActiveSubTab("course-dashboard"); } },
-    { label: "Grade History", group: "Academics", icon: GraduationCap, action: () => { selectTab("academics"); setActiveSubTab("grades"); } },
-    { label: "Curriculum", group: "Academics", icon: BookOpen, action: () => { selectTab("academics"); setActiveSubTab("curriculum"); } },
+    // Memoized variables inside the portal to isolate changes
+    const allSearchableItems = useMemo(
+      () => [
+        {
+          label: "Timetable Calendar",
+          group: "Study",
+          icon: Calendar,
+          action: () => {
+            selectTab("attendance");
+            setActiveAttendanceSubTab("calendar");
+          },
+        },
 
-    { label: "Payments", group: "Campus", icon: CreditCard, action: () => { selectTab("payments"); } },
-    { label: "Libraries", group: "Campus", icon: Library, action: () => { selectTab("libraries"); } },
-    { label: "Transport", group: "Campus", icon: Bus, action: () => { selectTab("transport"); } },
-    { label: "Event Hub", group: "Campus", icon: Calendar, action: () => { selectTab("events"); } },
-    { label: "Club Hub", group: "Campus", icon: LayoutGrid, action: () => { selectTab("clubs"); } },
-    { label: "Announcements", group: "Campus", icon: Rss, action: () => { selectTab("community"); } },
-    
-    { label: "Timetable Sharing", group: "Tools", icon: Users, action: () => { selectTab("tools"); setActiveToolsSubTab?.("social"); } },
-    { label: "FFCS Planner", group: "Tools", icon: Compass, action: navigateToFFCSPlanner },
-    { label: "Tools Hub", group: "Tools", icon: Layers, action: () => { selectTab("tools"); setActiveToolsSubTab?.("overview"); } },
-    { label: "Question Bank", group: "Tools", icon: Database, action: () => { selectTab("tools"); setActiveToolsSubTab?.("qbank"); } },
-    { label: "Faculty Explorer", group: "Tools", icon: UserCheck, action: () => { selectTab("tools"); setActiveToolsSubTab?.("faculty-info"); } },
-    { label: "Tasks & Schedule", group: "Tools", icon: CheckSquare, action: () => { selectTab("tools"); setActiveToolsSubTab?.("tasks"); } },
-    { label: "Cab Share", group: "Tools", icon: CarTaxiFront, action: () => { selectTab("tools"); setActiveToolsSubTab?.("cabshare"); } },
-    { label: "Free Classrooms", group: "Campus", icon: DoorOpen, action: () => { selectTab("free-class"); } },
-    { label: "Faculty Schedule", group: "Campus", icon: UserSearch, action: () => { selectTab("faculty-schedule"); } },
-    
-    { label: "Hostel Overview", group: "Hostel", icon: Building, action: () => { selectTab("hostel"); setHostelActiveSubTab("overview"); } },
-    { label: "Mess Menu", group: "Hostel", icon: Coffee, action: () => { selectTab("hostel"); setHostelActiveSubTab("mess"); } },
-    { label: "Laundry", group: "Hostel", icon: Wrench, action: () => { selectTab("hostel"); setHostelActiveSubTab("laundry"); } },
-    { label: "Leave / Gatepass", group: "Hostel", icon: Compass, action: () => { selectTab("hostel"); setHostelActiveSubTab("leave"); } },
-    { label: "Counselling", group: "Hostel", icon: User, action: () => { selectTab("hostel"); setHostelActiveSubTab("counselling"); } },
-    
-    { label: "Settings & Profile", group: "Account", icon: User, action: () => { selectTab("profile"); setActiveProfileSubTab("settings"); } },
-    { label: "About & Resources", group: "Account", icon: Info, action: () => { selectTab("about"); } },
-    { label: "Logout", group: "Account", icon: LogOut, action: () => { handleLogOutRequest(); } }
-  ], [selectTab, setActiveAttendanceSubTab, setActiveToolsSubTab, setActiveSubTab, setHostelActiveSubTab, setActiveProfileSubTab, handleLogOutRequest]);
+        {
+          label: "My Courses & Marks",
+          group: "Academics",
+          icon: Sparkles,
+          action: () => {
+            selectTab("academics");
+            setActiveSubTab("courses-simplified");
+          },
+        },
+        {
+          label: "Course Dashboard",
+          group: "Academics",
+          icon: BookOpen,
+          action: () => {
+            selectTab("academics");
+            setActiveSubTab("course-dashboard");
+          },
+        },
+        {
+          label: "Grade History",
+          group: "Academics",
+          icon: GraduationCap,
+          action: () => {
+            selectTab("academics");
+            setActiveSubTab("grades");
+          },
+        },
+        {
+          label: "Curriculum",
+          group: "Academics",
+          icon: BookOpen,
+          action: () => {
+            selectTab("academics");
+            setActiveSubTab("curriculum");
+          },
+        },
 
-  const primaryGroups = useMemo(() => [
-    {
-      name: "Study",
-      items: [
-        { label: "Timetable Calendar", icon: Calendar, type: "link", action: () => { selectTab("attendance"); setActiveAttendanceSubTab("calendar"); } },
-        { label: "Academics", icon: GraduationCap, type: "panel", action: () => setMobilePanel("academics") }
-      ]
-    },
-    {
-      name: "Campus",
-      items: [
-        { label: "Payments", icon: CreditCard, type: "link", action: () => selectTab("payments") },
-        { label: "Libraries", icon: Library, type: "link", action: () => selectTab("libraries") },
-        { label: "Transport", icon: Bus, type: "link", action: () => selectTab("transport") },
-        { label: "Free Classrooms", icon: DoorOpen, type: "link", action: () => { selectTab("free-class"); } },
-        { label: "Faculty Schedule", icon: UserSearch, type: "link", action: () => { selectTab("faculty-schedule"); } },
-        { label: "Event Hub", icon: Calendar, type: "link", action: () => { selectTab("events"); } },
-        { label: "Club Hub", icon: LayoutGrid, type: "link", action: () => { selectTab("clubs"); } },
-        { label: "Announcements", icon: Rss, type: "link", action: () => { selectTab("community"); } },
-        ...(isHosteller === true || residentialStatus === "hosteller" 
-          ? [{ label: "Hostel Hub", icon: Home, type: "panel", action: () => setMobilePanel("hostel") }] 
-          : [])
-      ]
-    },
-    {
-      name: "Tools",
-      items: [
-        { label: "Timetable Sharing", icon: Users, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("social"); } },
-        { label: "FFCS Planner", icon: Compass, type: "link", action: navigateToFFCSPlanner },
-        { label: "Tools Hub", icon: Layers, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("overview"); } },
-        { label: "Question Bank", icon: Database, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("qbank"); } },
-        { label: "Faculty Explorer", icon: UserCheck, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("faculty-info"); } },
-        { label: "Tasks & Schedule", icon: CheckSquare, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("tasks"); } },
-        { label: "Cab Share", icon: CarTaxiFront, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("cabshare"); } },
-      ]
-    },
-    {
-      name: "Account",
-      items: [
-        { label: "Settings & Profile", icon: User, type: "link", action: () => { selectTab("profile"); setActiveProfileSubTab("settings"); } },
-        { label: "About & Resources", icon: Info, type: "link", action: () => { selectTab("about"); } },
-        { label: "Logout", icon: LogOut, type: "link", action: () => { handleLogOutRequest(); } }
-      ]
-    }
-  ], [selectTab, setActiveAttendanceSubTab, setMobilePanel, isHosteller, residentialStatus, setActiveToolsSubTab, setActiveProfileSubTab, handleLogOutRequest]);
+        {
+          label: "Payments",
+          group: "Campus",
+          icon: CreditCard,
+          action: () => {
+            selectTab("payments");
+          },
+        },
+        {
+          label: "Libraries",
+          group: "Campus",
+          icon: Library,
+          action: () => {
+            selectTab("libraries");
+          },
+        },
+        {
+          label: "Transport",
+          group: "Campus",
+          icon: Bus,
+          action: () => {
+            selectTab("transport");
+          },
+        },
+        {
+          label: "Event Hub",
+          group: "Campus",
+          icon: Calendar,
+          action: () => {
+            selectTab("events");
+          },
+        },
+        {
+          label: "Club Hub",
+          group: "Campus",
+          icon: LayoutGrid,
+          action: () => {
+            selectTab("clubs");
+          },
+        },
+        {
+          label: "Announcements",
+          group: "Campus",
+          icon: Rss,
+          action: () => {
+            selectTab("community");
+          },
+        },
 
-  const academicsItemsMobile = useMemo(() => 
-    allSearchableItems.filter(item => item.group === "Academics"),
-    [allSearchableItems]
-  );
+        {
+          label: "Timetable Sharing",
+          group: "Tools",
+          icon: Users,
+          action: () => {
+            selectTab("tools");
+            setActiveToolsSubTab?.("social");
+          },
+        },
+        { label: "FFCS Planner", group: "Tools", icon: Compass, action: navigateToFFCSPlanner },
+        {
+          label: "Tools Hub",
+          group: "Tools",
+          icon: Layers,
+          action: () => {
+            selectTab("tools");
+            setActiveToolsSubTab?.("overview");
+          },
+        },
+        {
+          label: "Question Bank",
+          group: "Tools",
+          icon: Database,
+          action: () => {
+            selectTab("tools");
+            setActiveToolsSubTab?.("qbank");
+          },
+        },
+        {
+          label: "Faculty Explorer",
+          group: "Tools",
+          icon: UserCheck,
+          action: () => {
+            selectTab("tools");
+            setActiveToolsSubTab?.("faculty-info");
+          },
+        },
+        {
+          label: "Tasks & Schedule",
+          group: "Tools",
+          icon: CheckSquare,
+          action: () => {
+            selectTab("tools");
+            setActiveToolsSubTab?.("tasks");
+          },
+        },
+        {
+          label: "Cab Share",
+          group: "Tools",
+          icon: CarTaxiFront,
+          action: () => {
+            selectTab("tools");
+            setActiveToolsSubTab?.("cabshare");
+          },
+        },
+        {
+          label: "Free Classrooms",
+          group: "Campus",
+          icon: DoorOpen,
+          action: () => {
+            selectTab("free-class");
+          },
+        },
+        {
+          label: "Faculty Schedule",
+          group: "Campus",
+          icon: UserSearch,
+          action: () => {
+            selectTab("faculty-schedule");
+          },
+        },
 
-  const hostelItemsMobile = useMemo(() => 
-    allSearchableItems.filter(item => item.group === "Hostel"),
-    [allSearchableItems]
-  );
+        {
+          label: "Hostel Overview",
+          group: "Hostel",
+          icon: Building,
+          action: () => {
+            selectTab("hostel");
+            setHostelActiveSubTab("overview");
+          },
+        },
+        {
+          label: "Mess Menu",
+          group: "Hostel",
+          icon: Coffee,
+          action: () => {
+            selectTab("hostel");
+            setHostelActiveSubTab("mess");
+          },
+        },
+        {
+          label: "Laundry",
+          group: "Hostel",
+          icon: Wrench,
+          action: () => {
+            selectTab("hostel");
+            setHostelActiveSubTab("laundry");
+          },
+        },
+        {
+          label: "Leave / Gatepass",
+          group: "Hostel",
+          icon: Compass,
+          action: () => {
+            selectTab("hostel");
+            setHostelActiveSubTab("leave");
+          },
+        },
+        {
+          label: "Counselling",
+          group: "Hostel",
+          icon: User,
+          action: () => {
+            selectTab("hostel");
+            setHostelActiveSubTab("counselling");
+          },
+        },
 
-  const filteredSearchItems = useMemo(() => 
-    librarySearchQuery
-      ? allSearchableItems.filter(item => item.label.toLowerCase().includes(librarySearchQuery.toLowerCase()))
-      : [],
-    [librarySearchQuery, allSearchableItems]
-  );
+        {
+          label: "Settings & Profile",
+          group: "Account",
+          icon: User,
+          action: () => {
+            selectTab("profile");
+            setActiveProfileSubTab("settings");
+          },
+        },
+        {
+          label: "About & Resources",
+          group: "Account",
+          icon: Info,
+          action: () => {
+            selectTab("about");
+          },
+        },
+        {
+          label: "Logout",
+          group: "Account",
+          icon: LogOut,
+          action: () => {
+            handleLogOutRequest();
+          },
+        },
+      ],
+      [
+        selectTab,
+        setActiveAttendanceSubTab,
+        setActiveToolsSubTab,
+        setActiveSubTab,
+        setHostelActiveSubTab,
+        setActiveProfileSubTab,
+        handleLogOutRequest,
+      ],
+    );
 
-  return (
-    <AppLibrary
-      open={open}
-      onClose={onClose}
-      title={mobilePanel === "primary" ? "App Library" : mobilePanel === "academics" ? "Academics" : "Hostel Hub"}
-      subtitle={mobilePanel === "primary" ? "Select a module to open" : "Choose a sub-page"}
-      showBack={mobilePanel !== "primary"}
-      onBack={() => setMobilePanel("primary")}
-      searchQuery={mobilePanel === "primary" ? librarySearchQuery : undefined}
-      onSearchChange={mobilePanel === "primary" ? setLibrarySearchQuery : undefined}
-      className="!backdrop-blur-none"
-    >
-      {mobilePanel === "primary" && (
-        <div className="flex items-center gap-1.5 px-1 pb-3">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-550">Active Sem:</span>
-          <div className="relative flex items-center">
-                <SelectField
-                  value={settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2]}
-                  onChange={(val) => {
-                    handleReloadRequest(val);
-                  }}
-                  options={config.semesterIDs.map((semId: string) => ({
-                    value: semId,
-                    label: formatSemesterName(semId),
-                  }))}
-                  searchable={false}
-                  role="group"
-                  aria-label="Current semester"
-                  size="auto"
-                  className="w-full [&>button:first-child]:border-none [&>button:first-child]:bg-transparent [&>button:first-child]:pr-5 [&>button:first-child]:text-info [&>button:first-child]:hover:underline"
-                />
-          </div>
-        </div>
-      )}
+    const primaryGroups = useMemo(
+      () => [
+        {
+          name: "Study",
+          items: [
+            {
+              label: "Timetable Calendar",
+              icon: Calendar,
+              type: "link",
+              action: () => {
+                selectTab("attendance");
+                setActiveAttendanceSubTab("calendar");
+              },
+            },
+            { label: "Academics", icon: GraduationCap, type: "panel", action: () => setMobilePanel("academics") },
+          ],
+        },
+        {
+          name: "Campus",
+          items: [
+            { label: "Payments", icon: CreditCard, type: "link", action: () => selectTab("payments") },
+            { label: "Libraries", icon: Library, type: "link", action: () => selectTab("libraries") },
+            { label: "Transport", icon: Bus, type: "link", action: () => selectTab("transport") },
+            {
+              label: "Free Classrooms",
+              icon: DoorOpen,
+              type: "link",
+              action: () => {
+                selectTab("free-class");
+              },
+            },
+            {
+              label: "Faculty Schedule",
+              icon: UserSearch,
+              type: "link",
+              action: () => {
+                selectTab("faculty-schedule");
+              },
+            },
+            {
+              label: "Event Hub",
+              icon: Calendar,
+              type: "link",
+              action: () => {
+                selectTab("events");
+              },
+            },
+            {
+              label: "Club Hub",
+              icon: LayoutGrid,
+              type: "link",
+              action: () => {
+                selectTab("clubs");
+              },
+            },
+            {
+              label: "Announcements",
+              icon: Rss,
+              type: "link",
+              action: () => {
+                selectTab("community");
+              },
+            },
+            ...(isHosteller === true || residentialStatus === "hosteller"
+              ? [{ label: "Hostel Hub", icon: Home, type: "panel", action: () => setMobilePanel("hostel") }]
+              : []),
+          ],
+        },
+        {
+          name: "Tools",
+          items: [
+            {
+              label: "Timetable Sharing",
+              icon: Users,
+              type: "link",
+              action: () => {
+                selectTab("tools");
+                setActiveToolsSubTab?.("social");
+              },
+            },
+            { label: "FFCS Planner", icon: Compass, type: "link", action: navigateToFFCSPlanner },
+            {
+              label: "Tools Hub",
+              icon: Layers,
+              type: "link",
+              action: () => {
+                selectTab("tools");
+                setActiveToolsSubTab?.("overview");
+              },
+            },
+            {
+              label: "Question Bank",
+              icon: Database,
+              type: "link",
+              action: () => {
+                selectTab("tools");
+                setActiveToolsSubTab?.("qbank");
+              },
+            },
+            {
+              label: "Faculty Explorer",
+              icon: UserCheck,
+              type: "link",
+              action: () => {
+                selectTab("tools");
+                setActiveToolsSubTab?.("faculty-info");
+              },
+            },
+            {
+              label: "Tasks & Schedule",
+              icon: CheckSquare,
+              type: "link",
+              action: () => {
+                selectTab("tools");
+                setActiveToolsSubTab?.("tasks");
+              },
+            },
+            {
+              label: "Cab Share",
+              icon: CarTaxiFront,
+              type: "link",
+              action: () => {
+                selectTab("tools");
+                setActiveToolsSubTab?.("cabshare");
+              },
+            },
+          ],
+        },
+        {
+          name: "Account",
+          items: [
+            {
+              label: "Settings & Profile",
+              icon: User,
+              type: "link",
+              action: () => {
+                selectTab("profile");
+                setActiveProfileSubTab("settings");
+              },
+            },
+            {
+              label: "About & Resources",
+              icon: Info,
+              type: "link",
+              action: () => {
+                selectTab("about");
+              },
+            },
+            {
+              label: "Logout",
+              icon: LogOut,
+              type: "link",
+              action: () => {
+                handleLogOutRequest();
+              },
+            },
+          ],
+        },
+      ],
+      [
+        selectTab,
+        setActiveAttendanceSubTab,
+        setMobilePanel,
+        isHosteller,
+        residentialStatus,
+        setActiveToolsSubTab,
+        setActiveProfileSubTab,
+        handleLogOutRequest,
+      ],
+    );
 
-      {librarySearchQuery ? (
-        filteredSearchItems.length === 0 ? (
-          <div className="py-12 text-center">
-            <p className="text-sm font-semibold text-zinc-400 dark:text-zinc-500">No modules found matching "{librarySearchQuery}"</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            <h3 className="px-1 text-[11px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500">Search Results</h3>
-            <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
-              {filteredSearchItems.map(item => {
-                const Icon = item.icon;
-                const tabId = getTabIdFromLabel(item.label);
-                const pinned = settings?.pinnedNavTabs ?? [];
-                const isPinned = tabId ? pinned.includes(tabId) : false;
-                const atLimit = !isPinned && pinned.length >= 4;
+    const academicsItemsMobile = useMemo(
+      () => allSearchableItems.filter((item) => item.group === "Academics"),
+      [allSearchableItems],
+    );
 
-                return (
-                  <div
-                    key={item.label}
-                    className="group/item relative flex min-h-[60px] w-full items-center justify-between rounded-2xl border border-zinc-200/50 bg-gradient-to-br from-white to-zinc-50/20 p-3 shadow-2xs hover:shadow-xs transition-all active:scale-[0.99] dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40"
-                  >
-                    <button
-                      onClick={() => { item.action(); onClose(); }}
-                      className="flex flex-1 min-w-0 items-center gap-3 text-left cursor-pointer focus:outline-none"
-                    >
-                      <div className="rounded-xl bg-info-surface p-2 text-info shrink-0">
-                        <Icon className="h-4.5 w-4.5 stroke-[2.2]" />
-                      </div>
-                      <div className="flex flex-col min-w-0">
-                        <span className="truncate text-xs font-bold leading-tight text-zinc-800 dark:text-zinc-200">{item.label}</span>
-                        <span className="text-[9px] text-zinc-400 dark:text-zinc-500 font-medium">{item.group} category</span>
-                      </div>
-                    </button>
+    const hostelItemsMobile = useMemo(
+      () => allSearchableItems.filter((item) => item.group === "Hostel"),
+      [allSearchableItems],
+    );
 
-                    {tabId && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          togglePin(tabId);
-                        }}
-                        disabled={atLimit}
-                        className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
-                          isPinned
-                            ? "bg-indigo-50 border-indigo-200 text-indigo-655 dark:bg-indigo-950/30 dark:border-indigo-900/50 dark:text-indigo-400"
-                            : atLimit
-                              ? "opacity-20 cursor-not-allowed"
-                              : "border-transparent text-zinc-300 dark:text-zinc-500 hover:text-zinc-400 hover:border-zinc-200 dark:hover:border-zinc-800"
-                        }`}
-                        title={isPinned ? "Unpin from bottom bar" : "Pin to bottom bar"}
-                      >
-                        <Pin className={`h-3.5 w-3.5 ${isPinned ? "fill-current" : ""}`} />
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
+    const filteredSearchItems = useMemo(
+      () =>
+        librarySearchQuery
+          ? allSearchableItems.filter((item) => item.label.toLowerCase().includes(librarySearchQuery.toLowerCase()))
+          : [],
+      [librarySearchQuery, allSearchableItems],
+    );
+
+    return (
+      <AppLibrary
+        open={open}
+        onClose={onClose}
+        title={mobilePanel === "primary" ? "App Library" : mobilePanel === "academics" ? "Academics" : "Hostel Hub"}
+        subtitle={mobilePanel === "primary" ? "Select a module to open" : "Choose a sub-page"}
+        showBack={mobilePanel !== "primary"}
+        onBack={() => setMobilePanel("primary")}
+        searchQuery={mobilePanel === "primary" ? librarySearchQuery : undefined}
+        onSearchChange={mobilePanel === "primary" ? setLibrarySearchQuery : undefined}
+        className="!backdrop-blur-none"
+      >
+        {mobilePanel === "primary" && (
+          <div className="flex items-center gap-1.5 px-1 pb-3">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-550">
+              Active Sem:
+            </span>
+            <div className="relative flex items-center">
+              <SelectField
+                value={settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2]}
+                onChange={(val) => {
+                  handleReloadRequest(val);
+                }}
+                options={config.semesterIDs.map((semId: string) => ({
+                  value: semId,
+                  label: formatSemesterName(semId),
+                }))}
+                searchable={false}
+                role="group"
+                aria-label="Current semester"
+                size="auto"
+                className="w-full [&>button:first-child]:border-none [&>button:first-child]:bg-transparent [&>button:first-child]:pr-5 [&>button:first-child]:text-info [&>button:first-child]:hover:underline"
+              />
             </div>
           </div>
-        )
-      ) : mobilePanel === "primary" ? (
-        primaryGroups.map(group => (
-          <div key={group.name} className="space-y-2">
-            <h3 className="px-1 text-[11px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500">{group.name}</h3>
+        )}
+
+        {librarySearchQuery ? (
+          filteredSearchItems.length === 0 ? (
+            <div className="py-12 text-center">
+              <p className="text-sm font-semibold text-zinc-400 dark:text-zinc-500">
+                No modules found matching "{librarySearchQuery}"
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <h3 className="px-1 text-[11px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+                Search Results
+              </h3>
+              <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
+                {filteredSearchItems.map((item) => {
+                  const Icon = item.icon;
+                  const tabId = getTabIdFromLabel(item.label);
+                  const pinned = settings?.pinnedNavTabs ?? [];
+                  const isPinned = tabId ? pinned.includes(tabId) : false;
+                  const atLimit = !isPinned && pinned.length >= 4;
+
+                  return (
+                    <div
+                      key={item.label}
+                      className="group/item relative flex min-h-[60px] w-full items-center justify-between rounded-2xl border border-zinc-200/50 bg-gradient-to-br from-white to-zinc-50/20 p-3 shadow-2xs hover:shadow-xs transition-all active:scale-[0.99] dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40"
+                    >
+                      <button
+                        onClick={() => {
+                          item.action();
+                          onClose();
+                        }}
+                        className="flex flex-1 min-w-0 items-center gap-3 text-left cursor-pointer focus:outline-none"
+                      >
+                        <div className="rounded-xl bg-info-surface p-2 text-info shrink-0">
+                          <Icon className="h-4.5 w-4.5 stroke-[2.2]" />
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <span className="truncate text-xs font-bold leading-tight text-zinc-800 dark:text-zinc-200">
+                            {item.label}
+                          </span>
+                          <span className="text-[9px] text-zinc-400 dark:text-zinc-500 font-medium">
+                            {item.group} category
+                          </span>
+                        </div>
+                      </button>
+
+                      {tabId && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            togglePin(tabId);
+                          }}
+                          disabled={atLimit}
+                          className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                            isPinned
+                              ? "bg-indigo-50 border-indigo-200 text-indigo-655 dark:bg-indigo-950/30 dark:border-indigo-900/50 dark:text-indigo-400"
+                              : atLimit
+                                ? "opacity-20 cursor-not-allowed"
+                                : "border-transparent text-zinc-300 dark:text-zinc-500 hover:text-zinc-400 hover:border-zinc-200 dark:hover:border-zinc-800"
+                          }`}
+                          title={isPinned ? "Unpin from bottom bar" : "Pin to bottom bar"}
+                        >
+                          <Pin className={`h-3.5 w-3.5 ${isPinned ? "fill-current" : ""}`} />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )
+        ) : mobilePanel === "primary" ? (
+          primaryGroups.map((group) => (
+            <div key={group.name} className="space-y-2">
+              <h3 className="px-1 text-[11px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+                {group.name}
+              </h3>
+              <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
+                {group.items.map((item) => {
+                  const Icon = item.icon;
+                  const isPanelTrigger = item.type === "panel";
+                  const tabId = getTabIdFromLabel(item.label);
+                  const pinned = settings?.pinnedNavTabs ?? [];
+                  const isPinned = tabId ? pinned.includes(tabId) : false;
+                  const atLimit = !isPinned && pinned.length >= 4;
+
+                  return (
+                    <div
+                      key={item.label}
+                      className="group/item relative flex min-h-[60px] w-full items-center justify-between rounded-2xl border border-zinc-200/50 bg-gradient-to-br from-white to-zinc-50/20 p-3 shadow-2xs hover:shadow-xs transition-all active:scale-[0.99] dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40"
+                    >
+                      <button
+                        onClick={() => {
+                          item.action();
+                          if (!isPanelTrigger) onClose();
+                        }}
+                        className="flex flex-1 min-w-0 items-center gap-3 text-left cursor-pointer focus:outline-none"
+                      >
+                        <div
+                          className={`rounded-xl p-2 shrink-0 transition-all ${
+                            group.name === "Study"
+                              ? "bg-purple-50 text-purple-650 dark:bg-purple-950/30 dark:text-purple-400"
+                              : group.name === "Campus"
+                                ? "bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400"
+                                : "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400"
+                          }`}
+                        >
+                          <Icon className="h-4.5 w-4.5 stroke-[2.2]" />
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <span className="truncate text-xs font-bold leading-tight text-zinc-800 dark:text-zinc-200">
+                            {item.label}
+                          </span>
+                          <span className="text-[9px] text-zinc-400 dark:text-zinc-500 font-medium">
+                            {group.name === "Study"
+                              ? "Academic trackers & schedule"
+                              : group.name === "Campus"
+                                ? "Campus services"
+                                : "Social & utilities"}
+                          </span>
+                        </div>
+                      </button>
+
+                      {tabId && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            togglePin(tabId);
+                          }}
+                          disabled={atLimit}
+                          className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                            isPinned
+                              ? "bg-indigo-50 border-indigo-200 text-indigo-650 dark:bg-indigo-950/30 dark:border-indigo-900/50 dark:text-indigo-400"
+                              : atLimit
+                                ? "opacity-20 cursor-not-allowed"
+                                : "border-transparent text-zinc-300 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 hover:border-zinc-200 dark:hover:border-zinc-800"
+                          }`}
+                          title={isPinned ? "Unpin from bottom bar" : "Pin to bottom bar"}
+                        >
+                          <Pin className={`h-3.5 w-3.5 ${isPinned ? "fill-current" : ""}`} />
+                        </button>
+                      )}
+
+                      {isPanelTrigger && !tabId && <ChevronRight className="h-4 w-4 shrink-0 text-zinc-400" />}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))
+        ) : mobilePanel === "academics" ? (
+          <div className="space-y-2">
             <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
-              {group.items.map(item => {
+              {academicsItemsMobile.map((item) => {
                 const Icon = item.icon;
-                const isPanelTrigger = item.type === "panel";
+                const cleanLabel = item.label.replace("Academics ", "");
                 const tabId = getTabIdFromLabel(item.label);
                 const pinned = settings?.pinnedNavTabs ?? [];
                 const isPinned = tabId ? pinned.includes(tabId) : false;
@@ -1956,22 +2519,21 @@ const AppLibraryPortal = memo(({
                     className="group/item relative flex min-h-[60px] w-full items-center justify-between rounded-2xl border border-zinc-200/50 bg-gradient-to-br from-white to-zinc-50/20 p-3 shadow-2xs hover:shadow-xs transition-all active:scale-[0.99] dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40"
                   >
                     <button
-                      onClick={() => { item.action(); if (!isPanelTrigger) onClose(); }}
+                      onClick={() => {
+                        item.action();
+                        onClose();
+                      }}
                       className="flex flex-1 min-w-0 items-center gap-3 text-left cursor-pointer focus:outline-none"
                     >
-                      <div className={`rounded-xl p-2 shrink-0 transition-all ${
-                        group.name === "Study"
-                          ? "bg-purple-50 text-purple-650 dark:bg-purple-950/30 dark:text-purple-400"
-                          : group.name === "Campus"
-                            ? "bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400"
-                            : "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400"
-                      }`}>
+                      <div className="rounded-xl bg-purple-50 p-2 text-purple-650 shrink-0 dark:bg-purple-950/30 dark:text-purple-400">
                         <Icon className="h-4.5 w-4.5 stroke-[2.2]" />
                       </div>
                       <div className="flex flex-col min-w-0">
-                        <span className="truncate text-xs font-bold leading-tight text-zinc-800 dark:text-zinc-200">{item.label}</span>
-                        <span className="text-[9px] text-zinc-400 dark:text-zinc-500 font-medium">
-                          {group.name === "Study" ? "Academic trackers & schedule" : group.name === "Campus" ? "Campus services" : "Social & utilities"}
+                        <span className="truncate text-xs font-bold leading-tight text-zinc-800 dark:text-zinc-200">
+                          {cleanLabel}
+                        </span>
+                        <span className="text-[9px] text-zinc-400 dark:text-zinc-500 font-medium font-outfit">
+                          Academics Tracker
                         </span>
                       </div>
                     </button>
@@ -1995,192 +2557,153 @@ const AppLibraryPortal = memo(({
                         <Pin className={`h-3.5 w-3.5 ${isPinned ? "fill-current" : ""}`} />
                       </button>
                     )}
-                    
-                    {isPanelTrigger && !tabId && <ChevronRight className="h-4 w-4 shrink-0 text-zinc-400" />}
                   </div>
                 );
               })}
             </div>
           </div>
-        ))
-      ) : mobilePanel === "academics" ? (
-        <div className="space-y-2">
-          <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
-            {academicsItemsMobile.map(item => {
-              const Icon = item.icon;
-              const cleanLabel = item.label.replace("Academics ", "");
-              const tabId = getTabIdFromLabel(item.label);
-              const pinned = settings?.pinnedNavTabs ?? [];
-              const isPinned = tabId ? pinned.includes(tabId) : false;
-              const atLimit = !isPinned && pinned.length >= 4;
+        ) : (
+          <div className="space-y-2">
+            <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
+              {hostelItemsMobile.map((item) => {
+                const Icon = item.icon;
+                const cleanLabel = item.label.replace("Hostel ", "");
+                const tabId = getTabIdFromLabel(item.label);
+                const pinned = settings?.pinnedNavTabs ?? [];
+                const isPinned = tabId ? pinned.includes(tabId) : false;
+                const atLimit = !isPinned && pinned.length >= 4;
 
-              return (
-                <div
-                  key={item.label}
-                  className="group/item relative flex min-h-[60px] w-full items-center justify-between rounded-2xl border border-zinc-200/50 bg-gradient-to-br from-white to-zinc-50/20 p-3 shadow-2xs hover:shadow-xs transition-all active:scale-[0.99] dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40"
-                >
-                  <button
-                    onClick={() => { item.action(); onClose(); }}
-                    className="flex flex-1 min-w-0 items-center gap-3 text-left cursor-pointer focus:outline-none"
+                return (
+                  <div
+                    key={item.label}
+                    className="group/item relative flex min-h-[60px] w-full items-center justify-between rounded-2xl border border-zinc-200/50 bg-gradient-to-br from-white to-zinc-50/20 p-3 shadow-2xs hover:shadow-xs transition-all active:scale-[0.99] dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40"
                   >
-                    <div className="rounded-xl bg-purple-50 p-2 text-purple-650 shrink-0 dark:bg-purple-950/30 dark:text-purple-400">
-                      <Icon className="h-4.5 w-4.5 stroke-[2.2]" />
-                    </div>
-                    <div className="flex flex-col min-w-0">
-                      <span className="truncate text-xs font-bold leading-tight text-zinc-800 dark:text-zinc-200">{cleanLabel}</span>
-                      <span className="text-[9px] text-zinc-400 dark:text-zinc-500 font-medium font-outfit">Academics Tracker</span>
-                    </div>
-                  </button>
-
-                  {tabId && (
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        togglePin(tabId);
+                      onClick={() => {
+                        item.action();
+                        onClose();
                       }}
-                      disabled={atLimit}
-                      className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
-                        isPinned
-                          ? "bg-indigo-50 border-indigo-200 text-indigo-650 dark:bg-indigo-950/30 dark:border-indigo-900/50 dark:text-indigo-400"
-                          : atLimit
-                            ? "opacity-20 cursor-not-allowed"
-                            : "border-transparent text-zinc-300 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 hover:border-zinc-200 dark:hover:border-zinc-800"
-                      }`}
-                      title={isPinned ? "Unpin from bottom bar" : "Pin to bottom bar"}
+                      className="flex flex-1 min-w-0 items-center gap-3 text-left cursor-pointer focus:outline-none"
                     >
-                      <Pin className={`h-3.5 w-3.5 ${isPinned ? "fill-current" : ""}`} />
+                      <div className="rounded-xl bg-amber-50 p-2 text-amber-655 shrink-0 dark:bg-amber-950/30 dark:text-amber-400">
+                        <Icon className="h-4.5 w-4.5 stroke-[2.2]" />
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="truncate text-xs font-bold leading-tight text-zinc-800 dark:text-zinc-200">
+                          {cleanLabel}
+                        </span>
+                        <span className="text-[9px] text-zinc-400 dark:text-zinc-500 font-medium font-outfit">
+                          Hostel Hub
+                        </span>
+                      </div>
                     </button>
-                  )}
-                </div>
+
+                    {tabId && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          togglePin(tabId);
+                        }}
+                        disabled={atLimit}
+                        className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                          isPinned
+                            ? "bg-indigo-50 border-indigo-200 text-indigo-650 dark:bg-indigo-950/30 dark:border-indigo-900/50 dark:text-indigo-400"
+                            : atLimit
+                              ? "opacity-20 cursor-not-allowed"
+                              : "border-transparent text-zinc-300 dark:text-zinc-600 hover:text-zinc-400 hover:border-zinc-200 dark:hover:border-zinc-800"
+                        }`}
+                        title={isPinned ? "Unpin from bottom bar" : "Pin to bottom bar"}
+                      >
+                        <Pin className={`h-3.5 w-3.5 ${isPinned ? "fill-current" : ""}`} />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Quick Customize Pinned Tabs Block */}
+        <div className="shrink-0 space-y-3 border-t border-zinc-200/50 bg-zinc-50/80 px-5 py-4 dark:border-zinc-800/50 dark:bg-black/60 rounded-t-[20px] mt-4">
+          <div className="flex items-center justify-between">
+            <h4 className="px-0.5 text-[10px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500 font-outfit">
+              Quick Pin tabs (Max 4)
+            </h4>
+            <span className="text-[9px] font-black text-indigo-600 dark:text-indigo-400 uppercase">
+              {(settings?.pinnedNavTabs ?? []).length}/4 selected
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              { id: "attendance", label: "Timetable Calendar" },
+              { id: "academics", label: "Academics" },
+              { id: "payments", label: "Payments" },
+              { id: "libraries", label: "Libraries" },
+              { id: "free-class", label: "Free Classrooms" },
+              { id: "faculty-schedule", label: "Faculty Schedule" },
+              { id: "events", label: "Event Hub" },
+              { id: "clubs", label: "Club Hub" },
+              { id: "community", label: "Announcements" },
+              { id: "cabshare", label: "Cab Share" },
+              { id: "transport", label: "Transport" },
+              { id: "more", label: "More" },
+              { id: "profile", label: "Profile" },
+              { id: "credentials", label: "Credentials" },
+            ].map((tab) => {
+              const pinned = settings?.pinnedNavTabs ?? [];
+              const isPinned = pinned.includes(tab.id);
+              const atLimit = !isPinned && pinned.length >= 4;
+              return (
+                <button
+                  key={tab.id}
+                  disabled={atLimit}
+                  onClick={() => togglePin(tab.id)}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-[10.5px] font-black border transition-all cursor-pointer select-none ${
+                    isPinned
+                      ? "bg-indigo-600 border-indigo-600 text-white shadow-xs"
+                      : atLimit
+                        ? "bg-gray-100 dark:bg-gray-900 border-gray-150 dark:border-gray-800 text-gray-400 dark:text-gray-650 cursor-not-allowed opacity-40"
+                        : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 hover:border-indigo-400"
+                  }`}
+                >
+                  {isPinned ? "✓ " : "+ "}
+                  {tab.label}
+                </button>
               );
             })}
           </div>
         </div>
-      ) : (
-        <div className="space-y-2">
-          <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
-            {hostelItemsMobile.map(item => {
-              const Icon = item.icon;
-              const cleanLabel = item.label.replace("Hostel ", "");
-              const tabId = getTabIdFromLabel(item.label);
-              const pinned = settings?.pinnedNavTabs ?? [];
-              const isPinned = tabId ? pinned.includes(tabId) : false;
-              const atLimit = !isPinned && pinned.length >= 4;
 
-              return (
-                <div
-                  key={item.label}
-                  className="group/item relative flex min-h-[60px] w-full items-center justify-between rounded-2xl border border-zinc-200/50 bg-gradient-to-br from-white to-zinc-50/20 p-3 shadow-2xs hover:shadow-xs transition-all active:scale-[0.99] dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40"
-                >
-                  <button
-                    onClick={() => { item.action(); onClose(); }}
-                    className="flex flex-1 min-w-0 items-center gap-3 text-left cursor-pointer focus:outline-none"
-                  >
-                    <div className="rounded-xl bg-amber-50 p-2 text-amber-655 shrink-0 dark:bg-amber-950/30 dark:text-amber-400">
-                      <Icon className="h-4.5 w-4.5 stroke-[2.2]" />
-                    </div>
-                    <div className="flex flex-col min-w-0">
-                      <span className="truncate text-xs font-bold leading-tight text-zinc-800 dark:text-zinc-200">{cleanLabel}</span>
-                      <span className="text-[9px] text-zinc-400 dark:text-zinc-500 font-medium font-outfit">Hostel Hub</span>
-                    </div>
-                  </button>
-
-                  {tabId && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        togglePin(tabId);
-                      }}
-                      disabled={atLimit}
-                      className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
-                        isPinned
-                          ? "bg-indigo-50 border-indigo-200 text-indigo-650 dark:bg-indigo-950/30 dark:border-indigo-900/50 dark:text-indigo-400"
-                          : atLimit
-                            ? "opacity-20 cursor-not-allowed"
-                            : "border-transparent text-zinc-300 dark:text-zinc-600 hover:text-zinc-400 hover:border-zinc-200 dark:hover:border-zinc-800"
-                      }`}
-                      title={isPinned ? "Unpin from bottom bar" : "Pin to bottom bar"}
-                    >
-                      <Pin className={`h-3.5 w-3.5 ${isPinned ? "fill-current" : ""}`} />
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Quick Customize Pinned Tabs Block */}
-      <div className="shrink-0 space-y-3 border-t border-zinc-200/50 bg-zinc-50/80 px-5 py-4 dark:border-zinc-800/50 dark:bg-black/60 rounded-t-[20px] mt-4">
-        <div className="flex items-center justify-between">
-          <h4 className="px-0.5 text-[10px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500 font-outfit">Quick Pin tabs (Max 4)</h4>
-          <span className="text-[9px] font-black text-indigo-600 dark:text-indigo-400 uppercase">
-            {(settings?.pinnedNavTabs ?? []).length}/4 selected
-          </span>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {[
-            { id: "attendance", label: "Timetable Calendar" },
-            { id: "academics", label: "Academics" },
-            { id: "payments", label: "Payments" },
-            { id: "libraries", label: "Libraries" },
-            { id: "free-class", label: "Free Classrooms" },
-            { id: "faculty-schedule", label: "Faculty Schedule" },
-            { id: "events", label: "Event Hub" },
-            { id: "clubs", label: "Club Hub" },
-            { id: "community", label: "Announcements" },
-            { id: "cabshare", label: "Cab Share" },
-            { id: "transport", label: "Transport" },
-            { id: "more", label: "More" },
-            { id: "profile", label: "Profile" },
-            { id: "credentials", label: "Credentials" },
-          ].map(tab => {
-            const pinned = settings?.pinnedNavTabs ?? [];
-            const isPinned = pinned.includes(tab.id);
-            const atLimit = !isPinned && pinned.length >= 4;
-            return (
+        <div
+          className="shrink-0 space-y-2 border-t border-gray-200/50 bg-gray-50/80 px-5 py-4 dark:border-gray-800/50 dark:bg-black/60"
+          style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}
+        >
+          <h4 className="px-0.5 text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-550 font-outfit">
+            Interface Theme
+          </h4>
+          <div className="flex w-full gap-1.5 rounded-xl border border-gray-200/20 bg-gray-200/50 p-1 dark:border-gray-800/50 dark:bg-gray-900/50">
+            {["light", "dark"].map((t) => (
               <button
-                key={tab.id}
-                disabled={atLimit}
-                onClick={() => togglePin(tab.id)}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-[10.5px] font-black border transition-all cursor-pointer select-none ${
-                  isPinned
-                    ? "bg-indigo-600 border-indigo-600 text-white shadow-xs"
-                    : atLimit
-                      ? "bg-gray-100 dark:bg-gray-900 border-gray-150 dark:border-gray-800 text-gray-400 dark:text-gray-650 cursor-not-allowed opacity-40"
-                      : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 hover:border-indigo-400"
+                key={t}
+                onClick={(e) => handleThemeChange(t, e)}
+                className={`flex min-h-[36px] flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-black capitalize transition-all cursor-pointer ${
+                  theme === t
+                    ? "bg-white text-info shadow-xs dark:bg-black dark:text-amber-300"
+                    : "text-gray-550 hover:text-gray-955 dark:text-gray-400 dark:hover:text-white"
                 }`}
               >
-                {isPinned ? "✓ " : "+ "}
-                {tab.label}
+                {t === "light" && <Sun className="h-3.5 w-3.5 text-indigo-600" />}
+                {t === "dark" && (
+                  <Lightbulb className="h-3.5 w-3.5 text-amber-300 fill-amber-300/20 drop-shadow-[0_0_6px_rgba(251,191,36,0.6)]" />
+                )}
+                <span>{t}</span>
               </button>
-            );
-          })}
+            ))}
+          </div>
         </div>
-      </div>
-
-      <div className="shrink-0 space-y-2 border-t border-gray-200/50 bg-gray-50/80 px-5 py-4 dark:border-gray-800/50 dark:bg-black/60" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)' }}>
-        <h4 className="px-0.5 text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-550 font-outfit">Interface Theme</h4>
-        <div className="flex w-full gap-1.5 rounded-xl border border-gray-200/20 bg-gray-200/50 p-1 dark:border-gray-800/50 dark:bg-gray-900/50">
-          {["light", "dark"].map(t => (
-            <button
-              key={t}
-              onClick={(e) => handleThemeChange(t, e)}
-              className={`flex min-h-[36px] flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-black capitalize transition-all cursor-pointer ${
-                theme === t
-                  ? "bg-white text-info shadow-xs dark:bg-black dark:text-amber-300"
-                  : "text-gray-550 hover:text-gray-955 dark:text-gray-400 dark:hover:text-white"
-              }`}
-            >
-              {t === "light" && <Sun className="h-3.5 w-3.5 text-indigo-600" />}
-              {t === "dark" && <Lightbulb className="h-3.5 w-3.5 text-amber-300 fill-amber-300/20 drop-shadow-[0_0_6px_rgba(251,191,36,0.6)]" />}
-              <span>{t}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-    </AppLibrary>
-  );
-});
+      </AppLibrary>
+    );
+  },
+);
 AppLibraryPortal.displayName = "AppLibraryPortal";

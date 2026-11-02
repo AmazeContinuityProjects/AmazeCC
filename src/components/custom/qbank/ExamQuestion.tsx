@@ -1,5 +1,5 @@
 import { useState } from "react";
-import 'katex/dist/katex.min.css';
+import "katex/dist/katex.min.css";
 import Latex from "react-latex-next";
 import { CheckCircle2, XCircle, RotateCcw } from "lucide-react";
 import { QBankQuestion } from "@/types/qbank.types";
@@ -37,13 +37,15 @@ export default function ExamQuestion({ question, index }: { question: QBankQuest
         </div>
         <div className="flex items-center gap-2">
           {selectedOption && (
-            <button onClick={handleReset} className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 dark:hover:text-gray-300 transition-colors" title="Reset">
+            <button
+              onClick={handleReset}
+              className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 dark:hover:text-gray-300 transition-colors"
+              title="Reset"
+            >
               <RotateCcw className="w-4 h-4" />
             </button>
           )}
-          <div className="text-sm font-semibold text-gray-500  dark:text-gray-500">
-            [{question.marks || "?"} Marks]
-          </div>
+          <div className="text-sm font-semibold text-gray-500  dark:text-gray-500">[{question.marks || "?"} Marks]</div>
         </div>
       </div>
 
@@ -55,23 +57,26 @@ export default function ExamQuestion({ question, index }: { question: QBankQuest
       {/* Fallback Image */}
       {question.image_url && (
         <div className="mb-6 rounded-lg overflow-hidden border border-gray-200  dark:border-gray-800 bg-gray-50  dark:bg-gray-950">
-          <img src={question.image_url} alt={`Question ${index + 1}`} className="max-w-full h-auto object-contain" />
+          <img
+            loading="lazy"
+            decoding="async"
+            src={question.image_url}
+            alt={`Question ${index + 1}`}
+            className="max-w-full h-auto object-contain"
+          />
         </div>
       )}
 
       {/* Options (MCQ) */}
-      {question.question_type === 'MCQ' && question.options && Object.keys(question.options).length > 0 && (
+      {question.question_type === "MCQ" && question.options && Object.keys(question.options).length > 0 && (
         <div className="space-y-2.5">
           {Object.entries(question.options).map(([key, value]) => {
             const wrong = isWrong(key);
 
-            let btnClass =
-              "border-gray-200  dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-slate-800";
+            let btnClass = "border-gray-200  dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-slate-800";
             if (selectedOption) {
-              if (key === question.correct_answer)
-                btnClass = "border-green-500 bg-green-50  dark:bg-green-900/20";
-              else if (wrong)
-                btnClass = "border-red-500 bg-red-50  dark:bg-red-900/20";
+              if (key === question.correct_answer) btnClass = "border-green-500 bg-green-50  dark:bg-green-900/20";
+              else if (wrong) btnClass = "border-red-500 bg-red-50  dark:bg-red-900/20";
               else btnClass = "border-gray-200  dark:border-gray-800 opacity-40";
             }
 
@@ -91,9 +96,7 @@ export default function ExamQuestion({ question, index }: { question: QBankQuest
                 {selectedOption && key === question.correct_answer && (
                   <CheckCircle2 className="w-5 h-5 text-green-500 ml-2 shrink-0" />
                 )}
-                {selectedOption && wrong && (
-                  <XCircle className="w-5 h-5 text-red-500 ml-2 shrink-0" />
-                )}
+                {selectedOption && wrong && <XCircle className="w-5 h-5 text-red-500 ml-2 shrink-0" />}
               </button>
             );
           })}
@@ -101,18 +104,20 @@ export default function ExamQuestion({ question, index }: { question: QBankQuest
       )}
 
       {/* Show Answer for Non-MCQ */}
-      {question.question_type !== 'MCQ' && question.correct_answer && (
+      {question.question_type !== "MCQ" && question.correct_answer && (
         <div className="mt-4">
           {!selectedOption ? (
-            <button 
-              onClick={() => setSelectedOption('SHOW_ANSWER')}
+            <button
+              onClick={() => setSelectedOption("SHOW_ANSWER")}
               className="text-sm px-4 py-2 bg-gray-100  dark:bg-black text-gray-700  dark:text-gray-300 border border-gray-200  dark:border-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors font-medium"
             >
               Show Answer / Hints
             </button>
           ) : (
             <div className="p-4 bg-green-50  dark:bg-green-900/20 border border-green-200  dark:border-green-800/50 rounded-lg">
-              <h4 className="text-xs font-bold text-green-700  dark:text-green-400 uppercase tracking-wider mb-2">Answer:</h4>
+              <h4 className="text-xs font-bold text-green-700  dark:text-green-400 uppercase tracking-wider mb-2">
+                Answer:
+              </h4>
               <div className="text-sm text-gray-800  dark:text-white font-medium">
                 <Latex>{question.correct_answer}</Latex>
               </div>

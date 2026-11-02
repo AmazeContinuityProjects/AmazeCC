@@ -33,6 +33,8 @@ export default function FFCSPageView() {
               title="AmazeCC Home"
             >
               <img
+                loading="lazy"
+                decoding="async"
                 src={getAssetPath("/favicon/FFCS.png")}
                 alt="AmazeCC FFCS"
                 className="h-8 w-8 rounded-xl object-contain shadow-xs border border-indigo-500/30 p-0.5 bg-white dark:bg-zinc-900"

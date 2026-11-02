@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { storage } from "./storage";
 import { asRankingMode, type RankingMode } from "./ffcsRanking";
 import type { SortBy } from "./timetableMetrics";
-import { DEFAULT_RESULT_LIMIT } from "@/components/custom/exams/FFCS/logic/generate";
+import { HARD_RESULT_LIMIT } from "@/components/custom/exams/FFCS/logic/generate";
 import { track } from "./analytics";
 import {
   DEFAULT_FACULTY_METRIC_WEIGHTS,
@@ -53,6 +53,16 @@ export type ExportFormat = "jpg" | "png";
 export type DefaultRankingMode = RankingMode | "none";
 
 export interface FFCSSettings {
+  /**
+   * Schema stamp written by {@link sanitizeFFCSSettings} on every save.
+   *
+   * Absent on records written before this field existed, which read as
+   * {@link PRE_REVISION}. It marks a record as belonging to a schema whose
+   * defaults its stored values have already been reconciled against — the
+   * mechanism that lets the 30K-default migration below run exactly once
+   * instead of reinterpreting every old record forever.
+   */
+  revision: number;
   /** Ranking profile the generator starts with. `"none"` = plain sort order. */
   rankingMode: DefaultRankingMode;
   /** Sort order the generator starts with. */
@@ -69,10 +79,14 @@ export interface FFCSSettings {
   facultyScoreFilters: FacultyScoreFilters;
   /** Half-days floor the generator starts with (0 = off). */
   minHalfDays: number;
-  /** Search cap used when the run is not unlimited. */
+  /**
+   * Search cap used when the run is not unlimited.
+   *
+   * Defaults to the engine's own 30,000 ceiling — the widest capped depth
+   * there is. Beyond it only the per-run Unlimited switch goes, and that
+   * switch lifts the ceiling outright rather than sitting under it.
+   */
   resultCap: number;
-  /** Allow unlimited searches to exceed the default 30,000-result safety ceiling. */
-  removeHardResultLimit: boolean;
   /**
    * Only timetables containing **every** selected course count.
    *
@@ -86,13 +100,39 @@ export interface FFCSSettings {
   allSubjectsMode: boolean;
   /** Whether to offer the guided tour to a first-time visitor. */
   showTour: boolean;
+  /**
+   * Use the Vitfac integration: review scores, faculty photos, profile
+   * links, and the vitfac links around the planner.
+   *
+   * `true` (default). `false` stops every Vitfac request and hides the
+   * review UI; score filters and weights then have no data to act on.
+   * Deliberately a settings record field (not a private key of the service)
+   * so it shows the default, restores per-row, and resets with the rest —
+   * the service keeps its own copy only to be correct at import time.
+   */
+  vitfacIntegration: boolean;
   /** Show a vertical timetable beside the dashboard on extra-wide screens. */
   showVerticalTimetableBesideWidgets: boolean;
   /** Show the desktop option pane while reviewing generated timetables. */
   showGeneratorOptionPane: boolean;
+  /**
+   * Let the planner use the student's curriculum and grade history in the
+   * course pickers.
+   *
+   * `true` (default). When on, course rows say whether the subject is in the
+   * curriculum (or an "NC Open Elective" candidate), courses already graded
+   * `S` cannot be selected, `A`–`E` carry a grade-improvement warning, and
+   * `F`/`N`/`NX*` subjects are surfaced to the top of the list. `false` turns
+   * all of that off and stops the backfill — the pickers then show the plain
+   * catalogue exactly as before. Toggled from the planner's "Curriculum &
+   * grade history" entry, which is also where a sync is triggered.
+   */
+  integrateCurriculumAndGrades: boolean;
 }
 
+const SETTINGS_REVISION = 2;
 export const FFCSSettingsDefaults: Readonly<FFCSSettings> = Object.freeze({
+  revision: SETTINGS_REVISION,
   rankingMode: "none" as DefaultRankingMode,
   defaultSortBy: "balanced" as SortBy,
   exportFormat: "jpg" as ExportFormat,
@@ -101,12 +141,13 @@ export const FFCSSettingsDefaults: Readonly<FFCSSettings> = Object.freeze({
   facultyMetricWeights: { ...DEFAULT_FACULTY_METRIC_WEIGHTS },
   facultyScoreFilters: { ...DEFAULT_FACULTY_SCORE_FILTERS },
   minHalfDays: 0,
-  resultCap: DEFAULT_RESULT_LIMIT,
-  removeHardResultLimit: false,
+  resultCap: HARD_RESULT_LIMIT,
   allSubjectsMode: true,
   showTour: true,
+  vitfacIntegration: true,
   showVerticalTimetableBesideWidgets: false,
   showGeneratorOptionPane: true,
+  integrateCurriculumAndGrades: true,
 });
 
 const SORT_BY: readonly SortBy[] = ["social", "halfdays", "compactness", "balanced", "faculty"];
@@ -114,7 +155,31 @@ const EXPORT_FORMATS: readonly ExportFormat[] = ["jpg", "png"];
 /** Half a week of half-days (6 days × morning/evening); the real ceiling. */
 const MAX_HALF_DAYS = 12;
 const MIN_RESULT_CAP = 10;
-const MAX_RESULT_CAP = 1000;
+/**
+ * The widest cap a student can pick without the per-run Unlimited switch.
+ *
+ * Deliberately the engine's own 30,000-result safety ceiling: 30K is a real,
+ * selectable search depth now — and the default one — and the only thing
+ * above it is a run that was explicitly asked to have no ceiling at all.
+ */
+const MAX_RESULT_CAP = HARD_RESULT_LIMIT;
+/**
+ * The cap every pre-30K-default record holds, whether or not its student
+ * ever opened the cap picker.
+ *
+ * Any settings save wrote the whole record, so a stored `50` was almost
+ * always this default being carried along — not a pick. It is therefore
+ * upgraded to the new default once (see {@link SETTINGS_REVISION}); a 50
+ * chosen *after* that stamp lands is a deliberate pick and is kept.
+ */
+const LEGACY_DEFAULT_RESULT_CAP = 50;
+/** Schema of records written before `revision` existed. */
+const PRE_REVISION = 1;
+/**
+ * Current record schema. Bump when a stored value's meaning changes and the
+ * change needs a one-shot reconciliation — see the `resultCap` upgrade in
+ * {@link sanitizeFFCSSettings}.
+ */
 
 function asInt(value: unknown, min: number, max: number, fallback: number): number {
   const n = typeof value === "number" ? value : Number(value);
@@ -139,7 +204,9 @@ function asScore(value: unknown, max: number, fallback = 0): number {
  */
 export function sanitizeFFCSSettings(raw: unknown): FFCSSettings {
   const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const revision = asInt(r.revision, PRE_REVISION, SETTINGS_REVISION, PRE_REVISION);
   return {
+    revision: SETTINGS_REVISION,
     rankingMode: r.rankingMode === "none" ? "none" : (asRankingMode(r.rankingMode) ?? FFCSSettingsDefaults.rankingMode),
     defaultSortBy: SORT_BY.includes(r.defaultSortBy as SortBy)
       ? (r.defaultSortBy as SortBy)
@@ -185,13 +252,20 @@ export function sanitizeFFCSSettings(raw: unknown): FFCSSettings {
       };
     })(),
     minHalfDays: asInt(r.minHalfDays, 0, MAX_HALF_DAYS, FFCSSettingsDefaults.minHalfDays),
-    resultCap: asInt(r.resultCap, MIN_RESULT_CAP, MAX_RESULT_CAP, FFCSSettingsDefaults.resultCap),
-    removeHardResultLimit:
-      typeof r.removeHardResultLimit === "boolean"
-        ? r.removeHardResultLimit
-        : FFCSSettingsDefaults.removeHardResultLimit,
+    // One-shot reconciliation of the old default (see `revision`): a record
+    // from before the 30K default that still holds the old `50` gets the new
+    // default, because a stored 50 was the default riding along on some other
+    // save rather than a pick. Once the record carries the current stamp, a
+    // 50 in it was chosen with the new schema in view and is kept.
+    resultCap: (() => {
+      const stored = asInt(r.resultCap, MIN_RESULT_CAP, MAX_RESULT_CAP, FFCSSettingsDefaults.resultCap);
+      const isLegacyDefault = revision < SETTINGS_REVISION && stored === LEGACY_DEFAULT_RESULT_CAP;
+      return isLegacyDefault ? FFCSSettingsDefaults.resultCap : stored;
+    })(),
     allSubjectsMode: typeof r.allSubjectsMode === "boolean" ? r.allSubjectsMode : FFCSSettingsDefaults.allSubjectsMode,
     showTour: typeof r.showTour === "boolean" ? r.showTour : FFCSSettingsDefaults.showTour,
+    vitfacIntegration:
+      typeof r.vitfacIntegration === "boolean" ? r.vitfacIntegration : FFCSSettingsDefaults.vitfacIntegration,
     showVerticalTimetableBesideWidgets:
       typeof r.showVerticalTimetableBesideWidgets === "boolean"
         ? r.showVerticalTimetableBesideWidgets
@@ -200,6 +274,10 @@ export function sanitizeFFCSSettings(raw: unknown): FFCSSettings {
       typeof r.showGeneratorOptionPane === "boolean"
         ? r.showGeneratorOptionPane
         : FFCSSettingsDefaults.showGeneratorOptionPane,
+    integrateCurriculumAndGrades:
+      typeof r.integrateCurriculumAndGrades === "boolean"
+        ? r.integrateCurriculumAndGrades
+        : FFCSSettingsDefaults.integrateCurriculumAndGrades,
   };
 }
 

@@ -68,9 +68,7 @@ export function ToneDot({
     zinc: "bg-text-secondary",
   };
   const box = size === "sm" ? "w-1.5 h-1.5" : "w-2 h-2";
-  return (
-    <span className={`${box} rounded-full shrink-0 ${dots[tone] ?? dots.zinc} ${className}`.trim()} />
-  );
+  return <span className={`${box} rounded-full shrink-0 ${dots[tone] ?? dots.zinc} ${className}`.trim()} />;
 }
 
 /**
@@ -174,10 +172,10 @@ export function AvatarDot({
     // static export with unoptimized images. Same reasoning as `BookCover`.
     // eslint-disable-next-line @next/next/no-img-element
     <img
+      loading="lazy"
       src={src}
       alt={name ? `${name}'s registered event` : "Your registered event"}
       onError={() => setFailed(true)}
-      loading="lazy"
       decoding="async"
       className={`h-5 w-5 shrink-0 rounded-full object-cover ring-1 ring-black/5 dark:ring-white/10 ${className}`.trim()}
       data-initials={initials}

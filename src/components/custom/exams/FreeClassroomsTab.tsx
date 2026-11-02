@@ -38,10 +38,7 @@ import {
   type FreeRooms,
   type PeriodOption,
 } from "@/lib/freeClassrooms";
-import {
-  fetchLiveDay,
-  type LiveDay,
-} from "@/lib/roomAvailability";
+import { fetchLiveDay, type LiveDay } from "@/lib/roomAvailability";
 import { mergeDay, type MergedDay } from "@/lib/roomMerge";
 import { getCurrentSemesterId } from "@/lib/officialOd";
 import BottomSheet from "../shared/BottomSheet";
@@ -107,10 +104,7 @@ const roomNumber = (code: string) => {
  * "where should I walk to" is answered by the emptiest moment of the day, and
  * that moment can move once the server's classes are in the mix.
  */
-function bestPeriodOf(
-  merged: MergedDay,
-  periods: PeriodOption[]
-): { period: PeriodOption; free: number } | null {
+function bestPeriodOf(merged: MergedDay, periods: PeriodOption[]): { period: PeriodOption; free: number } | null {
   let best: { period: PeriodOption; free: number } | null = null;
   for (const period of periods) {
     const free = merged.periods.get(period.key)?.free.rooms.length ?? 0;
@@ -147,7 +141,7 @@ function RoomChip({
         "inline-flex items-center rounded-xl border overflow-hidden transition-colors",
         lab
           ? "bg-cyan-500/5 border-cyan-500/20 hover:border-cyan-400/40"
-          : "bg-indigo-500/5 border-indigo-500/20 hover:border-indigo-400/40"
+          : "bg-indigo-500/5 border-indigo-500/20 hover:border-indigo-400/40",
       )}
     >
       <button
@@ -156,9 +150,7 @@ function RoomChip({
         title={`Copy ${code}`}
         className={cn(
           "px-2.5 py-1.5 text-xs font-bold font-outfit tabular-nums transition-colors cursor-pointer inline-flex items-center gap-1",
-          lab
-            ? "text-cyan-700 dark:text-cyan-300"
-            : "text-indigo-700 dark:text-indigo-300"
+          lab ? "text-cyan-700 dark:text-cyan-300" : "text-indigo-700 dark:text-indigo-300",
         )}
       >
         {roomNumber(code)}
@@ -173,7 +165,7 @@ function RoomChip({
           "px-1.5 py-1.5 border-l cursor-pointer transition-colors",
           lab
             ? "border-cyan-500/20 text-cyan-500/70 hover:text-cyan-600 hover:bg-cyan-500/10"
-            : "border-indigo-500/20 text-indigo-500/70 hover:text-indigo-600 hover:bg-indigo-500/10"
+            : "border-indigo-500/20 text-indigo-500/70 hover:text-indigo-600 hover:bg-indigo-500/10",
         )}
       >
         <ChevronRight className="w-3.5 h-3.5" />
@@ -221,9 +213,7 @@ function DayPicker({
             className={cn(
               "flex flex-col items-center justify-center rounded-xl transition-all cursor-pointer",
               compact ? "gap-0 py-1.5 px-1" : "gap-0.5 py-2 px-1",
-              selected
-                ? "bg-white dark:bg-zinc-800 shadow-xs"
-                : "hover:bg-white/60 dark:hover:bg-zinc-800/50"
+              selected ? "bg-white dark:bg-zinc-800 shadow-xs" : "hover:bg-white/60 dark:hover:bg-zinc-800/50",
             )}
           >
             <span
@@ -233,8 +223,8 @@ function DayPicker({
                 selected
                   ? "text-indigo-600 dark:text-indigo-300"
                   : isToday
-                  ? "text-emerald-600 dark:text-emerald-400"
-                  : "text-zinc-500 dark:text-zinc-400"
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-zinc-500 dark:text-zinc-400",
               )}
             >
               {DAY_LABELS[d].short}
@@ -244,7 +234,7 @@ function DayPicker({
                 className={cn(
                   "rounded-full",
                   compact ? "w-1 h-1" : "w-1.5 h-1.5",
-                  selected ? "bg-emerald-500" : "bg-emerald-500/70"
+                  selected ? "bg-emerald-500" : "bg-emerald-500/70",
                 )}
               />
             )}
@@ -322,9 +312,7 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
       const response = await fetch("/ffcs/ffcsReport.csv");
       if (!response.ok) throw new Error("Failed to load campus timetable records");
       const workbook = XLSX.read(new Uint8Array(await response.arrayBuffer()), { type: "array" });
-      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(
-        workbook.Sheets[workbook.SheetNames[0]]
-      );
+      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[workbook.SheetNames[0]]);
 
       // Header normalisation (the BOM, the CODE/VENUE aliases) lives in the
       // lib and is tested there. Doing it inline here once shipped a mangled
@@ -343,7 +331,9 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
   }, []);
 
   useEffect(() => {
-    load();
+    // Refresh from the shipped report on every entry so the page never shows a
+    // stale cached report from another semester.
+    load(true);
   }, [load]);
 
   /* ── the day ──────────────────────────────────────────────────────────── */
@@ -360,10 +350,7 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
    * data arrives. After that a day switch is a map read.
    */
   const week = useMemo(() => {
-    const map = new Map<
-      DayId,
-      { periods: PeriodOption[]; slots: Map<string, Set<string>>; index: DayIndex }
-    >();
+    const map = new Map<DayId, { periods: PeriodOption[]; slots: Map<string, Set<string>>; index: DayIndex }>();
     for (const d of DAYS_OF_WEEK) {
       const periods = resolvePeriods(SCHEMA, d);
       const slots = buildPeriodSlots(periods);
@@ -450,7 +437,7 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
 
   const periodIndex = Math.max(
     0,
-    periods.findIndex((p) => p.key === activePeriodKey)
+    periods.findIndex((p) => p.key === activePeriodKey),
   );
 
   /**
@@ -478,8 +465,8 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
   const runKeys = useMemo(() => {
     const liveNow = now.isLive && day === now.day && !!livePeriodKey;
     const from = liveNow
-      ? periods.find((p) => p.key === livePeriodKey)?.startMinutes ?? 0
-      : periods[periodIndex]?.startMinutes ?? 0;
+      ? (periods.find((p) => p.key === livePeriodKey)?.startMinutes ?? 0)
+      : (periods[periodIndex]?.startMinutes ?? 0);
     return periods
       .filter((p) => p.startMinutes >= from)
       .slice(0, RUN_LENGTH)
@@ -506,7 +493,7 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
           periodKeys: plan.periods.map((p) => p.key),
           live: liveDays[d] ?? null,
           runLength: RUN_LENGTH,
-        })
+        }),
       );
     }
     return map;
@@ -557,7 +544,7 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
       lab: free.lab.length,
       blocks: blocks.length,
     }),
-    [free, blocks]
+    [free, blocks],
   );
 
   /* ── hero ─────────────────────────────────────────────────────────────── */
@@ -642,7 +629,7 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
         label: `${b.block} · ${b.free}`,
       })),
     ],
-    [blocks]
+    [blocks],
   );
 
   const handleCopy = useCallback((code: string) => {
@@ -815,9 +802,7 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
               onClick={() =>
                 setPeriodKey(periods[Math.min(periods.length - 1, periodIndex + 1)]?.key ?? activePeriodKey)
               }
-              className={cn(
-                periodIndex === periods.length - 1 && "opacity-40 pointer-events-none"
-              )}
+              className={cn(periodIndex === periods.length - 1 && "opacity-40 pointer-events-none")}
             >
               <ChevronRight />
             </IconButton>
@@ -900,12 +885,7 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
             </div>
 
             {blockTabs.length > 2 && (
-              <ChipTabs
-                options={blockTabs}
-                value={blockFilter}
-                onChange={setBlockFilter}
-                size="sm"
-              />
+              <ChipTabs options={blockTabs} value={blockFilter} onChange={setBlockFilter} size="sm" />
             )}
           </div>
 
@@ -920,9 +900,7 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
               }
               action={
                 <div className="flex flex-wrap justify-center gap-2">
-                  {blockFilter !== "All" && (
-                    <GhostButton onClick={() => setBlockFilter("All")}>All blocks</GhostButton>
-                  )}
+                  {blockFilter !== "All" && <GhostButton onClick={() => setBlockFilter("All")}>All blocks</GhostButton>}
                   <GhostButton onClick={jumpToNow}>
                     <Zap className="w-3.5 h-3.5" />
                     Jump to now
@@ -1024,11 +1002,7 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
           accent="bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
           closeLabel="Close room inspector"
           trailing={
-            <GhostButton
-              onClick={() => handleCopy(inspectedRoom)}
-              title="Copy room code"
-              className="shrink-0"
-            >
+            <GhostButton onClick={() => handleCopy(inspectedRoom)} title="Copy room code" className="shrink-0">
               {copied === inspectedRoom ? (
                 <Check className="w-3.5 h-3.5 text-emerald-500" />
               ) : (
@@ -1063,13 +1037,9 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
                     occupants.length
                       ? occupants
                           .map((o) =>
-                            [
-                              o.title || o.courseCode,
-                              o.courseCode && o.title ? o.courseCode : "",
-                              o.faculty,
-                            ]
+                            [o.title || o.courseCode, o.courseCode && o.title ? o.courseCode : "", o.faculty]
                               .filter(Boolean)
-                              .join(" · ")
+                              .join(" · "),
                           )
                           .join(" + ")
                       : "Free and available"
@@ -1116,18 +1086,14 @@ function ListRow({
     <button
       type="button"
       onClick={onClick}
-      className={cn(
-        LIST_ROW,
-        "gap-3 cursor-pointer",
-        selected && "bg-indigo-50/60 dark:bg-indigo-950/20"
-      )}
+      className={cn(LIST_ROW, "gap-3 cursor-pointer", selected && "bg-indigo-50/60 dark:bg-indigo-950/20")}
     >
       <span
         className={cn(
           "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border",
           tone === "emerald"
             ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
-            : "bg-zinc-100 dark:bg-zinc-800 border-zinc-200/60 dark:border-zinc-700/60 text-zinc-500 dark:text-zinc-400"
+            : "bg-zinc-100 dark:bg-zinc-800 border-zinc-200/60 dark:border-zinc-700/60 text-zinc-500 dark:text-zinc-400",
         )}
       >
         {icon}

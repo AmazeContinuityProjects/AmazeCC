@@ -39,6 +39,9 @@ vi.mock("@/lib/vitfacService", () => {
   return {
     ENABLE_VITFAC_INTEGRATION: true,
     VITFAC_WORKER_BASE: "https://vitfac.amazecc.com",
+    // Runtime switch: these sheets render their vitfac chrome when on.
+    useVitfacEnabled: () => true,
+    isVitfacIntegrationEnabled: () => true,
     getFacultyReview: ({ employeeId }: { employeeId?: string | null }) => reviewFor(employeeId),
     useVitfacReview: (employeeId?: string | null) => ({ review: reviewFor(employeeId), loading: false }),
     useCachedImage: () => null,
