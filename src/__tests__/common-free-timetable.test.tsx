@@ -43,21 +43,11 @@ describe("the grid is a timetable", () => {
   it("puts the days across the top and the time bands down the left", () => {
     const { container } = renderGrid();
 
-    const headers = Array.from(container.querySelectorAll("thead th")).map(
-      (th) => th.textContent?.trim()
-    );
+    const headers = Array.from(container.querySelectorAll("thead th")).map((th) => th.textContent?.trim());
     // A gutter, then one column per day. Today's column also carries the date
     // under its name, so only the name is compared.
     expect(headers[0]).toBe("Time");
-    expect(headers.slice(1, 8).map((h) => h?.slice(0, 3))).toEqual([
-      "MON",
-      "TUE",
-      "WED",
-      "THU",
-      "FRI",
-      "SAT",
-      "SUN",
-    ]);
+    expect(headers.slice(1, 8).map((h) => h?.slice(0, 3))).toEqual(["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]);
 
     // One row per band of the week, each labelled with its start time.
     const rows = container.querySelectorAll("tbody tr");
@@ -100,18 +90,10 @@ describe("a tap", () => {
 
   it("opens the peer's own sheet from a name in the detail", () => {
     const opened: string[] = [];
-    render(
-      <CommonFreeTimetableGrid
-        ownBusyMap={me}
-        peers={peers}
-        onOpenPeer={(handle) => opened.push(handle)}
-      />
-    );
+    render(<CommonFreeTimetableGrid ownBusyMap={me} peers={peers} onOpenPeer={(handle) => opened.push(handle)} />);
 
     fireEvent.click(screen.getByLabelText(`${MON_FIRST} — 1 of 3 free`));
-    const name = Array.from(document.querySelectorAll("button")).find(
-      (b) => b.textContent?.trim() === "Neha"
-    );
+    const name = Array.from(document.querySelectorAll("button")).find((b) => b.textContent?.trim() === "Neha");
     expect(name).toBeTruthy();
     fireEvent.click(name!);
 
@@ -123,15 +105,16 @@ describe("the day filter", () => {
   it("hides the other days rather than blanking their cells", () => {
     const { container } = renderGrid();
 
-    const toggle = Array.from(container.querySelectorAll("button")).find(
-      (b) => b.textContent?.trim() === "TUE"
-    );
+    const toggle = Array.from(container.querySelectorAll("button")).find((b) => b.textContent?.trim() === "TUE");
     fireEvent.click(toggle!);
 
-    const headers = Array.from(container.querySelectorAll("thead th")).map(
-      (th) => th.textContent?.trim()
-    );
-    expect(headers).toEqual(["Time", "TUE"]);
+    const headers = Array.from(container.querySelectorAll("thead th")).map((th) => th.textContent?.trim());
+    // Exactly two columns: the gutter and TUE. Today's column also carries
+    // the date under its name — a run landing on a Tuesday reads "TUE3" —
+    // so only the name is compared, same convention as the header test.
+    expect(headers).toHaveLength(2);
+    expect(headers[0]).toBe("Time");
+    expect(headers[1]?.slice(0, 3)).toBe("TUE");
     // The bands are still the whole week's — only the columns changed.
     expect(container.querySelectorAll("tbody tr")).toHaveLength(12);
   });
