@@ -5,14 +5,29 @@ import { useAtom } from "jotai";
 import { settingsAtom } from "@/store/settingsAtoms";
 import { Switch } from "@amazecontinuityprojects/amazeui";
 import { api } from "@/lib/sync-engine";
-import { 
-  Bell, Volume2, Moon, AlertTriangle, Calendar, BookOpen, Utensils, 
-  FileText, Sparkles, Send, CheckCircle, Key, Plane, Bus, BookMarked, Award, Clock
+import {
+  Bell,
+  Volume2,
+  Moon,
+  AlertTriangle,
+  Calendar,
+  BookOpen,
+  Utensils,
+  FileText,
+  Sparkles,
+  Send,
+  CheckCircle,
+  Key,
+  Plane,
+  Bus,
+  BookMarked,
+  Award,
+  Clock,
 } from "lucide-react";
 import SelectField from "@/components/custom/shared/primitives/SelectField";
 
 // Cryptographically valid uncompressed NIST P-256 ECDSA VAPID Public Key (65 bytes starting with 0x04)
-const DEFAULT_VAPID_PUBLIC_KEY = 
+const DEFAULT_VAPID_PUBLIC_KEY =
   "BPWVsRBGW3upzaJFeMS2vd-U8YheUIu7_d1h4zQKqPv7KH-s27CnpGlZHKnjy0aVqTQmQUjCMIk3LITlQsBZuy8";
 
 function urlBase64ToUint8Array(base64String: string) {
@@ -73,7 +88,6 @@ export default function PushNotificationManager() {
   const updateSettingField = (key: keyof typeof settings, value: any) => {
     setSettings((prev) => {
       const next = { ...prev, [key]: value };
-      localStorage.setItem("settings", JSON.stringify(next));
       return next;
     });
   };
@@ -89,11 +103,10 @@ export default function PushNotificationManager() {
         return;
       }
 
-      const rawVapidKey = (
+      const rawVapidKey =
         settings?.customVapidKey?.trim() ||
         process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim() ||
-        DEFAULT_VAPID_PUBLIC_KEY
-      );
+        DEFAULT_VAPID_PUBLIC_KEY;
 
       const registration = await navigator.serviceWorker.ready;
       let sub = await registration.pushManager.getSubscription();
@@ -239,12 +252,16 @@ export default function PushNotificationManager() {
       {/* Master Push Switch Header */}
       <div className="flex items-center justify-between p-4 rounded-2xl bg-white/60 dark:bg-slate-900/60 border border-gray-200/80 dark:border-gray-800 shadow-xs">
         <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isEnabled ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400" : "bg-gray-100 dark:bg-slate-800 text-gray-400"}`}>
+          <div
+            className={`w-10 h-10 rounded-xl flex items-center justify-center ${isEnabled ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400" : "bg-gray-100 dark:bg-slate-800 text-gray-400"}`}
+          >
             <Bell size={20} />
           </div>
           <div>
             <h4 className="text-sm font-bold text-gray-900 dark:text-white">Push Notifications (VAPID)</h4>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Receive real-time campus reminders on this device</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Receive real-time campus reminders on this device
+            </p>
           </div>
         </div>
 
@@ -255,7 +272,9 @@ export default function PushNotificationManager() {
       </div>
 
       {fetchStatus && (
-        <div className={`p-3 rounded-xl text-xs font-semibold flex items-center gap-2 ${isErrorStatus ? "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200/40" : "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200/40"}`}>
+        <div
+          className={`p-3 rounded-xl text-xs font-semibold flex items-center gap-2 ${isErrorStatus ? "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200/40" : "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200/40"}`}
+        >
           {isErrorStatus ? <AlertTriangle size={14} /> : <CheckCircle size={14} />}
           <span>{fetchStatus}</span>
         </div>
@@ -269,7 +288,9 @@ export default function PushNotificationManager() {
               <p className="text-xs font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
                 <Sparkles size={13} className="text-indigo-500" /> Test Notification System
               </p>
-              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Send an instant VAPID push notification to verify permissions</p>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                Send an instant VAPID push notification to verify permissions
+              </p>
             </div>
             <button
               onClick={sendTestNotification}
@@ -284,17 +305,17 @@ export default function PushNotificationManager() {
           {/* Trigger Categories */}
           <div className="p-4 rounded-2xl bg-white/60 dark:bg-slate-900/60 border border-gray-200/80 dark:border-gray-800 space-y-3">
             <div className="flex items-center justify-between">
-              <h5 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 font-outfit">Notification Triggers</h5>
-              
+              <h5 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 font-outfit">
+                Notification Triggers
+              </h5>
+
               {/* Class Reminder Lead Time Selector */}
               <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-black/50 px-2.5 py-1 rounded-xl border border-gray-200/60 dark:border-gray-800">
                 <Clock size={12} className="text-indigo-500" />
                 <span className="text-[10px] font-bold text-gray-500">Class Alert:</span>
                 <SelectField
                   value={String(settings?.classReminderLeadMinutes || 15)}
-                  onChange={(val) =>
-                    updateSettingField("classReminderLeadMinutes", Number(val))
-                  }
+                  onChange={(val) => updateSettingField("classReminderLeadMinutes", Number(val))}
                   options={[
                     { value: "10", label: "10m before" },
                     { value: "15", label: "15m before" },
@@ -311,21 +332,84 @@ export default function PushNotificationManager() {
 
             <div className="space-y-2.5">
               {[
-                { key: "notifyLowAttendance", label: "Low Attendance Alerts", desc: "Notify immediately when course attendance drops below target", icon: AlertTriangle, color: "text-red-500" },
-                { key: "notifyClassReminders", label: "Class Timetable Reminders", desc: "Remind before next scheduled lecture starts", icon: Calendar, color: "text-indigo-500" },
-                { key: "notifyExamAlerts", label: "Exam Schedule & Admit Card Alerts", desc: "Alerts for upcoming CAT/FAT exam dates & venues", icon: FileText, color: "text-amber-500" },
-                { key: "notifyMarksRelease", label: "Marks & Grade Release Alerts", desc: "Push notification when new CAT/FAT/Lab marks are published", icon: Award, color: "text-emerald-500" },
-                { key: "notifyMessServing", label: "Hostel Mess Serving Alerts", desc: "Notifications when Breakfast, Lunch, Snacks or Dinner serving starts", icon: Utensils, color: "text-teal-500" },
-                { key: "notifyHostelLeave", label: "Hostel Leave & Outpass Approvals", desc: "Instant alert when warden approves or updates leave status", icon: Plane, color: "text-rose-500" },
-                { key: "notifyBusUpdates", label: "Day Scholar Bus Schedule Alerts", desc: "Updates on bus routes, timings and delay alerts", icon: Bus, color: "text-amber-600" },
-                { key: "notifyLibraryBooks", label: "Library Due Date Reminders", desc: "Reminders before Koha library book return deadlines", icon: BookMarked, color: "text-sky-500" },
-                { key: "notifyAssignments", label: "LMS & Assignment Reminders", desc: "Remind about pending VITOL / Moodle assignment deadlines", icon: BookOpen, color: "text-purple-500" },
-                { key: "notifyCirculars", label: "Academic Circulars & Notices", desc: "Instant alert on new university circulars and announcements", icon: Bell, color: "text-blue-500" },
+                {
+                  key: "notifyLowAttendance",
+                  label: "Low Attendance Alerts",
+                  desc: "Notify immediately when course attendance drops below target",
+                  icon: AlertTriangle,
+                  color: "text-red-500",
+                },
+                {
+                  key: "notifyClassReminders",
+                  label: "Class Timetable Reminders",
+                  desc: "Remind before next scheduled lecture starts",
+                  icon: Calendar,
+                  color: "text-indigo-500",
+                },
+                {
+                  key: "notifyExamAlerts",
+                  label: "Exam Schedule & Admit Card Alerts",
+                  desc: "Alerts for upcoming CAT/FAT exam dates & venues",
+                  icon: FileText,
+                  color: "text-amber-500",
+                },
+                {
+                  key: "notifyMarksRelease",
+                  label: "Marks & Grade Release Alerts",
+                  desc: "Push notification when new CAT/FAT/Lab marks are published",
+                  icon: Award,
+                  color: "text-emerald-500",
+                },
+                {
+                  key: "notifyMessServing",
+                  label: "Hostel Mess Serving Alerts",
+                  desc: "Notifications when Breakfast, Lunch, Snacks or Dinner serving starts",
+                  icon: Utensils,
+                  color: "text-teal-500",
+                },
+                {
+                  key: "notifyHostelLeave",
+                  label: "Hostel Leave & Outpass Approvals",
+                  desc: "Instant alert when warden approves or updates leave status",
+                  icon: Plane,
+                  color: "text-rose-500",
+                },
+                {
+                  key: "notifyBusUpdates",
+                  label: "Day Scholar Bus Schedule Alerts",
+                  desc: "Updates on bus routes, timings and delay alerts",
+                  icon: Bus,
+                  color: "text-amber-600",
+                },
+                {
+                  key: "notifyLibraryBooks",
+                  label: "Library Due Date Reminders",
+                  desc: "Reminders before Koha library book return deadlines",
+                  icon: BookMarked,
+                  color: "text-sky-500",
+                },
+                {
+                  key: "notifyAssignments",
+                  label: "LMS & Assignment Reminders",
+                  desc: "Remind about pending VITOL / Moodle assignment deadlines",
+                  icon: BookOpen,
+                  color: "text-purple-500",
+                },
+                {
+                  key: "notifyCirculars",
+                  label: "Academic Circulars & Notices",
+                  desc: "Instant alert on new university circulars and announcements",
+                  icon: Bell,
+                  color: "text-blue-500",
+                },
               ].map((item) => {
                 const ItemIcon = item.icon;
                 const active = settings[item.key as keyof typeof settings] !== false;
                 return (
-                  <div key={item.key} className="flex items-center justify-between p-2.5 rounded-xl bg-gray-50/70 dark:bg-black/40 border border-gray-100 dark:border-gray-800/60">
+                  <div
+                    key={item.key}
+                    className="flex items-center justify-between p-2.5 rounded-xl bg-gray-50/70 dark:bg-black/40 border border-gray-100 dark:border-gray-800/60"
+                  >
                     <div className="flex items-center gap-2.5">
                       <ItemIcon size={15} className={item.color} />
                       <div>
@@ -333,10 +417,7 @@ export default function PushNotificationManager() {
                         <p className="text-[10px] text-gray-500 dark:text-gray-400">{item.desc}</p>
                       </div>
                     </div>
-                    <Switch
-                      checked={active}
-                      onCheckedChange={(val) => updateSettingField(item.key as any, val)}
-                    />
+                    <Switch checked={active} onCheckedChange={(val) => updateSettingField(item.key as any, val)} />
                   </div>
                 );
               })}
@@ -345,7 +426,9 @@ export default function PushNotificationManager() {
 
           {/* Sound & Quiet Hours */}
           <div className="p-4 rounded-2xl bg-white/60 dark:bg-slate-900/60 border border-gray-200/80 dark:border-gray-800 space-y-3">
-            <h5 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 font-outfit">Sound & Quiet Hours</h5>
+            <h5 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 font-outfit">
+              Sound & Quiet Hours
+            </h5>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50/70 dark:bg-black/40 border border-gray-100 dark:border-gray-800/60">

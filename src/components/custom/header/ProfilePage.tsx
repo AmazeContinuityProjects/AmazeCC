@@ -400,7 +400,6 @@ export default function ProfilePage({
   const updateSetting = (key: string, value: any) => {
     setSettings((prev: any) => {
       const next = { ...prev, [key]: value };
-      localStorage.setItem("settings", JSON.stringify(next));
       return next;
     });
   };
@@ -417,7 +416,6 @@ export default function ProfilePage({
         timetableCellDensity: value,
         timetableDensityTouched: true,
       };
-      localStorage.setItem("settings", JSON.stringify(next));
       return next;
     });
   };
@@ -432,7 +430,6 @@ export default function ProfilePage({
         syncCourseCompletion: enable,
         syncProfileData: enable,
       };
-      localStorage.setItem("settings", JSON.stringify(next));
       return next;
     });
   };
@@ -441,7 +438,6 @@ export default function ProfilePage({
     const nextPalette = { ...customPalette, [key]: value };
     setSettings((prev: any) => {
       const next = { ...prev, colorPalette: "custom", customPalette: nextPalette };
-      localStorage.setItem("settings", JSON.stringify(next));
       return next;
     });
   };

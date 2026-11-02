@@ -7,7 +7,6 @@ import {
   calendarDataAtom,
   credentialsAtom,
   demoModeAtom,
-  defaultSettings,
   gradesDataAtom,
   isLoggedInAtom,
   marksDataAtom,
@@ -16,7 +15,6 @@ import {
   officialOdDataAtom,
   registeredEventsAtom,
   scheduleDataAtom,
-  settingsAtom,
   showIntroAtom,
   tasksAtom,
   vitolDataAtom,
@@ -49,7 +47,6 @@ export function useAppBootstrap() {
   const setRegisteredEvents = useSetAtom(registeredEventsAtom);
   const setTasks = useSetAtom(tasksAtom);
   const setOfficialOdData = useSetAtom(officialOdDataAtom);
-  const setSettings = useSetAtom(settingsAtom);
   const setShowIntro = useSetAtom(showIntroAtom);
   const setDemoMode = useSetAtom(demoModeAtom);
   const setIsLoggedIn = useSetAtom(isLoggedInAtom);
@@ -69,7 +66,6 @@ export function useAppBootstrap() {
       MoodlePassword: storage.moodlePassword.get() || "",
       ...(idsRaw || {}),
     });
-    if (settingsRaw) setSettings({ ...defaultSettings, ...settingsRaw });
     setShowIntro(!localStorage.getItem("introDone"));
     setDemoMode(Boolean(isDemoStored));
     setIsLoggedIn(Boolean(isDemoStored || hasVtop));
@@ -133,7 +129,6 @@ export function useAppBootstrap() {
     setOfficialOdData,
     setRegisteredEvents,
     setScheduleData,
-    setSettings,
     setShowIntro,
     setTasks,
     setVitolData,

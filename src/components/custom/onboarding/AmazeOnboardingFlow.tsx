@@ -276,7 +276,6 @@ export default function AmazeOnboardingFlow({
       interfaceChosen: true,
     };
     try {
-      localStorage.setItem("settings", JSON.stringify(finalSettings));
       localStorage.setItem("has_selected_interface", "true");
       localStorage.setItem("introDone", "true");
       localStorage.setItem("hasSeenPushPrompt", "true");

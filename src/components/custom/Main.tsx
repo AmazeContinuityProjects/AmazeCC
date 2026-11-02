@@ -166,9 +166,6 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
     (id: string) => {
       setSettings((prev) => {
         const next = { ...prev, defaultSyncMode: id };
-        try {
-          localStorage.setItem("settings", JSON.stringify(next));
-        } catch {}
         return next;
       });
     },

@@ -215,7 +215,6 @@ function DashboardContent({
         setCurrSemesterID={(val: string) => {
           setSettings((prev) => {
             const next = { ...prev, currSemesterID: val };
-            localStorage.setItem("settings", JSON.stringify(next));
             return next;
           });
         }}

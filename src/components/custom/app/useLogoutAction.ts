@@ -47,15 +47,16 @@ export function useLogoutAction({
 
     const keysToKeep = ["activityTree", "theme"];
     const saved: Record<string, string | null> = {};
-    keysToKeep.forEach(key => { saved[key] = localStorage.getItem(key); });
+    keysToKeep.forEach((key) => {
+      saved[key] = localStorage.getItem(key);
+    });
     saved.theme = saved.theme || savedTheme;
 
     localStorage.clear();
-    keysToKeep.forEach(key => {
+    keysToKeep.forEach((key) => {
       if (saved[key] !== null) localStorage.setItem(key, saved[key]!);
     });
 
-    localStorage.setItem("settings", JSON.stringify(defaultSettings));
     setTheme(savedTheme);
     setSettings(defaultSettings);
     setAttendanceData({});

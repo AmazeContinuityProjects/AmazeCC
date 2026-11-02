@@ -310,9 +310,8 @@ export default function NavigationTabs({
   const persistSidebarState = useCallback(
     (nextCollapsed: boolean) => {
       setSettings((prev) => ({ ...prev, isSidebarCollapsed: nextCollapsed }));
-      localStorage.setItem("settings", JSON.stringify({ ...settings, isSidebarCollapsed: nextCollapsed }));
     },
-    [setSettings, settings],
+    [setSettings],
   );
 
   const handleReloadClick = useCallback(async () => {
@@ -370,7 +369,6 @@ export default function NavigationTabs({
       const next = isPinned ? current.filter((id: string) => id !== tabId) : [...current, tabId];
       setSettings((prev: any) => {
         const updated = { ...prev, pinnedNavTabs: next };
-        localStorage.setItem("settings", JSON.stringify(updated));
         return updated;
       });
     },
@@ -1206,7 +1204,6 @@ export default function NavigationTabs({
                         onClick={() => {
                           setSettings((prev: any) => {
                             const next = { ...prev, CGPAHidden: !prev.CGPAHidden };
-                            localStorage.setItem("settings", JSON.stringify(next));
                             return next;
                           });
                         }}
@@ -1230,7 +1227,6 @@ export default function NavigationTabs({
                             attendancePercentageOrString:
                               prev.attendancePercentageOrString === "percentage" ? "str" : "percentage",
                           };
-                          localStorage.setItem("settings", JSON.stringify(next));
                           return next;
                         });
                       }}

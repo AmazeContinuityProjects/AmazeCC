@@ -325,7 +325,6 @@ export default function SimplifiedMobileHome({
   const setPillStyle = (style: "compact" | "detailed") => {
     setSettings((prev: any) => {
       const next = { ...prev, timetablePillStyle: style };
-      localStorage.setItem("settings", JSON.stringify(next));
       return next;
     });
   };

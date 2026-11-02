@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useCallback } from "react";
+import { useSetAtom } from "jotai";
 import {
   ChipTabs,
   EmptyPanel,
@@ -19,7 +20,7 @@ import {
   type InsightSlide,
 } from "../shared/primitives";
 import { SEARCH_FIELD, TILE_CARD } from "@/lib/uiTokens";
-import { getTargetAttendancePct, updateSettings } from "@/store/settingsAtoms";
+import { getTargetAttendancePct, settingsAtom } from "@/store/settingsAtoms";
 import {
   buildEffectiveDayMap,
   courseCeiling,
@@ -138,6 +139,7 @@ export default function OverallAttendancePredictor({
   onBack,
   decimalValues = true,
 }: OverallAttendancePredictorProps) {
+  const setSettings = useSetAtom(settingsAtom);
   /**
    * The course whose date skipper is expanded.
    *
@@ -518,7 +520,7 @@ export default function OverallAttendancePredictor({
             onChange={(next) => {
               const th = Number(next);
               setTargetThreshold(th);
-              updateSettings({ targetAttendance: th });
+              setSettings((prev) => ({ ...prev, targetAttendance: th }));
             }}
           />
           <GhostButton onClick={handleResetAll} title="Reset all simulated leaves and skips">

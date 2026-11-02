@@ -40,18 +40,29 @@ interface DashboardProfileFeatureProps extends Omit<ProfileTabProps, ProfileTabO
 }
 
 function FeatureLoading() {
-  return <div className="min-h-40 animate-pulse rounded-2xl bg-slate-100 dark:bg-zinc-900" role="status" aria-label="Loading profile" />;
+  return (
+    <div
+      className="min-h-40 animate-pulse rounded-2xl bg-slate-100 dark:bg-zinc-900"
+      role="status"
+      aria-label="Loading profile"
+    />
+  );
 }
 
 const ProfileTab = dynamic(() => import("../profile/ProfileTab"), { loading: FeatureLoading });
 
 /** Profile screen and its settings/credential persistence adapters. */
-export default function DashboardProfileFeature({ settings, setSettings, IDs, setIDs, ...profileProps }: DashboardProfileFeatureProps) {
+export default function DashboardProfileFeature({
+  settings,
+  setSettings,
+  IDs,
+  setIDs,
+  ...profileProps
+}: DashboardProfileFeatureProps) {
   const { activeProfileSubTab, setActiveProfileSubTab } = useDashboardNavigator();
   const updateSetting = (key: keyof Settings, value: unknown) => {
-    setSettings(previous => {
+    setSettings((previous) => {
       const next = { ...previous, [key]: value };
-      localStorage.setItem("settings", JSON.stringify(next));
       return next;
     });
   };
@@ -68,7 +79,7 @@ export default function DashboardProfileFeature({ settings, setSettings, IDs, se
         password={IDs.VtopPassword}
         username={IDs.VtopUsername}
         setPassword={(value: string[]) => {
-          setIDs(previous => {
+          setIDs((previous) => {
             const next = { ...previous, VtopUsername: value[0], VtopPassword: value[1] };
             localStorage.setItem("IDs", JSON.stringify(next));
             return next;

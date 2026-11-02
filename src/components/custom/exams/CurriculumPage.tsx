@@ -41,7 +41,8 @@ import {
 } from "../shared/primitives";
 import SelectField from "../shared/primitives/SelectField";
 import { CHIP, LIST_ROW, LIST_SHELL, SEARCH_FIELD, TILE } from "@/lib/uiTokens";
-import { readSettings, updateSettings } from "@/store/settingsAtoms";
+import { readSettings, settingsAtom } from "@/store/settingsAtoms";
+import { useSetAtom } from "jotai";
 import { storage } from "@/lib/storage";
 import { buildCategoryRows, splitCurriculumRows, num, type CategoryRow } from "@/lib/curriculum";
 
@@ -290,6 +291,7 @@ export default function CurriculumPage({
   const [openBaskets, setOpenBaskets] = useState<Set<string>>(new Set());
 
   // ─ CGPA Blur State (persisted, single source of truth in the top bar) ─
+  const setSettings = useSetAtom(settingsAtom);
   const [isCgpaBlurred, setIsCgpaBlurred] = useState<boolean>(() => {
     const stored = readSettings();
     if (typeof stored.CGPAHidden === "boolean") return stored.CGPAHidden;
@@ -300,7 +302,7 @@ export default function CurriculumPage({
   const toggleCgpaBlur = () => {
     setIsCgpaBlurred((prev) => {
       const next = !prev;
-      updateSettings({ CGPAHidden: next });
+      setSettings((prev) => ({ ...prev, CGPAHidden: next }));
       return next;
     });
   };

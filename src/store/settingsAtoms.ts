@@ -1,4 +1,4 @@
-import { atom } from "jotai";
+import { atomWithStorage } from "jotai/utils";
 import { storage } from "@/lib/storage";
 import config from "../../config.json";
 
@@ -163,7 +163,50 @@ export const defaultSettings: Settings = {
   taskDefaultReminderMinutes: 30,
 };
 
-export const settingsAtom = atom<Settings>(defaultSettings);
+/**
+ * Storage adapter for the settings blob. The `getItem` merge IS the migration
+ * shim: a blob persisted before a field existed lacks that field and picks up
+ * the default — the guarantee the old boot line
+ * `setSettings({ ...defaultSettings, ...raw })` gave, now applied on every
+ * read instead of only at boot. A corrupt or absent blob degrades to defaults.
+ */
+const settingsStorage = {
+  getItem(_key: string, initialValue: Settings): Settings {
+    try {
+      const raw = localStorage.getItem("settings");
+      if (!raw) return initialValue;
+      return { ...initialValue, ...JSON.parse(raw) };
+    } catch {
+      return initialValue;
+    }
+  },
+  setItem(_key: string, value: Settings): void {
+    try {
+      localStorage.setItem("settings", JSON.stringify(value));
+    } catch {
+      /* quota / private mode: the in-memory value still takes effect */
+    }
+  },
+  removeItem(_key: string): void {
+    try {
+      localStorage.removeItem("settings");
+    } catch {
+      /* ditto */
+    }
+  },
+};
+
+/**
+ * Persisted settings. `atomWithStorage` writes on every `setSettings`, which
+ * retires the hand-rolled `localStorage.setItem("settings", ...)` that two
+ * dozen call sites used to repeat inside their updaters.
+ *
+ * Deliberately NOT `getOnInit`: the first render starts from
+ * `defaultSettings` — what the server rendered, so no hydration mismatch —
+ * and the atom picks up the stored value when its first subscriber mounts,
+ * the same post-paint timing the old bootstrap effect had.
+ */
+export const settingsAtom = atomWithStorage<Settings>("settings", defaultSettings, settingsStorage);
 
 /**
  * The persisted settings blob, parsed once per call. `{}` when absent or
@@ -186,12 +229,4 @@ export function readSettings(): Partial<Settings> {
 export function getTargetAttendancePct(fallback = 75): number {
   const value = readSettings().targetAttendance;
   return value ? Number(value) : fallback;
-}
-
-/**
- * Merge `patch` into the persisted settings blob. The read-modify-write lives
- * here so a one-field update can never clobber the fields it does not mention.
- */
-export function updateSettings(patch: Partial<Settings>): void {
-  storage.settings.set({ ...readSettings(), ...patch });
 }
