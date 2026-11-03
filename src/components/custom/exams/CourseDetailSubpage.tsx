@@ -63,6 +63,7 @@ import CourseQBankTab from "./CourseQBankTab";
 import CoursePredictorPage from "./marks-predictor/CoursePredictorPage";
 import { getTargetAttendancePct } from "@/store/settingsAtoms";
 import { formatSemesterName } from "@/lib/formatSemesterName";
+import { ATT_DOT, ATT_TONE, historyLetter, historyScore, historyTermLabel, scoreBarTone } from "./courseDetailHelpers";
 
 // Dedicated whitespace between the heatmap card and the log section.
 // Nulls out the parent stack gap so the total separation is exactly its height.
@@ -99,22 +100,6 @@ interface CourseDetailSubpageProps {
   onBack: () => void;
 }
 
-/** Attendance status -> insight tone, so the tile colours itself. */
-const ATT_TONE: Record<string, string> = {
-  Safe: "emerald",
-  Warning: "amber",
-  "N/A": "zinc",
-  Critical: "red",
-};
-
-/** Attendance status -> the row's filled dot. Written out because a
- *  `bg-${tone}-500` template would never be seen by Tailwind's scanner. */
-const ATT_DOT: Record<string, string> = {
-  present: "bg-emerald-500",
-  absent: "bg-red-500",
-  "on duty": "bg-amber-500",
-};
-
 /**
  * Theory/Lab -> tone. An embedded course publishes two halves under one code and
  * they stay blue and green everywhere in the app, so the pair is named once here
@@ -124,43 +109,6 @@ const SCOPE_TONE: Record<"Theory" | "Lab", string> = {
   Theory: "blue",
   Lab: "emerald",
 };
-
-/**
- * One history entry's letter, score and bar tone. Shared by the hero tiles,
- * the across-terms list and the detail below so the three cannot disagree.
- */
-function historyLetter(h: any): string {
-  return h.grade || h.courseGrade || "";
-}
-
-function historyScore(h: any): number | null {
-  const g = Number(h.grandTotal);
-  if (Number.isFinite(g) && g > 0) return g;
-  const details = Array.isArray(h.details) ? h.details : [];
-  let scored = 0;
-  let max = 0;
-  for (const d of details) {
-    const s = Number(d.scoredMark);
-    const m = Number(d.maxMark);
-    if (Number.isFinite(s) && Number.isFinite(m) && m > 0) {
-      scored += s;
-      max += m;
-    }
-  }
-  return max > 0 ? (scored / max) * 100 : null;
-}
-
-function historyTermLabel(semester: string): string {
-  if (semester === "Current") return "Current semester";
-  return formatSemesterName(semester || "") || "Unknown semester";
-}
-
-function scoreBarTone(score: number | null): string {
-  if (score == null) return "bg-zinc-300 dark:bg-zinc-700";
-  if (score >= 80) return "bg-emerald-500";
-  if (score >= 65) return "bg-amber-500";
-  return "bg-red-500";
-}
 
 export default function CourseDetailSubpage({
   marksData,
