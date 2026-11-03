@@ -62,13 +62,13 @@ import dynamic from "next/dynamic";
 import CourseQBankTab from "./CourseQBankTab";
 import CoursePredictorPage from "./marks-predictor/CoursePredictorPage";
 import { getTargetAttendancePct } from "@/store/settingsAtoms";
+import { formatSemesterName } from "@/lib/formatSemesterName";
 
 // Dedicated whitespace between the heatmap card and the log section.
 // Nulls out the parent stack gap so the total separation is exactly its height.
 const LogGap = () => <div aria-hidden="true" className="h-3" style={{ marginBlockStart: 0 }} />;
 import {
   Creds,
-  formatSemesterName,
   formatNumber,
   isJunkOrEmpty,
   sanitizeCourseCode,

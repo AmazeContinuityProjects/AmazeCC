@@ -1,4 +1,4 @@
-import { formatSemesterName } from "@/components/custom/exams/courseHelpers";
+import { formatSemesterName } from "@/lib/formatSemesterName";
 import type { AssessmentItem, CourseItem } from "@/types/data/marks";
 import type { GradeItem, GradeResultsMap } from "@/types/data/allgrades";
 
@@ -40,7 +40,14 @@ function round2(n: number): number {
 
 /** VIT's 10-point scale. `N` is ungraded and worth nothing. */
 const GRADE_POINTS_LOOKUP: Record<string, number> = {
-  S: 10, A: 9, B: 8, C: 7, D: 6, E: 5, F: 0, N: 0,
+  S: 10,
+  A: 9,
+  B: 8,
+  C: 7,
+  D: 6,
+  E: 5,
+  F: 0,
+  N: 0,
 };
 
 export type SemesterRow = {
@@ -82,9 +89,7 @@ export function toSemesterRow(id: string, entry: unknown): SemesterRow | null {
   // yet, not a term with an average of zero. It stays in the list so the student
   // can see it is missing, but it contributes to nothing.
   const scored = courses.filter((c) => num(c?.grandTotal) !== null);
-  const avgScore = scored.length
-    ? scored.reduce((s, c) => s + (num(c.grandTotal) ?? 0), 0) / scored.length
-    : 0;
+  const avgScore = scored.length ? scored.reduce((s, c) => s + (num(c.grandTotal) ?? 0), 0) / scored.length : 0;
 
   const points = GRADE_POINTS_LOOKUP;
   // Graded letters only, for the same reason the distribution excludes them: an
@@ -92,10 +97,7 @@ export function toSemesterRow(id: string, entry: unknown): SemesterRow | null {
   // the student has not been assessed on yet as a term they failed.
   const withPoints = courses.filter((c) => isGradedLetter(c?.grade));
   const avgPoints = withPoints.length
-    ? withPoints.reduce(
-        (s, c) => s + (points[String(c.grade).toUpperCase()] as number),
-        0
-      ) / withPoints.length
+    ? withPoints.reduce((s, c) => s + (points[String(c.grade).toUpperCase()] as number), 0) / withPoints.length
     : 0;
 
   return {
@@ -157,7 +159,7 @@ export type Cumulative = {
 
 export function cumulativeGpa(
   rows: SemesterRow[],
-  cgpa?: { cgpa?: string; creditsEarned?: string; creditsRequired?: string } | null
+  cgpa?: { cgpa?: string; creditsEarned?: string; creditsRequired?: string } | null,
 ): Cumulative {
   const creditsEarned = num(cgpa?.creditsEarned) ?? 0;
   const creditsRequired = num(cgpa?.creditsRequired) ?? 0;
@@ -201,13 +203,17 @@ export type GradeLetter = (typeof GRADE_ORDER)[number];
 /** Whether this is a grade the student was actually awarded. */
 export function isGradedLetter(grade: string | undefined | null): boolean {
   return GRADE_ORDER.includes(
-    String(grade ?? "").trim().toUpperCase() as GradeLetter
+    String(grade ?? "")
+      .trim()
+      .toUpperCase() as GradeLetter,
   );
 }
 
 /** Points for a letter, or `null` when the letter is one we do not know. */
 export function gradePoints(grade: string | undefined | null): number | null {
-  const key = String(grade ?? "").trim().toUpperCase();
+  const key = String(grade ?? "")
+    .trim()
+    .toUpperCase();
   return GRADE_POINTS_LOOKUP[key] === undefined ? null : GRADE_POINTS_LOOKUP[key];
 }
 
@@ -233,7 +239,11 @@ export const GRADE_TONE: Record<string, string> = {
 };
 
 export const toneForGrade = (grade: string | undefined | null): string =>
-  GRADE_TONE[String(grade ?? "").trim().toUpperCase()] ?? "zinc";
+  GRADE_TONE[
+    String(grade ?? "")
+      .trim()
+      .toUpperCase()
+  ] ?? "zinc";
 
 export type DistributionRow = {
   grade: string;
@@ -255,7 +265,9 @@ export type DistributionRow = {
 export function gradeDistribution(courses: GradeItem[]): DistributionRow[] {
   const counts = new Map<string, number>();
   for (const c of courses) {
-    const g = String(c?.grade ?? "").trim().toUpperCase();
+    const g = String(c?.grade ?? "")
+      .trim()
+      .toUpperCase();
     if (!isGradedLetter(g)) continue;
     counts.set(g, (counts.get(g) ?? 0) + 1);
   }
@@ -321,13 +333,9 @@ export function averageByType(courses: GradeItem[]): TypeAverage[] {
  * Returns `null` when the breakdown has no usable weightage, so a caller can tell
  * "the list sums to nothing" apart from "the list sums to zero".
  */
-export function weightedTotal(
-  details: GradeItem["details"]
-): number | null {
+export function weightedTotal(details: GradeItem["details"]): number | null {
   if (!Array.isArray(details) || details.length === 0) return null;
-  const parts = details
-    .map((d) => num(d?.weightageMark))
-    .filter((n): n is number => n !== null);
+  const parts = details.map((d) => num(d?.weightageMark)).filter((n): n is number => n !== null);
   if (parts.length === 0) return null;
   return round2(parts.reduce((s, n) => s + n, 0));
 }
@@ -339,9 +347,7 @@ export function weightedTotal(
  * 0.04 gap is arithmetic noise while a 3-point gap means the list is not the
  * thing that produced the total.
  */
-export function weightedTotalDiffers(
-  course: Pick<GradeItem, "grandTotal" | "details">
-): boolean {
+export function weightedTotalDiffers(course: Pick<GradeItem, "grandTotal" | "details">): boolean {
   const weighted = weightedTotal(course.details);
   const reported = num(course.grandTotal);
   if (weighted === null || reported === null) return false;
@@ -398,24 +404,20 @@ export type EmbeddedSegment = {
  */
 export function embeddedSegments(
   courseCode: string,
-  marks: { courses?: CourseItem[] } | null | undefined
+  marks: { courses?: CourseItem[] } | null | undefined,
 ): EmbeddedSegment[] | null {
   const code = String(courseCode ?? "").trim();
   if (!code) return null;
 
   const courses = Array.isArray(marks?.courses) ? marks.courses : [];
-  const mine = courses.filter(
-    (c) => String(c?.courseCode ?? "").trim() === code && isEmbeddedCourse(c)
-  );
+  const mine = courses.filter((c) => String(c?.courseCode ?? "").trim() === code && isEmbeddedCourse(c));
   if (mine.length === 0) return null;
 
   const build = (kind: "Theory" | "Lab", pattern: RegExp): EmbeddedSegment | null => {
     const row = mine.find((c) => pattern.test(String(c?.courseType ?? "")));
     if (!row) return null;
     const assessments = Array.isArray(row.assessments) ? row.assessments : [];
-    const parts = assessments
-      .map((a) => num(a?.weightageMark))
-      .filter((n): n is number => n !== null);
+    const parts = assessments.map((a) => num(a?.weightageMark)).filter((n): n is number => n !== null);
     return {
       kind,
       courseType: String(row.courseType ?? ""),
@@ -456,10 +458,7 @@ export type SegmentBlend = {
  * ratio would be inventing the weighting, which is the one thing this file
  * refuses to do.
  */
-export function segmentBlend(
-  segments: EmbeddedSegment[],
-  published: GradeItem["grandTotal"]
-): SegmentBlend | null {
+export function segmentBlend(segments: EmbeddedSegment[], published: GradeItem["grandTotal"]): SegmentBlend | null {
   const theory = segments.find((s) => s.kind === "Theory");
   const lab = segments.find((s) => s.kind === "Lab");
   const theoryCredits = theory?.credits ?? null;
@@ -470,9 +469,7 @@ export function segmentBlend(
   const totalCredits = theoryCredits + labCredits;
   if (reported === null || totalCredits <= 0) return null;
 
-  const blended = round2(
-    (theory.score * theoryCredits + lab.score * labCredits) / totalCredits
-  );
+  const blended = round2((theory.score * theoryCredits + lab.score * labCredits) / totalCredits);
   return {
     blended,
     published: reported,

@@ -73,19 +73,6 @@ export function findOfficialOdWhy(dayDate: string, semesterId?: string): Officia
   return matchOfficialOdForDate(dayDate, getOfficialOd(semesterId)?.records);
 }
 
-export function formatSemesterName(semId: string): string {
-  if (!semId || !semId.toUpperCase().startsWith("CH")) return semId;
-  const year1 = semId.substring(2, 6);
-  const year2 = semId.substring(6, 8);
-  const term = semId.substring(8, 10);
-  let termName = "";
-  if (term === "01") termName = "Fall";
-  else if (term === "05") termName = "Winter";
-  else if (term === "07") termName = "Summer";
-  else termName = `Term ${term}`;
-  return `${termName} ${year1}-${year2}`;
-}
-
 export const DEMO_OFFICIAL_OD: OfficialOdResponse = {
   success: true,
   semesterId: "DEMO",

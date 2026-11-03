@@ -67,7 +67,7 @@ import { settingsAtom } from "@/store/settingsAtoms";
 import { shouldShowProfilePhoto } from "@/lib/settingsVisibility";
 import { storage } from "@/lib/storage";
 import type { EventHubRegistration } from "@/types/data/eventhub";
-import { formatSemesterName } from "../exams/courseHelpers";
+import { formatSemesterName } from "@/lib/formatSemesterName";
 import MonthGrid from "./MonthGrid";
 import DayDetailSheet from "./DayDetailSheet";
 import MoodleConnectSheet from "./MoodleConnectSheet";
@@ -249,12 +249,12 @@ export default function CalendarSubpage({
 
   const attendanceList = useMemo(
     () => (Array.isArray(attendanceData?.attendance) ? attendanceData.attendance : []),
-    [attendanceData]
+    [attendanceData],
   );
 
   const dayCardsMap: AttendanceDayCardsMap = useMemo(
     () => buildAttendanceDayCardsMap(attendanceList),
-    [attendanceList]
+    [attendanceList],
   );
 
   /**
@@ -289,16 +289,7 @@ export default function CalendarSubpage({
         registeredEvents: registeredEvents as EventHubRegistration[],
         profileImageUrl,
       }),
-    [
-      calendars,
-      moodleData,
-      scheduleData,
-      attendanceList,
-      ODhoursData,
-      tasks,
-      registeredEvents,
-      profileImageUrl,
-    ]
+    [calendars, moodleData, scheduleData, attendanceList, ODhoursData, tasks, registeredEvents, profileImageUrl],
   );
 
   // Open on the month you are in, or the next one to start. `null` means the
@@ -306,9 +297,7 @@ export default function CalendarSubpage({
   // The old page persisted this to localStorage and reopened the tab months
   // later on a month with nothing in it.
   const effectiveIndex =
-    activeIndex === null
-      ? activeMonthIndex(months)
-      : Math.min(activeIndex, Math.max(0, months.length - 1));
+    activeIndex === null ? activeMonthIndex(months) : Math.min(activeIndex, Math.max(0, months.length - 1));
 
   const activeMonth = months[effectiveIndex];
 
@@ -331,12 +320,12 @@ export default function CalendarSubpage({
       });
       return earliest;
     },
-    [dayCardsMap]
+    [dayCardsMap],
   );
 
   const logRows = useMemo(
     () => buildAttendanceLog(attendanceByDate, startMinutesByCourse),
-    [attendanceByDate, startMinutesByCourse]
+    [attendanceByDate, startMinutesByCourse],
   );
 
   const visibleRows = useMemo(() => filterLog(logRows, filter), [logRows, filter]);
@@ -353,7 +342,7 @@ export default function CalendarSubpage({
    */
   const overall = useMemo(
     () => summariseAttendance(attendanceList, targetAttendance),
-    [attendanceList, targetAttendance]
+    [attendanceList, targetAttendance],
   );
 
   /**
@@ -404,7 +393,7 @@ export default function CalendarSubpage({
         tone: c.status === "Safe" ? "emerald" : c.status === "Warning" ? "amber" : "red",
         valueClassName: c.isLab ? LAB_VALUE : undefined,
       })),
-    [courseRows]
+    [courseRows],
   );
 
   const courseCarousel = useCarousel(courseSlides.length);
@@ -425,7 +414,13 @@ export default function CalendarSubpage({
    */
   const summarySlides = useMemo<InsightSlide[]>(() => {
     const statusTone =
-      overall.status === "Safe" ? "emerald" : overall.status === "Warning" ? "amber" : overall.status === "Critical" ? "red" : "neutral";
+      overall.status === "Safe"
+        ? "emerald"
+        : overall.status === "Warning"
+          ? "amber"
+          : overall.status === "Critical"
+            ? "red"
+            : "neutral";
 
     return [
       {
@@ -455,10 +450,7 @@ export default function CalendarSubpage({
 
   const summaryCarousel = useCarousel(summarySlides.length);
 
-  const belowTarget = useMemo(
-    () => courseRows.filter((c) => c.status === "Critical").length,
-    [courseRows]
-  );
+  const belowTarget = useMemo(() => courseRows.filter((c) => c.status === "Critical").length, [courseRows]);
 
   const today = useMemo(() => {
     const key = todayKey();
@@ -510,9 +502,7 @@ export default function CalendarSubpage({
           });
         });
 
-        const dated = day.events.filter(
-          (e) => e.kind !== "class" && e.kind !== "working" && e.kind !== "assignment"
-        );
+        const dated = day.events.filter((e) => e.kind !== "class" && e.kind !== "working" && e.kind !== "assignment");
         if (!dated.length) return;
 
         // The same precedence the day sheet leads with, so the sheet and this
@@ -527,7 +517,7 @@ export default function CalendarSubpage({
         // them, or every loose paper when the paper slot is the headline.
         const subjects =
           headlineKind === "milestone"
-            ? headlineEvents[0]?.papers ?? []
+            ? (headlineEvents[0]?.papers ?? [])
             : headlineKind === "exam"
               ? headlineEvents
               : [];
@@ -549,9 +539,7 @@ export default function CalendarSubpage({
             .filter((e) => e !== headline && !subjects.includes(e))
             .map((e) => ({ title: e.title, avatarUrl: e.avatarUrl, eventhubId: e.eventhubId })),
           stats: hasSubjects ? paperStatsLine(subjects) : dayStatsLine(day),
-          kindText: hasSubjects
-            ? canonicalSeriesName(subjects[0].series ?? headline.title)
-            : kindLabel(headline.kind),
+          kindText: hasSubjects ? canonicalSeriesName(subjects[0].series ?? headline.title) : kindLabel(headline.kind),
           when: headline.dueAt ?? day.fullDate,
         });
       });
@@ -578,24 +566,21 @@ export default function CalendarSubpage({
       const found = findDay(months, row.dateKey);
       setSelected(found?.day ?? synthesiseDay(row.attendance));
     },
-    [months]
+    [months],
   );
 
-  const toggleNotes = useCallback(
-    (courseCode: string, rawDate: string) => {
-      setNotes((prev) => {
-        const next = {
-          ...prev,
-          [courseCode]: { ...(prev[courseCode] || {}), [rawDate]: !(prev[courseCode]?.[rawDate]) },
-        };
-        try {
-          localStorage.setItem("uniCC_notes_tracker", JSON.stringify(next));
-        } catch {}
-        return next;
-      });
-    },
-    []
-  );
+  const toggleNotes = useCallback((courseCode: string, rawDate: string) => {
+    setNotes((prev) => {
+      const next = {
+        ...prev,
+        [courseCode]: { ...(prev[courseCode] || {}), [rawDate]: !prev[courseCode]?.[rawDate] },
+      };
+      try {
+        localStorage.setItem("uniCC_notes_tracker", JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }, []);
 
   const handleMonthChange = useCallback((index: number) => setActiveIndex(index), []);
 
@@ -613,7 +598,7 @@ export default function CalendarSubpage({
       setType(next);
       handleCalendarFetch(next);
     },
-    [handleCalendarFetch]
+    [handleCalendarFetch],
   );
 
   // ---- Chrome ------------------------------------------------------------
@@ -651,10 +636,7 @@ export default function CalendarSubpage({
   const shellProps = {
     eyebrow: "Attendance · Calendar",
     title: "Super Calendar",
-    subtitle: [
-      CALENDAR_TYPES[type],
-      currSemesterID ? formatSemesterName(currSemesterID) : null,
-    ]
+    subtitle: [CALENDAR_TYPES[type], currSemesterID ? formatSemesterName(currSemesterID) : null]
       .filter(Boolean)
       .join(" · "),
     actions,
@@ -672,11 +654,7 @@ export default function CalendarSubpage({
           description="Pick the calendar that matches your programme and load it from VTOP. It syncs alongside your attendance data."
           action={
             <div className="flex flex-wrap items-center justify-center gap-2">
-              <SelectField
-                value={type}
-                onChange={handleTypeChange}
-                options={CALENDAR_OPTIONS}
-              />
+              <SelectField value={type} onChange={handleTypeChange} options={CALENDAR_OPTIONS} />
               <GhostButton onClick={() => handleCalendarFetch(type)}>
                 <RefreshCcw className="w-3.5 h-3.5" />
                 Load calendar
@@ -700,15 +678,15 @@ export default function CalendarSubpage({
   return (
     <PageShell {...shellProps}>
       {/*
-        * Two stat cards, side by side, and both are carousels.
-        *
-        * Left: the semester at a glance — the percentage, then the two day
-        * counts the old full-screen timeline existed to show. Right: the same
-        * measure one course at a time, worst first.
-        *
-        * Every card says what its number is *of*. A bare "87%" beside another
-        * "87%" is not information, and this is the page people screenshot.
-        */}
+       * Two stat cards, side by side, and both are carousels.
+       *
+       * Left: the semester at a glance — the percentage, then the two day
+       * counts the old full-screen timeline existed to show. Right: the same
+       * measure one course at a time, worst first.
+       *
+       * Every card says what its number is *of*. A bare "87%" beside another
+       * "87%" is not information, and this is the page people screenshot.
+       */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4">
         <InsightCarousel
           slides={summarySlides}
@@ -744,7 +722,6 @@ export default function CalendarSubpage({
           />
         ) : null}
       </div>
-
 
       {/* ── Month grid ──
           "Today" lives in this header as an action, not as a third stat card.
@@ -853,10 +830,7 @@ export default function CalendarSubpage({
                   {item.lines.length > 0 && (
                     <ul className="mt-1.5 space-y-1">
                       {item.lines.map((line, i) => (
-                        <li
-                          key={i}
-                          className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400"
-                        >
+                        <li key={i} className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
                           <AvatarDot src={line.avatarUrl} name={profileName} />
                           <span className="truncate">{line.title}</span>
                         </li>
@@ -864,9 +838,7 @@ export default function CalendarSubpage({
                     </ul>
                   )}
                   {item.stats && (
-                    <p className="mt-1 text-[11px] font-medium text-zinc-400 dark:text-zinc-500">
-                      {item.stats}
-                    </p>
+                    <p className="mt-1 text-[11px] font-medium text-zinc-400 dark:text-zinc-500">{item.stats}</p>
                   )}
                 </div>
                 <ChevronRight className="w-4 h-4 shrink-0 text-zinc-300 dark:text-zinc-600 mt-0.5" />
@@ -886,22 +858,10 @@ export default function CalendarSubpage({
           icon={Clock}
           title="Attendance log"
           count={visibleRows.length}
-          right={
-            missedCount > 0 ? (
-              <ToneBadge tone="red">
-                {missedCount} with a miss
-              </ToneBadge>
-            ) : null
-          }
+          right={missedCount > 0 ? <ToneBadge tone="red">{missedCount} with a miss</ToneBadge> : null}
         />
 
-        <SegmentedControl
-          options={LOG_FILTERS}
-          value={filter}
-          onChange={setFilter}
-          grow
-          scroll
-        />
+        <SegmentedControl options={LOG_FILTERS} value={filter} onChange={setFilter} grow scroll />
 
         {visibleRows.length === 0 ? (
           <EmptyPanel variant="dashed" title="No records under this filter." />
@@ -950,7 +910,7 @@ export default function CalendarSubpage({
             createTask({
               ...draft,
               dueDate: draft.dueDate ?? (selected ? selected.fullDate.toISOString() : undefined),
-            })
+            }),
           );
           setTaskSheetOpen(false);
         }}
