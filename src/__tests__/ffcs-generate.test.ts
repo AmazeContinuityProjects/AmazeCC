@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { consecutiveLabPeriodPairs, generateTimetables } from "@/lib/ffcsGenerate";
-import type { GenerateParams, GenerateResult } from "@/lib/ffcsGenerate";
+import { generateTimetables } from "@/lib/ffcsGenerate";
+import { consecutiveLabPeriodPairs } from "@/lib/ffcsWalk";
+import type { GenerateParams } from "@/lib/ffcsGenerate";
 import type { ParsedCourse, CourseLock, Friend, AddedCourse, TimetableState } from "@/lib/ffcsTypes";
 import { periodsForSlot, type SlotPeriod } from "../lib/slots";
 import chennai from "../data/campus/chennai.json";
