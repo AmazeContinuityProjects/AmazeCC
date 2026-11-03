@@ -1,5 +1,6 @@
 import type { CourseLock } from "@/components/custom/exams/FFCS/types";
 import { loadSessionPreferences, saveSessionPreferences } from "./ffcsGeneratorSessionPrefs";
+import { safeStorage as safeLocalStorage } from "@/lib/safeStorage";
 
 /**
  * The auto-generator's own target picks, remembered across opens in their
@@ -14,29 +15,6 @@ import { loadSessionPreferences, saveSessionPreferences } from "./ffcsGeneratorS
  * with `no_valid_slots`.
  */
 export const FFCS_GENERATOR_TARGETS_KEY = "ffcs_generator_targets";
-
-/**
- * localStorage with the SSR guard and the quota throw handled — the same
- * contract as the tab's `safeStorage`, copied rather than imported so a
- * `lib` module never depends on a component file.
- */
-const safeLocalStorage = {
-  getItem: (key: string): string | null => {
-    try {
-      if (typeof window === "undefined" || !window.localStorage) return null;
-      return window.localStorage.getItem(key);
-    } catch {
-      return null;
-    }
-  },
-  setItem: (key: string, value: string): void => {
-    try {
-      if (typeof window !== "undefined" && window.localStorage) {
-        window.localStorage.setItem(key, value);
-      }
-    } catch {}
-  },
-};
 
 /** The stored pick set, or `[]` when unset, corrupt, or not an array. */
 export function loadGeneratorTargets(): CourseLock[] {

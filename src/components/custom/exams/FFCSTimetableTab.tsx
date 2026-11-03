@@ -62,12 +62,7 @@ import {
   openModernPrintableDossier,
   downloadModernDossierHtml,
 } from "@/lib/exportTimetable";
-import { GLOBAL_CAMPUS, getTimetableSchema } from "@/lib/campusSchema";
-
-// Re-exported because the tab has always been where importers found these;
-// the definitions moved to the lib so the share page can render a received
-// plan without importing this component.
-export { GLOBAL_CAMPUS, getTimetableSchema };
+import { getTimetableSchema } from "@/lib/campusSchema";
 
 import { groupSelectedCourses } from "./FFCS/logic/groupSelectedCourses";
 import { sameSlotFacultyAlternatives, expandCourseHalves } from "./FFCS/logic/generate";
@@ -146,7 +141,8 @@ import { renderCourseTypeChips } from "./FFCS/components/CourseTypeChips";
 import { isCourseFullyAdded } from "./FFCS/utils";
 import { useFacultyReviewSheet } from "./FFCS/hooks/useFacultyReviewSheet";
 import { CourseListImportSection } from "./FFCS/components/CourseListImportSection";
-import { freeHalfDays, pairwiseSocialScore } from "@/lib/timetableMetrics";
+import { freeHalfDays } from "@/lib/timetableMetrics";
+import { safeStorage } from "@/lib/safeStorage";
 import {
   MORNING_BEFORE_MIN,
   courseInPeriod,
@@ -210,29 +206,6 @@ const SelectedCoursesList = dynamic(() => import("./FFCS/components/SelectedCour
 const PdfGenerationBadge = dynamic(() => import("./FFCS/components/PdfGenerationBadge"), { ssr: false });
 
 /**
- * localStorage with the SSR guard and the quota throw handled once. The
- * generator imports this too: its own course picks persist under their own
- * key, never under the planner's locks.
- */
-export const safeStorage = {
-  getItem: (key: string): string | null => {
-    try {
-      if (typeof window === "undefined" || !window.localStorage) return null;
-      return localStorage.getItem(key);
-    } catch {
-      return null;
-    }
-  },
-  setItem: (key: string, value: string): void => {
-    try {
-      if (typeof window !== "undefined" && window.localStorage) {
-        localStorage.setItem(key, value);
-      }
-    } catch {}
-  },
-};
-
-/**
  * localStorage flag: the final-list announcement has been shown and
  * dismissed. Read on mount (see the notice effect further down) and
  * written by `dismissFinalListNotice`, so the sheet appears at most once
@@ -262,9 +235,6 @@ const FFCS_FINAL_LIST_NOTICE_SEEN_KEY = "ffcs_final_list_notice_seen";
  */
 const getFreeHalfDaysList = (slots: Set<string>): string[] =>
   freeHalfDays([{ slots: [...slots] }], getTimetableSchema());
-
-export const calculatePairwiseSocialScore = (myCourses: AddedCourse[], friendCourses: AddedCourse[]) =>
-  pairwiseSocialScore(myCourses, friendCourses, getTimetableSchema());
 
 const getPeriodsForSlotOuter = (slotName: string) => periodsForSlot(getTimetableSchema(), slotName);
 

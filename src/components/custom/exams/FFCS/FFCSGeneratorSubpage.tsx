@@ -47,7 +47,9 @@ import {
 import { applyResultFilters, DEFAULT_RESULT_FILTERS, type ResultFilters } from "@/lib/ffcsResultFilters";
 import FFCSResultsFilterBar from "./components/FFCSResultsFilterBar";
 import SearchInput from "../../shared/SearchInput";
-import { GLOBAL_CAMPUS, getTimetableSchema, calculatePairwiseSocialScore, safeStorage } from "../FFCSTimetableTab";
+import { GLOBAL_CAMPUS, getTimetableSchema } from "@/lib/campusSchema";
+import { calculatePairwiseSocialScore } from "@/lib/timetableMetrics";
+import { safeStorage } from "@/lib/safeStorage";
 import { COLORS, DAYS } from "./constants";
 import { offeringId, offeringMatches } from "./reports";
 import { sameSlotFacultyAlternatives, expandCourseHalves } from "./logic/generate";
