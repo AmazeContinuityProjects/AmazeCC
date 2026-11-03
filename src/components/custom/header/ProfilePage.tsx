@@ -75,7 +75,7 @@ import { getAssetPath } from "@/lib/utils";
 import { parentOf } from "@/lib/settingsNav";
 import config from "../../../../config.json";
 import Links from "./Links";
-import PushNotificationManager from "@/app/pushNotificationManager";
+import PushNotificationManager from "./PushNotificationManager";
 import PwaInstallCard from "../shared/PwaInstallCard";
 import LocalStorageSubpage from "../footer/LocalStorageSubpage";
 import ChangelogModal from "./ChangelogModal";
