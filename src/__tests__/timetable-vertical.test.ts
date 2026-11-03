@@ -1,13 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { AddedCourse, TimetablePeriod } from "@amazecontinuityprojects/amazeui";
 import chennai from "../data/campus/chennai.json";
-import {
-  buildVerticalGrid,
-  describeCell,
-  weekDateForDayId,
-  RUN_MERGE_GAP_MIN,
-  type Cell,
-} from "../components/custom/timetable/buildBands";
+import { buildVerticalGrid, describeCell, weekDateForDayId, RUN_MERGE_GAP_MIN, type Cell } from "@/lib/buildBands";
 import { DAYS, slotMap, toMinutes } from "../lib/social/schedule";
 
 /**
@@ -113,8 +107,16 @@ describe("runs: adjacent slots of one course become one tall cell", () => {
     // so a course that reads `["L1","L2","L3"]` only has anything to merge on
     // Monday. Asserting otherwise would be asserting that a bare slot id is
     // unambiguous, which it is not.
-    expect(LAB.map((p) => p.days?.mon).filter(Boolean).slice(0, 3)).toEqual(["L1", "L2", "L3"]);
-    expect(LAB.map((p) => p.days?.tue).filter(Boolean).slice(0, 3)).toEqual(["L7", "L8", "L9"]);
+    expect(
+      LAB.map((p) => p.days?.mon)
+        .filter(Boolean)
+        .slice(0, 3),
+    ).toEqual(["L1", "L2", "L3"]);
+    expect(
+      LAB.map((p) => p.days?.tue)
+        .filter(Boolean)
+        .slice(0, 3),
+    ).toEqual(["L7", "L8", "L9"]);
 
     const mon = gridFor([course({ id: "ela", slots: ["L1", "L2", "L3"] })]);
     expect(cellAt(mon, "mon", 0)!.bandCount).toBe(3);
@@ -204,10 +206,7 @@ describe("lab precedence", () => {
   });
 
   it("reports the displaced theory run instead of dropping it", () => {
-    const g = gridFor([
-      course({ id: "eth", slots: ["A1"] }),
-      course({ id: "ela", slots: ["L1"] }),
-    ]);
+    const g = gridFor([course({ id: "eth", slots: ["A1"] }), course({ id: "ela", slots: ["L1"] })]);
 
     const cell = cellAt(g, "mon", 0)!;
     expect(cell.shadowed).toHaveLength(1);
@@ -231,10 +230,7 @@ describe("lab precedence", () => {
   });
 
   it("does not shadow a theory run that stands clear of the lab", () => {
-    const g = gridFor([
-      course({ id: "ela", slots: ["L1"] }),
-      course({ id: "eth2", slots: ["A2"] }),
-    ]);
+    const g = gridFor([course({ id: "ela", slots: ["L1"] }), course({ id: "eth2", slots: ["A2"] })]);
     expect(cellAt(g, "mon", 7)!.course!.id).toBe("eth2");
     expect(cellAt(g, "mon", 7)!.shadowed).toHaveLength(0);
   });

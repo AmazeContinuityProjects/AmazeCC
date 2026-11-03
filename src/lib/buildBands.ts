@@ -48,11 +48,7 @@
  * `"8:00 AM"`. See that module's header for why 1-7 means PM.
  */
 
-import type {
-  AddedCourse,
-  GapDetail,
-  TimetablePeriod,
-} from "@amazecontinuityprojects/amazeui";
+import type { AddedCourse, GapDetail, TimetablePeriod } from "@amazecontinuityprojects/amazeui";
 import { fmt, toMinutes, dayKeyForDate } from "@/lib/social/schedule";
 import { courseInPeriod, hasSlot, ownSlotSpelling } from "@/lib/slots";
 
@@ -238,9 +234,7 @@ export function describeCell(cell: Cell, dayName: string): string {
   const what = `${dayName} ${cell.label}`;
   if (cell.kind === "empty") return `${what} — free`;
   if (cell.blocked) {
-    return cell.course
-      ? `${what} — ${cell.course.code} ${cell.course.title}, blocked`
-      : `${what} — blocked`;
+    return cell.course ? `${what} — ${cell.course.code} ${cell.course.title}, blocked` : `${what} — blocked`;
   }
   if (cell.course) return `${what} — ${cell.course.code} ${cell.course.title}`;
   if (cell.inGap) return `${what} — free, inside a selected gap`;
@@ -302,8 +296,7 @@ export function buildVerticalGrid({
 
     for (const band of bands) {
       if (band.isLunch) continue;
-      const loser =
-        runAt.lab.get(band.index) != null ? runAt.theory.get(band.index) : null;
+      const loser = runAt.lab.get(band.index) != null ? runAt.theory.get(band.index) : null;
       if (!loser) continue;
       shadowedAt[band.index].push(loser);
     }
@@ -317,9 +310,7 @@ export function buildVerticalGrid({
 
       const theorySlot = theory[band.index]?.days?.[dayId];
       const labSlot = lab[band.index]?.days?.[dayId];
-      const bandSlots = [labSlot, theorySlot].filter(
-        (s): s is string => Boolean(s)
-      );
+      const bandSlots = [labSlot, theorySlot].filter((s): s is string => Boolean(s));
 
       const runSlots = run?.slots ?? [];
       /**
@@ -335,19 +326,13 @@ export function buildVerticalGrid({
        * by the slot on the course, so a blocked `A` has to be a `A` here for
        * `onToggleBlockSlot` to record something that can match.
        */
-      const shownRunSlots = run
-        ? run.slots.map((s) => ownSlotSpelling([run.course], s))
-        : [];
+      const shownRunSlots = run ? run.slots.map((s) => ownSlotSpelling([run.course], s)) : [];
       const slots = shownRunSlots.length > 0 ? shownRunSlots : bandSlots;
-      const label =
-        shownRunSlots.length > 0 ? shownRunSlots.join("+") : bandSlots.join(" / ");
+      const label = shownRunSlots.length > 0 ? shownRunSlots.join("+") : bandSlots.join(" / ");
       // "L1+L2+L3" cannot survive a 40px column, so the compact density reads
       // "L1 +2": the first slot plus how many more the run holds. The full list
       // is always in the tap sheet.
-      const shortLabel =
-        shownRunSlots.length > 1
-          ? `${shownRunSlots[0]} +${shownRunSlots.length - 1}`
-          : label;
+      const shortLabel = shownRunSlots.length > 1 ? `${shownRunSlots[0]} +${shownRunSlots.length - 1}` : label;
 
       // A run is a *display* merge of one course's slots, so it is only fully
       // ruled out when every one of them is. A free cell is a single slot as far
@@ -360,26 +345,13 @@ export function buildVerticalGrid({
       const isBlocked = (s: string) => hasSlot(blockedSlots ?? [], s);
       const blocked =
         slots.length > 0 &&
-        (runSlots.length > 0
-          ? runSlots.every(isBlocked)
-          : bandSlots.length > 0 && bandSlots.every(isBlocked));
-      const partiallyBlocked =
-        !blocked &&
-        (runSlots.length > 0 ? runSlots.some(isBlocked) : bandSlots.some(isBlocked));
+        (runSlots.length > 0 ? runSlots.every(isBlocked) : bandSlots.length > 0 && bandSlots.every(isBlocked));
+      const partiallyBlocked = !blocked && (runSlots.length > 0 ? runSlots.some(isBlocked) : bandSlots.some(isBlocked));
 
       const inGap =
-        band.hasTime &&
-        gaps.some(
-          (g) => g.day === dayId && band.startMin >= g.startMin && band.startMin < g.endMin
-        );
+        band.hasTime && gaps.some((g) => g.day === dayId && band.startMin >= g.startMin && band.startMin < g.endMin);
 
-      const kind: CellKind = blocked
-        ? "blocked"
-        : run
-          ? "course"
-          : inGap
-            ? "gap"
-            : "empty";
+      const kind: CellKind = blocked ? "blocked" : run ? "course" : inGap ? "gap" : "empty";
 
       const bandCount = run ? run.endBand - run.startBand + 1 : 1;
 
@@ -449,7 +421,7 @@ function buildRuns(
   bands: Band[],
   periods: TimetablePeriod[],
   courses: AddedCourse[],
-  mergeGapMinutes: number
+  mergeGapMinutes: number,
 ): Run[] {
   const runs: Run[] = [];
   let open: Run | null = null;

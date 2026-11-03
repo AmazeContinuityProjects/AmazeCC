@@ -31,15 +31,8 @@
  */
 
 import type { TimetablePeriod } from "@amazecontinuityprojects/amazeui";
-import {
-  DAYS,
-  mondaySkeleton,
-  slotMap,
-  slotRange,
-  type Day,
-  type SlotMap,
-} from "@/lib/social/schedule";
-import { buildBandRows, type Band } from "./buildBands";
+import { DAYS, mondaySkeleton, slotMap, slotRange, type Day, type SlotMap } from "@/lib/social/schedule";
+import { buildBandRows, type Band } from "@/lib/buildBands";
 
 /** The theory/lab slot pair inside one band, on one day. */
 export type Column = {
@@ -87,10 +80,7 @@ export function projectColumns(map: SlotMap = slotMap): Record<Day, Column[]> {
       }
     }
 
-    const resolve = (
-      src: { slotId: string; start: number } | null | undefined,
-      isLab: boolean
-    ) => {
+    const resolve = (src: { slotId: string; start: number } | null | undefined, isLab: boolean) => {
       if (!src) return null;
       const time = String(map.MON[src.slotId].time).replace(/\s+/g, "");
       const byTime = isLab ? byTimeLab : byTimeTheory;

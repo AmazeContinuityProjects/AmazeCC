@@ -16,7 +16,7 @@ export {
   type Run,
   type ShadowedRun,
   type VerticalGrid,
-} from "./buildBands";
+} from "@/lib/buildBands";
 export {
   useTimetableViewMode,
   MOBILE_BREAKPOINT_PX,
