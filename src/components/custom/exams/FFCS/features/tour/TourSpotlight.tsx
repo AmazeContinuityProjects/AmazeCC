@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { X, ArrowLeft, ArrowRight } from "lucide-react";
-import { useTour } from "./TourProvider";
+import { useTour } from "./tourContext";
 
 /**
  * The tour's visible layer: a dim with a lit hole over the current anchor and
@@ -105,12 +105,7 @@ export function TourSpotlight() {
         : null;
 
   return (
-    <div
-      className="fixed inset-0"
-      style={{ zIndex: TOUR_Z }}
-      data-prevent-swipe="true"
-      aria-hidden={false}
-    >
+    <div className="fixed inset-0" style={{ zIndex: TOUR_Z }} data-prevent-swipe="true" aria-hidden={false}>
       {/* The dim, with a lit hole where the anchor is. The enormous shadow is
           the dim; the transparent middle is the spotlight. Clicks land here
           and go nowhere — the tour is modal on purpose. */}
@@ -124,8 +119,7 @@ export function TourSpotlight() {
                 width: rect.width + 12,
                 height: rect.height + 12,
                 borderRadius: 14,
-                boxShadow:
-                  "0 0 0 9999px color-mix(in srgb, oklch(0.21 0.034 265) 62%, transparent)",
+                boxShadow: "0 0 0 9999px color-mix(in srgb, oklch(0.21 0.034 265) 62%, transparent)",
               }
             : {
                 backgroundColor: "color-mix(in srgb, oklch(0.21 0.034 265) 62%, transparent)",

@@ -1,20 +1,19 @@
 "use client";
 
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { storage } from "@/lib/storage";
 import { track } from "@/lib/analytics";
 import { useOverlayBack } from "@/lib/overlayStack";
 import { useIsMobile } from "@/components/custom/shared";
 import { TOUR_STEPS, TOUR_VERSION, type TourStep } from "./tourSteps";
+import { TourContext, type TourContextValue } from "./tourContext";
 import { TourSpotlight } from "./TourSpotlight";
+
+// The context itself lives in `./tourContext` so the spotlight can consume it
+// without importing this file — that edge closed a cycle
+// (TourProvider → TourSpotlight → TourProvider). Re-exported for the tab and
+// the tour test, which have always found `useTour` here.
+export { useTour, type TourContextValue } from "./tourContext";
 
 /**
  * Tour state for the FFCS tab.
@@ -32,27 +31,6 @@ import { TourSpotlight } from "./TourSpotlight";
  * Phones never get the tour at all: the auto-start is suppressed below the
  * `sm` breakpoint, and the settings sheet hides its tour row there too.
  */
-
-export interface TourContextValue {
-  /** The current step, or null when no tour is running. */
-  step: TourStep | null;
-  stepIndex: number;
-  total: number;
-  isActive: boolean;
-  start: () => void;
-  /** Ends the run and remembers it as seen. */
-  stop: () => void;
-  next: () => void;
-  prev: () => void;
-}
-
-const TourContext = createContext<TourContextValue | null>(null);
-
-export function useTour(): TourContextValue {
-  const ctx = useContext(TourContext);
-  if (!ctx) throw new Error("useTour must be used inside <TourProvider>");
-  return ctx;
-}
 
 /** Delay before an auto-start, so the first layout pass has settled. */
 const AUTO_START_MS = 600;
@@ -141,7 +119,7 @@ export function TourProvider({
       next,
       prev,
     }),
-    [stepIndex, start, stop, next, prev]
+    [stepIndex, start, stop, next, prev],
   );
 
   return (
