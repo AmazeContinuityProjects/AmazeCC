@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import FFCSDossierSubpage from "../components/custom/exams/FFCS/components/FFCSDossierSubpage";
-import type { AddedCourse, TimetablePeriod, ParsedCourse, TimetableState } from "../components/custom/exams/FFCS/types";
+import type { AddedCourse, TimetablePeriod, ParsedCourse, TimetableState } from "@/lib/ffcsTypes";
 import { closeTopOverlayFromPop, hasOpenOverlays } from "../lib/overlayStack";
 
 vi.mock("@/lib/exportTimetable", async (importOriginal) => {
@@ -120,7 +120,7 @@ describe("FFCSDossierSubpage Component", () => {
         days={mockDays}
         masterCourses={mockMasterCourses}
         onClose={onClose}
-      />
+      />,
     );
 
     // Header info
@@ -159,7 +159,7 @@ describe("FFCSDossierSubpage Component", () => {
         days={mockDays}
         masterCourses={mockMasterCourses}
         onClose={onClose}
-      />
+      />,
     );
 
     expect(hasOpenOverlays()).toBe(true);
@@ -181,7 +181,7 @@ describe("FFCSDossierSubpage Component", () => {
         days={mockDays}
         masterCourses={mockMasterCourses}
         onClose={vi.fn()}
-      />
+      />,
     );
 
     // Toggle theme button
@@ -214,7 +214,7 @@ describe("FFCSDossierSubpage Component", () => {
         masterCourses={mockMasterCourses}
         onClose={vi.fn()}
         initialViewMode="horizontal"
-      />
+      />,
     );
 
     const verticalBtn = screen.getByText("Vertical");

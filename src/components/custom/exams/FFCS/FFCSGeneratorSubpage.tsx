@@ -26,7 +26,7 @@ import {
   PanelsTopLeft,
   ListOrdered,
 } from "lucide-react";
-import { TimetableState, CourseLock, Friend, FriendGroup, ParsedCourse, AddedCourse } from "./types";
+import { TimetableState, CourseLock, Friend, FriendGroup, ParsedCourse, AddedCourse } from "@/lib/ffcsTypes";
 import { getBatchColorClass } from "@/lib/utils";
 import { dayOccupancy, sortTimetables, timetableMetrics, formatHours, type SortBy } from "@/lib/timetableMetrics";
 import { periodsForSlot, splitSlots } from "@/lib/slots";
@@ -50,9 +50,9 @@ import SearchInput from "../../shared/SearchInput";
 import { GLOBAL_CAMPUS, getTimetableSchema } from "@/lib/campusSchema";
 import { calculatePairwiseSocialScore } from "@/lib/timetableMetrics";
 import { safeStorage } from "@/lib/safeStorage";
-import { COLORS, DAYS } from "./constants";
-import { offeringId, offeringMatches } from "./reports";
-import { sameSlotFacultyAlternatives, expandCourseHalves } from "./logic/generate";
+import { COLORS, DAYS } from "@/lib/ffcsConstants";
+import { offeringId, offeringMatches } from "@/lib/ffcsReports";
+import { sameSlotFacultyAlternatives, expandCourseHalves } from "@/lib/ffcsGenerate";
 import { TimetableGrid, GapDetail } from "./components/TimetableGrid";
 import SlotFacultySwapSheet from "./components/SlotFacultySwapSheet";
 import { getFittingStatTileCount, STAT_TILE_MIN_WIDTH } from "./components/FFCSDashboardHeader";

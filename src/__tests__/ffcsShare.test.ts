@@ -10,7 +10,7 @@ import {
   encodeTimetableShare,
   isOversizedShareLink,
 } from "../lib/ffcsShare";
-import type { AddedCourse, TimetableState } from "../components/custom/exams/FFCS/types";
+import type { AddedCourse, TimetableState } from "@/lib/ffcsTypes";
 
 /**
  * The share codec's contract: a plan survives the round trip exactly as it
@@ -87,9 +87,7 @@ describe("encode/decode", () => {
       n: "Winter plan",
     });
     expect(encoded!.length).toBeLessThan(encodeTimetableShare(planWithClassIds).length);
-    expect(
-      buildCompactShareUrl(encoded!, "https://example.com/")
-    ).toContain("/share/ffcs/?x=");
+    expect(buildCompactShareUrl(encoded!, "https://example.com/")).toContain("/share/ffcs/?x=");
   });
 
   it("does not offer compact encoding when report class IDs are missing or ambiguous", () => {
@@ -103,8 +101,8 @@ describe("encode/decode", () => {
             { ...course("CSE1001", ["A1"]), classId: "CH2026270500002" },
           ],
         },
-        "winter-2026-2027"
-      )
+        "winter-2026-2027",
+      ),
     ).toBeNull();
   });
 });
@@ -127,20 +125,18 @@ describe("refusals", () => {
     // (Simulated by re-encoding the wire with a different v via lz-string.)
     const { compressToEncodedURIComponent } = require("lz-string") as typeof import("lz-string");
     const bumped = compressToEncodedURIComponent(
-      JSON.stringify({ v: FFCS_SHARE_VERSION + 1, c: "chennai", n: "x", k: plan().courses })
+      JSON.stringify({ v: FFCS_SHARE_VERSION + 1, c: "chennai", n: "x", k: plan().courses }),
     );
     expect(decodeTimetableShare(bumped)).toBeNull();
   });
 
   it("refuses a payload with no real courses in it", () => {
     const { compressToEncodedURIComponent } = require("lz-string") as typeof import("lz-string");
-    const empty = compressToEncodedURIComponent(
-      JSON.stringify({ v: FFCS_SHARE_VERSION, c: "chennai", n: "x", k: [] })
-    );
+    const empty = compressToEncodedURIComponent(JSON.stringify({ v: FFCS_SHARE_VERSION, c: "chennai", n: "x", k: [] }));
     expect(decodeTimetableShare(empty)).toBeNull();
 
     const notCourses = compressToEncodedURIComponent(
-      JSON.stringify({ v: FFCS_SHARE_VERSION, c: "chennai", n: "x", k: [{ nope: true }] })
+      JSON.stringify({ v: FFCS_SHARE_VERSION, c: "chennai", n: "x", k: [{ nope: true }] }),
     );
     expect(decodeTimetableShare(notCourses)).toBeNull();
   });
@@ -151,9 +147,7 @@ describe("the URL", () => {
     const previous = process.env.NEXT_PUBLIC_BASE_PATH;
     process.env.NEXT_PUBLIC_BASE_PATH = "/AmazeCC";
     try {
-      expect(buildShareUrl("abc", "https://example.com/")).toBe(
-        "https://example.com/AmazeCC/share/ffcs/?d=abc"
-      );
+      expect(buildShareUrl("abc", "https://example.com/")).toBe("https://example.com/AmazeCC/share/ffcs/?d=abc");
     } finally {
       if (previous === undefined) delete process.env.NEXT_PUBLIC_BASE_PATH;
       else process.env.NEXT_PUBLIC_BASE_PATH = previous;
@@ -164,9 +158,7 @@ describe("the URL", () => {
     const previous = process.env.NEXT_PUBLIC_BASE_PATH;
     process.env.NEXT_PUBLIC_BASE_PATH = "";
     try {
-      expect(buildShareUrl("abc", "https://example.com")).toBe(
-        "https://example.com/share/ffcs/?d=abc"
-      );
+      expect(buildShareUrl("abc", "https://example.com")).toBe("https://example.com/share/ffcs/?d=abc");
     } finally {
       process.env.NEXT_PUBLIC_BASE_PATH = previous;
     }
@@ -176,9 +168,7 @@ describe("the URL", () => {
     const previous = process.env.NEXT_PUBLIC_BASE_PATH;
     process.env.NEXT_PUBLIC_BASE_PATH = "";
     try {
-      expect(buildCompactShareUrl("a+b", "https://example.com")).toBe(
-        "https://example.com/share/ffcs/?x=a%2Bb"
-      );
+      expect(buildCompactShareUrl("a+b", "https://example.com")).toBe("https://example.com/share/ffcs/?x=a%2Bb");
     } finally {
       process.env.NEXT_PUBLIC_BASE_PATH = previous;
     }

@@ -14,7 +14,7 @@
  * not.
  */
 
-import type { ParsedCourse } from "@/components/custom/exams/FFCS/types";
+import type { ParsedCourse } from "@/lib/ffcsTypes";
 
 /** The columns this app can consume, as they appear on `ParsedCourse`. */
 export type ImportableField = "CODE" | "TITLE" | "TYPE" | "CREDITS" | "SLOT" | "FACULTY" | "ROOM" | "BATCH";
@@ -49,12 +49,48 @@ export const REQUIRED_FIELDS: readonly ImportableField[] = ["CODE", "SLOT"];
  * when two candidates are compared by length.
  */
 const ALIASES: Record<ImportableField, readonly string[]> = {
-  CODE: ["course code", "coursecode", "course_code", "subject code", "subjectcode", "sub code", "subcode", "code", "courseno", "course no", "course number", "crs code"],
-  TITLE: ["course title", "coursetitle", "course_title", "course name", "coursename", "subject name", "subjectname", "title", "name", "description"],
+  CODE: [
+    "course code",
+    "coursecode",
+    "course_code",
+    "subject code",
+    "subjectcode",
+    "sub code",
+    "subcode",
+    "code",
+    "courseno",
+    "course no",
+    "course number",
+    "crs code",
+  ],
+  TITLE: [
+    "course title",
+    "coursetitle",
+    "course_title",
+    "course name",
+    "coursename",
+    "subject name",
+    "subjectname",
+    "title",
+    "name",
+    "description",
+  ],
   TYPE: ["course type", "coursetype", "type", "category", "course category", "kind"],
   CREDITS: ["credit hours", "credithours", "l-t-p", "ltp", "credits", "credit", "crs", "cr"],
   SLOT: ["course slot", "courseslot", "time slot", "timeslot", "theory slot", "slot(s)", "slots", "slot"],
-  FACULTY: ["faculty name", "facultyname", "faculty/fac", "professor", "professor name", "instructor", "instructor name", "faculty", "prof", "staff", "teacher"],
+  FACULTY: [
+    "faculty name",
+    "facultyname",
+    "faculty/fac",
+    "professor",
+    "professor name",
+    "instructor",
+    "instructor name",
+    "faculty",
+    "prof",
+    "staff",
+    "teacher",
+  ],
   ROOM: ["class room", "classroom", "venue", "room", "room no", "location", "building"],
   BATCH: ["batch name", "batchname", "batch", "section", "group", "division"],
 };
@@ -186,13 +222,15 @@ export function hasField(columns: ReadonlyMap<string, ImportableField>, field: I
  */
 export function normalizeRow(
   row: Record<string, unknown>,
-  columns: ReadonlyMap<string, ImportableField>
+  columns: ReadonlyMap<string, ImportableField>,
 ): Partial<Record<ImportableField, string>> {
   const out: Partial<Record<ImportableField, string>> = {};
   for (const [header, field] of columns) {
     const raw = row[header];
     if (raw === undefined || raw === null) continue;
-    const value = String(raw).replace(/^\uFEFF/, "").trim();
+    const value = String(raw)
+      .replace(/^\uFEFF/, "")
+      .trim();
     if (value) out[field] = value;
   }
   return out;
@@ -209,9 +247,7 @@ export function normalizeRow(
  * sheet says otherwise, and an unknown type would render as an empty chip
  * everywhere it is displayed.
  */
-export function toParsedCourse(
-  values: Partial<Record<ImportableField, string>>
-): ParsedCourse | null {
+export function toParsedCourse(values: Partial<Record<ImportableField, string>>): ParsedCourse | null {
   const code = values.CODE?.toUpperCase();
   const slot = values.SLOT?.toUpperCase();
   if (!code || !slot) return null;

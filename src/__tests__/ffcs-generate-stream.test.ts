@@ -6,8 +6,8 @@ import {
   type GenerateParams,
   type GenerateProgress,
   type GenerateResult,
-} from "../components/custom/exams/FFCS/logic/generate";
-import type { ParsedCourse, CourseLock, TimetableState } from "../components/custom/exams/FFCS/types";
+} from "@/lib/ffcsGenerate";
+import type { ParsedCourse, CourseLock, TimetableState } from "@/lib/ffcsTypes";
 import { periodsForSlot, type SlotPeriod } from "../lib/slots";
 import chennai from "../data/campus/chennai.json";
 
@@ -55,9 +55,7 @@ const declaredSlotIds = (): string[] => {
 
 /** Do these two bookings collide anywhere? Mirrors the solver's own test. */
 const collide = (a: SlotPeriod[], b: SlotPeriod[]): boolean =>
-  a.some((x) =>
-    b.some((y) => x.day === y.day && Math.max(x.startMin, y.startMin) < Math.min(x.endMin, y.endMin))
-  );
+  a.some((x) => b.some((y) => x.day === y.day && Math.max(x.startMin, y.startMin) < Math.min(x.endMin, y.endMin)));
 
 /**
  * As many periods as can be had that never clash with one another.
@@ -81,9 +79,7 @@ const nonClashingSlots = (count: number): string[] => {
 
 const FREE_SLOTS = nonClashingSlots(7);
 
-const row = (
-  over: Partial<ParsedCourse> & Pick<ParsedCourse, "CODE" | "SLOT">
-): ParsedCourse => ({
+const row = (over: Partial<ParsedCourse> & Pick<ParsedCourse, "CODE" | "SLOT">): ParsedCourse => ({
   CODE: over.CODE,
   TITLE: over.TITLE ?? "Course",
   TYPE: over.TYPE ?? "TH",
@@ -130,7 +126,7 @@ const sevenBySeven = (): Partial<GenerateParams> => {
     const code = `BCSE2${courseIndex}0`;
     courseLocks.push(lock({ code }));
     FREE_SLOTS.forEach((slot, slotIndex) =>
-      masterCourses.push(row({ CODE: code, SLOT: slot, ROOM: `AB1-${100 + slotIndex}` }))
+      masterCourses.push(row({ CODE: code, SLOT: slot, ROOM: `AB1-${100 + slotIndex}` })),
     );
   });
   return { masterCourses, courseLocks };
@@ -145,7 +141,7 @@ const layouts = (result: GenerateResult): string[] => {
         .flatMap((c) => c.slots)
         .slice()
         .sort()
-        .join("|")
+        .join("|"),
     )
     .sort();
 };
@@ -170,14 +166,11 @@ describe("watching a search", () => {
   beforeAll(() => {
     batches = [];
     progress = [];
-    result = generateTimetablesStream(
-      params({ ...sevenBySeven(), noLimit: true }),
-      {
-        batchSize: 100,
-        onBatch: (batch) => batches.push(batch),
-        onProgress: (p) => progress.push(p),
-      }
-    );
+    result = generateTimetablesStream(params({ ...sevenBySeven(), noLimit: true }), {
+      batchSize: 100,
+      onBatch: (batch) => batches.push(batch),
+      onProgress: (p) => progress.push(p),
+    });
     // Unlimited on both sides: the point is that watching does not change the
     // answer, and comparing a capped run against an uncapped one would only be
     // comparing the two caps.
@@ -277,21 +270,18 @@ describe("the unlimited search stops at the ceiling", () => {
             CODE: code,
             SLOT: pool[(courseIndex * 3 + slotIndex) % pool.length],
             ROOM: `AB1-${200 + courseIndex * 3 + slotIndex}`,
-          })
+          }),
         );
       }
     }
 
     batches = [];
     progress = [];
-    result = generateTimetablesStream(
-      params({ masterCourses, courseLocks, noLimit: true }),
-      {
-        batchSize: 100,
-        onBatch: (batch) => batches.push(batch),
-        onProgress: (p) => progress.push(p),
-      }
-    );
+    result = generateTimetablesStream(params({ masterCourses, courseLocks, noLimit: true }), {
+      batchSize: 100,
+      onBatch: (batch) => batches.push(batch),
+      onProgress: (p) => progress.push(p),
+    });
   }, 60_000);
 
   it("answers rather than cancels, and says it was capped", () => {
@@ -329,7 +319,7 @@ describe("removing the unlimited safety ceiling", () => {
             CODE: code,
             SLOT: "UNKNOWN",
             ROOM: `AB1-${optionIndex}`,
-          })
+          }),
         );
       }
     });
@@ -344,7 +334,7 @@ describe("removing the unlimited safety ceiling", () => {
       {
         batchSize: 100,
         onBatch: (batch) => (accepted += batch.length),
-      }
+      },
     );
 
     expect(result.kind).toBe("ok");
@@ -382,7 +372,7 @@ describe("a course with more than one offering", () => {
           row({ CODE: "BCSE102", SLOT: "A1+TA2", ROOM: "AB2-202" }),
         ],
         courseLocks: [lock({ code: "BCSE101" }), lock({ code: "BCSE102" })],
-      })
+      }),
     );
 
     expect(result.kind).toBe("ok");
@@ -409,7 +399,7 @@ describe("a course with more than one offering", () => {
           row({ CODE: "BCSE102", SLOT: "A1+TA2", ROOM: "AB2-202" }),
         ],
         courseLocks: [lock({ code: "BCSE101" }), lock({ code: "BCSE102" })],
-      })
+      }),
     );
 
     expect(result.kind).toBe("error");
@@ -427,7 +417,7 @@ describe("cancelling a search", () => {
       {
         shouldStop: () => true,
         onBatch: (batch) => seen.push(...batch),
-      }
+      },
     );
 
     expect(result.kind).toBe("cancelled");
@@ -466,7 +456,7 @@ describe("the cap", () => {
       params({
         masterCourses: [row({ CODE: "BCSE101", SLOT: "A1+TA1" })],
         courseLocks: [lock({ code: "BCSE101" })],
-      })
+      }),
     );
     expect(result.kind).toBe("ok");
     if (result.kind !== "ok") return;
@@ -498,10 +488,7 @@ describe("watching does not change the failure modes", () => {
 
   it("reports a week that cannot be assembled", () => {
     const r = watched({
-      masterCourses: [
-        row({ CODE: "BCSE101", SLOT: "B1" }),
-        row({ CODE: "BCSE102", SLOT: "B1", ROOM: "AB2-202" }),
-      ],
+      masterCourses: [row({ CODE: "BCSE101", SLOT: "B1" }), row({ CODE: "BCSE102", SLOT: "B1", ROOM: "AB2-202" })],
       courseLocks: [lock({ code: "BCSE101" }), lock({ code: "BCSE102" })],
     });
     expect(r.kind).toBe("error");
@@ -526,7 +513,7 @@ describe("watching does not change the failure modes", () => {
         courseLocks: [lock({ code: "BCSE101" })],
         minHalfDays: 10,
       }),
-      { onBatch: (batch) => seen.push(...batch) }
+      { onBatch: (batch) => seen.push(...batch) },
     );
     // Every batch it might have sent was later withdrawn by the floor, so a
     // caller that only watches batches would have shown an option that does

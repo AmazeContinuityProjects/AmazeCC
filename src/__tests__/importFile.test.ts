@@ -2,7 +2,7 @@ import { readFileSync } from "fs";
 import { describe, expect, it } from "vitest";
 import { importFile, mergeCourses } from "../features/import/importFile";
 import { detectColumns, hasField, normalizeHeader } from "../features/import/normalizeColumns";
-import type { ParsedCourse } from "../components/custom/exams/FFCS/types";
+import type { ParsedCourse } from "@/lib/ffcsTypes";
 
 /**
  * Column detection and file import.
@@ -116,7 +116,12 @@ describe("importing the course report this app ships with", () => {
 describe("importing a sheet nobody here wrote", () => {
   it("reads headings spelled the other way round", async () => {
     const result = await importFile(
-      csv(["Course Code,Course Title,Slot,Professor,Room,Credit", "CSE1001,Intro to Computing,A1+TA1,Dr. Smith,AB1-101,3"].join("\n"))
+      csv(
+        [
+          "Course Code,Course Title,Slot,Professor,Room,Credit",
+          "CSE1001,Intro to Computing,A1+TA1,Dr. Smith,AB1-101,3",
+        ].join("\n"),
+      ),
     );
 
     expect(result.error).toBeNull();
@@ -132,7 +137,7 @@ describe("importing a sheet nobody here wrote", () => {
 
   it("ignores columns it does not understand and says which", async () => {
     const result = await importFile(
-      csv(["Code,Slot,Prerequisite,Class Strength", "CSE1001,A1+TA1,MAT101,60"].join("\n"))
+      csv(["Code,Slot,Prerequisite,Class Strength", "CSE1001,A1+TA1,MAT101,60"].join("\n")),
     );
 
     expect(result.error).toBeNull();
@@ -152,9 +157,7 @@ describe("importing a sheet nobody here wrote", () => {
   });
 
   it("skips a row with no slot, and counts it so the preview can say so", async () => {
-    const result = await importFile(
-      csv(["Code,Slot", "CSE1001,A1+TA1", "CSE1002,", "CSE1003,B1+TB1"].join("\n"))
-    );
+    const result = await importFile(csv(["Code,Slot", "CSE1001,A1+TA1", "CSE1002,", "CSE1003,B1+TB1"].join("\n")));
 
     expect(result.courses.map((c) => c.CODE)).toEqual(["CSE1001", "CSE1003"]);
     expect(result.skipped).toBe(1);

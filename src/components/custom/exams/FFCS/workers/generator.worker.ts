@@ -36,7 +36,7 @@
  * needs no cooperation from this side, and cannot leave a half-built result.
  */
 
-import { generateTimetablesStream, type GenerateParams } from "../logic/generate";
+import { generateTimetablesStream, type GenerateParams } from "@/lib/ffcsGenerate";
 
 /** What the main thread may send. */
 type WorkerRequest = { type: "stream"; params: GenerateParams } | GenerateParams;
@@ -57,11 +57,8 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
   // including `{ nonsense: true }` and including every payload the artifact test
   // has ever sent — is treated as a bare `GenerateParams`, which is what the
   // original handler always assumed.
-  const isStream =
-    !!data && typeof data === "object" && (data as { type?: string }).type === "stream";
-  const params = isStream
-    ? (data as { type: "stream"; params: GenerateParams }).params
-    : (data as GenerateParams);
+  const isStream = !!data && typeof data === "object" && (data as { type?: string }).type === "stream";
+  const params = isStream ? (data as { type: "stream"; params: GenerateParams }).params : (data as GenerateParams);
 
   try {
     const result = generateTimetablesStream(
@@ -74,7 +71,7 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
             onBatch: (batch) => post({ type: "batch", timetables: batch }),
             onProgress: (progress) => post({ type: "progress", ...progress }),
           }
-        : undefined
+        : undefined,
     );
 
     if (result.kind === "ok") {

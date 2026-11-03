@@ -54,9 +54,17 @@ import { renderCourseTypeChips } from "./CourseTypeChips";
 import { GuidedPhaseHeading } from "./GuidedPhaseHeading";
 import { useOverlayBack } from "@/lib/overlayStack";
 import { getBatchColorClass } from "@/lib/utils";
-import { ParsedCourse, AddedCourse, TimetableState, CourseLock, Friend, FriendGroup, TimetablePeriod } from "../types";
-import { COLORS, DAYS } from "../constants";
-import { splitSlots, sameSlotFacultyAlternatives } from "../logic/generate";
+import {
+  ParsedCourse,
+  AddedCourse,
+  TimetableState,
+  CourseLock,
+  Friend,
+  FriendGroup,
+  TimetablePeriod,
+} from "@/lib/ffcsTypes";
+import { COLORS, DAYS } from "@/lib/ffcsConstants";
+import { splitSlots, sameSlotFacultyAlternatives } from "@/lib/ffcsGenerate";
 import { useVitfacReview, useVitfacEnabled, getFacultyReview, loadVitfacRankingData } from "@/lib/vitfacService";
 import { acquireBodyScrollLock } from "@/lib/bodyScrollLock";
 import { CourseImportPanel, type ImportMode } from "./CourseImportPanel";

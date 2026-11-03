@@ -1,4 +1,4 @@
-import type { CourseLock } from "@/components/custom/exams/FFCS/types";
+import type { CourseLock } from "@/lib/ffcsTypes";
 import { loadSessionPreferences, saveSessionPreferences } from "./ffcsGeneratorSessionPrefs";
 import { safeStorage as safeLocalStorage } from "@/lib/safeStorage";
 

@@ -4,7 +4,7 @@ import React, { useState, useMemo } from "react";
 import { AnimatePresence } from "framer-motion";
 import { ClipboardPaste, CheckCircle2, AlertTriangle, Sparkles, BookOpen, Layers } from "lucide-react";
 import BottomSheet from "../../../../shared/BottomSheet";
-import type { AddedCourse, ParsedCourse } from "../../types";
+import type { AddedCourse, ParsedCourse } from "@/lib/ffcsTypes";
 import { parseUniversalPaste } from "@/features/import/parsePastedText";
 import { track } from "@/lib/analytics";
 
@@ -70,14 +70,18 @@ export const PasteRegisteredCoursesModal: React.FC<PasteRegisteredCoursesModalPr
         >
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <label htmlFor="vtop-paste-textarea" className="text-xs font-semibold text-text-heading flex items-center gap-1.5">
+              <label
+                htmlFor="vtop-paste-textarea"
+                className="text-xs font-semibold text-text-heading flex items-center gap-1.5"
+              >
                 <BookOpen className="w-3.5 h-3.5 text-purple-500" />
                 <span>Paste Course Schedule / Table</span>
               </label>
               {parsedData && parsedData.addedCourses.length > 0 && (
                 <span className="text-xs font-medium text-emerald-500 flex items-center gap-1 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
                   <Sparkles className="w-3 h-3" />
-                  {parsedData.addedCourses.length} offerings ({parsedData.uniqueCount} courses, {parsedData.totalCredits} credits)
+                  {parsedData.addedCourses.length} offerings ({parsedData.uniqueCount} courses,{" "}
+                  {parsedData.totalCredits} credits)
                 </span>
               )}
             </div>
@@ -108,7 +112,9 @@ export const PasteRegisteredCoursesModal: React.FC<PasteRegisteredCoursesModalPr
                   {parsedData.addedCourses.map((c, idx) => (
                     <div key={idx} className="py-1.5 flex items-center justify-between text-xs gap-2">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className={`px-2 py-0.5 rounded text-[11px] font-bold text-white shrink-0 ${c.color || "bg-blue-600"}`}>
+                        <span
+                          className={`px-2 py-0.5 rounded text-[11px] font-bold text-white shrink-0 ${c.color || "bg-blue-600"}`}
+                        >
                           {c.code}
                         </span>
                         <span className="truncate text-text-heading font-medium" title={c.title}>
@@ -121,7 +127,9 @@ export const PasteRegisteredCoursesModal: React.FC<PasteRegisteredCoursesModalPr
                       <div className="flex items-center gap-3 shrink-0 text-muted-foreground text-[11px]">
                         <span className="font-mono font-semibold text-text-heading">{c.slots.join("+")}</span>
                         {c.venue && <span>{c.venue}</span>}
-                        <span className="truncate max-w-[120px]" title={c.faculty}>{c.faculty}</span>
+                        <span className="truncate max-w-[120px]" title={c.faculty}>
+                          {c.faculty}
+                        </span>
                         <span className="font-medium text-text-heading">{c.credits} cr</span>
                       </div>
                     </div>

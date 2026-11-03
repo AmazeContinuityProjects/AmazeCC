@@ -1,8 +1,8 @@
 "use client";
 
 import { ListOrdered, Trash2, Users } from "lucide-react";
-import type { AddedCourse } from "../types";
-import { getCourseBadgeProps } from "../constants";
+import type { AddedCourse } from "@/lib/ffcsTypes";
+import { getCourseBadgeProps } from "@/lib/ffcsConstants";
 import { getBatchColorClass } from "@/lib/utils";
 import { FacultyAvatar, VitfacReviewPill } from "./FacultyAvatar";
 import { CourseTypeChips } from "./CourseTypeChips";

@@ -1,10 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { useState } from "react";
-import type { CourseLock, ParsedCourse } from "../components/custom/exams/FFCS/types";
-import {
-  GeneratorTargetCoursesWidget,
-} from "../components/custom/exams/FFCS/components/GeneratorTargetCoursesWidget";
+import type { CourseLock, ParsedCourse } from "@/lib/ffcsTypes";
+import { GeneratorTargetCoursesWidget } from "../components/custom/exams/FFCS/components/GeneratorTargetCoursesWidget";
 
 const reportCourses: ParsedCourse[] = [
   { CODE: "BCSE101", TITLE: "Data Structures", TYPE: "TH", CREDITS: "3", ROOM: "A", SLOT: "A1", FACULTY: "Prof Alpha" },
@@ -18,12 +16,14 @@ function Harness() {
     <GeneratorTargetCoursesWidget
       reportCourses={reportCourses}
       targets={targets}
-      onSelectionChange={(course, selection) => setTargets((current) => {
-        if (!selection) return current.filter((target) => target.code !== course.code);
-        const index = current.findIndex((target) => target.code === course.code);
-        if (index === -1) return [...current, selection];
-        return current.map((target, targetIndex) => targetIndex === index ? selection : target);
-      })}
+      onSelectionChange={(course, selection) =>
+        setTargets((current) => {
+          if (!selection) return current.filter((target) => target.code !== course.code);
+          const index = current.findIndex((target) => target.code === course.code);
+          if (index === -1) return [...current, selection];
+          return current.map((target, targetIndex) => (targetIndex === index ? selection : target));
+        })
+      }
     />
   );
 }
@@ -53,13 +53,13 @@ describe("GeneratorTargetCoursesWidget", () => {
         reportCourses={reportCourses}
         targets={[{ code: "BCSE101", title: "Data Structures", allowedSlots: [], allowedFaculty: [] }]}
         onSelectionChange={onSelectionChange}
-      />
+      />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: /A1 Slots/ }));
     expect(onSelectionChange).toHaveBeenCalledWith(
       expect.objectContaining({ code: "BCSE101" }),
-      expect.objectContaining({ code: "BCSE101", allowedSlots: ["A1"] })
+      expect.objectContaining({ code: "BCSE101", allowedSlots: ["A1"] }),
     );
   });
 });

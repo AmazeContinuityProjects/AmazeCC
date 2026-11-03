@@ -10,7 +10,7 @@ import {
   downloadClashReportPdf,
   formatClashCell,
 } from "../lib/exportClashReport";
-import type { AddedCourse } from "../components/custom/exams/FFCS/types";
+import type { AddedCourse } from "@/lib/ffcsTypes";
 import { periodsForSlot } from "../lib/slots";
 import chennai from "../data/campus/chennai.json";
 

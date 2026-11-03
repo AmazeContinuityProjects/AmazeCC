@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { generateTimetablesStream } from "../components/custom/exams/FFCS/logic/generate";
-import type { GenerateParams } from "../components/custom/exams/FFCS/logic/generate";
-import type { CourseLock, ParsedCourse, TimetableState } from "../components/custom/exams/FFCS/types";
+import { generateTimetablesStream } from "@/lib/ffcsGenerate";
+import type { GenerateParams } from "@/lib/ffcsGenerate";
+import type { CourseLock, ParsedCourse, TimetableState } from "@/lib/ffcsTypes";
 import chennai from "../data/campus/chennai.json";
 
 /**

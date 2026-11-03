@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Search, MapPin, Loader2, Clock, CalendarDays, RefreshCw } from "lucide-react";
 
 import SelectField from "../shared/primitives/SelectField";
-import type { ParsedCourse } from "../exams/FFCS/types";
+import type { ParsedCourse } from "@/lib/ffcsTypes";
 import {
   buildDayIndex,
   buildPeriodSlots,

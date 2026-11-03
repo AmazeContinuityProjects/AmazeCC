@@ -1,6 +1,6 @@
-import type { AddedCourse, TimetablePeriod } from "@/components/custom/exams/FFCS/types";
+import type { AddedCourse, TimetablePeriod } from "@/lib/ffcsTypes";
 import { buildVerticalGrid } from "@/components/custom/timetable";
-import { COLOR_HEX_MAP, typeLabels } from "@/components/custom/exams/FFCS/constants";
+import { COLOR_HEX_MAP, typeLabels } from "@/lib/ffcsConstants";
 import { getFacultyReview, isVitfacIntegrationEnabled } from "./vitfacService";
 import { ensureLunchPeriod, hasSlot } from "./slots";
 

@@ -1,4 +1,4 @@
-import { TimetableState } from "@/components/custom/exams/FFCS/types";
+import { TimetableState } from "@/lib/ffcsTypes";
 import { slotSpellings } from "@/lib/slots";
 
 // Helper to convert time like "8:00 AM" to "080000"
@@ -19,11 +19,7 @@ function formatIcalDate(date: string): string {
 }
 
 function escapeIcal(value: string): string {
-  return value
-    .replace(/\\/g, "\\\\")
-    .replace(/;/g, "\\;")
-    .replace(/,/g, "\\,")
-    .replace(/\n/g, "\\n");
+  return value.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
 }
 
 function getFirstOccurrence(fromDate: string, dayShort: string): string {
@@ -50,7 +46,7 @@ export function exportTimetableIcal(
   timetable: TimetableState,
   timetableSchema: any,
   semesterStartDate: string,
-  semesterEndDate: string
+  semesterEndDate: string,
 ) {
   const lines: string[] = [
     "BEGIN:VCALENDAR",
@@ -112,14 +108,12 @@ export function exportTimetableIcal(
           "BEGIN:VEVENT",
           `UID:${course.code}-${slotName}-${occ.day}-${createdAt}@amazecc`,
           `SUMMARY:${escapeIcal(`${course.code} - ${course.title}`)}`,
-          `DESCRIPTION:${escapeIcal(
-            `Faculty: ${course.faculty}\\nSlot: ${slotName}\\nType: ${course.type}`
-          )}`,
+          `DESCRIPTION:${escapeIcal(`Faculty: ${course.faculty}\\nSlot: ${slotName}\\nType: ${course.type}`)}`,
           `LOCATION:${escapeIcal(course.venue)}`,
           `DTSTART;TZID=Asia/Kolkata:${dtstart}`,
           `DTEND;TZID=Asia/Kolkata:${dtend}`,
           `RRULE:FREQ=WEEKLY;BYDAY=${DAY_TO_ICAL[occ.day]};UNTIL=${until}`,
-          "END:VEVENT"
+          "END:VEVENT",
         );
       });
     });

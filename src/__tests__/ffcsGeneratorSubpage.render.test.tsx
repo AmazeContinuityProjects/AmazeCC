@@ -9,7 +9,7 @@ import { closeTopOverlayFromPop, hasOpenOverlays } from "../lib/overlayStack";
 import { FFCSSettingsDefaults } from "../lib/ffcsSettings";
 import { periodsForSlot, type SlotPeriod } from "../lib/slots";
 import chennai from "../data/campus/chennai.json";
-import type { CourseLock, ParsedCourse } from "../components/custom/exams/FFCS/types";
+import type { CourseLock, ParsedCourse } from "@/lib/ffcsTypes";
 import { installLocalStorage } from "./helpers/localStorage";
 import {
   clearSessionPreferences,

@@ -48,11 +48,11 @@ import {
 } from "../../../shared/primitives";
 import Switch from "../../../shared/primitives/Switch";
 import BottomSheet from "../../../shared/BottomSheet";
-import type { AddedCourse, ParsedCourse, TimetableState, Friend, FriendGroup } from "../types";
+import type { AddedCourse, ParsedCourse, TimetableState, Friend, FriendGroup } from "@/lib/ffcsTypes";
 import { periodsForSlot, findPeriodClash, splitSlots } from "@/lib/slots";
 import { dayOccupancy, freeHalfDays, timetableMetrics } from "@/lib/timetableMetrics";
 import { getTimetableSchema } from "@/lib/campusSchema";
-import { sameSlotFacultyAlternatives } from "../logic/generate";
+import { sameSlotFacultyAlternatives } from "@/lib/ffcsGenerate";
 import { FacultyAvatar, VitfacReviewPill } from "./FacultyAvatar";
 import ExportDossierWidget from "./ExportDossierWidget";
 import { getFacultyReview, loadVitfacCatalog, useVitfacEnabled, useVitfacReview } from "@/lib/vitfacService";

@@ -20,8 +20,8 @@
  * preview with per-line confidence and errors, and only then imports.
  */
 
-import type { ParsedCourse, AddedCourse } from "@/components/custom/exams/FFCS/types";
-import { COLORS } from "@/components/custom/exams/FFCS/constants";
+import type { ParsedCourse, AddedCourse } from "@/lib/ffcsTypes";
+import { COLORS } from "@/lib/ffcsConstants";
 import { normalizeHeader, type ImportableField } from "./normalizeColumns";
 
 export interface PastedCourseOption {
@@ -171,7 +171,7 @@ function inferCourseName(line: string, courseCode: string | null, credits: numbe
         segment.length > 2 &&
         !LAB_TEST_RE.test(segment) &&
         !THEORY_TEST_RE.test(segment) &&
-        !/\b(?:option|theory|lab)\b/i.test(segment)
+        !/\b(?:option|theory|lab)\b/i.test(segment),
     );
 
   return firstChunk ?? null;
@@ -181,7 +181,7 @@ function confidenceFor(
   courseCode: string | null,
   professorName: string | null,
   theorySlotRaw: string | null,
-  labSlotRaw: string | null
+  labSlotRaw: string | null,
 ): "high" | "medium" | "low" {
   const hasSlot = Boolean(theorySlotRaw || labSlotRaw);
   if (courseCode && professorName && hasSlot) return "high";
@@ -193,7 +193,10 @@ function isProfessorish(value: string): boolean {
   return /^(dr\.?|prof\.?|mr\.?|ms\.?|mrs\.?)\s+/i.test(value);
 }
 
-function segmentHints(line: string, courseCode: string | null): { courseName: string | null; professorName: string | null } {
+function segmentHints(
+  line: string,
+  courseCode: string | null,
+): { courseName: string | null; professorName: string | null } {
   const segments = line
     .split(/\s*(?:-|\u2013|\|)\s*/)
     .map((segment) => segment.trim())
@@ -227,7 +230,7 @@ function segmentHints(line: string, courseCode: string | null): { courseName: st
 
 function parseLine(
   rawLine: string,
-  inherited: { courseCode: string | null; courseName: string | null; credits: number | null }
+  inherited: { courseCode: string | null; courseName: string | null; credits: number | null },
 ): PastedCourseOption {
   const line = cleanLine(rawLine);
   const courseCode = line.match(COURSE_CODE_RE)?.[1]?.toUpperCase() ?? inherited.courseCode;
@@ -297,7 +300,10 @@ export function parseVtopRegistrationText(raw: string): VtopCourseRow[] {
     .replace(/Home\s+View\s*\/\s*Modify/gi, "")
     .replace(/SignOut/gi, "")
     .replace(/Copyright\s+©[^\n]*/gi, "")
-    .replace(/Course\s+Details\s+Credit\s+Course\s+Category\s+Course\s*Option\s*Class\s+Detail\s+Slot\s+Faculty\s+Status\s+Modify\s+Delete/gi, "")
+    .replace(
+      /Course\s+Details\s+Credit\s+Course\s+Category\s+Course\s*Option\s*Class\s+Detail\s+Slot\s+Faculty\s+Status\s+Modify\s+Delete/gi,
+      "",
+    )
     .replace(/Course\s+Details\s+Credit\s+Course\s+Category\s+Course/gi, "")
     .replace(/Option\s*Class\s+Detail\s+Slot\s+Faculty\s+Status\s+Modify\s+Delete/gi, "");
 
@@ -340,7 +346,7 @@ export function parseVtopRegistrationText(raw: string): VtopCourseRow[] {
     // 3. Title
     let title = "";
     const typeWordMatch = chunk.match(
-      /(?:-\s*)?(Embedded\s+Theory|Embedded\s+Lab|Theory\s+Only|Lab\s+Only|Soft\s+Skill)/i
+      /(?:-\s*)?(Embedded\s+Theory|Embedded\s+Lab|Theory\s+Only|Lab\s+Only|Soft\s+Skill)/i,
     );
     if (typeWordMatch && typeWordMatch.index) {
       const titlePortion = chunk.slice(0, typeWordMatch.index);
@@ -362,8 +368,8 @@ export function parseVtopRegistrationText(raw: string): VtopCourseRow[] {
     // 5. Slot
     const slotMatches = Array.from(
       chunk.matchAll(
-        /\b(?:T?(?:AA|BB|CC|DD|[A-G])[12]|S\d{1,2}|V\d{1,2}|L\d{1,3})(?:\+(?:T?(?:AA|BB|CC|DD|[A-G])[12]|S\d{1,2}|V\d{1,2}|L\d{1,3}))*\b/gi
-      )
+        /\b(?:T?(?:AA|BB|CC|DD|[A-G])[12]|S\d{1,2}|V\d{1,2}|L\d{1,3})(?:\+(?:T?(?:AA|BB|CC|DD|[A-G])[12]|S\d{1,2}|V\d{1,2}|L\d{1,3}))*\b/gi,
+      ),
     ).map((match) => match[0]);
     const validSlots = slotMatches.filter(isValidSlot);
     const slot = validSlots[0] || "";
@@ -541,7 +547,7 @@ function inferColumnMapping(grid: string[][]): Map<number, ImportableField> {
       !claimed.has("TYPE") &&
       vals.length > 0 &&
       vals.every((v) =>
-        /^(?:ETH|ELA|TH|LO|SS|EPJ|PJ|Embedded\s+Theory|Embedded\s+Lab|Theory\s+Only|Lab\s+Only|Soft\s+Skill)$/i.test(v)
+        /^(?:ETH|ELA|TH|LO|SS|EPJ|PJ|Embedded\s+Theory|Embedded\s+Lab|Theory\s+Only|Lab\s+Only|Soft\s+Skill)$/i.test(v),
       )
     ) {
       colMap.set(c, "TYPE");
@@ -581,7 +587,7 @@ function inferColumnMapping(grid: string[][]): Map<number, ImportableField> {
 
 /** Parse any table-like delimited text (CSV, TSV, Piped, Markdown, Semicolon) */
 function parseDelimitedText(
-  raw: string
+  raw: string,
 ): { courses: ParsedCourse[]; addedCourses: AddedCourse[]; format: string } | null {
   const lines = raw
     .split(/\r?\n/)
@@ -610,9 +616,7 @@ function parseDelimitedText(
   });
 
   const isRealHeader =
-    hasHeader &&
-    (headerMap.has(0) ||
-      Array.from(headerMap.values()).some((f) => f === "CODE" || f === "SLOT"));
+    hasHeader && (headerMap.has(0) || Array.from(headerMap.values()).some((f) => f === "CODE" || f === "SLOT"));
 
   let colMap: Map<number, ImportableField>;
   let contentRows: string[][];
@@ -680,12 +684,12 @@ function parseDelimitedText(
     delimiter === "\t"
       ? "tsv"
       : delimiter === "|"
-      ? dataLines[0].startsWith("|")
-        ? "markdown"
-        : "piped"
-      : delimiter === ";"
-      ? "semicolon"
-      : "csv";
+        ? dataLines[0].startsWith("|")
+          ? "markdown"
+          : "piped"
+        : delimiter === ";"
+          ? "semicolon"
+          : "csv";
 
   return {
     courses: parsedCourses,
@@ -716,10 +720,10 @@ function parseJsonPaste(raw: string): { courses: ParsedCourse[]; addedCourses: A
 
     const parsedCourses: ParsedCourse[] = [];
     for (const item of items) {
-      const code = String(item.code || item.CODE || "").trim().toUpperCase();
-      const slot = String(
-        item.slot || item.SLOT || (Array.isArray(item.slots) ? item.slots.join("+") : "")
-      )
+      const code = String(item.code || item.CODE || "")
+        .trim()
+        .toUpperCase();
+      const slot = String(item.slot || item.SLOT || (Array.isArray(item.slots) ? item.slots.join("+") : ""))
         .trim()
         .toUpperCase();
       if (!code || !slot) continue;
@@ -882,9 +886,7 @@ function parsePastedTextLines(raw: string): PastedCourseOption[] {
     const code = line.match(COURSE_CODE_RE)?.[1]?.toUpperCase() ?? null;
     const credits = findCredits(line);
     const looksLikeHeader =
-      Boolean(code) &&
-      /\b(?:credits?|cr)\b/i.test(line) &&
-      !/\b(?:option|theory|lab)\b/i.test(line);
+      Boolean(code) && /\b(?:credits?|cr)\b/i.test(line) && !/\b(?:option|theory|lab)\b/i.test(line);
 
     if (looksLikeHeader) {
       currentCourse = {
@@ -1048,8 +1050,7 @@ export function parsedCoursesToAddedCourses(courses: readonly ParsedCourse[]): A
       nextColorIndex++;
     }
     const color = codeColorMap.get(course.CODE)!;
-    const slots = course.SLOT
-      .split("+")
+    const slots = course.SLOT.split("+")
       .map((s) => s.trim().toUpperCase())
       .filter((s) => s && s !== "NIL");
 

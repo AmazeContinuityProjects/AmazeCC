@@ -9,7 +9,7 @@ import {
   type GenerationHandle,
 } from "../logic/generator";
 import { DEFAULT_MAX_DROPS, droppableTail, isRetryableFailure, nextDrop, type DropPolicy } from "../logic/dropPolicy";
-import type { TimetableState } from "../types";
+import type { TimetableState } from "@/lib/ffcsTypes";
 
 /**
  * Run the generator so a screen can watch it and stop it.

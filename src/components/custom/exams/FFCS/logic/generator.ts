@@ -28,17 +28,12 @@ import {
   type GenerateParams,
   type GenerateProgress,
   type GenerateResult,
-} from "./generate";
-import type { GeneratorErrorCode } from "./generate";
-import type { TimetableState } from "../types";
+} from "@/lib/ffcsGenerate";
+import type { GeneratorErrorCode } from "@/lib/ffcsGenerate";
+import type { TimetableState } from "@/lib/ffcsTypes";
 import { sortTimetables } from "@/lib/timetableMetrics";
 
-export type {
-  GenerateParams,
-  GenerateProgress,
-  GenerateResult,
-  GeneratorErrorCode,
-};
+export type { GenerateParams, GenerateProgress, GenerateResult, GeneratorErrorCode };
 
 /**
  * What the worker posts back.
@@ -103,7 +98,7 @@ export interface GenerationHandle {
 function generateInline(
   params: GenerateParams,
   options: GenerationOptions,
-  isCancelled: () => boolean
+  isCancelled: () => boolean,
 ): Promise<GenerateResult> {
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -113,7 +108,7 @@ function generateInline(
             onBatch: options.onBatch,
             onProgress: options.onProgress,
             shouldStop: isCancelled,
-          })
+          }),
         );
       } catch {
         resolve({ kind: "error", code: "error" });
@@ -124,11 +119,7 @@ function generateInline(
 
 /* ── worker ────────────────────────────────────────────────────────────── */
 
-function generateInWorker(
-  params: GenerateParams,
-  options: GenerationOptions,
-  stream: boolean
-): GenerationHandle {
+function generateInWorker(params: GenerateParams, options: GenerationOptions, stream: boolean): GenerationHandle {
   let settled = false;
   let cancelled = false;
   let worker: Worker | null = null;
@@ -244,10 +235,7 @@ export function generateTimetablesAsync(params: GenerateParams): Promise<Generat
  * that passes no hooks wants the answer, not a stream of interim messages, and
  * the worker's one-shot path is the one with the shortest round trip.
  */
-export function startGeneration(
-  params: GenerateParams,
-  options: GenerationOptions = {}
-): GenerationHandle {
+export function startGeneration(params: GenerateParams, options: GenerationOptions = {}): GenerationHandle {
   const stream = Boolean(options.onBatch || options.onProgress);
   return generateInWorker(params, options, stream);
 }

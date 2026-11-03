@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { renderHook } from "@testing-library/react";
 import type { GenerateParams, GenerationHandle } from "../components/custom/exams/FFCS/logic/generator";
-import type { TimetableState } from "../components/custom/exams/FFCS/types";
+import type { TimetableState } from "@/lib/ffcsTypes";
 
 /**
  * The drop ladder's orchestration, pinned against a mocked worker.

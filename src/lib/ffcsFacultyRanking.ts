@@ -4,7 +4,7 @@ import {
   type FacultyRating,
   type FacultyRankingSummary,
   type ParsedCourse,
-} from "@/components/custom/exams/FFCS/types";
+} from "@/lib/ffcsTypes";
 
 function normalizeFacultyName(name: string): string {
   return name

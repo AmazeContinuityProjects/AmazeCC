@@ -4,7 +4,7 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import FFCSFriendsSubpage, { type FFCSFriendsSubpageProps } from "../components/custom/exams/FFCS/FFCSFriendsSubpage";
 import { ShareInputError } from "../lib/ffcsShareInput";
 import { closeTopOverlayFromPop, hasOpenOverlays } from "../lib/overlayStack";
-import type { Friend, FriendGroup, TimetableState } from "../components/custom/exams/FFCS/types";
+import type { Friend, FriendGroup, TimetableState } from "@/lib/ffcsTypes";
 
 /**
  * The friends subpage's contract: the hub routes to three sections, both ways

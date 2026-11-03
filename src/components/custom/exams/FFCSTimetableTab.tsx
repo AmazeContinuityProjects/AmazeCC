@@ -65,7 +65,7 @@ import {
 import { getTimetableSchema } from "@/lib/campusSchema";
 
 import { groupSelectedCourses } from "./FFCS/logic/groupSelectedCourses";
-import { sameSlotFacultyAlternatives, expandCourseHalves } from "./FFCS/logic/generate";
+import { sameSlotFacultyAlternatives, expandCourseHalves } from "@/lib/ffcsGenerate";
 import { VitfacReviewPill, FacultyAvatar } from "./FFCS/components/FacultyAvatar";
 import type { GuidedPhase } from "./FFCS/components/FFCSGuidedSelector";
 import { setVitfacIntegrationEnabled, useVitfacEnabled } from "@/lib/vitfacService";
@@ -126,7 +126,7 @@ import {
   FriendGroup,
   CourseLock,
   ManualLink,
-} from "./FFCS/types";
+} from "@/lib/ffcsTypes";
 import {
   DEFAULT_FFCS_SEMESTER,
   FFCS_SEMESTER_REPORTS,
@@ -135,8 +135,8 @@ import {
   isFFCSSemesterId,
   parseReportRows,
   type FFCSSemesterId,
-} from "./FFCS/reports";
-import { DAYS, COLORS, getCourseBadgeProps } from "./FFCS/constants";
+} from "@/lib/ffcsReports";
+import { DAYS, COLORS, getCourseBadgeProps } from "@/lib/ffcsConstants";
 import { renderCourseTypeChips } from "./FFCS/components/CourseTypeChips";
 import { isCourseFullyAdded } from "./FFCS/utils";
 import { useFacultyReviewSheet } from "./FFCS/hooks/useFacultyReviewSheet";
@@ -357,7 +357,7 @@ export default function FFCSTimetableTab({
   // Timetables State
   const [timetables, setTimetables] = useState<TimetableState[]>([{ id: "default", name: "Timetable 1", courses: [] }]);
   const [activeTimetableId, setActiveTimetableId] = useState<string>("default");
-  const [courseLocks, setCourseLocks] = useState<import("./FFCS/types").CourseLock[]>([]);
+  const [courseLocks, setCourseLocks] = useState<import("@/lib/ffcsTypes").CourseLock[]>([]);
   const [isTimetableModalOpen, setIsTimetableModalOpen] = useState(false);
   // Row-scoped rename for the Select Timetable sheet and Classic dashboard.
   // The modern dashboard header keeps its own active-timetable rename state.

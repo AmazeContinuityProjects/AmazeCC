@@ -72,14 +72,14 @@ import {
   type FacultyRatingLookup,
   type FacultyScoreFilters,
 } from "@/lib/ffcsFacultyRanking";
-import { offeringMatches } from "../reports";
+import { offeringMatches } from "@/lib/ffcsReports";
 import {
   hasFacultyPriority,
   sortOptionsByFacultyPriority,
   timetablePreferenceScore,
   type FacultyPriorityMap,
 } from "@/lib/ffcsFacultyPriority";
-import type { ParsedCourse, TimetableState, Friend, CourseLock, AddedCourse } from "../types";
+import type { ParsedCourse, TimetableState, Friend, CourseLock, AddedCourse } from "@/lib/ffcsTypes";
 
 /** The ways a narrowing can end with nothing to offer. */
 export type GeneratorErrorCode =

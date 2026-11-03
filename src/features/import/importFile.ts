@@ -14,8 +14,15 @@
  * never pays for it.
  */
 
-import type { ParsedCourse } from "@/components/custom/exams/FFCS/types";
-import { detectColumns, hasField, normalizeRow, toParsedCourse, unrecognizedColumns, type ImportableField } from "./normalizeColumns";
+import type { ParsedCourse } from "@/lib/ffcsTypes";
+import {
+  detectColumns,
+  hasField,
+  normalizeRow,
+  toParsedCourse,
+  unrecognizedColumns,
+  type ImportableField,
+} from "./normalizeColumns";
 
 /** What an upload produced, in enough detail to preview it before importing. */
 export interface FileImport {
@@ -105,16 +112,16 @@ export async function importFile(file: File | Blob): Promise<FileImport> {
       else skipped++;
     }
 
-    const missingFields = (
-      ["CODE", "SLOT", "TITLE", "FACULTY"] as ImportableField[]
-    ).filter((field) => !hasField(columns, field));
+    const missingFields = (["CODE", "SLOT", "TITLE", "FACULTY"] as ImportableField[]).filter(
+      (field) => !hasField(columns, field),
+    );
 
     if (courses.length === 0) {
       return {
         ...empty(
           hasField(columns, "CODE") && hasField(columns, "SLOT")
             ? "No rows in this file had both a course code and a slot."
-            : `This file has no ${!hasField(columns, "CODE") ? "course code" : "slot"} column.`
+            : `This file has no ${!hasField(columns, "CODE") ? "course code" : "slot"} column.`,
         ),
         headers,
         ignoredHeaders: unrecognizedColumns(headers),
@@ -150,10 +157,7 @@ export async function importFile(file: File | Blob): Promise<FileImport> {
  * does not mention survive — which is what allows a partial sheet to be
  * imported without losing the rest of the semester.
  */
-export function mergeCourses(
-  existing: readonly ParsedCourse[],
-  incoming: readonly ParsedCourse[]
-): ParsedCourse[] {
+export function mergeCourses(existing: readonly ParsedCourse[], incoming: readonly ParsedCourse[]): ParsedCourse[] {
   const replaced = new Set(incoming.map((course) => course.CODE));
   return [...existing.filter((course) => !replaced.has(course.CODE)), ...incoming];
 }

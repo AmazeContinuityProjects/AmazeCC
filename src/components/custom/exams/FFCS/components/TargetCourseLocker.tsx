@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Users, Check, Hash, Award } from "lucide-react";
 import { FacultyAvatar, VitfacReviewPill } from "./FacultyReviewSheet";
-import { CourseLock, ParsedCourse } from "../types";
-import { offeringId, offeringMatches } from "../reports";
-import { sameSlotFacultyAlternatives } from "../logic/generate";
+import { CourseLock, ParsedCourse } from "@/lib/ffcsTypes";
+import { offeringId, offeringMatches } from "@/lib/ffcsReports";
+import { sameSlotFacultyAlternatives } from "@/lib/ffcsGenerate";
 import { splitSlots } from "@/lib/slots";
 import { ListShell, ListRowText } from "../../../shared/primitives";
 import { ENABLE_VITFAC_INTEGRATION, getFacultyReview, loadVitfacCatalog } from "@/lib/vitfacService";

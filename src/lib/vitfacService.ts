@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { safeSessionStorage } from "./ffcsGeneratorSessionPrefs";
-import type { ParsedCourse } from "@/components/custom/exams/FFCS/types";
+import type { ParsedCourse } from "@/lib/ffcsTypes";
 import { buildFacultyRatingLookup, type FacultyRatingLookup } from "@/lib/ffcsFacultyRanking";
 
 export interface VitfacLoreItem {

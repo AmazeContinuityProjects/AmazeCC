@@ -1,8 +1,8 @@
 import chennaiSchema from "@/data/campus/chennai.json";
 import type { TimetablePeriod } from "@amazecontinuityprojects/amazeui";
 import { parseCourseRows } from "@/lib/freeClassrooms";
-import { COLORS } from "../constants";
-import type { AddedCourse } from "../types";
+import { COLORS } from "@/lib/ffcsConstants";
+import type { AddedCourse } from "@/lib/ffcsTypes";
 import { splitSlots } from "@/lib/slots";
 
 /**

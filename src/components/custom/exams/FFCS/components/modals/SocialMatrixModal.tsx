@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { AnimatePresence } from "framer-motion";
 import { Users } from "lucide-react";
-import { TimetableState, Friend, FriendGroup, AddedCourse } from "../../types";
+import { TimetableState, Friend, FriendGroup, AddedCourse } from "@/lib/ffcsTypes";
 import { calculatePairwiseSocialScore } from "@/lib/timetableMetrics";
 import BottomSheet from "../../../../shared/BottomSheet";
 

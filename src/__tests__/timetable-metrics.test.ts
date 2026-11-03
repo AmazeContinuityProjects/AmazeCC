@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { timetableMetrics, dayOccupancy, formatHours } from "../lib/timetableMetrics";
 import chennai from "../data/campus/chennai.json";
-import type { AddedCourse } from "../components/custom/exams/FFCS/types";
+import type { AddedCourse } from "@/lib/ffcsTypes";
 
 /**
  * Differential test, not a unit test.
@@ -95,7 +95,7 @@ describe("building dashes", () => {
     // is two dashes — one per day, not one per pair of courses.
     const m = timetableMetrics(
       [course("A1", { venue: "AB1-101" }), course("F1", { venue: "AB3-104" })],
-      chennai as never
+      chennai as never,
     );
     expect(m.buildingDashes).toBe(2);
     expect(m.dashDetails[0]).toMatchObject({ fromBlock: "AB1", toBlock: "AB3", day: "mon" });
@@ -105,26 +105,20 @@ describe("building dashes", () => {
   it("does not count a hop inside one block", () => {
     const m = timetableMetrics(
       [course("A1", { venue: "AB1-101" }), course("F1", { venue: "AB1-104" })],
-      chennai as never
+      chennai as never,
     );
     expect(m.buildingDashes).toBe(0);
   });
 
   it("does not count a hop from an unassigned venue", () => {
-    const m = timetableMetrics(
-      [course("A1", { venue: "NIL" }), course("F1", { venue: "AB3-104" })],
-      chennai as never
-    );
+    const m = timetableMetrics([course("A1", { venue: "NIL" }), course("F1", { venue: "AB3-104" })], chennai as never);
     expect(m.buildingDashes).toBe(0);
   });
 
   it("splits an embedded course's combined room between its halves", () => {
     // An embedded booking is "theoryRoom / labRoom". Both halves must not read
     // as the same block, or a real dash is scored as no dash.
-    const m = timetableMetrics(
-      [course("A1+L1", { venue: "AB1-101 / AB3-104", type: "Embedded" })],
-      chennai as never
-    );
+    const m = timetableMetrics([course("A1+L1", { venue: "AB1-101 / AB3-104", type: "Embedded" })], chennai as never);
     // The theory half is reported, and it is AB1 — the first room.
     expect(m.dashDetails.length).toBe(0);
     const mon = dayOccupancy([course("A1+L1", { venue: "AB1-101 / AB3-104" })], chennai as never, "mon");
@@ -145,10 +139,7 @@ describe("a law course scores exactly as the same course with numbers", () => {
     // E1 is Tuesday 9:50 and Friday 8:00, TE1 is Thursday 10:45, and TEE is
     // S11 — Monday 12:35. Four mornings across four days.
     const law = timetableMetrics([course("E+TE+TEE", { code: "TLAW304L" })], chennai as never);
-    const numbered = timetableMetrics(
-      [course("E1+TE1+S11", { code: "TLAW304L" })],
-      chennai as never
-    );
+    const numbered = timetableMetrics([course("E1+TE1+S11", { code: "TLAW304L" })], chennai as never);
     expect(law.halfDays).toBe(numbered.halfDays);
     expect(law.halfDays).toBe(6);
   });
@@ -180,17 +171,14 @@ describe("the metrics contract", () => {
         "halfDays",
         "isLongWeekend",
         "socialScore",
-      ].sort()
+      ].sort(),
     );
   });
 
   it("is not the constant it used to be", () => {
     // The old broken copy returned this for a full timetable and an empty one.
     const empty = timetableMetrics([], chennai as never);
-    const full = timetableMetrics(
-      [course("A1+TA1"), course("B1+TB1"), course("C1+TC1")],
-      chennai as never
-    );
+    const full = timetableMetrics([course("A1+TA1"), course("B1+TB1"), course("C1+TC1")], chennai as never);
     expect(empty.halfDays).toBe(10);
     expect(full.halfDays).toBeLessThan(empty.halfDays);
     expect(full.gapsPerDay).not.toEqual(empty.gapsPerDay);
@@ -215,10 +203,7 @@ describe("the metrics contract", () => {
 describe("the constant the old copy returned", () => {
   it("is no longer what a full timetable scores", () => {
     const empty = timetableMetrics([], chennai as never);
-    const full = timetableMetrics(
-      [course("A1+TA1"), course("B1+TB1"), course("C1+TC1")],
-      chennai as never
-    );
+    const full = timetableMetrics([course("A1+TA1"), course("B1+TB1"), course("C1+TC1")], chennai as never);
     expect(empty.halfDays).toBe(10);
     expect(full.halfDays).toBeLessThan(empty.halfDays);
   });
@@ -226,9 +211,7 @@ describe("the constant the old copy returned", () => {
   it("no longer claims a long weekend for a timetable with classes on both ends", () => {
     // TA1 lands Friday and S11 lands Monday, so neither end is free. The old
     // copy said true here, every time, for everything.
-    expect(timetableMetrics([course("TA1+S11")], chennai as never).isLongWeekend).toBe(
-      false
-    );
+    expect(timetableMetrics([course("TA1+S11")], chennai as never).isLongWeekend).toBe(false);
   });
 });
 
@@ -252,12 +235,15 @@ describe("real report data", () => {
   it("moves as the real law timetables move", () => {
     const rows = readFileSync("public/ffcs/ffcsReport.csv", "utf8").split(/\r?\n/);
     const head = rows[0].split(",");
-    const parsed = rows.slice(1).filter(Boolean).map((line) => {
-      const cells = line.split(",");
-      const row: Record<string, string> = {};
-      head.forEach((h, i) => (row[h.trim()] = cells[i] ?? ""));
-      return row;
-    });
+    const parsed = rows
+      .slice(1)
+      .filter(Boolean)
+      .map((line) => {
+        const cells = line.split(",");
+        const row: Record<string, string> = {};
+        head.forEach((h, i) => (row[h.trim()] = cells[i] ?? ""));
+        return row;
+      });
 
     const lawRows = parsed.filter((r) => r.CODE?.startsWith("TLAW") && r.SLOT && !/\d/.test(r.SLOT));
     expect(lawRows.length).toBeGreaterThan(0);

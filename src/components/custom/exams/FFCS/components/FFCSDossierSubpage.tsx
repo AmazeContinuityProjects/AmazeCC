@@ -26,10 +26,10 @@ import {
 } from "lucide-react";
 import ModernHorizontalTimetableGrid from "../../../timetable/ModernHorizontalTimetableGrid";
 import VerticalTimetableGrid from "../../../timetable/VerticalTimetableGrid";
-import type { AddedCourse, TimetablePeriod, ParsedCourse, TimetableState } from "../types";
-import { COLOR_HEX_MAP, typeLabels, getCourseBadgeProps } from "../constants";
+import type { AddedCourse, TimetablePeriod, ParsedCourse, TimetableState } from "@/lib/ffcsTypes";
+import { COLOR_HEX_MAP, typeLabels, getCourseBadgeProps } from "@/lib/ffcsConstants";
 import { getFacultyReview, getVitfacProfileUrl, useVitfacEnabled } from "@/lib/vitfacService";
-import { sameSlotFacultyAlternatives, expandCourseHalves } from "../logic/generate";
+import { sameSlotFacultyAlternatives, expandCourseHalves } from "@/lib/ffcsGenerate";
 import { downloadModernDossierHtml } from "@/lib/exportTimetable";
 import PdfGenerationBadge from "./PdfGenerationBadge";
 

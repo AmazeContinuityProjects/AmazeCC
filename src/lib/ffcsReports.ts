@@ -1,4 +1,4 @@
-import type { ParsedCourse } from "./types";
+import type { ParsedCourse } from "@/lib/ffcsTypes";
 
 /**
  * The course reports the planner can load.

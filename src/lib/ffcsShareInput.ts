@@ -32,13 +32,13 @@ import {
   decodeTimetableShapeShare,
   decodeTimetableShare,
 } from "@/lib/ffcsShare";
-import { getFFCSSemester, parseReportRows, type FFCSSemesterId } from "@/components/custom/exams/FFCS/reports";
+import { getFFCSSemester, parseReportRows, type FFCSSemesterId } from "@/lib/ffcsReports";
 import { groupSharedReportCourses } from "@/lib/ffcsCourseGrouping";
-import { COLORS } from "@/components/custom/exams/FFCS/constants";
-import { splitSlots } from "@/components/custom/exams/FFCS/logic/generate";
+import { COLORS } from "@/lib/ffcsConstants";
+import { splitSlots } from "@/lib/ffcsGenerate";
 import { GLOBAL_CAMPUS } from "@/lib/campusSchema";
 import { getAssetPath } from "@/lib/utils";
-import type { ParsedCourse, TimetableState } from "@/components/custom/exams/FFCS/types";
+import type { ParsedCourse, TimetableState } from "@/lib/ffcsTypes";
 
 /** Which of the four share payloads a pasted value turned out to be. */
 export type ShareInputFormat = "full" | "compact" | "shape" | "numeric-shape";

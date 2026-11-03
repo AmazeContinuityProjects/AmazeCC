@@ -1,11 +1,11 @@
-import type { AddedCourse, TimetablePeriod, ParsedCourse } from "@/components/custom/exams/FFCS/types";
+import type { AddedCourse, TimetablePeriod, ParsedCourse } from "@/lib/ffcsTypes";
 import {
   escapeHtml,
   renderCourseTableHtml,
   renderHorizontalGridHtml,
   renderVerticalGridHtml,
 } from "./exportTimetableHtml";
-import { COLOR_HEX_MAP } from "@/components/custom/exams/FFCS/constants";
+import { COLOR_HEX_MAP } from "@/lib/ffcsConstants";
 import {
   getFacultyReview,
   getVitfacProfileUrl,
@@ -14,7 +14,7 @@ import {
   normalizeFacultyName,
   type VitfacFaculty,
 } from "./vitfacService";
-import { sameSlotFacultyAlternatives, expandCourseHalves } from "@/components/custom/exams/FFCS/logic/generate";
+import { sameSlotFacultyAlternatives, expandCourseHalves } from "@/lib/ffcsGenerate";
 
 /**
  * `html-to-image` and `jspdf` together are a few hundred KB — an export the

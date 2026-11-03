@@ -1,12 +1,12 @@
 import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from "lz-string";
-import type { AddedCourse, ParsedCourse, TimetableState } from "@/components/custom/exams/FFCS/types";
+import type { AddedCourse, ParsedCourse, TimetableState } from "@/lib/ffcsTypes";
 import { GLOBAL_CAMPUS } from "@/lib/campusSchema";
 import {
   getFFCSSemester,
   getFFCSSemesterByClassIdPrefix,
   getFFCSSemesterByClassIdPrefixCode,
   type FFCSSemesterId,
-} from "@/components/custom/exams/FFCS/reports";
+} from "@/lib/ffcsReports";
 
 /**
  * Share links: one timetable, compressed into the URL itself.
@@ -107,7 +107,11 @@ function commonPrefix(values: readonly string[]): string {
 }
 
 function normalizedSlots(slots: readonly string[]): string {
-  return slots.map((slot) => slot.trim().toUpperCase()).filter(Boolean).sort().join("+");
+  return slots
+    .map((slot) => slot.trim().toUpperCase())
+    .filter(Boolean)
+    .sort()
+    .join("+");
 }
 
 function normalizedFacultyName(name: string): string {
@@ -133,18 +137,17 @@ function rowSlotSet(course: ParsedCourse): Set<string> {
  * rebuilds the same timetable shape. Keep the lexically first ID as a stable
  * representative. Distinct course/faculty/slot rows remain ambiguous.
  */
-function resolveReportClassIds(
-  course: AddedCourse,
-  reportCourses: readonly ParsedCourse[]
-): string[] | null {
+function resolveReportClassIds(course: AddedCourse, reportCourses: readonly ParsedCourse[]): string[] | null {
   const targetSlots = new Set(normalizedSlots(course.slots).split("+").filter(Boolean));
   if (targetSlots.size === 0) return null;
 
-  const anchoredIds = Array.from(new Set(
-    (course.classIds?.length ? course.classIds : course.classId ? [course.classId] : [])
-      .map((id) => id.trim())
-      .filter(Boolean)
-  ));
+  const anchoredIds = Array.from(
+    new Set(
+      (course.classIds?.length ? course.classIds : course.classId ? [course.classId] : [])
+        .map((id) => id.trim())
+        .filter(Boolean),
+    ),
+  );
   let candidates = reportCourses.filter((row) => {
     if (!row.CLASS_ID?.trim()) return false;
     if (normalizedCourseFamily(row.CODE) !== normalizedCourseFamily(course.code)) return false;
@@ -158,12 +161,12 @@ function resolveReportClassIds(
 
   const facultyParts = course.faculty.split("/").map(normalizedFacultyName).filter(Boolean);
   if (facultyParts.length > 0) {
-    const facultyMatches = candidates.filter((row) =>
-      facultyParts.includes(normalizedFacultyName(row.FACULTY))
-    );
-    if (facultyMatches.length > 0 && anchoredIds.every((id) =>
-      facultyMatches.some((row) => row.CLASS_ID?.trim() === id)
-    )) candidates = facultyMatches;
+    const facultyMatches = candidates.filter((row) => facultyParts.includes(normalizedFacultyName(row.FACULTY)));
+    if (
+      facultyMatches.length > 0 &&
+      anchoredIds.every((id) => facultyMatches.some((row) => row.CLASS_ID?.trim() === id))
+    )
+      candidates = facultyMatches;
   }
 
   const coversByShape = new Map<string, string[]>();
@@ -217,9 +220,7 @@ function resolveReportClassIds(
   };
   visit(0, new Set(), []);
 
-  return !exceededSearchLimit && coversByShape.size === 1
-    ? Array.from(coversByShape.values())[0]
-    : null;
+  return !exceededSearchLimit && coversByShape.size === 1 ? Array.from(coversByShape.values())[0] : null;
 }
 
 /**
@@ -231,7 +232,7 @@ function resolveReportClassIds(
 export function attachReportClassIds(
   timetable: Pick<TimetableState, "name" | "courses">,
   reportCourses: readonly ParsedCourse[],
-  preserveUnmatchedClassIds = false
+  preserveUnmatchedClassIds = false,
 ): Pick<TimetableState, "name" | "courses"> {
   return {
     name: timetable.name,
@@ -251,12 +252,12 @@ export function attachReportClassIds(
  */
 export function encodeCompactTimetableShare(
   timetable: Pick<TimetableState, "name" | "courses">,
-  semester: FFCSSemesterId
+  semester: FFCSSemesterId,
 ): string | null {
   const idsByCourse = timetable.courses.map((course) =>
     (course.classIds?.length ? course.classIds : course.classId ? [course.classId] : [])
       .map((id) => id.trim())
-      .filter(Boolean)
+      .filter(Boolean),
   );
   if (idsByCourse.some((ids) => ids.length === 0)) return null;
   const classIds = idsByCourse.flat();
@@ -280,7 +281,7 @@ export function encodeCompactTimetableShare(
  */
 export function encodeTimetableShapeShare(
   timetable: Pick<TimetableState, "name" | "courses">,
-  semester: FFCSSemesterId
+  semester: FFCSSemesterId,
 ): string | null {
   const reportPrefix = getFFCSSemester(semester).classIdPrefix;
   if (!reportPrefix) return null;
@@ -288,7 +289,7 @@ export function encodeTimetableShapeShare(
   const idsByCourse = timetable.courses.map((course) =>
     (course.classIds?.length ? course.classIds : course.classId ? [course.classId] : [])
       .map((id) => id.trim())
-      .filter(Boolean)
+      .filter(Boolean),
   );
   const classIds = idsByCourse.flat();
   if (
@@ -296,14 +297,17 @@ export function encodeTimetableShapeShare(
     classIds.length === 0 ||
     classIds.some((id) => !/^[A-Za-z0-9_-]+$/.test(id) || !id.startsWith(reportPrefix)) ||
     new Set(classIds).size !== classIds.length
-  ) return null;
+  )
+    return null;
 
   const prefix = commonPrefix(classIds);
   if (!prefix.startsWith(reportPrefix)) return null;
-  return compressToEncodedURIComponent(JSON.stringify({
-    p: prefix,
-    i: classIds.map((id) => id.slice(prefix.length)),
-  }));
+  return compressToEncodedURIComponent(
+    JSON.stringify({
+      p: prefix,
+      i: classIds.map((id) => id.slice(prefix.length)),
+    }),
+  );
 }
 
 /** Decode a name-free link and infer its report from the class-ID namespace. */
@@ -323,20 +327,15 @@ export function decodeTimetableShapeShare(encoded: string): TimetableShapeShareD
       !Array.isArray(wire.i) ||
       wire.i.length === 0 ||
       wire.i.length > 100 ||
-      !wire.i.every((suffix) =>
-        typeof suffix === "string" &&
-        suffix.length <= 100 &&
-        /^[A-Za-z0-9_-]*$/.test(suffix)
-      )
-    ) return null;
+      !wire.i.every((suffix) => typeof suffix === "string" && suffix.length <= 100 && /^[A-Za-z0-9_-]*$/.test(suffix))
+    )
+      return null;
 
     const report = getFFCSSemesterByClassIdPrefix(wire.p);
     if (!report?.classIdPrefix) return null;
     const classIds = (wire.i as string[]).map((suffix) => `${wire.p}${suffix}`);
-    if (
-      classIds.some((id) => !id.startsWith(report.classIdPrefix!)) ||
-      new Set(classIds).size !== classIds.length
-    ) return null;
+    if (classIds.some((id) => !id.startsWith(report.classIdPrefix!)) || new Set(classIds).size !== classIds.length)
+      return null;
     return { semesterId: report.id, classIds };
   } catch {
     return null;
@@ -353,7 +352,7 @@ export function decodeTimetableShapeShare(encoded: string): TimetableShapeShareD
  */
 export function encodeNumericTimetableShapeShare(
   timetable: Pick<TimetableState, "name" | "courses">,
-  semester: FFCSSemesterId
+  semester: FFCSSemesterId,
 ): string | null {
   const report = getFFCSSemester(semester);
   if (!report.classIdPrefix || !report.classIdPrefixCode) return null;
@@ -361,13 +360,9 @@ export function encodeNumericTimetableShapeShare(
   const classIds = timetable.courses.flatMap((course) =>
     (course.classIds?.length ? course.classIds : course.classId ? [course.classId] : [])
       .map((id) => id.trim())
-      .filter(Boolean)
+      .filter(Boolean),
   );
-  if (
-    classIds.length === 0 ||
-    classIds.length > 100 ||
-    new Set(classIds).size !== classIds.length
-  ) return null;
+  if (classIds.length === 0 || classIds.length > 100 || new Set(classIds).size !== classIds.length) return null;
 
   const suffixes = classIds.map((id) => {
     if (!id.startsWith(report.classIdPrefix!)) return null;
@@ -470,10 +465,7 @@ export function decodeCompactTimetableShare(encoded: string): CompactShareWire |
       wire.i.length === 0 ||
       wire.i.length > 100 ||
       !wire.i.every(
-        (suffix) =>
-          typeof suffix === "string" &&
-          suffix.length <= 100 &&
-          /^[A-Za-z0-9_-]*$/.test(suffix)
+        (suffix) => typeof suffix === "string" && suffix.length <= 100 && /^[A-Za-z0-9_-]*$/.test(suffix),
       ) ||
       new Set(wire.i).size !== wire.i.length
     ) {
@@ -494,7 +486,7 @@ export function decodeCompactTimetableShare(encoded: string): CompactShareWire |
 /** Compresses one timetable into the `d=` parameter of a share URL. */
 export function encodeTimetableShare(
   timetable: Pick<TimetableState, "name" | "courses">,
-  campus: string = GLOBAL_CAMPUS
+  campus: string = GLOBAL_CAMPUS,
 ): string {
   const wire: ShareWire = {
     v: FFCS_SHARE_VERSION,
@@ -513,9 +505,7 @@ export function encodeTimetableShare(
  * the way out so importing a shared plan twice yields two plans, not a
  * silent overwrite.
  */
-export function decodeTimetableShare(
-  encoded: string
-): { timetable: TimetableState; campus: string } | null {
+export function decodeTimetableShare(encoded: string): { timetable: TimetableState; campus: string } | null {
   if (!encoded) return null;
   let wire: unknown;
   try {

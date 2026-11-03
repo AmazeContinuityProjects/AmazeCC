@@ -1,4 +1,4 @@
-import type { CourseLock } from "@/components/custom/exams/FFCS/types";
+import type { CourseLock } from "@/lib/ffcsTypes";
 import type { RankingFactor, RankingMode } from "@/lib/ffcsRanking";
 import type { FacultyMetricWeights, FacultyScoreFilters } from "@/lib/ffcsFacultyRanking";
 import type { RankingPriority } from "@/lib/ffcsSettings";

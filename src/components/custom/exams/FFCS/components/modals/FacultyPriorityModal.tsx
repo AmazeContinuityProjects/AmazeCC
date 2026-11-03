@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, ListOrdered, Plus, X } from "lucide-react";
 import BottomSheet from "../../../../shared/BottomSheet";
 import { splitFacultyNames } from "@/lib/ffcsFacultyPriority";
-import type { ParsedCourse } from "../../types";
+import type { ParsedCourse } from "@/lib/ffcsTypes";
 
 /**
  * Per-course faculty ranking — "I'd rather have Prof A than Prof B".
