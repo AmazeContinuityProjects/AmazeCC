@@ -1,4 +1,7 @@
-import { parseAttendanceTime, AttendanceDay } from "./attendanceTimetable";
+// Both symbols originate in `social/schedule` (`attendanceTimetable` only
+// re-delegates). Importing from the source keeps this module out of the
+// attendanceTimetable → calendarDay → taskMatch cycle.
+import { toMinutes as parseAttendanceTime, type Day as AttendanceDay } from "./social/schedule";
 import type { Task, WeekChunk } from "@/types/tasks";
 
 /**
@@ -11,9 +14,7 @@ export function sanitizeCourseCode(code: any): string {
     .replace(/\s*\([LPT]\)$/i, "")
     .trim();
   return cleaned.toLowerCase() === "" ||
-    ["nil", "null", "undefined", "n/a", "na", "-", "--", "none"].includes(
-      cleaned.toLowerCase()
-    )
+    ["nil", "null", "undefined", "n/a", "na", "-", "--", "none"].includes(cleaned.toLowerCase())
     ? ""
     : cleaned;
 }
@@ -46,7 +47,7 @@ export function getComponentType(course: {
 
 export function taskMatchesClass(
   task: Pick<Task, "courseCode" | "component">,
-  cls: { courseCode?: string; courseType?: string; slotName?: string; slot?: string }
+  cls: { courseCode?: string; courseType?: string; slotName?: string; slot?: string },
 ): boolean {
   if (!task.courseCode) return false;
   if (sanitizeCourseCode(cls.courseCode || "") !== task.courseCode) return false;
@@ -63,7 +64,7 @@ export function tasksForClass(
   tasks: Task[],
   cls: { courseCode?: string; courseType?: string; slotName?: string; slot?: string },
   day?: string,
-  timeRange?: { start: number; end: number }
+  timeRange?: { start: number; end: number },
 ): Task[] {
   return tasks
     .filter((t) => {
@@ -110,11 +111,7 @@ export interface ClassTaskSummary {
 
 /** Same calendar day, local time. */
 export function isSameCalendarDay(a: Date, b: Date): boolean {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
 /** Same calendar day check, tolerant of ISO strings and Date inputs. */
@@ -133,7 +130,7 @@ export function tasksForClassSession(
   tasks: Task[],
   cls: { courseCode?: string; courseType?: string; slotName?: string; slot?: string },
   day: string,
-  timeRange: { start: number; end: number }
+  timeRange: { start: number; end: number },
 ): Task[] {
   return tasks.filter((t) => {
     if (t.status === "done" || !taskMatchesClass(t, cls)) return false;
@@ -158,7 +155,7 @@ export function classTaskSummary(
   cls: { courseCode?: string; courseType?: string; slotName?: string; slot?: string },
   day?: string,
   timeRange?: { start: number; end: number },
-  opts?: ClassTaskSummaryOptions
+  opts?: ClassTaskSummaryOptions,
 ): ClassTaskSummary {
   const matched = tasksForClass(tasks, cls, day, timeRange);
   const summary: ClassTaskSummary = {
@@ -198,9 +195,7 @@ export function classTaskSummary(
 
 /** Returns tasks that have chunks scheduled on `day`. */
 export function tasksForDay(day: AttendanceDay, tasks: Task[]): Task[] {
-  return tasks.filter(
-    (t) => t.status !== "done" && t.schedule?.some((c) => c.day === day)
-  );
+  return tasks.filter((t) => t.status !== "done" && t.schedule?.some((c) => c.day === day));
 }
 
 export interface ChunkOverlap {
@@ -250,7 +245,7 @@ export function detectChunkOverlaps(tasks: Task[]): ChunkOverlap[] {
 export function suggestPomodoros(
   chunkMinutes: number,
   focusMin = 25,
-  breakMin = 5
+  breakMin = 5,
 ): { rounds: number; focusMin: number; breakMin: number } {
   const safeFocus = Math.max(5, focusMin);
   const rounds = Math.max(1, Math.floor(chunkMinutes / (safeFocus + breakMin)));

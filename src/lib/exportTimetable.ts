@@ -12,8 +12,6 @@ import {
 import { ensureLunchPeriod, hasSlot } from "./slots";
 import { sameSlotFacultyAlternatives, expandCourseHalves } from "@/components/custom/exams/FFCS/logic/generate";
 
-export { createPortraitDossierPdf } from "./portraitDossier";
-
 /**
  * `html-to-image` and `jspdf` together are a few hundred KB — an export the
  * user may never click does not belong in the planner's first paint. Both are
