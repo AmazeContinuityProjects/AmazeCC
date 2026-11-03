@@ -11,7 +11,7 @@
     "dev": "next dev --webpack --experimental-https -p 3001",
     "dev:http": "next dev --webpack -p 3001",
     "prebuild": "node scripts/generate-build-info.js",
-    "build": "next build --webpack",
+    "build": "next build --webpack && node scripts/prune-sw-precache.js",
     "start": "pnpm dlx serve@latest out -p 3001 -s",
     "serve": "pnpm dlx serve@latest out -p 3001 -s",
     "lint": "eslint",

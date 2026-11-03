@@ -19,10 +19,21 @@ self.addEventListener("activate", () => self.clients.claim());
  * is what a first visit to an installed app pays for. The files still load
  * over the network on demand (the runtime cache handles them), and the
  * offline fallback page does not reference them.
+ *
+ * Every other static image and data file is excluded for the same reason:
+ * together they were ~10MB of the ~17.7MB manifest (poster art, favicon set,
+ * laundry/mess/roster JSON, FFCS CSVs) and none is part of the offline shell.
+ * They are fetched on demand and kept by the runtime caches once used
+ * (`static-image-assets`, `static-data-assets` — see the rules below).
+ * Lazy JS chunks can't be filtered by name here; the build-time script
+ * `scripts/prune-sw-precache.js` drops the ones no eagerly served HTML
+ * references from the inlined manifest in `out/sw.js`.
  */
 const precacheEntries = (self.__SW_MANIFEST ?? []).filter((entry) => {
   const url = typeof entry === "string" ? entry : (entry as PrecacheEntry).url;
-  return !url?.includes("campus-twilight") && !url?.includes("hero-artwork");
+  if (!url) return false;
+  if (url.includes("campus-twilight") || url.includes("hero-artwork")) return false;
+  return !/\.(?:png|jpe?g|gif|webp|avif|ico|svg|json|csv|md|txt|pem|webmanifest)(?:\?|$)/i.test(url);
 });
 
 /*
