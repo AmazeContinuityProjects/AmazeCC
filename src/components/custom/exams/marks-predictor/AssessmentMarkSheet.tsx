@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { Lock } from "lucide-react";
+import React, { useState } from "react";
+import { AlertTriangle, Lock } from "lucide-react";
 import BottomSheet from "../../shared/BottomSheet";
 import { ToneBadge } from "../../shared/primitives";
 import { weightFreezeFor, type WeightFreeze } from "./useCoursePredictionScope";
@@ -51,6 +51,14 @@ export default function AssessmentMarkSheet({
   const maxMark = asm.maxMark;
   const freeze: WeightFreeze = weightFreezeFor(asm);
 
+  // A faculty-posted mark is a fact of the cohort: locked by default, with
+  // one explicit way past the lock. Every edit from here on is a what-if —
+  // the inputs already flag it simulated — so the real mark survives for
+  // "Reset to VTOP marks" to bring back.
+  const posted = !asm.isSimulated && asm.scoredMark !== null && asm.scoredMark !== undefined;
+  const [override, setOverride] = useState(false);
+  const locked = posted && !override;
+
   return (
     <BottomSheet
       onClose={onClose}
@@ -80,6 +88,46 @@ export default function AssessmentMarkSheet({
           </div>
         </div>
 
+        {/* Req 4: posted marks open locked. The banner carries the fact and
+            the one explicit way past it; while overridden it keeps saying
+            what the current value is — a what-if, not the faculty's. */}
+        {(posted || override) && (
+          <div
+            className={`flex items-start gap-2.5 px-3.5 py-3 rounded-2xl border ${
+              locked ? "border-amber-500/30 bg-amber-500/10" : "border-indigo-500/30 bg-indigo-500/5"
+            }`}
+            role="status"
+          >
+            <AlertTriangle
+              className={`w-4 h-4 shrink-0 mt-0.5 ${locked ? "text-amber-600 dark:text-amber-400" : "text-indigo-500"}`}
+            />
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold text-zinc-800 dark:text-zinc-100 leading-relaxed">
+                {locked ? (
+                  <>
+                    Faculty posted{" "}
+                    <strong>
+                      {asm.scoredMark} / {maxMark}
+                    </strong>
+                    . This mark is locked.
+                  </>
+                ) : (
+                  <>Editing as a what-if — the faculty mark stays until you reset to VTOP.</>
+                )}
+              </p>
+            </div>
+            {locked && (
+              <button
+                type="button"
+                onClick={() => setOverride(true)}
+                className="shrink-0 px-2.5 py-1.5 rounded-lg border border-amber-500/40 bg-white dark:bg-zinc-900 text-[11px] font-black text-amber-700 dark:text-amber-400 cursor-pointer hover:bg-amber-500/10 transition-colors"
+              >
+                Edit anyway
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Mark entry */}
         <div className="space-y-2.5">
           <div className="flex items-center gap-2 min-w-0">
@@ -91,18 +139,14 @@ export default function AssessmentMarkSheet({
               step="0.5"
               placeholder="—"
               value={asm.scoredMark === null ? "" : asm.scoredMark}
+              disabled={locked}
               onChange={(e) => {
                 const val = e.target.value.trim();
                 if (val === "") onUpdateScoredMark(asm.id, null, false);
-                else
-                  onUpdateScoredMark(
-                    asm.id,
-                    Math.max(0, Math.min(maxMark, Number(val) || 0)),
-                    true
-                  );
+                else onUpdateScoredMark(asm.id, Math.max(0, Math.min(maxMark, Number(val) || 0)), true);
               }}
               aria-label={`Mark for ${asm.title}`}
-              className={`${FIELD} w-24 text-center`}
+              className={`${FIELD} w-24 text-center disabled:opacity-60 disabled:cursor-not-allowed`}
             />
             <span className="text-sm font-bold text-zinc-400 shrink-0">/ {maxMark}</span>
             <span className="flex-1" />
@@ -111,10 +155,9 @@ export default function AssessmentMarkSheet({
                 <button
                   key={pct}
                   type="button"
-                  onClick={() =>
-                    onUpdateScoredMark(asm.id, Math.round((pct / 100) * maxMark * 10) / 10, true)
-                  }
-                  className="px-2.5 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:bg-indigo-500/10 text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 text-[11px] font-black transition-colors cursor-pointer"
+                  disabled={locked}
+                  onClick={() => onUpdateScoredMark(asm.id, Math.round((pct / 100) * maxMark * 10) / 10, true)}
+                  className="px-2.5 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:bg-indigo-500/10 text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 text-[11px] font-black transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-zinc-100 dark:disabled:hover:bg-zinc-900"
                 >
                   {pct}%
                 </button>
@@ -129,13 +172,14 @@ export default function AssessmentMarkSheet({
               max={maxMark}
               step="0.5"
               value={asm.scoredMark === null ? 0 : asm.scoredMark}
+              disabled={locked}
               onChange={(e) => onUpdateScoredMark(asm.id, Number(e.target.value), true)}
               aria-label={`Drag mark for ${asm.title}`}
               style={
                 {
                   "--range-fill": `${Math.min(
                     100,
-                    Math.max(0, ((asm.scoredMark ?? 0) / Math.max(1, maxMark)) * 100)
+                    Math.max(0, ((asm.scoredMark ?? 0) / Math.max(1, maxMark)) * 100),
                   )}%`,
                 } as React.CSSProperties
               }

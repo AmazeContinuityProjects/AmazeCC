@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { computeComponentStats, estimateComponentGrades } from "../lib/marksPredictor";
+import { computeComponentStats, computeCoursePrediction, estimateComponentGrades } from "../lib/marksPredictor";
 import { assessmentKeyFor } from "../lib/marksSync";
 import {
   buildCourseConfig,
   buildEnrolledCourses,
+  isEmbeddedCourse,
+  onlyFatRemains,
   pinReservedFinalExamWeight,
   remainingWeightFor,
   useCoursePredictionScope,
@@ -59,11 +61,7 @@ const labPayload = (over: Record<string, unknown> = {}): any => ({
 
 describe("buildCourseConfig — embedded defaults", () => {
   it("keeps the lab half alive on a merged 'Embedded Theory' item", () => {
-    const item = buildEnrolledCourses(
-      { courses: [theoryPayload(), labPayload()] } as any,
-      undefined,
-      []
-    )[0];
+    const item = buildEnrolledCourses({ courses: [theoryPayload(), labPayload()] } as any, undefined, [])[0];
 
     const config = buildCourseConfig(item, null);
     // The label says "Embedded Theory", which contains no "lab" — the payloads
@@ -75,11 +73,7 @@ describe("buildCourseConfig — embedded defaults", () => {
   });
 
   it("collapses the two halves into one course with summed credits", () => {
-    const roster = buildEnrolledCourses(
-      { courses: [theoryPayload(), labPayload()] } as any,
-      undefined,
-      []
-    );
+    const roster = buildEnrolledCourses({ courses: [theoryPayload(), labPayload()] } as any, undefined, []);
     expect(roster).toHaveLength(1);
     expect(roster[0].courseCode).toBe("BCSE202E");
     expect(roster[0].credits).toBe(4);
@@ -91,7 +85,7 @@ describe("buildCourseConfig — embedded defaults", () => {
     const roster = buildEnrolledCourses(
       { courses: [labPayload({ courseTitle: "Data Structures Lab" }), theoryPayload()] } as any,
       undefined,
-      []
+      [],
     );
     expect(roster).toHaveLength(1);
     expect(roster[0].courseTitle).toBe("Data Structures");
@@ -100,12 +94,10 @@ describe("buildCourseConfig — embedded defaults", () => {
   it("leaves a real lab-only elective as its own subject", () => {
     const roster = buildEnrolledCourses(
       {
-        courses: [
-          labPayload({ courseCode: "BTCS999L", courseTitle: "Workshop" }),
-        ],
+        courses: [labPayload({ courseCode: "BTCS999L", courseTitle: "Workshop" })],
       } as any,
       undefined,
-      []
+      [],
     );
     expect(roster).toHaveLength(1);
     expect(roster[0].courseCode).toBe("BTCS999L");
@@ -124,22 +116,14 @@ describe("buildCourseConfig — embedded defaults", () => {
       classId: "21199",
     };
 
-    const roster = buildEnrolledCourses(
-      { courses: [marksRow] } as any,
-      [attRow],
-      []
-    );
+    const roster = buildEnrolledCourses({ courses: [marksRow] } as any, [attRow], []);
 
     expect(roster[0].courseType).toBe("Lab Only");
   });
 
   it("keeps a theory-only elective honest when its attendance twin arrives", () => {
     const marksRow = theoryPayload({ courseType: "Theory Only" });
-    const roster = buildEnrolledCourses(
-      { courses: [marksRow] } as any,
-      [{ ...marksRow, classId: "21198" }],
-      []
-    );
+    const roster = buildEnrolledCourses({ courses: [marksRow] } as any, [{ ...marksRow, classId: "21198" }], []);
 
     expect(roster[0].courseType).toBe("Theory Only");
   });
@@ -151,7 +135,7 @@ describe("buildCourseConfig — embedded defaults", () => {
     const roster = buildEnrolledCourses(
       { courses: [theoryPayload({ courseType: "Theory Only" })] } as any,
       [{ ...labPayload(), classId: "21102" }],
-      []
+      [],
     );
 
     expect(roster[0].courseType).toBe("Embedded Theory");
@@ -163,13 +147,10 @@ describe("buildCourseConfig — embedded defaults", () => {
     // Missing credits fall back by role, present ones are honoured.
     const roster = buildEnrolledCourses(
       {
-        courses: [
-          theoryPayload({ credits: "" }),
-          labPayload({ credits: null }),
-        ],
+        courses: [theoryPayload({ credits: "" }), labPayload({ credits: null })],
       } as any,
       undefined,
-      []
+      [],
     );
     expect(roster[0].credits).toBe(4); // 3 + 1 fallbacks
   });
@@ -196,7 +177,7 @@ describe("estimateComponentGrades — a half's sub-total", () => {
         { id: "t2", title: "FAT", maxMark: 100, weightagePercent: 20, scoredMark: null, component: "theory" },
       ],
       "theory",
-      3
+      3,
     );
     const grades = estimateComponentGrades(stats);
     // Released = 80 (the unscored 20 is pending). pace = 50 → D.
@@ -211,7 +192,7 @@ describe("estimateComponentGrades — a half's sub-total", () => {
     const stats = computeComponentStats(
       [{ id: "l1", title: "Continuous", maxMark: 100, weightagePercent: 60, scoredMark: null, component: "lab" }],
       "lab",
-      1
+      1,
     );
     const grades = estimateComponentGrades(stats);
     expect(grades.optimal).toBeNull();
@@ -225,7 +206,7 @@ describe("estimateComponentGrades — a half's sub-total", () => {
     const stats = computeComponentStats(
       [{ id: "l1", title: "Continuous", maxMark: 100, weightagePercent: 60, scoredMark: 50, component: "lab" }],
       "lab",
-      1
+      1,
     );
     const grades = estimateComponentGrades(stats);
     // Half of the max mark on the half's 60-point ladder = 30 secured of 60;
@@ -262,11 +243,7 @@ describe("grading context — the ladder the marks page shows", () => {
   const curveStats = { "21101": { overall: { count: 69, mean: 55, sd: 12 }, assessments: {} } };
 
   it("carries courseSystem out of a merged item", () => {
-    const item = buildEnrolledCourses(
-      { courses: [curvedTheory, labPayload()] } as any,
-      undefined,
-      []
-    )[0];
+    const item = buildEnrolledCourses({ courses: [curvedTheory, labPayload()] } as any, undefined, [])[0];
     expect(item.courseSystem).toBe("ACE");
   });
 
@@ -274,21 +251,15 @@ describe("grading context — the ladder the marks page shows", () => {
     const item = buildEnrolledCourses(
       { courses: [labPayload({ courseSystem: "ACE" }), theoryPayload()] } as any,
       undefined,
-      []
+      [],
     )[0];
     expect(item.courseSystem).toBe("ACE");
   });
 
   it("resolves class stats and curves the prediction through the hook", () => {
-    const course = buildEnrolledCourses(
-      { courses: [curvedTheory] } as any,
-      undefined,
-      []
-    )[0];
+    const course = buildEnrolledCourses({ courses: [curvedTheory] } as any, undefined, [])[0];
 
-    const { result } = renderHook(() =>
-      useCoursePredictionScope(course, curveStats as Record<string, any>)
-    );
+    const { result } = renderHook(() => useCoursePredictionScope(course, curveStats as Record<string, any>));
 
     expect(result.current.classStats).toEqual({ count: 69, mean: 55, sd: 12 });
     expect(result.current.prediction?.pacePct).toBeCloseTo(67, 0);
@@ -297,15 +268,9 @@ describe("grading context — the ladder the marks page shows", () => {
   });
 
   it("stays on the fixed ladder with no class statistics", () => {
-    const course = buildEnrolledCourses(
-      { courses: [curvedTheory] } as any,
-      undefined,
-      []
-    )[0];
+    const course = buildEnrolledCourses({ courses: [curvedTheory] } as any, undefined, [])[0];
 
-    const { result } = renderHook(() =>
-      useCoursePredictionScope(course, undefined)
-    );
+    const { result } = renderHook(() => useCoursePredictionScope(course, undefined));
 
     expect(result.current.classStats).toBeNull();
     expect(result.current.prediction?.optimalGrade?.letter).toBe("C");
@@ -315,9 +280,15 @@ describe("grading context — the ladder the marks page shows", () => {
   it("leaves custom subjects unreadable rather than inventing a curve", () => {
     const { result } = renderHook(() =>
       useCoursePredictionScope(
-        { courseCode: "CUSTOM01", courseTitle: "Self-spun subject", courseType: "Theory Only", credits: 3, isCustom: true },
-        curveStats as Record<string, any>
-      )
+        {
+          courseCode: "CUSTOM01",
+          courseTitle: "Self-spun subject",
+          courseType: "Theory Only",
+          credits: 3,
+          isCustom: true,
+        },
+        curveStats as Record<string, any>,
+      ),
     );
 
     expect(result.current.classStats).toBeNull();
@@ -379,12 +350,12 @@ describe("useRemappedCourseStats — the raw atom into the predictor's shape", (
 
   it("closes the loop: raw atom → remap → curved prediction in the hook", async () => {
     const { result: remapResult } = renderHook(() =>
-      useRemappedCourseStats({ "21101": { count: "69", mean: "55", sd: "12" } } as any, roster)
+      useRemappedCourseStats({ "21101": { count: "69", mean: "55", sd: "12" } } as any, roster),
     );
     await waitFor(() => expect(remapResult.current["21101"]).toBeTruthy());
 
     const { result } = renderHook(() =>
-      useCoursePredictionScope(roster[0], remapResult.current as Record<string, any>)
+      useCoursePredictionScope(roster[0], remapResult.current as Record<string, any>),
     );
 
     // Released 30, scored 20.1 → pace 67%: fixed ladder says C, the curve
@@ -436,16 +407,16 @@ describe("weightage freeze — the facts a regimen may not touch", () => {
         { title: "FAT", scoredMark: null, weightagePercent: 30 },
         { title: "Lab FAT", scoredMark: null, weightagePercent: 60 },
         { title: "CAT - I", scoredMark: 25, weightagePercent: 15 },
-      ])
+      ]),
     ).toEqual([
       { title: "FAT", scoredMark: null, weightagePercent: 40 },
       { title: "Lab FAT", scoredMark: null, weightagePercent: 40 },
       { title: "CAT - I", scoredMark: 25, weightagePercent: 15 },
     ]);
     // A published final exam keeps its own recorded weightage.
-    expect(
-      pinReservedFinalExamWeight([{ title: "FAT", scoredMark: 72, weightagePercent: 45 }])
-    ).toEqual([{ title: "FAT", scoredMark: 72, weightagePercent: 45 }]);
+    expect(pinReservedFinalExamWeight([{ title: "FAT", scoredMark: 72, weightagePercent: 45 }])).toEqual([
+      { title: "FAT", scoredMark: 72, weightagePercent: 45 },
+    ]);
   });
 
   it("builds every regimen — payload, stored, or preset — with FAT at 40%", () => {
@@ -488,7 +459,7 @@ describe("weightage freeze — the facts a regimen may not touch", () => {
         { weightagePercent: 30 },
         { weightagePercent: 40 },
         { weightagePercent: 15 },
-      ])
+      ]),
     ).toBe(0);
   });
 });
@@ -541,10 +512,7 @@ describe("per-course persistence — what the user shapes survives the session",
   });
 
   it("reopens with the goal a previous session saved", () => {
-    (globalThis as any).localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({ BCSE202E: { targetScore: 75 } })
-    );
+    (globalThis as any).localStorage.setItem(STORAGE_KEY, JSON.stringify({ BCSE202E: { targetScore: 75 } }));
     const course = buildEnrolledCourses({ courses: [theoryPayload()] } as any, undefined, [])[0];
     const { result } = renderHook(() => useCoursePredictionScope(course, {}));
 
@@ -561,5 +529,107 @@ describe("per-course persistence — what the user shapes survives the session",
 
     const second = renderHook(() => useCoursePredictionScope(course, {}));
     expect(second.result.current.targetScore).toBe(90);
+  });
+});
+
+describe("pinReservedFinalExamWeight — law, but never past 100", () => {
+  it("keeps VTOP's own share when pinning at 40 would overflow the list", () => {
+    // A feed that listed 65% without its final (the auto-insert fills the
+    // missing 35) would hit 105 if the FAT were forced to 40 — every weight
+    // on the page would then read against an inflated total. The row keeps
+    // the weight it arrived with instead.
+    expect(
+      pinReservedFinalExamWeight([
+        { title: "CAT - I", scoredMark: null, weightagePercent: 65 },
+        { title: "FAT", scoredMark: null, weightagePercent: 35 },
+      ]),
+    ).toEqual([
+      { title: "CAT - I", scoredMark: null, weightagePercent: 65 },
+      { title: "FAT", scoredMark: null, weightagePercent: 35 },
+    ]);
+  });
+
+  it("still pins at 40 when the list has room", () => {
+    expect(
+      pinReservedFinalExamWeight([
+        { title: "CAT - I", scoredMark: null, weightagePercent: 45 },
+        { title: "FAT", scoredMark: null, weightagePercent: 35 },
+      ]),
+    ).toEqual([
+      { title: "CAT - I", scoredMark: null, weightagePercent: 45 },
+      { title: "FAT", scoredMark: null, weightagePercent: 40 },
+    ]);
+  });
+});
+
+describe("isEmbeddedCourse — one rule for every surface", () => {
+  it("matches the label or a payload carrying both halves", () => {
+    expect(isEmbeddedCourse("Embedded Theory and Lab")).toBe(true);
+    expect(isEmbeddedCourse("embedded")).toBe(true);
+    expect(isEmbeddedCourse("Theory Only", { some: "payload" }, { some: "payload" })).toBe(true);
+  });
+
+  it("keeps single-half courses out — Lab Only is not embedded", () => {
+    // The page used to test `includes("lab")`, which read "Lab Only" as
+    // embedded and offered halves the credit math never blended.
+    expect(isEmbeddedCourse("Lab Only")).toBe(false);
+    expect(isEmbeddedCourse("Theory Only")).toBe(false);
+    expect(isEmbeddedCourse("Lab Only", null, { some: "payload" })).toBe(false);
+    expect(isEmbeddedCourse("")).toBe(false);
+  });
+});
+
+describe("onlyFatRemains — the target card's gate", () => {
+  const predictionFor = (assessments: any[]) =>
+    computeCoursePrediction({
+      courseCode: "BCSE1001",
+      courseTitle: "Problem Solving",
+      courseType: "Theory Only",
+      theoryAssessments: assessments,
+    });
+
+  it("opens once every non-final row carries a mark and a FAT exists", () => {
+    const prediction = predictionFor([
+      { id: "t1", title: "CAT - I", maxMark: 50, weightagePercent: 15, scoredMark: 40, component: "theory" },
+      { id: "t2", title: "CAT - II", maxMark: 50, weightagePercent: 15, scoredMark: 30, component: "theory" },
+      { id: "t3", title: "FAT", maxMark: 100, weightagePercent: 40, scoredMark: null, component: "theory" },
+    ]);
+
+    expect(onlyFatRemains(prediction)).toBe(true);
+  });
+
+  it("stays closed while any other assessment is blank", () => {
+    const prediction = predictionFor([
+      { id: "t1", title: "CAT - I", maxMark: 50, weightagePercent: 15, scoredMark: 40, component: "theory" },
+      { id: "t2", title: "CAT - II", maxMark: 50, weightagePercent: 15, scoredMark: null, component: "theory" },
+      { id: "t3", title: "FAT", maxMark: 100, weightagePercent: 40, scoredMark: null, component: "theory" },
+    ]);
+
+    expect(onlyFatRemains(prediction)).toBe(false);
+  });
+
+  it("stays closed when the regimen has no final exam at all", () => {
+    const prediction = predictionFor([
+      { id: "t1", title: "CAT - I", maxMark: 50, weightagePercent: 15, scoredMark: 40, component: "theory" },
+    ]);
+
+    expect(onlyFatRemains(prediction)).toBe(false);
+  });
+
+  it("ignores a what-if already typed into the FAT — the rest is what gates", () => {
+    const prediction = predictionFor([
+      { id: "t1", title: "CAT - I", maxMark: 50, weightagePercent: 15, scoredMark: 40, component: "theory" },
+      {
+        id: "t3",
+        title: "FAT",
+        maxMark: 100,
+        weightagePercent: 40,
+        scoredMark: 61,
+        isSimulated: true,
+        component: "theory",
+      },
+    ]);
+
+    expect(onlyFatRemains(prediction)).toBe(true);
   });
 });
