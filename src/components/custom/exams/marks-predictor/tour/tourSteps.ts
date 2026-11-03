@@ -9,8 +9,7 @@
  * A step whose target is missing renders the card centred with no spotlight
  * rather than skipping: an anchor lost to a layout change should still teach,
  * not silently vanish from the tour. The last step deliberately targets the
- * collapsed "Grade insights" header, so the tour teaches where the ladder
- * lives even though the section starts closed.
+ * "Grade insights" header, so the tour points at where the ladder lives.
  */
 
 export interface TourStep {
@@ -46,6 +45,6 @@ export const TOUR_STEPS: readonly TourStep[] = [
   {
     target: "predictor-ladder",
     title: "Your standing, scaled to 100",
-    body: "Open Grade insights to see your entered marks scaled onto the grade ladder — tests you have left empty don't count against you.",
+    body: "Your entered marks are scaled onto the grade ladder — tests you have left empty don't count against you.",
   },
 ];
