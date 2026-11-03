@@ -170,6 +170,26 @@ export const pinReservedFinalExamWeight = <
   });
 };
 
+/**
+ * The FAT is frozen at zero.
+ *
+ * An unpublished final-exam mark never enters the prediction — the solver's
+ * whole job is to say what the reader still needs in it, so a what-if typed
+ * (or simulated) into that row would both count as ground already won and
+ * silence the answer. Stripping it here — at the single door between stored
+ * config and the engine — keeps every surface (ladder, solver, sheet) on the
+ * same zero without rewriting stored state. A VTOP-posted mark is a fact and
+ * stays: it just moves the target card out of the way instead.
+ */
+export const freezeFinalExamMarks = <T extends { title: string; scoredMark: number | null; isSimulated?: boolean }>(
+  list: readonly T[],
+): T[] =>
+  list.map((item) =>
+    isFinalExamAssessment(item) && !isAssessmentPublished(item) && item.scoredMark !== null
+      ? { ...item, scoredMark: null, isSimulated: false }
+      : item,
+  );
+
 const stripComponentMarker = (code: unknown): string =>
   String(code ?? "")
     .replace(/\s*\([LPT]\)$/i, "")
@@ -494,8 +514,8 @@ export function useCoursePredictionScope(course: EnrolledCourseItem | null, mark
             courseCode: course.courseCode,
             courseTitle: course.courseTitle,
             courseType: course.courseType,
-            theoryAssessments: config.theory,
-            labAssessments: config.lab,
+            theoryAssessments: freezeFinalExamMarks(config.theory),
+            labAssessments: freezeFinalExamMarks(config.lab),
             theoryCredits: config.theoryCredits,
             labCredits: config.labCredits,
             // Always a key (null when absent) so the prediction resolves the

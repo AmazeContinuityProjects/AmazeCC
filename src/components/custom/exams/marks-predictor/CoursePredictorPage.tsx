@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import type { RefObject } from "react";
 import { createPortal } from "react-dom";
 import {
+  AlertTriangle,
   ChevronDown,
   ChevronRight,
   Gauge,
@@ -221,7 +222,8 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
   const handleUpdateScoredMark = (id: string, mark: number | null, isSimulated: boolean) => {
     const updateList = (list: any[]) =>
       list.map((item) => {
-        if (item.id !== id) return item;
+        // The FAT is frozen at zero: no editor on this page writes to it.
+        if (item.id !== id || isFinalExamAssessment(item)) return item;
         return {
           ...item,
           scoredMark: mark,
@@ -239,6 +241,8 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
   const handleBatchSimulate = (percentage: number) => {
     const apply = (list: any[]) =>
       list.map((item) => {
+        // Simulation fills blanks, never the FAT — it stays frozen at zero.
+        if (isFinalExamAssessment(item)) return item;
         if (item.scoredMark !== null && !item.isSimulated) return item;
         const simulatedMark = Math.round((percentage / 100) * item.maxMark * 10) / 10;
         return { ...item, scoredMark: simulatedMark, isSimulated: true, status: "Simulated" };
@@ -624,7 +628,6 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
             prediction={prediction}
             savedTargetScore={targetScore}
             onPersistTargetScore={persistTargetScore}
-            onOpenFatMark={(asm, tone) => setSheetAsm({ asm, tone })}
           />
         </div>
       </div>
@@ -705,6 +708,16 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
                 {optimalGrade?.letter ?? "—"}
               </strong>{" "}
               above is a different read: the released pace carried over the weight still to come.
+            </p>
+            {/* Req: the honesty line — every number in this box is an
+                estimate the reader typed, not a result the university
+                posted. */}
+            <p className="flex items-start gap-2 text-[11px] leading-relaxed font-medium text-amber-700 dark:text-amber-400">
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" aria-hidden="true" />
+              <span>
+                <strong className="font-black">Just a prediction.</strong> These grades come from marks you entered —
+                estimates within the grade boundaries, not a result. Your actual grade can land outside these numbers.
+              </span>
             </p>
           </div>
         </div>

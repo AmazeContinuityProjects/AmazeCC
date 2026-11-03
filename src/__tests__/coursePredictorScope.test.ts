@@ -5,6 +5,7 @@ import { assessmentKeyFor } from "../lib/marksSync";
 import {
   buildCourseConfig,
   buildEnrolledCourses,
+  freezeFinalExamMarks,
   isEmbeddedCourse,
   onlyFatRemains,
   pinReservedFinalExamWeight,
@@ -631,5 +632,36 @@ describe("onlyFatRemains — the target card's gate", () => {
     ]);
 
     expect(onlyFatRemains(prediction)).toBe(true);
+  });
+});
+
+describe("freezeFinalExamMarks — the FAT is frozen at zero", () => {
+  const row = (title: string, scoredMark: number | null, isSimulated = false) => ({
+    id: title,
+    title,
+    maxMark: 100,
+    weightagePercent: 40,
+    scoredMark,
+    isSimulated,
+    component: "theory",
+  });
+
+  it("strips an unpublished FAT mark — what-if or simulated — before the engine sees it", () => {
+    const [fat] = freezeFinalExamMarks([row("FAT", 61, true)]);
+
+    expect(fat.scoredMark).toBeNull();
+    expect(fat.isSimulated).toBe(false);
+  });
+
+  it("keeps a VTOP-posted FAT mark — a fact, not an estimate", () => {
+    const [fat] = freezeFinalExamMarks([row("FAT", 72)]);
+
+    expect(fat.scoredMark).toBe(72);
+  });
+
+  it("leaves every non-FAT row alone", () => {
+    const [cat] = freezeFinalExamMarks([row("CAT - I", 40)]);
+
+    expect(cat.scoredMark).toBe(40);
   });
 });

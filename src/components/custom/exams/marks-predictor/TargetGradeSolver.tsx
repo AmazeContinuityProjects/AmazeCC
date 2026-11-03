@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Target, AlertTriangle, CheckCircle2, ChevronRight, Sparkles, Flame, ShieldAlert } from "lucide-react";
+import { Target, AlertTriangle, CheckCircle2, Sparkles, Flame, ShieldAlert } from "lucide-react";
 import { solveTargetFAT, TargetFATSolverResult, CoursePredictionResult, estimateGrade } from "@/lib/marksPredictor";
 import { isAssessmentPublished, isFinalExamAssessment, onlyFatRemains } from "./useCoursePredictionScope";
 import { ChipTabs, ToneBadge } from "../../shared/primitives";
@@ -13,22 +13,12 @@ interface TargetGradeSolverProps {
   savedTargetScore?: number | null;
   /** Writes the goal to the course's storage key on every change. */
   onPersistTargetScore?: (score: number) => void;
-  /**
-   * Opens the mark sheet for the final-exam row. The row itself no longer
-   * lives in the assessment list while it is ungraded — the card's slot is
-   * its only way in, and the sheet stays the one editor every mark uses.
-   */
-  onOpenFatMark?: (
-    asm: NonNullable<CoursePredictionResult["theoryStats"]>["assessments"][number],
-    tone: "blue" | "emerald",
-  ) => void;
 }
 
 export default function TargetGradeSolver({
   prediction,
   savedTargetScore,
   onPersistTargetScore,
-  onOpenFatMark,
 }: TargetGradeSolverProps) {
   // Band floors read off the prediction's own ladder: the presets name the
   // same letters the hero shows, so on a curved course targeting "A" means the
@@ -86,11 +76,10 @@ export default function TargetGradeSolver({
 
   // The card's two gates. The solve speaks only once every other assessment
   // carries a mark — before that the answer moves with each blank the reader
-  // has yet to fill — and a posted FAT is a fact, not a variable: it gets a
-  // read-out instead of a requirement.
+  // has yet to fill — and a posted FAT is a fact, not a variable: the card
+  // leaves the page entirely instead of answering.
   const gateOpen = onlyFatRemains(prediction);
   const fatPublished = finalRow ? isAssessmentPublished(finalRow) : false;
-  const fatIsWhatIf = Boolean(finalRow && finalRow.scoredMark !== null && !fatPublished);
 
   const solverResult: TargetFATSolverResult = solveTargetFAT({
     targetScore: selectedTargetScore,
@@ -145,11 +134,16 @@ export default function TargetGradeSolver({
   const badge = getFeasibility(solverResult.feasibility);
   const BadgeIcon = badge.icon;
 
+  // A posted FAT is a fact: there is nothing left to aim at, so the card
+  // steps aside entirely — the list's locked row and the ladder carry the
+  // course from here.
+  if (fatPublished) return null;
+
   return (
     <div className={`${TILE_CARD} w-full max-w-full space-y-4`}>
       <p className="text-[11px] leading-relaxed text-zinc-500 dark:text-zinc-400 font-medium">
         Aim {targetGradeOnLadder} ({selectedTargetScore}%) on this ladder
-        {gateOpen && !fatPublished ? ` — calculated as the exact marks needed in ${fatExamName}.` : "."}
+        {gateOpen ? ` — calculated as the exact marks needed in ${fatExamName}.` : "."}
       </p>
 
       {/* Presets */}
@@ -188,61 +182,32 @@ export default function TargetGradeSolver({
         />
       </div>
 
-      {/* The final exam's slot — the row the assessment list no longer
-          carries while it is ungraded. Pending, it invites the what-if;
-          entered, it shows it; graded, it shows the posted fact. One tap
-          opens the same mark sheet every row uses — locked by default the
-          moment faculty posted the mark. */}
-      <button
-        type="button"
-        onClick={() => finalRow && onOpenFatMark?.(finalRow, solvesLab ? "emerald" : "blue")}
-        disabled={!finalRow}
-        className="w-full flex items-center gap-3 py-3 px-3.5 rounded-2xl border border-border-strong dark:border-border bg-surface-secondary/50 dark:bg-surface-secondary/40 text-left cursor-pointer group disabled:cursor-default"
-      >
+      {/* The final exam's slot — frozen, not a way in. The FAT is never
+          editable: the prediction counts it as zero and only ever *asks*
+          about it, so the tile states the freeze and the solve below does
+          the talking. */}
+      <div className="w-full flex items-center gap-3 py-3 px-3.5 rounded-2xl border border-dashed border-amber-500/40 bg-amber-500/5 text-left">
         <span
-          className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${
-            fatPublished ? TONE_ICON_TILE.emerald : TONE_ICON_TILE.amber
-          }`}
+          className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.amber}`}
         >
-          {fatPublished ? <CheckCircle2 className="h-5 w-5" /> : <Flame className="h-5 w-5" />}
+          <Flame className="h-5 w-5" />
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-xs font-black text-text-heading font-outfit uppercase tracking-wider truncate">
             {fatExamName} · {fatWeight} wt · /{fatMax}
           </span>
           <span className="block text-[11px] font-semibold mt-0.5 text-zinc-500 dark:text-zinc-400">
-            {fatPublished && finalRow
-              ? `Posted ${finalRow.scoredMark} (${finalRow.percentage.toFixed(0)}%) — faculty mark, locked`
-              : fatIsWhatIf && finalRow
-                ? `What-if ${finalRow.scoredMark} (${finalRow.percentage.toFixed(0)}%) — tap to change`
-                : "No mark yet — tap to set what you expect"}
+            Counted as 0 — frozen; the prediction never lets this be filled.
           </span>
         </span>
-        <span className="flex items-center gap-1.5 shrink-0">
-          {fatPublished ? (
-            <ToneBadge tone="emerald" size="sm">
-              Posted
-            </ToneBadge>
-          ) : fatIsWhatIf ? (
-            <ToneBadge tone="indigo" size="sm">
-              What-if
-            </ToneBadge>
-          ) : null}
-          <ChevronRight className="w-4 h-4 text-zinc-400 group-hover:translate-x-0.5 transition-transform" />
-        </span>
-      </button>
+        <ToneBadge tone="amber" size="sm">
+          Frozen
+        </ToneBadge>
+      </div>
 
       {/* Solution — gated: the solve speaks only when every other assessment
-          carries a mark, and never at a graded FAT. */}
-      {fatPublished ? (
-        <div className="space-y-1.5 px-1">
-          <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">{fatExamName} graded</p>
-          <p className="text-xs text-zinc-600 dark:text-zinc-300 font-medium leading-relaxed">
-            VTOP has posted this exam — there is nothing left to solve for. Your standing now comes from every mark on
-            this page.
-          </p>
-        </div>
-      ) : !gateOpen ? (
+          carries a mark. */}
+      {!gateOpen ? (
         <div className="rounded-2xl border border-dashed border-amber-500/40 bg-amber-500/5 px-3.5 py-3">
           <p className="text-[11px] leading-relaxed text-zinc-600 dark:text-zinc-300 font-medium">
             <strong className="font-black text-zinc-800 dark:text-zinc-100">

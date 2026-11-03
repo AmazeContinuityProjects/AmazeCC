@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { AlertTriangle, Lock } from "lucide-react";
 import BottomSheet from "../../shared/BottomSheet";
 import { ToneBadge } from "../../shared/primitives";
-import { weightFreezeFor, type WeightFreeze } from "./useCoursePredictionScope";
+import { weightFreezeFor, isFinalExamAssessment, type WeightFreeze } from "./useCoursePredictionScope";
 
 const FIELD =
   "w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2.5 text-sm font-bold text-zinc-900 dark:text-white focus:outline-none focus:border-indigo-500";
@@ -54,10 +54,14 @@ export default function AssessmentMarkSheet({
   // A faculty-posted mark is a fact of the cohort: locked by default, with
   // one explicit way past the lock. Every edit from here on is a what-if —
   // the inputs already flag it simulated — so the real mark survives for
-  // "Reset to VTOP marks" to bring back.
+  // "Reset to VTOP marks" to bring back. The FAT is the exception with no
+  // exception: frozen at zero, never editable, no override — the prediction
+  // only ever asks what you need in it, and VTOP's posted mark (when it
+  // exists) is read-only fact.
+  const isFat = isFinalExamAssessment(asm);
   const posted = !asm.isSimulated && asm.scoredMark !== null && asm.scoredMark !== undefined;
   const [override, setOverride] = useState(false);
-  const locked = posted && !override;
+  const locked = isFat || (posted && !override);
 
   return (
     <BottomSheet
@@ -90,8 +94,9 @@ export default function AssessmentMarkSheet({
 
         {/* Req 4: posted marks open locked. The banner carries the fact and
             the one explicit way past it; while overridden it keeps saying
-            what the current value is — a what-if, not the faculty's. */}
-        {(posted || override) && (
+            what the current value is — a what-if, not the faculty's. The FAT
+            has no way past: frozen at zero, its banner says so. */}
+        {(posted || override || isFat) && (
           <div
             className={`flex items-start gap-2.5 px-3.5 py-3 rounded-2xl border ${
               locked ? "border-amber-500/30 bg-amber-500/10" : "border-indigo-500/30 bg-indigo-500/5"
@@ -103,7 +108,9 @@ export default function AssessmentMarkSheet({
             />
             <div className="min-w-0 flex-1">
               <p className="text-xs font-bold text-zinc-800 dark:text-zinc-100 leading-relaxed">
-                {locked ? (
+                {isFat && !posted ? (
+                  <>The FAT is frozen at 0 — it can&apos;t be filled in. A mark only arrives here when VTOP posts it.</>
+                ) : locked ? (
                   <>
                     Faculty posted{" "}
                     <strong>
@@ -116,7 +123,7 @@ export default function AssessmentMarkSheet({
                 )}
               </p>
             </div>
-            {locked && (
+            {locked && posted && !isFat && (
               <button
                 type="button"
                 onClick={() => setOverride(true)}
