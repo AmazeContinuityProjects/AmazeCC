@@ -13,7 +13,10 @@
  * Route shapes are documented in docs/social-tt/07-api-contract.md.
  */
 
-import { api } from "@/lib/sync-engine";
+// Import `apiRequest` from the request layer directly: importing the barrel
+// (`@/lib/sync-engine`) drags in operations → socialAtoms → this file, an
+// import cycle. The barrel re-exports this same function as `api`.
+import { apiRequest as api } from "@/lib/sync-engine/request-layer";
 import type {
   BusyMap,
   SocialCourse,
@@ -119,7 +122,7 @@ function unwrap<T>(json: unknown, require: (v: any) => boolean, what: string): T
   if (body.success === false) {
     throw new SocialApiError(
       String(body.error || "unknown"),
-      typeof body.detail === "string" ? body.detail : undefined
+      typeof body.detail === "string" ? body.detail : undefined,
     );
   }
   if (!require(json as T)) {
@@ -162,10 +165,7 @@ export async function lookupPerson(handle: string): Promise<PersonResponse> {
   return unwrap<PersonResponse>(json, (v) => typeof v?.person?.handle === "string", "a person");
 }
 
-export async function claimPair(
-  handle: string,
-  visibility: SocialVisibility = "full"
-): Promise<ClaimResponse> {
+export async function claimPair(handle: string, visibility: SocialVisibility = "full"): Promise<ClaimResponse> {
   const json = await api("social/pair/claim", {
     method: "POST",
     auth: "vtop",
@@ -183,7 +183,7 @@ export async function claimPair(
 export async function readPeerTimetable(
   secret: string,
   handle: string,
-  semester?: string
+  semester?: string,
 ): Promise<PeerTimetableResponse> {
   const json = await api("social/timetable", {
     method: "POST",
@@ -204,7 +204,7 @@ export async function revokeGrant(grantId: string, secret: string): Promise<{ su
 
 export async function setGrantVisibility(
   grantId: string,
-  visibility: SocialVisibility
+  visibility: SocialVisibility,
 ): Promise<{ success: boolean; visibility: SocialVisibility }> {
   const json = await api("social/grant/visibility", {
     method: "POST",
@@ -214,7 +214,7 @@ export async function setGrantVisibility(
   return unwrap<{ success: boolean; visibility: SocialVisibility }>(
     json,
     (v) => Boolean(v?.grantId),
-    "a visibility change"
+    "a visibility change",
   );
 }
 

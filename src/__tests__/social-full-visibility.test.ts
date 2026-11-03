@@ -7,8 +7,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  */
 const fetchMock = vi.fn();
 
-vi.mock("@/lib/sync-engine", () => ({
-  api: (path: string, opts: { method?: string; body?: unknown }) =>
+// `social/client` imports `apiRequest` from the request layer directly (the
+// barrel is not imported there — that would re-create an import cycle), so the
+// mock targets the module actually used.
+vi.mock("@/lib/sync-engine/request-layer", () => ({
+  apiRequest: (path: string, opts: { method?: string; body?: unknown }) =>
     fetchMock(path, { method: opts?.method, body: opts?.body }),
 }));
 
@@ -52,10 +55,7 @@ describe("upgradeGrantsToFull", () => {
       .mockResolvedValueOnce({ success: false, error: "grant_invalid" })
       .mockResolvedValueOnce({ success: true, grantId: "g2", visibility: "full" });
 
-    const upgraded = await upgradeGrantsToFull([
-      grant("g1", "coarse"),
-      grant("g2", "coarse"),
-    ]);
+    const upgraded = await upgradeGrantsToFull([grant("g1", "coarse"), grant("g2", "coarse")]);
 
     expect(upgraded.map((g) => g.grantId)).toEqual(["g2"]);
     expect(fetchMock).toHaveBeenCalledTimes(2);
