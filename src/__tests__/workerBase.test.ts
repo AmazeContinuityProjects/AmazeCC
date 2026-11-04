@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { WORKER_BASE, resolveApiRoute, isWorkerRoute } from "../lib/workerBase";
+import {
+  WORKER_BASE,
+  CDN_BASE,
+  toCdnImageUrl,
+  getFacultyCdnUrl,
+  resolveApiRoute,
+  isWorkerRoute,
+} from "../lib/workerBase";
 import { PRIMARY_API_URL } from "../lib/fetch-utils";
 
 /**
@@ -20,6 +27,56 @@ describe("workerBase", () => {
       // A trailing slash would produce `https://host//transport/buses`, and
       // every route in the app is composed by string concatenation.
       expect(WORKER_BASE.endsWith("/")).toBe(false);
+    });
+  });
+
+  describe("CDN_BASE & toCdnImageUrl", () => {
+    it("defaults to the production cdn host", () => {
+      expect(CDN_BASE).toBe("https://cdn.amazecc.com");
+      expect(CDN_BASE.endsWith("/")).toBe(false);
+    });
+
+    it("rewrites Supabase storage URLs to CDN URLs", () => {
+      const supabaseUrl = "https://blfxhlmpvdhcpdwgrffr.supabase.co/storage/v1/object/public/images/51351.webp";
+      expect(toCdnImageUrl(supabaseUrl)).toBe("https://cdn.amazecc.com/images/51351.webp");
+    });
+
+    it("passes through already rewritten CDN URLs untouched", () => {
+      const cdnUrl = "https://cdn.amazecc.com/images/51351.webp";
+      expect(toCdnImageUrl(cdnUrl)).toBe(cdnUrl);
+    });
+
+    it("handles null, undefined, and empty string safely", () => {
+      expect(toCdnImageUrl(null)).toBeNull();
+      expect(toCdnImageUrl(undefined)).toBeNull();
+      expect(toCdnImageUrl("   ")).toBeNull();
+    });
+
+    it("rewrites chennai.vit.ac.in media URLs to CDN URLs", () => {
+      const chennaiUrl = "https://chennai.vit.ac.in/wp-content/uploads/2023/10/faculty.jpg";
+      expect(toCdnImageUrl(chennaiUrl)).toBe("https://cdn.amazecc.com/chennai/wp-content/uploads/2023/10/faculty.jpg");
+    });
+
+    it("leaves third-party non-proxied URLs untouched", () => {
+      const otherUrl = "https://images.unsplash.com/photo-123456";
+      expect(toCdnImageUrl(otherUrl)).toBe(otherUrl);
+    });
+  });
+
+  describe("getFacultyCdnUrl", () => {
+    it("builds the unified faculty webp CDN url", () => {
+      expect(getFacultyCdnUrl("51351")).toBe("https://cdn.amazecc.com/faculty/51351.webp");
+    });
+
+    it("trims whitespace from employee id", () => {
+      expect(getFacultyCdnUrl("  54162  ")).toBe("https://cdn.amazecc.com/faculty/54162.webp");
+    });
+
+    it("returns null for empty, null, or undefined employee id", () => {
+      expect(getFacultyCdnUrl(null)).toBeNull();
+      expect(getFacultyCdnUrl(undefined)).toBeNull();
+      expect(getFacultyCdnUrl("")).toBeNull();
+      expect(getFacultyCdnUrl("   ")).toBeNull();
     });
   });
 

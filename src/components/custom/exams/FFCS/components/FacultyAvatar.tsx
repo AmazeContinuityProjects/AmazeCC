@@ -1,7 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import { ENABLE_VITFAC_INTEGRATION, useVitfacReview, useCachedImage, useChennaiImage } from "@/lib/vitfacService";
+import {
+  ENABLE_VITFAC_INTEGRATION,
+  useVitfacEnabled,
+  useVitfacReview,
+  useCachedImage,
+  useChennaiImage,
+} from "@/lib/vitfacService";
+import { getFacultyCdnUrl } from "@/lib/workerBase";
 
 /*
  * The lightweight vitfac display bits — avatar, review pill, initials —
@@ -77,15 +84,24 @@ export function FacultyAvatar({
   className = "",
   alt,
 }: FacultyAvatarProps) {
+  const enabled = useVitfacEnabled();
   const { review } = useVitfacReview(employeeId, name);
   const [failedUrls, setFailedUrls] = useState<string[]>([]);
 
-  const directUrl = ENABLE_VITFAC_INTEGRATION && review?.image ? `data:image/jpeg;base64,${review.image}` : null;
+  // 1. Primary candidate: Unified CDN chokepoint by faculty ID
+  const cdnUrl = enabled && employeeId ? getFacultyCdnUrl(employeeId) : null;
+  // 2. Direct review base64 image (if already loaded in review)
+  const directUrl = enabled && review?.image ? `data:image/jpeg;base64,${review.image}` : null;
+  // 3. Fallback sources: review image_url, chennai media, or fallbackImageUrl
   const chennaiUrl = useChennaiImage(employeeId);
-  const externalUrl = directUrl
-    ? null
-    : (ENABLE_VITFAC_INTEGRATION ? review?.image_url : null) || chennaiUrl || fallbackImageUrl || null;
-  const sourceUrl = directUrl || externalUrl;
+  const externalFallback = (enabled ? review?.image_url : null) || chennaiUrl || fallbackImageUrl || null;
+
+  // Prefer CDN chokepoint first unless it failed, then direct base64, then external fallbacks
+  const primaryUrl = cdnUrl && !failedUrls.includes(cdnUrl) ? cdnUrl : null;
+  const secondaryUrl = directUrl && !failedUrls.includes(directUrl) ? directUrl : null;
+  const tertiaryUrl = externalFallback && !failedUrls.includes(externalFallback) ? externalFallback : null;
+
+  const sourceUrl = primaryUrl || secondaryUrl || tertiaryUrl;
   const cachedUrl = useCachedImage(sourceUrl);
   const effectiveUrl =
     cachedUrl && !failedUrls.includes(cachedUrl)
