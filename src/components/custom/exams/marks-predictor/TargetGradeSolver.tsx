@@ -81,6 +81,17 @@ export default function TargetGradeSolver({
   const gateOpen = onlyFatRemains(prediction);
   const fatPublished = finalRow ? isAssessmentPublished(finalRow) : false;
 
+  // What the gate is still waiting on, named for the reader — blanks in the
+  // lists, and the other component's own FAT (the Lab FAT of a combined
+  // course), which is an ordinary mark the reader has to place by hand.
+  const otherHalfList = solvesLab ? theoryStats?.assessments : labStats?.assessments;
+  const otherFat = otherHalfList?.find((a) => isFinalExamAssessment(a));
+  const otherFatMissing = Boolean(otherFat && otherFat.scoredMark === null);
+  const otherHalfLabel = solvesLab ? "Theory" : "Lab";
+  const missingBlanks = [theoryStats?.assessments, labStats?.assessments]
+    .flatMap((list) => list ?? [])
+    .filter((a) => !isFinalExamAssessment(a) && (a.scoredMark === null || a.scoredMark === undefined)).length;
+
   const solverResult: TargetFATSolverResult = solveTargetFAT({
     targetScore: selectedTargetScore,
     currentScoredScaled: currentComponentWeighted,
@@ -206,13 +217,27 @@ export default function TargetGradeSolver({
       </div>
 
       {/* Solution — gated: the solve speaks only when every other assessment
-          carries a mark. */}
+          carries a mark. The gate's copy does the teaching too — people
+          stall here without knowing the blanks are theirs to fill. */}
       {!gateOpen ? (
         <div className="rounded-2xl border border-dashed border-amber-500/40 bg-amber-500/5 px-3.5 py-3">
           <p className="text-[11px] leading-relaxed text-zinc-600 dark:text-zinc-300 font-medium">
             <strong className="font-black text-zinc-800 dark:text-zinc-100">
               Assign a mark to every other assessment first.
             </strong>{" "}
+            {otherFatMissing ? (
+              <>
+                That includes the{" "}
+                <strong className="font-black text-zinc-800 dark:text-zinc-100">{otherFat?.title}</strong> — tap its row
+                in the {otherHalfLabel} list above and type what you expect.{" "}
+              </>
+            ) : null}
+            {missingBlanks > 0 ? (
+              <>
+                {missingBlanks === 1 ? "One assessment is" : `${missingBlanks} assessments are`} still blank in the
+                lists above — tap a row to enter what you expect, or use Simulate… to fill them all at once.{" "}
+              </>
+            ) : null}
             Once only {fatExamName} remains, this card answers exactly what you need in it.
           </p>
         </div>

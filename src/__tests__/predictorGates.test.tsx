@@ -87,6 +87,49 @@ describe("target card gate", () => {
 });
 
 /* ------------------------------------------------------------------ */
+/* Combined courses: the Lab FAT is a mark like any other — the gate   */
+/* waits for it, and the gated copy says where to put it               */
+/* ------------------------------------------------------------------ */
+
+const combinedPrediction = (labFatMark: number | null) =>
+  computeCoursePrediction({
+    courseCode: "BCSE1002",
+    courseTitle: "Embedded Systems",
+    courseType: "Embedded Theory",
+    theoryAssessments: theory(40, 32, null),
+    labAssessments: [
+      { id: "l1", title: "Lab Record", maxMark: 50, weightagePercent: 30, scoredMark: 45, component: "lab" },
+      {
+        id: "l2",
+        title: "Lab FAT",
+        maxMark: 100,
+        weightagePercent: 40,
+        scoredMark: labFatMark,
+        isSimulated: labFatMark !== null,
+        component: "lab",
+      },
+    ],
+  });
+
+describe("combined course gate", () => {
+  it("stays gated until the Lab FAT carries a mark, and says where to add it", () => {
+    render(<TargetGradeSolver prediction={combinedPrediction(null)} />);
+
+    expect(screen.getByText(/assign a mark to every other assessment first/i)).toBeTruthy();
+    expect(screen.getByText(/lab fat/i)).toBeTruthy();
+    expect(screen.getByText(/tap its row in the lab list above/i)).toBeTruthy();
+    expect(screen.queryByText(/required in fat/i)).toBeNull();
+  });
+
+  it("opens the solve once the Lab FAT is filled", () => {
+    render(<TargetGradeSolver prediction={combinedPrediction(65)} />);
+
+    expect(screen.getByText(/required in fat/i)).toBeTruthy();
+    expect(screen.queryByText(/assign a mark to every other assessment first/i)).toBeNull();
+  });
+});
+
+/* ------------------------------------------------------------------ */
 /* The FAT is frozen at zero: a tile, never an editor, and no card     */
 /* once VTOP posts it                                                  */
 /* ------------------------------------------------------------------ */
@@ -130,7 +173,13 @@ const postedAsm = {
 
 function renderSheet(onUpdate = vi.fn()) {
   const view = render(
-    <AssessmentMarkSheet asm={postedAsm} tone="blue" onClose={() => {}} onUpdateScoredMark={onUpdate} />,
+    <AssessmentMarkSheet
+      asm={postedAsm}
+      tone="blue"
+      fatFrozen={false}
+      onClose={() => {}}
+      onUpdateScoredMark={onUpdate}
+    />,
   );
   return { ...view, onUpdate };
 }
@@ -169,6 +218,7 @@ describe("mark sheet lock", () => {
       <AssessmentMarkSheet
         asm={{ ...postedAsm, scoredMark: 30, isSimulated: true }}
         tone="blue"
+        fatFrozen={false}
         onClose={() => {}}
         onUpdateScoredMark={vi.fn()}
       />,
@@ -198,7 +248,7 @@ const fatAsm = {
 
 describe("FAT sheet freeze", () => {
   it("locks an unposted FAT with no way to type a mark", () => {
-    render(<AssessmentMarkSheet asm={fatAsm} tone="blue" onClose={() => {}} onUpdateScoredMark={vi.fn()} />);
+    render(<AssessmentMarkSheet asm={fatAsm} tone="blue" fatFrozen onClose={() => {}} onUpdateScoredMark={vi.fn()} />);
 
     expect(screen.getByText(/the fat is frozen at 0/i)).toBeTruthy();
     const input = screen.getByLabelText("Mark for FAT") as HTMLInputElement;
@@ -211,6 +261,7 @@ describe("FAT sheet freeze", () => {
       <AssessmentMarkSheet
         asm={{ ...fatAsm, scoredMark: 72, percentage: 72, isPending: false }}
         tone="blue"
+        fatFrozen
         onClose={() => {}}
         onUpdateScoredMark={vi.fn()}
       />,
@@ -220,5 +271,26 @@ describe("FAT sheet freeze", () => {
     expect(screen.queryByRole("button", { name: /edit anyway/i })).toBeNull();
     const input = screen.getByLabelText("Mark for FAT") as HTMLInputElement;
     expect(input.disabled).toBe(true);
+  });
+
+  it("edits the Lab FAT of a combined course like any other row", () => {
+    const onUpdate = vi.fn();
+    render(
+      <AssessmentMarkSheet
+        asm={{ ...fatAsm, title: "Lab FAT", component: "lab" }}
+        tone="emerald"
+        fatFrozen={false}
+        onClose={() => {}}
+        onUpdateScoredMark={onUpdate}
+      />,
+    );
+
+    expect(screen.queryByText(/frozen/i)).toBeNull();
+    expect(screen.queryByRole("button", { name: /edit anyway/i })).toBeNull();
+    const input = screen.getByLabelText("Mark for Lab FAT") as HTMLInputElement;
+    expect(input.disabled).toBe(false);
+
+    fireEvent.change(input, { target: { value: "65" } });
+    expect(onUpdate).toHaveBeenCalled();
   });
 });

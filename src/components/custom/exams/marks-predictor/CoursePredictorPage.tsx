@@ -167,10 +167,12 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
     useCoursePredictionScope(course, marksStats);
 
   const [isRegimenEditorOpen, setIsRegimenEditorOpen] = useState(false);
-  /** The assessment whose mark sheet is open, with its half's tone. */
+  /** The assessment whose mark sheet is open, with its half's tone and
+   * component — the component decides whether a FAT row is the frozen one. */
   const [sheetAsm, setSheetAsm] = useState<{
     asm: Parameters<typeof AssessmentStatRow>[0]["asm"];
     tone: "blue" | "emerald" | "violet";
+    component: "theory" | "lab";
   } | null>(null);
   /** The half the add-assessment sheet targets. */
   const [addFor, setAddFor] = useState<"theory" | "lab" | null>(null);
@@ -219,11 +221,20 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
     </>
   );
 
+  // Which half's FAT the target card asks about is the half that freezes: a
+  // theory-carrying course (combined included) freezes its theory FAT and
+  // keeps the Lab FAT an ordinary editable row — combined courses must be
+  // able to enter Lab FAT marks — while a lab-only course freezes the Lab
+  // FAT. Mirrors TargetGradeSolver's `theoryStats ? theory FAT : lab FAT`.
+  const frozenFatComponent: "theory" | "lab" = prediction.theoryStats ? "theory" : "lab";
+
   const handleUpdateScoredMark = (id: string, mark: number | null, isSimulated: boolean) => {
-    const updateList = (list: any[]) =>
+    const updateList = (list: any[], component: "theory" | "lab") =>
       list.map((item) => {
-        // The FAT is frozen at zero: no editor on this page writes to it.
-        if (item.id !== id || isFinalExamAssessment(item)) return item;
+        // The card's own FAT is frozen at zero: no editor on this page
+        // writes to it. The other component's FAT edits like any row.
+        if (item.id !== id) return item;
+        if (isFinalExamAssessment(item) && component === frozenFatComponent) return item;
         return {
           ...item,
           scoredMark: mark,
@@ -233,21 +244,21 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
       });
     updateConfig({
       ...config,
-      theory: updateList(config.theory),
-      lab: updateList(config.lab),
+      theory: updateList(config.theory, "theory"),
+      lab: updateList(config.lab, "lab"),
     });
   };
 
   const handleBatchSimulate = (percentage: number) => {
-    const apply = (list: any[]) =>
+    const apply = (list: any[], component: "theory" | "lab") =>
       list.map((item) => {
-        // Simulation fills blanks, never the FAT — it stays frozen at zero.
-        if (isFinalExamAssessment(item)) return item;
+        // Simulation fills every blank except the frozen FAT.
+        if (isFinalExamAssessment(item) && component === frozenFatComponent) return item;
         if (item.scoredMark !== null && !item.isSimulated) return item;
         const simulatedMark = Math.round((percentage / 100) * item.maxMark * 10) / 10;
         return { ...item, scoredMark: simulatedMark, isSimulated: true, status: "Simulated" };
       });
-    updateConfig({ ...config, theory: apply(config.theory), lab: apply(config.lab) });
+    updateConfig({ ...config, theory: apply(config.theory, "theory"), lab: apply(config.lab, "lab") });
   };
 
   const handleClearSimulations = () => {
@@ -443,7 +454,7 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
               asm={asm}
               tone={tone}
               cohortStat={assessmentStats?.[asm.title] ?? null}
-              onOpen={() => setSheetAsm({ asm, tone })}
+              onOpen={() => setSheetAsm({ asm, tone, component })}
             />
           ))}
           {/* Unreleased weight is not a missing row but a missing fact: the
@@ -731,6 +742,7 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
           asm={markSheetAsm as any}
           tone={sheetAsm.tone}
           cohortStat={assessmentStats?.[markSheetAsm.title] ?? null}
+          fatFrozen={sheetAsm.component === frozenFatComponent && isFinalExamAssessment(markSheetAsm)}
           onClose={() => setSheetAsm(null)}
           onUpdateScoredMark={handleUpdateScoredMark}
         />

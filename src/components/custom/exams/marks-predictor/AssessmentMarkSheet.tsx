@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { AlertTriangle, Lock } from "lucide-react";
 import BottomSheet from "../../shared/BottomSheet";
 import { ToneBadge } from "../../shared/primitives";
-import { weightFreezeFor, isFinalExamAssessment, type WeightFreeze } from "./useCoursePredictionScope";
+import { weightFreezeFor, type WeightFreeze } from "./useCoursePredictionScope";
 
 const FIELD =
   "w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2.5 text-sm font-bold text-zinc-900 dark:text-white focus:outline-none focus:border-indigo-500";
@@ -38,6 +38,7 @@ export default function AssessmentMarkSheet({
   asm,
   tone,
   cohortStat,
+  fatFrozen,
   onClose,
   onUpdateScoredMark,
 }: {
@@ -45,6 +46,13 @@ export default function AssessmentMarkSheet({
   tone: "blue" | "emerald" | "violet";
   /** μ/σ the class synced for this assessment (null = no data yet). */
   cohortStat?: { count: number; mean: number; sd: number } | null;
+  /**
+   * True when this row is the FAT the target card asks about — the frozen
+   * one. A combined course freezes its theory FAT and leaves the Lab FAT
+   * editable; a lab-only course freezes the Lab FAT. Frozen means no input,
+   * no chips, no "Edit anyway": zero, always.
+   */
+  fatFrozen: boolean;
   onClose: () => void;
   onUpdateScoredMark: (id: string, mark: number | null, isSimulated: boolean) => void;
 }) {
@@ -54,11 +62,11 @@ export default function AssessmentMarkSheet({
   // A faculty-posted mark is a fact of the cohort: locked by default, with
   // one explicit way past the lock. Every edit from here on is a what-if —
   // the inputs already flag it simulated — so the real mark survives for
-  // "Reset to VTOP marks" to bring back. The FAT is the exception with no
-  // exception: frozen at zero, never editable, no override — the prediction
-  // only ever asks what you need in it, and VTOP's posted mark (when it
-  // exists) is read-only fact.
-  const isFat = isFinalExamAssessment(asm);
+  // "Reset to VTOP marks" to bring back. The card's own FAT is the
+  // exception with no exception: frozen at zero, never editable, no
+  // override — the prediction only ever asks what you need in it. The other
+  // component's FAT (a combined course's Lab FAT) edits like any row.
+  const isFat = Boolean(fatFrozen);
   const posted = !asm.isSimulated && asm.scoredMark !== null && asm.scoredMark !== undefined;
   const [override, setOverride] = useState(false);
   const locked = isFat || (posted && !override);

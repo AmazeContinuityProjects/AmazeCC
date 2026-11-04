@@ -97,23 +97,34 @@ export const weightFreezeFor = (asm: {
  * once every other row carries a mark — before that the answer moves with
  * each blank the reader has yet to fill, and showing it early reads as a
  * promise the page cannot keep. True when every non-final row in every
- * existing half is marked AND a final-exam row exists at all (its own mark
- * is the one still open; whether the reader has typed a what-if into it or
- * not does not change that the rest of the course is done).
+ * existing half is marked AND a final-exam row exists at all.
+ *
+ * The card's own FAT (the theory FAT when a theory half exists, otherwise
+ * the Lab FAT) is the one still open — it is the variable being asked
+ * about. Every *other* component's FAT — the Lab FAT of a combined course —
+ * counts as an ordinary missing mark: until the reader places it by hand
+ * (or simulates it), the gate stays shut, because a theory-only answer that
+ * ignores a blank Lab half is a number without a foundation.
  *
  * Takes the prediction rather than raw lists because that is what both the
  * page and the solver hold when they ask.
  */
 export const onlyFatRemains = (prediction: CoursePredictionResult): boolean => {
-  const halves = [prediction.theoryStats?.assessments, prediction.labStats?.assessments];
+  // Mirrors the solver's `theoryStats ? theory FAT : lab FAT` half choice.
+  const solvesTheory = prediction.theoryStats !== null;
+  const halves = [
+    { list: prediction.theoryStats?.assessments, solved: solvesTheory },
+    { list: prediction.labStats?.assessments, solved: !solvesTheory },
+  ];
   let sawFinal = false;
   let sawRow = false;
-  for (const list of halves) {
+  for (const { list, solved } of halves) {
     if (!list) continue;
     for (const asm of list) {
       sawRow = true;
       if (isFinalExamAssessment(asm)) {
         sawFinal = true;
+        if (!solved && (asm.scoredMark === null || asm.scoredMark === undefined)) return false;
         continue;
       }
       if (asm.scoredMark === null || asm.scoredMark === undefined) return false;
@@ -171,7 +182,10 @@ export const pinReservedFinalExamWeight = <
 };
 
 /**
- * The FAT is frozen at zero.
+ * The card's own FAT is frozen at zero — but only the half the card asks
+ * about. A combined (theory + lab) course solves its theory FAT, so that one
+ * never takes a mark while its Lab FAT stays an ordinary editable row; a
+ * lab-only course freezes the Lab FAT instead.
  *
  * An unpublished final-exam mark never enters the prediction — the solver's
  * whole job is to say what the reader still needs in it, so a what-if typed
@@ -183,12 +197,15 @@ export const pinReservedFinalExamWeight = <
  */
 export const freezeFinalExamMarks = <T extends { title: string; scoredMark: number | null; isSimulated?: boolean }>(
   list: readonly T[],
+  frozen: boolean = true,
 ): T[] =>
-  list.map((item) =>
-    isFinalExamAssessment(item) && !isAssessmentPublished(item) && item.scoredMark !== null
-      ? { ...item, scoredMark: null, isSimulated: false }
-      : item,
-  );
+  frozen
+    ? list.map((item) =>
+        isFinalExamAssessment(item) && !isAssessmentPublished(item) && item.scoredMark !== null
+          ? { ...item, scoredMark: null, isSimulated: false }
+          : item,
+      )
+    : [...list];
 
 const stripComponentMarker = (code: unknown): string =>
   String(code ?? "")
@@ -507,26 +524,27 @@ export function useCoursePredictionScope(course: EnrolledCourseItem | null, mark
     return overall && Number.isFinite(overall.mean) ? overall : null;
   }, [course, marksStats]);
 
-  const prediction = useMemo(
-    () =>
-      course
-        ? computeCoursePrediction({
-            courseCode: course.courseCode,
-            courseTitle: course.courseTitle,
-            courseType: course.courseType,
-            theoryAssessments: freezeFinalExamMarks(config.theory),
-            labAssessments: freezeFinalExamMarks(config.lab),
-            theoryCredits: config.theoryCredits,
-            labCredits: config.labCredits,
-            // Always a key (null when absent) so the prediction resolves the
-            // ladder like the marks subpage does for the same payload rather
-            // than defaulting to the fixed one.
-            courseSystem: course.courseSystem ?? null,
-            classStats,
-          })
-        : null,
-    [course, config, classStats],
-  );
+  const prediction = useMemo(() => {
+    if (!course) return null;
+    // The card's half decides which FAT freezes: a theory-carrying course
+    // asks about its theory FAT (frozen) and keeps the Lab FAT an ordinary
+    // editable row; a lab-only course freezes the Lab FAT instead.
+    const solvesTheory = config.theory.length > 0;
+    return computeCoursePrediction({
+      courseCode: course.courseCode,
+      courseTitle: course.courseTitle,
+      courseType: course.courseType,
+      theoryAssessments: freezeFinalExamMarks(config.theory, solvesTheory),
+      labAssessments: freezeFinalExamMarks(config.lab, !solvesTheory),
+      theoryCredits: config.theoryCredits,
+      labCredits: config.labCredits,
+      // Always a key (null when absent) so the prediction resolves the
+      // ladder like the marks subpage does for the same payload rather
+      // than defaulting to the fixed one.
+      courseSystem: course.courseSystem ?? null,
+      classStats,
+    });
+  }, [course, config, classStats]);
 
   // Cohort statistics for this course's assessments, keyed the same way the
   // course marks subpage reads them: by the class id VTOP stamps on either the
