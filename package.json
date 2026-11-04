@@ -18,6 +18,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "catalogue:build": "node scripts/convert-codechef-catalogue.mjs",
+    "scanner:dataset": "node scripts/build-scanner-dataset.mjs",
+    "scanner:train": "node scripts/train-scanner-nn.mjs",
     "prepare": "husky",
     "pretypecheck": "node scripts/generate-build-info.js",
     "typecheck": "tsc --noEmit"
@@ -49,6 +51,7 @@
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
     "tailwind-merge": "^3.3.1",
+    "tesseract.js": "^7.0.0",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
@@ -60,6 +63,7 @@
     "@types/react-dom": "^19.2.2",
     "eslint": "^9",
     "eslint-config-next": "^16.4.3",
+    "fake-indexeddb": "^6.2.7",
     "husky": "^9.1.7",
     "jsdom": "^29.1.1",
     "lint-staged": "^17.6.0",
