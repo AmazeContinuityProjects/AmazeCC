@@ -3,7 +3,7 @@ import { join } from "node:path";
 import vm from "node:vm";
 import { describe, expect, it } from "vitest";
 import chennai from "../data/campus/chennai.json";
-import type { ParsedCourse, CourseLock } from "../components/custom/exams/FFCS/types";
+import type { ParsedCourse, CourseLock } from "@/lib/ffcsTypes";
 
 /**
  * The built worker, actually executed.
@@ -153,11 +153,7 @@ function withWorkerGlobals(context: vm.Context): vm.Context {
   return context;
 }
 
-function runWorker(
-  payload: unknown,
-  timeoutMs = 5000,
-  chunkFile: string = workerFile!
-): Promise<Reply> {
+function runWorker(payload: unknown, timeoutMs = 5000, chunkFile: string = workerFile!): Promise<Reply> {
   const source = readFileSync(chunkFile, "utf8");
   const replies: Reply[] = [];
 
@@ -172,14 +168,11 @@ function runWorker(
       console,
       crypto,
       // Node's module wrapper is irrelevant here; the chunk is a plain IIFE.
-    })
+    }),
   );
 
   return new Promise<Reply>((resolve, reject) => {
-    const timer = setTimeout(
-      () => reject(new Error(`worker did not reply within ${timeoutMs}ms`)),
-      timeoutMs
-    );
+    const timer = setTimeout(() => reject(new Error(`worker did not reply within ${timeoutMs}ms`)), timeoutMs);
     const finish = (reply: Reply) => {
       clearTimeout(timer);
       resolve(reply);
@@ -260,9 +253,7 @@ describe.runIf(workerFile)("the emitted worker", () => {
     });
 
     expect(reply.type).toBe("success");
-    const tts = reply.timetables as
-      | { courses: { slots: string[] }[]; metrics: { halfDays: number } }[]
-      | undefined;
+    const tts = reply.timetables as { courses: { slots: string[] }[]; metrics: { halfDays: number } }[] | undefined;
     expect(tts![0].courses[0].slots).toEqual(["E", "TE", "TEE"]);
     // E1 is Tuesday and Friday, TE1 is Thursday, TEE is S11 on Monday: four
     // distinct mornings of ten. The worker agrees with the source tests.
@@ -316,7 +307,7 @@ describe.runIf(pdfWorkerFile)("the emitted PDF dossier worker", () => {
     expect(pdfWorkerFile).toBeTruthy();
     const source = readFileSync(pdfWorkerFile!, "utf8");
     const context = withWorkerGlobals(
-      vm.createContext({ self: { onmessage: null, postMessage: () => {} }, console, crypto })
+      vm.createContext({ self: { onmessage: null, postMessage: () => {} }, console, crypto }),
     );
     new vm.Script(source, { filename: pdfWorkerFile! }).runInContext(context);
     // The handler lands after the startup promise chain — the split jsPDF

@@ -2,11 +2,23 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { LogIn } from "lucide-react";
 import ThemeToggle from "@/components/custom/ThemeToggle";
-import FFCSTimetableTab from "@/components/custom/exams/FFCSTimetableTab";
 import { getAssetPath } from "@/lib/utils";
 import { useOverlayBackBoundary } from "@/lib/overlayStack";
+
+// The planner is ~440KB of async chunks; the shell (nav + footer) is a few
+// KB. Deferring the tab keeps the share-link landing paintable without the
+// whole graph, matching how the dashboard already lazy-loads its tabs.
+const FFCSTimetableTab = dynamic(() => import("@/components/custom/exams/FFCSTimetableTab"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex min-h-[50vh] items-center justify-center" aria-busy="true">
+      <span className="animate-pulse text-sm text-slate-500 dark:text-gray-400">Loading planner…</span>
+    </div>
+  ),
+});
 
 export default function FFCSPageView() {
   useOverlayBackBoundary("ffcs-route");

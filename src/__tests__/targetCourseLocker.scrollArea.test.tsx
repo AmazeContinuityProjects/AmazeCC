@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render } from "@testing-library/react";
 import { TargetCourseLocker } from "../components/custom/exams/FFCS/components/TargetCourseLocker";
-import type { CourseLock, ParsedCourse } from "../components/custom/exams/FFCS/types";
+import type { CourseLock, ParsedCourse } from "@/lib/ffcsTypes";
 import { installLocalStorage } from "./helpers/localStorage";
 
 installLocalStorage();

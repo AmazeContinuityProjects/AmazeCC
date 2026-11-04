@@ -8,7 +8,8 @@ import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import { CalendarClock, FileText, Inbox, RefreshCw, ScrollText, XCircle } from "lucide-react";
 import { syncEngine } from "@/lib/sync-engine";
 import { storage } from "@/lib/storage";
-import { DEMO_OFFICIAL_OD, formatSemesterName, getOfficialOd } from "@/lib/officialOd";
+import { DEMO_OFFICIAL_OD, getOfficialOd } from "@/lib/officialOd";
+import { formatSemesterName } from "@/lib/formatSemesterName";
 import type { OfficialOdResponse } from "@/types/data/od";
 import SelectField from "../shared/primitives/SelectField";
 
@@ -43,7 +44,10 @@ export default function OfficialOdSection({ currSemesterID, allGradesData }: Pro
     }
     return Array.from(ids)
       .sort((a, b) => b.localeCompare(a))
-      .map((id) => ({ value: id, label: id === currSemesterID ? `${formatSemesterName(id)} (Current)` : formatSemesterName(id) }));
+      .map((id) => ({
+        value: id,
+        label: id === currSemesterID ? `${formatSemesterName(id)} (Current)` : formatSemesterName(id),
+      }));
   }, [currSemesterID, allGradesData]);
 
   useEffect(() => {

@@ -14,8 +14,8 @@ import { track } from "@/lib/analytics";
 import { TimetableGrid } from "@/components/custom/exams/FFCS/components/TimetableGrid";
 import SelectedCoursesList from "@/components/custom/exams/FFCS/components/SelectedCoursesList";
 import FacultyReviewSheetHost from "@/components/custom/exams/FFCS/components/FacultyReviewSheetHost";
-import { DAYS } from "@/components/custom/exams/FFCS/constants";
-import type { TimetablePeriod, TimetableState } from "@/components/custom/exams/FFCS/types";
+import { DAYS } from "@/lib/ffcsConstants";
+import type { TimetablePeriod, TimetableState } from "@/lib/ffcsTypes";
 import { useOverlayBackBoundary } from "@/lib/overlayStack";
 import { useFacultyReviewSheet } from "@/components/custom/exams/FFCS/hooks/useFacultyReviewSheet";
 

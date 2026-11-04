@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { DEFAULT_FFCS_SEMESTER, getFFCSSemester } from "@/components/custom/exams/FFCS/reports";
+import { DEFAULT_FFCS_SEMESTER, getFFCSSemester } from "@/lib/ffcsReports";
 import { getAssetPath } from "@/lib/utils";
 import PreloadReportCsv from "./PreloadReportCsv";
 
@@ -24,12 +24,11 @@ export const metadata: Metadata = {
     default: "AmazeCC FFCS - Timetable Planner & Auto-Generator",
     template: "%s | AmazeCC FFCS",
   },
-  description: "Offline-first conflict-free timetable planner, smart slot generator, faculty ratings, and class clash resolver for VIT.",
+  description:
+    "Offline-first conflict-free timetable planner, smart slot generator, faculty ratings, and class clash resolver for VIT.",
   manifest: "/ffcs-manifest.json",
   icons: {
-    icon: [
-      { url: "/favicon/FFCS.png", type: "image/png" },
-    ],
+    icon: [{ url: "/favicon/FFCS.png", type: "image/png" }],
     shortcut: "/favicon/FFCS.png",
     apple: "/favicon/FFCS.png",
   },
@@ -40,7 +39,8 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "AmazeCC FFCS - Timetable Planner & Auto-Generator",
-    description: "Offline-first conflict-free timetable planner, smart slot generator, faculty ratings, and class clash resolver for VIT.",
+    description:
+      "Offline-first conflict-free timetable planner, smart slot generator, faculty ratings, and class clash resolver for VIT.",
     url: "/ffcs/",
     siteName: "AmazeCC FFCS",
     type: "website",

@@ -76,8 +76,8 @@ export interface AnalyticsEventMap {
   import_file: { courses: number; format: string };
   /** One setting changed — `key` is its name, not its value. */
   settings_changed: { key: string };
-  /** A tour step was shown or advanced. */
-  tour_step: { step: number; total: number };
+  /** A tour step was shown or advanced. `feature` names which tour. */
+  tour_step: { step: number; total: number; feature?: string };
   /** A preview course was handed to another faculty at the same slots. */
   slot_faculty_swap: Record<string, never>;
   /** Registered courses were pasted directly into timetable. */

@@ -10,8 +10,8 @@ import {
   scoreRanking,
   type RankingMode,
 } from "../lib/ffcsRanking";
-import { generateTimetables, type GenerateParams } from "../components/custom/exams/FFCS/logic/generate";
-import type { ParsedCourse, CourseLock } from "../components/custom/exams/FFCS/types";
+import { generateTimetables, type GenerateParams } from "@/lib/ffcsGenerate";
+import type { ParsedCourse, CourseLock } from "@/lib/ffcsTypes";
 import chennai from "../data/campus/chennai.json";
 
 /**
@@ -113,12 +113,8 @@ describe("scoring", () => {
     const early = inputs("TB1");
     const late = inputs("TG2");
 
-    expect(scoreRanking(early, "Early Finish").score).toBeGreaterThan(
-      scoreRanking(late, "Early Finish").score
-    );
-    expect(scoreRanking(late, "Late Start").score).toBeGreaterThan(
-      scoreRanking(early, "Late Start").score
-    );
+    expect(scoreRanking(early, "Early Finish").score).toBeGreaterThan(scoreRanking(late, "Early Finish").score);
+    expect(scoreRanking(late, "Late Start").score).toBeGreaterThan(scoreRanking(early, "Late Start").score);
   });
 
   it("weights what the profile names", () => {
@@ -130,7 +126,7 @@ describe("scoring", () => {
     // what a profile *is*.
     expect(forHalfDays).toBeGreaterThan(forGaps);
     expect(scoreRanking(reading, "Half Days").breakdown.lowGaps).toBeLessThan(
-      scoreRanking(reading, "Minimize Gaps").breakdown.lowGaps
+      scoreRanking(reading, "Minimize Gaps").breakdown.lowGaps,
     );
   });
 
@@ -155,9 +151,7 @@ describe("naming a profile", () => {
 
   it("falls back to Balanced for an absent or unknown mode", () => {
     const reading = inputs("TB1");
-    expect(scoreRanking(reading, null as unknown as RankingMode)).toEqual(
-      scoreRanking(reading, "Balanced")
-    );
+    expect(scoreRanking(reading, null as unknown as RankingMode)).toEqual(scoreRanking(reading, "Balanced"));
     expect(profileFor(null)).toEqual(profileFor("Balanced"));
   });
 });
@@ -169,17 +163,16 @@ describe("combined ranking priorities", () => {
     const facultyFirst = combineRankingScores(scores, ["faculty", "profile", "sort", "time"]);
 
     expect(profileFirst.score).toBeGreaterThan(facultyFirst.score);
-    expect(
-      Object.values(profileFirst.breakdown).reduce((sum, value) => sum + value, 0)
-    ).toBeCloseTo(profileFirst.score, 1);
+    expect(Object.values(profileFirst.breakdown).reduce((sum, value) => sum + value, 0)).toBeCloseTo(
+      profileFirst.score,
+      1,
+    );
   });
 });
 
 /* ── the contract with the planner ─────────────────────────────────────── */
 
-const row = (
-  over: Partial<ParsedCourse> & Pick<ParsedCourse, "CODE" | "SLOT">
-): ParsedCourse => ({
+const row = (over: Partial<ParsedCourse> & Pick<ParsedCourse, "CODE" | "SLOT">): ParsedCourse => ({
   CODE: over.CODE,
   TITLE: over.TITLE ?? "Course",
   TYPE: over.TYPE ?? "TH",
@@ -199,10 +192,7 @@ const lock = (code: string): CourseLock => ({
 
 const params = (over: Partial<GenerateParams> = {}): GenerateParams => ({
   schema: chennai as never,
-  masterCourses: [
-    row({ CODE: "BCSE101", SLOT: "TB1" }),
-    row({ CODE: "BCSE101", SLOT: "TG2", ROOM: "AB2-202" }),
-  ],
+  masterCourses: [row({ CODE: "BCSE101", SLOT: "TB1" }), row({ CODE: "BCSE101", SLOT: "TG2", ROOM: "AB2-202" })],
   courseLocks: [lock("BCSE101")],
   blockedSlots: [],
   friends: [],
@@ -247,10 +237,10 @@ describe("ranking profiles inside the generator", () => {
     // The contract that makes this an addition rather than a change: turning a
     // profile on may reorder the shelf, it may not add or remove books.
     expect(layouts(generateTimetables(params({ rankingMode: "Late Start" })))).toEqual(
-      layouts(generateTimetables(params()))
+      layouts(generateTimetables(params())),
     );
     expect(layouts(generateTimetables(params({ rankingMode: "Balanced" })))).toEqual(
-      layouts(generateTimetables(params()))
+      layouts(generateTimetables(params())),
     );
   });
 
@@ -267,9 +257,7 @@ describe("ranking profiles inside the generator", () => {
     const slotsOf = (index: number) => ranked.timetables[index].courses.flatMap((c) => c.slots);
     expect(slotsOf(0)).toEqual(["TG2"]);
     expect(slotsOf(1)).toEqual(["TB1"]);
-    expect(ranked.timetables[0].rankingScore!).toBeGreaterThanOrEqual(
-      ranked.timetables[1].rankingScore!
-    );
+    expect(ranked.timetables[0].rankingScore!).toBeGreaterThanOrEqual(ranked.timetables[1].rankingScore!);
     expect(plain.timetables[0].courses.flatMap((c) => c.slots)).toEqual(["TB1"]);
   });
 
@@ -280,7 +268,7 @@ describe("ranking profiles inside the generator", () => {
 
     for (const timetable of r.timetables) {
       expect(timetable.rankingComponents?.profile).toBe(
-        rankCourses(timetable.courses, chennai as never, "Balanced").score
+        rankCourses(timetable.courses, chennai as never, "Balanced").score,
       );
     }
   });
@@ -304,7 +292,7 @@ describe("ranking profiles inside the generator", () => {
           "id:1001": { wPct: 35, lecture: 2, da: 2, vibe: 2, reviews: 12 },
           "id:1002": { wPct: 90, lecture: 4.5, da: 4, vibe: 4, reviews: 20 },
         },
-      })
+      }),
     );
 
     expect(result.kind).toBe("ok");
@@ -328,7 +316,7 @@ describe("ranking profiles inside the generator", () => {
           "id:1002": { wPct: 90, lecture: 4.5, da: 4, vibe: 4, reviews: 20 },
         },
         facultyScoreFilters: { minWPct: 70, minLecture: 0, minDa: 0, minVibe: 0 },
-      })
+      }),
     );
 
     expect(result.kind).toBe("ok");
@@ -343,7 +331,7 @@ describe("ranking profiles inside the generator", () => {
         facultyRatingsAvailable: false,
         facultyRatings: {},
         facultyScoreFilters: { minWPct: 95, minLecture: 5, minDa: 5, minVibe: 5 },
-      })
+      }),
     );
 
     expect(result.kind).toBe("ok");
@@ -366,9 +354,7 @@ describe("combineFactorScores (the generator's ranked list)", () => {
     expect(combineFactorScores(scores, ["halfdays", "gaps", "social"]).score).toBe(55);
     // A data-less factor is absent, not zero, so it takes no weight:
     // (80*2 + 50*1) / 3 = 70.
-    expect(
-      combineFactorScores({ gaps: 80, halfdays: 50 }, ["gaps", "halfdays", "social"]).score
-    ).toBe(70);
+    expect(combineFactorScores({ gaps: 80, halfdays: 50 }, ["gaps", "halfdays", "social"]).score).toBe(70);
   });
 
   it("scores an all-off list as zero — every option ties and sortBy decides", () => {

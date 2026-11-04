@@ -11,7 +11,7 @@ import {
   theorySessionOf,
   uniqueSlotLayouts,
 } from "../lib/ffcsResultFilters";
-import type { TimetableState } from "../components/custom/exams/FFCS/types";
+import type { TimetableState } from "@/lib/ffcsTypes";
 import chennai from "../data/campus/chennai.json";
 
 /**

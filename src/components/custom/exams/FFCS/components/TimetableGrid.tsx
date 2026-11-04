@@ -1,5 +1,5 @@
-import React from 'react';
-import { DAYS } from '../constants';
+import React from "react";
+import { DAYS } from "@/lib/ffcsConstants";
 import type { AddedCourse, GapDetail, TimetablePeriod } from "@amazecontinuityprojects/amazeui";
 import { TimetableView } from "../../../timetable";
 
@@ -39,7 +39,7 @@ export function TimetableGrid({
   toggleBlockSlot,
   selectedGapDetails,
   theoryPeriods,
-  labPeriods
+  labPeriods,
 }: TimetableGridProps) {
   const displayCourses = customCourses || courses;
   const isComparePreview = Boolean(customCourses) && !fullSize;
@@ -56,7 +56,7 @@ export function TimetableGrid({
       title="Unified Schedule"
       showLegend
       forceView={isComparePreview ? "horizontal" : undefined}
-      horizontalClassName={isComparePreview ? 'scale-[0.85] origin-top-left -mb-10' : undefined}
+      horizontalClassName={isComparePreview ? "scale-[0.85] origin-top-left -mb-10" : undefined}
     />
   );
 }

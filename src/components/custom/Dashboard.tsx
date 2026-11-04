@@ -47,13 +47,19 @@ function FeatureLoading() {
 // when their tab/subtab is selected. This keeps a signed-in home visit from
 // paying the parse/execute cost for every other product area up front.
 const GradesModal = dynamic(() => import("./exams/GradesModal"), { loading: FeatureLoading });
-const DashboardAttendanceFeature = dynamic(() => import("./dashboard/DashboardAttendanceFeature"), { loading: FeatureLoading });
-const DashboardAcademicsFeature = dynamic(() => import("./dashboard/DashboardAcademicsFeature"), { loading: FeatureLoading });
+const DashboardAttendanceFeature = dynamic(() => import("./dashboard/DashboardAttendanceFeature"), {
+  loading: FeatureLoading,
+});
+const DashboardAcademicsFeature = dynamic(() => import("./dashboard/DashboardAcademicsFeature"), {
+  loading: FeatureLoading,
+});
 const DashboardHomeFeature = dynamic(() => import("./dashboard/DashboardHomeFeature"), { loading: FeatureLoading });
 const AmazeOnboardingFlow = dynamic(() => import("./onboarding/AmazeOnboardingFlow"), { loading: FeatureLoading });
 const DashboardToolsFeature = dynamic(() => import("./dashboard/DashboardToolsFeature"), { loading: FeatureLoading });
 const DashboardHostelFeature = dynamic(() => import("./dashboard/DashboardHostelFeature"), { loading: FeatureLoading });
-const DashboardProfileFeature = dynamic(() => import("./dashboard/DashboardProfileFeature"), { loading: FeatureLoading });
+const DashboardProfileFeature = dynamic(() => import("./dashboard/DashboardProfileFeature"), {
+  loading: FeatureLoading,
+});
 const DashboardUtilityRoutes = dynamic(() => import("./dashboard/DashboardUtilityRoutes"), { loading: FeatureLoading });
 const FresherWelcomePage = dynamic(() => import("./FresherWelcomePage"), { loading: FeatureLoading });
 const FeedbackStatusModal = dynamic(() => import("./profile/FeedbackStatusModal"));
@@ -68,7 +74,7 @@ function DashboardContent({
   onOpenShortcutsHelp,
   onSystemBack,
   onCollapseScreenChange,
-  onRunSyncMode
+  onRunSyncMode,
 }) {
   const [IDs, setIDs] = useAtom(credentialsAtom);
   const [attendanceData] = useAtom(attendanceDataAtom);
@@ -109,14 +115,24 @@ function DashboardContent({
     setCourseDashboardTarget,
     activePageResetKey,
     selectTab,
-    activeTab, setActiveTab, activeSubTab, setActiveSubTab,
-    activeAttendanceSubTab, setActiveAttendanceSubTab,
-    activeToolsSubTab, setActiveToolsSubTab,
-    activeDayscholarSubTab, setActiveDayscholarSubTab,
-    activeMoreSubTab, setActiveMoreSubTab,
-    activeProfileSubTab, setActiveProfileSubTab,
-    hostelActiveSubTab: HostelActiveSubTab, setHostelActiveSubTab,
-    activeDay, setActiveDay,
+    activeTab,
+    setActiveTab,
+    activeSubTab,
+    setActiveSubTab,
+    activeAttendanceSubTab,
+    setActiveAttendanceSubTab,
+    activeToolsSubTab,
+    setActiveToolsSubTab,
+    activeDayscholarSubTab,
+    setActiveDayscholarSubTab,
+    activeMoreSubTab,
+    setActiveMoreSubTab,
+    activeProfileSubTab,
+    setActiveProfileSubTab,
+    hostelActiveSubTab: HostelActiveSubTab,
+    setHostelActiveSubTab,
+    activeDay,
+    setActiveDay,
   } = useDashboardNavigator();
   const {
     showFresherWelcome,
@@ -139,7 +155,7 @@ function DashboardContent({
     try {
       const stored = localStorage.getItem("profile");
       if (stored) setProfileData(JSON.parse(stored));
-    } catch(e){}
+    } catch (e) {}
   }, []);
 
   if (showFresherWelcome) {
@@ -188,9 +204,7 @@ function DashboardContent({
   }
 
   return (
-    <div
-      className="dashboard-shell w-full max-w-md md:max-w-full mx-auto overflow-visible"
-    >
+    <div className="dashboard-shell w-full max-w-md md:max-w-full mx-auto overflow-visible">
       <NavigationTabs
         activeTab={activeTab}
         onCollapseScreenChange={onCollapseScreenChange}
@@ -199,9 +213,8 @@ function DashboardContent({
         handleReloadRequest={handleReloadRequest}
         currSemesterID={settings.currSemesterID}
         setCurrSemesterID={(val: string) => {
-          setSettings(prev => {
+          setSettings((prev) => {
             const next = { ...prev, currSemesterID: val };
-            localStorage.setItem("settings", JSON.stringify(next));
             return next;
           });
         }}
@@ -209,11 +222,10 @@ function DashboardContent({
         setIsReloading={setIsReloading}
         username={IDs.VtopUsername}
         password={IDs.VtopPassword}
-        setPassword={(val: string[]) =>{
-          setIDs(prev => ({ ...prev, VtopUsername: val[0], VtopPassword: val[1] }))
-          localStorage.setItem("IDs", JSON.stringify({ ...IDs, VtopUsername: val[0], VtopPassword: val[1]}))
-        }
-        }
+        setPassword={(val: string[]) => {
+          setIDs((prev) => ({ ...prev, VtopUsername: val[0], VtopPassword: val[1] }));
+          localStorage.setItem("IDs", JSON.stringify({ ...IDs, VtopUsername: val[0], VtopPassword: val[1] }));
+        }}
         settings={settings}
         setSettings={setSettings}
         attendancePercentage={attendancePercentage}
@@ -241,8 +253,8 @@ function DashboardContent({
       />
 
       <div
-        className={`dashboard-content relative bg-gray-50/50  dark:bg-black min-h-[100dvh] text-gray-900  dark:text-gray-100 transition-all duration-300 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] md:pb-0 ${settings.isSidebarCollapsed ? 'md:pl-24' : 'md:pl-80'} w-full overflow-x-clip`}
-        style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+        className={`dashboard-content relative bg-gray-50/50  dark:bg-black min-h-[100dvh] text-gray-900  dark:text-gray-100 transition-all duration-300 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] md:pb-0 ${settings.isSidebarCollapsed ? "md:pl-24" : "md:pl-80"} w-full overflow-x-clip`}
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         {/* Ambient Background Glows */}
         <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none -z-10">
@@ -262,14 +274,16 @@ function DashboardContent({
           )}
         </AnimatePresence>
 
-        <FeedbackStatusModal isOpen={showFeedbackStatus} onClose={() => setShowFeedbackStatus(false)} loginToVTOP={loginToVTOP} />
+        <FeedbackStatusModal
+          isOpen={showFeedbackStatus}
+          onClose={() => setShowFeedbackStatus(false)}
+          loginToVTOP={loginToVTOP}
+        />
         <div className="px-6 py-4 md:p-6 lg:p-10 max-w-7xl mx-auto w-full">
           <DashboardRoute route="home">
             <DashboardHomeFeature
               attendanceData={attendanceData}
               marksData={marksData}
-              scheduleData={ScheduleData}
-              handleScheduleFetch={handleFetchSchedule}
               hostelData={hostelData}
               registeredEvents={registeredEvents}
               moodleData={moodleData}
@@ -348,7 +362,7 @@ function DashboardContent({
           <DashboardRoute route="tools">
             <div className="animate-fadeIn">
               <DashboardToolsFeature
-marksData={marksData}
+                marksData={marksData}
                 marksStats={marksStats}
                 allGradesData={allGradesData}
                 attendanceData={attendanceData}

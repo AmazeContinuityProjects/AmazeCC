@@ -66,36 +66,23 @@ export function useTimetableViewMode() {
   );
 
   /**
-   * Persists a preference patch. Every other write path in the app saves to
-   * `localStorage` by hand inside the updater, so the atom and storage never
-   * disagree; this does the same for the two keys owned here.
+   * Persists a preference patch. `settingsAtom` is an atomWithStorage, so the
+   * set alone writes through — no hand-mirroring into localStorage.
    */
   const persist = useCallback(
     (patch: Partial<typeof settings>) => {
-      setSettings((prev) => {
-        const merged = { ...prev, ...patch };
-        try {
-          localStorage.setItem("settings", JSON.stringify(merged));
-        } catch {
-          // A private-mode / quota failure must not break the toggle itself.
-        }
-        return merged;
-      });
+      setSettings((prev) => ({ ...prev, ...patch }));
     },
-    [setSettings]
+    [setSettings],
   );
 
-  const setMode = useCallback(
-    (next: TimetableViewMode) => persist({ timetableViewMode: next }),
-    [persist]
-  );
+  const setMode = useCallback((next: TimetableViewMode) => persist({ timetableViewMode: next }), [persist]);
 
   /** Persists a density choice and marks it explicit, so it wins over the
    *  phone's compact default from then on. */
   const setDensity = useCallback(
-    (next: CellDensity) =>
-      persist({ timetableCellDensity: next, timetableDensityTouched: true }),
-    [persist]
+    (next: CellDensity) => persist({ timetableCellDensity: next, timetableDensityTouched: true }),
+    [persist],
   );
 
   const resolved: ResolvedView | null = !mounted

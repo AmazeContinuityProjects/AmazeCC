@@ -273,12 +273,6 @@ export function useAppDataActions({
             isDayscholarWithBus: true,
             residentialStatus: "dayscholar",
           }));
-          const updated = {
-            ...settings,
-            isDayscholarWithBus: true,
-            residentialStatus: "dayscholar",
-          };
-          localStorage.setItem("settings", JSON.stringify(updated));
         }
       }
 
@@ -300,7 +294,6 @@ export function useAppDataActions({
       if (targetSemesterID && targetSemesterID !== settings.currSemesterID) {
         setSettings((prev) => {
           const next = { ...prev, currSemesterID: targetSemesterID };
-          localStorage.setItem("settings", JSON.stringify(next));
           return next;
         });
       }

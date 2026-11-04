@@ -3,8 +3,8 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import * as XLSX from "xlsx";
 import { processParsedCourses } from "../components/custom/exams/FFCSTimetableTab";
-import { parseReportRows } from "../components/custom/exams/FFCS/reports";
-import type { ParsedCourse } from "../components/custom/exams/FFCS/types";
+import { parseReportRows } from "@/lib/ffcsReports";
+import type { ParsedCourse } from "@/lib/ffcsTypes";
 import { getTimetableSchema } from "@/lib/campusSchema";
 import { slotsOverlap } from "@/lib/slots";
 
@@ -17,9 +17,7 @@ import { slotsOverlap } from "@/lib/slots";
  * did.
  */
 
-const winterRow = (
-  over: Partial<ParsedCourse> & Pick<ParsedCourse, "CODE" | "SLOT" | "FACULTY">
-): ParsedCourse => ({
+const winterRow = (over: Partial<ParsedCourse> & Pick<ParsedCourse, "CODE" | "SLOT" | "FACULTY">): ParsedCourse => ({
   TITLE: "Test course",
   TYPE: "",
   CREDITS: "2",
@@ -89,10 +87,34 @@ describe("blank types take the embedded pairing path", () => {
     // A2+TA2 (evening theory) must take the morning lab L15+L16, while A1+TA1 pairs with
     // L11+L12 to avoid placing both theory and lab during morning theory hours.
     const grouped = processParsedCourses([
-      winterRow({ CODE: "BAECE204", SLOT: "A1+TA1", FACULTY: "MUTHULAKSHMI S", ERP_ID: "50407", CLASS_ID: "CH2026270501459" }),
-      winterRow({ CODE: "BAECE204", SLOT: "A2+TA2", FACULTY: "MUTHULAKSHMI S", ERP_ID: "50407", CLASS_ID: "CH2026270501461" }),
-      winterRow({ CODE: "BAECE204", SLOT: "L15+L16", FACULTY: "MUTHULAKSHMI S", ERP_ID: "50407", CLASS_ID: "CH2026270502817" }),
-      winterRow({ CODE: "BAECE204", SLOT: "L11+L12", FACULTY: "MUTHULAKSHMI S", ERP_ID: "50407", CLASS_ID: "CH2026270503049" }),
+      winterRow({
+        CODE: "BAECE204",
+        SLOT: "A1+TA1",
+        FACULTY: "MUTHULAKSHMI S",
+        ERP_ID: "50407",
+        CLASS_ID: "CH2026270501459",
+      }),
+      winterRow({
+        CODE: "BAECE204",
+        SLOT: "A2+TA2",
+        FACULTY: "MUTHULAKSHMI S",
+        ERP_ID: "50407",
+        CLASS_ID: "CH2026270501461",
+      }),
+      winterRow({
+        CODE: "BAECE204",
+        SLOT: "L15+L16",
+        FACULTY: "MUTHULAKSHMI S",
+        ERP_ID: "50407",
+        CLASS_ID: "CH2026270502817",
+      }),
+      winterRow({
+        CODE: "BAECE204",
+        SLOT: "L11+L12",
+        FACULTY: "MUTHULAKSHMI S",
+        ERP_ID: "50407",
+        CLASS_ID: "CH2026270503049",
+      }),
     ]);
 
     expect(grouped).toHaveLength(2);
@@ -271,8 +293,7 @@ describe("the shipped reports", () => {
 
     // Index code families both ways so a merged L/P base still finds its
     // suffixed report row.
-    const stripSuffix = (code: string): string =>
-      code.endsWith("L") || code.endsWith("P") ? code.slice(0, -1) : code;
+    const stripSuffix = (code: string): string => (code.endsWith("L") || code.endsWith("P") ? code.slice(0, -1) : code);
     const byKey = new Map<string, ParsedCourse>();
     for (const r of parsed) {
       byKey.set(`${stripSuffix(r.CODE)}|${r.ERP_ID}|${r.SLOT}`, r);

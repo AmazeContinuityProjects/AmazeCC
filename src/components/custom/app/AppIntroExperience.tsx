@@ -20,7 +20,13 @@ import {
 } from "@/store";
 
 function FeatureLoading() {
-  return <div className="min-h-[60vh] animate-pulse bg-slate-50 dark:bg-zinc-950" role="status" aria-label="Loading introduction" />;
+  return (
+    <div
+      className="min-h-[60vh] animate-pulse bg-slate-50 dark:bg-zinc-950"
+      role="status"
+      aria-label="Loading introduction"
+    />
+  );
 }
 
 const AmazeOnboardingFlow = dynamic(() => import("../onboarding/AmazeOnboardingFlow"), { loading: FeatureLoading });
@@ -72,15 +78,7 @@ export default function AppIntroExperience({
       intro={intro}
       settings={settings}
       username={IDs.VtopUsername}
-      setSettings={(update: any) => {
-        if (typeof update === "function") {
-          setSettings(previous => {
-            const next = update(previous);
-            localStorage.setItem("settings", JSON.stringify(next));
-            return next;
-          });
-        }
-      }}
+      setSettings={setSettings}
       onComplete={async (finalSemesterID?: string) => {
         localStorage.setItem("introDone", "true");
         setShowIntro(false);

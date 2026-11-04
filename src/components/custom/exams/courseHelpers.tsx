@@ -6,25 +6,16 @@ import { LIST_ROW, TONE_BADGE, TONE_TEXT } from "@/lib/uiTokens";
 import { toneForGrade } from "@/lib/gradeHistory";
 import { isRelativeGrading } from "@/lib/gradeBoundaries";
 
-export interface Creds { cookies: string[]; authorizedID: string; csrf: string; }
+export interface Creds {
+  cookies: string[];
+  authorizedID: string;
+  csrf: string;
+}
 
 export const getNumericValue = (value: any, fallback = 0) => {
   const numericValue = Number(value);
   return Number.isFinite(numericValue) ? numericValue : fallback;
 };
-
-export function formatSemesterName(semId: string): string {
-  if (!semId || !semId.toUpperCase().startsWith("CH") || semId.length !== 10) return semId;
-  const year1 = semId.substring(2, 6);
-  const year2 = semId.substring(6, 8);
-  const term = semId.substring(8, 10);
-  let termName = "";
-  if (term === "01") termName = "Fall";
-  else if (term === "05") termName = "Winter";
-  else if (term === "07") termName = "Summer";
-  else termName = `Term ${term}`;
-  return `${termName} ${year1}-${year2}`;
-}
 
 export const formatNumber = (num: any) => {
   const numericValue = Number(num);
@@ -50,7 +41,9 @@ export const isJunkOrEmpty = (val: any) => {
 
 export const sanitizeCourseCode = (code: any) => {
   if (isJunkOrEmpty(code)) return "";
-  const cleaned = String(code).replace(/\s*\([LPT]\)$/i, "").trim();
+  const cleaned = String(code)
+    .replace(/\s*\([LPT]\)$/i, "")
+    .trim();
   return isJunkOrEmpty(cleaned) ? "" : cleaned;
 };
 
@@ -68,7 +61,7 @@ export const getAssessmentTotals = (assessments: any[]) => {
       acc.weighted += getNumericValue(asm.weightageMark);
       return acc;
     },
-    { max: 0, scored: 0, weightPercent: 0, weighted: 0 }
+    { max: 0, scored: 0, weightPercent: 0, weighted: 0 },
   );
 };
 
@@ -87,9 +80,11 @@ export const getCourseTotal = (course: any, labCourse: any) => {
   const labCredits = getCourseCredits(labCourse);
   if (theoryCredits < 0 || labCredits < 0) return "Reload Required";
   const creditsTotal = theoryCredits + labCredits;
-  const combinedWeightPercent = (theoryCredits * theoryTotals.weightPercent + labCredits * labTotals.weightPercent) / creditsTotal;
+  const combinedWeightPercent =
+    (theoryCredits * theoryTotals.weightPercent + labCredits * labTotals.weightPercent) / creditsTotal;
   if (combinedWeightPercent <= 0) return theoryTotals.weighted;
-  const res = Math.round(((theoryCredits * theoryTotals.weighted) + (labCredits * labTotals.weighted)) / creditsTotal * 100) / 100;
+  const res =
+    Math.round(((theoryCredits * theoryTotals.weighted + labCredits * labTotals.weighted) / creditsTotal) * 100) / 100;
   return res + "/" + combinedWeightPercent;
 };
 
@@ -103,28 +98,37 @@ export const getCourseTotal = (course: any, labCourse: any) => {
  *
  * Shared with `getCourseStats` so the "Projected" tile and the ladder cannot drift apart.
  */
-export const normalisedPct = (earned: number, available: number) =>
-  available > 0 ? (earned / available) * 100 : 0;
+export const normalisedPct = (earned: number, available: number) => (available > 0 ? (earned / available) * 100 : 0);
 
 export const getCourseStats = (group: any) => {
   const theoryTotals = getAssessmentTotals(group.theory?.assessments || []);
   const labTotals = getAssessmentTotals(group.lab?.assessments || []);
   if (!group.lab) {
     const pointsLost = theoryTotals.weightPercent - theoryTotals.weighted;
-    return { maxPossible: 100 - pointsLost, projected: Math.round(normalisedPct(theoryTotals.weighted, theoryTotals.weightPercent)) };
+    return {
+      maxPossible: 100 - pointsLost,
+      projected: Math.round(normalisedPct(theoryTotals.weighted, theoryTotals.weightPercent)),
+    };
   }
   if (!group.theory) {
     const pointsLost = labTotals.weightPercent - labTotals.weighted;
-    return { maxPossible: 100 - pointsLost, projected: Math.round(normalisedPct(labTotals.weighted, labTotals.weightPercent)) };
+    return {
+      maxPossible: 100 - pointsLost,
+      projected: Math.round(normalisedPct(labTotals.weighted, labTotals.weightPercent)),
+    };
   }
   const theoryCredits = getCourseCredits(group.theory);
   const labCredits = getCourseCredits(group.lab);
   if (theoryCredits < 0 || labCredits < 0) return { maxPossible: 0, projected: 0 };
   const creditsTotal = theoryCredits + labCredits;
   const combinedWeighted = (theoryCredits * theoryTotals.weighted + labCredits * labTotals.weighted) / creditsTotal;
-  const combinedWeightPercent = (theoryCredits * theoryTotals.weightPercent + labCredits * labTotals.weightPercent) / creditsTotal;
+  const combinedWeightPercent =
+    (theoryCredits * theoryTotals.weightPercent + labCredits * labTotals.weightPercent) / creditsTotal;
   const pointsLost = combinedWeightPercent - combinedWeighted;
-  return { maxPossible: 100 - pointsLost, projected: Math.round(normalisedPct(combinedWeighted, combinedWeightPercent)) };
+  return {
+    maxPossible: 100 - pointsLost,
+    projected: Math.round(normalisedPct(combinedWeighted, combinedWeightPercent)),
+  };
 };
 
 export const checkIsRelative = (courseSystem: string, courseType: string) =>
@@ -135,9 +139,9 @@ export const checkIsRelative = (courseSystem: string, courseType: string) =>
 export const formatTitle = (title: string) => {
   if (!title) return "";
   let shortened = title;
-  shortened = shortened.replace(/Continuous Assessment Test/gi, 'CAT');
-  shortened = shortened.replace(/Final Assessment Test/gi, 'FAT');
-  shortened = shortened.replace(/Digital Assignment/gi, 'DA');
+  shortened = shortened.replace(/Continuous Assessment Test/gi, "CAT");
+  shortened = shortened.replace(/Final Assessment Test/gi, "FAT");
+  shortened = shortened.replace(/Digital Assignment/gi, "DA");
   return shortened;
 };
 
@@ -155,8 +159,16 @@ export const formatTitle = (title: string) => {
  * The boundary arithmetic is unchanged from the version this replaced — only
  * the wrapper moved.
  */
-export function AssessmentRow({ detail, typeLabel, aStat, isRelative }: {
-  detail: any; typeLabel: string; aStat: any; isRelative: boolean;
+export function AssessmentRow({
+  detail,
+  typeLabel,
+  aStat,
+  isRelative,
+}: {
+  detail: any;
+  typeLabel: string;
+  aStat: any;
+  isRelative: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const shortenedTitle = formatTitle(detail.title);
@@ -192,10 +204,10 @@ export function AssessmentRow({ detail, typeLabel, aStat, isRelative }: {
       else gradePlacement = "F";
 
       gradeBounds = [
-        { grade: 'S', range: `>= ${sBoundaryCalc(sB, detail.maxMark)}` },
-        { grade: 'A', range: `>= ${sBoundaryCalc(aB, detail.maxMark)}` },
-        { grade: 'B', range: `>= ${sBoundaryCalc(bB, detail.maxMark)}` },
-        { grade: 'C', range: `>= ${sBoundaryCalc(cB, detail.maxMark)}` },
+        { grade: "S", range: `>= ${sBoundaryCalc(sB, detail.maxMark)}` },
+        { grade: "A", range: `>= ${sBoundaryCalc(aB, detail.maxMark)}` },
+        { grade: "B", range: `>= ${sBoundaryCalc(bB, detail.maxMark)}` },
+        { grade: "C", range: `>= ${sBoundaryCalc(cB, detail.maxMark)}` },
       ];
     }
   } else {
@@ -208,10 +220,10 @@ export function AssessmentRow({ detail, typeLabel, aStat, isRelative }: {
     else gradePlacement = "F";
 
     gradeBounds = [
-      { grade: 'S', range: `>= ${sBoundaryCalc(90, detail.maxMark)}` },
-      { grade: 'A', range: `>= ${sBoundaryCalc(80, detail.maxMark)}` },
-      { grade: 'B', range: `>= ${sBoundaryCalc(70, detail.maxMark)}` },
-      { grade: 'C', range: `>= ${sBoundaryCalc(60, detail.maxMark)}` },
+      { grade: "S", range: `>= ${sBoundaryCalc(90, detail.maxMark)}` },
+      { grade: "A", range: `>= ${sBoundaryCalc(80, detail.maxMark)}` },
+      { grade: "B", range: `>= ${sBoundaryCalc(70, detail.maxMark)}` },
+      { grade: "C", range: `>= ${sBoundaryCalc(60, detail.maxMark)}` },
     ];
   }
 
@@ -250,7 +262,10 @@ export function AssessmentRow({ detail, typeLabel, aStat, isRelative }: {
       </button>
 
       {open && (
-        <div id={panelId} className="px-4 pb-4 pt-3 bg-surface-tertiary/40 dark:bg-background/40 border-t border-border-muted dark:border-border">
+        <div
+          id={panelId}
+          className="px-4 pb-4 pt-3 bg-surface-tertiary/40 dark:bg-background/40 border-t border-border-muted dark:border-border"
+        >
           {isRelative && (!aStat || aStat.count === 0) ? (
             <p className="text-[11px] text-text-secondary dark:text-text-muted italic text-center py-2">
               Not enough data to calculate class statistics for this assessment yet.
@@ -263,10 +278,7 @@ export function AssessmentRow({ detail, typeLabel, aStat, isRelative }: {
                     label="Class avg"
                     value={`${sBoundaryCalc(aStat.mean, detail.maxMark)} (${formatNumber(aStat.mean)}%)`}
                   />
-                  <KeyValue
-                    label="Std dev"
-                    value={`±${sBoundaryCalc(aStat.sd, detail.maxMark)}`}
-                  />
+                  <KeyValue label="Std dev" value={`±${sBoundaryCalc(aStat.sd, detail.maxMark)}`} />
                   <KeyValue label="Samples" value={String(aStat.count)} />
                 </div>
               )}
@@ -276,7 +288,7 @@ export function AssessmentRow({ detail, typeLabel, aStat, isRelative }: {
                   {isRelative ? "Grade placement preview" : "Absolute grade range preview"}
                 </p>
                 <div className="flex gap-2">
-                  {gradeBounds.map(b => {
+                  {gradeBounds.map((b) => {
                     const isPlacement = b.grade === gradePlacement;
                     return (
                       <span

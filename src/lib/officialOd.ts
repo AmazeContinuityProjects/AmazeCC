@@ -1,14 +1,27 @@
 import { storage } from "./storage";
+import { readSettings } from "@/store/settingsAtoms";
 import type { OfficialOdRecord, OfficialOdResponse } from "@/types/data/od";
 
 const MONTHS: Record<string, number> = {
-  jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
-  jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
+  jan: 0,
+  feb: 1,
+  mar: 2,
+  apr: 3,
+  may: 4,
+  jun: 5,
+  jul: 6,
+  aug: 7,
+  sep: 8,
+  oct: 9,
+  nov: 10,
+  dec: 11,
 };
 
 /** "15-Dec-2025" -> midnight timestamp (NaN if unparseable) */
 export function parseVtopDay(dateStr: string): number {
-  const m = String(dateStr || "").trim().match(/^(\d{1,2})-([A-Za-z]{3})-(\d{4})$/);
+  const m = String(dateStr || "")
+    .trim()
+    .match(/^(\d{1,2})-([A-Za-z]{3})-(\d{4})$/);
   if (!m) return NaN;
   const month = MONTHS[m[2].toLowerCase()];
   if (month === undefined) return NaN;
@@ -17,7 +30,9 @@ export function parseVtopDay(dateStr: string): number {
 
 /** "03-Aug-2026 to 03-Aug-2026" (or a single day) -> [from, to] timestamps */
 export function parseOdDateRange(range: string): [number, number] {
-  const parts = String(range || "").split(/\s+to\s+/i).map((s) => s.trim());
+  const parts = String(range || "")
+    .split(/\s+to\s+/i)
+    .map((s) => s.trim());
   const from = parseVtopDay(parts[0] || "");
   const to = parseVtopDay(parts[1] || parts[0] || "");
   return [from, to];
@@ -38,14 +53,8 @@ export function matchOfficialOdForDate(
 }
 
 export function getCurrentSemesterId(): string {
-  try {
-    const raw = localStorage.getItem("settings");
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed?.currSemesterID) return String(parsed.currSemesterID);
-    }
-  } catch {}
-  return "";
+  const sem = readSettings().currSemesterID;
+  return sem ? String(sem) : "";
 }
 
 /** Read synced official OD for a semester (defaults to current). */
@@ -62,19 +71,6 @@ export function getOfficialOd(semesterId?: string): OfficialOdResponse | null {
 /** Why did this attendance day get OD? Reads official OD from local storage. */
 export function findOfficialOdWhy(dayDate: string, semesterId?: string): OfficialOdRecord[] {
   return matchOfficialOdForDate(dayDate, getOfficialOd(semesterId)?.records);
-}
-
-export function formatSemesterName(semId: string): string {
-  if (!semId || !semId.toUpperCase().startsWith("CH")) return semId;
-  const year1 = semId.substring(2, 6);
-  const year2 = semId.substring(6, 8);
-  const term = semId.substring(8, 10);
-  let termName = "";
-  if (term === "01") termName = "Fall";
-  else if (term === "05") termName = "Winter";
-  else if (term === "07") termName = "Summer";
-  else termName = `Term ${term}`;
-  return `${termName} ${year1}-${year2}`;
 }
 
 export const DEMO_OFFICIAL_OD: OfficialOdResponse = {

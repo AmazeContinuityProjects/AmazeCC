@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { storage } from "./storage";
 import { asRankingMode, type RankingMode } from "./ffcsRanking";
 import type { SortBy } from "./timetableMetrics";
-import { HARD_RESULT_LIMIT } from "@/components/custom/exams/FFCS/logic/generate";
+import { HARD_RESULT_LIMIT } from "@/lib/ffcsGenerate";
 import { track } from "./analytics";
 import {
   DEFAULT_FACULTY_METRIC_WEIGHTS,

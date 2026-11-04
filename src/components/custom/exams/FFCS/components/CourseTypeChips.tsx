@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { defaultColor, typeColors, typeLabels } from "../constants";
+import { defaultColor, typeColors, typeLabels } from "@/lib/ffcsConstants";
 
 export type CourseTypeChipSize = "sm" | "md" | "default";
 
@@ -10,16 +10,10 @@ interface CourseTypeChipsProps {
   compactText?: boolean;
 }
 
-export function CourseTypeChips({
-  typesInput,
-  size = "md",
-  compactText = false,
-}: CourseTypeChipsProps) {
+export function CourseTypeChips({ typesInput, size = "md", compactText = false }: CourseTypeChipsProps) {
   if (!typesInput || (Array.isArray(typesInput) && typesInput.length === 0)) return null;
 
-  let types = Array.isArray(typesInput)
-    ? [...typesInput]
-    : typesInput.split("+");
+  let types = Array.isArray(typesInput) ? [...typesInput] : typesInput.split("+");
   types = types.map((type) => type.trim().toUpperCase()).filter(Boolean);
 
   if (types.includes("ETH") && types.includes("ELA")) {
@@ -52,9 +46,6 @@ export function CourseTypeChips({
 }
 
 /** Adapter for table components that accept a chip-rendering callback. */
-export function renderCourseTypeChips(
-  typesInput?: string | string[],
-  size: CourseTypeChipSize = "md"
-): ReactNode {
+export function renderCourseTypeChips(typesInput?: string | string[], size: CourseTypeChipSize = "md"): ReactNode {
   return <CourseTypeChips typesInput={typesInput} size={size} />;
 }

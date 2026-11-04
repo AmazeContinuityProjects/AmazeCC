@@ -1,7 +1,7 @@
 import type { jsPDF } from "jspdf";
-import type { AddedCourse } from "@/components/custom/exams/FFCS/types";
-import { COLOR_HEX_MAP, typeLabels } from "@/components/custom/exams/FFCS/constants";
-import { expandCourseHalves, sameSlotFacultyAlternatives } from "@/components/custom/exams/FFCS/logic/generate";
+import type { AddedCourse } from "@/lib/ffcsTypes";
+import { COLOR_HEX_MAP, typeLabels } from "@/lib/ffcsConstants";
+import { expandCourseHalves, sameSlotFacultyAlternatives } from "@/lib/ffcsGenerate";
 import { ensureLunchPeriod } from "@/lib/slots";
 import type { ModernPrintableReportParams } from "./exportTimetable";
 
@@ -17,20 +17,52 @@ const CONTENT_W = PAGE_W - CONTENT_X * 2;
 const CONTENT_TOP = 18;
 const CONTENT_BOTTOM = 277;
 const DEFAULT_DAYS = [
-  { id: "mon", name: "Monday" }, { id: "tue", name: "Tuesday" },
-  { id: "wed", name: "Wednesday" }, { id: "thu", name: "Thursday" },
+  { id: "mon", name: "Monday" },
+  { id: "tue", name: "Tuesday" },
+  { id: "wed", name: "Wednesday" },
+  { id: "thu", name: "Thursday" },
   { id: "fri", name: "Friday" },
 ];
 
 type Palette = {
-  band: string; surface: string; panel: string; border: string; text: string;
-  muted: string; accent: string; accent2: string; soft: string; empty: string;
+  band: string;
+  surface: string;
+  panel: string;
+  border: string;
+  text: string;
+  muted: string;
+  accent: string;
+  accent2: string;
+  soft: string;
+  empty: string;
 };
 
 function palette(light: boolean): Palette {
   return light
-    ? { band: "#e8eef7", surface: "#ffffff", panel: "#f8fafc", border: "#cbd5e1", text: "#0f172a", muted: "#64748b", accent: "#2563eb", accent2: "#7c3aed", soft: "#eff6ff", empty: "#f8fafc" }
-    : { band: "#090d16", surface: "#0f172a", panel: "#172033", border: "#334155", text: "#f8fafc", muted: "#94a3b8", accent: "#60a5fa", accent2: "#a78bfa", soft: "#172554", empty: "#111827" };
+    ? {
+        band: "#e8eef7",
+        surface: "#ffffff",
+        panel: "#f8fafc",
+        border: "#cbd5e1",
+        text: "#0f172a",
+        muted: "#64748b",
+        accent: "#2563eb",
+        accent2: "#7c3aed",
+        soft: "#eff6ff",
+        empty: "#f8fafc",
+      }
+    : {
+        band: "#090d16",
+        surface: "#0f172a",
+        panel: "#172033",
+        border: "#334155",
+        text: "#f8fafc",
+        muted: "#94a3b8",
+        accent: "#60a5fa",
+        accent2: "#a78bfa",
+        soft: "#172554",
+        empty: "#111827",
+      };
 }
 
 function rgb(hex: string): [number, number, number] {
@@ -39,7 +71,10 @@ function rgb(hex: string): [number, number, number] {
 }
 
 function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character] || character));
+  return value.replace(
+    /[&<>"']/g,
+    (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] || character,
+  );
 }
 
 function color(pdf: jsPDF, method: "setTextColor" | "setDrawColor" | "setFillColor", hex: string) {
@@ -51,14 +86,30 @@ function groupCourses(courses: AddedCourse[]) {
   for (const course of courses) {
     const current = groups.get(course.code);
     if (!current) {
-      groups.set(course.code, { ...course, slots: [...course.slots], batches: course.batch ? course.batch.split(",").map(x => x.trim()).filter(Boolean) : [] });
+      groups.set(course.code, {
+        ...course,
+        slots: [...course.slots],
+        batches: course.batch
+          ? course.batch
+              .split(",")
+              .map((x) => x.trim())
+              .filter(Boolean)
+          : [],
+      });
       continue;
     }
-    if (course.faculty && !current.faculty.includes(course.faculty)) current.faculty = [current.faculty, course.faculty].filter(Boolean).join(" / ");
-    if (course.venue && !current.venue.includes(course.venue)) current.venue = [current.venue, course.venue].filter(Boolean).join(" / ");
-    if (course.type && !current.type.includes(course.type)) current.type = [current.type, course.type].filter(Boolean).join(" + ");
+    if (course.faculty && !current.faculty.includes(course.faculty))
+      current.faculty = [current.faculty, course.faculty].filter(Boolean).join(" / ");
+    if (course.venue && !current.venue.includes(course.venue))
+      current.venue = [current.venue, course.venue].filter(Boolean).join(" / ");
+    if (course.type && !current.type.includes(course.type))
+      current.type = [current.type, course.type].filter(Boolean).join(" + ");
     for (const slot of course.slots) if (!current.slots.includes(slot)) current.slots.push(slot);
-    for (const batch of (course.batch || "").split(",").map(x => x.trim()).filter(Boolean)) if (!current.batches.includes(batch)) current.batches.push(batch);
+    for (const batch of (course.batch || "")
+      .split(",")
+      .map((x) => x.trim())
+      .filter(Boolean))
+      if (!current.batches.includes(batch)) current.batches.push(batch);
     current.credits = String((parseFloat(current.credits || "0") || 0) + (parseFloat(course.credits || "0") || 0));
   }
   return [...groups.values()];
@@ -92,21 +143,31 @@ function makeGridHtml(params: ModernPrintableReportParams, theme: Palette): stri
   const cell = (dayId: string, index: number, dayIndex: number) => {
     const theory = theoryPeriods[index]?.days?.[dayId];
     const lab = labPeriods[index]?.days?.[dayId];
-    if (theoryPeriods[index]?.lunch) return dayIndex > 0 ? "" : `<td rowspan="${days.length}" style="border:1px solid #f59e0b;background:#f59e0b22;padding:3px;font-size:8px;color:#b45309;vertical-align:middle;text-align:center;font-weight:bold;writing-mode:vertical-rl">LUNCH&nbsp;&nbsp;1:20-2:00</td>`;
+    if (theoryPeriods[index]?.lunch)
+      return dayIndex > 0
+        ? ""
+        : `<td rowspan="${days.length}" style="border:1px solid #f59e0b;background:#f59e0b22;padding:3px;font-size:8px;color:#b45309;vertical-align:middle;text-align:center;font-weight:bold;writing-mode:vertical-rl">LUNCH&nbsp;&nbsp;1:20-2:00</td>`;
     const half = (slot?: string) => {
       if (!slot) return "";
-      const course = params.courses.find(item => item.slots.includes(slot));
+      const course = params.courses.find((item) => item.slots.includes(slot));
       if (!course) return escapeHtml(slot);
       const colorHex = COLOR_HEX_MAP[course.color] || "#2563eb";
       return `<div style="border:1px solid ${colorHex}77;background:${colorHex}22;margin:1px;padding:2px;border-radius:3px;font-weight:bold">${escapeHtml(course.code)} / ${escapeHtml(slot)}<br><span style="font-weight:normal">${escapeHtml(course.venue || "TBA")}</span></div>`;
     };
     return `<td style="border:1px solid ${theme.border};background:${theme.empty};height:44px;padding:2px;font-size:8px;color:${theme.text};vertical-align:middle;text-align:center">${half(theory)}${half(lab)}</td>`;
   };
-  const lunchIndex = theoryPeriods.findIndex(period => period?.lunch);
-  const header = Array.from({ length: periods }, (_, i) => theoryPeriods[i]?.lunch
-    ? `<th style="background:#f59e0b22;border:1px solid #f59e0b55;padding:5px 2px;font-size:8px;color:#b45309">LUNCH<br>1:20-2:00</th>`
-    : `<th style="background:${theme.panel};border:1px solid ${theme.border};padding:5px 2px;font-size:9px;color:${theme.accent}">P${lunchIndex >= 0 && i > lunchIndex ? i : i + 1}<br>${theoryPeriods[i]?.start || ""}</th>`).join("");
-  const rows = days.map((day, dayIndex) => `<tr><th style="background:${theme.panel};border:1px solid ${theme.border};padding:4px;font-size:9px;color:${theme.text}">${escapeHtml(day.name.slice(0, 3).toUpperCase())}</th>${Array.from({ length: periods }, (_, i) => cell(day.id, i, dayIndex)).join("")}</tr>`).join("");
+  const lunchIndex = theoryPeriods.findIndex((period) => period?.lunch);
+  const header = Array.from({ length: periods }, (_, i) =>
+    theoryPeriods[i]?.lunch
+      ? `<th style="background:#f59e0b22;border:1px solid #f59e0b55;padding:5px 2px;font-size:8px;color:#b45309">LUNCH<br>1:20-2:00</th>`
+      : `<th style="background:${theme.panel};border:1px solid ${theme.border};padding:5px 2px;font-size:9px;color:${theme.accent}">P${lunchIndex >= 0 && i > lunchIndex ? i : i + 1}<br>${theoryPeriods[i]?.start || ""}</th>`,
+  ).join("");
+  const rows = days
+    .map(
+      (day, dayIndex) =>
+        `<tr><th style="background:${theme.panel};border:1px solid ${theme.border};padding:4px;font-size:9px;color:${theme.text}">${escapeHtml(day.name.slice(0, 3).toUpperCase())}</th>${Array.from({ length: periods }, (_, i) => cell(day.id, i, dayIndex)).join("")}</tr>`,
+    )
+    .join("");
   return `<div style="width:1060px;font-family:Arial,sans-serif;background:${theme.surface};color:${theme.text};padding:8px"><div style="font-size:14px;font-weight:bold;padding:8px 4px">Modern Horizontal Timetable / ${escapeHtml(params.timetableName)}</div><table style="border-collapse:collapse;width:100%;table-layout:fixed"><thead><tr><th style="background:${theme.panel};border:1px solid ${theme.border};padding:5px;color:${theme.text}">DAY</th>${header}</tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
@@ -117,7 +178,10 @@ async function gridImage(params: ModernPrintableReportParams, theme: Palette): P
   node.innerHTML = makeGridHtml(params, theme);
   document.body.appendChild(node);
   try {
-    return await htmlToImage.toPng(node.firstElementChild as HTMLElement, { pixelRatio: 2, backgroundColor: theme.surface });
+    return await htmlToImage.toPng(node.firstElementChild as HTMLElement, {
+      pixelRatio: 2,
+      backgroundColor: theme.surface,
+    });
   } finally {
     node.remove();
   }
@@ -174,7 +238,7 @@ function drawVectorGrid(pdf: jsPDF, params: ModernPrintableReportParams, theme: 
       pdf.setFontSize(4.2);
       pdf.text("1:20-2:00", x + colW / 2, y + 10, { align: "center" });
     } else {
-      const lunchIndex = theoryPeriods.findIndex(item => item?.lunch);
+      const lunchIndex = theoryPeriods.findIndex((item) => item?.lunch);
       pdf.setTextColor(...rgb(theme.accent));
       pdf.setFontSize(6.3);
       pdf.text(`P${lunchIndex >= 0 && col > lunchIndex ? col : col + 1}`, x + colW / 2, y + 5, { align: "center" });
@@ -198,8 +262,8 @@ function drawVectorGrid(pdf: jsPDF, params: ModernPrintableReportParams, theme: 
       const theoryPeriod = theoryPeriods[col];
       const theorySlot = theoryPeriod?.days?.[day.id];
       const labSlot = labPeriods[col]?.days?.[day.id];
-      const theoryCourse = theorySlot ? params.courses.find(item => item.slots.includes(theorySlot)) : undefined;
-      const labCourse = labSlot ? params.courses.find(item => item.slots.includes(labSlot)) : undefined;
+      const theoryCourse = theorySlot ? params.courses.find((item) => item.slots.includes(theorySlot)) : undefined;
+      const labCourse = labSlot ? params.courses.find((item) => item.slots.includes(labSlot)) : undefined;
       if (theoryPeriod?.lunch) {
         if (row === 0) {
           const lunchY = y + headerH;
@@ -224,15 +288,18 @@ function drawVectorGrid(pdf: jsPDF, params: ModernPrintableReportParams, theme: 
         const halves = [
           { slot: theorySlot, course: theoryCourse },
           { slot: labSlot, course: labCourse },
-        ].filter(half => half.slot || half.course);
+        ].filter((half) => half.slot || half.course);
         halves.slice(0, 2).forEach((half, halfIndex) => {
           const halfHeight = rowH / halves.length;
           const centerY = rowY + halfIndex * halfHeight + halfHeight / 2;
-          color(pdf, "setTextColor", half.course ? (COLOR_HEX_MAP[half.course.color] || theme.accent) : theme.muted);
+          color(pdf, "setTextColor", half.course ? COLOR_HEX_MAP[half.course.color] || theme.accent : theme.muted);
           pdf.setFont("helvetica", half.course ? "bold" : "normal");
           const codeSize = Math.min(5, Math.max(4.7, colW * 0.34));
           pdf.setFontSize(codeSize);
-          pdf.text(half.course?.code || half.slot || "", x + colW / 2, centerY - 0.55, { align: "center", maxWidth: colW - 1.2 });
+          pdf.text(half.course?.code || half.slot || "", x + colW / 2, centerY - 0.55, {
+            align: "center",
+            maxWidth: colW - 1.2,
+          });
           if (half.course && half.slot) {
             color(pdf, "setTextColor", theme.muted);
             pdf.setFont("helvetica", "normal");
@@ -246,18 +313,30 @@ function drawVectorGrid(pdf: jsPDF, params: ModernPrintableReportParams, theme: 
   return y + headerH + days.length * rowH;
 }
 
-export async function createPortraitDossierPdf(params: ModernPrintableReportParams & { theme?: "light" | "dark"; gridMode?: DossierGridMode }): Promise<ArrayBuffer> {
-  const light = params.theme === "light" || (!params.theme && Boolean(params.themeHtmlClass?.includes("light") && !params.themeHtmlClass?.includes("dark")));
+export async function createPortraitDossierPdf(
+  params: ModernPrintableReportParams & { theme?: "light" | "dark"; gridMode?: DossierGridMode },
+): Promise<ArrayBuffer> {
+  const light =
+    params.theme === "light" ||
+    (!params.theme && Boolean(params.themeHtmlClass?.includes("light") && !params.themeHtmlClass?.includes("dark")));
   const theme = palette(light);
   const { jsPDF } = await import("jspdf");
   const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
-  pdf.setProperties({ title: `${params.timetableName} - FFCS Registration Dossier`, subject: "Portrait A4 timetable dossier", creator: "AmazeCC" });
+  pdf.setProperties({
+    title: `${params.timetableName} - FFCS Registration Dossier`,
+    subject: "Portrait A4 timetable dossier",
+    creator: "AmazeCC",
+  });
   const groups = groupCourses(params.courses);
   const credits = params.totalCredits ?? groups.reduce((sum, item) => sum + (parseFloat(item.credits || "0") || 0), 0);
   let pageNumber = 1;
   let y = CONTENT_TOP;
   addPage(pdf, theme, pageNumber);
-  const newPage = () => { pageNumber += 1; addPage(pdf, theme, pageNumber); y = CONTENT_TOP; };
+  const newPage = () => {
+    pageNumber += 1;
+    addPage(pdf, theme, pageNumber);
+    y = CONTENT_TOP;
+  };
 
   // Cover header and compact registration summary. Shrink titles until one
   // line fits, then add banner height for any remaining wrapped lines.
@@ -296,7 +375,13 @@ export async function createPortraitDossierPdf(params: ModernPrintableReportPara
   pdf.text(new Date().toLocaleDateString(), CONTENT_X + CONTENT_W - 5, y + 18, { align: "right" });
   y += bannerHeight + 6;
 
-  y = drawSectionTitle(pdf, "Weekly Academic Schedule", "Modern horizontal timetable / fitted to portrait A4", y, theme);
+  y = drawSectionTitle(
+    pdf,
+    "Weekly Academic Schedule",
+    "Modern horizontal timetable / fitted to portrait A4",
+    y,
+    theme,
+  );
   if (params.gridMode === "image") {
     const data = await gridImage(params, theme);
     const dims = pdf.getImageProperties(data);
@@ -312,7 +397,13 @@ export async function createPortraitDossierPdf(params: ModernPrintableReportPara
 
   // Course register: split cleanly across pages; every label/value remains text.
   if (y + 28 > CONTENT_BOTTOM) newPage();
-  y = drawSectionTitle(pdf, "Enrolled Courses & Faculty", "Course, registration type, credits, slots, venue and faculty", y, theme);
+  y = drawSectionTitle(
+    pdf,
+    "Enrolled Courses & Faculty",
+    "Course, registration type, credits, slots, venue and faculty",
+    y,
+    theme,
+  );
   const columns = [25, 51, 20, 12, 23, 22, 18];
   const headers = ["CODE", "COURSE", "TYPE", "CR", "SLOTS", "VENUE", "FACULTY"];
   const drawCourseTableHeader = () => {
@@ -331,15 +422,29 @@ export async function createPortraitDossierPdf(params: ModernPrintableReportPara
   };
   const continueCourseTable = () => {
     newPage();
-    y = drawSectionTitle(pdf, "Enrolled Courses & Faculty (continued)", "Course details continue on this page", y, theme);
+    y = drawSectionTitle(
+      pdf,
+      "Enrolled Courses & Faculty (continued)",
+      "Course details continue on this page",
+      y,
+      theme,
+    );
     drawCourseTableHeader();
   };
   drawCourseTableHeader();
   for (let index = 0; index < groups.length; index++) {
     const item = groups[index];
-    const values = [item.code, item.title, typeLabels[item.type] || item.type || "Theory", item.credits || "0", item.slots.join(", "), item.venue || "TBA", item.faculty || "TBA"];
+    const values = [
+      item.code,
+      item.title,
+      typeLabels[item.type] || item.type || "Theory",
+      item.credits || "0",
+      item.slots.join(", "),
+      item.venue || "TBA",
+      item.faculty || "TBA",
+    ];
     const wrapped = values.map((value, i) => wrap(pdf, value, columns[i] - 2.5, 5.8));
-    const lineCount = Math.max(1, ...wrapped.map(lines => lines.length));
+    const lineCount = Math.max(1, ...wrapped.map((lines) => lines.length));
     let lineOffset = 0;
     while (lineOffset < lineCount) {
       const availableLines = Math.floor((CONTENT_BOTTOM - y - 3) / 3.25);
@@ -356,7 +461,7 @@ export async function createPortraitDossierPdf(params: ModernPrintableReportPara
       wrapped.forEach((lines, i) => {
         const slice = lines.slice(lineOffset, lineOffset + chunkLines);
         if (slice.length) {
-          color(pdf, "setTextColor", i === 0 ? (COLOR_HEX_MAP[item.color] || theme.accent) : theme.text);
+          color(pdf, "setTextColor", i === 0 ? COLOR_HEX_MAP[item.color] || theme.accent : theme.text);
           pdf.setFont("helvetica", i === 0 ? "bold" : "normal");
           pdf.setFontSize(5.8);
           pdf.text(slice, cellX + 1.2, y + 3.8, { lineHeightFactor: 1.1 });
@@ -372,7 +477,7 @@ export async function createPortraitDossierPdf(params: ModernPrintableReportPara
 
   if (y + 20 > CONTENT_BOTTOM) newPage();
   const faculty = new Map<string, { name: string; codes: Set<string>; ids: Set<string> }>();
-  params.courses.forEach(course => {
+  params.courses.forEach((course) => {
     const names = (course.faculty || "TBA").split(/\s*\/\s*/).filter(Boolean);
     names.forEach((name, i) => {
       const key = `${name.toLowerCase()}|${course.employeeId || ""}`;
@@ -424,7 +529,13 @@ export async function createPortraitDossierPdf(params: ModernPrintableReportPara
   y += 5;
 
   if (y + 23 > CONTENT_BOTTOM) newPage();
-  y = drawSectionTitle(pdf, "Emergency Drop-In Replacements", "Same-slot faculty alternatives from the master course catalog", y, theme);
+  y = drawSectionTitle(
+    pdf,
+    "Emergency Drop-In Replacements",
+    "Same-slot faculty alternatives from the master course catalog",
+    y,
+    theme,
+  );
   if (!params.masterCourses?.length) {
     color(pdf, "setTextColor", theme.muted);
     pdf.setFont("helvetica", "normal");
@@ -434,15 +545,26 @@ export async function createPortraitDossierPdf(params: ModernPrintableReportPara
   } else {
     const halves = expandCourseHalves(params.courses);
     for (const half of halves) {
-      const candidates = sameSlotFacultyAlternatives(half.code, half.slots, { faculty: half.faculty, employeeId: half.employeeId }, params.masterCourses);
-      const text = `${half.code} / ${half.slots.join("+")} / Current: ${half.faculty || "TBA"} / Alternatives: ${candidates.map(c => `${c.FACULTY} (${c.ROOM || "TBA"})`).join(", ") || "No matching faculty found"}`;
+      const candidates = sameSlotFacultyAlternatives(
+        half.code,
+        half.slots,
+        { faculty: half.faculty, employeeId: half.employeeId },
+        params.masterCourses,
+      );
+      const text = `${half.code} / ${half.slots.join("+")} / Current: ${half.faculty || "TBA"} / Alternatives: ${candidates.map((c) => `${c.FACULTY} (${c.ROOM || "TBA"})`).join(", ") || "No matching faculty found"}`;
       const lines = wrap(pdf, text, CONTENT_W - 6, 6);
       let lineOffset = 0;
       while (lineOffset < lines.length) {
         const availableLines = Math.floor((CONTENT_BOTTOM - y - 3) / 3.4);
         if (availableLines < 1) {
           newPage();
-          y = drawSectionTitle(pdf, "Emergency Drop-In Replacements (continued)", "Same-slot faculty alternatives from the master course catalog", y, theme);
+          y = drawSectionTitle(
+            pdf,
+            "Emergency Drop-In Replacements (continued)",
+            "Same-slot faculty alternatives from the master course catalog",
+            y,
+            theme,
+          );
           continue;
         }
         const chunkLines = Math.min(lines.length - lineOffset, availableLines);
@@ -459,7 +581,13 @@ export async function createPortraitDossierPdf(params: ModernPrintableReportPara
         lineOffset += chunkLines;
         if (lineOffset < lines.length) {
           newPage();
-          y = drawSectionTitle(pdf, "Emergency Drop-In Replacements (continued)", "Same-slot faculty alternatives from the master course catalog", y, theme);
+          y = drawSectionTitle(
+            pdf,
+            "Emergency Drop-In Replacements (continued)",
+            "Same-slot faculty alternatives from the master course catalog",
+            y,
+            theme,
+          );
         }
       }
     }
@@ -467,4 +595,3 @@ export async function createPortraitDossierPdf(params: ModernPrintableReportPara
 
   return pdf.output("arraybuffer");
 }
-

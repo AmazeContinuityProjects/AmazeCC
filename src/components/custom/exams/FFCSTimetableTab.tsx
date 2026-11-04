@@ -58,19 +58,13 @@ import {
   downloadTimetableImage,
   downloadModernTimetableImage,
   downloadModernCourseListImage,
-  openTimetablePrintablePage,
   openModernPrintableDossier,
   downloadModernDossierHtml,
 } from "@/lib/exportTimetable";
-import { GLOBAL_CAMPUS, getTimetableSchema } from "@/lib/campusSchema";
-
-// Re-exported because the tab has always been where importers found these;
-// the definitions moved to the lib so the share page can render a received
-// plan without importing this component.
-export { GLOBAL_CAMPUS, getTimetableSchema };
+import { getTimetableSchema } from "@/lib/campusSchema";
 
 import { groupSelectedCourses } from "./FFCS/logic/groupSelectedCourses";
-import { sameSlotFacultyAlternatives, expandCourseHalves } from "./FFCS/logic/generate";
+import { sameSlotFacultyAlternatives, expandCourseHalves } from "@/lib/ffcsGenerate";
 import { VitfacReviewPill, FacultyAvatar } from "./FFCS/components/FacultyAvatar";
 import type { GuidedPhase } from "./FFCS/components/FFCSGuidedSelector";
 import { setVitfacIntegrationEnabled, useVitfacEnabled } from "@/lib/vitfacService";
@@ -112,8 +106,7 @@ import {
   buildNumericTimetableShapeShareUrl,
   isOversizedShareLink,
 } from "@/lib/ffcsShare";
-import type { FFCSSettingsModalProps } from "./FFCS/components/modals/FFCSSettingsModal";
-import { TourProvider, useTour } from "./FFCS/features/tour/TourProvider";
+import { TourProvider } from "./FFCS/features/tour/TourProvider";
 import type { TourStep } from "./FFCS/features/tour/tourSteps";
 import { useTips } from "./FFCS/features/tour/useTips";
 import { Tip } from "./FFCS/features/tour/Tip";
@@ -121,8 +114,6 @@ import Switch from "../shared/primitives/Switch";
 import { ChipTabs, SegmentedControl, IconButton, ListRowText, ListShell } from "../shared/primitives";
 
 import {
-  GenCourseSelection,
-  SlotMap,
   TimetablePeriod,
   ParsedCourse,
   AddedCourse,
@@ -131,7 +122,7 @@ import {
   FriendGroup,
   CourseLock,
   ManualLink,
-} from "./FFCS/types";
+} from "@/lib/ffcsTypes";
 import {
   DEFAULT_FFCS_SEMESTER,
   FFCS_SEMESTER_REPORTS,
@@ -140,21 +131,17 @@ import {
   isFFCSSemesterId,
   parseReportRows,
   type FFCSSemesterId,
-} from "./FFCS/reports";
-import { DAYS, COLORS, getCourseBadgeProps } from "./FFCS/constants";
+} from "@/lib/ffcsReports";
+import { DAYS, COLORS } from "@/lib/ffcsConstants";
 import { renderCourseTypeChips } from "./FFCS/components/CourseTypeChips";
 import { isCourseFullyAdded } from "./FFCS/utils";
 import { useFacultyReviewSheet } from "./FFCS/hooks/useFacultyReviewSheet";
 import { CourseListImportSection } from "./FFCS/components/CourseListImportSection";
-import { freeHalfDays, pairwiseSocialScore } from "@/lib/timetableMetrics";
-import {
-  MORNING_BEFORE_MIN,
-  courseInPeriod,
-  periodsForSlot,
-  splitSlots,
-  findPeriodClash,
-  type SlotPeriod,
-} from "@/lib/slots";
+import { freeHalfDays } from "@/lib/timetableMetrics";
+import { safeStorage } from "@/lib/safeStorage";
+import { matchesOfferingTimeFilter, matchesSlotTokenFilter } from "@/lib/ffcsOfferingFilters";
+import { FFCSShortcutsModal, SettingsModalHost } from "./FFCS/components/FFCSTimetableModals";
+import { courseInPeriod, periodsForSlot, splitSlots, findPeriodClash } from "@/lib/slots";
 import { exportTimetableIcal } from "@/lib/exportIcal";
 import { getBatchColorClass, getAssetPath } from "@/lib/utils";
 import { TimetableView, useTimetableViewMode } from "../timetable";
@@ -178,10 +165,6 @@ const FFCSGuidedSelector = dynamic(() => import("./FFCS/components/FFCSGuidedSel
 const SlotFacultySwapSheet = dynamic(() => import("./FFCS/components/SlotFacultySwapSheet"), { ssr: false });
 const FFCSLayoutModeModal = dynamic(() => import("./FFCS/components/modals/FFCSLayoutModeModal"), { ssr: false });
 const FacultyPriorityModal = dynamic(() => import("./FFCS/components/modals/FacultyPriorityModal"), { ssr: false });
-const FFCSSettingsModal = dynamic(
-  () => import("./FFCS/components/modals/FFCSSettingsModal").then((m) => m.FFCSSettingsModal),
-  { ssr: false },
-);
 const TargetCoursesModal = dynamic(
   () => import("./FFCS/components/modals/TargetCoursesModal").then((m) => m.TargetCoursesModal),
   { ssr: false },
@@ -208,29 +191,6 @@ const FFCSGuideModal = dynamic(() => import("./FFCSGuideModal"), { ssr: false })
 const FacultyReviewSheetHost = dynamic(() => import("./FFCS/components/FacultyReviewSheetHost"), { ssr: false });
 const SelectedCoursesList = dynamic(() => import("./FFCS/components/SelectedCoursesList"), { ssr: false });
 const PdfGenerationBadge = dynamic(() => import("./FFCS/components/PdfGenerationBadge"), { ssr: false });
-
-/**
- * localStorage with the SSR guard and the quota throw handled once. The
- * generator imports this too: its own course picks persist under their own
- * key, never under the planner's locks.
- */
-export const safeStorage = {
-  getItem: (key: string): string | null => {
-    try {
-      if (typeof window === "undefined" || !window.localStorage) return null;
-      return localStorage.getItem(key);
-    } catch {
-      return null;
-    }
-  },
-  setItem: (key: string, value: string): void => {
-    try {
-      if (typeof window !== "undefined" && window.localStorage) {
-        localStorage.setItem(key, value);
-      }
-    } catch {}
-  },
-};
 
 /**
  * localStorage flag: the final-list announcement has been shown and
@@ -262,72 +222,6 @@ const FFCS_FINAL_LIST_NOTICE_SEEN_KEY = "ffcs_final_list_notice_seen";
  */
 const getFreeHalfDaysList = (slots: Set<string>): string[] =>
   freeHalfDays([{ slots: [...slots] }], getTimetableSchema());
-
-export const calculatePairwiseSocialScore = (myCourses: AddedCourse[], friendCourses: AddedCourse[]) =>
-  pairwiseSocialScore(myCourses, friendCourses, getTimetableSchema());
-
-const getPeriodsForSlotOuter = (slotName: string) => periodsForSlot(getTimetableSchema(), slotName);
-
-const getPeriodsForSlotsOuter = (slotStr: string): SlotPeriod[] => {
-  return splitSlots(slotStr)
-    .filter((s) => s !== "NIL")
-    .flatMap(getPeriodsForSlotOuter);
-};
-
-const isMorningSlot = (slot: string) => {
-  const periods = getPeriodsForSlotsOuter(slot);
-  if (periods.length === 0) return true; // e.g., NIL
-  return periods.some((p) => p.startMin < MORNING_BEFORE_MIN);
-};
-
-const isEveningSlot = (slot: string) => {
-  const periods = getPeriodsForSlotsOuter(slot);
-  if (periods.length === 0) return true;
-  return periods.some((p) => p.startMin >= MORNING_BEFORE_MIN);
-};
-
-function matchesOfferingTimeFilter(slotStr: string, filter: string): boolean {
-  if (filter === "all") return true;
-  const slots = splitSlots(slotStr).filter((slot) => slot !== "NIL");
-  const theorySlots = slots.filter((slot) => !slot.startsWith("L"));
-  const labSlots = slots.filter((slot) => slot.startsWith("L"));
-  const sessionSlots = theorySlots.length > 0 ? theorySlots : labSlots;
-  const allIn = (items: string[], morning: boolean) =>
-    items.length > 0 &&
-    items.every((slot) => {
-      const periods = getPeriodsForSlotsOuter(slot);
-      return (
-        periods.length > 0 &&
-        periods.every((period) =>
-          morning ? period.startMin < MORNING_BEFORE_MIN : period.startMin >= MORNING_BEFORE_MIN,
-        )
-      );
-    });
-
-  switch (filter) {
-    // Session filters describe the theory session for combined offerings;
-    // labs are filtered independently in the slot search sheet.
-    case "morning_session":
-    case "morning":
-    case "morning_theory":
-      return allIn(filter === "morning_session" ? sessionSlots : theorySlots, true);
-    case "evening_session":
-    case "evening":
-    case "evening_theory":
-      return allIn(filter === "evening_session" ? sessionSlots : theorySlots, false);
-    case "morning_lab":
-      return allIn(labSlots, true);
-    case "evening_lab":
-      return allIn(labSlots, false);
-    default:
-      return true;
-  }
-}
-
-function matchesSlotTokenFilter(slotStr: string, selectedToken: string, lab: boolean): boolean {
-  if (!selectedToken) return true;
-  return splitSlots(slotStr).some((slot) => slot === selectedToken && slot.startsWith("L") === lab);
-}
 
 export default function FFCSTimetableTab({
   onLayoutModeChange,
@@ -387,7 +281,7 @@ export default function FFCSTimetableTab({
   // Timetables State
   const [timetables, setTimetables] = useState<TimetableState[]>([{ id: "default", name: "Timetable 1", courses: [] }]);
   const [activeTimetableId, setActiveTimetableId] = useState<string>("default");
-  const [courseLocks, setCourseLocks] = useState<import("./FFCS/types").CourseLock[]>([]);
+  const [courseLocks, setCourseLocks] = useState<import("@/lib/ffcsTypes").CourseLock[]>([]);
   const [isTimetableModalOpen, setIsTimetableModalOpen] = useState(false);
   // Row-scoped rename for the Select Timetable sheet and Classic dashboard.
   // The modern dashboard header keeps its own active-timetable rename state.
@@ -888,7 +782,16 @@ export default function FFCSTimetableTab({
         const parsed = JSON.parse(savedTimetables);
         if (parsed && Array.isArray(parsed) && parsed.length > 0) {
           setTimetables(parsed);
-          setActiveTimetableId(parsed[0].id);
+          // Honour the saved active plan. "Open in planner" on a share link
+          // appends the shared plan to the END of the list and names it active
+          // through `ffcs_activeTimetableId` — always taking `parsed[0]`
+          // silently reopened the student's first plan instead of the one they
+          // just imported. Fall back to the first plan when the saved id no
+          // longer matches (deleted/renamed plan), the same rule
+          // `FacultyScheduleTab` and `useTimetables` already use.
+          const savedActiveId = safeStorage.getItem("ffcs_activeTimetableId");
+          const active = savedActiveId ? parsed.find((t: TimetableState) => t?.id === savedActiveId) : null;
+          setActiveTimetableId(active ? active.id : parsed[0].id);
         }
       } catch {}
     }
@@ -1069,8 +972,12 @@ export default function FFCSTimetableTab({
   useEffect(() => {
     if (isLoaded) {
       safeStorage.setItem("ffcs_timetables", JSON.stringify(timetables));
+      // Persist which plan is open alongside the list: the share hand-off
+      // arrives through this key, and a reload must return to the plan the
+      // student was actually looking at — not always the first in the list.
+      safeStorage.setItem("ffcs_activeTimetableId", activeTimetableId);
     }
-  }, [timetables, isLoaded]);
+  }, [timetables, activeTimetableId, isLoaded]);
 
   useEffect(() => {
     if (isLoaded) {
@@ -4703,84 +4610,5 @@ export default function FFCSTimetableTab({
         />
       </div>
     </TourProvider>
-  );
-}
-
-/**
- * The settings sheet, bridged to the tour context. Only descendants of the
- * provider can call `useTour`, and the sheet needs it for exactly one thing:
- * "Replay", which restarts a tour the auto-offer has already forgotten about.
- */
-type SettingsModalHostProps = Omit<FFCSSettingsModalProps, "onReplayTour">;
-
-function SettingsModalHost(props: SettingsModalHostProps) {
-  const tour = useTour();
-  return <FFCSSettingsModal {...props} onReplayTour={tour.start} />;
-}
-
-function FFCSShortcutsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
-  const shortcuts = [
-    { keys: ["S", "/"], desc: "Open Course Search Palette" },
-    { keys: ["T"], desc: "Open Target Courses Modal" },
-    { keys: ["G"], desc: "Open Auto-Generator Modal" },
-    { keys: ["F"], desc: "Open Friends Manager" },
-    { keys: ["N"], desc: "Create a New Timetable" },
-    { keys: ["P"], desc: "Open Printable View / Print" },
-    { keys: ["1", "-", "9"], desc: "Switch to Timetable 1 to 9" },
-    { keys: ["Backspace", "Delete"], desc: "Clear Current Timetable" },
-    { keys: ["Esc"], desc: "Close Active Modals" },
-  ];
-
-  /*
-    A sheet like every other FFCS popup, and mounted unconditionally by the tab
-    so the exit animation can run. The z pair matches what the modal used, both
-    for parity with the surrounding FFCS surfaces and because the tab can be in
-    fullscreen (z-100) behind it.
-  */
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <BottomSheet
-          onClose={onClose}
-          overlayId="ffcs-shortcuts"
-          maxWidth="max-w-md"
-          panelZIndex={400}
-          backdropZIndex={395}
-          contentClassName="flex flex-col gap-3"
-        >
-          <h3 className="font-bold text-base text-text-heading flex items-center gap-2">
-            <Keyboard className="w-5 h-5 text-indigo-500" /> Keyboard Shortcuts
-          </h3>
-          <p className="text-xs text-muted-foreground mb-2">
-            Boost your timetable drafting speed with these global hotkeys:
-          </p>
-          <div className="divide-y divide-border/40">
-            {shortcuts.map((shortcut, index) => (
-              <div key={index} className="flex items-center justify-between py-2 text-xs">
-                <span className="text-muted-foreground">{shortcut.desc}</span>
-                <div className="flex items-center gap-1">
-                  {shortcut.keys.map((k, kidx) => (
-                    <kbd
-                      key={kidx}
-                      className="px-2 py-1 bg-surface-secondary border border-border-strong rounded-md font-mono text-[10px] font-bold text-text-heading shadow-xs"
-                    >
-                      {k}
-                    </kbd>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="pt-3 border-t border-border-strong text-right">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 bg-indigo-650 hover:bg-indigo-750 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
-            >
-              Got it, thanks!
-            </button>
-          </div>
-        </BottomSheet>
-      )}
-    </AnimatePresence>
   );
 }

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { FriendTimetableViewModal } from "../components/custom/exams/FFCS/components/modals/FriendTimetableViewModal";
-import type { AddedCourse, TimetableState } from "../components/custom/exams/FFCS/types";
+import type { AddedCourse, TimetableState } from "@/lib/ffcsTypes";
 
 /**
  * The friend sheet's course list, on the planner's grouper.
@@ -73,7 +73,7 @@ describe("friend timetable sheet course list", () => {
         setData={() => {}}
         theoryPeriods={[]}
         labPeriods={[]}
-      />
+      />,
     );
 
     const list = courseListTable();
@@ -99,7 +99,7 @@ describe("friend timetable sheet course list", () => {
         setData={() => {}}
         theoryPeriods={[]}
         labPeriods={[]}
-      />
+      />,
     );
 
     const list = courseListTable();

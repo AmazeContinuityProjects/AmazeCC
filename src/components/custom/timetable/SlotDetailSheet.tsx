@@ -18,23 +18,16 @@
  */
 
 import { useMemo } from "react";
-import {
-  BookOpen,
-  Clock,
-  Coins,
-  EyeOff,
-  MapPin,
-  User,
-} from "lucide-react";
+import { BookOpen, Clock, Coins, EyeOff, MapPin, User } from "lucide-react";
 import { cn } from "@amazecontinuityprojects/amazeui";
 import BottomSheet from "../shared/BottomSheet";
 import { CHIP, TONE_BADGE, TONE_TEXT } from "@/lib/libraries/ui";
 import { hasSlot } from "@/lib/slots";
 // A leaf module (its only import is a campus JSON), so depending on it from a
 // shared component costs nothing and avoids a third copy of the type maps.
-import { defaultColor, typeColors, typeLabels } from "../exams/FFCS/constants";
+import { defaultColor, typeColors, typeLabels } from "@/lib/ffcsConstants";
 import { minutesToTimeStr } from "@/lib/social/schedule";
-import type { Cell } from "./buildBands";
+import type { Cell } from "@/lib/buildBands";
 
 /** What the attendance surface knows about a course that the planner does not. */
 export type AttendanceTone = {
@@ -48,15 +41,7 @@ const CLS_TONE: Record<AttendanceTone["cls"], string> = {
   high: TONE_TEXT.emerald,
 };
 
-function Section({
-  icon: Icon,
-  label,
-  children,
-}: {
-  icon: typeof User;
-  label: string;
-  children: React.ReactNode;
-}) {
+function Section({ icon: Icon, label, children }: { icon: typeof User; label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-2">
       <p className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
@@ -90,15 +75,15 @@ export default function SlotDetailSheet({
 }) {
   const course = cell.course;
   const attendance = course ? attendanceByCourse?.[course.code] : undefined;
-  const type = course ? typeColors[course.type] ?? defaultColor : null;
-  const typeLabel = course?.type ? typeLabels[course.type] ?? course.type : "";
+  const type = course ? (typeColors[course.type] ?? defaultColor) : null;
+  const typeLabel = course?.type ? (typeLabels[course.type] ?? course.type) : "";
 
   const timeRange = useMemo(
     () =>
       cell.endMin > cell.startMin
         ? `${minutesToTimeStr(cell.startMin)} – ${minutesToTimeStr(cell.endMin)}`
         : minutesToTimeStr(cell.startMin),
-    [cell.startMin, cell.endMin]
+    [cell.startMin, cell.endMin],
   );
 
   const headerTone =
@@ -151,7 +136,7 @@ export default function SlotDetailSheet({
                 CHIP,
                 blockedSlots && hasSlot(blockedSlots, slot)
                   ? "border-red-500/30 text-red-600 dark:text-red-400 line-through"
-                  : "border-zinc-200/60"
+                  : "border-zinc-200/60",
               )}
             >
               {slot}
@@ -174,10 +159,7 @@ export default function SlotDetailSheet({
             <div className="rounded-2xl border border-zinc-200/70 p-3.5 dark:border-zinc-800">
               <div className="flex items-start gap-2">
                 <span
-                  className={cn(
-                    "shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-black text-white",
-                    course.color
-                  )}
+                  className={cn("shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-black text-white", course.color)}
                 >
                   {course.code}
                 </span>
@@ -191,12 +173,7 @@ export default function SlotDetailSheet({
                   <p className="flex items-center gap-1.5 text-[11px] font-bold">
                     <BookOpen className="h-3 w-3 shrink-0 text-zinc-400" />
                     <span
-                      className={cn(
-                        "rounded-md border px-1.5 py-0.5 text-[10px]",
-                        type?.bg,
-                        type?.text,
-                        type?.border
-                      )}
+                      className={cn("rounded-md border px-1.5 py-0.5 text-[10px]", type?.bg, type?.text, type?.border)}
                     >
                       {typeLabel}
                     </span>
@@ -224,17 +201,10 @@ export default function SlotDetailSheet({
             {attendance && (
               <Section icon={EyeOff} label="Attendance">
                 <div className="flex items-center gap-2">
-                  <p
-                    className={cn(
-                      "font-outfit text-2xl font-black leading-none",
-                      CLS_TONE[attendance.cls]
-                    )}
-                  >
+                  <p className={cn("font-outfit text-2xl font-black leading-none", CLS_TONE[attendance.cls])}>
                     {attendance.percentage}%
                   </p>
-                  <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
-                    overall for this course
-                  </p>
+                  <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">overall for this course</p>
                 </div>
               </Section>
             )}
@@ -244,8 +214,7 @@ export default function SlotDetailSheet({
         {cell.shadowed.length > 0 && (
           <Section icon={EyeOff} label="Also at this time">
             <p className="text-[11px] font-medium leading-relaxed text-zinc-500 dark:text-zinc-400">
-              A lab runs at this hour, so the cell shows the lab. The theory slot
-              below is here so nothing goes missing.
+              A lab runs at this hour, so the cell shows the lab. The theory slot below is here so nothing goes missing.
             </p>
             {cell.shadowed.map((s, i) => (
               <div
@@ -256,7 +225,7 @@ export default function SlotDetailSheet({
                   <span
                     className={cn(
                       "shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-black text-white",
-                      s.course.color
+                      s.course.color,
                     )}
                   >
                     {s.course.code}
@@ -290,7 +259,7 @@ export default function SlotDetailSheet({
                       "rounded-lg border px-2.5 py-1.5 text-[11px] font-bold transition-colors cursor-pointer",
                       isBlocked
                         ? "border-red-500/40 bg-red-500/10 text-red-600 dark:text-red-400"
-                        : "border-zinc-200/70 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                        : "border-zinc-200/70 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800",
                     )}
                   >
                     {isBlocked ? `Unblock ${slot}` : `Block ${slot}`}

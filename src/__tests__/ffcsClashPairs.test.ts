@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { courseClashPairs, courseClashPairCount, formatPeriodRange } from "../lib/ffcsClashPairs";
 import { periodsForSlot, type CampusSchema } from "../lib/slots";
-import type { AddedCourse } from "../components/custom/exams/FFCS/types";
+import type { AddedCourse } from "@/lib/ffcsTypes";
 import chennai from "../data/campus/chennai.json";
 
 /**

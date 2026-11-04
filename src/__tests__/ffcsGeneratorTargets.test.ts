@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { installLocalStorage } from "./helpers/localStorage";
-import type { CourseLock } from "../components/custom/exams/FFCS/types";
+import type { CourseLock } from "@/lib/ffcsTypes";
 import {
   FFCS_GENERATOR_TARGETS_KEY,
   loadGeneratorTargets,

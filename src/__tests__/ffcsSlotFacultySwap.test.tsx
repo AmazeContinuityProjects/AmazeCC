@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import * as htmlToImage from "html-to-image";
 import SlotFacultySwapSheet from "../components/custom/exams/FFCS/components/SlotFacultySwapSheet";
-import { sameSlotFacultyAlternatives, expandCourseHalves, allCourseOfferings } from "../components/custom/exams/FFCS/logic/generate";
-import type { AddedCourse, ParsedCourse } from "../components/custom/exams/FFCS/types";
+import { sameSlotFacultyAlternatives, expandCourseHalves, allCourseOfferings } from "@/lib/ffcsGenerate";
+import type { AddedCourse, ParsedCourse } from "@/lib/ffcsTypes";
 import { installLocalStorage } from "./helpers/localStorage";
 
 const storage = installLocalStorage();
@@ -48,12 +48,7 @@ describe("sameSlotFacultyAlternatives", () => {
       course({ FACULTY: "SHINY E", SLOT: "G1+L31" }), // a subset — not the same booking
       course({ FACULTY: "SHINY E", SLOT: "L32+G1+L31" }), // same tokens, spelled out of order
     ];
-    const result = sameSlotFacultyAlternatives(
-      "BACSE104",
-      ["G1", "L31", "L32"],
-      current,
-      courses
-    );
+    const result = sameSlotFacultyAlternatives("BACSE104", ["G1", "L31", "L32"], current, courses);
     expect(result.map((r) => r.FACULTY)).toEqual(["SHINY E"]);
   });
 
@@ -62,18 +57,10 @@ describe("sameSlotFacultyAlternatives", () => {
       course({ FACULTY: "AARTHI D", SLOT: "G1+L31+L32", ERP_ID: "98765" }),
       course({ FACULTY: "SHINY E", SLOT: "G1+L31+L32", ERP_ID: "55123" }),
     ];
-    const result = sameSlotFacultyAlternatives(
-      "BACSE104",
-      ["G1", "L31", "L32"],
-      current,
-      courses
-    );
+    const result = sameSlotFacultyAlternatives("BACSE104", ["G1", "L31", "L32"], current, courses);
     // A same-name teacher under a different employee id is a different
     // person: both stay, sorted by name.
-    expect(result.map((r) => `${r.FACULTY}@${r.ERP_ID}`)).toEqual([
-      "AARTHI D@98765",
-      "SHINY E@55123",
-    ]);
+    expect(result.map((r) => `${r.FACULTY}@${r.ERP_ID}`)).toEqual(["AARTHI D@98765", "SHINY E@55123"]);
   });
 
   it("falls back to the name when the report carries no employee ids", () => {
@@ -85,7 +72,7 @@ describe("sameSlotFacultyAlternatives", () => {
       "BACSE104",
       ["g1", "l31", "l32"],
       { faculty: "AARTHI D", employeeId: undefined },
-      courses
+      courses,
     );
     expect(result.map((r) => r.FACULTY)).toEqual(["SHINY E"]);
   });
@@ -96,12 +83,7 @@ describe("sameSlotFacultyAlternatives", () => {
       course({ FACULTY: "SHINY E", ROOM: "AB1-101", SLOT: "G1+L31+L32" }),
       course({ FACULTY: "SHINY E", ROOM: "AB1-102", SLOT: "G1+L31+L32" }),
     ];
-    const result = sameSlotFacultyAlternatives(
-      "BACSE104",
-      ["G1", "L31", "L32"],
-      current,
-      courses
-    );
+    const result = sameSlotFacultyAlternatives("BACSE104", ["G1", "L31", "L32"], current, courses);
     expect(result.map((r) => r.ROOM)).toEqual(["AB1-101", "AB1-102"]);
   });
 
@@ -111,17 +93,8 @@ describe("sameSlotFacultyAlternatives", () => {
       course({ FACULTY: "SHINY E", ROOM: "AB2-102", SLOT: "G1+L31+L32" }),
       course({ FACULTY: "SHINY E", ROOM: "AB1-108", SLOT: "G1+L31+L32" }),
     ];
-    const result = sameSlotFacultyAlternatives(
-      "BACSE104",
-      ["G1", "L31", "L32"],
-      current,
-      courses
-    );
-    expect(result.map((r) => `${r.FACULTY}@${r.ROOM}`)).toEqual([
-      "SHINY E@AB1-108",
-      "SHINY E@AB2-102",
-      "ZAHID A@",
-    ]);
+    const result = sameSlotFacultyAlternatives("BACSE104", ["G1", "L31", "L32"], current, courses);
+    expect(result.map((r) => `${r.FACULTY}@${r.ROOM}`)).toEqual(["SHINY E@AB1-108", "SHINY E@AB2-102", "ZAHID A@"]);
   });
 
   it("matches embedded theory slots against combined master course offerings", () => {
@@ -130,16 +103,8 @@ describe("sameSlotFacultyAlternatives", () => {
       course({ FACULTY: "DR BOB", SLOT: "F1+TF1+L31+L32", ROOM: "SJT103 / SJT104" }),
       course({ FACULTY: "DR CHARLIE", SLOT: "G1+TG1+L1+L2", ROOM: "SJT105" }),
     ];
-    const result = sameSlotFacultyAlternatives(
-      "BACSE104",
-      ["F1", "TF1"],
-      { faculty: "CURRENT TEACHER" },
-      courses
-    );
-    expect(result.map((r) => `${r.FACULTY}@${r.ROOM}`)).toEqual([
-      "DR ALICE@SJT101",
-      "DR BOB@SJT103",
-    ]);
+    const result = sameSlotFacultyAlternatives("BACSE104", ["F1", "TF1"], { faculty: "CURRENT TEACHER" }, courses);
+    expect(result.map((r) => `${r.FACULTY}@${r.ROOM}`)).toEqual(["DR ALICE@SJT101", "DR BOB@SJT103"]);
     expect(result[0].SLOT).toBe("F1+TF1");
     expect(result[0].TYPE).toBe("ETH");
   });
@@ -149,16 +114,8 @@ describe("sameSlotFacultyAlternatives", () => {
       course({ FACULTY: "DR ALICE / DR DAVE", SLOT: "F1+TF1+L23+L24", ROOM: "SJT101 / SJT102", TYPE: "ETH+ELA" }),
       course({ FACULTY: "DR EVE", SLOT: "A1+TA1+L23+L24", ROOM: "SJT201 / SJT202" }),
     ];
-    const result = sameSlotFacultyAlternatives(
-      "BACSE104",
-      ["L23", "L24"],
-      { faculty: "CURRENT LAB" },
-      courses
-    );
-    expect(result.map((r) => `${r.FACULTY}@${r.ROOM}`)).toEqual([
-      "DR DAVE@SJT102",
-      "DR EVE@SJT202",
-    ]);
+    const result = sameSlotFacultyAlternatives("BACSE104", ["L23", "L24"], { faculty: "CURRENT LAB" }, courses);
+    expect(result.map((r) => `${r.FACULTY}@${r.ROOM}`)).toEqual(["DR DAVE@SJT102", "DR EVE@SJT202"]);
     expect(result[0].SLOT).toBe("L23+L24");
     expect(result[0].TYPE).toBe("ELA");
   });
@@ -228,10 +185,7 @@ describe("allCourseOfferings", () => {
 
     // Only combined offerings should be returned. Individual slots of PROF A must not occupy the list!
     expect(offerings.length).toBe(2);
-    expect(offerings.map((o) => `${o.FACULTY}@${o.SLOT}`)).toEqual([
-      "PROF A@F1+TF1+L1+L2",
-      "PROF B@G1+TG1+L3+L4",
-    ]);
+    expect(offerings.map((o) => `${o.FACULTY}@${o.SLOT}`)).toEqual(["PROF A@F1+TF1+L1+L2", "PROF B@G1+TG1+L3+L4"]);
   });
 });
 
@@ -256,13 +210,15 @@ const sheet = (over: { masterCourses?: ParsedCourse[] } = {}) => {
       code="BACSE104"
       courseTitle="Object Oriented Analysis And Design"
       halves={[half]}
-      masterCourses={over.masterCourses ?? [
-        course({ FACULTY: "SHINY E", ERP_ID: "55123", ROOM: "AB1-212" }),
-        course({ FACULTY: "ZAHID A", ERP_ID: undefined, ROOM: "" }),
-      ]}
+      masterCourses={
+        over.masterCourses ?? [
+          course({ FACULTY: "SHINY E", ERP_ID: "55123", ROOM: "AB1-212" }),
+          course({ FACULTY: "ZAHID A", ERP_ID: undefined, ROOM: "" }),
+        ]
+      }
       onSwap={onSwap}
       onClose={onClose}
-    />
+    />,
   );
   return { onSwap, onClose };
 };
@@ -284,10 +240,7 @@ describe("SlotFacultySwapSheet", () => {
     const { onSwap } = sheet();
     fireEvent.click(screen.getByText("SHINY E"));
     expect(onSwap).toHaveBeenCalledTimes(1);
-    expect(onSwap).toHaveBeenCalledWith(
-      "half-1",
-      expect.objectContaining({ FACULTY: "SHINY E", ERP_ID: "55123" })
-    );
+    expect(onSwap).toHaveBeenCalledWith("half-1", expect.objectContaining({ FACULTY: "SHINY E", ERP_ID: "55123" }));
   });
 
   it("filters the list by faculty name", () => {
@@ -340,12 +293,8 @@ describe("SlotFacultySwapSheet", () => {
   });
 
   it("triggers JPEG generation and download on button click", async () => {
-    const spy = vi
-      .spyOn(htmlToImage, "toJpeg")
-      .mockResolvedValue("data:image/jpeg;base64,mockjpegdata");
-    const clickSpy = vi
-      .spyOn(HTMLAnchorElement.prototype, "click")
-      .mockImplementation(() => {});
+    const spy = vi.spyOn(htmlToImage, "toJpeg").mockResolvedValue("data:image/jpeg;base64,mockjpegdata");
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
 
     sheet();
     const btn = screen.getByText("Download JPEG");
@@ -364,13 +313,11 @@ describe("SlotFacultySwapSheet", () => {
         code="BACSE104"
         courseTitle="Object Oriented Analysis And Design"
         halves={[half]}
-        masterCourses={[
-          course({ FACULTY: "SHINY E", SLOT: "G1+L31+L32" }),
-        ]}
+        masterCourses={[course({ FACULTY: "SHINY E", SLOT: "G1+L31+L32" })]}
         onClose={() => {}}
         panelZIndex={450}
         backdropZIndex={445}
-      />
+      />,
     );
 
     expect(screen.getByText("Faculty in this Slot")).toBeTruthy();
@@ -396,12 +343,10 @@ describe("SlotFacultySwapSheet", () => {
         code="BACSE104"
         courseTitle="Object Oriented Analysis And Design"
         halves={[combinedCourse]}
-        masterCourses={[
-          course({ FACULTY: "SHINY E", ERP_ID: "55123", ROOM: "AB1-212 / LAB-212", SLOT: "G1+L31+L32" }),
-        ]}
+        masterCourses={[course({ FACULTY: "SHINY E", ERP_ID: "55123", ROOM: "AB1-212 / LAB-212", SLOT: "G1+L31+L32" })]}
         onSwap={onSwap}
         onClose={() => {}}
-      />
+      />,
     );
 
     // Same-slot component alternatives are NOT shown for embedded courses
@@ -466,7 +411,7 @@ describe("SlotFacultySwapSheet", () => {
         ]}
         onSwap={onSwap}
         onClose={() => {}}
-      />
+      />,
     );
 
     // Other Available Offerings section is rendered
@@ -492,10 +437,7 @@ describe("SlotFacultySwapSheet", () => {
 
     // Clicking clash-free offering calls onSwap with comb-1
     fireEvent.click(screen.getByText("PROF FREE"));
-    expect(onSwap).toHaveBeenCalledWith(
-      "comb-1",
-      expect.objectContaining({ FACULTY: "PROF FREE", ERP_ID: "33333" })
-    );
+    expect(onSwap).toHaveBeenCalledWith("comb-1", expect.objectContaining({ FACULTY: "PROF FREE", ERP_ID: "33333" }));
   });
 
   it("does not show individual slots of faculties in other offerings when course is embedded", () => {
@@ -524,7 +466,7 @@ describe("SlotFacultySwapSheet", () => {
           course({ FACULTY: "PROF INDIVIDUAL", SLOT: "B1+TB1", TYPE: "ETH", ERP_ID: "200" }),
         ]}
         onClose={() => {}}
-      />
+      />,
     );
 
     // Only complete embedded offering is shown

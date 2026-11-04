@@ -65,6 +65,7 @@ export const KEYS = {
   FFCS_SETTINGS: "ffcs_settings",
   FFCS_TOUR_SEEN: "ffcs_tour_seen",
   FFCS_TIPS_DISMISSED: "ffcs_tips_dismissed",
+  PREDICTOR_TOUR_SEEN: "predictor_tour_seen",
   CACHE_PREFIX: "cache_",
   FROZEN_ATT_PREFIX: "frozen_att_",
   FROZEN_MARKS_PREFIX: "frozen_marks_",
@@ -401,6 +402,11 @@ export const storage = {
     get: () => getString(KEYS.FFCS_TOUR_SEEN),
     set: (val: string) => setString(KEYS.FFCS_TOUR_SEEN, val),
     remove: () => removeItem(KEYS.FFCS_TOUR_SEEN),
+  },
+  predictorTourSeen: {
+    get: () => getString(KEYS.PREDICTOR_TOUR_SEEN),
+    set: (val: string) => setString(KEYS.PREDICTOR_TOUR_SEEN, val),
+    remove: () => removeItem(KEYS.PREDICTOR_TOUR_SEEN),
   },
   ffcsTipsDismissed: {
     get: () => getItem<string[]>(KEYS.FFCS_TIPS_DISMISSED),

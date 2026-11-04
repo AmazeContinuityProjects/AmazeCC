@@ -6,7 +6,7 @@ import { ArrowLeft, CalendarDays, ChevronRight, Search, Users, X, ExternalLink }
 
 import { VerticalTimetableGrid } from "../../../../timetable";
 import BottomSheet from "../../../../shared/BottomSheet";
-import { DAYS } from "../../constants";
+import { DAYS } from "@/lib/ffcsConstants";
 import {
   facultyGroupToAddedCourses,
   facultySchedulePeriods,
@@ -14,8 +14,8 @@ import {
   type FacultyNameGroup,
   type FacultyOffering,
 } from "../../logic/facultyGroups";
-import { sameSlotFacultyAlternatives, splitSlots } from "../../logic/generate";
-import type { ParsedCourse } from "../../types";
+import { sameSlotFacultyAlternatives, splitSlots } from "@/lib/ffcsGenerate";
+import type { ParsedCourse } from "@/lib/ffcsTypes";
 import { EmptyPanel, IconButton, ListSkeleton } from "../../../../shared/primitives";
 import { VitfacReviewPill, FacultyAvatar } from "../FacultyAvatar";
 import FacultyReviewSheetHost from "../FacultyReviewSheetHost";

@@ -263,7 +263,7 @@ export const safeNumber = (val: any, fallback = 0): number => {
 
 // Helper: Normalize weightage array to ensure sum === 100
 export const normalizeWeights = (
-  items: Array<{ weightagePercent: number; [key: string]: any }>
+  items: Array<{ weightagePercent: number; [key: string]: any }>,
 ): Array<{ weightagePercent: number; [key: string]: any }> => {
   if (!items || items.length === 0) return items;
   const total = items.reduce((sum, item) => sum + safeNumber(item.weightagePercent), 0);
@@ -275,7 +275,7 @@ export const normalizeWeights = (
       const remaining = Math.max(0, 100 - runningSum);
       return { ...item, weightagePercent: Math.round(remaining * 100) / 100 };
     }
-    const scaled = Math.round(((item.weightagePercent / total) * 100) * 100) / 100;
+    const scaled = Math.round((item.weightagePercent / total) * 100 * 100) / 100;
     runningSum += scaled;
     return { ...item, weightagePercent: scaled };
   });
@@ -285,7 +285,7 @@ export const normalizeWeights = (
 export const computeComponentStats = (
   assessments: PredictorAssessment[],
   component: "theory" | "lab" | "project",
-  credits = 1
+  credits = 1,
 ): ComponentStats => {
   let totalWeightConfigured = 0;
   let scoredWeight = 0;
@@ -362,13 +362,9 @@ export const computeComponentStats = (
  * Null pace before the half has any recorded assessment — a half that has
  * not happened yet is not a failing half.
  */
-export const estimateComponentGrades = (
-  stats: ComponentStats,
-  boundaries?: GradedBoundary[]
-) => {
+export const estimateComponentGrades = (stats: ComponentStats, boundaries?: GradedBoundary[]) => {
   const released = stats.scoredWeight + stats.lostWeight;
-  const pacePct =
-    released > 0 ? Math.round((stats.scoredWeight / released) * 10000) / 100 : 0;
+  const pacePct = released > 0 ? Math.round((stats.scoredWeight / released) * 10000) / 100 : 0;
   // The half is scored on its own 0–100 ladder ("out of 100 on its own" — grade
   // history records the same convention), so its configured weight is the
   // ladder total: a lab half worth 60 points maxes at 100%, not at 60.
@@ -385,10 +381,7 @@ export const estimateComponentGrades = (
 };
 
 // Letter metadata: tone + copy per grade, read once via gradeAt.
-const GRADE_META: Record<
-  GradedBoundary["grade"],
-  { tone: string; description: string }
-> = {
+const GRADE_META: Record<GradedBoundary["grade"], { tone: string; description: string }> = {
   S: { tone: "emerald", description: "Outstanding (10 Grade Points)" },
   A: { tone: "cyan", description: "Excellent (9 Grade Points)" },
   B: { tone: "blue", description: "Very Good (8 Grade Points)" },
@@ -405,7 +398,7 @@ const GRADE_META: Record<
 // marks page and the predictor.
 export const estimateGrade = (
   score: number,
-  boundaries?: GradedBoundary[]
+  boundaries?: GradedBoundary[],
 ): {
   letter: string;
   tone: string;
@@ -458,8 +451,7 @@ export const computeCoursePrediction = ({
   // predates grading context — absolute, exactly as before. Passing a real
   // system opts into the relative shift when the course type qualifies, and
   // missing class statistics fall back to absolute (nothing to curve around).
-  const relativeEligible =
-    courseSystem !== undefined && isRelativeGrading(courseSystem ?? null, courseType);
+  const relativeEligible = courseSystem !== undefined && isRelativeGrading(courseSystem ?? null, courseType);
   const boundaries = buildGradeBoundaries(classStats ?? null, relativeEligible);
   // Shifted only when statistics actually fed the curve — the fallback path
   // returns the fixed ladder unchanged.
@@ -509,10 +501,7 @@ export const computeCoursePrediction = ({
   // that, so a thundering 40% before the first CAT stays 40% however many
   // assessments VTOP has yet to release. Zero released weight → no pace.
   const releasedWeight = currentScoredScaled + pointsLostScaled;
-  const pacePct =
-    releasedWeight > 0
-      ? Math.round((currentScoredScaled / releasedWeight) * 10000) / 100
-      : 0;
+  const pacePct = releasedWeight > 0 ? Math.round((currentScoredScaled / releasedWeight) * 10000) / 100 : 0;
 
   const optimalGrade = releasedWeight > 0 ? estimateGrade(pacePct, boundaries) : null;
   // Maximisable assumes every pending weight is earned in full; the permanent
@@ -520,41 +509,17 @@ export const computeCoursePrediction = ({
   // ladder — the same one the marks subpage renders.
   const maximisableGrade = estimateGrade(maxPossibleScaled, boundaries);
 
-  // The final-exam rows VTOP has not weighted yet. The title read mirrors the
-  // scope's `isFinalExamAssessment`; the scope of this file is imported BY
-  // that component, so reaching back would be circular.
-  const PENDING_FINAL_RE = /fat|final assessment/i;
-  const pendingFinalWeight = (list: PredictorAssessment[]) =>
-    list.reduce(
-      (sum, asm) =>
-        asm.scoredMark == null && PENDING_FINAL_RE.test(asm.title)
-          ? sum + Math.max(0, safeNumber(asm.weightagePercent, 0))
-          : sum,
-      0
-    );
-  let finalReservedSum = 0;
-  if (theoryStats) {
-    finalReservedSum += pendingFinalWeight(theoryAssessments) * (isEmbedded ? theoryCredits : 1);
-  }
-  if (labStats) {
-    finalReservedSum += pendingFinalWeight(labAssessments) * (isEmbedded ? labCredits : 1);
-  }
-  if (projectStats) {
-    finalReservedSum += pendingFinalWeight(projectAssessments) * (isEmbedded ? projectCredits : 1);
-  }
-  const finalReservedScaled = Math.round((finalReservedSum / effectiveCredits) * 100) / 100;
-
-  // The insights ladder's standing: earned over every weight the course has
-  // assigned — the marks subpage's exact denominator (`normalisedPct` over
-  // the weightage the feed reports). Its pending final-exam weight is not
-  // assigned yet (VTOP reports zero there until the exam), so it leaves the
-  // denominator; pending rows that do carry a weightage stay in it — user-
-  // authored ones included, diluting the read like any listed weight would.
-  const assignedWeight = releasedWeight + Math.max(0, potentialPendingScaled - finalReservedScaled);
-  const currentStandingPct =
-    assignedWeight > 0
-      ? Math.round((currentScoredScaled / assignedWeight) * 10000) / 100
-      : 0;
+  // The insights ladder's standing: the reader's own marks scaled onto 100 —
+  // earned over the weight that actually carries a mark. `releasedWeight` is
+  // scored + lost, i.e. every row with a mark in it, whether VTOP posted that
+  // mark or the reader typed a what-if. Rows left empty are not part of the
+  // scale: they say nothing about the reader, only about what VTOP has yet to
+  // ask. The old denominator (released + assigned-pending − reserved-final)
+  // folded untouched rows into the read, so the ring drifted away from every
+  // other number on the page — the scale a reader controls is the one they
+  // have entered. Nothing entered yet → 0; the page renders that as a
+  // zero-state rather than a ring sitting at zero.
+  const currentStandingPct = releasedWeight > 0 ? Math.round((currentScoredScaled / releasedWeight) * 10000) / 100 : 0;
 
   let riskLevel: "safe" | "moderate" | "critical" | "warning" = "safe";
   if (pointsLostScaled > 40) riskLevel = "critical";
@@ -609,7 +574,7 @@ export const solveTargetFAT = ({
   otherComponentWeighted?: number;
 }): TargetFATSolverResult => {
   const targetGradeObj = estimateGrade(targetScore);
-  const totalCredits = isEmbedded ? (theoryCredits + labCredits) : 1;
+  const totalCredits = isEmbedded ? theoryCredits + labCredits : 1;
   const compCredits = component === "theory" ? theoryCredits : labCredits;
   const otherCredits = component === "theory" ? labCredits : theoryCredits;
 
@@ -632,7 +597,7 @@ export const solveTargetFAT = ({
 
   const isAlreadyAchieved = deficitWeight <= 0;
   const isAchievable = rawScore <= fatMaxMark;
-  
+
   // VIT FAT Minimum Passing Criteria: Student must score at least 40% in FAT (i.e. 40/100 or 20/50 or 16/40 wt)
   const meetsVITMinimumCutoff = rawScore >= 0.4 * fatMaxMark;
 
@@ -645,13 +610,13 @@ export const solveTargetFAT = ({
   } else if (!isAchievable) {
     feasibility = "impossible";
     feasibilityMessage = `Mathematically out of reach. Max possible score is ${(100 - (targetScore - currentScoredScaled)).toFixed(1)}%.`;
-  } else if (rawScore > 0.90 * fatMaxMark) {
+  } else if (rawScore > 0.9 * fatMaxMark) {
     feasibility = "miracle";
     feasibilityMessage = `Miracle required: You need ${rawScore.toFixed(1)} / ${fatMaxMark} (${requiredPercentage.toFixed(0)}%) in FAT.`;
   } else if (rawScore > 0.75 * fatMaxMark) {
     feasibility = "tough";
     feasibilityMessage = `Tough challenge: You need ${rawScore.toFixed(1)} / ${fatMaxMark} (${requiredPercentage.toFixed(0)}%) in FAT.`;
-  } else if (rawScore > 0.50 * fatMaxMark) {
+  } else if (rawScore > 0.5 * fatMaxMark) {
     feasibility = "moderate";
     feasibilityMessage = `Achievable with solid prep: You need ${rawScore.toFixed(1)} / ${fatMaxMark} (${requiredPercentage.toFixed(0)}%) in FAT.`;
   } else {
@@ -679,16 +644,17 @@ export const solveTargetFAT = ({
 // Generate initial predictor assessments from live VTOP course data + default template
 export const createPredictorAssessmentsFromVTOP = (
   course: any,
-  component: "theory" | "lab" | "project"
+  component: "theory" | "lab" | "project",
 ): PredictorAssessment[] => {
   if (!course) return [];
 
   const rawAssessments = Array.isArray(course.assessments) ? course.assessments : [];
   if (rawAssessments.length === 0) {
     // Return standard preset
-    const preset = component === "lab"
-      ? PRESET_REGIMENS.find((p) => p.id === "lab-10-continuous")
-      : PRESET_REGIMENS.find((p) => p.id === "theory-standard");
+    const preset =
+      component === "lab"
+        ? PRESET_REGIMENS.find((p) => p.id === "lab-10-continuous")
+        : PRESET_REGIMENS.find((p) => p.id === "theory-standard");
 
     return (preset?.items || []).map((item, idx) => ({
       id: `${component}-${idx + 1}`,
@@ -707,7 +673,11 @@ export const createPredictorAssessmentsFromVTOP = (
     const maxMark = safeNumber(a.maxMark, 100);
     const weightagePercent = safeNumber(a.weightagePercent, 10);
     const rawScored = a.scoredMark;
-    const isPending = rawScored === null || rawScored === undefined || String(rawScored).trim() === "" || String(rawScored).trim() === "-";
+    const isPending =
+      rawScored === null ||
+      rawScored === undefined ||
+      String(rawScored).trim() === "" ||
+      String(rawScored).trim() === "-";
     const scoredMark = isPending ? null : safeNumber(rawScored, 0);
 
     return {

@@ -115,21 +115,20 @@ describe("Marks Predictor Calculation Engine", () => {
     });
   });
 
-  describe("currentStandingPct — the marks page's assigned-weight scale", () => {
-    // Mid-term: CAT-I 40/50 × 15 = 12 scored (3 lost, so released 15); CAT-II
-    // listed by VTOP but ungraded (15 pending); FAT's 40 rides in the config
-    // pinned at build, yet the marks subpage still divides only by the weight
-    // VTOP has assigned — the unweighted FAT contributes zero to its
-    // normalisedPct. So the ladder here must read 12 over (15 released + 15
-    // assigned pending) = 30, i.e. 40% — not the raw 12 on the full-100 scale,
-    // and not the 80% released pace the headline letter uses.
+  describe("currentStandingPct — the reader's entered marks scaled to 100", () => {
+    // Mid-term: CAT-I 40/50 × 15 = 12 scored (3 lost, so 15 entered); CAT-II
+    // listed by VTOP but ungraded —15 pending, and a blank row says nothing
+    // about the reader, so it is not part of the scale. FAT's 40 rides in the
+    // config pinned at build but carries no mark either. The ladder therefore
+    // reads 12 over the 15 actually entered → 80%: not the raw 12 on the
+    // full-100 scale, and not a denominator padded with rows nobody touched.
     const midterm: PredictorAssessment[] = [
       { id: "t1", title: "CAT - I", maxMark: 50, weightagePercent: 15, scoredMark: 40, component: "theory" },
       { id: "t2", title: "CAT - II", maxMark: 50, weightagePercent: 15, scoredMark: null, component: "theory" },
       { id: "t3", title: "FAT", maxMark: 100, weightagePercent: 40, scoredMark: null, component: "theory" },
     ];
 
-    it("scales earned points to 100 over assigned weight, FAT excluded until it exists", () => {
+    it("scales entered marks to 100 — blanks are not part of the scale", () => {
       const prediction = computeCoursePrediction({
         courseCode: "BCSE1001",
         courseTitle: "Problem Solving",
@@ -140,11 +139,12 @@ describe("Marks Predictor Calculation Engine", () => {
       expect(prediction.currentScoredScaled).toBeCloseTo(12, 1);
       // Released pace (the headline read): 12 over 15 released → 80%.
       expect(prediction.pacePct).toBeCloseTo(80, 0);
-      // The insights ladder's standing: 12 over 30 assigned → 40%.
-      expect(prediction.currentStandingPct).toBeCloseTo(40, 1);
+      // The ring: 12 over the 15 entered → 80% — blanks excluded, not
+      // padded into the denominator.
+      expect(prediction.currentStandingPct).toBeCloseTo(80, 1);
     });
 
-    it("collapses onto the released pace when nothing is pending", () => {
+    it("equals the released pace once every listed row carries a mark", () => {
       // Every assigned weight is recorded (released 6 + 11.76 = 17.76 scored,
       // 12.24 lost over 30) — standing and pace are the same division of the
       // same denominator, which is the subpage's normalisation mid-term too.
@@ -162,6 +162,23 @@ describe("Marks Predictor Calculation Engine", () => {
 
       expect(prediction.pacePct).toBeCloseTo(59.2, 1);
       expect(prediction.currentStandingPct).toBeCloseTo(59.2, 1);
+    });
+
+    it("reads 0 when nothing has been entered yet", () => {
+      const untouched: PredictorAssessment[] = [
+        { id: "t1", title: "CAT - I", maxMark: 50, weightagePercent: 15, scoredMark: null, component: "theory" },
+        { id: "t2", title: "CAT - II", maxMark: 50, weightagePercent: 15, scoredMark: null, component: "theory" },
+        { id: "t3", title: "FAT", maxMark: 100, weightagePercent: 40, scoredMark: null, component: "theory" },
+      ];
+
+      const prediction = computeCoursePrediction({
+        courseCode: "BCSE1001",
+        courseTitle: "Problem Solving",
+        courseType: "Theory Only",
+        theoryAssessments: untouched,
+      });
+
+      expect(prediction.currentStandingPct).toBe(0);
     });
   });
 

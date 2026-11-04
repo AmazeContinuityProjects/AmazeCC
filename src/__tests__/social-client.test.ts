@@ -15,8 +15,11 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
  */
 const fetchMock = vi.fn();
 
-vi.mock("@/lib/sync-engine", () => ({
-  api: (path: string, opts: { method?: string; body?: unknown }) =>
+// `social/client` imports `apiRequest` from the request layer directly (the
+// barrel is not imported there — that would re-create an import cycle), so the
+// mock targets the module actually used.
+vi.mock("@/lib/sync-engine/request-layer", () => ({
+  apiRequest: (path: string, opts: { method?: string; body?: unknown }) =>
     fetchMock(path, { method: opts?.method, body: opts?.body }),
 }));
 
@@ -98,14 +101,28 @@ describe("genuine successes still resolve", () => {
   });
 
   it("returns a claim with its secret", async () => {
-    respond({ success: true, grantId: "gr_1", secret: "s".repeat(43), created: true, visibility: "coarse", peer: { handle: "AMZ-7K2P-9RTW", name: "Neha", lastPublishedAt: null, semesters: [] } });
+    respond({
+      success: true,
+      grantId: "gr_1",
+      secret: "s".repeat(43),
+      created: true,
+      visibility: "coarse",
+      peer: { handle: "AMZ-7K2P-9RTW", name: "Neha", lastPublishedAt: null, semesters: [] },
+    });
     const res = await claimPair("AMZ-7K2P-9RTW");
     expect(res.grantId).toBe("gr_1");
     expect(res.secret).toHaveLength(43);
   });
 
   it("defaults a new pairing to full detail", async () => {
-    respond({ success: true, grantId: "gr_1", secret: "s".repeat(43), created: true, visibility: "full", peer: { handle: "AMZ-7K2P-9RTW", name: "Neha", lastPublishedAt: null, semesters: [] } });
+    respond({
+      success: true,
+      grantId: "gr_1",
+      secret: "s".repeat(43),
+      created: true,
+      visibility: "full",
+      peer: { handle: "AMZ-7K2P-9RTW", name: "Neha", lastPublishedAt: null, semesters: [] },
+    });
     await claimPair("AMZ-7K2P-9RTW");
     expect(fetchMock).toHaveBeenCalledWith("social/pair/claim", {
       method: "POST",

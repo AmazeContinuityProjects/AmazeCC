@@ -3,13 +3,15 @@
 import { useEffect } from "react";
 import { useDashboardNavigator } from "../dashboard/DashboardNavigator";
 
-export function useGlobalShortcuts({ theme, setTheme, settings, setSettings, setCommandPaletteOpen, setIsShortcutsHelpOpen }: any) {
-  const {
-    setActiveTab,
-    setActiveSubTab,
-    setActiveAttendanceSubTab,
-    setActiveProfileSubTab,
-  } = useDashboardNavigator();
+export function useGlobalShortcuts({
+  theme,
+  setTheme,
+  settings,
+  setSettings,
+  setCommandPaletteOpen,
+  setIsShortcutsHelpOpen,
+}: any) {
+  const { setActiveTab, setActiveSubTab, setActiveAttendanceSubTab, setActiveProfileSubTab } = useDashboardNavigator();
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       // Toggle search palette (Ctrl/Cmd + K)
@@ -32,18 +34,19 @@ export function useGlobalShortcuts({ theme, setTheme, settings, setSettings, set
 
       // Ignore shortcuts if typing inside inputs/textareas
       const activeEl = document.activeElement;
-      if (activeEl && (
-        activeEl.tagName === "INPUT" || 
-        activeEl.tagName === "TEXTAREA" || 
-        activeEl.getAttribute("contenteditable") === "true"
-      )) {
+      if (
+        activeEl &&
+        (activeEl.tagName === "INPUT" ||
+          activeEl.tagName === "TEXTAREA" ||
+          activeEl.getAttribute("contenteditable") === "true")
+      ) {
         return;
       }
 
       // We only listen for Alt (Option) key combinations for global actions
       if (e.altKey) {
         const key = e.key.toLowerCase();
-        
+
         // Navigation Shortcuts
         if (key === "h") {
           e.preventDefault();
@@ -65,8 +68,8 @@ export function useGlobalShortcuts({ theme, setTheme, settings, setSettings, set
           e.preventDefault();
           setActiveTab("profile");
           setActiveProfileSubTab("settings");
-        } 
-        
+        }
+
         // Modal & Action Shortcuts
         else if (key === "o") {
           e.preventDefault();
@@ -74,19 +77,26 @@ export function useGlobalShortcuts({ theme, setTheme, settings, setSettings, set
           setActiveAttendanceSubTab("od");
         } else if (key === "b") {
           e.preventDefault();
-          setSettings(prev => {
+          setSettings((prev) => {
             const nextVal = !prev.CGPAHidden;
-            localStorage.setItem("settings", JSON.stringify({ ...prev, CGPAHidden: nextVal }));
             return { ...prev, CGPAHidden: nextVal };
           });
         } else if (key === "t") {
           e.preventDefault();
           setTheme(theme === "dark" ? "light" : "dark");
-
         }
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [theme, setTheme, settings, setSettings, setActiveTab, setActiveSubTab, setActiveAttendanceSubTab, setActiveProfileSubTab]);
+  }, [
+    theme,
+    setTheme,
+    settings,
+    setSettings,
+    setActiveTab,
+    setActiveSubTab,
+    setActiveAttendanceSubTab,
+    setActiveProfileSubTab,
+  ]);
 }

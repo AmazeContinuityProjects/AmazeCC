@@ -1,25 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import {
-  Target,
-  AlertTriangle,
-  CheckCircle2,
-  Sparkles,
-  Flame,
-  ShieldAlert,
-} from "lucide-react";
-import {
-  solveTargetFAT,
-  TargetFATSolverResult,
-  CoursePredictionResult,
-  estimateGrade,
-} from "@/lib/marksPredictor";
-import {
-  ChipTabs,
-  SectionHeader,
-  ToneBadge,
-} from "../../shared/primitives";
+import { Target, AlertTriangle, CheckCircle2, Sparkles, Flame, ShieldAlert } from "lucide-react";
+import { solveTargetFAT, TargetFATSolverResult, CoursePredictionResult, estimateGrade } from "@/lib/marksPredictor";
+import { isAssessmentPublished, isFinalExamAssessment, onlyFatRemains } from "./useCoursePredictionScope";
+import { ChipTabs, ToneBadge } from "../../shared/primitives";
 import { FIELD_INPUT, TILE_CARD, TONE_ICON_TILE } from "@/lib/uiTokens";
 
 interface TargetGradeSolverProps {
@@ -46,20 +31,13 @@ export default function TargetGradeSolver({
   }));
 
   const [selectedTargetScore, setSelectedTargetScore] = useState<number>(
-    savedTargetScore ?? TARGET_PRESETS[0]?.score ?? 90
+    savedTargetScore ?? TARGET_PRESETS[0]?.score ?? 90,
   );
   const [customTargetInput, setCustomTargetInput] = useState<string>(
-    String(savedTargetScore ?? TARGET_PRESETS[0]?.score ?? 90)
+    String(savedTargetScore ?? TARGET_PRESETS[0]?.score ?? 90),
   );
 
-  const {
-    isEmbedded,
-    theoryCredits,
-    labCredits,
-    theoryStats,
-    labStats,
-    currentScoredScaled,
-  } = prediction;
+  const { isEmbedded, theoryCredits, labCredits, theoryStats, labStats, currentScoredScaled } = prediction;
 
   // The final exam that actually decides this course. A theory-carrying course
   // solves against the theory FAT; a lab-only course has no theory half, so its
@@ -76,10 +54,32 @@ export default function TargetGradeSolver({
   // The current score is the earned weight points of the half being solved —
   // published marks plus every what-if the reader entered on this page, which
   // is the point of the exercise: set what you expect on the CATs and the
-  // required final-exam mark moves right away.
-  const currentComponentWeighted =
-    theoryStats?.scoredWeight ?? labStats?.scoredWeight ?? currentScoredScaled;
+  // required final-exam mark moves right away. It must NOT contain the final
+  // exam's own points, though: `scoredWeight` sums every marked row, and a
+  // graded (or what-if'd) FAT would count as ground already won before the
+  // very exam this solve is asking about — subtract the final row's own
+  // earn and the deficit stays honest. Unmarked, that row contributes 0 and
+  // nothing changes. The lab half as "other" keeps its full score on
+  // purpose: whatever it already delivered, FAT included, is fixed ground
+  // the theory solve must plan around.
+  const earnedExcludingFinal = (stats: typeof theoryStats) =>
+    stats
+      ? stats.scoredWeight -
+        stats.assessments.filter((row) => isFinalExamAssessment(row)).reduce((sum, row) => sum + row.scoredWeight, 0)
+      : 0;
+  const currentComponentWeighted = theoryStats
+    ? earnedExcludingFinal(theoryStats)
+    : labStats
+      ? earnedExcludingFinal(labStats)
+      : currentScoredScaled;
   const otherComponentWeighted = solvesLab ? 0 : labStats?.scoredWeight || 0;
+
+  // The card's two gates. The solve speaks only once every other assessment
+  // carries a mark — before that the answer moves with each blank the reader
+  // has yet to fill — and a posted FAT is a fact, not a variable: the card
+  // leaves the page entirely instead of answering.
+  const gateOpen = onlyFatRemains(prediction);
+  const fatPublished = finalRow ? isAssessmentPublished(finalRow) : false;
 
   const solverResult: TargetFATSolverResult = solveTargetFAT({
     targetScore: selectedTargetScore,
@@ -134,15 +134,16 @@ export default function TargetGradeSolver({
   const badge = getFeasibility(solverResult.feasibility);
   const BadgeIcon = badge.icon;
 
+  // A posted FAT is a fact: there is nothing left to aim at, so the card
+  // steps aside entirely — the list's locked row and the ladder carry the
+  // course from here.
+  if (fatPublished) return null;
+
   return (
     <div className={`${TILE_CARD} w-full max-w-full space-y-4`}>
-      <SectionHeader
-        icon={Target}
-        title="Target grade & FAT solver"
-        count={TARGET_PRESETS.length}
-      />
-      <p className="px-1 -mt-1 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
-        Aim {targetGradeOnLadder} ({selectedTargetScore}%) on this ladder — calculated as the exact marks needed in {fatExamName}.
+      <p className="text-[11px] leading-relaxed text-zinc-500 dark:text-zinc-400 font-medium">
+        Aim {targetGradeOnLadder} ({selectedTargetScore}%) on this ladder
+        {gateOpen ? ` — calculated as the exact marks needed in ${fatExamName}.` : "."}
       </p>
 
       {/* Presets */}
@@ -160,7 +161,9 @@ export default function TargetGradeSolver({
               aria-label="Target percentage"
               className={`${FIELD_INPUT} text-center pr-7`}
             />
-            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-bold text-zinc-400 pointer-events-none">%</span>
+            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-bold text-zinc-400 pointer-events-none">
+              %
+            </span>
           </span>
         </div>
         <ChipTabs
@@ -179,45 +182,87 @@ export default function TargetGradeSolver({
         />
       </div>
 
-      {/* Solution */}
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">
-              Required in {fatExamName}
-            </p>
-            <p className="mt-1 flex items-baseline gap-2 flex-wrap min-w-0">
-              <span className="text-2xl font-black text-zinc-900 dark:text-white font-outfit tracking-tight">
-                {solverResult.isAlreadyAchieved ? "0" : solverResult.requiredFATRawScore.toFixed(1)}
-              </span>
-              <span className="text-xs font-bold text-zinc-400">/ {solverResult.fatMaxMark}</span>
-              <ToneBadge tone="indigo">
-                {solverResult.isAlreadyAchieved ? "0%" : `${solverResult.requiredFATPercentage.toFixed(1)}%`}
-              </ToneBadge>
-            </p>
-            <p className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 mt-1">
-              Contributes <strong className="text-zinc-800 dark:text-zinc-200">{solverResult.requiredFATWeight.toFixed(1)}</strong> / {solverResult.fatWeightagePercent} wt
-            </p>
-          </div>
-          <ToneBadge tone={badge.tone} size="lg" icon={<BadgeIcon className="h-3.5 w-3.5" />}>
-            {badge.label}
-          </ToneBadge>
-        </div>
-        <p className="text-xs text-zinc-600 dark:text-zinc-300 font-medium leading-relaxed">
-          {solverResult.feasibilityMessage}
-        </p>
-        {!solverResult.meetsVITMinimumCutoff && !solverResult.isAlreadyAchieved && (
-          <div className={`${TILE_CARD} flex items-center gap-3`}>
-            <span className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.amber}`}>
-              <AlertTriangle className="h-4.5 w-4.5" />
-            </span>
-            <p className="text-xs text-zinc-600 dark:text-zinc-300 font-medium">
-              <strong className="font-black">VIT Regulation:</strong> Even though you only need {solverResult.requiredFATRawScore.toFixed(1)}/
-              {solverResult.fatMaxMark} for {selectedTargetScore}%, a <strong>minimum 40% in FAT (40/100)</strong> is required to pass.
-            </p>
-          </div>
-        )}
+      {/* The final exam's slot — frozen, not a way in. The FAT is never
+          editable: the prediction counts it as zero and only ever *asks*
+          about it, so the tile states the freeze and the solve below does
+          the talking. */}
+      <div className="w-full flex items-center gap-3 py-3 px-3.5 rounded-2xl border border-dashed border-amber-500/40 bg-amber-500/5 text-left">
+        <span
+          className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.amber}`}
+        >
+          <Flame className="h-5 w-5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-xs font-black text-text-heading font-outfit uppercase tracking-wider truncate">
+            {fatExamName} · {fatWeight} wt · /{fatMax}
+          </span>
+          <span className="block text-[11px] font-semibold mt-0.5 text-zinc-500 dark:text-zinc-400">
+            Counted as 0 — frozen; the prediction never lets this be filled.
+          </span>
+        </span>
+        <ToneBadge tone="amber" size="sm">
+          Frozen
+        </ToneBadge>
       </div>
+
+      {/* Solution — gated: the solve speaks only when every other assessment
+          carries a mark. */}
+      {!gateOpen ? (
+        <div className="rounded-2xl border border-dashed border-amber-500/40 bg-amber-500/5 px-3.5 py-3">
+          <p className="text-[11px] leading-relaxed text-zinc-600 dark:text-zinc-300 font-medium">
+            <strong className="font-black text-zinc-800 dark:text-zinc-100">
+              Assign a mark to every other assessment first.
+            </strong>{" "}
+            Once only {fatExamName} remains, this card answers exactly what you need in it.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">
+                Required in {fatExamName}
+              </p>
+              <p className="mt-1 flex items-baseline gap-2 flex-wrap min-w-0">
+                <span className="text-2xl font-black text-zinc-900 dark:text-white font-outfit tracking-tight">
+                  {solverResult.isAlreadyAchieved ? "0" : solverResult.requiredFATRawScore.toFixed(1)}
+                </span>
+                <span className="text-xs font-bold text-zinc-400">/ {solverResult.fatMaxMark}</span>
+                <ToneBadge tone="indigo">
+                  {solverResult.isAlreadyAchieved ? "0%" : `${solverResult.requiredFATPercentage.toFixed(1)}%`}
+                </ToneBadge>
+              </p>
+              <p className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 mt-1">
+                Contributes{" "}
+                <strong className="text-zinc-800 dark:text-zinc-200">
+                  {solverResult.requiredFATWeight.toFixed(1)}
+                </strong>{" "}
+                / {solverResult.fatWeightagePercent} wt
+              </p>
+            </div>
+            <ToneBadge tone={badge.tone} size="lg" icon={<BadgeIcon className="h-3.5 w-3.5" />}>
+              {badge.label}
+            </ToneBadge>
+          </div>
+          <p className="text-xs text-zinc-600 dark:text-zinc-300 font-medium leading-relaxed">
+            {solverResult.feasibilityMessage}
+          </p>
+          {!solverResult.meetsVITMinimumCutoff && !solverResult.isAlreadyAchieved && (
+            <div className={`${TILE_CARD} flex items-center gap-3`}>
+              <span
+                className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.amber}`}
+              >
+                <AlertTriangle className="h-4.5 w-4.5" />
+              </span>
+              <p className="text-xs text-zinc-600 dark:text-zinc-300 font-medium">
+                <strong className="font-black">VIT Regulation:</strong> Even though you only need{" "}
+                {solverResult.requiredFATRawScore.toFixed(1)}/{solverResult.fatMaxMark} for {selectedTargetScore}%, a{" "}
+                <strong>minimum 40% in FAT (40/100)</strong> is required to pass.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

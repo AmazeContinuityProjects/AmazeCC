@@ -3,7 +3,7 @@
 import { Users } from "lucide-react";
 import { getBatchColorClass } from "@/lib/utils";
 import { splitSlots } from "@/lib/slots";
-import type { CourseLock, ParsedCourse } from "../types";
+import type { CourseLock, ParsedCourse } from "@/lib/ffcsTypes";
 import { renderCourseTypeChips } from "./CourseTypeChips";
 import { GRADE_BADGE_TONE_CLASSES, type GradeBadge, type GradeLetter } from "@/lib/ffcsPlannerGrades";
 

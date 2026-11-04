@@ -14,7 +14,7 @@
  */
 
 import { periodsForSlot, splitSlots, MORNING_BEFORE_MIN, type CampusSchema, type SlotPeriod } from "./slots";
-import type { TimetableState } from "../components/custom/exams/FFCS/types";
+import type { TimetableState } from "@/lib/ffcsTypes";
 
 /** How a plan's days are cut between morning and evening. */
 export type TheorySession = "morning" | "evening" | "mixed";

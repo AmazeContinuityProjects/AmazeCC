@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import SlotFacultySwapSheet from "../components/custom/exams/FFCS/components/SlotFacultySwapSheet";
-import type { AddedCourse, ParsedCourse } from "../components/custom/exams/FFCS/types";
+import type { AddedCourse, ParsedCourse } from "@/lib/ffcsTypes";
 import { installLocalStorage } from "./helpers/localStorage";
 
 const storage = installLocalStorage();

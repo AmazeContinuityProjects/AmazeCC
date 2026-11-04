@@ -6,6 +6,7 @@ import {
   computeCoursePrediction,
   createPredictorAssessmentsFromVTOP,
   safeNumber,
+  type CoursePredictionResult,
 } from "@/lib/marksPredictor";
 import {
   getCoursePredictorState,
@@ -65,19 +66,14 @@ export const COMPONENT_TOTAL_WEIGHT = 100;
 export const FAT_RESERVED_WEIGHT = 40;
 
 /** True when VTOP has recorded real marks for this assessment (not a what-if). */
-export const isAssessmentPublished = (asm: {
-  scoredMark: number | null;
-  isSimulated?: boolean;
-}): boolean =>
+export const isAssessmentPublished = (asm: { scoredMark: number | null; isSimulated?: boolean }): boolean =>
   !asm.isSimulated && asm.scoredMark !== null && asm.scoredMark !== undefined;
 
 /** The final exam row itself, theory ("FAT") or lab ("Lab FAT") by title. */
 export const isFinalExamAssessment = (asm: { title: string }): boolean =>
   /fat|final assessment/i.test(String(asm.title).trim());
 
-export type WeightFreeze =
-  | { frozen: false }
-  | { frozen: true; reason: "published" | "fat-reserved" | "fat-published" };
+export type WeightFreeze = { frozen: false } | { frozen: true; reason: "published" | "fat-reserved" | "fat-published" };
 
 /** Whether a row's weightage is locked, and why — for the rows and the editors
  * to render the lock with the same rule. */
@@ -94,46 +90,126 @@ export const weightFreezeFor = (asm: {
   return { frozen: false };
 };
 
+/**
+ * Is the final exam the only assessment still waiting on a mark?
+ *
+ * The target card's gate. "What do I need in the FAT" only means something
+ * once every other row carries a mark — before that the answer moves with
+ * each blank the reader has yet to fill, and showing it early reads as a
+ * promise the page cannot keep. True when every non-final row in every
+ * existing half is marked AND a final-exam row exists at all (its own mark
+ * is the one still open; whether the reader has typed a what-if into it or
+ * not does not change that the rest of the course is done).
+ *
+ * Takes the prediction rather than raw lists because that is what both the
+ * page and the solver hold when they ask.
+ */
+export const onlyFatRemains = (prediction: CoursePredictionResult): boolean => {
+  const halves = [prediction.theoryStats?.assessments, prediction.labStats?.assessments];
+  let sawFinal = false;
+  let sawRow = false;
+  for (const list of halves) {
+    if (!list) continue;
+    for (const asm of list) {
+      sawRow = true;
+      if (isFinalExamAssessment(asm)) {
+        sawFinal = true;
+        continue;
+      }
+      if (asm.scoredMark === null || asm.scoredMark === undefined) return false;
+    }
+  }
+  return sawRow && sawFinal;
+};
+
 /** The weight a component still has open: the total minus everything already
  * allocated in it (published facts, the reserved final exam, the user's own
  * addenda). What a new assessment may claim. */
-export const remainingWeightFor = (
-  list: readonly { weightagePercent?: number | string | null }[]
-): number =>
+export const remainingWeightFor = (list: readonly { weightagePercent?: number | string | null }[]): number =>
   Math.max(
     0,
-    Math.round(
-      (COMPONENT_TOTAL_WEIGHT -
-        list.reduce((sum, a) => sum + safeNumber(a.weightagePercent, 0), 0)) *
-        10
-    ) / 10
+    Math.round((COMPONENT_TOTAL_WEIGHT - list.reduce((sum, a) => sum + safeNumber(a.weightagePercent, 0), 0)) * 10) /
+      10,
   );
 
 /**
- * The final exam's share is law: the theory FAT holds 40% of the theory total
- * and the lab FAT holds 40% of the lab total — no more, no less. Until VTOP
- * publishes those weightages, a regimen that says otherwise (a stale payload
- * row, a mangled stored state) is corrected here, so "what do I still need on
- * the FAT" is always answered against the real 40% final-exam mass. Once the
- * marks publish, the cohort's own number is the frozen fact (VIT publishes
- * the FAT at 40 anyway).
+ * The final exam's share is law — but only while it fits.
+ *
+ * The theory FAT holds 40% of the theory total and the lab FAT holds 40% of
+ * the lab total. Until VTOP publishes those weightages, a regimen that says
+ * otherwise (a stale payload row, a mangled stored state) is corrected here,
+ * so "what do I still need on the FAT" is always answered against the real
+ * 40% final-exam mass. Once the marks publish, the cohort's own number is
+ * the frozen fact (VIT publishes the FAT at 40 anyway).
+ *
+ * The one case the law yields: pinning would push the list past 100. A feed
+ * that listed more than 60% without its final (or an auto-inserted FAT
+ * already filling the gap at a smaller share) would have every weight on the
+ * page read against an inflated total — so the row keeps the weight it
+ * arrived with instead, and the list never overflows because of this pin.
  */
 export const pinReservedFinalExamWeight = <
   T extends { title: string; scoredMark: number | null; isSimulated?: boolean; weightagePercent: number },
 >(
-  list: readonly T[]
-): T[] =>
-  list.map((item) => {
+  list: readonly T[],
+): T[] => {
+  const pinnedTotal = list.reduce((sum, item) => {
+    const weight =
+      isFinalExamAssessment(item) && !isAssessmentPublished(item)
+        ? FAT_RESERVED_WEIGHT
+        : safeNumber(item.weightagePercent, 0);
+    return sum + weight;
+  }, 0);
+  if (pinnedTotal > COMPONENT_TOTAL_WEIGHT) return [...list];
+
+  return list.map((item) => {
     if (!isFinalExamAssessment(item) || isAssessmentPublished(item)) return item;
     return safeNumber(item.weightagePercent, 0) === FAT_RESERVED_WEIGHT
       ? item
       : { ...item, weightagePercent: FAT_RESERVED_WEIGHT };
   });
+};
+
+/**
+ * The FAT is frozen at zero.
+ *
+ * An unpublished final-exam mark never enters the prediction — the solver's
+ * whole job is to say what the reader still needs in it, so a what-if typed
+ * (or simulated) into that row would both count as ground already won and
+ * silence the answer. Stripping it here — at the single door between stored
+ * config and the engine — keeps every surface (ladder, solver, sheet) on the
+ * same zero without rewriting stored state. A VTOP-posted mark is a fact and
+ * stays: it just moves the target card out of the way instead.
+ */
+export const freezeFinalExamMarks = <T extends { title: string; scoredMark: number | null; isSimulated?: boolean }>(
+  list: readonly T[],
+): T[] =>
+  list.map((item) =>
+    isFinalExamAssessment(item) && !isAssessmentPublished(item) && item.scoredMark !== null
+      ? { ...item, scoredMark: null, isSimulated: false }
+      : item,
+  );
 
 const stripComponentMarker = (code: unknown): string =>
   String(code ?? "")
     .replace(/\s*\([LPT]\)$/i, "")
     .trim();
+
+/**
+ * One definition of "embedded" for the predictor's surfaces.
+ *
+ * Three rules were in circulation and they disagreed: the page tested
+ * `courseType.includes("lab")`, the config tested `includes("embedded")`,
+ * the engine tests the assessment arrays it was handed. A "Lab Only" course
+ * was embedded to the page and not to the config, so the carousel offered
+ * halves the credit math did not blend and the regimen editor flashed a
+ * Theory tab for a subject with no theory. This is the config's rule — the
+ * label says embedded, or the payload carries both halves — which is the
+ * one the credit defaults already follow. The engine keeps its array-based
+ * read on purpose: it never sees the payload, only what it was given.
+ */
+export const isEmbeddedCourse = (courseType: string, theoryCourse?: unknown, labCourse?: unknown): boolean =>
+  /embedded/i.test(String(courseType ?? "")) || Boolean(theoryCourse && labCourse);
 
 /**
  * Build a course's assessment configuration from its stored overrides, falling
@@ -147,10 +223,7 @@ const stripComponentMarker = (code: unknown): string =>
  * credit to pull any weight in the blended prediction — a lab analysed at zero
  * credits is a lab the grade predictor pretends does not exist.
  */
-export function buildCourseConfig(
-  course: EnrolledCourseItem | null,
-  saved?: StoredCourseState | null
-): CourseConfig {
+export function buildCourseConfig(course: EnrolledCourseItem | null, saved?: StoredCourseState | null): CourseConfig {
   if (!course) return { theory: [], lab: [], theoryCredits: 3, labCredits: 1 };
 
   const type = course.courseType.toLowerCase();
@@ -158,12 +231,10 @@ export function buildCourseConfig(
   const hasLabText = type.includes("lab");
   const hasTheoryPayload = Boolean(course.theoryCourse);
   const hasLabPayload = Boolean(course.labCourse);
-  const isEmbedded = type.includes("embedded") || (hasTheoryPayload && hasLabPayload);
+  const isEmbedded = isEmbeddedCourse(course.courseType, course.theoryCourse, course.labCourse);
 
-  const theoryCredits =
-    saved?.theoryCredits ?? (isLabOnly && !hasTheoryPayload ? 0 : 3);
-  const labCredits =
-    saved?.labCredits ?? (hasLabText || isEmbedded || hasLabPayload ? 1 : 0);
+  const theoryCredits = saved?.theoryCredits ?? (isLabOnly && !hasTheoryPayload ? 0 : 3);
+  const labCredits = saved?.labCredits ?? (hasLabText || isEmbedded || hasLabPayload ? 1 : 0);
 
   let theory = saved?.theoryAssessments;
   let lab = saved?.labAssessments;
@@ -201,7 +272,7 @@ export function buildCourseConfig(
 export function buildEnrolledCourses(
   marksData: any,
   attendance: readonly any[] | undefined,
-  customCourses: readonly CustomCourseMock[]
+  customCourses: readonly CustomCourseMock[],
 ): EnrolledCourseItem[] {
   const map = new Map<string, EnrolledCourseItem>();
 
@@ -213,19 +284,12 @@ export function buildEnrolledCourses(
 
   const componentSum = (item: EnrolledCourseItem): number => {
     if (item.isCustom) return item.credits;
-    const theory = item.theoryCourse
-      ? classCreditsFor(item.theoryCourse, false)
-      : 0;
+    const theory = item.theoryCourse ? classCreditsFor(item.theoryCourse, false) : 0;
     const lab = item.labCourse ? classCreditsFor(item.labCourse, true) : 0;
     return theory + lab;
   };
 
-  const upsert = (
-    rawCode: string,
-    payload: any,
-    sourceTitle: string,
-    fromAttendance = false
-  ) => {
+  const upsert = (rawCode: string, payload: any, sourceTitle: string, fromAttendance = false) => {
     const baseCode = stripComponentMarker(rawCode) || stripComponentMarker(sourceTitle);
     if (!baseCode) return;
 
@@ -254,7 +318,13 @@ export function buildEnrolledCourses(
     if (isLab) {
       // Spread-merge like the course subpage: an attendance row fills the
       // fields the marks row lacked without discarding its class id.
-      existing.labCourse = { ...(existing.labCourse ?? {}), ...payload, ...(fromAttendance ? { classNbr: payload?.classId || payload?.classNbr || existing.labCourse?.classNbr } : {}), courseCode: baseCode, courseTitle };
+      existing.labCourse = {
+        ...(existing.labCourse ?? {}),
+        ...payload,
+        ...(fromAttendance ? { classNbr: payload?.classId || payload?.classNbr || existing.labCourse?.classNbr } : {}),
+        courseCode: baseCode,
+        courseTitle,
+      };
     } else {
       existing.theoryCourse = { ...(existing.theoryCourse ?? {}), ...payload, courseCode: baseCode, courseTitle };
       // The theory half's title is the course's name; a lab-first arrival can
@@ -273,11 +343,7 @@ export function buildEnrolledCourses(
     // gets an attendance row under the same code — the forced relabel used to
     // fire on that twin, so real "Lab Only" electives read as ETL on the list
     // and even gained curve eligibility their lab halves don't hold.
-    if (
-      existing.theoryCourse &&
-      existing.labCourse &&
-      !existing.courseType.toLowerCase().includes("embedded")
-    ) {
+    if (existing.theoryCourse && existing.labCourse && !existing.courseType.toLowerCase().includes("embedded")) {
       existing.courseType = "Embedded Theory";
     }
     // A merged course's system is whichever half published one — the theory
@@ -333,7 +399,7 @@ export function buildEnrolledCourses(
  */
 export function useRemappedCourseStats(
   marksStats?: Record<string, any>,
-  courses: readonly EnrolledCourseItem[] = []
+  courses: readonly EnrolledCourseItem[] = [],
 ): Record<string, any> {
   const [remapped, setRemapped] = useState<Record<string, any>>({});
 
@@ -389,14 +455,11 @@ export function useRemappedCourseStats(
  * custom subject has no class id — those get null and the hero renders the
  * "not enough data" row rather than an invented number.
  */
-export function useCoursePredictionScope(
-  course: EnrolledCourseItem | null,
-  marksStats?: Record<string, any>
-) {
+export function useCoursePredictionScope(course: EnrolledCourseItem | null, marksStats?: Record<string, any>) {
   const courseCode = course?.courseCode ?? "";
 
   const [config, setConfig] = useState<CourseConfig>(() =>
-    buildCourseConfig(course, getCoursePredictorState(courseCode))
+    buildCourseConfig(course, getCoursePredictorState(courseCode)),
   );
 
   // The target grade is a persisted goal, not view state: it survives
@@ -451,8 +514,8 @@ export function useCoursePredictionScope(
             courseCode: course.courseCode,
             courseTitle: course.courseTitle,
             courseType: course.courseType,
-            theoryAssessments: config.theory,
-            labAssessments: config.lab,
+            theoryAssessments: freezeFinalExamMarks(config.theory),
+            labAssessments: freezeFinalExamMarks(config.lab),
             theoryCredits: config.theoryCredits,
             labCredits: config.labCredits,
             // Always a key (null when absent) so the prediction resolves the
@@ -462,7 +525,7 @@ export function useCoursePredictionScope(
             classStats,
           })
         : null,
-    [course, config, classStats]
+    [course, config, classStats],
   );
 
   // Cohort statistics for this course's assessments, keyed the same way the

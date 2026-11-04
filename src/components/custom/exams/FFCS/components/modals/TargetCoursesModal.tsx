@@ -3,7 +3,7 @@ import { AnimatePresence } from "framer-motion";
 import { ClipboardPaste, FileSpreadsheet, Lock, Search, X } from "lucide-react";
 import SearchInput from "../../../../shared/SearchInput";
 import BottomSheet from "../../../../shared/BottomSheet";
-import { CourseLock, ParsedCourse, AddedCourse } from "../../types";
+import { CourseLock, ParsedCourse, AddedCourse } from "@/lib/ffcsTypes";
 import { SegmentedControl } from "@/components/custom/shared/primitives";
 import { CourseImportPanel, type ImportMode } from "../CourseImportPanel";
 import { TargetCourseLockCard } from "../TargetCourseLockCard";

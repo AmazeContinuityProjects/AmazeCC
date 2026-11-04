@@ -13,7 +13,7 @@ import {
   offeringId,
   offeringMatches,
   parseReportRows,
-} from "../components/custom/exams/FFCS/reports";
+} from "@/lib/ffcsReports";
 
 /**
  * The report switch has two failure modes worth pinning: a saved semester id

@@ -19,8 +19,8 @@
  * session that never exports a report never pays for the library.
  */
 import type { jsPDF } from "jspdf";
-import type { AddedCourse } from "@/components/custom/exams/FFCS/types";
-import { COLOR_HEX_MAP, typeLabels } from "@/components/custom/exams/FFCS/constants";
+import type { AddedCourse } from "@/lib/ffcsTypes";
+import { COLOR_HEX_MAP, typeLabels } from "@/lib/ffcsConstants";
 import { getTimetableSchema } from "@/lib/campusSchema";
 import { DAYS_OF_WEEK, periodsForSlot, splitSlots, type CampusSchema } from "@/lib/slots";
 import { courseClashPairs, courseClashPairCount, formatMinutesOfDay, type CourseClash } from "./ffcsClashPairs";

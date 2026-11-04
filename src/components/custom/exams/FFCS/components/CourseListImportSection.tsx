@@ -6,7 +6,7 @@ import { importFile, type FileImport } from "@/features/import/importFile";
 import { IMPORTABLE_FIELDS, REQUIRED_FIELDS } from "@/features/import/normalizeColumns";
 import { buildSampleCourseListCsv, SAMPLE_COURSE_LIST_FILENAME } from "@/features/import/sampleCourseList";
 import { track } from "@/lib/analytics";
-import type { ParsedCourse } from "../types";
+import type { ParsedCourse } from "@/lib/ffcsTypes";
 
 /**
  * The "bring your own list" flow, one level below the Switch Course List
@@ -71,8 +71,8 @@ export function CourseListImportSection({ onImport }: CourseListImportSectionPro
   return (
     <div className="flex flex-col gap-3">
       <p className="text-xs text-muted-foreground">
-        Download the sample sheet, fill in your courses, and import it back. Columns can be
-        renamed or reordered — only the required ones must stay.
+        Download the sample sheet, fill in your courses, and import it back. Columns can be renamed or reordered — only
+        the required ones must stay.
       </p>
 
       <FieldLegend />
@@ -111,8 +111,8 @@ export function CourseListImportSection({ onImport }: CourseListImportSectionPro
       {importedCount !== null && (
         <p className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-2" aria-live="polite">
           <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-          Imported {importedCount} course{importedCount === 1 ? "" : "s"}. Same codes were
-          replaced; the rest of your list is untouched.
+          Imported {importedCount} course{importedCount === 1 ? "" : "s"}. Same codes were replaced; the rest of your
+          list is untouched.
         </p>
       )}
 
@@ -169,8 +169,7 @@ function ImportPreview({ result, onImport }: { result: FileImport; onImport: () 
         ) : (
           <>
             <span className="text-text-heading">{result.courses.length}</span> course
-            {result.courses.length === 1 ? "" : "s"} ready from{" "}
-            <span className="font-mono">{result.source}</span>
+            {result.courses.length === 1 ? "" : "s"} ready from <span className="font-mono">{result.source}</span>
             {result.skipped > 0 ? ` · ${result.skipped} row${result.skipped === 1 ? "" : "s"} skipped` : ""}
           </>
         )}
@@ -181,7 +180,9 @@ function ImportPreview({ result, onImport }: { result: FileImport; onImport: () 
           {missingRequired.length > 0 && (
             <span className="flex items-start gap-2">
               <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-              <span>No {missingRequired.join(" or ").toLowerCase()} column found, so this file cannot be imported.</span>
+              <span>
+                No {missingRequired.join(" or ").toLowerCase()} column found, so this file cannot be imported.
+              </span>
             </span>
           )}
           {result.ignoredHeaders.length > 0 && (
@@ -208,8 +209,12 @@ function ImportPreview({ result, onImport }: { result: FileImport; onImport: () 
               <tbody>
                 {shown.map((row, index) => (
                   <tr key={index} className="border-t border-border-strong/50">
-                    <td className="px-2.5 py-1.5 font-medium text-text-heading/80 whitespace-nowrap">{row.CODE ?? "—"}</td>
-                    <td className="px-2.5 py-1.5 font-mono text-text-heading/70 whitespace-nowrap">{row.SLOT ?? "—"}</td>
+                    <td className="px-2.5 py-1.5 font-medium text-text-heading/80 whitespace-nowrap">
+                      {row.CODE ?? "—"}
+                    </td>
+                    <td className="px-2.5 py-1.5 font-mono text-text-heading/70 whitespace-nowrap">
+                      {row.SLOT ?? "—"}
+                    </td>
                     <td className="px-2.5 py-1.5 text-text-heading/70 max-w-[9rem] truncate" title={row.FACULTY}>
                       {row.FACULTY || "—"}
                     </td>

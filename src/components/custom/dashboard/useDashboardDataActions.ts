@@ -46,12 +46,15 @@ export function useDashboardDataActions() {
 
       appendSyncLine("Loading past semester data from cache…", "info");
       setPastSemesterData(loadFrozenPastSemesters(fetchedGrades));
-      syncEngine.sync("pastAttendance", {
-        semesterId: settings.currSemesterID,
-        allGradesRes: fetchedGrades,
-      }).then(() => {
-        setPastSemesterData(loadFrozenPastSemesters(fetchedGrades));
-      }).catch(() => {});
+      syncEngine
+        .sync("pastAttendance", {
+          semesterId: settings.currSemesterID,
+          allGradesRes: fetchedGrades,
+        })
+        .then(() => {
+          setPastSemesterData(loadFrozenPastSemesters(fetchedGrades));
+        })
+        .catch(() => {});
     } catch (error) {
       console.error(error);
     } finally {
@@ -59,30 +62,34 @@ export function useDashboardDataActions() {
     }
   }, [setAllGradesData, setIsReloading, settings.currSemesterID]);
 
-  const handleCalendarFetch = useCallback(async (calendarType?: typeof settings.calendarType) => {
-    setIsReloading(true);
-    try {
-      await runPageSync({
-        title: "Academic Calendar",
-        steps: [{
-          op: "calendar",
-          args: {
-            type: calendarType || "ALL",
-            calendarType: calendarType || "ALL",
-            semesterId: settings.currSemesterID,
-          },
-          apply: setCalendarData,
-        }],
-        doneLine: "Calendar reloaded successfully",
-      });
-      setSettings(previous => ({ ...previous, calendarType: calendarType || "ALL" }));
-      localStorage.setItem("settings", JSON.stringify({ ...settings, calendarType }));
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsReloading(false);
-    }
-  }, [setCalendarData, setIsReloading, setSettings, settings]);
+  const handleCalendarFetch = useCallback(
+    async (calendarType?: typeof settings.calendarType) => {
+      setIsReloading(true);
+      try {
+        await runPageSync({
+          title: "Academic Calendar",
+          steps: [
+            {
+              op: "calendar",
+              args: {
+                type: calendarType || "ALL",
+                calendarType: calendarType || "ALL",
+                semesterId: settings.currSemesterID,
+              },
+              apply: setCalendarData,
+            },
+          ],
+          doneLine: "Calendar reloaded successfully",
+        });
+        setSettings((previous) => ({ ...previous, calendarType: calendarType || "ALL" }));
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setIsReloading(false);
+      }
+    },
+    [setCalendarData, setIsReloading, setSettings, settings],
+  );
 
   const handleFetchGrades = useCallback(async () => {
     setIsReloading(true);
@@ -129,27 +136,27 @@ export function useDashboardDataActions() {
     }
   }, [setHostelData, setIsReloading]);
 
-  const handleFetchMoodle = useCallback(async (
-    username = IDs.MoodleUsername,
-    pass = IDs.MoodlePassword,
-  ) => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    setIsReloading(true);
-    try {
-      const mergedData = await runPageSync<any>({
-        title: "Moodle Data",
-        steps: [{ op: "lms", args: { username, pass }, apply: setMoodleData }],
-        doneLine: "Moodle data fetched successfully",
-      });
-      if (mergedData && !Array.isArray(mergedData)) {
-        throw new Error("Moodle data came back in an unexpected shape");
+  const handleFetchMoodle = useCallback(
+    async (username = IDs.MoodleUsername, pass = IDs.MoodlePassword) => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      setIsReloading(true);
+      try {
+        const mergedData = await runPageSync<any>({
+          title: "Moodle Data",
+          steps: [{ op: "lms", args: { username, pass }, apply: setMoodleData }],
+          doneLine: "Moodle data fetched successfully",
+        });
+        if (mergedData && !Array.isArray(mergedData)) {
+          throw new Error("Moodle data came back in an unexpected shape");
+        }
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setIsReloading(false);
       }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsReloading(false);
-    }
-  }, [IDs.MoodlePassword, IDs.MoodleUsername, setIsReloading, setMoodleData]);
+    },
+    [IDs.MoodlePassword, IDs.MoodleUsername, setIsReloading, setMoodleData],
+  );
 
   return {
     allGradesData,

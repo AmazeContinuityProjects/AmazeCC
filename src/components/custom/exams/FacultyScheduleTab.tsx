@@ -22,7 +22,7 @@ import {
   loadFacultyOfferings,
   type FacultyNameGroup,
 } from "./FFCS/logic/facultyGroups";
-import type { TimetableState } from "./FFCS/types";
+import type { TimetableState } from "@/lib/ffcsTypes";
 
 /**
  * The faculties on the courses in the reader's active FFCS timetable.

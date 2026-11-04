@@ -6,7 +6,7 @@ import {
   type FFCSGeneratorSubpageProps,
 } from "../components/custom/exams/FFCS/FFCSGeneratorSubpage";
 import type { GenerateParams, GenerationHandle } from "../components/custom/exams/FFCS/logic/generator";
-import type { ParsedCourse, TimetableState } from "../components/custom/exams/FFCS/types";
+import type { ParsedCourse, TimetableState } from "@/lib/ffcsTypes";
 import { closeTopOverlayFromPop } from "../lib/overlayStack";
 import { FFCSSettingsDefaults } from "../lib/ffcsSettings";
 import { clearSessionPreferences } from "../lib/ffcsGeneratorSessionPrefs";

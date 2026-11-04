@@ -1,13 +1,13 @@
-import React from 'react';
-import { AnimatePresence } from 'framer-motion';
-import { Eye, ArrowLeft, ArrowRight } from 'lucide-react';
-import { TimetableState, AddedCourse } from '../../types';
-import { getBatchColorClass } from '@/lib/utils';
-import { TimetableGrid } from '../TimetableGrid';
-import { CourseListTable } from '@amazecontinuityprojects/amazeui';
-import { groupSelectedCourses } from '../../logic/groupSelectedCourses';
-import BottomSheet from '../../../../shared/BottomSheet';
-import { renderCourseTypeChips } from '../CourseTypeChips';
+import React from "react";
+import { AnimatePresence } from "framer-motion";
+import { Eye, ArrowLeft, ArrowRight } from "lucide-react";
+import { TimetableState, AddedCourse } from "@/lib/ffcsTypes";
+import { getBatchColorClass } from "@/lib/utils";
+import { TimetableGrid } from "../TimetableGrid";
+import { CourseListTable } from "@amazecontinuityprojects/amazeui";
+import { groupSelectedCourses } from "../../logic/groupSelectedCourses";
+import BottomSheet from "../../../../shared/BottomSheet";
+import { renderCourseTypeChips } from "../CourseTypeChips";
 
 export interface SelectedFriendTimetableData {
   name: string;
@@ -22,10 +22,7 @@ export interface FriendTimetableViewModalProps {
   labPeriods: any[];
 }
 
-
-export function FriendTimetableViewModal({
-  data, setData, theoryPeriods, labPeriods
-}: FriendTimetableViewModalProps) {
+export function FriendTimetableViewModal({ data, setData, theoryPeriods, labPeriods }: FriendTimetableViewModalProps) {
   /**
    * A sheet now, and deliberately without `if (!data) return null`: the closed
    * tree is an empty `<AnimatePresence>` so the exit animation can play, while
@@ -51,11 +48,7 @@ export function FriendTimetableViewModal({
           backdropZIndex={295}
           contentClassName="space-y-4"
           title={`${data.name}'s Timetable`}
-          subtitle={
-            data.timetables.length > 1
-              ? `${data.currentIndex + 1} of ${data.timetables.length}`
-              : undefined
-          }
+          subtitle={data.timetables.length > 1 ? `${data.currentIndex + 1} of ${data.timetables.length}` : undefined}
           icon={<Eye className="w-5 h-5" />}
           accent="bg-blue-500/10 border-blue-500/20 text-blue-500"
           closeLabel={`Close ${data.name}'s timetable`}
@@ -63,7 +56,16 @@ export function FriendTimetableViewModal({
             data.timetables.length > 1 ? (
               <div className="flex items-center gap-2 bg-zinc-200/60 dark:bg-zinc-700/50 rounded-lg p-1">
                 <button
-                  onClick={() => setData(prev => prev ? {...prev, currentIndex: (prev.currentIndex - 1 + prev.timetables.length) % prev.timetables.length} : null)}
+                  onClick={() =>
+                    setData((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            currentIndex: (prev.currentIndex - 1 + prev.timetables.length) % prev.timetables.length,
+                          }
+                        : null,
+                    )
+                  }
                   className="p-1 hover:bg-surface rounded-md transition-colors"
                   aria-label="Previous option"
                 >
@@ -71,7 +73,11 @@ export function FriendTimetableViewModal({
                 </button>
                 <span className="text-xs font-semibold px-2">Cycle Options</span>
                 <button
-                  onClick={() => setData(prev => prev ? {...prev, currentIndex: (prev.currentIndex + 1) % prev.timetables.length} : null)}
+                  onClick={() =>
+                    setData((prev) =>
+                      prev ? { ...prev, currentIndex: (prev.currentIndex + 1) % prev.timetables.length } : null,
+                    )
+                  }
                   className="p-1 hover:bg-surface rounded-md transition-colors"
                   aria-label="Next option"
                 >
@@ -81,16 +87,15 @@ export function FriendTimetableViewModal({
             ) : undefined
           }
         >
-
           <div className="bg-surface-secondary/5 rounded-xl relative overflow-auto custom-scrollbar p-4 sm:p-6">
             <div className="flex flex-col gap-6 w-max min-w-full pb-4">
-              <TimetableGrid 
-                courses={data.timetables[data.currentIndex].courses as AddedCourse[]} 
+              <TimetableGrid
+                courses={data.timetables[data.currentIndex].courses as AddedCourse[]}
                 customCourses={data.timetables[data.currentIndex].courses as AddedCourse[]}
                 fullSize={true}
-                blockedSlots={new Set()} 
-                toggleBlockSlot={() => {}} 
-                selectedGapDetails={null} 
+                blockedSlots={new Set()}
+                toggleBlockSlot={() => {}}
+                selectedGapDetails={null}
                 theoryPeriods={theoryPeriods}
                 labPeriods={labPeriods}
               />

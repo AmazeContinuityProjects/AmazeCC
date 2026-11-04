@@ -1,4 +1,10 @@
-import type { AddedCourse, ParsedCourse } from "@/components/custom/exams/FFCS/types";
+import {
+  type AddedCourse,
+  type FacultyCourseScore,
+  type FacultyRating,
+  type FacultyRankingSummary,
+  type ParsedCourse,
+} from "@/lib/ffcsTypes";
 
 function normalizeFacultyName(name: string): string {
   return name
@@ -9,22 +15,7 @@ function normalizeFacultyName(name: string): string {
 
 export type FacultyMetric = "wPct" | "lecture" | "da" | "vibe";
 
-export interface FacultyRating {
-  wPct: number | null;
-  lecture: number | null;
-  da: number | null;
-  vibe: number | null;
-  reviews: number;
-}
-
 export type FacultyRatingLookup = Record<string, FacultyRating>;
-
-export interface FacultyMetricWeights {
-  wPct: number;
-  lecture: number;
-  da: number;
-  vibe: number;
-}
 
 export interface FacultyScoreFilters {
   minWPct: number;
@@ -33,22 +24,11 @@ export interface FacultyScoreFilters {
   minVibe: number;
 }
 
-export interface FacultyCourseScore {
-  code: string;
-  faculty: string;
-  rating: FacultyRating | null;
-}
-
-export interface FacultyRankingSummary {
-  averageWPct: number | null;
-  averageLecture: number | null;
-  averageDa: number | null;
-  averageVibe: number | null;
-  facultyScore: number | null;
-  ratedFacultyCount: number;
-  unratedFacultyCount: number;
-  totalFacultyCount: number;
-  courses: FacultyCourseScore[];
+export interface FacultyMetricWeights {
+  wPct: number;
+  lecture: number;
+  da: number;
+  vibe: number;
 }
 
 export const DEFAULT_FACULTY_METRIC_WEIGHTS: Readonly<FacultyMetricWeights> = Object.freeze({
@@ -65,10 +45,7 @@ export const DEFAULT_FACULTY_SCORE_FILTERS: Readonly<FacultyScoreFilters> = Obje
   minVibe: 0,
 });
 
-export function facultyRatingKeys(person: {
-  employeeId?: string | null;
-  faculty?: string | null;
-}): string[] {
+export function facultyRatingKeys(person: { employeeId?: string | null; faculty?: string | null }): string[] {
   const keys: string[] = [];
   const employeeId = person.employeeId?.trim();
   const normalizedName = person.faculty ? normalizeFacultyName(person.faculty) : "";
@@ -85,7 +62,7 @@ function boundedScore(value: unknown, max: number): number | null {
 /** Produces only plain data so the result can cross the generator worker boundary. */
 export function buildFacultyRatingLookup(
   masterCourses: readonly ParsedCourse[],
-  lookup: (person: { employeeId?: string | null; faculty?: string | null }) => FacultyRating | null
+  lookup: (person: { employeeId?: string | null; faculty?: string | null }) => FacultyRating | null,
 ): FacultyRatingLookup {
   const result: FacultyRatingLookup = {};
   for (const course of masterCourses) {
@@ -107,7 +84,7 @@ export function buildFacultyRatingLookup(
 
 function ratingForCourse(
   course: Pick<AddedCourse, "employeeId" | "faculty">,
-  lookup: FacultyRatingLookup
+  lookup: FacultyRatingLookup,
 ): FacultyRating | null {
   for (const key of facultyRatingKeys(course)) {
     if (lookup[key]) return lookup[key];
@@ -117,8 +94,7 @@ function ratingForCourse(
 
 function weightedAverage(values: Array<{ value: number | null; weight: number }>): number | null {
   const present = values.filter(
-    (entry): entry is { value: number; weight: number } =>
-      entry.value !== null && entry.weight > 0
+    (entry): entry is { value: number; weight: number } => entry.value !== null && entry.weight > 0,
   );
   const totalWeight = present.reduce((sum, entry) => sum + entry.weight, 0);
   if (!totalWeight) return null;
@@ -128,7 +104,7 @@ function weightedAverage(values: Array<{ value: number | null; weight: number }>
 export function facultyRankingSummary(
   courses: readonly AddedCourse[],
   lookup: FacultyRatingLookup,
-  metricWeights: FacultyMetricWeights = DEFAULT_FACULTY_METRIC_WEIGHTS
+  metricWeights: FacultyMetricWeights = DEFAULT_FACULTY_METRIC_WEIGHTS,
 ): FacultyRankingSummary {
   const unique = new Map<string, FacultyCourseScore>();
   const courseScores = courses.map((course) => {
@@ -159,7 +135,7 @@ export function facultyRankingSummary(
   ];
   const available = metrics.filter(
     (metric): metric is [keyof FacultyMetricWeights, number, number] =>
-      metric[1] !== null && Number.isFinite(metric[1]) && metric[2] > 0
+      metric[1] !== null && Number.isFinite(metric[1]) && metric[2] > 0,
   );
   const totalWeight = available.reduce((sum, metric) => sum + metric[2], 0);
   const ratingAverage = totalWeight
@@ -181,10 +157,7 @@ export function facultyRankingSummary(
 }
 
 /** An active minimum is checked against every rated faculty member in the week. */
-export function passesFacultyScoreFilters(
-  summary: FacultyRankingSummary,
-  filters: FacultyScoreFilters
-): boolean {
+export function passesFacultyScoreFilters(summary: FacultyRankingSummary, filters: FacultyScoreFilters): boolean {
   if (summary.ratedFacultyCount === 0) return true;
   const required: Array<[keyof FacultyScoreFilters, keyof FacultyRating]> = [
     ["minWPct", "wPct"],

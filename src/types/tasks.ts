@@ -1,13 +1,11 @@
-import type { AttendanceDay } from "@/lib/attendanceTimetable";
+// `AttendanceDay` is `(typeof DAYS)[number]` — the `Day` type that
+// `attendanceTimetable` aliases. Importing it from the source keeps this
+// types-only module out of the attendanceTimetable → … → taskMatch cycle.
+import type { Day as AttendanceDay } from "@/lib/social/schedule";
 
 export type TaskStatus = "pending" | "in_progress" | "done";
 
-export type TaskKind =
-  | "homework"
-  | "reminder"
-  | "digital-assignment"
-  | "study"
-  | "test";
+export type TaskKind = "homework" | "reminder" | "digital-assignment" | "study" | "test";
 
 export type TaskComponent = "theory" | "lab" | "both";
 
@@ -57,13 +55,7 @@ export interface PomodoroSession {
 
 export const TASK_STATUSES: TaskStatus[] = ["pending", "in_progress", "done"];
 
-export const TASK_KINDS: TaskKind[] = [
-  "homework",
-  "reminder",
-  "digital-assignment",
-  "study",
-  "test",
-];
+export const TASK_KINDS: TaskKind[] = ["homework", "reminder", "digital-assignment", "study", "test"];
 
 /** Derived — never stored. */
 export function isTaskOverdue(task: Pick<Task, "dueDate" | "status">, now = Date.now()): boolean {
@@ -72,11 +64,8 @@ export function isTaskOverdue(task: Pick<Task, "dueDate" | "status">, now = Date
 }
 
 /** Linear flow with reopen support. Returns the completedAt to store. */
-export function nextTaskStatus(
-  status: TaskStatus
-): { status: TaskStatus; completedAt?: string } {
+export function nextTaskStatus(status: TaskStatus): { status: TaskStatus; completedAt?: string } {
   if (status === "pending") return { status: "in_progress", completedAt: undefined };
-  if (status === "in_progress")
-    return { status: "done", completedAt: new Date().toISOString() };
+  if (status === "in_progress") return { status: "done", completedAt: new Date().toISOString() };
   return { status: "in_progress", completedAt: undefined };
 }

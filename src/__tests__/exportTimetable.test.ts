@@ -12,7 +12,7 @@ import {
   openModernPrintableDossier,
   openTimetablePrintablePage,
 } from "../lib/exportTimetable";
-import type { AddedCourse, TimetablePeriod, ParsedCourse } from "../components/custom/exams/FFCS/types";
+import type { AddedCourse, TimetablePeriod, ParsedCourse } from "@/lib/ffcsTypes";
 import * as vitfacService from "../lib/vitfacService";
 
 describe("Modern Timetable Export", () => {
@@ -232,7 +232,7 @@ describe("Modern Timetable Export", () => {
 
   it("waits for VITFAC and downloads a standalone HTML dossier with theme filename", async () => {
     let resolveCatalog!: (catalog: Map<string, vitfacService.VitfacFaculty>) => void;
-    const catalogPromise = new Promise<Map<string, vitfacService.VitfacFaculty>>(resolve => {
+    const catalogPromise = new Promise<Map<string, vitfacService.VitfacFaculty>>((resolve) => {
       resolveCatalog = resolve;
     });
     vi.spyOn(vitfacService, "loadVitfacCatalog").mockReturnValue(catalogPromise);
@@ -240,7 +240,9 @@ describe("Modern Timetable Export", () => {
     const revokeObjectURL = vi.fn();
     vi.stubGlobal("URL", { createObjectURL, revokeObjectURL });
     let downloadedFile = "";
-    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
+      this: HTMLAnchorElement,
+    ) {
       downloadedFile = this.download;
     });
     const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
@@ -269,28 +271,41 @@ describe("Modern Timetable Export", () => {
   });
 
   it("embeds reduced VITFAC portraits as data URLs without external image URLs", async () => {
-    vi.spyOn(vitfacService, "loadVitfacCatalog").mockResolvedValue(new Map([
-      ["10090", {
-        id: "MTAwOTA=",
-        employeeId: "10090",
-        name: "Dr. Ramesh",
-        wPct: 80,
-        reviews: 10,
-        wCount: 8,
-        lCount: 2,
-        image_url: "data:image/png;base64,fixture-image",
-      }],
-    ]));
-    vi.stubGlobal("fetch", vi.fn(async (_url: string, init?: RequestInit) => {
-      expect(init?.mode).toBe("cors");
-      return { ok: true, blob: async () => new Blob(["fixture-image"], { type: "image/png" }) };
-    }));
-    vi.stubGlobal("createImageBitmap", vi.fn(async () => ({
-      width: 192,
-      height: 128,
-      close: vi.fn(),
-    })));
-    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({ drawImage: vi.fn() } as unknown as CanvasRenderingContext2D);
+    vi.spyOn(vitfacService, "loadVitfacCatalog").mockResolvedValue(
+      new Map([
+        [
+          "10090",
+          {
+            id: "MTAwOTA=",
+            employeeId: "10090",
+            name: "Dr. Ramesh",
+            wPct: 80,
+            reviews: 10,
+            wCount: 8,
+            lCount: 2,
+            image_url: "data:image/png;base64,fixture-image",
+          },
+        ],
+      ]),
+    );
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init?: RequestInit) => {
+        expect(init?.mode).toBe("cors");
+        return { ok: true, blob: async () => new Blob(["fixture-image"], { type: "image/png" }) };
+      }),
+    );
+    vi.stubGlobal(
+      "createImageBitmap",
+      vi.fn(async () => ({
+        width: 192,
+        height: 128,
+        close: vi.fn(),
+      })),
+    );
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+      drawImage: vi.fn(),
+    } as unknown as CanvasRenderingContext2D);
     vi.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockReturnValue("data:image/jpeg;base64,smallportrait");
     vi.stubGlobal("URL", { createObjectURL: vi.fn(() => "blob:portrait"), revokeObjectURL: vi.fn() });
     vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
@@ -352,7 +367,7 @@ describe("Modern Timetable Export", () => {
         labPeriods: mockLabPeriods,
         masterCourses: mockMasterCourses,
       },
-      true
+      true,
     );
 
     const darkHtml = generateModernDossierInnerHtml(
@@ -363,7 +378,7 @@ describe("Modern Timetable Export", () => {
         labPeriods: mockLabPeriods,
         masterCourses: mockMasterCourses,
       },
-      false
+      false,
     );
 
     // Light Mode tokens
@@ -430,7 +445,8 @@ describe("Modern Timetable Export", () => {
         return el;
       });
 
-      const dummy1x1DataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+      const dummy1x1DataUrl =
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 
       const lightResult = await compileDossierPdfInline({
         timetableName: "Winter 2026",
@@ -477,7 +493,8 @@ describe("Modern Timetable Export", () => {
         return el;
       });
 
-      const dummy1x1DataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+      const dummy1x1DataUrl =
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 
       // In Node/JSDOM, Worker or OffscreenCanvas might be undefined or mockable
       const res = await compileDossierPdf({

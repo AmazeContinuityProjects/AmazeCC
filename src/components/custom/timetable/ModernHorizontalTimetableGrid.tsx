@@ -1,14 +1,10 @@
 "use client";
 
 import React from "react";
-import {
-  type AddedCourse,
-  type GapDetail,
-  type TimetablePeriod,
-} from "@amazecontinuityprojects/amazeui";
+import { type AddedCourse, type GapDetail, type TimetablePeriod } from "@amazecontinuityprojects/amazeui";
 import { cn } from "@/lib/utils";
-import { COLOR_HEX_MAP } from "@/components/custom/exams/FFCS/constants";
-import { ensureLunchPeriod, expandSlotSpellings, hasSlot, ownSlotSpelling } from "@/lib/slots";
+import { COLOR_HEX_MAP } from "@/lib/ffcsConstants";
+import { ensureLunchPeriod, expandSlotSpellings, hasSlot, ownSlotSpelling, timeToMinutes } from "@/lib/slots";
 
 const DEFAULT_DAYS: { id: string; name: string }[] = [
   { id: "mon", name: "Monday" },
@@ -17,18 +13,6 @@ const DEFAULT_DAYS: { id: string; name: string }[] = [
   { id: "thu", name: "Thursday" },
   { id: "fri", name: "Friday" },
 ];
-
-function timeToMinutes(timeStr?: string): number {
-  if (!timeStr) return 0;
-  const match = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
-  if (!match) return 0;
-  let h = Number(match[1]);
-  const m = Number(match[2]);
-  const p = (match[3] || "").toUpperCase();
-  if (p === "PM" && h !== 12) h += 12;
-  else if (p === "AM" && h === 12) h = 0;
-  return h * 60 + m;
-}
 
 export interface ModernHorizontalTimetableGridProps {
   courses: AddedCourse[];
@@ -65,7 +49,7 @@ export default function ModernHorizontalTimetableGrid({
     <div
       className={cn(
         "rounded-2xl border border-slate-200/80 dark:border-white/10 bg-white dark:bg-[#0c1222] shadow-xl dark:shadow-2xl backdrop-blur-xl overflow-hidden mb-6 transition-colors",
-        className
+        className,
       )}
     >
       {/* Header bar */}
@@ -175,15 +159,29 @@ export default function ModernHorizontalTimetableGrid({
                           className="border-x border-amber-500/30 bg-amber-500/10 dark:bg-amber-500/15 text-center w-10 min-w-[36px] max-w-[42px] align-middle select-none p-1"
                         >
                           <div className="h-full w-full flex flex-col items-center justify-center py-6 select-none">
-                            <span className="text-[12px] font-black text-amber-600 dark:text-amber-400 leading-tight tracking-widest drop-shadow-xs">L</span>
-                            <span className="text-[12px] font-black text-amber-600 dark:text-amber-400 leading-tight tracking-widest drop-shadow-xs">U</span>
-                            <span className="text-[12px] font-black text-amber-600 dark:text-amber-400 leading-tight tracking-widest drop-shadow-xs">N</span>
-                            <span className="text-[12px] font-black text-amber-600 dark:text-amber-400 leading-tight tracking-widest drop-shadow-xs">C</span>
-                            <span className="text-[12px] font-black text-amber-600 dark:text-amber-400 leading-tight tracking-widest drop-shadow-xs">H</span>
+                            <span className="text-[12px] font-black text-amber-600 dark:text-amber-400 leading-tight tracking-widest drop-shadow-xs">
+                              L
+                            </span>
+                            <span className="text-[12px] font-black text-amber-600 dark:text-amber-400 leading-tight tracking-widest drop-shadow-xs">
+                              U
+                            </span>
+                            <span className="text-[12px] font-black text-amber-600 dark:text-amber-400 leading-tight tracking-widest drop-shadow-xs">
+                              N
+                            </span>
+                            <span className="text-[12px] font-black text-amber-600 dark:text-amber-400 leading-tight tracking-widest drop-shadow-xs">
+                              C
+                            </span>
+                            <span className="text-[12px] font-black text-amber-600 dark:text-amber-400 leading-tight tracking-widest drop-shadow-xs">
+                              H
+                            </span>
                             <div className="w-4 h-[1px] bg-amber-500/30 dark:bg-amber-500/40 my-2" />
-                            <span className="text-[9px] font-black text-amber-700 dark:text-amber-300 leading-tight">1:20</span>
+                            <span className="text-[9px] font-black text-amber-700 dark:text-amber-300 leading-tight">
+                              1:20
+                            </span>
                             <span className="text-[7px] text-amber-600/70 dark:text-amber-400/70 leading-tight">-</span>
-                            <span className="text-[9px] font-black text-amber-700 dark:text-amber-300 leading-tight">2:00</span>
+                            <span className="text-[9px] font-black text-amber-700 dark:text-amber-300 leading-tight">
+                              2:00
+                            </span>
                           </div>
                         </td>
                       );
@@ -204,54 +202,43 @@ export default function ModernHorizontalTimetableGrid({
                   }
 
                   // Respell for law school aliases if a course occupies it
-                  const theorySlot = rawTheorySlot
-                    ? ownSlotSpelling(courses, rawTheorySlot)
-                    : undefined;
-                  const labSlot = rawLabSlot
-                    ? ownSlotSpelling(courses, rawLabSlot)
-                    : undefined;
+                  const theorySlot = rawTheorySlot ? ownSlotSpelling(courses, rawTheorySlot) : undefined;
+                  const labSlot = rawLabSlot ? ownSlotSpelling(courses, rawLabSlot) : undefined;
 
-                  const tCourse = theorySlot
-                    ? courses.find((c) => hasSlot(c.slots, theorySlot))
-                    : null;
-                  const lCourse = labSlot
-                    ? courses.find((c) => hasSlot(c.slots, labSlot))
-                    : null;
+                  const tCourse = theorySlot ? courses.find((c) => hasSlot(c.slots, theorySlot)) : null;
+                  const lCourse = labSlot ? courses.find((c) => hasSlot(c.slots, labSlot)) : null;
 
                   const isTBlocked = Boolean(
                     theorySlot &&
-                      (expandedBlocked?.has(theorySlot) ||
-                        (rawTheorySlot && expandedBlocked?.has(rawTheorySlot)))
+                    (expandedBlocked?.has(theorySlot) || (rawTheorySlot && expandedBlocked?.has(rawTheorySlot))),
                   );
                   const isLBlocked = Boolean(
-                    labSlot &&
-                      (expandedBlocked?.has(labSlot) ||
-                        (rawLabSlot && expandedBlocked?.has(rawLabSlot)))
+                    labSlot && (expandedBlocked?.has(labSlot) || (rawLabSlot && expandedBlocked?.has(rawLabSlot))),
                   );
 
-                  const isTInGap = Boolean(
-                    selectedGapDetails?.some(
-                      (g) =>
-                        g.day === day.id &&
-                        timeToMinutes(tp?.start) >= g.startMin &&
-                        timeToMinutes(tp?.start) < g.endMin
-                    )
-                  );
-                  const isLInGap = Boolean(
-                    selectedGapDetails?.some(
-                      (g) =>
-                        g.day === day.id &&
-                        timeToMinutes(lp?.start) >= g.startMin &&
-                        timeToMinutes(lp?.start) < g.endMin
-                    )
-                  );
+                  const theoryStartMin = timeToMinutes(tp?.start ?? "");
+                  const labStartMin = timeToMinutes(lp?.start ?? "");
+                  const isTInGap =
+                    theoryStartMin !== null &&
+                    Boolean(
+                      selectedGapDetails?.some(
+                        (g) => g.day === day.id && theoryStartMin >= g.startMin && theoryStartMin < g.endMin,
+                      ),
+                    );
+                  const isLInGap =
+                    labStartMin !== null &&
+                    Boolean(
+                      selectedGapDetails?.some(
+                        (g) => g.day === day.id && labStartMin >= g.startMin && labStartMin < g.endMin,
+                      ),
+                    );
 
                   const renderSlotHalf = (
                     slotName?: string,
                     course?: AddedCourse | null,
                     isBlocked?: boolean,
                     inGap?: boolean,
-                    isLab?: boolean
+                    isLab?: boolean,
                   ) => {
                     if (!slotName) {
                       return <div className="h-[38px] rounded-md bg-transparent" />;
@@ -266,29 +253,24 @@ export default function ModernHorizontalTimetableGrid({
                             "h-[38px] p-1 rounded-md flex flex-col items-center justify-center relative transition-all duration-200 border border-red-500/30 dark:border-red-500/40",
                             "bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,rgba(239,68,68,0.12)_3px,rgba(239,68,68,0.12)_6px)] dark:bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,rgba(239,68,68,0.25)_3px,rgba(239,68,68,0.25)_6px)]",
                             "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 shadow-inner",
-                            onToggleBlockSlot && "cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/40"
+                            onToggleBlockSlot && "cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/40",
                           )}
                         >
-                          <span className="text-[10px] font-black tracking-wide">
-                            Blocked
-                          </span>
-                          <span className="text-[9px] font-semibold opacity-75">
-                            {slotName}
-                          </span>
+                          <span className="text-[10px] font-black tracking-wide">Blocked</span>
+                          <span className="text-[9px] font-semibold opacity-75">{slotName}</span>
                         </div>
                       );
                     }
 
                     if (course) {
                       const colorHex =
-                        COLOR_HEX_MAP[course.color] ||
-                        (course.color?.startsWith("#") ? course.color : "#2563eb");
+                        COLOR_HEX_MAP[course.color] || (course.color?.startsWith("#") ? course.color : "#2563eb");
                       return (
                         <div
                           onClick={() => onToggleBlockSlot?.(slotName)}
                           className={cn(
                             "h-[38px] p-1.5 rounded-md flex flex-col justify-between relative transition-all duration-200 group/tile",
-                            onToggleBlockSlot && "cursor-pointer"
+                            onToggleBlockSlot && "cursor-pointer",
                           )}
                           style={{
                             backgroundColor: `${colorHex}25`,
@@ -312,9 +294,7 @@ export default function ModernHorizontalTimetableGrid({
                           {/* Hover tooltip */}
                           <div className="absolute opacity-0 group-hover/tile:opacity-100 transition-opacity duration-200 bottom-full left-1/2 -translate-x-1/2 mb-1.5 w-max max-w-[220px] bg-slate-900 dark:bg-slate-950 text-white text-xs rounded-xl p-2.5 shadow-2xl z-50 pointer-events-none border border-slate-700 dark:border-white/20 text-center">
                             <p className="font-bold text-slate-100">{course.title}</p>
-                            <p className="text-slate-400 text-[11px] mt-0.5">
-                              {course.faculty}
-                            </p>
+                            <p className="text-slate-400 text-[11px] mt-0.5">{course.faculty}</p>
                             <div className="flex items-center justify-center gap-1.5 mt-1 text-[10px] text-blue-400 font-semibold">
                               <span>Slot: {slotName}</span>
                               <span>•</span>
@@ -332,7 +312,7 @@ export default function ModernHorizontalTimetableGrid({
                           onClick={() => onToggleBlockSlot?.(slotName)}
                           className={cn(
                             "h-[38px] p-1 rounded-md flex items-center justify-center border border-yellow-500/40 bg-yellow-500/10 text-yellow-700 dark:text-yellow-300 animate-pulse text-[10px] font-bold",
-                            onToggleBlockSlot && "cursor-pointer"
+                            onToggleBlockSlot && "cursor-pointer",
                           )}
                         >
                           {slotName}
@@ -343,20 +323,14 @@ export default function ModernHorizontalTimetableGrid({
                     return (
                       <div
                         onClick={() => onToggleBlockSlot?.(slotName)}
-                        title={
-                          onToggleBlockSlot
-                            ? `Slot ${slotName}. Click to rule out.`
-                            : `Slot ${slotName}`
-                        }
+                        title={onToggleBlockSlot ? `Slot ${slotName}. Click to rule out.` : `Slot ${slotName}`}
                         className={cn(
                           "h-[38px] p-1 rounded-md flex items-center justify-center border border-dashed border-slate-300/80 dark:border-white/5 transition-all duration-200",
                           "text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-500/40 hover:bg-blue-500/5",
-                          onToggleBlockSlot && "cursor-pointer"
+                          onToggleBlockSlot && "cursor-pointer",
                         )}
                       >
-                        <span className="text-[10px] font-semibold tracking-wider">
-                          {slotName}
-                        </span>
+                        <span className="text-[10px] font-semibold tracking-wider">{slotName}</span>
                       </div>
                     );
                   };

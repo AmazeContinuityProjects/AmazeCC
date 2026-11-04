@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Search, MapPin, Loader2, Clock, CalendarDays, RefreshCw } from "lucide-react";
 
 import SelectField from "../shared/primitives/SelectField";
-import type { ParsedCourse } from "../exams/FFCS/types";
+import type { ParsedCourse } from "@/lib/ffcsTypes";
 import {
   buildDayIndex,
   buildPeriodSlots,
@@ -16,19 +16,7 @@ import {
 import { fetchLiveDay, type LiveDay } from "@/lib/roomAvailability";
 import { mergeDay } from "@/lib/roomMerge";
 import { getCurrentSemesterId } from "@/lib/officialOd";
-
-// Import schemas
-import chennaiSchema from "@/data/campus/chennai.json";
-import apSchema from "@/data/campus/ap.json";
-import bhopalSchema from "@/data/campus/bhopal.json";
-
-const CAMPUS_SCHEMAS: Record<string, any> = {
-  chennai: chennaiSchema,
-  ap: apSchema,
-  bhopal: bhopalSchema,
-};
-
-const GLOBAL_CAMPUS = "chennai"; // Since FFCSTimetableTab hardcodes it
+import { CAMPUS_SCHEMAS, GLOBAL_CAMPUS } from "@/lib/campusSchema";
 
 /**
  * `ffcs_raw_courses` has three writers and two shapes. The FFCS timetable tab

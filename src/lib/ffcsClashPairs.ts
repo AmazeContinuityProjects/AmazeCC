@@ -25,7 +25,7 @@
  */
 import { getTimetableSchema } from "@/lib/campusSchema";
 import { findPeriodClash, periodsForSlot, periodsOverlap, type CampusSchema, type SlotPeriod } from "@/lib/slots";
-import type { AddedCourse } from "@/components/custom/exams/FFCS/types";
+import type { AddedCourse } from "@/lib/ffcsTypes";
 
 /** One place on the clock where two courses overlap. */
 export interface CourseClash {

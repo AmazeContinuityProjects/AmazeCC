@@ -4,8 +4,11 @@ import React, { useEffect, useState } from "react";
 import type { RefObject } from "react";
 import { createPortal } from "react-dom";
 import {
+  AlertTriangle,
+  ChevronDown,
   ChevronRight,
   Gauge,
+  HelpCircle,
   Lock,
   Plus,
   RotateCcw,
@@ -31,11 +34,15 @@ import {
 } from "../../shared/primitives";
 import { estimateComponentGrades } from "@/lib/marksPredictor";
 import {
+  isAssessmentPublished,
+  isEmbeddedCourse,
+  isFinalExamAssessment,
   remainingWeightFor,
   useCoursePredictionScope,
   weightFreezeFor,
   type EnrolledCourseItem,
 } from "./useCoursePredictionScope";
+import { PredictorTourProvider, usePredictorTour } from "./tour/TourProvider";
 import AssessmentMarkSheet from "./AssessmentMarkSheet";
 import AddAssessmentSheet from "./AddAssessmentSheet";
 import GradeLadderChart, { type LadderBand } from "./GradeLadderChart";
@@ -94,9 +101,7 @@ function AssessmentStatRow({
       <ToneDot tone={tone} />
       <ListRowText title={asm.title} titleTooltip={asm.title} subtitle={parts.join(" · ")} />
       <span className="flex items-center gap-2 shrink-0">
-        {freeze.frozen ? (
-          <Lock className="w-3 h-3 text-zinc-400" aria-label="Weightage frozen" />
-        ) : null}
+        {freeze.frozen ? <Lock className="w-3 h-3 text-zinc-400" aria-label="Weightage frozen" /> : null}
         <ToneBadge tone={stateBadge.tone} size="sm">
           {stateBadge.text}
         </ToneBadge>
@@ -131,11 +136,20 @@ function AssessmentStatRow({
  * page for one simply has no class id, so it shows no cohort statistics and its
  * regimen comes entirely from storage.
  */
-export default function CoursePredictorPage({
-  course,
-  marksStats,
-  actionsSlotRef,
-}: {
+export default function CoursePredictorPage(props: CoursePredictorPageProps) {
+  // The tour wraps rather than nests: the page's hook order stays untouched
+  // (its early return sits between hooks and render, so a hook consumed for
+  // the tour could not live there), and the spotlight renders once, above
+  // whatever the page shows — including through the actions-slot portal,
+  // which keeps React-tree context.
+  return (
+    <PredictorTourProvider>
+      <CoursePredictorPageInner {...props} />
+    </PredictorTourProvider>
+  );
+}
+
+interface CoursePredictorPageProps {
   course: EnrolledCourseItem;
   /** Cohort stats keyed by class id; null for custom subjects (no class id). */
   marksStats?: Record<string, any>;
@@ -146,17 +160,11 @@ export default function CoursePredictorPage({
    * page's toolbar. Without it the controls stay in the page's header line.
    */
   actionsSlotRef?: RefObject<HTMLElement | null>;
-}) {
-  const {
-    config,
-    updateConfig,
-    reset,
-    prediction,
-    assessmentStats,
-    classStats,
-    targetScore,
-    persistTargetScore,
-  } = useCoursePredictionScope(course, marksStats);
+}
+
+function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: CoursePredictorPageProps) {
+  const { config, updateConfig, reset, prediction, assessmentStats, classStats, targetScore, persistTargetScore } =
+    useCoursePredictionScope(course, marksStats);
 
   const [isRegimenEditorOpen, setIsRegimenEditorOpen] = useState(false);
   /** The assessment whose mark sheet is open, with its half's tone. */
@@ -166,7 +174,8 @@ export default function CoursePredictorPage({
   } | null>(null);
   /** The half the add-assessment sheet targets. */
   const [addFor, setAddFor] = useState<"theory" | "lab" | null>(null);
-
+  /** Req 6: the loud batch-simulate chips sit behind one toggle. */
+  const [showSimulate, setShowSimulate] = useState(false);
   // The parent's action row hands over a DOM slot; refs land during the commit,
   // so the first paint falls back to the inline header line and the portal
   // adopts the row on the next tick.
@@ -175,19 +184,21 @@ export default function CoursePredictorPage({
     setActionsEl(actionsSlotRef?.current ?? null);
   }, [actionsSlotRef, course.courseCode]);
 
-  // The regimen editor only offers a lab tab when there is a lab side to edit.
-  // The type string is the ground truth VTOP gives; course payloads back it up
-  // (an embedded course carries both payloads, a theory-only one does not).
-  const type = course.courseType.toLowerCase();
-  const isEmbedded = type.includes("lab") || Boolean(course.theoryCourse && course.labCourse);
+  // The tour's replay control lives in the header buttons below, and the
+  // hook must sit before the early return — the wrapping provider makes the
+  // context available on every render, including the one that bails out.
+  const tour = usePredictorTour();
+
+  // One definition of "embedded" gates every half-dependent surface here
+  // (carousel slides, regimen tabs) — the config and the credit defaults
+  // read the same helper, so the three can no longer disagree.
+  const isEmbedded = isEmbeddedCourse(course.courseType, course.theoryCourse, course.labCourse);
 
   // Carousel slide count must be derived before the early return below — hooks
   // cannot sit behind it. The slides (built once the prediction exists) push
   // the theory/lab half pages under the same three conditionals.
   const carouselCount =
-    3 +
-    (isEmbedded && prediction?.theoryStats ? 1 : 0) +
-    (isEmbedded && prediction?.labStats ? 1 : 0);
+    3 + (isEmbedded && prediction?.theoryStats ? 1 : 0) + (isEmbedded && prediction?.labStats ? 1 : 0);
   const carousel = useCarousel(carouselCount);
 
   if (!prediction) return null;
@@ -196,6 +207,9 @@ export default function CoursePredictorPage({
   // portaled into the parent shell's action row when it provides the slot.
   const predictorButtons = (
     <>
+      <IconButton onClick={() => tour.start()} title="How this page works">
+        <HelpCircle className="w-4 h-4" />
+      </IconButton>
       <IconButton onClick={() => setIsRegimenEditorOpen(true)} title="Edit assessment regimen">
         <Sliders className="w-4 h-4" />
       </IconButton>
@@ -208,7 +222,8 @@ export default function CoursePredictorPage({
   const handleUpdateScoredMark = (id: string, mark: number | null, isSimulated: boolean) => {
     const updateList = (list: any[]) =>
       list.map((item) => {
-        if (item.id !== id) return item;
+        // The FAT is frozen at zero: no editor on this page writes to it.
+        if (item.id !== id || isFinalExamAssessment(item)) return item;
         return {
           ...item,
           scoredMark: mark,
@@ -226,6 +241,8 @@ export default function CoursePredictorPage({
   const handleBatchSimulate = (percentage: number) => {
     const apply = (list: any[]) =>
       list.map((item) => {
+        // Simulation fills blanks, never the FAT — it stays frozen at zero.
+        if (isFinalExamAssessment(item)) return item;
         if (item.scoredMark !== null && !item.isSimulated) return item;
         const simulatedMark = Math.round((percentage / 100) * item.maxMark * 10) / 10;
         return { ...item, scoredMark: simulatedMark, isSimulated: true, status: "Simulated" };
@@ -280,7 +297,6 @@ export default function CoursePredictorPage({
     pacePct,
     theoryStats,
     labStats,
-    projectStats,
     optimalGrade,
     maximisableGrade,
   } = prediction;
@@ -307,13 +323,19 @@ export default function CoursePredictorPage({
       { grade: "F", limit: 0, width: eB, range: `< ${eB}` },
     ];
   })();
-  // The insights ring reads standing the way the marks page's Grade boundaries
-  // read theirs: earned over every weight the course has assigned so far (see
-  // currentStandingPct). The headline letter above stays the released-pace
-  // read — carrying the pace over what's still to come is the predictor's job;
-  // this ring is the "you are here" snapshot instead.
-  const standingGrade =
-    ladderBands.find((b) => Math.ceil(currentStandingPct) >= b.limit)?.grade ?? "F";
+  // The insights ring reads standing the way the marks page's Grade
+  // boundaries read theirs: earned over the weight the reader has actually
+  // entered (see currentStandingPct). The headline letter above stays the
+  // released-pace read — carrying the pace over what's still to come is the
+  // predictor's job; this ring is the "you are here" snapshot instead. It
+  // reads null until anything is entered — with no marks on the page there
+  // is no position to ring, and implying an F would be a lie about a course
+  // nobody has touched yet.
+  const enteredWeight = currentScoredScaled + pointsLostScaled;
+  const hasEnteredMarks = enteredWeight > 0;
+  const standingGrade = hasEnteredMarks
+    ? (ladderBands.find((b) => Math.ceil(currentStandingPct) >= b.limit)?.grade ?? "F")
+    : null;
 
   // The mark sheet must track the LIVE row, not the snapshot captured when the
   // user tapped it: every drag rewrites the config, the prediction rebuilds its
@@ -322,9 +344,8 @@ export default function CoursePredictorPage({
   // freeze on unpublished FATs and user-added assessments, whose values only
   // ever change through this sheet).
   const markSheetAsm = sheetAsm
-    ? ((theoryStats?.assessments ?? [])
-        .concat(labStats?.assessments ?? [], projectStats?.assessments ?? [])
-        .find((a) => a.id === sheetAsm.asm.id) ?? null)
+    ? ((theoryStats?.assessments ?? []).concat(labStats?.assessments ?? []).find((a) => a.id === sheetAsm.asm.id) ??
+      null)
     : null;
 
   const carouselSlides: InsightSlide[] = [
@@ -372,10 +393,23 @@ export default function CoursePredictorPage({
   const theoryRemaining = remainingWeightFor(config.theory);
   const labRemaining = remainingWeightFor(config.lab);
 
-  const totalCount =
-    (theoryStats?.assessments.length ?? 0) +
-    (labStats?.assessments.length ?? 0) +
-    (projectStats?.assessments.length ?? 0);
+  // The ungraded final of the half the target card solves lives in the card,
+  // not in this list — and a what-if'd one follows it there, since the card's
+  // slot is where it is edited now. A VTOP-POSTED final stays: a locked row
+  // in the list is the honest place for a fact. The card mirrors
+  // TargetGradeSolver: it solves the theory FAT whenever a theory half
+  // exists, and the Lab FAT only in a lab-only course — so the Lab FAT keeps
+  // its row under Lab in a mixed course, and merges into the card in a
+  // lab-only one.
+  const solvesLab = !theoryStats;
+  const isInTargetCard = (
+    asm: { title: string; scoredMark: number | null; isSimulated?: boolean },
+    component: "theory" | "lab",
+  ) => component === (solvesLab ? "lab" : "theory") && isFinalExamAssessment(asm) && !isAssessmentPublished(asm);
+  const visibleRows = (stats: typeof theoryStats, component: "theory" | "lab") =>
+    stats ? stats.assessments.filter((asm) => !isInTargetCard(asm, component)) : [];
+
+  const totalCount = visibleRows(theoryStats, "theory").length + visibleRows(labStats, "lab").length;
 
   const renderHalf = (
     tone: "blue" | "emerald" | "violet",
@@ -383,16 +417,17 @@ export default function CoursePredictorPage({
     component: "theory" | "lab",
     stats: typeof theoryStats,
     dotClass: string,
-    remaining: number
+    remaining: number,
   ) => {
     if (!stats || stats.assessments.length === 0) return null;
+    const rows = visibleRows(stats, component);
     return (
       <div className="space-y-2 min-w-0">
         <div className="flex items-center justify-between gap-2 min-w-0 px-1">
           <div className="flex items-center gap-2 min-w-0">
             <span className={`w-2.5 h-2.5 rounded-full ${dotClass} shrink-0`} />
             <h4 className="text-xs font-black text-text-heading dark:text-white font-outfit uppercase tracking-wider truncate">
-              {label} ({stats.assessments.length})
+              {label} ({rows.length})
             </h4>
           </div>
           <div className="text-[10px] font-bold text-text-secondary shrink-0">
@@ -402,7 +437,7 @@ export default function CoursePredictorPage({
           </div>
         </div>
         <ListShell>
-          {stats.assessments.map((asm) => (
+          {rows.map((asm) => (
             <AssessmentStatRow
               key={asm.id}
               asm={asm}
@@ -472,7 +507,7 @@ export default function CoursePredictorPage({
 
       {/* One fixed stat card, one carousel stat card — the list page's
           side-by-side pair. */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4" data-tour-id="predictor-stats">
         <StatTile
           label="Predicted"
           value={optimalGrade?.letter ?? "—"}
@@ -493,12 +528,18 @@ export default function CoursePredictorPage({
           ]}
         />
         <div className="h-3 w-full rounded-xl bg-surface-tertiary dark:bg-surface-secondary overflow-hidden flex">
-          <div style={{ width: `${scoredPercent}%` }} className="h-full bg-indigo-600 dark:bg-indigo-500 transition-all duration-300" />
+          <div
+            style={{ width: `${scoredPercent}%` }}
+            className="h-full bg-indigo-600 dark:bg-indigo-500 transition-all duration-300"
+          />
           <div
             style={{ width: `${pendingPercent}%` }}
             className="h-full bg-sky-400 dark:bg-sky-500 transition-all duration-300"
           />
-          <div style={{ width: `${lostPercent}%` }} className="h-full bg-red-500 dark:bg-red-600 transition-all duration-300" />
+          <div
+            style={{ width: `${lostPercent}%` }}
+            className="h-full bg-red-500 dark:bg-red-600 transition-all duration-300"
+          />
         </div>
       </div>
 
@@ -526,7 +567,7 @@ export default function CoursePredictorPage({
           an even share. Tapping a row opens the mark sheet; a half's Add opens
           the add form for the weight still open. Every edit — marks, regimen,
           add — is a bottom sheet. */}
-      <div className="space-y-3">
+      <div className="space-y-3" data-tour-id="predictor-assessments">
         <SectionHeader
           icon={Zap}
           title="Assessments"
@@ -539,45 +580,49 @@ export default function CoursePredictorPage({
           }
         />
         <p className="px-1 -mt-1 text-[11px] leading-relaxed text-text-secondary dark:text-text-muted font-medium">
-          Tap a test to set what you expect on it — the predicted grade follows
-          the engine&apos;s class band live. Locked weightages are frozen.
+          Tap a test to set what you expect — the predicted grade follows the engine&apos;s class band live. The FAT
+          waits in the target card below; a locked row means faculty posted that mark.
         </p>
 
-        <div className="flex gap-1.5 overflow-x-auto scrollbar-none pb-1 -mx-1 px-1">
-          {[
-            { pct: 100, tone: "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 border-emerald-500/20" },
-            { pct: 90, tone: "text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 border-indigo-500/20" },
-            { pct: 80, tone: "text-cyan-600 dark:text-cyan-400 hover:bg-cyan-500/10 border-cyan-500/20" },
-            { pct: 50, tone: "text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 border-amber-500/20" },
-          ].map(({ pct, tone }) => (
-            <button
-              key={pct}
-              type="button"
-              onClick={() => handleBatchSimulate(pct)}
-              className={`shrink-0 px-2.5 py-1.5 rounded-xl bg-surface dark:bg-surface-secondary ${tone} text-[11px] font-black border cursor-pointer shadow-3xs whitespace-nowrap transition-colors hover:text-current`}
-            >
-              All {pct}%
-            </button>
-          ))}
+        <div className="flex gap-1.5 overflow-x-auto scrollbar-none pb-1 -mx-1 px-1 items-center">
+          <button
+            type="button"
+            onClick={() => setShowSimulate((v) => !v)}
+            aria-expanded={showSimulate}
+            className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-surface dark:bg-surface-secondary text-zinc-600 dark:text-zinc-300 text-[11px] font-black border border-border-strong cursor-pointer shadow-3xs whitespace-nowrap transition-colors hover:text-text-heading"
+          >
+            Simulate…
+            <ChevronDown className={`w-3 h-3 transition-transform ${showSimulate ? "rotate-180" : ""}`} />
+          </button>
+          {showSimulate &&
+            [
+              {
+                pct: 100,
+                tone: "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 border-emerald-500/20",
+              },
+              { pct: 90, tone: "text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 border-indigo-500/20" },
+              { pct: 80, tone: "text-cyan-600 dark:text-cyan-400 hover:bg-cyan-500/10 border-cyan-500/20" },
+              { pct: 50, tone: "text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 border-amber-500/20" },
+            ].map(({ pct, tone }) => (
+              <button
+                key={pct}
+                type="button"
+                onClick={() => handleBatchSimulate(pct)}
+                className={`shrink-0 px-2.5 py-1.5 rounded-xl bg-surface dark:bg-surface-secondary ${tone} text-[11px] font-black border cursor-pointer shadow-3xs whitespace-nowrap transition-colors hover:text-current`}
+              >
+                All {pct}%
+              </button>
+            ))}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
           {renderHalf("blue", "Theory", "theory", theoryStats, "bg-indigo-500", theoryRemaining)}
           {renderHalf("emerald", "Lab", "lab", labStats, "bg-emerald-500", labRemaining)}
         </div>
-        {projectStats && projectStats.assessments.length > 0 && (
-          <div className="space-y-2 pt-2 border-t border-border-muted dark:border-border/70">
-            {renderHalf("violet", "Project", "theory", projectStats, "bg-violet-500", 0)}
-          </div>
-        )}
       </div>
 
-      <div className="space-y-3">
-        <SectionHeader
-          icon={Sliders}
-          title="Target grade & FAT solver"
-          count={prediction.theoryStats?.assessments.length ?? 0}
-        />
+      <div className="space-y-3" data-tour-id="predictor-target">
+        <SectionHeader icon={Sliders} title="Target grade & FAT solver" />
         <div className="overflow-hidden">
           <TargetGradeSolver
             prediction={prediction}
@@ -592,15 +637,13 @@ export default function CoursePredictorPage({
           the "Grade boundaries" ladder — all fed by the engine's own bands for
           the whole course, so what justifies the predicted letter here is
           word-for-word what the marks page's boundaries section shows. */}
-      <div className="space-y-3">
-        <SectionHeader
-          icon={Gauge}
-          title="Grade insights"
-          right={<ToneBadge tone="blue">Beta</ToneBadge>}
-        />
+      <div className="space-y-3" data-tour-id="predictor-ladder">
+        <SectionHeader icon={Gauge} title="Grade insights" right={<ToneBadge tone="blue">Beta</ToneBadge>} />
         {!prediction.isCurved && (
           <div className="rounded-3xl border border-border-strong dark:border-border card-surface flex items-center gap-3.5 px-4 py-3.5">
-            <span className={`h-11 w-11 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.emerald}`}>
+            <span
+              className={`h-11 w-11 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.emerald}`}
+            >
               <ShieldCheck className="h-5 w-5" />
             </span>
             <div className="min-w-0">
@@ -608,8 +651,7 @@ export default function CoursePredictorPage({
                 Absolute grading enforced
               </h4>
               <p className="text-[11px] text-text-secondary dark:text-text-muted font-medium mt-0.5">
-                Your grade comes from fixed percentage boundaries, not from how
-                the class performed.
+                Your grade comes from fixed percentage boundaries, not from how the class performed.
               </p>
             </div>
           </div>
@@ -619,11 +661,7 @@ export default function CoursePredictorPage({
             icon={Gauge}
             title="Grade boundaries"
             count={ladderBands.length}
-            right={
-              prediction.isCurved && !classStats ? (
-                <ToneBadge tone="zinc">Awaiting class data</ToneBadge>
-              ) : null
-            }
+            right={prediction.isCurved && !classStats ? <ToneBadge tone="zinc">Awaiting class data</ToneBadge> : null}
           />
           <div
             className={`rounded-3xl border border-border-strong dark:border-border card-surface px-4 py-3.5 space-y-2.5 ${
@@ -633,9 +671,7 @@ export default function CoursePredictorPage({
             {/* The marks page's in-card stats line: dose · μ · σ above the bar. */}
             {prediction.isCurved && (
               <p className="flex items-center gap-2 text-[11px] font-medium text-text-secondary dark:text-text-muted flex-wrap">
-                <ToneDot
-                  tone={!classStats ? "zinc" : classStats.count < 30 ? "amber" : "emerald"}
-                />
+                <ToneDot tone={!classStats ? "zinc" : classStats.count < 30 ? "amber" : "emerald"} />
                 {classStats ? (
                   <span>
                     <span className="font-bold text-text-heading">{classStats.count}</span>{" "}
@@ -653,17 +689,35 @@ export default function CoursePredictorPage({
             <GradeLadderChart
               bands={ladderBands}
               standingGrade={standingGrade}
-              currentPct={currentStandingPct}
+              currentPct={hasEnteredMarks ? currentStandingPct : null}
             />
             <p className="text-[11px] leading-relaxed text-text-secondary dark:text-text-muted font-medium">
-              The ring sits where you stand on the weight the course has
-              assigned so far — scaled exactly the way the marks page&apos;s
-              grade boundaries scale it. The predicted{" "}
+              {hasEnteredMarks ? (
+                <>
+                  Your marks, scaled to 100 — earned over the tests you have given a mark to; empty ones don&apos;t
+                  count.
+                </>
+              ) : (
+                <>
+                  No marks entered yet — enter one on any test above and this ladder shows where you stand, scaled to
+                  100.
+                </>
+              )}{" "}
+              The predicted{" "}
               <strong className={TONE_TEXT[toneForGrade(optimalGrade?.letter ?? "")]}>
                 {optimalGrade?.letter ?? "—"}
               </strong>{" "}
-              above is a different read: the released pace carried over the
-              weight still to come.
+              above is a different read: the released pace carried over the weight still to come.
+            </p>
+            {/* Req: the honesty line — every number in this box is an
+                estimate the reader typed, not a result the university
+                posted. */}
+            <p className="flex items-start gap-2 text-[11px] leading-relaxed font-medium text-amber-700 dark:text-amber-400">
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" aria-hidden="true" />
+              <span>
+                <strong className="font-black">Just a prediction.</strong> These grades come from marks you entered —
+                estimates within the grade boundaries, not a result. Your actual grade can land outside these numbers.
+              </span>
             </p>
           </div>
         </div>

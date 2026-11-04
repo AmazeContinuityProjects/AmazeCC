@@ -1,6 +1,6 @@
 import { useState } from "react";
 import "katex/dist/katex.min.css";
-import Latex from "react-latex-next";
+import Latex from "./Latex";
 import { CheckCircle2, XCircle, RotateCcw } from "lucide-react";
 import { QBankQuestion } from "@/types/qbank.types";
 

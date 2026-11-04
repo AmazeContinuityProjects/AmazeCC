@@ -2,8 +2,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import FFCSShareView from "@/app/share/ffcs/FFCSShareView";
 import { encodeCompactTimetableShare, encodeTimetableShare } from "@/lib/ffcsShare";
-import { DAYS } from "@/components/custom/exams/FFCS/constants";
-import type { AddedCourse } from "@/components/custom/exams/FFCS/types";
+import { DAYS } from "@/lib/ffcsConstants";
+import type { AddedCourse } from "@/lib/ffcsTypes";
 
 const { searchParams, downloadModernTimetableImage } = vi.hoisted(() => ({
   searchParams: new URLSearchParams(),
@@ -75,14 +75,14 @@ describe("FFCSShareView image export", () => {
       "COURSE CODE,COURSE TITLE,CREDITS,CLASS ID,SLOT,ERP ID,EMPLOYEE NAME,EMPLOYEE SCHOOL",
       "CSE1001,Computer Science,3,CH2026270500002,A1,ERP1,Dr Example,SCI",
     ].join("\n");
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(new Response(csv, { status: 200 }))
-    );
-    const compact = encodeCompactTimetableShare({
-      name: "Compact Plan",
-      courses: [{ ...course, classId: "CH2026270500002" }],
-    }, "winter-2026-2027")!;
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(csv, { status: 200 })));
+    const compact = encodeCompactTimetableShare(
+      {
+        name: "Compact Plan",
+        courses: [{ ...course, classId: "CH2026270500002" }],
+      },
+      "winter-2026-2027",
+    )!;
     searchParams.delete("d");
     searchParams.set("x", compact);
 

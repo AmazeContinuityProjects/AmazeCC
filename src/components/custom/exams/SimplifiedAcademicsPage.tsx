@@ -1,16 +1,9 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { ChipTabs, EmptyPanel, PageShell, SelectField } from "../shared/primitives";
 import { SEARCH_FIELD, TILE_INTERACTIVE_ROW } from "@/lib/uiTokens";
+import { formatSemesterName } from "@/lib/formatSemesterName";
 import { loadFrozenPastSemesters } from "@/lib/pastDataSync";
-import {
-  BookOpen,
-  Search,
-  ChevronRight,
-  GraduationCap,
-  History,
-  Lock,
-  Sparkles,
-} from "lucide-react";
+import { BookOpen, Search, ChevronRight, GraduationCap, History, Lock, Sparkles } from "lucide-react";
 
 /** The four course-type pills above the list. Ordered, so `ChipTabs` scrolls rather than wraps. */
 type CourseTypeFilter = "all" | "theory" | "lab" | "embedded";
@@ -24,19 +17,6 @@ interface SimplifiedAcademicsPageProps {
   setActiveSubTab?: (subTab: string) => void;
   decimalValues?: boolean;
   onSelectCourse?: (courseCode: string) => void;
-}
-
-function formatSemesterName(semId: string): string {
-  if (!semId || !semId.toUpperCase().startsWith("CH") || semId.length !== 10) return semId;
-  const year1 = semId.substring(2, 6);
-  const year2 = semId.substring(6, 8);
-  const term = semId.substring(8, 10);
-  let termName = "";
-  if (term === "01") termName = "Fall";
-  else if (term === "05") termName = "Winter";
-  else if (term === "07") termName = "Summer";
-  else termName = `Term ${term}`;
-  return `${termName} ${year1}-${year2}`;
 }
 
 const getNumericValue = (value: any, fallback = 0) => {
@@ -62,7 +42,9 @@ const isJunkOrEmpty = (val: any) => {
 
 const sanitizeCourseCode = (code: any) => {
   if (isJunkOrEmpty(code)) return "";
-  const cleaned = String(code).replace(/\s*\([LPT]\)$/i, "").trim();
+  const cleaned = String(code)
+    .replace(/\s*\([LPT]\)$/i, "")
+    .trim();
   return isJunkOrEmpty(cleaned) ? "" : cleaned;
 };
 
@@ -80,7 +62,7 @@ const getAssessmentTotals = (assessments: any[] = []) => {
       acc.weighted += getNumericValue(asm.weightageMark);
       return acc;
     },
-    { max: 0, scored: 0, weightPercent: 0, weighted: 0 }
+    { max: 0, scored: 0, weightPercent: 0, weighted: 0 },
   );
 };
 
@@ -108,10 +90,7 @@ interface GrandWeightageResult {
   displayMax: string;
 }
 
-const calculateGrandWeightage = (
-  course: any,
-  decimalValues = false
-): GrandWeightageResult => {
+const calculateGrandWeightage = (course: any, decimalValues = false): GrandWeightageResult => {
   const isEmbedded = Boolean(course.theory && course.lab);
   const theoryAssessments = course.theory?.assessments || [];
   const labAssessments = course.lab?.assessments || [];
@@ -146,22 +125,16 @@ const calculateGrandWeightage = (
     }
 
     const creditsTotal = theoryCredits + labCredits;
-    const scored =
-      (theoryCredits * theoryTotals.weighted + labCredits * labTotals.weighted) /
-      creditsTotal;
+    const scored = (theoryCredits * theoryTotals.weighted + labCredits * labTotals.weighted) / creditsTotal;
     const maxWeight =
-      (theoryCredits * theoryTotals.weightPercent +
-        labCredits * labTotals.weightPercent) /
-      creditsTotal;
+      (theoryCredits * theoryTotals.weightPercent + labCredits * labTotals.weightPercent) / creditsTotal;
 
     const percentage =
       maxWeight > 0
         ? (scored / maxWeight) * 100
-        : (theoryTotals.max + labTotals.max) > 0
-        ? ((theoryTotals.scored + labTotals.scored) /
-            (theoryTotals.max + labTotals.max)) *
-          100
-        : null;
+        : theoryTotals.max + labTotals.max > 0
+          ? ((theoryTotals.scored + labTotals.scored) / (theoryTotals.max + labTotals.max)) * 100
+          : null;
 
     return {
       scored,
@@ -170,10 +143,7 @@ const calculateGrandWeightage = (
       hasAssessments: true,
       isEmbedded: true,
       displayScore: formatUpToTwoDecimals(scored, decimalValues),
-      displayMax:
-        maxWeight > 0
-          ? formatUpToTwoDecimals(maxWeight, decimalValues)
-          : "0",
+      displayMax: maxWeight > 0 ? formatUpToTwoDecimals(maxWeight, decimalValues) : "0",
     };
   }
 
@@ -185,8 +155,8 @@ const calculateGrandWeightage = (
     maxWeight > 0
       ? (scored / maxWeight) * 100
       : activeTotals.max > 0
-      ? (activeTotals.scored / activeTotals.max) * 100
-      : null;
+        ? (activeTotals.scored / activeTotals.max) * 100
+        : null;
 
   return {
     scored,
@@ -195,10 +165,7 @@ const calculateGrandWeightage = (
     hasAssessments: true,
     isEmbedded: false,
     displayScore: formatUpToTwoDecimals(scored, decimalValues),
-    displayMax:
-      maxWeight > 0
-        ? formatUpToTwoDecimals(maxWeight, decimalValues)
-        : "0",
+    displayMax: maxWeight > 0 ? formatUpToTwoDecimals(maxWeight, decimalValues) : "0",
   };
 };
 
@@ -263,9 +230,7 @@ export default function SimplifiedAcademicsPage({
         if (!baseCode) return;
 
         const courseTitle = sanitizeCourseTitle(rawTitle, baseCode);
-        const isLab =
-          c.courseType?.toLowerCase().includes("lab") ||
-          c.slot?.toLowerCase().startsWith("l");
+        const isLab = c.courseType?.toLowerCase().includes("lab") || c.slot?.toLowerCase().startsWith("l");
 
         if (!map.has(baseCode)) {
           map.set(baseCode, {
@@ -304,9 +269,7 @@ export default function SimplifiedAcademicsPage({
         if (!baseCode) return;
 
         const courseTitle = sanitizeCourseTitle(rawTitle, baseCode);
-        const isLab =
-          att.courseType?.toLowerCase().includes("lab") ||
-          att.slotName?.toLowerCase().startsWith("l");
+        const isLab = att.courseType?.toLowerCase().includes("lab") || att.slotName?.toLowerCase().startsWith("l");
 
         if (!map.has(baseCode)) {
           map.set(baseCode, {
@@ -330,11 +293,7 @@ export default function SimplifiedAcademicsPage({
     }
 
     return Array.from(map.values()).filter((c) => {
-      return (
-        !isJunkOrEmpty(c.courseCode) &&
-        !isJunkOrEmpty(c.courseTitle) &&
-        Boolean(c.theory || c.lab)
-      );
+      return !isJunkOrEmpty(c.courseCode) && !isJunkOrEmpty(c.courseTitle) && Boolean(c.theory || c.lab);
     });
   }, [marksData, attendanceData]);
 
@@ -402,9 +361,7 @@ export default function SimplifiedAcademicsPage({
             if (!baseCode) return;
 
             const courseTitle = sanitizeCourseTitle(rawTitle, baseCode);
-            const isLab =
-              c.courseType?.toLowerCase().includes("lab") ||
-              c.slot?.toLowerCase().startsWith("l");
+            const isLab = c.courseType?.toLowerCase().includes("lab") || c.slot?.toLowerCase().startsWith("l");
 
             if (!semMap.has(baseCode)) {
               semMap.set(baseCode, {
@@ -461,20 +418,14 @@ export default function SimplifiedAcademicsPage({
         }
 
         const validCourses = Array.from(semMap.values()).filter(
-          (c) =>
-            !isJunkOrEmpty(c.courseCode) &&
-            !isJunkOrEmpty(c.courseTitle) &&
-            Boolean(c.theory || c.lab)
+          (c) => !isJunkOrEmpty(c.courseCode) && !isJunkOrEmpty(c.courseTitle) && Boolean(c.theory || c.lab),
         );
 
         if (validCourses.length > 0) {
           list.push({
             semesterId: semId,
             semesterName: formatSemesterName(semId),
-            gpa:
-              resolvedAllGradesData?.gpaHistory?.[semId] ||
-              resolvedAllGradesData?.grades?.[semId]?.gpa ||
-              undefined,
+            gpa: resolvedAllGradesData?.gpaHistory?.[semId] || resolvedAllGradesData?.grades?.[semId]?.gpa || undefined,
             courses: validCourses,
           });
         }
@@ -485,10 +436,7 @@ export default function SimplifiedAcademicsPage({
     if (resolvedAllGradesData?.grades) {
       const gradesObj = resolvedAllGradesData.grades;
       const semEntries: Array<[string, any]> = Array.isArray(gradesObj)
-        ? gradesObj.map((s: any, idx: number) => [
-            s?.semesterSubId || s?.semesterId || s?.semSubId || `sem_${idx}`,
-            s,
-          ])
+        ? gradesObj.map((s: any, idx: number) => [s?.semesterSubId || s?.semesterId || s?.semSubId || `sem_${idx}`, s])
         : safeObjectEntries(gradesObj);
 
       semEntries.forEach(([semId, semVal]) => {
@@ -512,10 +460,7 @@ export default function SimplifiedAcademicsPage({
           else if (Array.isArray(semVal.courses)) items = semVal.courses;
           else {
             items = safeObjectValues(semVal).filter(
-              (v) =>
-                v &&
-                typeof v === "object" &&
-                (v.courseCode || v.code || v.courseTitle || v.title)
+              (v) => v && typeof v === "object" && (v.courseCode || v.code || v.courseTitle || v.title),
             );
           }
         }
@@ -554,20 +499,14 @@ export default function SimplifiedAcademicsPage({
           });
 
           const validCourses = Array.from(semMap.values()).filter(
-            (c) =>
-              !isJunkOrEmpty(c.courseCode) &&
-              !isJunkOrEmpty(c.courseTitle) &&
-              Boolean(c.theory || c.lab)
+            (c) => !isJunkOrEmpty(c.courseCode) && !isJunkOrEmpty(c.courseTitle) && Boolean(c.theory || c.lab),
           );
 
           if (validCourses.length > 0) {
             list.push({
               semesterId: semId,
               semesterName: formatSemesterName(semId),
-              gpa:
-                semVal?.gpa ||
-                resolvedAllGradesData?.gpaHistory?.[semId] ||
-                undefined,
+              gpa: semVal?.gpa || resolvedAllGradesData?.gpaHistory?.[semId] || undefined,
               courses: validCourses,
             });
           }
@@ -602,13 +541,10 @@ export default function SimplifiedAcademicsPage({
         return true;
       });
     },
-    [searchTerm, selectedType]
+    [searchTerm, selectedType],
   );
 
-  const filteredCurrentCourses = useMemo(
-    () => filterCourseList(currentCourses),
-    [filterCourseList, currentCourses]
-  );
+  const filteredCurrentCourses = useMemo(() => filterCourseList(currentCourses), [filterCourseList, currentCourses]);
 
   const handleCourseClick = (courseCode: string) => {
     const cleanCode = courseCode.replace(/\([LPT]\)$/i, "").trim();
@@ -627,11 +563,7 @@ export default function SimplifiedAcademicsPage({
   const renderCoursePill = (course: any) => {
     const isEmbedded = Boolean(course.theory && course.lab);
     const main = course.theory || course.lab;
-    const courseTypeLabel = isEmbedded
-      ? "Embedded Theory + Lab"
-      : course.lab
-      ? "Lab Only"
-      : "Theory Only";
+    const courseTypeLabel = isEmbedded ? "Embedded Theory + Lab" : course.lab ? "Lab Only" : "Theory Only";
 
     const grandWeightage = calculateGrandWeightage(course, decimalValues);
 
@@ -640,10 +572,8 @@ export default function SimplifiedAcademicsPage({
     if (course.grade) {
       statColor = "text-indigo-500 dark:text-indigo-400";
     } else if (grandWeightage.percentage !== null) {
-      if (grandWeightage.percentage >= 80)
-        statColor = "text-emerald-600 dark:text-emerald-400";
-      else if (grandWeightage.percentage >= 65)
-        statColor = "text-amber-600 dark:text-amber-400";
+      if (grandWeightage.percentage >= 80) statColor = "text-emerald-600 dark:text-emerald-400";
+      else if (grandWeightage.percentage >= 65) statColor = "text-amber-600 dark:text-amber-400";
       else statColor = "text-red-600 dark:text-red-400";
     }
 
@@ -661,8 +591,8 @@ export default function SimplifiedAcademicsPage({
               isEmbedded
                 ? "bg-purple-500/10 border-purple-500/20 text-purple-600 dark:text-purple-400"
                 : course.lab
-                ? "bg-teal-500/10 border-teal-500/20 text-teal-600 dark:text-teal-400"
-                : "bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400"
+                  ? "bg-teal-500/10 border-teal-500/20 text-teal-600 dark:text-teal-400"
+                  : "bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400"
             }`}
           >
             <BookOpen className="w-5 h-5" />
@@ -735,9 +665,7 @@ export default function SimplifiedAcademicsPage({
   // ── VIEW 2: DEDICATED PREVIOUS SEMESTERS SEPARATE PAGE ──
   if (showPastSemestersView) {
     const displayedPastSemesters =
-      selectedPastSemId === "all"
-        ? pastSemesters
-        : pastSemesters.filter((s) => s.semesterId === selectedPastSemId);
+      selectedPastSemId === "all" ? pastSemesters : pastSemesters.filter((s) => s.semesterId === selectedPastSemId);
 
     return (
       <PageShell
@@ -746,20 +674,19 @@ export default function SimplifiedAcademicsPage({
         subtitle={`${pastSemesters.length} ${pastSemesters.length === 1 ? "semester" : "semesters"}`}
         onBack={() => setShowPastSemestersView(false)}
         actions={
-            pastSemesters.length > 1 ? (
-              <SelectField
-                value={selectedPastSemId}
-                onChange={setSelectedPastSemId}
-                options={[
-                  { value: "all", label: "All Past Semesters" },
-                  ...pastSemesters.map((s) => ({ value: s.semesterId, label: s.semesterName })),
-                ]}
-                className="w-44"
-              />
+          pastSemesters.length > 1 ? (
+            <SelectField
+              value={selectedPastSemId}
+              onChange={setSelectedPastSemId}
+              options={[
+                { value: "all", label: "All Past Semesters" },
+                ...pastSemesters.map((s) => ({ value: s.semesterId, label: s.semesterName })),
+              ]}
+              className="w-44"
+            />
           ) : undefined
         }
       >
-
         {/* Search */}
         <div className="relative w-full">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
@@ -799,9 +726,7 @@ export default function SimplifiedAcademicsPage({
                   </div>
 
                   {/* Course Pills */}
-                  <div className="space-y-2">
-                    {filteredSemCourses.map(renderCoursePill)}
-                  </div>
+                  <div className="space-y-2">{filteredSemCourses.map(renderCoursePill)}</div>
                 </div>
               );
             })
@@ -824,18 +749,17 @@ export default function SimplifiedAcademicsPage({
             />
           )}
         </div>
-    </PageShell>
-      );
-    }
+      </PageShell>
+    );
+  }
 
-    // ── VIEW 1: CURRENT SEMESTER COURSES + PREVIOUS SEMESTERS PILL AT BOTTOM ──
-    return (
+  // ── VIEW 1: CURRENT SEMESTER COURSES + PREVIOUS SEMESTERS PILL AT BOTTOM ──
+  return (
     <PageShell
       eyebrow="Academics"
       title="My Courses & Marks"
       subtitle={`${filteredCurrentCourses.length} ${filteredCurrentCourses.length === 1 ? "course" : "courses"}`}
     >
-
       {/* ── SEARCH & FILTER STRIP ── */}
       {/* A vertical stack, not a row: the house pattern (ClubHubTab, EventHubTab).
           `ChipTabs` is `w-full` + `overflow-x-auto` by design, so it wants its own
@@ -894,7 +818,9 @@ export default function SimplifiedAcademicsPage({
             <div className="min-w-0">
               <p className="text-xs sm:text-sm font-black font-outfit text-zinc-900 dark:text-white truncate flex items-center gap-2">
                 <span>Marks Predictor & Simulator</span>
-                <span className="px-1.5 py-0.2 rounded-md bg-indigo-600 text-white text-[9px] font-black uppercase">New</span>
+                <span className="px-1.5 py-0.2 rounded-md bg-indigo-600 text-white text-[9px] font-black uppercase">
+                  New
+                </span>
               </p>
               <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">
                 Simulate what-if scores, calculate points lost & solve FAT targets
@@ -945,9 +871,7 @@ export default function SimplifiedAcademicsPage({
                 <p className="text-xs sm:text-sm font-black font-outfit text-zinc-900 dark:text-white truncate">
                   Grade History
                 </p>
-                <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">
-                  Cumulative GPA & past semesters
-                </p>
+                <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">Cumulative GPA & past semesters</p>
               </div>
             </div>
             <div className="flex items-center gap-1 text-xs font-black text-purple-600 dark:text-purple-400 font-outfit group-hover:translate-x-0.5 transition-transform shrink-0">
@@ -990,8 +914,8 @@ export default function SimplifiedAcademicsPage({
             <span>{pastSemesters.length > 0 ? "View History" : "Grade History"}</span>
             <ChevronRight className="w-4 h-4" />
           </div>
-          </button>
-        </div>
+        </button>
+      </div>
     </PageShell>
   );
 }

@@ -36,7 +36,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@amazecontinuityprojects/amazeui";
 import { dayKeyForDate } from "@/lib/social/schedule";
-import { weekDateForDayId, type Band } from "./buildBands";
+import { weekDateForDayId, type Band } from "@/lib/buildBands";
 
 export type ShellDay = { id: string; name: string };
 
@@ -106,19 +106,14 @@ export default function TimetableGridShell({
   return (
     <div className={cn("space-y-2.5", className)}>
       <div className={cn("-mx-1 px-1 pb-1", !compact && "overflow-x-auto")}>
-        <table
-          className={cn(
-            "w-full border-separate border-spacing-1 text-center",
-            compact && "table-fixed"
-          )}
-        >
+        <table className={cn("w-full border-separate border-spacing-1 text-center", compact && "table-fixed")}>
           <thead>
             <tr>
               <th
                 scope="col"
                 className={cn(
                   "sticky left-0 top-0 z-30 rounded-lg bg-white px-1 py-1 font-black uppercase tracking-wider text-zinc-400 dark:bg-zinc-950 dark:text-zinc-500",
-                  compact ? "w-12 min-w-12 text-[9px]" : "w-14 min-w-14 text-[9px]"
+                  compact ? "w-12 min-w-12 text-[9px]" : "w-14 min-w-14 text-[9px]",
                 )}
               >
                 Time
@@ -135,17 +130,15 @@ export default function TimetableGridShell({
                       compact ? "text-[9px]" : "text-[10px]",
                       isToday
                         ? "bg-amber-100 text-amber-900 ring-2 ring-amber-400 dark:bg-amber-950/60 dark:text-amber-200 dark:ring-amber-500/70"
-                        : "bg-white text-zinc-500 dark:bg-zinc-950 dark:text-zinc-400"
+                        : "bg-white text-zinc-500 dark:bg-zinc-950 dark:text-zinc-400",
                     )}
                   >
-                    <span className="block leading-none">
-                      {day.name.substring(0, 3)}
-                    </span>
+                    <span className="block leading-none">{day.name.substring(0, 3)}</span>
                     {date && (
                       <span
                         className={cn(
                           "mt-0.5 block font-bold leading-none opacity-70",
-                          compact ? "text-[9px]" : "text-[9px]"
+                          compact ? "text-[9px]" : "text-[9px]",
                         )}
                       >
                         {date.getDate()}
@@ -192,7 +185,7 @@ export default function TimetableGridShell({
                     scope="row"
                     className={cn(
                       "sticky left-0 z-10 rounded-lg bg-white dark:bg-zinc-950",
-                      compact ? "w-12 min-w-12 px-0.5 py-0.5" : "w-14 min-w-14 px-1 py-1"
+                      compact ? "w-12 min-w-12 px-0.5 py-0.5" : "w-14 min-w-14 px-1 py-1",
                     )}
                   >
                     {fullyCovered ? (
@@ -244,10 +237,8 @@ export default function TimetableGridShell({
                           className={cn(
                             "flex w-full cursor-pointer flex-col items-center justify-center gap-0.5 rounded-lg border-2 transition-all duration-200 active:scale-95",
                             spans ? "absolute inset-0 h-full" : "relative",
-                            compact
-                              ? "min-h-[38px] overflow-hidden px-0.5 py-1"
-                              : "min-h-[52px] px-1 py-1.5",
-                            cell.tileClassName
+                            compact ? "min-h-[38px] overflow-hidden px-0.5 py-1" : "min-h-[52px] px-1 py-1.5",
+                            cell.tileClassName,
                           )}
                         >
                           {cell.content}

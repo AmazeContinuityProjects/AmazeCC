@@ -11,7 +11,37 @@
  */
 export type { TimetableMetrics } from "@/lib/timetableMetrics";
 import type { TimetableMetrics } from "@/lib/timetableMetrics";
-import type { FacultyRankingSummary } from "@/lib/ffcsFacultyRanking";
+
+/**
+ * The faculty-ranking result shapes live here (the scoring *functions* stay in
+ * `lib/ffcsFacultyRanking`, which imports these back): `TimetableState` carries
+ * a `facultySummary`, and having this file import the lib would close a cycle.
+ */
+export interface FacultyRating {
+  wPct: number | null;
+  lecture: number | null;
+  da: number | null;
+  vibe: number | null;
+  reviews: number;
+}
+
+export interface FacultyCourseScore {
+  code: string;
+  faculty: string;
+  rating: FacultyRating | null;
+}
+
+export interface FacultyRankingSummary {
+  averageWPct: number | null;
+  averageLecture: number | null;
+  averageDa: number | null;
+  averageVibe: number | null;
+  facultyScore: number | null;
+  ratedFacultyCount: number;
+  unratedFacultyCount: number;
+  totalFacultyCount: number;
+  courses: FacultyCourseScore[];
+}
 
 export interface GenCourseSelection {
   code: string;

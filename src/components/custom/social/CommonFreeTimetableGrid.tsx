@@ -40,12 +40,8 @@ import BottomSheet from "../shared/BottomSheet";
 import { CHIP, EMPTY_STATE, TONE_TEXT } from "@/lib/libraries/ui";
 import { DAYS, fmt, parseSlotKey, slotMap, type Day } from "@/lib/social/schedule";
 import type { BusyEntry, BusyMap, SocialVisibility } from "@/lib/social/types";
-import TimetableGridShell, {
-  useTodayKey,
-  type ShellCell,
-  type ShellDay,
-} from "../timetable/TimetableGridShell";
-import type { Band } from "../timetable/buildBands";
+import TimetableGridShell, { useTodayKey, type ShellCell, type ShellDay } from "../timetable/TimetableGridShell";
+import type { Band } from "@/lib/buildBands";
 import { buildPeriodSkeleton } from "../timetable/periodSkeleton";
 import { useTimetableViewMode } from "../timetable/useTimetableViewMode";
 
@@ -107,10 +103,7 @@ export default function CommonFreeTimetableGrid({
   const skeleton = useMemo(() => buildPeriodSkeleton(), []);
 
   /** Everyone whose timetable we actually have, plus us. */
-  const roster = useMemo(
-    () => peers.filter((p) => p.loaded && Object.keys(p.busyMap ?? {}).length > 0),
-    [peers]
-  );
+  const roster = useMemo(() => peers.filter((p) => p.loaded && Object.keys(p.busyMap ?? {}).length > 0), [peers]);
 
   const cells = useMemo(() => {
     const people: Person[] = [
@@ -126,9 +119,7 @@ export default function CommonFreeTimetableGrid({
     for (const day of DAYS) {
       const cols = skeleton.columns[day] ?? [];
       out[day] = cols.map((col, bandIndex) => {
-        const slotIds = [col.theory?.slotId, col.lab?.slotId].filter(
-          (s): s is string => Boolean(s)
-        );
+        const slotIds = [col.theory?.slotId, col.lab?.slotId].filter((s): s is string => Boolean(s));
 
         const who: Cell["who"] = [];
         const freeNames: Cell["freeNames"] = [];
@@ -179,7 +170,7 @@ export default function CommonFreeTimetableGrid({
         id: d,
         name: d,
       })),
-    [dayFilter]
+    [dayFilter],
   );
 
   if (!roster.length) {
@@ -188,12 +179,10 @@ export default function CommonFreeTimetableGrid({
         <span className="w-10 h-10 rounded-2xl mx-auto flex items-center justify-center border border-zinc-200 dark:border-zinc-800">
           <Users className="w-4.5 h-4.5 text-zinc-400" />
         </span>
-        <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 mt-3">
-          No peer timetables loaded
-        </p>
+        <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 mt-3">No peer timetables loaded</p>
         <p className="text-[11px] text-zinc-400 dark:text-zinc-500 font-medium mt-1.5 leading-relaxed max-w-[320px] mx-auto">
-          The grid compares your week against everyone you are paired with, so it needs at least
-          one peer to have published a timetable.
+          The grid compares your week against everyone you are paired with, so it needs at least one peer to have
+          published a timetable.
         </p>
       </div>
     );
@@ -211,13 +200,7 @@ export default function CommonFreeTimetableGrid({
     return {
       content: (
         <>
-          <span
-            className={
-              compact
-                ? "text-[13px] font-black leading-none"
-                : "text-[15px] font-black leading-none"
-            }
-          >
+          <span className={compact ? "text-[13px] font-black leading-none" : "text-[15px] font-black leading-none"}>
             {cell.free}
           </span>
           <span className="text-[9px] font-bold leading-none opacity-70">/{cell.total}</span>
@@ -317,11 +300,7 @@ export default function CommonFreeTimetableGrid({
             subtitle={
               <span
                 className={`font-bold ${
-                  activeCell.busy === 0
-                    ? TONE_TEXT.emerald
-                    : activeCell.free === 0
-                      ? TONE_TEXT.red
-                      : TONE_TEXT.amber
+                  activeCell.busy === 0 ? TONE_TEXT.emerald : activeCell.free === 0 ? TONE_TEXT.red : TONE_TEXT.amber
                 }`}
               >
                 {activeCell.free} of {activeCell.total} free
@@ -390,7 +369,7 @@ export default function CommonFreeTimetableGrid({
                         <span key={n.name} className={CHIP}>
                           {n.name}
                         </span>
-                      )
+                      ),
                     )}
                   </div>
                 </div>
@@ -398,8 +377,8 @@ export default function CommonFreeTimetableGrid({
 
               <p className="text-[11px] text-zinc-400 dark:text-zinc-500 font-medium leading-relaxed flex items-start gap-1.5">
                 <Info className="w-3 h-3 mt-px shrink-0" />
-                Names and course detail come from each pair&apos;s timetable. An older free/busy-only
-                grant contributes occupancy without a course or venue.
+                Names and course detail come from each pair&apos;s timetable. An older free/busy-only grant contributes
+                occupancy without a course or venue.
               </p>
             </div>
           </BottomSheet>

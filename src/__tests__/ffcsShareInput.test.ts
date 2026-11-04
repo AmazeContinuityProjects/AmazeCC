@@ -8,7 +8,7 @@ import {
   encodeTimetableShapeShare,
   encodeTimetableShare,
 } from "../lib/ffcsShare";
-import type { AddedCourse, ParsedCourse } from "../components/custom/exams/FFCS/types";
+import type { AddedCourse, ParsedCourse } from "@/lib/ffcsTypes";
 
 /**
  * The add-friend input's contract: a pasted share URL *or* the bare TT-shape

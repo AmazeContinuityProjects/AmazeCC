@@ -47,6 +47,7 @@ import {
   type DayId,
   type SchemaPeriod,
 } from "./slots";
+import { getTimetableSchema } from "./campusSchema";
 
 /**
  * The only fields of a course this module reads.
@@ -83,8 +84,7 @@ export interface DayOccupancy {
   eveningOccupied: boolean;
 }
 
-const nonLunch = (periods: SchemaPeriod[] | undefined): SchemaPeriod[] =>
-  (periods ?? []).filter((p) => !p?.lunch);
+const nonLunch = (periods: SchemaPeriod[] | undefined): SchemaPeriod[] => (periods ?? []).filter((p) => !p?.lunch);
 
 /**
  * True for an embedded course, which may carry a combined room string.
@@ -96,7 +96,9 @@ const nonLunch = (periods: SchemaPeriod[] | undefined): SchemaPeriod[] =>
  * same building.
  */
 const isEmbedded = (type: string | undefined) =>
-  String(type ?? "").toLowerCase().includes("embedded");
+  String(type ?? "")
+    .toLowerCase()
+    .includes("embedded");
 
 /** Pull the half of a combined room string that belongs to this half. */
 function venueForHalf(venue: string, half: "theory" | "lab"): string {
@@ -113,11 +115,7 @@ function venueForHalf(venue: string, half: "theory" | "lab"): string {
  * every copy this replaces: a period whose theory and lab slots are both held by
  * the same student is reported once, as a theory class, rather than twice.
  */
-export function dayOccupancy(
-  courses: readonly MetricCourse[],
-  schema: CampusSchema,
-  day: DayId
-): DayOccupancy {
+export function dayOccupancy(courses: readonly MetricCourse[], schema: CampusSchema, day: DayId): DayOccupancy {
   const theoryPeriods = nonLunch(schema.theory);
   const labPeriods = nonLunch(schema.lab);
   // Both spellings, so a law course booked "A" answers to the schema's "A1".
@@ -266,10 +264,7 @@ const nameOf = (c: OccupiedClass) => `${c.code} (${c.title})`;
  * initialised so that a caller which does not care about them still produces a
  * complete object rather than one with holes in it.
  */
-export function timetableMetrics(
-  courses: readonly MetricCourse[],
-  schema: CampusSchema
-): TimetableMetrics {
+export function timetableMetrics(courses: readonly MetricCourse[], schema: CampusSchema): TimetableMetrics {
   const gapDetails: GapDetail[] = [];
   const dashDetails: DashDetail[] = [];
   const gapsPerDay: Record<string, number> = {};
@@ -280,11 +275,7 @@ export function timetableMetrics(
   let fridayFree = true;
 
   for (const day of DAYS_OF_WEEK) {
-    const { classes, morningOccupied, eveningOccupied } = dayOccupancy(
-      courses,
-      schema,
-      day
-    );
+    const { classes, morningOccupied, eveningOccupied } = dayOccupancy(courses, schema, day);
 
     if (classes.length > 0) {
       if (day === "mon") mondayFree = false;
@@ -316,11 +307,7 @@ export function timetableMetrics(
       if (gap >= 0 && gap <= DASH_WINDOW_MIN) {
         const fromBlock = blockOfVenue(prev.venue);
         const toBlock = blockOfVenue(curr.venue);
-        if (
-          isRealBlock(fromBlock) &&
-          isRealBlock(toBlock) &&
-          fromBlock !== toBlock
-        ) {
+        if (isRealBlock(fromBlock) && isRealBlock(toBlock) && fromBlock !== toBlock) {
           buildingDashes++;
           dashDetails.push({
             fromClass: nameOf(prev),
@@ -381,7 +368,7 @@ export interface SocialScore {
 export function pairwiseSocialScore(
   mine: readonly MetricCourse[],
   theirs: readonly MetricCourse[],
-  schema: CampusSchema
+  schema: CampusSchema,
 ): SocialScore {
   const mySlots = new Set(mine.flatMap((c) => c.slots));
   const theirSlots = new Set(theirs.flatMap((c) => c.slots));
@@ -404,16 +391,28 @@ export function pairwiseSocialScore(
   const theirFree = freeHalfDays(theirs, schema);
   const sharedHalfDays = theirFree.filter((d) => myFree.has(d)).length;
 
-  const actualScore =
-    sharedClasses * 3 + mutuallyFree * 1 + sharedHalfDays * 5;
-  const maxScore =
-    maxSharedClasses * 3 + maxMutuallyFree * 1 + theirFree.length * 5;
+  const actualScore = sharedClasses * 3 + mutuallyFree * 1 + sharedHalfDays * 5;
+  const maxScore = maxSharedClasses * 3 + maxMutuallyFree * 1 + theirFree.length * 5;
 
   return {
     percentage: maxScore > 0 ? Math.round((actualScore / maxScore) * 100) : 0,
     actualScore,
     maxScore,
   };
+}
+
+/**
+ * `pairwiseSocialScore` with the campus schema already applied.
+ *
+ * Lived in `FFCSTimetableTab`, where the planner, the social matrix modal and
+ * the generator all reached back into that component for it — a static import
+ * against a component that `dynamic()`-imports them back.
+ */
+export function calculatePairwiseSocialScore(
+  mine: readonly MetricCourse[],
+  theirs: readonly MetricCourse[],
+): SocialScore {
+  return pairwiseSocialScore(mine, theirs, getTimetableSchema());
 }
 
 /* ── sorting ────────────────────────────────────────────────────────────── */

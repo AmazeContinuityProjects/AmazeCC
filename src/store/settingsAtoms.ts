@@ -1,4 +1,5 @@
-import { atom } from "jotai";
+import { atomWithStorage } from "jotai/utils";
+import { storage } from "@/lib/storage";
 import config from "../../config.json";
 
 export type Settings = {
@@ -43,7 +44,6 @@ export type Settings = {
   lowDataMode?: boolean;
   soundEnabled?: boolean;
   smartMessFilter?: boolean;
-  dashboardViewMode?: "simplified" | "classic";
   timetablePillStyle?: "compact" | "detailed";
   /**
    * Which timetable grid to draw. "auto" means vertical under 768px (the
@@ -94,7 +94,6 @@ export type Settings = {
   taskDefaultReminderMinutes?: number;
 };
 
-
 export type settings = Settings;
 
 export const defaultSettings: Settings = {
@@ -132,7 +131,6 @@ export const defaultSettings: Settings = {
   lowDataMode: false,
   soundEnabled: true,
   smartMessFilter: false,
-  dashboardViewMode: "simplified",
   timetablePillStyle: "compact",
   timetableViewMode: "auto",
   timetableCellDensity: "full",
@@ -165,5 +163,70 @@ export const defaultSettings: Settings = {
   taskDefaultReminderMinutes: 30,
 };
 
+/**
+ * Storage adapter for the settings blob. The `getItem` merge IS the migration
+ * shim: a blob persisted before a field existed lacks that field and picks up
+ * the default — the guarantee the old boot line
+ * `setSettings({ ...defaultSettings, ...raw })` gave, now applied on every
+ * read instead of only at boot. A corrupt or absent blob degrades to defaults.
+ */
+const settingsStorage = {
+  getItem(_key: string, initialValue: Settings): Settings {
+    try {
+      const raw = localStorage.getItem("settings");
+      if (!raw) return initialValue;
+      return { ...initialValue, ...JSON.parse(raw) };
+    } catch {
+      return initialValue;
+    }
+  },
+  setItem(_key: string, value: Settings): void {
+    try {
+      localStorage.setItem("settings", JSON.stringify(value));
+    } catch {
+      /* quota / private mode: the in-memory value still takes effect */
+    }
+  },
+  removeItem(_key: string): void {
+    try {
+      localStorage.removeItem("settings");
+    } catch {
+      /* ditto */
+    }
+  },
+};
 
-export const settingsAtom = atom<Settings>(defaultSettings);
+/**
+ * Persisted settings. `atomWithStorage` writes on every `setSettings`, which
+ * retires the hand-rolled `localStorage.setItem("settings", ...)` that two
+ * dozen call sites used to repeat inside their updaters.
+ *
+ * Deliberately NOT `getOnInit`: the first render starts from
+ * `defaultSettings` — what the server rendered, so no hydration mismatch —
+ * and the atom picks up the stored value when its first subscriber mounts,
+ * the same post-paint timing the old bootstrap effect had.
+ */
+export const settingsAtom = atomWithStorage<Settings>("settings", defaultSettings, settingsStorage);
+
+/**
+ * The persisted settings blob, parsed once per call. `{}` when absent or
+ * corrupt. Read stored settings through this instead of re-implementing
+ * `localStorage.getItem("settings")` + `JSON.parse` — a dozen components used
+ * to carry their own copy of that block and they drift.
+ */
+export function readSettings(): Partial<Settings> {
+  return (storage.settings.get() || {}) as Partial<Settings>;
+}
+
+/**
+ * The attendance percentage the user is aiming at, or `fallback` when unset.
+ *
+ * Mirrors the per-component copies this replaced exactly: a stored-but-falsy
+ * `targetAttendance` falls through to the fallback, and a stored non-numeric
+ * value stays non-numeric (`NaN >= threshold` is `false`, which is how the
+ * callers have always painted it).
+ */
+export function getTargetAttendancePct(fallback = 75): number {
+  const value = readSettings().targetAttendance;
+  return value ? Number(value) : fallback;
+}

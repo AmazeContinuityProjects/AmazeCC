@@ -1,4 +1,4 @@
-import type { AddedCourse } from "../types";
+import type { AddedCourse } from "@/lib/ffcsTypes";
 
 export type SelectedCourseGroup = AddedCourse & {
   ids: string[];
@@ -27,16 +27,24 @@ export function groupSelectedCourses(courseList: AddedCourse[]): SelectedCourseG
         if (!group.slots.includes(slot)) group.slots.push(slot);
       });
       if (course.batch) {
-        course.batch.split(",").map((batch) => batch.trim()).forEach((batch) => {
-          if (batch && !group.batches.includes(batch)) group.batches.push(batch);
-        });
+        course.batch
+          .split(",")
+          .map((batch) => batch.trim())
+          .forEach((batch) => {
+            if (batch && !group.batches.includes(batch)) group.batches.push(batch);
+          });
       }
       group.credits = String(parseFloat(group.credits || "0") + parseFloat(course.credits || "0"));
     } else {
       groups.set(course.code, {
         ...course,
         ids: [course.id],
-        batches: course.batch ? course.batch.split(",").map((batch) => batch.trim()).filter(Boolean) : [],
+        batches: course.batch
+          ? course.batch
+              .split(",")
+              .map((batch) => batch.trim())
+              .filter(Boolean)
+          : [],
       });
     }
   });

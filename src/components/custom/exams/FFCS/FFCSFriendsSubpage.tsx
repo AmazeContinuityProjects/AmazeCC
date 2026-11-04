@@ -49,8 +49,8 @@ import {
   FriendTimetableViewModal,
   type SelectedFriendTimetableData,
 } from "./components/modals/FriendTimetableViewModal";
-import type { FFCSSemesterId } from "./reports";
-import type { Friend, FriendGroup, ParsedCourse, TimetablePeriod, TimetableState } from "./types";
+import type { FFCSSemesterId } from "@/lib/ffcsReports";
+import type { Friend, FriendGroup, ParsedCourse, TimetablePeriod, TimetableState } from "@/lib/ffcsTypes";
 
 type FriendsSection = "hub" | "add" | "friends" | "groups";
 

@@ -1,14 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { consecutiveLabPeriodPairs, generateTimetables } from "../components/custom/exams/FFCS/logic/generate";
-import type { GenerateParams, GenerateResult } from "../components/custom/exams/FFCS/logic/generate";
-import type {
-  ParsedCourse,
-  CourseLock,
-  Friend,
-  AddedCourse,
-  TimetableState,
-} from "../components/custom/exams/FFCS/types";
+import { generateTimetables } from "@/lib/ffcsGenerate";
+import { consecutiveLabPeriodPairs } from "@/lib/ffcsWalk";
+import type { GenerateParams } from "@/lib/ffcsGenerate";
+import type { ParsedCourse, CourseLock, Friend, AddedCourse, TimetableState } from "@/lib/ffcsTypes";
 import { periodsForSlot, type SlotPeriod } from "../lib/slots";
 import chennai from "../data/campus/chennai.json";
 
@@ -27,9 +22,7 @@ import chennai from "../data/campus/chennai.json";
 
 const ALL_SLOTS = { minStartTime: null, maxEndTime: null } as const;
 
-const row = (
-  over: Partial<ParsedCourse> & Pick<ParsedCourse, "CODE" | "SLOT">
-): ParsedCourse => ({
+const row = (over: Partial<ParsedCourse> & Pick<ParsedCourse, "CODE" | "SLOT">): ParsedCourse => ({
   CODE: over.CODE,
   TITLE: over.TITLE ?? "Course",
   TYPE: over.TYPE ?? "TH",
@@ -40,9 +33,7 @@ const row = (
   ...over,
 });
 
-const lock = (
-  over: Partial<CourseLock> & Pick<CourseLock, "code">
-): CourseLock => ({
+const lock = (over: Partial<CourseLock> & Pick<CourseLock, "code">): CourseLock => ({
   code: over.code,
   title: over.title ?? "Course",
   allowedSlots: over.allowedSlots ?? [],
@@ -76,7 +67,7 @@ const layouts = (r: ReturnType<typeof generateTimetables>): string[] => {
         .flatMap((c) => c.slots)
         .slice()
         .sort()
-        .join("|")
+        .join("|"),
     )
     .sort();
 };
@@ -96,7 +87,7 @@ describe("generating", () => {
           row({ CODE: "BCSE101", SLOT: "A1+TA1" }),
         ],
         courseLocks: [lock({ code: "BCSE101" })],
-      })
+      }),
     );
     expect(r.kind).toBe("ok");
     expect(layouts(r)).toHaveLength(1);
@@ -111,7 +102,7 @@ describe("generating", () => {
           row({ CODE: "BCSE102", SLOT: "B1+TB1" }),
         ],
         courseLocks: [lock({ code: "BCSE101" }), lock({ code: "BCSE102" })],
-      })
+      }),
     );
     expect(r.kind).toBe("ok");
   });
@@ -121,12 +112,9 @@ describe("generating", () => {
     // way to take one of each without a time clash.
     const r = generateTimetables(
       params({
-        masterCourses: [
-          row({ CODE: "BCSE101", SLOT: "B1" }),
-          row({ CODE: "BCSE102", SLOT: "B1", ROOM: "AB2-202" }),
-        ],
+        masterCourses: [row({ CODE: "BCSE101", SLOT: "B1" }), row({ CODE: "BCSE102", SLOT: "B1", ROOM: "AB2-202" })],
         courseLocks: [lock({ code: "BCSE101" }), lock({ code: "BCSE102" })],
-      })
+      }),
     );
     expect(r.kind).toBe("error");
     if (r.kind === "error") expect(r.code).toBe("no_conflict_free");
@@ -141,7 +129,7 @@ describe("generating", () => {
           // No rows for this code at all.
           lock({ code: "BCSE999" }),
         ],
-      })
+      }),
     );
     expect(r.kind).toBe("error");
     if (r.kind === "error") {
@@ -160,7 +148,7 @@ describe("the filters", () => {
           row({ CODE: "BCSE101", SLOT: "B1+TB1", ROOM: "AB2-202" }),
         ],
         courseLocks: [lock({ code: "BCSE101", allowedSlots: ["B1", "TB1"] })],
-      })
+      }),
     );
     expect(layouts(r)).toEqual(["B1|TB1"]);
   });
@@ -173,7 +161,7 @@ describe("the filters", () => {
           row({ CODE: "BCSE101", SLOT: "B1+TB1", FACULTY: "Two", ROOM: "AB2-202" }),
         ],
         courseLocks: [lock({ code: "BCSE101", allowedFaculty: ["Two"] })],
-      })
+      }),
     );
     expect(layouts(r)).toEqual(["B1|TB1"]);
   });
@@ -186,7 +174,7 @@ describe("the filters", () => {
           row({ CODE: "BCSE101", SLOT: "B1+TB1", FACULTY: "A SHARED NAME", ERP_ID: "2" }),
         ],
         courseLocks: [lock({ code: "BCSE101", offerings: ["A SHARED NAME|B1+TB1|AB1-101|2"] })],
-      })
+      }),
     );
     expect(layouts(r)).toEqual(["B1|TB1"]);
   });
@@ -199,7 +187,7 @@ describe("the filters", () => {
           row({ CODE: "BCSE101", SLOT: "B1+TB1", FACULTY: "A SHARED NAME", ERP_ID: "2" }),
         ],
         courseLocks: [lock({ code: "BCSE101", offerings: ["A SHARED NAME|B1+TB1|AB1-101"] })],
-      })
+      }),
     );
     expect(layouts(r)).toEqual(["B1|TB1"]);
   });
@@ -216,7 +204,7 @@ describe("the filters", () => {
         ],
         courseLocks: [lock({ code: "BCSE101" })],
         blockedSlots: ["A"],
-      })
+      }),
     );
     expect(layouts(r)).toEqual(["B1|TB1"]);
   });
@@ -230,7 +218,7 @@ describe("the filters", () => {
         ],
         courseLocks: [lock({ code: "BCSE101" })],
         preference: "morning",
-      })
+      }),
     );
     expect(layouts(r)).toEqual(["A1|TA1"]);
   });
@@ -244,7 +232,7 @@ describe("the filters", () => {
         ],
         courseLocks: [lock({ code: "BCSE101" })],
         preference: "evening",
-      })
+      }),
     );
     expect(layouts(r)).toEqual(["A2|TA2"]);
   });
@@ -259,13 +247,11 @@ describe("the filters", () => {
         courseLocks: [lock({ code: "BCSE101" })],
         preference: "morning",
         strictTheoryPreference: false,
-      })
+      }),
     );
     expect(layouts(r)).toEqual(["A1|TA1", "A2|TA2"]);
     if (r.kind === "ok") {
-      expect(r.timetables[0].rankingComponents?.time).toBeGreaterThan(
-        r.timetables[1].rankingComponents?.time ?? 0
-      );
+      expect(r.timetables[0].rankingComponents?.time).toBeGreaterThan(r.timetables[1].rankingComponents?.time ?? 0);
     }
   });
 
@@ -278,7 +264,7 @@ describe("the filters", () => {
         ],
         courseLocks: [lock({ code: "BCSE101" })],
         preference: "evening",
-      })
+      }),
     );
     expect(layouts(r)).toEqual(["L1", "L21"]);
   });
@@ -295,7 +281,7 @@ describe("the filters", () => {
         courseLocks: [lock({ code: "BCSE101" })],
         minStartTime: "08:00",
         maxEndTime: "11:00",
-      })
+      }),
     );
     expect(layouts(r)).toEqual(["A1|TA1"]);
   });
@@ -309,7 +295,7 @@ describe("the filters", () => {
         ],
         courseLocks: [lock({ code: "BCSE101" })],
         maxEndTimeByDay: { mon: "08:30" },
-      })
+      }),
     );
 
     expect(layouts(r)).toEqual(["B1"]);
@@ -323,7 +309,7 @@ describe("the filters", () => {
         courseLocks: [lock({ code: "BCSE101" })],
         minStartTime: "08:00",
         maxEndTime: "10:00",
-      })
+      }),
     );
     expect(r.kind).toBe("error");
     if (r.kind === "error") expect(r.code).toBe("no_valid_slots");
@@ -338,7 +324,7 @@ describe("the filters", () => {
           row({ CODE: "BCSE101", SLOT: "B1+TB1", ROOM: "AB2-202" }),
         ],
         courseLocks: [lock({ code: "BCSE101" })],
-      })
+      }),
     );
     expect(layouts(r)).toEqual(["B1|TB1"]);
   });
@@ -351,7 +337,7 @@ describe("the filters", () => {
           row({ CODE: "BCSE101", SLOT: "B1+TB1", ROOM: "AB2-202" }),
         ],
         courseLocks: [lock({ code: "BCSE101" })],
-      })
+      }),
     );
     // Both survive: neither is embedded, so the completeness filter skips them.
     expect(layouts(r)).toHaveLength(2);
@@ -367,7 +353,7 @@ describe("a law course generates like any other", () => {
       params({
         masterCourses: [row({ CODE: "TLAW304L", SLOT: "E+TE+TEE", TYPE: "TH" })],
         courseLocks: [lock({ code: "TLAW304L" })],
-      })
+      }),
     );
     expect(r.kind).toBe("ok");
     if (r.kind === "ok") {
@@ -387,7 +373,7 @@ describe("a law course generates like any other", () => {
         masterCourses: [row({ CODE: "TLAW304L", SLOT: "E+TE+TEE" })],
         courseLocks: [lock({ code: "TLAW304L" })],
         blockedSlots: ["TEE"],
-      })
+      }),
     );
     expect(r.kind).toBe("error");
     if (r.kind === "error") expect(r.code).toBe("no_valid_slots");
@@ -403,7 +389,7 @@ describe("the result", () => {
           row({ CODE: "BCSE101", SLOT: "B1+TB1", ROOM: "AB2-202" }),
         ],
         courseLocks: [lock({ code: "BCSE101" })],
-      })
+      }),
     );
     expect(r.kind).toBe("ok");
     if (r.kind === "ok") {
@@ -430,12 +416,10 @@ describe("the result", () => {
           row({ CODE: "BCSE101", SLOT: "B1+TB1", ROOM: "AB2-202" }),
         ],
         courseLocks: [lock({ code: "BCSE101" })],
-      })
+      }),
     );
     if (r.kind === "ok") {
-      expect(r.timetables.map((t) => t.name)).toEqual(
-        r.timetables.map((_, i) => `Option ${i + 1}`)
-      );
+      expect(r.timetables.map((t) => t.name)).toEqual(r.timetables.map((_, i) => `Option ${i + 1}`));
     }
   });
 
@@ -447,7 +431,7 @@ describe("the result", () => {
           row({ CODE: "BCSE101", SLOT: "B1+TB1", ROOM: "AB2-202" }),
         ],
         courseLocks: [lock({ code: "BCSE101" })],
-      })
+      }),
     );
     if (r.kind === "ok") {
       for (const t of r.timetables) {
@@ -460,11 +444,11 @@ describe("the result", () => {
     const r = generateTimetables(
       params({
         masterCourses: Array.from({ length: 10 }, (_, i) =>
-          row({ CODE: `BCSE1${i}0`, SLOT: ["A1", "B1", "C1", "D1", "A2"][i] })
+          row({ CODE: `BCSE1${i}0`, SLOT: ["A1", "B1", "C1", "D1", "A2"][i] }),
         ),
         courseLocks: Array.from({ length: 10 }, (_, i) => lock({ code: `BCSE1${i}0` })),
         noLimit: false,
-      })
+      }),
     );
     // The cap is 50; the cartesian product here is 5^10, so this must not
     // enumerate all of it.
@@ -482,7 +466,7 @@ describe("the result", () => {
         ],
         courseLocks: [lock({ code: "BCSE101" })],
         minHalfDays: 10,
-      })
+      }),
     );
     expect(r.kind).toBe("error");
     if (r.kind === "error") expect(r.code).toBe("below_min_half_days");
@@ -490,10 +474,7 @@ describe("the result", () => {
 });
 
 describe("scoring against friends", () => {
-  const friend = (
-    name: string,
-    courses: { code: string; slots: string[]; faculty?: string }[]
-  ): Friend => ({
+  const friend = (name: string, courses: { code: string; slots: string[]; faculty?: string }[]): Friend => ({
     id: name,
     name,
     timetables: [
@@ -522,7 +503,7 @@ describe("scoring against friends", () => {
         courseLocks: [lock({ code: "BCSE101" })],
         friends: [friend("Ada", [{ code: "BCSE101", slots: ["A1", "TA1"] }])],
         maximizeFreeTimeFriends: ["Ada"],
-      })
+      }),
     );
     if (r.kind === "ok") {
       expect(r.timetables[0].metrics!.socialScore).toBeGreaterThan(0);
@@ -535,7 +516,7 @@ describe("scoring against friends", () => {
       params({
         masterCourses: [row({ CODE: "BCSE101", SLOT: "A1+TA1" })],
         courseLocks: [lock({ code: "BCSE101" })],
-      })
+      }),
     );
     if (r.kind === "ok") {
       expect(r.timetables[0].metrics!.socialScore).toBe(0);
@@ -552,7 +533,7 @@ describe("scoring against friends", () => {
         courseLocks: [lock({ code: "BCSE101" })],
         friends: [friend("Ada", [{ code: "BCSE101", slots: ["A1", "TA1"] }])],
         maximizeFreeTimeFriends: [],
-      })
+      }),
     );
     if (r.kind === "ok") {
       expect(r.timetables[0].metrics!.socialScore).toBe(0);
@@ -570,11 +551,9 @@ describe("scoring against friends", () => {
           row({ CODE: "BCSE101", SLOT: "B1+TB1", FACULTY: "Two", ROOM: "AB2-202" }),
         ],
         courseLocks: [lock({ code: "BCSE101" })],
-        friends: [
-          friend("Ada", [{ code: "BCSE101", slots: ["B1", "TB1"], faculty: "Two" }]),
-        ],
+        friends: [friend("Ada", [{ code: "BCSE101", slots: ["B1", "TB1"], faculty: "Two" }])],
         syncFriendClasses: true,
-      })
+      }),
     );
     expect(layouts(r)).toEqual(["B1|TB1"]);
   });
@@ -589,12 +568,10 @@ describe("scoring against friends", () => {
           row({ CODE: "BCSE101", SLOT: "B1+TB1", FACULTY: "Two", ROOM: "AB2-202" }),
         ],
         courseLocks: [lock({ code: "BCSE101" })],
-        friends: [
-          friend("Ada", [{ code: "BCSE101", slots: ["B1", "TB1"], faculty: "Two" }]),
-        ],
+        friends: [friend("Ada", [{ code: "BCSE101", slots: ["B1", "TB1"], faculty: "Two" }])],
         syncFriendClasses: false,
         maximizeFreeTimeFriends: ["Ada"],
-      })
+      }),
     );
     expect(layouts(r)).toHaveLength(2);
   });
@@ -611,7 +588,7 @@ describe("deduplicating by faculty", () => {
         ],
         courseLocks: [lock({ code: "BCSE101" })],
         uniqueFaculties: true,
-      })
+      }),
     );
     expect(layouts(r)).toHaveLength(1);
   });
@@ -625,7 +602,7 @@ describe("deduplicating by faculty", () => {
         ],
         courseLocks: [lock({ code: "BCSE101" })],
         uniqueFaculties: true,
-      })
+      }),
     );
     expect(layouts(r)).toHaveLength(2);
   });
@@ -639,7 +616,7 @@ describe("deduplicating by faculty", () => {
         ],
         courseLocks: [lock({ code: "BCSE101" })],
         uniqueFaculties: true,
-      })
+      }),
     );
     expect(layouts(r)).toHaveLength(2);
   });
@@ -655,7 +632,7 @@ describe("purity", () => {
             row({ CODE: "BCSE101", SLOT: "B1+TB1", ROOM: "AB2-202" }),
           ],
           courseLocks: [lock({ code: "BCSE101" })],
-        })
+        }),
       );
     // Ids are random by design, so the comparison is over slot layouts — which
     // is what a student actually sees.
@@ -696,7 +673,7 @@ describe("the real report", () => {
         masterCourses: parsed,
         courseLocks: [lock({ code: "BCSE101" }), lock({ code: "BCSE102" })],
         noLimit: false,
-      })
+      }),
     );
     // Whatever it finds, it must be a coherent answer rather than a throw.
     expect(["ok", "error"]).toContain(r.kind);
@@ -724,13 +701,10 @@ describe("labs on separate days", () => {
   it("keeps two labs that fall on different days", () => {
     const r = generateTimetables(
       params({
-        masterCourses: [
-          row({ CODE: "BCSE101", SLOT: "L1" }),
-          row({ CODE: "BCSE102", SLOT: "L7" }),
-        ],
+        masterCourses: [row({ CODE: "BCSE101", SLOT: "L1" }), row({ CODE: "BCSE102", SLOT: "L7" })],
         courseLocks: [lock({ code: "BCSE101" }), lock({ code: "BCSE102" })],
         separateLabDays: true,
-      })
+      }),
     );
     expect(r.kind).toBe("ok");
     expect(layouts(r)).toHaveLength(1);
@@ -744,7 +718,7 @@ describe("labs on separate days", () => {
         masterCourses: [row({ CODE: "BCSE101", SLOT: "L1+L7" })],
         courseLocks: [lock({ code: "BCSE101" })],
         separateLabDays: true,
-      })
+      }),
     );
     expect(r.kind).toBe("ok");
     expect(layouts(r)).toHaveLength(1);
@@ -755,12 +729,9 @@ describe("labs on separate days", () => {
     // changes nothing about weeks like this.
     const r = generateTimetables(
       params({
-        masterCourses: [
-          row({ CODE: "BCSE101", SLOT: "L1" }),
-          row({ CODE: "BCSE102", SLOT: "L2" }),
-        ],
+        masterCourses: [row({ CODE: "BCSE101", SLOT: "L1" }), row({ CODE: "BCSE102", SLOT: "L2" })],
         courseLocks: [lock({ code: "BCSE101" }), lock({ code: "BCSE102" })],
-      })
+      }),
     );
     expect(r.kind).toBe("ok");
     expect(layouts(r)).toHaveLength(1);
@@ -772,13 +743,10 @@ describe("labs on separate days", () => {
     // as "no conflict-free week exists".
     const r = generateTimetables(
       params({
-        masterCourses: [
-          row({ CODE: "BCSE101", SLOT: "L1" }),
-          row({ CODE: "BCSE102", SLOT: "L2" }),
-        ],
+        masterCourses: [row({ CODE: "BCSE101", SLOT: "L1" }), row({ CODE: "BCSE102", SLOT: "L2" })],
         courseLocks: [lock({ code: "BCSE101" }), lock({ code: "BCSE102" })],
         separateLabDays: true,
-      })
+      }),
     );
     expect(r.kind).toBe("error");
     if (r.kind === "error") expect(r.code).toBe("no_separate_labs");
@@ -798,7 +766,7 @@ describe("labs on separate days", () => {
         ],
         courseLocks: [lock({ code: "BCSE101" }), lock({ code: "BCSE102" })],
         separateLabDays: true,
-      })
+      }),
     );
     expect(r.kind).toBe("ok");
     expect(layouts(r)).toHaveLength(2);
@@ -810,13 +778,10 @@ describe("labs on separate days", () => {
     // not same period.
     const r = generateTimetables(
       params({
-        masterCourses: [
-          row({ CODE: "BCSE101", SLOT: "L1" }),
-          row({ CODE: "BCSE103", SLOT: "F1" }),
-        ],
+        masterCourses: [row({ CODE: "BCSE101", SLOT: "L1" }), row({ CODE: "BCSE103", SLOT: "F1" })],
         courseLocks: [lock({ code: "BCSE101" }), lock({ code: "BCSE103" })],
         separateLabDays: true,
-      })
+      }),
     );
     expect(r.kind).toBe("ok");
     expect(layouts(r)).toHaveLength(1);
@@ -825,13 +790,10 @@ describe("labs on separate days", () => {
   it("rejects separate lab classes in consecutive time slots", () => {
     const r = generateTimetables(
       params({
-        masterCourses: [
-          row({ CODE: "BCSE101", SLOT: "L1" }),
-          row({ CODE: "BCSE102", SLOT: "L2" }),
-        ],
+        masterCourses: [row({ CODE: "BCSE101", SLOT: "L1" }), row({ CODE: "BCSE102", SLOT: "L2" })],
         courseLocks: [lock({ code: "BCSE101" }), lock({ code: "BCSE102" })],
         avoidConsecutiveLabs: true,
-      })
+      }),
     );
     expect(r.kind).toBe("error");
     if (r.kind === "error") expect(r.code).toBe("no_consecutive_labs");
@@ -840,13 +802,10 @@ describe("labs on separate days", () => {
   it("does not call non-adjacent lab periods consecutive", () => {
     const r = generateTimetables(
       params({
-        masterCourses: [
-          row({ CODE: "BCSE101", SLOT: "L1" }),
-          row({ CODE: "BCSE102", SLOT: "L3" }),
-        ],
+        masterCourses: [row({ CODE: "BCSE101", SLOT: "L1" }), row({ CODE: "BCSE102", SLOT: "L3" })],
         courseLocks: [lock({ code: "BCSE101" }), lock({ code: "BCSE102" })],
         avoidConsecutiveLabs: true,
-      })
+      }),
     );
     expect(r.kind).toBe("ok");
   });
@@ -854,13 +813,10 @@ describe("labs on separate days", () => {
   it("treats lab periods immediately before and after lunch as consecutive by default", () => {
     const r = generateTimetables(
       params({
-        masterCourses: [
-          row({ CODE: "BCSE101", SLOT: "L6" }),
-          row({ CODE: "BCSE102", SLOT: "L31" }),
-        ],
+        masterCourses: [row({ CODE: "BCSE101", SLOT: "L6" }), row({ CODE: "BCSE102", SLOT: "L31" })],
         courseLocks: [lock({ code: "BCSE101" }), lock({ code: "BCSE102" })],
         avoidConsecutiveLabs: true,
-      })
+      }),
     );
     expect(r.kind).toBe("error");
     if (r.kind === "error") expect(r.code).toBe("no_consecutive_labs");
@@ -869,14 +825,11 @@ describe("labs on separate days", () => {
   it("lets students treat the schema-defined lunch break as a break between lab classes", () => {
     const r = generateTimetables(
       params({
-        masterCourses: [
-          row({ CODE: "BCSE101", SLOT: "L6" }),
-          row({ CODE: "BCSE102", SLOT: "L31" }),
-        ],
+        masterCourses: [row({ CODE: "BCSE101", SLOT: "L6" }), row({ CODE: "BCSE102", SLOT: "L31" })],
         courseLocks: [lock({ code: "BCSE101" }), lock({ code: "BCSE102" })],
         avoidConsecutiveLabs: true,
         lunchBreakSeparatesLabs: true,
-      })
+      }),
     );
     expect(r.kind).toBe("ok");
   });
@@ -887,7 +840,7 @@ describe("labs on separate days", () => {
         masterCourses: [row({ CODE: "BCSE101", SLOT: "L1+L2" })],
         courseLocks: [lock({ code: "BCSE101" })],
         avoidConsecutiveLabs: true,
-      })
+      }),
     );
     expect(r.kind).toBe("ok");
   });
@@ -928,23 +881,17 @@ describe("in-tree pruning on the monotone rules", () => {
       row({ CODE: "BCSE104", SLOT: "G1", ROOM: "AB4-102" }),
       row({ CODE: "BCSE105", SLOT: "E1", ROOM: "AB5-101" }),
     ],
-    courseLocks: ["BCSE101", "BCSE102", "BCSE103", "BCSE104", "BCSE105"].map((code) =>
-      lock({ code })
-    ),
+    courseLocks: ["BCSE101", "BCSE102", "BCSE103", "BCSE104", "BCSE105"].map((code) => lock({ code })),
     noLimit: true,
     removeHardResultLimit: true,
   });
 
   const labPeriodsOf = (course: AddedCourse): SlotPeriod[] =>
-    course.slots.flatMap((slot) =>
-      periodsForSlot(chennai as never, slot).filter((period) => period.type === "lab")
-    );
+    course.slots.flatMap((slot) => periodsForSlot(chennai as never, slot).filter((period) => period.type === "lab"));
 
   /** The lab-day rule, read straight off the week: two courses, one day. */
   const twoLabsOnADay = (timetable: TimetableState): boolean => {
-    const days = timetable.courses.flatMap(
-      (course) => [...new Set(labPeriodsOf(course).map((period) => period.day))]
-    );
+    const days = timetable.courses.flatMap((course) => [...new Set(labPeriodsOf(course).map((period) => period.day))]);
     return new Set(days).size !== days.length;
   };
 
@@ -952,19 +899,13 @@ describe("in-tree pruning on the monotone rules", () => {
   const pairKey = (day: string, first: number, second: number): string =>
     `${day}:${Math.min(first, second)}:${Math.max(first, second)}`;
 
-  const labsAreConsecutive = (
-    timetable: TimetableState,
-    pairs: ReadonlySet<string>
-  ): boolean => {
+  const labsAreConsecutive = (timetable: TimetableState, pairs: ReadonlySet<string>): boolean => {
     const perCourse = timetable.courses.map(labPeriodsOf);
     for (let i = 0; i < perCourse.length; i++) {
       for (let j = i + 1; j < perCourse.length; j++) {
         for (const first of perCourse[i]) {
           for (const second of perCourse[j]) {
-            if (
-              first.day === second.day &&
-              pairs.has(pairKey(first.day, first.index, second.index))
-            ) {
+            if (first.day === second.day && pairs.has(pairKey(first.day, first.index, second.index))) {
               return true;
             }
           }
@@ -976,9 +917,7 @@ describe("in-tree pruning on the monotone rules", () => {
 
   /** One week's identity: what it makes a week, with nothing meta included. */
   const weekId = (timetable: TimetableState): string =>
-    JSON.stringify(
-      timetable.courses.map((course) => [course.code, course.slots, course.faculty])
-    );
+    JSON.stringify(timetable.courses.map((course) => [course.code, course.slots, course.faculty]));
 
   /** Grouped options flattened to one id per real week, in list order. */
   const weekIds = (timetables: readonly TimetableState[]): string[] =>
@@ -1032,10 +971,7 @@ describe("in-tree pruning on the monotone rules", () => {
     expect(plain.timetables).toHaveLength(4);
 
     for (const testCase of CASES) {
-      const pairs = consecutiveLabPeriodPairs(
-        chennai as never,
-        testCase.over.lunchBreakSeparatesLabs ?? false
-      );
+      const pairs = consecutiveLabPeriodPairs(chennai as never, testCase.over.lunchBreakSeparatesLabs ?? false);
       const oracle = plain.timetables.filter((timetable) => {
         if (testCase.over.separateLabDays && twoLabsOnADay(timetable)) return false;
         if (testCase.over.avoidConsecutiveLabs && labsAreConsecutive(timetable, pairs)) {
@@ -1056,9 +992,7 @@ describe("in-tree pruning on the monotone rules", () => {
       } else {
         expect(pruned.kind, testCase.name).toBe("ok");
       }
-      expect(weekIds(pruned.kind === "ok" ? pruned.timetables : []), testCase.name).toEqual(
-        weekIds(oracle)
-      );
+      expect(weekIds(pruned.kind === "ok" ? pruned.timetables : []), testCase.name).toEqual(weekIds(oracle));
     }
   });
 });
