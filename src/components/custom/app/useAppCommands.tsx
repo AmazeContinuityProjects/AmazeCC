@@ -653,6 +653,16 @@ export function useAppCommands(input: AppCommandInputs) {
         },
       },
       {
+        id: "tool-paper-scanner",
+        label: "Paper Scanner",
+        description: "Scan pages to PDF and extract their text",
+        icon: "📷",
+        category: "Tools",
+        onSelect: () => {
+          setActiveTab("paper-scanner");
+        },
+      },
+      {
         id: "events",
         label: "Event Hub",
         description: "Registered events & campus activities",

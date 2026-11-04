@@ -40,6 +40,7 @@ export const SINGLE_SCREEN_TABS = [
   "community",
   "free-class",
   "faculty-schedule",
+  "paper-scanner",
   "cabshare",
 ] as const;
 
