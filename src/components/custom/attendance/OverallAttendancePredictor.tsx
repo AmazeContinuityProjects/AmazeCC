@@ -987,7 +987,7 @@ export default function OverallAttendancePredictor({
             <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0" />
             <p>
               <strong>Target Safety:</strong> Keeping attendance at or above {targetThreshold}% ensures full eligibility
-              for CAT examinations and FAT hall tickets.
+              for CAT and FAT examinations.
             </p>
           </div>
           <div className="flex items-start gap-2">

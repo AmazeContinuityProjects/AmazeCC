@@ -5,7 +5,11 @@ import {
   renderCourseTableHtml,
   renderHorizontalGridHtml,
   renderVerticalGridHtml,
+  generateExamScheduleHtml,
+  type ExamScheduleExportParams,
 } from "./exportTimetableHtml";
+
+export { generateExamScheduleHtml, type ExamScheduleExportParams };
 import { COLOR_HEX_MAP } from "@/lib/ffcsConstants";
 import {
   getFacultyReview,
@@ -13,6 +17,7 @@ import {
   isVitfacIntegrationEnabled,
   loadVitfacCatalog,
   normalizeFacultyName,
+  toCdnImageUrl,
   type VitfacFaculty,
 } from "./vitfacService";
 import { sameSlotFacultyAlternatives, expandCourseHalves } from "@/lib/ffcsGenerate";
@@ -1290,7 +1295,8 @@ function collectFacultyImageTargets(params: ModernPrintableReportParams): Facult
 
 async function shrinkFacultyImageToDataUrl(sourceUrl: string): Promise<string | null> {
   try {
-    const response = await fetch(sourceUrl, { mode: "cors", credentials: "omit" });
+    const targetUrl = toCdnImageUrl(sourceUrl) || sourceUrl;
+    const response = await fetch(targetUrl, { mode: "cors", credentials: "omit" });
     if (!response.ok) return null;
     const bitmap = await createImageBitmap(await response.blob());
     try {
@@ -1563,6 +1569,171 @@ export async function downloadModernTimetablePdf(
   link.click();
   document.body.removeChild(link);
   setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+export interface ExamSchedulePdfOptions {
+  scheduleObj: unknown;
+  semester?: string;
+  layout?: "cards" | "table" | "document" | "admit_card" | "hallticket";
+  selectedSeries?: string;
+  fileName?: string;
+  dataUrl?: string;
+}
+
+/**
+ * Compiles a clean, print-friendly Exam Schedule PDF
+ * using jsPDF in A4 portrait format without DOM issues or opening another tab.
+ */
+export async function compileExamSchedulePdf(options: ExamSchedulePdfOptions): Promise<{
+  pdfBlob: Blob;
+  pdfBuffer: ArrayBuffer;
+  fileName: string;
+}> {
+  const { scheduleObj, semester, layout = "document", selectedSeries } = options;
+
+  let dataUrl = options.dataUrl;
+  if (!dataUrl) {
+    const html = generateExamScheduleHtml({
+      scheduleObj,
+      semester,
+      isLight: true,
+      layout,
+      selectedSeries,
+    });
+
+    dataUrl = await renderHtmlToImage(html, {
+      format: "png",
+      backgroundColor: "#ffffff",
+      pixelRatio: 2,
+      settleMs: 150,
+      containerStyle: {
+        width: "820px",
+        minWidth: "820px",
+        maxWidth: "820px",
+        background: "#ffffff",
+        padding: "0px",
+        boxSizing: "border-box",
+      },
+    });
+  }
+
+  const img = new Image();
+  await new Promise<void>((resolve, reject) => {
+    img.onload = () => resolve();
+    img.onerror = () => reject(new Error("Failed to load rendered exam schedule image"));
+    img.src = dataUrl!;
+  });
+
+  const { jsPDF } = await loadJsPdf();
+  const pdf = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: "a4",
+  });
+
+  const pageWidth = 210;
+  const pageHeight = 297;
+  const margin = 10;
+  const printWidth = pageWidth - margin * 2; // 190mm
+  const printHeight = pageHeight - margin * 2; // 277mm
+
+  const totalCanvasWidth = img.naturalWidth || 820;
+  const totalCanvasHeight = img.naturalHeight || 1160;
+  const pxPerMm = totalCanvasWidth / printWidth;
+  const idealPageHeightPx = Math.floor(printHeight * pxPerMm);
+
+  let remainingHeight = totalCanvasHeight;
+  let sourceY = 0;
+  let pageIndex = 0;
+
+  // Measurement canvas for row gap detection in browser
+  const measureCanvas = typeof document !== "undefined" ? document.createElement("canvas") : null;
+  const measureCtx = measureCanvas
+    ? (measureCanvas.getContext("2d", { willReadFrequently: true }) as CanvasRenderingContext2D | null)
+    : null;
+
+  while (remainingHeight > 0) {
+    if (pageIndex > 0) {
+      pdf.addPage("a4", "portrait");
+    }
+
+    let sliceHeightPx = Math.min(idealPageHeightPx, remainingHeight);
+
+    // If there's more content after this page, search upward for an all-white gap (between table rows)
+    if (remainingHeight > idealPageHeightPx && measureCtx && measureCanvas && measureCtx.getImageData) {
+      const searchWindow = Math.min(120, Math.floor(idealPageHeightPx * 0.15));
+      measureCanvas.width = totalCanvasWidth;
+      measureCanvas.height = sliceHeightPx;
+      measureCtx.drawImage(img, 0, sourceY, totalCanvasWidth, sliceHeightPx, 0, 0, totalCanvasWidth, sliceHeightPx);
+
+      for (let y = sliceHeightPx - 1; y >= sliceHeightPx - searchWindow; y--) {
+        const rowData = measureCtx.getImageData(0, y, totalCanvasWidth, 1).data;
+        let isRowBlank = true;
+        for (let x = 0; x < totalCanvasWidth; x += 4) {
+          const idx = x * 4;
+          const r = rowData[idx];
+          const g = rowData[idx + 1];
+          const b = rowData[idx + 2];
+          const a = rowData[idx + 3];
+          if (a > 10 && (r < 240 || g < 240 || b < 240)) {
+            isRowBlank = false;
+            break;
+          }
+        }
+        if (isRowBlank) {
+          sliceHeightPx = y;
+          break;
+        }
+      }
+    }
+
+    if (typeof document !== "undefined") {
+      const sliceCanvas = document.createElement("canvas");
+      sliceCanvas.width = totalCanvasWidth;
+      sliceCanvas.height = sliceHeightPx;
+      const ctx = sliceCanvas.getContext("2d");
+      if (ctx) {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, totalCanvasWidth, sliceHeightPx);
+        ctx.drawImage(img, 0, sourceY, totalCanvasWidth, sliceHeightPx, 0, 0, totalCanvasWidth, sliceHeightPx);
+        const sliceDataUrl = sliceCanvas.toDataURL("image/jpeg", 0.98);
+        const sliceHeightMm = sliceHeightPx / pxPerMm;
+        pdf.addImage(sliceDataUrl, "JPEG", margin, margin, printWidth, sliceHeightMm);
+      }
+    }
+
+    sourceY += sliceHeightPx;
+    remainingHeight -= sliceHeightPx;
+    pageIndex++;
+  }
+
+  const cleanSemester = semester ? semester.replace(/[^a-zA-Z0-9_-]/g, "_") : "Exam";
+  const seriesTag =
+    selectedSeries && selectedSeries !== "__all__" ? `_${selectedSeries.replace(/[^a-zA-Z0-9_-]/g, "_")}` : "";
+  const fileName = options.fileName || `${cleanSemester}${seriesTag}_Exam_Schedule.pdf`;
+  const pdfBuffer = pdf.output("arraybuffer");
+  const pdfBlob = new Blob([pdfBuffer], { type: "application/pdf" });
+
+  return { pdfBlob, pdfBuffer, fileName };
+}
+
+/**
+ * Downloads the Exam Schedule PDF automatically in the background
+ * without opening a new tab or suffering live DOM manipulation issues.
+ */
+export async function downloadExamSchedulePdf(options: ExamSchedulePdfOptions): Promise<void> {
+  const { pdfBlob, fileName } = await compileExamSchedulePdf(options);
+
+  if (typeof window === "undefined" || typeof document === "undefined") return;
+
+  const url = URL.createObjectURL(pdfBlob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(() => URL.revokeObjectURL(url), 2500);
 }
 
 /**

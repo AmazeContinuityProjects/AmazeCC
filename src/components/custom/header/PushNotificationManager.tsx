@@ -348,7 +348,7 @@ export default function PushNotificationManager() {
                 },
                 {
                   key: "notifyExamAlerts",
-                  label: "Exam Schedule & Admit Card Alerts",
+                  label: "Exam Schedule & Timetable Alerts",
                   desc: "Alerts for upcoming CAT/FAT exam dates & venues",
                   icon: FileText,
                   color: "text-amber-500",

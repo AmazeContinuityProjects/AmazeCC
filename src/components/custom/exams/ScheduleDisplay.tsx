@@ -8,14 +8,17 @@ import {
   ChevronDown,
   ClipboardList,
   Download,
+  FileDown,
   Loader2,
   Printer,
   RefreshCcw,
   CalendarPlus,
 } from "lucide-react";
 import { useTheme } from "next-themes";
-import { openTimetablePrintablePage } from "@/lib/exportTimetable";
-import { downloadElementImage } from "@/lib/imageDownload";
+import { downloadExamSchedulePdf, openTimetablePrintablePage } from "@/lib/exportTimetable";
+import { generateExamScheduleHtml } from "@/lib/exportTimetableHtml";
+import { downloadHtmlImage } from "@/lib/imageDownload";
+import BottomSheet from "../shared/BottomSheet";
 import { GHOST_BUTTON, SECTION_CHIP } from "@/lib/uiTokens";
 import {
   buildExamRows,
@@ -113,8 +116,11 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
 
   const captureRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState(ALL_TYPES);
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
+  const [selectedModalSeries, setSelectedModalSeries] = useState<string>(ALL_TYPES);
   const [copied, setCopied] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
 
@@ -160,61 +166,60 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
     } catch {}
   }, [allCourseCodes]);
 
-  /**
-   * PNG/print capture the live DOM, and collapsed bodies are unmounted by
-   * AnimatePresence — so open every row, drop any active series filter, let the
-   * transition land, capture, then put the user's own view state back.
-   */
-  const withFullScheduleExpanded = useCallback(
-    async (run: () => Promise<void> | void) => {
-      const restoreExpanded = expandedKey;
-      const restoreFilter = typeFilter;
-      setExpandedKey(EXPAND_ALL);
-      setTypeFilter(ALL_TYPES);
-      await new Promise((resolve) => setTimeout(resolve, EXPAND_SETTLE_MS));
+  const handleDownloadPdf = useCallback(
+    async (seriesOverride?: string) => {
+      if (!scheduleObj || allRows.length === 0) return;
+      const targetSeries =
+        typeof seriesOverride === "string" ? seriesOverride : typeFilter !== ALL_TYPES ? typeFilter : undefined;
+
+      setIsDownloadingPdf(true);
       try {
-        await run();
+        await downloadExamSchedulePdf({
+          scheduleObj,
+          semester,
+          layout: "document",
+          selectedSeries: targetSeries,
+        });
+      } catch (err) {
+        console.error("Failed to generate and download exam schedule PDF:", err);
       } finally {
-        setExpandedKey(restoreExpanded);
-        setTypeFilter(restoreFilter);
+        setIsDownloadingPdf(false);
       }
     },
-    [expandedKey, typeFilter],
+    [scheduleObj, allRows.length, semester, typeFilter],
   );
 
-  const handlePrint = useCallback(() => {
-    if (!captureRef.current) return;
-    withFullScheduleExpanded(() => {
-      try {
-        openTimetablePrintablePage(
-          captureRef.current!.innerHTML,
-          "Exam Schedule",
-          themeHtmlClass,
-          themeBgColor,
-          themeTextColor,
-        );
-      } catch (err) {
-        console.error(err);
-      }
-    });
-  }, [withFullScheduleExpanded, themeHtmlClass, themeBgColor, themeTextColor]);
+  const handlePrint = handleDownloadPdf;
 
-  const handleDownloadImage = useCallback(async () => {
-    if (!captureRef.current) return;
-    await withFullScheduleExpanded(async () => {
+  const handleDownloadImage = useCallback(
+    async (seriesOverride?: string) => {
+      if (!scheduleObj || allRows.length === 0) return;
+      const targetSeries =
+        typeof seriesOverride === "string" ? seriesOverride : typeFilter !== ALL_TYPES ? typeFilter : undefined;
+
       setIsDownloading(true);
       try {
-        await downloadElementImage(captureRef.current!, "Exam_Schedule_FFCS", {
+        const isLight = currentTheme.includes("light");
+        const html = generateExamScheduleHtml({
+          scheduleObj,
+          semester,
+          isLight,
+          layout: "cards",
+          selectedSeries: targetSeries,
+        });
+        const fileTag = targetSeries ? `_${targetSeries}` : "";
+        await downloadHtmlImage(html, `Exam_Schedule${fileTag}_FFCS`, {
           format: "png",
-          backgroundColor: themeBgColor,
+          backgroundColor: isLight ? "#ffffff" : "#090d16",
         });
       } catch (err) {
         console.error(err);
       } finally {
         setIsDownloading(false);
       }
-    });
-  }, [withFullScheduleExpanded, themeBgColor]);
+    },
+    [scheduleObj, allRows.length, currentTheme, semester, typeFilter],
+  );
 
   const actions = (
     <>
@@ -224,15 +229,39 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
       <IconButton onClick={handleCopyCodes} title="Copy all course codes" disabled={allCourseCodes.length === 0}>
         <ClipboardList className="w-4 h-4" />
       </IconButton>
-      <IconButton onClick={handleDownloadImage} title="Download as PNG" disabled={isDownloading}>
+      {examTypes.length > 1 && (
+        <IconButton
+          onClick={() => {
+            setSelectedModalSeries(typeFilter);
+            setShowDownloadModal(true);
+          }}
+          title="Choose exam to download"
+          disabled={isDownloading || isDownloadingPdf}
+        >
+          <FileDown className="w-4 h-4 text-indigo-500" />
+        </IconButton>
+      )}
+      <IconButton
+        onClick={() => handleDownloadImage()}
+        title={typeFilter !== ALL_TYPES ? `Download ${typeFilter} as PNG` : "Download as PNG"}
+        disabled={isDownloading || isDownloadingPdf}
+      >
         {isDownloading ? (
           <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />
         ) : (
           <Download className="w-4 h-4" />
         )}
       </IconButton>
-      <IconButton onClick={handlePrint} title="Print / PDF" disabled={isDownloading}>
-        <Printer className="w-4 h-4" />
+      <IconButton
+        onClick={() => handleDownloadPdf()}
+        title={typeFilter !== ALL_TYPES ? `Download ${typeFilter} Schedule (PDF)` : "Download Exam Schedule (PDF)"}
+        disabled={isDownloading || isDownloadingPdf}
+      >
+        {isDownloadingPdf ? (
+          <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />
+        ) : (
+          <Printer className="w-4 h-4" />
+        )}
       </IconButton>
     </>
   );
@@ -329,20 +358,40 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
                     title={examType}
                     count={rows.length}
                     right={
-                      isIOS && hasCalendarData ? (
-                        <a
-                          href={generateICSFile(subjects, examType)}
-                          download={`${examType}_Schedule_iOS.ics`}
-                          title="Add to Calendar"
-                          aria-label={`Add ${examType} schedule to Calendar`}
+                      <div className="flex items-center gap-1 sm:gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadPdf(examType)}
+                          title={`Download ${examType} Schedule (PDF)`}
+                          disabled={isDownloading || isDownloadingPdf}
                           className={GHOST_BUTTON}
                         >
-                          <CalendarPlus className="w-3.5 h-3.5" />
-                          {/* Icon-only on phones, where the label is what
-                              collides with the series name. */}
-                          <span className="hidden sm:inline text-[11px] font-bold">Add to Calendar</span>
-                        </a>
-                      ) : undefined
+                          <Printer className="w-3.5 h-3.5 text-indigo-400" />
+                          <span className="text-[11px] font-bold">{examType} PDF</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadImage(examType)}
+                          title={`Download ${examType} as PNG`}
+                          disabled={isDownloading || isDownloadingPdf}
+                          className={GHOST_BUTTON}
+                        >
+                          <Download className="w-3.5 h-3.5 text-emerald-400" />
+                          <span className="text-[11px] font-bold">{examType} PNG</span>
+                        </button>
+                        {isIOS && hasCalendarData ? (
+                          <a
+                            href={generateICSFile(subjects, examType)}
+                            download={`${examType}_Schedule_iOS.ics`}
+                            title="Add to Calendar"
+                            aria-label={`Add ${examType} schedule to Calendar`}
+                            className={GHOST_BUTTON}
+                          >
+                            <CalendarPlus className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline text-[11px] font-bold">Add to Calendar</span>
+                          </a>
+                        ) : null}
+                      </div>
                     }
                   />
 
@@ -451,6 +500,98 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
           />
         )}
       </div>
+
+      {showDownloadModal && (
+        <BottomSheet
+          onClose={() => setShowDownloadModal(false)}
+          overlayId="download-exam-modal"
+          maxWidth="max-w-md"
+          title="Download Exam Schedule"
+          subtitle="Choose an exam series and file format"
+          icon={<Download className="w-5 h-5 text-indigo-500" />}
+        >
+          <div className="p-4 space-y-4">
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block mb-2">
+                Exam Series
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedModalSeries(ALL_TYPES)}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                    selectedModalSeries === ALL_TYPES
+                      ? "border-indigo-500 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold"
+                      : "border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 text-zinc-800 dark:text-zinc-200"
+                  }`}
+                >
+                  <div className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">All Series</div>
+                  <div className="text-sm font-extrabold mt-0.5">All Exams ({allRows.length})</div>
+                </button>
+                {examTypes.map((t) => {
+                  const count = allRows.filter((r) => r.examType === t).length;
+                  const isSel = selectedModalSeries === t;
+                  return (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setSelectedModalSeries(t)}
+                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                        isSel
+                          ? "border-indigo-500 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold"
+                          : "border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 text-zinc-800 dark:text-zinc-200"
+                      }`}
+                    >
+                      <div className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Series</div>
+                      <div className="text-sm font-extrabold mt-0.5">
+                        {t} ({count})
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-zinc-200 dark:border-zinc-800">
+              <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block mb-2">
+                Download Format
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  disabled={isDownloading || isDownloadingPdf}
+                  onClick={async () => {
+                    const target = selectedModalSeries === ALL_TYPES ? undefined : selectedModalSeries;
+                    await handleDownloadPdf(target);
+                    setShowDownloadModal(false);
+                  }}
+                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  <Printer className="w-4 h-4" />
+                  PDF (Schedule)
+                </button>
+                <button
+                  type="button"
+                  disabled={isDownloading || isDownloadingPdf}
+                  onClick={async () => {
+                    const target = selectedModalSeries === ALL_TYPES ? undefined : selectedModalSeries;
+                    await handleDownloadImage(target);
+                    setShowDownloadModal(false);
+                  }}
+                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 text-zinc-800 dark:text-zinc-200 font-bold text-sm transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  <Download className="w-4 h-4" />
+                  PNG (Image)
+                </button>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-zinc-400 dark:text-zinc-500 text-center pt-2">
+              AmazeCC is an independent student initiative. Cross-check your schedule with official VTOP notices.
+            </p>
+          </div>
+        </BottomSheet>
+      )}
     </PageShell>
   );
 }
