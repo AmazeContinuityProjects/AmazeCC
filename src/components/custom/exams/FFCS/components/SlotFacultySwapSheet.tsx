@@ -26,6 +26,7 @@ import { VitfacReviewPill, FacultyAvatar } from "./FacultyReviewSheet";
 import FacultyReviewSheetHost from "./FacultyReviewSheetHost";
 import { getFacultyReview, isVitfacIntegrationEnabled, useVitfacEnabled } from "@/lib/vitfacService";
 import { getTimetableSchema } from "@/lib/campusSchema";
+import { downloadHtmlImage } from "@/lib/imageDownload";
 import { periodsForSlot, findPeriodClash, splitSlots } from "@/lib/slots";
 import { useFacultyReviewSheet } from "../hooks/useFacultyReviewSheet";
 
@@ -498,55 +499,29 @@ export default function SlotFacultySwapSheet({
   const handleDownloadJpeg = async () => {
     setIsDownloading(true);
     setDownloadError(null);
-    let container: HTMLElement | null = null;
     try {
-      // Lazy: the sheet ships in the planner bundle, html-to-image only needs
-      // to exist once someone actually asks for the JPEG.
-      const toJpegFn = (await import("html-to-image"))?.toJpeg;
-      if (typeof toJpegFn !== "function") {
-        throw new Error("htmlToImage is not available");
-      }
-      container = document.createElement("div");
-      container.style.position = "fixed";
-      container.style.left = "-9999px";
-      container.style.top = "0";
-      container.style.zIndex = "-1000";
-      container.innerHTML = generateFacultyGuideHtml(
-        code,
-        courseTitle,
-        expandedHalves,
-        allBlocks,
-        dropInMatches,
-        isEmbedded,
-        otherOfferings,
+      const cleanCode = code.replace(/[^a-zA-Z0-9_-]/g, "_");
+      const allSlotTokens = expandedHalves
+        .flatMap((h) => h.slots)
+        .filter((v, i, arr) => arr.indexOf(v) === i)
+        .join("_");
+      await downloadHtmlImage(
+        generateFacultyGuideHtml(
+          code,
+          courseTitle,
+          expandedHalves,
+          allBlocks,
+          dropInMatches,
+          isEmbedded,
+          otherOfferings,
+        ),
+        `${cleanCode}_${allSlotTokens || "Slot"}_Faculty_Guide`,
+        { format: "jpg", backgroundColor: "#090d16" },
       );
-      document.body.appendChild(container);
-
-      const targetElement = (container.firstElementChild as HTMLElement) || container;
-      const dataUrl = await toJpegFn(targetElement, {
-        quality: 0.95,
-        backgroundColor: "#090d16",
-        pixelRatio: 2,
-      });
-
-      if (dataUrl) {
-        const link = document.createElement("a");
-        const cleanCode = code.replace(/[^a-zA-Z0-9_-]/g, "_");
-        const allSlotTokens = expandedHalves
-          .flatMap((h) => h.slots)
-          .filter((v, i, arr) => arr.indexOf(v) === i)
-          .join("_");
-        link.download = `${cleanCode}_${allSlotTokens || "Slot"}_Faculty_Guide.jpeg`;
-        link.href = dataUrl;
-        link.click();
-      }
     } catch (err) {
       console.error("Failed to generate JPEG:", err);
       setDownloadError("Could not generate JPEG. Please try again.");
     } finally {
-      if (container && container.parentNode) {
-        container.parentNode.removeChild(container);
-      }
       setIsDownloading(false);
     }
   };

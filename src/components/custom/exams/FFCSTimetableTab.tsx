@@ -55,12 +55,12 @@ import { AnimatePresence } from "framer-motion";
 import BottomSheet from "../shared/BottomSheet";
 import FFCSDashboardHeader from "./FFCS/components/FFCSDashboardHeader";
 import {
-  downloadTimetableImage,
   downloadModernTimetableImage,
   downloadModernCourseListImage,
   openModernPrintableDossier,
   downloadModernDossierHtml,
 } from "@/lib/exportTimetable";
+import { downloadElementImage } from "@/lib/imageDownload";
 import { getTimetableSchema } from "@/lib/campusSchema";
 
 import { groupSelectedCourses } from "./FFCS/logic/groupSelectedCourses";
@@ -1345,20 +1345,24 @@ export default function FFCSTimetableTab({
         } catch (err) {
           console.warn("Modern offscreen image export failed, trying live capture fallback:", err);
           if (captureRef.current) {
-            const captureElement = captureRef.current;
-            const originalClassName = captureElement.className;
             try {
-              if (showVerticalTimetableBesideWidgets) {
-                captureElement.classList.remove("xl:contents");
-                captureElement.classList.add("xl:col-span-full");
-              }
-              await downloadTimetableImage(captureElement, activeTimetable.name, themeBgColor, format);
+              // The clone (not the live node) gets the layout fix: in the
+              // off-screen wrapper it is no longer a grid item, and
+              // `display: contents` would leave it without a box to capture.
+              await downloadElementImage(captureRef.current, `${activeTimetable.name.replace(/\s+/g, "_")}_FFCS`, {
+                format,
+                backgroundColor: themeBgColor,
+                prepareClone: (clone) => {
+                  if (showVerticalTimetableBesideWidgets) {
+                    clone.classList.remove("xl:contents");
+                    clone.classList.add("xl:col-span-full");
+                  }
+                },
+              });
               track("export_image", { format, fallback: true });
               timetableExported = true;
             } catch {
               // The error below reports that neither export path succeeded.
-            } finally {
-              captureElement.className = originalClassName;
             }
           }
           if (!timetableExported) setError("Failed to download timetable image.");

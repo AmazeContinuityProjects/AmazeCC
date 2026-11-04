@@ -14,7 +14,8 @@ import {
   CalendarPlus,
 } from "lucide-react";
 import { useTheme } from "next-themes";
-import { downloadTimetableImage, openTimetablePrintablePage } from "@/lib/exportTimetable";
+import { openTimetablePrintablePage } from "@/lib/exportTimetable";
+import { downloadElementImage } from "@/lib/imageDownload";
 import { GHOST_BUTTON, SECTION_CHIP } from "@/lib/uiTokens";
 import {
   buildExamRows,
@@ -64,8 +65,7 @@ function computeExamTimes(reportingTimeStr: string, examDateStr: string, examTyp
   const start = new Date(parseInt(year, 10), month, parseInt(day, 10), h, m);
 
   const upper = String(examType).toUpperCase();
-  const duration =
-    upper.includes("CAT") ? 1 * 60 + 45 : upper.includes("FAT") ? 3 * 60 + 30 : 0;
+  const duration = upper.includes("CAT") ? 1 * 60 + 45 : upper.includes("FAT") ? 3 * 60 + 30 : 0;
 
   const end = new Date(start.getTime() + duration * 60000);
 
@@ -132,14 +132,14 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
 
   const examTypes = useMemo(
     () => (scheduleObj && typeof scheduleObj === "object" ? Object.keys(scheduleObj) : []),
-    [scheduleObj]
+    [scheduleObj],
   );
 
   const allRows = useMemo<ExamRow[]>(() => buildExamRows(scheduleObj), [scheduleObj]);
 
   const visibleRows = useMemo(
     () => (typeFilter === ALL_TYPES ? allRows : allRows.filter((r) => r.examType === typeFilter)),
-    [allRows, typeFilter]
+    [allRows, typeFilter],
   );
 
   const upcomingRows = useMemo(() => allRows.filter((r) => r.state !== "past"), [allRows]);
@@ -148,7 +148,7 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
 
   const allCourseCodes = useMemo(
     () => [...new Set(allRows.map((r) => r.raw?.courseCode).filter(Boolean))] as string[],
-    [allRows]
+    [allRows],
   );
 
   const handleCopyCodes = useCallback(async () => {
@@ -165,19 +165,22 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
    * AnimatePresence — so open every row, drop any active series filter, let the
    * transition land, capture, then put the user's own view state back.
    */
-  const withFullScheduleExpanded = useCallback(async (run: () => Promise<void> | void) => {
-    const restoreExpanded = expandedKey;
-    const restoreFilter = typeFilter;
-    setExpandedKey(EXPAND_ALL);
-    setTypeFilter(ALL_TYPES);
-    await new Promise((resolve) => setTimeout(resolve, EXPAND_SETTLE_MS));
-    try {
-      await run();
-    } finally {
-      setExpandedKey(restoreExpanded);
-      setTypeFilter(restoreFilter);
-    }
-  }, [expandedKey, typeFilter]);
+  const withFullScheduleExpanded = useCallback(
+    async (run: () => Promise<void> | void) => {
+      const restoreExpanded = expandedKey;
+      const restoreFilter = typeFilter;
+      setExpandedKey(EXPAND_ALL);
+      setTypeFilter(ALL_TYPES);
+      await new Promise((resolve) => setTimeout(resolve, EXPAND_SETTLE_MS));
+      try {
+        await run();
+      } finally {
+        setExpandedKey(restoreExpanded);
+        setTypeFilter(restoreFilter);
+      }
+    },
+    [expandedKey, typeFilter],
+  );
 
   const handlePrint = useCallback(() => {
     if (!captureRef.current) return;
@@ -188,7 +191,7 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
           "Exam Schedule",
           themeHtmlClass,
           themeBgColor,
-          themeTextColor
+          themeTextColor,
         );
       } catch (err) {
         console.error(err);
@@ -201,7 +204,10 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
     await withFullScheduleExpanded(async () => {
       setIsDownloading(true);
       try {
-        await downloadTimetableImage(captureRef.current!, "Exam_Schedule", themeBgColor, "png");
+        await downloadElementImage(captureRef.current!, "Exam_Schedule_FFCS", {
+          format: "png",
+          backgroundColor: themeBgColor,
+        });
       } catch (err) {
         console.error(err);
       } finally {
@@ -215,11 +221,7 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
       <IconButton onClick={handleScheduleFetch} title="Reload exam schedule">
         <RefreshCcw className="w-4 h-4" />
       </IconButton>
-      <IconButton
-        onClick={handleCopyCodes}
-        title="Copy all course codes"
-        disabled={allCourseCodes.length === 0}
-      >
+      <IconButton onClick={handleCopyCodes} title="Copy all course codes" disabled={allCourseCodes.length === 0}>
         <ClipboardList className="w-4 h-4" />
       </IconButton>
       <IconButton onClick={handleDownloadImage} title="Download as PNG" disabled={isDownloading}>
@@ -269,9 +271,7 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
           tone={nextRow?.state === "today" ? "amber" : "emerald"}
           badge={nextRow ? (nextRow.state === "today" ? "Today" : "Next") : undefined}
           value={nextExamLabel(nextRow)}
-          sub={
-            nextRow ? `${nextRow.raw.courseCode} · ${prettyDate(nextRow.date)}` : "Nothing scheduled"
-          }
+          sub={nextRow ? `${nextRow.raw.courseCode} · ${prettyDate(nextRow.date)}` : "Nothing scheduled"}
         />
         <StatTile
           label="Exams left"
@@ -340,9 +340,7 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
                           <CalendarPlus className="w-3.5 h-3.5" />
                           {/* Icon-only on phones, where the label is what
                               collides with the series name. */}
-                          <span className="hidden sm:inline text-[11px] font-bold">
-                            Add to Calendar
-                          </span>
+                          <span className="hidden sm:inline text-[11px] font-bold">Add to Calendar</span>
                         </a>
                       ) : undefined
                     }
@@ -357,17 +355,12 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
                         <div key={row.key}>
                           <button
                             type="button"
-                            onClick={() =>
-                              setExpandedKey(isOpen && expandedKey !== EXPAND_ALL ? null : row.key)
-                            }
+                            onClick={() => setExpandedKey(isOpen && expandedKey !== EXPAND_ALL ? null : row.key)}
                             className="w-full relative py-3.5 px-4 flex items-center justify-between gap-3 text-left cursor-pointer active:scale-[0.99] transition-transform"
                           >
                             {row.state === "past" ? (
                               /* A tick reads faster than a faint dot for finished papers. */
-                              <Check
-                                className="w-4 h-4 text-zinc-400 dark:text-zinc-500 shrink-0"
-                                strokeWidth={2.5}
-                              />
+                              <Check className="w-4 h-4 text-zinc-400 dark:text-zinc-500 shrink-0" strokeWidth={2.5} />
                             ) : (
                               <ToneDot tone={row.state === "today" ? "amber" : "emerald"} />
                             )}
@@ -382,8 +375,8 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
                                 {subj.courseTitle || subj.courseCode}
                               </p>
                               <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-1 truncate">
-                                {subj.courseCode} · {shortDate(row.date)} ·{" "}
-                                {subj.examSession || "TBA"} · {subj.venue === "-" ? "TBA" : subj.venue}
+                                {subj.courseCode} · {shortDate(row.date)} · {subj.examSession || "TBA"} ·{" "}
+                                {subj.venue === "-" ? "TBA" : subj.venue}
                               </p>
                             </div>
                             {/* Only "today" needs calling out — the tick and the

@@ -31,12 +31,7 @@
  */
 
 import type { ReactNode } from "react";
-import {
-  cn,
-  type AddedCourse,
-  type GapDetail,
-  type TimetablePeriod,
-} from "@amazecontinuityprojects/amazeui";
+import { cn, type AddedCourse, type GapDetail, type TimetablePeriod } from "@amazecontinuityprojects/amazeui";
 import { SegmentedControl } from "../shared/primitives";
 import HorizontalTimetableGrid from "./HorizontalTimetableGrid";
 import VerticalTimetableGrid from "./VerticalTimetableGrid";
@@ -129,8 +124,7 @@ export default function TimetableView({
   showSlotNames,
   children,
 }: TimetableViewProps) {
-  const { mode, setMode, density, setDensity, resolved, isMobile } =
-    useTimetableViewMode();
+  const { mode, setMode, density, setDensity, resolved, isMobile } = useTimetableViewMode();
   const view: ResolvedView | null = forceView ?? resolved;
   const activeDensity: CellDensity = cellDensity ?? density;
   // The horizontal grid has its own fixed cell shape; a density choice would be
@@ -141,17 +135,13 @@ export default function TimetableView({
     <div className={cn("space-y-4", className)}>
       {!forceView && (
         <div
-          // Stripped by `downloadTimetableImage` / `exportableHtml` so the
+          // Stripped by `downloadElementImage` / `exportableHtml` so the
           // switcher never lands in a shared PNG or printout.
           data-export-chrome
           className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"
         >
           <div className="min-w-0">
-            {title && (
-              <h3 className="font-outfit text-base font-black text-zinc-900 dark:text-zinc-100">
-                {title}
-              </h3>
-            )}
+            {title && <h3 className="font-outfit text-base font-black text-zinc-900 dark:text-zinc-100">{title}</h3>}
             <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
               {mode === "auto"
                 ? isMobile
@@ -165,13 +155,7 @@ export default function TimetableView({
             </p>
           </div>
           <div className="flex shrink-0 flex-col gap-1.5 sm:items-end">
-            <SegmentedControl
-              options={MODE_OPTIONS}
-              value={mode}
-              onChange={setMode}
-              grow
-              scroll
-            />
+            <SegmentedControl options={MODE_OPTIONS} value={mode} onChange={setMode} grow scroll />
             {showDensity && (
               <SegmentedControl
                 options={DENSITY_OPTIONS}
@@ -189,10 +173,7 @@ export default function TimetableView({
       {view === null ? (
         // Both inputs to the auto decision land after mount, so hold a stable
         // box rather than painting the wrong grid and flipping.
-        <div
-          className="h-72 animate-pulse rounded-xl bg-zinc-100 dark:bg-zinc-900"
-          aria-hidden="true"
-        />
+        <div className="h-72 animate-pulse rounded-xl bg-zinc-100 dark:bg-zinc-900" aria-hidden="true" />
       ) : view === "vertical" ? (
         <VerticalTimetableGrid
           courses={courses}

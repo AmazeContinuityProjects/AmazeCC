@@ -28,11 +28,8 @@ import dynamic from "next/dynamic";
 import { Download, Printer } from "lucide-react";
 import type { AddedCourse } from "@amazecontinuityprojects/amazeui";
 import config from "../../../../config.json";
-import {
-  downloadTimetableImage,
-  exportableHtml,
-  openTimetablePrintablePage,
-} from "@/lib/exportTimetable";
+import { exportableHtml, openTimetablePrintablePage } from "@/lib/exportTimetable";
+import { downloadElementImage } from "@/lib/imageDownload";
 import { useTheme } from "next-themes";
 import { TimetableView, type AttendanceTone } from "../timetable";
 import { buildPeriodSkeleton } from "../timetable/periodSkeleton";
@@ -46,10 +43,7 @@ import { buildPeriodSkeleton } from "../timetable/periodSkeleton";
  * sideways on a phone. Loaded lazily, exactly as the FFCS tab loads it, so
  * its vitfac dependency stays out of the home route's initial bundle.
  */
-const SelectedCoursesList = dynamic(
-  () => import("../exams/FFCS/components/SelectedCoursesList"),
-  { ssr: false }
-);
+const SelectedCoursesList = dynamic(() => import("../exams/FFCS/components/SelectedCoursesList"), { ssr: false });
 
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 
@@ -60,9 +54,18 @@ const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
  * removed.
  */
 const ATT_COLORS = [
-  "bg-blue-600", "bg-purple-600", "bg-emerald-500", "bg-red-600",
-  "bg-amber-500", "bg-pink-500", "bg-indigo-600", "bg-teal-500",
-  "bg-cyan-600", "bg-fuchsia-500", "bg-lime-500", "bg-rose-600",
+  "bg-blue-600",
+  "bg-purple-600",
+  "bg-emerald-500",
+  "bg-red-600",
+  "bg-amber-500",
+  "bg-pink-500",
+  "bg-indigo-600",
+  "bg-teal-500",
+  "bg-cyan-600",
+  "bg-fuchsia-500",
+  "bg-lime-500",
+  "bg-rose-600",
 ];
 
 function convertToAddedCourses(data: any[]): AddedCourse[] {
@@ -94,11 +97,9 @@ export default function TimetableVtop({ attendance }: { attendance?: any[] }) {
 
   const { theme, resolvedTheme } = useTheme();
   const currentTheme = resolvedTheme || theme || "light";
-  const rootStyles =
-    typeof window === "undefined" ? null : getComputedStyle(document.documentElement);
+  const rootStyles = typeof window === "undefined" ? null : getComputedStyle(document.documentElement);
   const themeBgColor = rootStyles?.getPropertyValue("--background").trim() || "#ffffff";
-  const themeTextColor =
-    rootStyles?.getPropertyValue("--text-primary").trim() || "#111827";
+  const themeTextColor = rootStyles?.getPropertyValue("--text-primary").trim() || "#111827";
   const themeHtmlClass =
     typeof document === "undefined" ? currentTheme : document.documentElement.className || currentTheme;
 
@@ -113,13 +114,7 @@ export default function TimetableVtop({ attendance }: { attendance?: any[] }) {
       el.style.overflowX = "visible";
       el.classList.add("w-max", "min-w-full");
 
-      openTimetablePrintablePage(
-        exportableHtml(el),
-        "Timetable",
-        themeHtmlClass,
-        themeBgColor,
-        themeTextColor
-      );
+      openTimetablePrintablePage(exportableHtml(el), "Timetable", themeHtmlClass, themeBgColor, themeTextColor);
 
       el.style.overflowX = originalOverflow;
       el.classList.remove("w-max", "min-w-full");
@@ -134,7 +129,10 @@ export default function TimetableVtop({ attendance }: { attendance?: any[] }) {
     if (!captureRef.current) return;
     setIsDownloading(true);
     try {
-      await downloadTimetableImage(captureRef.current, "Timetable", themeBgColor, "png");
+      await downloadElementImage(captureRef.current, "Timetable_FFCS", {
+        format: "png",
+        backgroundColor: themeBgColor,
+      });
     } catch (err) {
       console.error(err);
     } finally {
@@ -195,9 +193,7 @@ export default function TimetableVtop({ attendance }: { attendance?: any[] }) {
       {/* Top Header */}
       <div className="flex flex-col justify-between gap-3 border-b border-gray-150 pb-3 sm:flex-row sm:items-center dark:border-gray-800">
         <div>
-          <h2 className="font-outfit text-lg font-black text-gray-900 dark:text-gray-100">
-            Class Schedule
-          </h2>
+          <h2 className="font-outfit text-lg font-black text-gray-900 dark:text-gray-100">Class Schedule</h2>
           <p className="text-[11px] text-gray-400 dark:text-gray-500">
             View course slots, venues, and export the full grid.
           </p>
@@ -242,10 +238,7 @@ export default function TimetableVtop({ attendance }: { attendance?: any[] }) {
         {uniqueAddedCourses.length > 0 && (
           <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800/80 dark:bg-[#03070e]">
             <div className="p-4">
-              <SelectedCoursesList
-                courses={uniqueAddedCourses}
-                title="Course Reference"
-              />
+              <SelectedCoursesList courses={uniqueAddedCourses} title="Course Reference" />
             </div>
           </div>
         )}
