@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { ENABLE_VITFAC_INTEGRATION, useVitfacReview, useCachedImage, useChennaiImage } from "@/lib/vitfacService";
-import { getFacultyCdnUrl } from "@/lib/workerBase";
+import { getFacultyCdnUrl, toCdnImageUrl } from "@/lib/workerBase";
 
 /*
  * The lightweight vitfac display bits — avatar, review pill, initials —
@@ -81,14 +81,20 @@ export function FacultyAvatar({
   const { review } = useVitfacReview(employeeId, name);
   const [failedUrls, setFailedUrls] = useState<string[]>([]);
 
+  // Resolve employee ID from prop OR from review match (e.g. when only faculty name was passed)
+  const resolvedEmpId = employeeId || review?.employeeId || null;
+
   // 1. Primary candidate: Unified CDN chokepoint by faculty ID
-  const cdnUrl = ENABLE_VITFAC_INTEGRATION && employeeId ? getFacultyCdnUrl(employeeId) : null;
+  const cdnUrl = ENABLE_VITFAC_INTEGRATION && resolvedEmpId ? getFacultyCdnUrl(resolvedEmpId) : null;
   // 2. Direct review base64 image (if already loaded in review)
   const directUrl = ENABLE_VITFAC_INTEGRATION && review?.image ? `data:image/jpeg;base64,${review.image}` : null;
   // 3. Fallback sources: review image_url, chennai media, or fallbackImageUrl
-  const chennaiUrl = useChennaiImage(employeeId);
+  const chennaiUrl = useChennaiImage(resolvedEmpId);
   const externalFallback =
-    (ENABLE_VITFAC_INTEGRATION ? review?.image_url : null) || chennaiUrl || fallbackImageUrl || null;
+    (ENABLE_VITFAC_INTEGRATION && review?.image_url ? toCdnImageUrl(review.image_url) : null) ||
+    chennaiUrl ||
+    (fallbackImageUrl ? toCdnImageUrl(fallbackImageUrl) : null) ||
+    null;
 
   // Prefer CDN chokepoint first unless it failed, then direct base64, then external fallbacks
   const primaryUrl = cdnUrl && !failedUrls.includes(cdnUrl) ? cdnUrl : null;

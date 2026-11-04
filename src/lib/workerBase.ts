@@ -42,9 +42,18 @@ export function toCdnImageUrl(url: string | null | undefined): string | null {
   if (!url) return null;
   const trimmed = url.trim();
   if (!trimmed) return null;
+
+  // Canonicalize any Supabase or legacy CDN images/* path to unified /faculty/:empId.webp
+  const facultyImageMatch = trimmed.match(
+    /(?:\.supabase\.co\/storage\/v1\/object\/public\/images\/|cdn\.amazecc\.com\/images\/)([0-9a-zA-Z_-]+)\.(?:webp|jpg|jpeg|png)$/i,
+  );
+  if (facultyImageMatch) {
+    return `${CDN_BASE}/faculty/${facultyImageMatch[1]}.webp`;
+  }
+
   if (trimmed.startsWith(CDN_BASE)) return trimmed;
-  // Supabase storage public URLs:
-  // e.g. https://blfxhlmpvdhcpdwgrffr.supabase.co/storage/v1/object/public/images/51351.webp -> https://cdn.amazecc.com/images/51351.webp
+  // Supabase storage public URLs for other buckets:
+  // e.g. https://blfxhlmpvdhcpdwgrffr.supabase.co/storage/v1/object/public/docs/file.pdf -> https://cdn.amazecc.com/docs/file.pdf
   if (/^https:\/\/[a-z0-9]+\.supabase\.co\/storage\/v1\/object\/public\//i.test(trimmed)) {
     return trimmed.replace(/^https:\/\/[a-z0-9]+\.supabase\.co\/storage\/v1\/object\/public\//i, `${CDN_BASE}/`);
   }

@@ -36,13 +36,18 @@ describe("workerBase", () => {
       expect(CDN_BASE.endsWith("/")).toBe(false);
     });
 
-    it("rewrites Supabase storage URLs to CDN URLs", () => {
+    it("rewrites Supabase storage URLs to canonical faculty CDN URLs", () => {
       const supabaseUrl = "https://blfxhlmpvdhcpdwgrffr.supabase.co/storage/v1/object/public/images/51351.webp";
-      expect(toCdnImageUrl(supabaseUrl)).toBe("https://cdn.amazecc.com/images/51351.webp");
+      expect(toCdnImageUrl(supabaseUrl)).toBe("https://cdn.amazecc.com/faculty/51351.webp");
     });
 
-    it("passes through already rewritten CDN URLs untouched", () => {
-      const cdnUrl = "https://cdn.amazecc.com/images/51351.webp";
+    it("canonicalizes legacy /images/ CDN URLs to unified /faculty/ URLs", () => {
+      const legacyCdnUrl = "https://cdn.amazecc.com/images/51351.webp";
+      expect(toCdnImageUrl(legacyCdnUrl)).toBe("https://cdn.amazecc.com/faculty/51351.webp");
+    });
+
+    it("passes through already rewritten canonical CDN URLs untouched", () => {
+      const cdnUrl = "https://cdn.amazecc.com/faculty/51351.webp";
       expect(toCdnImageUrl(cdnUrl)).toBe(cdnUrl);
     });
 
