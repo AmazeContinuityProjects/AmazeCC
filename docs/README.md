@@ -12,7 +12,8 @@ docs/
 │   ├── frontend.md             # Frontend architecture
 │   ├── backend.md              # Backend/API architecture
 │   ├── database.md             # Database schema & design
-│   └── authentication.md       # Auth system design
+│   ├── authentication.md       # Auth system design
+│   └── edge-infrastructure.md  # Cloudflare Workers CDN & Cache architecture
 ├── api/                        # API documentation
 │   ├── overview.md             # API overview & conventions
 │   ├── auth.md                 # Authentication endpoints
