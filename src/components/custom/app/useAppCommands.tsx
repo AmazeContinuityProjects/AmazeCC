@@ -445,17 +445,6 @@ export function useAppCommands(input: AppCommandInputs) {
         },
       },
       {
-        id: "acad-course-dashboard",
-        label: "Course Dashboard",
-        description: "Detailed per-course view",
-        icon: "📘",
-        category: "Academics",
-        onSelect: () => {
-          setActiveTab("academics");
-          setActiveSubTab("course-dashboard");
-        },
-      },
-      {
         id: "acad-circulars",
         label: "Academic Circulars",
         description: "View academic circulars & notices",

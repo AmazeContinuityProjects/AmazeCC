@@ -6,8 +6,9 @@ import { toEngineError } from "./errors";
 import { storage } from "../storage";
 import type { Ids, VtopCreds, ProgressEvent } from "./types";
 
-export { apiRequest as api } from "./request-layer";
-import { apiRequest } from "./request-layer";
+import { apiRequest, cancelAllRequests, resetActiveSignal } from "./request-layer";
+
+export { apiRequest as api, cancelAllRequests, resetActiveSignal } from "./request-layer";
 
 export type { SyncMode, SyncModeStep } from "./sync-modes";
 export { BUILT_IN_MODES, listModes, loadCustomModes, estimateModeCost } from "./sync-modes";
@@ -270,6 +271,14 @@ class SyncEngine {
 
   subscribe(cb: (e: ProgressEvent) => void): () => void {
     return progressBus.subscribe(cb);
+  }
+
+  cancelAll(reason = "Sync cancelled"): void {
+    cancelAllRequests(reason);
+  }
+
+  resetSignal(): AbortSignal {
+    return resetActiveSignal();
   }
 }
 

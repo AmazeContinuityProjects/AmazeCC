@@ -3,6 +3,7 @@
 import { AnimatePresence } from "framer-motion";
 import SyncNotification from "@/components/custom/shared/SyncNotification";
 import { dismissSyncSession, formatSessionMessage, useSyncSession } from "@/lib/sync-engine/sync-session";
+import { cancelAllRequests } from "@/lib/sync-engine";
 import { isReloadingAtom } from "@/store";
 import { useAtom } from "jotai";
 
@@ -51,6 +52,7 @@ export default function SyncSessionHost({
           }}
           onRetry={onRetry}
           onDismiss={() => {
+            cancelAllRequests("User dismissed sync");
             dismissSyncSession();
             if (isReloading) setIsReloading(false);
           }}

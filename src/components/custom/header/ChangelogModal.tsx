@@ -1,6 +1,18 @@
 "use client";
 import { useState, useEffect } from "react";
-import { GitBranch, GitCommit, History, RefreshCcw, Sparkles } from "lucide-react";
+import {
+  GitBranch,
+  GitCommit,
+  History,
+  RefreshCcw,
+  Sparkles,
+  Bug,
+  Code2,
+  Zap,
+  FileText,
+  Palette,
+  Wrench,
+} from "lucide-react";
 import { fetchGitHubCommits, groupCommitsByDate, GitHubCommit, CommitGroup } from "@/lib/githubChangelog";
 import buildInfo from "@/data/buildInfo.json";
 import changelogData from "@/data/changelog.json";
@@ -16,29 +28,74 @@ import {
 } from "../shared/primitives";
 
 /**
- * Commit type -> tone.
+ * Commit type -> visual icon and tactile tint styling.
  *
- * These were five hand-written gradient pills; they are now five entries in one
- * map so `ToneBadge` owns the recipe, which is the same rule the rest of the app
- * follows. The emoji stays in the label — it is the part readers scan for, and
- * the tone alone does not distinguish `fix` from `perf` at a glance.
- *
- * Typed as a plain lookup rather than `Record<GitHubCommit["type"], …>`: the
- * commit type union has eight members and only the four interesting ones are
- * named here, so a `Record` would demand seven more rows of filler and still be
- * wrong the moment the classifier grows a branch. Everything unnamed falls
- * through to `other`.
+ * Instead of bulky text badges that consume horizontal space on mobile,
+ * each commit type is represented by a crisp, Apple-grade icon well with
+ * subtle colored surface depth and crisp micro-borders.
  */
-const TYPE_TONE: Record<string, { tone: string; label: string }> = {
-  feat: { tone: "emerald", label: "✨ Feature" },
-  fix: { tone: "red", label: "🐛 Fix" },
-  refactor: { tone: "indigo", label: "⚡ Refactor" },
-  perf: { tone: "amber", label: "🚀 Perf" },
+interface CommitTypeConfig {
+  icon: typeof Sparkles;
+  label: string;
+  containerClass: string;
+  iconClass: string;
+}
+
+const TYPE_CONFIG: Record<string, CommitTypeConfig> = {
+  feat: {
+    icon: Sparkles,
+    label: "Feature",
+    containerClass:
+      "bg-emerald-500/10 dark:bg-emerald-500/15 border-emerald-500/25 text-emerald-600 dark:text-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.12)]",
+    iconClass: "stroke-[2.2]",
+  },
+  fix: {
+    icon: Bug,
+    label: "Bug Fix",
+    containerClass:
+      "bg-rose-500/10 dark:bg-rose-500/15 border-rose-500/25 text-rose-600 dark:text-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.12)]",
+    iconClass: "stroke-[2.2]",
+  },
+  refactor: {
+    icon: Code2,
+    label: "Refactor",
+    containerClass:
+      "bg-indigo-500/10 dark:bg-indigo-500/15 border-indigo-500/25 text-indigo-600 dark:text-indigo-400 shadow-[0_0_8px_rgba(99,102,241,0.12)]",
+    iconClass: "stroke-[2.2]",
+  },
+  perf: {
+    icon: Zap,
+    label: "Performance",
+    containerClass:
+      "bg-amber-500/10 dark:bg-amber-500/15 border-amber-500/25 text-amber-600 dark:text-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.12)]",
+    iconClass: "stroke-[2.2]",
+  },
+  docs: {
+    icon: FileText,
+    label: "Docs",
+    containerClass: "bg-sky-500/10 dark:bg-sky-500/15 border-sky-500/25 text-sky-600 dark:text-sky-400",
+    iconClass: "stroke-[2.2]",
+  },
+  style: {
+    icon: Palette,
+    label: "Design",
+    containerClass:
+      "bg-fuchsia-500/10 dark:bg-fuchsia-500/15 border-fuchsia-500/25 text-fuchsia-600 dark:text-fuchsia-400",
+    iconClass: "stroke-[2.2]",
+  },
+  chore: {
+    icon: Wrench,
+    label: "Chore",
+    containerClass: "bg-slate-500/10 dark:bg-zinc-500/15 border-slate-500/25 text-slate-600 dark:text-zinc-400",
+    iconClass: "stroke-[2.2]",
+  },
 };
 
-const typeBadge = (type: GitHubCommit["type"]) => {
-  const entry = TYPE_TONE[type] ?? { tone: "blue", label: "🔨 Update" };
-  return <ToneBadge tone={entry.tone}>{entry.label}</ToneBadge>;
+const DEFAULT_TYPE_CONFIG: CommitTypeConfig = {
+  icon: GitCommit,
+  label: "Update",
+  containerClass: "bg-blue-500/10 dark:bg-blue-500/15 border-blue-500/25 text-blue-600 dark:text-blue-400",
+  iconClass: "stroke-[2.2]",
 };
 
 export default function ChangelogModal({ handleClose }: { handleClose: () => void }) {
@@ -88,11 +145,7 @@ export default function ChangelogModal({ handleClose }: { handleClose: () => voi
           >
             <GitBranch className="w-4 h-4" />
           </IconLink>
-          <IconButton
-            onClick={() => void loadCommits(true)}
-            title="Refresh commits"
-            disabled={refreshing || loading}
-          >
+          <IconButton onClick={() => void loadCommits(true)} title="Refresh commits" disabled={refreshing || loading}>
             <RefreshCcw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
           </IconButton>
         </>
@@ -117,11 +170,7 @@ export default function ChangelogModal({ handleClose }: { handleClose: () => voi
             icon={Sparkles}
             title="What's new in this build"
             count={buildInfo.changes.length}
-            right={
-              <span className="text-[10px] font-bold text-text-muted shrink-0">
-                {buildInfo.date}
-              </span>
-            }
+            right={<span className="text-[10px] font-bold text-text-muted shrink-0">{buildInfo.date}</span>}
           />
           <ListShell>
             {buildInfo.changes.map((change, i) => (
@@ -171,9 +220,7 @@ export default function ChangelogModal({ handleClose }: { handleClose: () => voi
                   <div key={commit.sha} className="flex items-start gap-3 py-3 px-4">
                     <span className="shrink-0 pt-0.5">{typeBadge(commit.type)}</span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold text-text-heading leading-relaxed">
-                        {commit.cleanMessage}
-                      </p>
+                      <p className="text-xs font-semibold text-text-heading leading-relaxed">{commit.cleanMessage}</p>
                       <p className="mt-1 text-[10px] font-medium text-text-muted">
                         by{" "}
                         <span className="font-bold text-text-secondary dark:text-text-secondary">
@@ -206,11 +253,7 @@ export default function ChangelogModal({ handleClose }: { handleClose: () => voi
                 <SectionHeader
                   icon={Sparkles}
                   title={release.version}
-                  right={
-                    <span className="text-[10px] font-bold text-text-muted shrink-0">
-                      {release.date}
-                    </span>
-                  }
+                  right={<span className="text-[10px] font-bold text-text-muted shrink-0">{release.date}</span>}
                 />
                 <ListShell>
                   {release.changes.map((change, i) => (

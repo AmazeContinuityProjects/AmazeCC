@@ -124,7 +124,19 @@ function courseSummary(group: FacultyNameGroup): string {
  * search bar sits above both and reaches every faculty on the report, so the
  * hoisting costs nothing for a name the reader is only now remembering.
  */
-export default function FacultyScheduleTab({ onBack }: { onBack?: () => void }) {
+export default function FacultyScheduleTab({
+  onBack,
+  handleReloadRequest,
+}: {
+  onBack?: () => void;
+  /**
+   * The shell's reload action. A semester switch goes through it so the new
+   * term's data is synced (it forces a full sync) instead of only relabeling
+   * the page — optional so bare renders (tests, standalone mounts) keep the
+   * legacy local+global relabel.
+   */
+  handleReloadRequest?: (semesterId?: string, modeId?: string) => Promise<void>;
+}) {
   const [settings, setSettings] = useAtom(settingsAtom);
   const globalFinalSemester = useMemo(
     () => mapToFinalSemesterId(settings?.currSemesterID) ?? getSelectedFinalSemesterId(),
@@ -167,10 +179,16 @@ export default function FacultyScheduleTab({ onBack }: { onBack?: () => void }) 
     (next: FinalFFCSSemesterId) => {
       if (next === semesterId) return;
       setSemesterId(next);
-      broadcastGlobalSemesterChange(next);
-      setSettings((prev) => ({ ...prev, currSemesterID: finalSemesterToVtopId(next) }));
+      if (handleReloadRequest) {
+        // The reload owns the global semester write, the broadcast, and the
+        // full sync the new term's caches need — this page only tracks it.
+        void handleReloadRequest(finalSemesterToVtopId(next));
+      } else {
+        broadcastGlobalSemesterChange(next);
+        setSettings((prev) => ({ ...prev, currSemesterID: finalSemesterToVtopId(next) }));
+      }
     },
-    [semesterId, setSettings],
+    [semesterId, handleReloadRequest, setSettings],
   );
 
   // The current timetable (attendance) and the current semester's enrolled

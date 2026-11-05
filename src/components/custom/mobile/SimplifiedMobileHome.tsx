@@ -81,7 +81,6 @@ import { KIND_CONFIG } from "../tasks/TaskCard";
 import { parseCachedCourses, parseCourseRows, type FreeRoomCourse } from "@/lib/freeClassrooms";
 import { facultyGroupKey } from "../exams/FFCS/logic/facultyGroups";
 import { getSelectedFinalReportPath, getSelectedFinalSemesterId, mapToFinalSemesterId } from "@/lib/ffcsReports";
-import FreeClassroomsWidget from "./FreeClassroomsWidget";
 
 interface SimplifiedMobileHomeProps {
   attendanceData: any;
@@ -2063,9 +2062,6 @@ export default function SimplifiedMobileHome({
             <span>Find Faculty Schedule</span>
           </button>
         </div>
-
-        {/* Free Classrooms Widget */}
-        <FreeClassroomsWidget />
       </div>
 
       {/* Full Timetable Sheet */}

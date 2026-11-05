@@ -258,7 +258,19 @@ function DayPicker({
   );
 }
 
-export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
+export default function FreeClassroomsTab({
+  onBack,
+  handleReloadRequest,
+}: {
+  onBack?: () => void;
+  /**
+   * The shell's reload action. A semester switch goes through it so the new
+   * term's data is synced (it forces a full sync) instead of only relabeling
+   * the page — optional so bare renders (tests, standalone mounts) keep the
+   * legacy local+global relabel.
+   */
+  handleReloadRequest?: (semesterId?: string, modeId?: string) => Promise<void>;
+}) {
   const [courses, setCourses] = useState<FreeRoomCourse[]>([]);
   const [settings, setSettings] = useAtom(settingsAtom);
   const globalFinalSemester = useMemo(
@@ -298,10 +310,16 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
     (next: FinalFFCSSemesterId) => {
       if (next === semesterId) return;
       setSemesterId(next);
-      broadcastGlobalSemesterChange(next);
-      setSettings((prev) => ({ ...prev, currSemesterID: finalSemesterToVtopId(next) }));
+      if (handleReloadRequest) {
+        // The reload owns the global semester write, the broadcast, and the
+        // full sync the new term's caches need — this page only tracks it.
+        void handleReloadRequest(finalSemesterToVtopId(next));
+      } else {
+        broadcastGlobalSemesterChange(next);
+        setSettings((prev) => ({ ...prev, currSemesterID: finalSemesterToVtopId(next) }));
+      }
     },
-    [semesterId, setSettings],
+    [semesterId, handleReloadRequest, setSettings],
   );
 
   const [day, setDay] = useState<DayId>("mon");

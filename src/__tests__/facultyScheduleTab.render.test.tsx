@@ -4,6 +4,7 @@ import { getDefaultStore } from "jotai";
 import { attendanceDataAtom, marksDataAtom } from "../store/dataAtoms";
 import FacultyScheduleTab from "../components/custom/exams/FacultyScheduleTab";
 import { broadcastGlobalSemesterChange } from "@/lib/ffcsReports";
+import { settingsAtom } from "@/store/settingsAtoms";
 
 /**
  * This jsdom environment has no `localStorage` — not even on `window`. Stubbed
@@ -210,5 +211,25 @@ describe("FacultyScheduleTab", () => {
     });
 
     expect(store.getItem("ffcs_semester")).toBe("fall-2026-2027");
+  });
+
+  it("hands a user semester switch to the shell reload, not a local relabel", async () => {
+    store.clear();
+    // Pin the starting term so the switch below is unambiguous.
+    jotaiStore.set(settingsAtom, { ...jotaiStore.get(settingsAtom), currSemesterID: "CH20262705" });
+    const handleReloadRequest = vi.fn(async () => {});
+
+    render(<FacultyScheduleTab handleReloadRequest={handleReloadRequest} />);
+    await screen.findByText("All faculty");
+
+    fireEvent.click(screen.getByRole("button", { name: "Fall 2026-27" }));
+
+    // The reload owns the whole switch — the global semester write, the
+    // broadcast, and (because the term changed) the forced full sync. The tab
+    // only reports the target, as the VTOP id the reload keys everything on.
+    expect(handleReloadRequest).toHaveBeenCalledTimes(1);
+    expect(handleReloadRequest).toHaveBeenCalledWith("CH20262701");
+    // Nothing behind the reload's back: settings still hold the old term.
+    expect(jotaiStore.get(settingsAtom).currSemesterID).toBe("CH20262705");
   });
 });

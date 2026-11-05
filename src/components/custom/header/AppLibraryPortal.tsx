@@ -139,15 +139,6 @@ const AppLibraryPortal = memo(
           },
         },
         {
-          label: "Course Dashboard",
-          group: "Academics",
-          icon: BookOpen,
-          action: () => {
-            selectTab("academics");
-            setActiveSubTab("course-dashboard");
-          },
-        },
-        {
           label: "Grade History",
           group: "Academics",
           icon: GraduationCap,

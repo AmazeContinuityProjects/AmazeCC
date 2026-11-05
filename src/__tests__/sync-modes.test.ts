@@ -16,6 +16,7 @@ import {
   listModes,
   loadCustomModes,
   resolveMode,
+  resolveReloadModeId,
   updateCustomMode,
   validateMode,
   CUSTOM_MODES_KEY,
@@ -123,6 +124,34 @@ describe("built-in modes", () => {
     const custom = createCustomMode({ label: "Mine", steps: [{ op: "buses" }] });
     expect(resolveMode(custom.id, [custom])?.builtIn).toBe(false);
     expect(listModes([custom]).length).toBe(BUILT_IN_MODES.length + 1);
+  });
+});
+
+describe("resolveReloadModeId", () => {
+  it("forces full sync on a semester switch, whatever was asked for", () => {
+    // Every cache — attendance, marks, grades — is keyed to the term just
+    // left, so a switch outranks an explicit quick request…
+    expect(resolveReloadModeId({ switchedSemester: true, modeId: "quick" })).toBe("full");
+    // …the saved default…
+    expect(resolveReloadModeId({ switchedSemester: true, defaultSyncMode: "quick" })).toBe("full");
+    // …and even an explicit choice of another mode: the caller picked a
+    // semester, not a sweep, and "full" is the only sweep a new term can trust.
+    expect(resolveReloadModeId({ switchedSemester: true, modeId: "balanced" })).toBe("full");
+    expect(resolveReloadModeId({ switchedSemester: true, modeId: "quick", defaultSyncMode: "academics" })).toBe("full");
+  });
+
+  it("keeps explicit mode, then default, then quick when no switch happened", () => {
+    expect(resolveReloadModeId({ switchedSemester: false, modeId: "balanced" })).toBe("balanced");
+    // An explicit mode also outranks the saved default (the palette's
+    // "Run quick/balanced/full now" buttons pass one on purpose).
+    expect(resolveReloadModeId({ switchedSemester: false, modeId: "quick", defaultSyncMode: "full" })).toBe("quick");
+    expect(resolveReloadModeId({ switchedSemester: false, defaultSyncMode: "academics" })).toBe("academics");
+    expect(resolveReloadModeId({ switchedSemester: false })).toBe("quick");
+  });
+
+  it("resolves to a mode the engine can actually run", () => {
+    const id = resolveReloadModeId({ switchedSemester: true });
+    expect(resolveMode(id)?.id).toBe("full");
   });
 });
 

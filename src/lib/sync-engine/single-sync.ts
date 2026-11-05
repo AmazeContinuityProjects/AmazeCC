@@ -6,6 +6,8 @@ import {
   openSyncSession,
   setSyncProgress,
 } from "./sync-session";
+import { cancelAllRequests } from "./request-layer";
+import { pingVtopDirectly } from "../vtopHealth";
 
 export interface PageSyncStep {
   /** Registered engine op, e.g. `"grades"` or `"bulk"`. */
@@ -42,6 +44,18 @@ export async function runPageSync<T = any>(opts: PageSyncOptions): Promise<T | n
   }
   openSyncSession(opts.title);
   try {
+    const hasVtopStep = opts.steps.some((s) => s.op !== "lms");
+    if (hasVtopStep) {
+      const isVtopUp = await pingVtopDirectly(4000);
+      if (!isVtopUp) {
+        cancelAllRequests("VTOP is down");
+        appendSyncLine("VTOP is down (vtopcc.vit.ac.in unreachable) — sync cancelled", "error");
+        setSyncProgress(0);
+        closeSyncSession(0, "error");
+        throw new Error("VTOP portal unreachable (vtopcc.vit.ac.in is down)");
+      }
+    }
+
     let last: any = null;
     for (const step of opts.steps) {
       last = await syncEngine.sync(step.op, step.args ?? {});
@@ -51,7 +65,11 @@ export async function runPageSync<T = any>(opts: PageSyncOptions): Promise<T | n
     setSyncProgress(100);
     closeSyncSession();
     return last as T;
-  } catch (err) {
+  } catch (err: any) {
+    if (err?.name === "AbortError") {
+      setSyncProgress(0);
+      return null;
+    }
     appendSyncLine(err instanceof Error ? err.message : "Sync failed, check console.", "error");
     setSyncProgress(0);
     closeSyncSession(4000, "error");

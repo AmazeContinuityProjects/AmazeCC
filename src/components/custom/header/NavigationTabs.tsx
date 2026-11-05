@@ -764,20 +764,11 @@ export default function NavigationTabs({
           activeTab === "academics" &&
           (activeSubTab === "courses-simplified" ||
             activeSubTab === "simplified-academics" ||
-            activeSubTab === "overview"),
+            activeSubTab === "overview" ||
+            activeSubTab === "course-dashboard"),
         onSelect: () => {
           selectTab("academics");
           setActiveSubTab("courses-simplified");
-        },
-      },
-      {
-        id: "course-dashboard",
-        label: "Course Dashboard",
-        icon: LayoutGrid,
-        isActive: activeTab === "academics" && activeSubTab === "course-dashboard",
-        onSelect: () => {
-          selectTab("academics");
-          setActiveSubTab("course-dashboard");
         },
       },
       {

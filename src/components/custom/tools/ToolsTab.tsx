@@ -46,6 +46,12 @@ interface ToolsTabProps {
   calendarData?: any;
   decimalValues?: boolean;
   isDayscholarWithBus?: boolean;
+  /**
+   * The shell's reload action, forwarded to the semester picker in Free
+   * Classrooms so a switch triggers a full sync. Optional: without it the tab
+   * falls back to relabeling only.
+   */
+  handleReloadRequest?: (semesterId?: string, modeId?: string) => Promise<void>;
 }
 
 export default function ToolsTab({
@@ -62,16 +68,14 @@ export default function ToolsTab({
   calendarData,
   decimalValues,
   isDayscholarWithBus,
+  handleReloadRequest,
 }: ToolsTabProps) {
   return (
     <div className="animate-fadeIn w-full max-w-7xl mx-auto space-y-4 md:pb-8">
       {/* Main View Router */}
       <div>
         {activeToolsSubTab === "overview" && (
-          <ToolsHub
-            setActiveToolsSubTab={setActiveToolsSubTab}
-            setActiveTab={setActiveTab}
-          />
+          <ToolsHub setActiveToolsSubTab={setActiveToolsSubTab} setActiveTab={setActiveTab} />
         )}
 
         {activeToolsSubTab === "qbank" && (
@@ -85,10 +89,7 @@ export default function ToolsTab({
 
         {activeToolsSubTab === "faculty-info" && (
           <div className="animate-fadeIn">
-            <FacultyInfoTab
-              loginToVTOP={loginToVTOP}
-              setActiveSubTab={setActiveToolsSubTab}
-            />
+            <FacultyInfoTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveToolsSubTab} />
           </div>
         )}
 
@@ -105,10 +106,7 @@ export default function ToolsTab({
 
         {activeToolsSubTab === "social" && (
           <div className="animate-fadeIn">
-            <SocialTab
-              attendanceData={attendanceData}
-              isDemo={IDs?.VtopUsername === "demo"}
-            />
+            <SocialTab attendanceData={attendanceData} isDemo={IDs?.VtopUsername === "demo"} />
           </div>
         )}
 
@@ -120,7 +118,10 @@ export default function ToolsTab({
 
         {activeToolsSubTab === "free-class" && (
           <div className="animate-fadeIn">
-            <FreeClassroomsTab onBack={() => setActiveToolsSubTab("overview")} />
+            <FreeClassroomsTab
+              onBack={() => setActiveToolsSubTab("overview")}
+              handleReloadRequest={handleReloadRequest}
+            />
           </div>
         )}
 
@@ -139,9 +140,8 @@ export default function ToolsTab({
                   dayCardsMap={buildAttendanceDayCardsMap(
                     attendanceData?.attendance || [],
                     undefined,
-                    (typeof window !== "undefined"
-                      ? localStorage.getItem("saturday_timetable_override")
-                      : null) || "SAT"
+                    (typeof window !== "undefined" ? localStorage.getItem("saturday_timetable_override") : null) ||
+                      "SAT",
                   )}
                   impDates={impDates}
                   isDayscholarWithBus={isDayscholarWithBus}
@@ -168,4 +168,3 @@ export default function ToolsTab({
     </div>
   );
 }
-

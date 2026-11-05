@@ -378,6 +378,7 @@ function DashboardContent({
                 calendarData={calendarData}
                 decimalValues={settings.decimalValues}
                 isDayscholarWithBus={settings.isDayscholarWithBus}
+                handleReloadRequest={handleReloadRequest}
               />
             </div>
           </DashboardRoute>
@@ -395,6 +396,7 @@ function DashboardContent({
 
           <DashboardUtilityRoutes
             onSystemBack={onSystemBack}
+            handleReloadRequest={handleReloadRequest}
             dayscholarBuses={dayscholarBuses}
             transportBuses={transportBuses}
             transportData={transportData}

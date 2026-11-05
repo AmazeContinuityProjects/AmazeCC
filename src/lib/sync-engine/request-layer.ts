@@ -37,6 +37,36 @@ export function setAuthProvider(p: AuthProvider): void {
 
 const inflight = new Map<string, Promise<unknown>>();
 
+let activeAbortController: AbortController | null = null;
+
+export function getActiveSignal(): AbortSignal | undefined {
+  return activeAbortController?.signal;
+}
+
+export function cancelAllRequests(reason = "Sync cancelled"): void {
+  inflight.clear();
+  if (activeAbortController) {
+    try {
+      activeAbortController.abort(new DOMException(reason, "AbortError"));
+    } catch {
+      activeAbortController.abort();
+    }
+    activeAbortController = null;
+  }
+}
+
+export function resetActiveSignal(): AbortSignal {
+  if (activeAbortController && !activeAbortController.signal.aborted) {
+    try {
+      activeAbortController.abort(new DOMException("New session started", "AbortError"));
+    } catch {
+      activeAbortController.abort();
+    }
+  }
+  activeAbortController = new AbortController();
+  return activeAbortController.signal;
+}
+
 export async function request(path: string, body?: unknown, opts: RequestOpts = {}): Promise<any> {
   const method = opts.method ?? "POST";
   const dedupeKey = opts.dedupeKey ?? `${method}:${path}:${JSON.stringify(body ?? "")}`;
@@ -44,6 +74,11 @@ export async function request(path: string, body?: unknown, opts: RequestOpts = 
   if (!opts.bypassDedupe) {
     const existing = inflight.get(dedupeKey);
     if (existing) return existing as Promise<any>;
+  }
+
+  const effectiveSignal = opts.signal ?? getActiveSignal();
+  if (effectiveSignal?.aborted) {
+    throw effectiveSignal.reason ?? new DOMException("Request cancelled", "AbortError");
   }
 
   const max = opts.retry?.max ?? 2;
@@ -79,7 +114,7 @@ export async function request(path: string, body?: unknown, opts: RequestOpts = 
             method,
             headers: { "Content-Type": "application/json" },
             body: finalBody ? JSON.stringify(finalBody) : undefined,
-            signal: opts.signal,
+            signal: effectiveSignal,
           },
           opts.timeoutMs ?? 60000,
         );
@@ -98,10 +133,10 @@ export async function request(path: string, body?: unknown, opts: RequestOpts = 
         if (err instanceof AuthError) throw err;
         // Caller-cancelled: never retry, never wrap — propagate the AbortError as-is
         // so UI can silently ignore it instead of showing "TransientError: AbortError".
-        if (opts.signal?.aborted) {
+        if (effectiveSignal?.aborted || (err instanceof Error && err.name === "AbortError" && effectiveSignal)) {
           throw err;
         }
-        if (err instanceof Error && (err.name === "AbortError" || err.name === "TimeoutError") && !opts.signal) {
+        if (err instanceof Error && (err.name === "AbortError" || err.name === "TimeoutError") && !effectiveSignal) {
           // No caller signal involved, so this abort came from our own timeout.
           // Retry it like any transient failure with a clear message.
           const timeoutErr = new TransientError(
@@ -209,7 +244,12 @@ export async function apiRequest(path: string, opts: ApiOptions = {}): Promise<a
     }
   }
 
-  const res = await fetchWithTimeout(url, { method, headers, body, signal: opts.signal }, opts.timeoutMs ?? 60000);
+  const effectiveSignal = opts.signal ?? getActiveSignal();
+  if (effectiveSignal?.aborted) {
+    throw effectiveSignal.reason ?? new DOMException("Request cancelled", "AbortError");
+  }
+
+  const res = await fetchWithTimeout(url, { method, headers, body, signal: effectiveSignal }, opts.timeoutMs ?? 60000);
 
   if (opts.parse === "raw") return res;
   if (opts.parse === "blob") return await res.blob();

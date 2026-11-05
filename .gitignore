@@ -60,3 +60,7 @@ config.bat
 
 # LibreOffice lock files
 .~lock.*
+
+# agents
+.agents/
+

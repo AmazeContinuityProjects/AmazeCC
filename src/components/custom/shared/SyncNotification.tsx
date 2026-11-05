@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, m } from "framer-motion";
@@ -6,32 +6,36 @@ import BottomSheet from "./BottomSheet";
 import { BACKUP_API_URL, PRIMARY_API_URL, getActiveApiUrl, setActiveApiUrl, hasBackupApi } from "@/lib/fetch-utils";
 import { UNICC_API_URL, resetUniccActivity } from "@/lib/unicc-fallback";
 import { useUniccActivity, useUniccTarget, setUniccTarget, isUniccFallbackEnabled } from "@/lib/useUniccTarget";
+import { pingVtopDirectly, VTOP_PORTAL_URL } from "@/lib/vtopHealth";
+import { appendSyncLine, closeSyncSession } from "@/lib/sync-engine/sync-session";
+import { cancelAllRequests } from "@/lib/sync-engine/request-layer";
 import type { SyncNotice } from "@/lib/sync-engine/sync-session";
 import { classifyAuthFailure } from "@/lib/sync-engine/errors";
 import type { AuthFailureKind } from "@/lib/sync-engine/errors";
-import SyncModePicker from "./SyncModePicker";
 import type { SyncMode } from "@/lib/sync-engine/sync-modes";
-import { 
-  Loader2, 
-  RefreshCw, 
-  X, 
-  CheckCircle2, 
-  Globe, 
-  Terminal, 
-  Copy, 
-  Check, 
-  Minimize2, 
+import {
+  Loader2,
+  RefreshCw,
+  X,
+  CheckCircle2,
+  Globe,
+  Terminal,
+  Copy,
+  Check,
+  Minimize2,
   Maximize2,
   AlertCircle,
-  Clock,
-  Info,
   WifiOff,
   Settings,
   KeyRound,
-  ExternalLink
+  ExternalLink,
+  ChevronDown,
+  ChevronUp,
+  Sparkles,
+  Layers,
+  ServerOff,
 } from "lucide-react";
 
-import SelectField from "../shared/primitives/SelectField";
 interface SyncNotificationProps {
   message: string;
   progress: number;
@@ -67,7 +71,6 @@ const parseLogLine = (line: string, isLast: boolean) => {
   let cleanText = line.trim();
   let status: "success" | "error" | "pending" | "info" | "loading" = "info";
 
-  // Check emojis and determine status, then strip them
   if (cleanText.includes("✅")) {
     status = "success";
     cleanText = cleanText.replace(/✅/g, "").trim();
@@ -84,34 +87,32 @@ const parseLogLine = (line: string, isLast: boolean) => {
     status = "loading";
   }
 
-  // Formatting cleanup
-  cleanText = cleanText
-    .replace(/^[-•*]\s*/, "") // Remove bullet prefixes
-    .trim();
-
+  cleanText = cleanText.replace(/^[-•*]\s*/, "").trim();
   return { text: cleanText, status };
 };
 
 const getStatusIcon = (status: "success" | "error" | "pending" | "info" | "loading") => {
   switch (status) {
     case "success":
-      return <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400 shrink-0 mt-0.5 animate-pill-pop" />;
+      return <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400 shrink-0 mt-0.5" />;
     case "error":
       return <AlertCircle className="w-3.5 h-3.5 text-rose-500 dark:text-rose-400 shrink-0 mt-0.5" />;
     case "pending":
-      return <Clock className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400 shrink-0 mt-0.5" />;
+      return (
+        <div className="w-3.5 h-3.5 rounded-full border-2 border-slate-300 dark:border-zinc-700 shrink-0 mt-0.5" />
+      );
     case "loading":
       return <Loader2 className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400 animate-spin shrink-0 mt-0.5" />;
     case "info":
     default:
-      return <Info className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400 shrink-0 mt-0.5" />;
+      return <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0 mt-1.5 mx-1" />;
   }
 };
 
 const cleanLogLine = (line: string) => {
   return line
     .replace(/[✅✔️❌⏳📝☐]/g, "")
-    .replace(/^[-•*]\s*/, "") // Remove bullet points if any
+    .replace(/^[-•*]\s*/, "")
     .trim();
 };
 
@@ -129,15 +130,21 @@ export default function SyncNotification({
   modeLabel,
   onSelectMode,
   onOpenEditor,
-  onChangePassword
+  onChangePassword,
 }: SyncNotificationProps) {
   const [showBackupBtn, setShowBackupBtn] = useState(false);
   const [hasSwitched, setHasSwitched] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [showConsole, setShowConsole] = useState(false);
+  const [showModeMenu, setShowModeMenu] = useState(false);
+  const [showServerMenu, setShowServerMenu] = useState(false);
+  const [vtopState, setVtopState] = useState<"idle" | "checking" | "up" | "down">("idle");
 
-  // Live target + traffic, read straight from the request layer so the sheet can
-  // never claim one server while the app is using another.
+  const modeMenuRef = useRef<HTMLDivElement>(null);
+  const serverMenuRef = useRef<HTMLDivElement>(null);
+
+  // Live target + traffic
   const uniccTarget = useUniccTarget();
   const activity = useUniccActivity();
   const uniccAvailable = isUniccFallbackEnabled();
@@ -145,34 +152,43 @@ export default function SyncNotification({
 
   const isOfflineNotice = notice === "offline";
 
+  // Close menus on click outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (modeMenuRef.current && !modeMenuRef.current.contains(e.target as Node)) {
+        setShowModeMenu(false);
+      }
+      if (serverMenuRef.current && !serverMenuRef.current.contains(e.target as Node)) {
+        setShowServerMenu(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const handleTargetChange = (newUrl: string) => {
     if (newUrl === UNICC_API_URL) {
-      // Preference only: AmazeCC keeps serving the routes UniCC lacks, so the
-      // global active URL must not move.
       setUniccTarget("unicc");
     } else {
       setUniccTarget("amazecc");
       setActiveApiUrl(newUrl);
-      setIsMinimized(false);
     }
+    setShowServerMenu(false);
   };
 
-  // Per-session tally. Reset when a session opens, not on every progress tick,
-  // so the counts describe the sync the user is actually watching.
+  // Reset activity on open
   const wasActive = useRef(false);
   useEffect(() => {
     if (active && !wasActive.current) resetUniccActivity();
     wasActive.current = active;
   }, [active]);
 
+  // Slow network timer (6s)
   useEffect(() => {
-    let timer: any;
+    let timer: ReturnType<typeof setTimeout>;
     if (active && !isOfflineNotice) {
       setShowBackupBtn(false);
       setHasSwitched(false);
-      
-      // Show the backup API switch button if loading takes more than 6 seconds
-      // (only when a distinct backup gateway is actually configured)
       timer = setTimeout(() => {
         if (hasBackupApi() && getActiveApiUrl() === PRIMARY_API_URL) {
           setShowBackupBtn(true);
@@ -182,7 +198,6 @@ export default function SyncNotification({
     return () => clearTimeout(timer);
   }, [active, message, isOfflineNotice]);
 
-  // Reset minimized state when starting a new sync session
   useEffect(() => {
     if (active) {
       setIsMinimized(false);
@@ -194,7 +209,7 @@ export default function SyncNotification({
     setActiveApiUrl(BACKUP_API_URL);
     setShowBackupBtn(false);
     setHasSwitched(true);
-    setIsMinimized(false); // Maximize to show success state
+    setIsMinimized(false);
   };
 
   const handleCopy = () => {
@@ -205,523 +220,1083 @@ export default function SyncNotification({
 
   if (!active) return null;
 
-  // Split lines of message to render logs
-  const logLines = message.split("\n").filter(line => line.trim() !== "");
+  const logLines = message
+    .split(/\r?\n|\\n/)
+    .map((line) => line.trim())
+    .filter((line) => line !== "");
 
-  // A rejected sign-in is the one failure the student can act on, so it gets a
-  // prompt and a fix-it button rather than only a red line in the log. The
-  // advice depends on why VTOP said no: when it named the username/password
-  // as wrong, the saved password is the fix; when it said nothing useful —
-  // a rate limit, a lock-out, a bare "login failed" — only VTOP knows, and
-  // the student has to go and change the password there.
+  // Classify authentication failure
   const authFailure: AuthFailureKind | null = (() => {
     let kind: AuthFailureKind | null = null;
     for (const line of logLines) {
       const { text, status } = parseLogLine(line, false);
       if (status !== "error") continue;
       const found = classifyAuthFailure(text);
-      // A named bad password is the more specific answer, so it wins.
       if (found === "bad-credentials") return found;
       if (found) kind = found;
     }
     return kind;
   })();
 
-  // Which API is answering right now, in one line. The dot colour follows the
-  // same rule the log does, so the two never disagree.
-  const req = (n: number) => `${n} request${n === 1 ? "" : "s"}`;
-  const serving: { dot: string; tone: string; text: string } | null = (() => {
-    if (!uniccAvailable || !activity.lastServer) return null;
-    const viaUnicc = activity.lastServer === "unicc";
+  // Auto-expand console if an unexpected non-auth error occurs
+  useEffect(() => {
+    if (authFailure) return;
+    const hasError = logLines.some((l) => l.includes("❌"));
+    if (hasError) setShowConsole(true);
+  }, [logLines, authFailure]);
 
-    // Shown while opted in, so "UniCC is serving" is never read as "everything
-    // came from UniCC" when half the endpoints only exist on AmazeCC.
-    const viaAmazecc =
-      viaUnicc && activity.unsupported > 0
-        ? ` · ${req(activity.unsupported)} from AmazeCC (no UniCC route)`
-        : "";
-
-    if (viaUnicc) {
-      return {
-        dot: "bg-amber-500 animate-pulse",
-        tone: "bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-400",
-        text: `UniCC API is serving${activity.lastPath ? ` ${activity.lastPath}` : ""}${viaAmazecc}`,
+  // Pre-flight check: check if VTOP is working as soon as sync starts
+  useEffect(() => {
+    if (active && outcome === null && vtopState === "idle" && !isOfflineNotice) {
+      let isMounted = true;
+      pingVtopDirectly(4000).then((isUp) => {
+        if (!isMounted) return;
+        if (!isUp) {
+          cancelAllRequests("VTOP is down");
+          setVtopState("down");
+          appendSyncLine("VTOP is down (vtopcc.vit.ac.in is unreachable) — sync cancelled", "error");
+          closeSyncSession(4000, "error");
+        } else {
+          setVtopState("up");
+        }
+      });
+      return () => {
+        isMounted = false;
       };
     }
-    return {
-      dot: "bg-emerald-500 animate-pulse",
-      tone: "bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-400",
-      text: `AmazeCC API is serving${activity.lastPath ? ` ${activity.lastPath}` : ""}`,
+  }, [active, outcome, vtopState, isOfflineNotice]);
+
+  // Ping VTOP directly if all APIs failed to sync (and it's not a rejected password)
+  const hasApiFailure =
+    (outcome === "error" && !authFailure) ||
+    (logLines.some((l) => /AmazeCC API failed|could not answer|fallback also failed|Failed to fetch/i.test(l)) &&
+      !authFailure);
+
+  const isPingingRef = useRef(false);
+
+  useEffect(() => {
+    if (!hasApiFailure) {
+      setVtopState("idle");
+      isPingingRef.current = false;
+      return;
+    }
+    if (isPingingRef.current) return;
+    isPingingRef.current = true;
+    setVtopState("checking");
+
+    let isMounted = true;
+    pingVtopDirectly(4500)
+      .then((isUp) => {
+        if (isMounted) {
+          const nextState = isUp ? "up" : "down";
+          setVtopState(nextState);
+          if (!isUp) {
+            cancelAllRequests("VTOP is down");
+            appendSyncLine("VTOP is down (vtopcc.vit.ac.in is unreachable) — sync cancelled", "error");
+            closeSyncSession(4000, "error");
+          }
+        }
+      })
+      .finally(() => {
+        isPingingRef.current = false;
+      });
+
+    return () => {
+      isMounted = false;
     };
+  }, [hasApiFailure]);
+
+  // Cancel active sync if VTOP is confirmed down
+  useEffect(() => {
+    if (vtopState === "down" && active && outcome !== "error") {
+      cancelAllRequests("VTOP is down");
+      appendSyncLine("VTOP is down (vtopcc.vit.ac.in is unreachable) — sync cancelled", "error");
+      closeSyncSession(4000, "error");
+    }
+  }, [vtopState, active, outcome]);
+
+  const isVtopDown =
+    vtopState === "down" || logLines.some((l) => /vtop.*down|vtopcc\.vit\.ac\.in.*down|portal unreachable/i.test(l));
+
+  // When VTOP is detected down, immediately cancel all background sync requests
+  useEffect(() => {
+    if (isVtopDown) {
+      cancelAllRequests("VTOP is down");
+    }
+  }, [isVtopDown]);
+
+  const effectiveOutcome = outcome || (isVtopDown ? "error" : null);
+
+  // Server telemetry label
+  const req = (n: number) => `${n} req${n === 1 ? "" : "s"}`;
+  const servingText = (() => {
+    if (!uniccAvailable || !activity.lastServer) return null;
+    const viaUnicc = activity.lastServer === "unicc";
+    const viaAmazecc = viaUnicc && activity.unsupported > 0 ? ` · ${req(activity.unsupported)} from AmazeCC` : "";
+
+    if (viaUnicc) {
+      return `UniCC serving${activity.lastPath ? ` ${activity.lastPath}` : ""}${viaAmazecc}`;
+    }
+    return `AmazeCC serving${activity.lastPath ? ` ${activity.lastPath}` : ""}`;
   })();
 
-  // circular SVG progress configurations
-  const strokeRadius = 13;
+  // Active server name for the header chip
+  const activeServerLabel =
+    targetValue === UNICC_API_URL ? "UniCC" : targetValue === BACKUP_API_URL ? "Backup API" : "AmazeCC";
+
+  // Headline determination
+  const latestLog = logLines[logLines.length - 1] || "";
+  const cleanedHeadline = cleanLogLine(latestLog) || "Syncing records...";
+
+  // Standard Milestones
+  const milestones = [
+    {
+      id: "auth",
+      label: "Authentication & Session",
+      status: authFailure ? "error" : progress >= 20 || /logged in|captcha/i.test(message) ? "completed" : "active",
+      detail: authFailure
+        ? "Sign-in rejected"
+        : progress >= 20 || /logged in|captcha/i.test(message)
+          ? "Session verified"
+          : "Checking credentials...",
+    },
+    {
+      id: "academics",
+      label: "Attendance & Timetable",
+      status:
+        progress >= 60 || /attendance.*complete|timetable.*complete/i.test(message)
+          ? "completed"
+          : progress >= 20
+            ? "active"
+            : "pending",
+      detail: progress >= 60 ? "Classes up to date" : progress >= 20 ? "Fetching latest slots..." : "Waiting",
+    },
+    {
+      id: "evaluations",
+      label: "Marks & Grades",
+      status:
+        progress >= 85 || /marks.*complete|grades.*complete/i.test(message)
+          ? "completed"
+          : progress >= 60
+            ? "active"
+            : "pending",
+      detail:
+        progress >= 85 ? "Grades & assessments verified" : progress >= 60 ? "Pulling assessment scores..." : "Waiting",
+    },
+    {
+      id: "cache",
+      label: "Local Storage & Finalize",
+      status: progress >= 100 || outcome === "success" ? "completed" : progress >= 85 ? "active" : "pending",
+      detail:
+        progress >= 100 || outcome === "success"
+          ? "Synchronized"
+          : progress >= 85
+            ? "Saving offline database..."
+            : "Waiting",
+    },
+  ];
+
+  // Circular progress SVG constants for minimized mobile pill
+  const strokeRadius = 14;
   const strokeCircumference = 2 * Math.PI * strokeRadius;
   const strokeOffset = strokeCircumference - (Math.min(progress, 100) / 100) * strokeCircumference;
 
-  // Backdrop tap / swipe-down / system back only park the sync in the
-  // background pill — only the explicit X/Escape dismisses (cancels) it.
-  // A notice has nothing to keep running, so it just closes.
   const minimizeToBackground = () => setIsMinimized(true);
-  const parkOrClose = isOfflineNotice ? onDismiss : minimizeToBackground;
+  const isFinished = isOfflineNotice || effectiveOutcome === "success" || effectiveOutcome === "error" || hasSwitched;
+  const parkOrClose = isFinished ? onDismiss : minimizeToBackground;
+
+  const handleCancelSync = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    cancelAllRequests("User cancelled sync mid-flight");
+    onDismiss();
+  };
+
+  const currentMode = modes?.find((m) => m.id === modeId);
+  const activeModeTitle = currentMode?.label || modeLabel || "VTOP Sync";
 
   return (
-    <AnimatePresence mode="wait">
+    <AnimatePresence>
       {isMinimized ? (
-            /* Minimized background pill (unchanged) */
-            <m.div
-              key="sync-minimized"
-              layout
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ type: "spring", stiffness: 450, damping: 35 }}
-              className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+6rem)] right-4 z-50 w-full max-w-[300px] bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border-muted)] shadow-xl rounded-2xl p-3 pr-2 flex items-center gap-3 cursor-pointer select-none font-sans border-l-[4px] border-l-blue-500"
-              onClick={() => setIsMinimized(false)}
-            >
-            <div className="flex items-center gap-3 w-full">
-              {/* Circular progress SVG */}
-              <div className="relative flex items-center justify-center shrink-0 w-8 h-8">
-                <svg className="w-8 h-8 -rotate-90">
-                  <circle
-                    cx="16"
-                    cy="16"
-                    r={strokeRadius}
-                    className="stroke-slate-200/80 dark:stroke-zinc-800/80"
-                    strokeWidth="2.5"
-                    fill="transparent"
-                  />
-                  <circle
-                    cx="16"
-                    cy="16"
-                    r={strokeRadius}
-                    className="stroke-blue-500 dark:stroke-blue-400 transition-all duration-300 ease-out"
-                    strokeWidth="3"
-                    fill="transparent"
-                    strokeDasharray={strokeCircumference}
-                    strokeDashoffset={strokeOffset}
-                    strokeLinecap="round"
-                  />
-                </svg>
-                {progress >= 100 ? (
-                  <Check className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400 absolute" strokeWidth={3} />
-                ) : (
-                  <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 absolute">
-                    {Math.min(100, Math.round(progress))}%
-                  </span>
-                )}
-              </div>
-
-              {/* Pinned Info Labels */}
-              <div className="min-w-0 flex-1">
-                <h4 className="text-[10px] font-extrabold text-slate-800 dark:text-white leading-none font-outfit">Syncing VTOP</h4>
-                <p className="text-[10px] text-slate-400 dark:text-gray-500 font-bold truncate mt-1 leading-tight max-w-[130px]">
-                  {cleanLogLine(logLines[logLines.length - 1] || "Syncing records...")}
-                </p>
-              </div>
-
-              {/* Action buttons */}
-              <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-                <button
-                  onClick={() => setIsMinimized(false)}
-                  className="relative hit-expand p-1 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-zinc-900 transition-colors cursor-pointer"
-                  title="Expand window"
-                >
-                  <Maximize2 size={12} />
-                </button>
-                <button
-                  onClick={onDismiss}
-                  className="relative hit-expand p-1 rounded-md text-slate-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors cursor-pointer"
-                  title="Cancel sync"
-                >
-                  <X size={12} />
-                </button>
-              </div>
+        /* Minimized background pill - refined mobile dock capsule */
+        <m.div
+          key="sync-minimized"
+          layout
+          initial={{ opacity: 0, scale: 0.94, y: 12 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.94, y: 12 }}
+          transition={{ type: "spring", stiffness: 450, damping: 32 }}
+          className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+5.5rem)] left-3 right-3 sm:left-auto sm:right-6 sm:w-auto sm:min-w-[320px] sm:max-w-[350px] mx-auto z-50 bg-white/92 dark:bg-zinc-950/92 backdrop-blur-2xl border border-black/[0.08] dark:border-white/[0.12] shadow-[0_12px_36px_-4px_rgba(0,0,0,0.18),0_0_1px_rgba(0,0,0,0.2)] dark:shadow-[0_16px_40px_-4px_rgba(0,0,0,0.7),0_0_1px_rgba(255,255,255,0.15)] rounded-2xl py-2.5 px-3.5 flex items-center gap-3 cursor-pointer select-none font-sans active:scale-[0.99] transition-transform"
+          onClick={() => setIsMinimized(false)}
+        >
+          <div className="flex items-center gap-3 w-full">
+            {/* Circular progress SVG */}
+            <div className="relative flex items-center justify-center shrink-0 w-9 h-9">
+              <svg className="w-9 h-9 -rotate-90">
+                <circle
+                  cx="18"
+                  cy="18"
+                  r={strokeRadius}
+                  className="stroke-slate-200/80 dark:stroke-zinc-800/80"
+                  strokeWidth="2.5"
+                  fill="transparent"
+                />
+                <circle
+                  cx="18"
+                  cy="18"
+                  r={strokeRadius}
+                  className="stroke-blue-500 dark:stroke-blue-400 transition-all duration-300 ease-out"
+                  strokeWidth="3"
+                  fill="transparent"
+                  strokeDasharray={strokeCircumference}
+                  strokeDashoffset={strokeOffset}
+                  strokeLinecap="round"
+                />
+              </svg>
+              {progress >= 100 ? (
+                <Check className="w-4 h-4 text-emerald-500 dark:text-emerald-400 absolute" strokeWidth={3} />
+              ) : (
+                <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 absolute font-mono">
+                  {Math.min(100, Math.round(progress))}%
+                </span>
+              )}
             </div>
-            </m.div>
-          ) : (
-            /* Expanded view as a bottom sheet */
-            <BottomSheet
-              key="sync-expanded"
-              onClose={onDismiss}
-              overlayId="sync-progress"
-              maxWidth="max-w-md"
-              showClose={false}
-              onBackdropClick={parkOrClose}
-              onSwipeDown={parkOrClose}
-              onSystemBack={parkOrClose}
-            >
-            <div className="flex flex-col gap-4 sm:gap-5 w-full relative">
-              {/* Header controls */}
-              <div className="absolute -top-1 -right-1 flex items-center gap-2 z-10">
-                {!hasSwitched && !isOfflineNotice && (
+
+            {/* Pinned Labels */}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <h4 className="text-xs font-black text-slate-800 dark:text-white leading-none font-outfit truncate">
+                  {activeModeTitle}
+                </h4>
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse shrink-0" />
+              </div>
+              <p className="text-[10.5px] text-slate-500 dark:text-zinc-400 font-medium truncate mt-1 leading-tight">
+                {cleanedHeadline}
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => setIsMinimized(false)}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                title="Expand sync view"
+              >
+                <Maximize2 size={15} />
+              </button>
+              <button
+                onClick={handleCancelSync}
+                className="p-2 rounded-xl text-rose-500 hover:text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer shadow-[0_0_8px_rgba(244,63,94,0.15)]"
+                title="Cancel sync"
+              >
+                <X size={15} strokeWidth={2.5} />
+              </button>
+            </div>
+          </div>
+        </m.div>
+      ) : (
+        /* Expanded Bottom Sheet */
+        <BottomSheet
+          key="sync-expanded"
+          onClose={onDismiss}
+          overlayId="sync-progress"
+          maxWidth="max-w-md"
+          showClose={false}
+          onBackdropClick={parkOrClose}
+          onSwipeDown={parkOrClose}
+          onSystemBack={parkOrClose}
+        >
+          <div className="flex flex-col gap-3.5 w-full relative">
+            {/* 1. OFFLINE NOTICE TAKEOVER */}
+            {isOfflineNotice ? (
+              <m.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: "spring", damping: 20, stiffness: 240 }}
+                className="flex flex-col items-center text-center py-6 px-4"
+              >
+                <div className="w-14 h-14 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center border border-amber-500/20 shadow-lg shadow-amber-500/10">
+                  <WifiOff className="w-7 h-7" strokeWidth={2.4} />
+                </div>
+                <h4 className="mt-3.5 text-base font-black text-slate-900 dark:text-white font-outfit">
+                  You&apos;re Offline
+                </h4>
+                <p className="mt-1 text-xs font-medium text-slate-500 dark:text-zinc-400 max-w-[260px] leading-relaxed">
+                  No network detected. Reconnect to sync the latest records from VTOP.
+                </p>
+
+                <div className="w-full flex items-center gap-2 mt-5">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setIsMinimized(true);
+                      onDismiss();
                     }}
-                    className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-zinc-900 transition-colors cursor-pointer"
-                    title="Minimize to background"
+                    className="flex-1 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200/80 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 font-bold text-xs uppercase tracking-wider transition-all duration-150 active:scale-[0.985] cursor-pointer"
                   >
-                    <Minimize2 size={14} />
+                    Dismiss
                   </button>
-                )}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDismiss();
+                      onRetry?.();
+                    }}
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs uppercase tracking-wider transition-all duration-150 active:scale-[0.985] cursor-pointer shadow-md shadow-amber-500/20"
+                  >
+                    <RefreshCw size={12} />
+                    <span>Try Again</span>
+                  </button>
+                </div>
+              </m.div>
+            ) : effectiveOutcome === "success" ? (
+              /* 2. SUCCESS STATE TAKEOVER */
+              <m.div
+                initial={{ opacity: 0, scale: 0.92 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: "spring", damping: 18, stiffness: 240 }}
+                className="flex flex-col items-center text-center py-6 px-4"
+              >
+                <div className="w-14 h-14 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                  <Check className="w-7 h-7" strokeWidth={3} />
+                </div>
+                <h4 className="mt-3.5 text-base font-black text-slate-900 dark:text-white font-outfit">
+                  Sync Successful
+                </h4>
+                <p className="mt-1 text-xs font-medium text-slate-500 dark:text-zinc-400">
+                  All academic records are completely up to date.
+                </p>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     onDismiss();
                   }}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-zinc-900 transition-colors cursor-pointer"
-                  title="Dismiss"
+                  className="mt-5 w-full py-2.5 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold uppercase tracking-wider transition-all cursor-pointer active:scale-[0.985]"
                 >
-                  <X size={15} />
+                  Done
                 </button>
-              </div>
-
-              {/* Connectivity notice: no request was fired, so the sheet
-                  explains the state and offers a retry instead of progress */}
-              {isOfflineNotice ? (
+              </m.div>
+            ) : effectiveOutcome === "error" ? (
+              /* 3. FULL-SCREEN ERROR TAKEOVER */
+              isVtopDown ? (
+                /* 3A. BOLD VTOP IS DOWN TAKEOVER */
                 <m.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ type: "spring", damping: 20, stiffness: 240 }}
-                  className="flex flex-col items-center text-center py-8 px-4"
+                  className="flex flex-col items-center text-center py-6 px-3 sm:px-4 w-full"
                 >
-                  <div className="w-16 h-16 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-xl shadow-amber-500/30">
-                    <WifiOff className="w-8 h-8" strokeWidth={2.4} />
+                  {/* Glowing Rose Halo + ServerOff Icon */}
+                  <div className="relative flex items-center justify-center">
+                    <div className="absolute inset-0 rounded-2xl bg-rose-500/25 blur-xl animate-pulse" />
+                    <div className="relative w-16 h-16 rounded-2xl bg-rose-500/15 border border-rose-500/40 text-rose-500 dark:text-rose-400 flex items-center justify-center shadow-[0_0_24px_rgba(244,63,94,0.4)] ring-2 ring-rose-500/30">
+                      <ServerOff className="w-8 h-8 drop-shadow-[0_0_8px_rgba(244,63,94,0.8)]" strokeWidth={2.4} />
+                    </div>
                   </div>
-                  <h4 className="mt-4 text-base font-black text-zinc-900 dark:text-white font-outfit">
-                    You&apos;re Offline
-                  </h4>
-                  <p className="mt-1 text-xs font-medium text-zinc-500 dark:text-zinc-400 max-w-[260px] leading-relaxed">
-                    No internet connection right now. Reconnect to the network, then sync again to pull the
-                    latest records from VTOP.
+
+                  {/* BOLD HEADLINE */}
+                  <h3 className="mt-4 text-2xl font-black text-rose-600 dark:text-rose-400 font-outfit uppercase tracking-tight drop-shadow-[0_0_12px_rgba(244,63,94,0.25)]">
+                    VTOP is Down
+                  </h3>
+
+                  {/* EXPLANATORY DESCRIPTION */}
+                  <p className="mt-2 text-xs font-semibold text-slate-600 dark:text-zinc-300 max-w-[320px] leading-relaxed">
+                    Direct connection to{" "}
+                    <span className="font-black text-rose-600 dark:text-rose-400 underline decoration-rose-500/40 underline-offset-2">
+                      vtopcc.vit.ac.in
+                    </span>{" "}
+                    did not respond. The university portal appears to be offline or undergoing maintenance. Background
+                    sync has been cancelled.
                   </p>
 
-                  <div className="w-full flex items-center gap-2 mt-5">
+                  {/* ACTION BUTTONS: PROMINENT DISMISS + SECONDARY ACTIONS */}
+                  <div className="w-full flex flex-col gap-2.5 mt-6">
+                    {/* Primary Dismiss Button */}
                     <button
+                      type="button"
                       onClick={(e) => {
                         e.stopPropagation();
+                        cancelAllRequests("User dismissed VTOP down notice");
                         onDismiss();
                       }}
-                      className="flex-1 py-3 px-4 rounded-xl bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 font-bold text-[10px] uppercase tracking-wider transition-all duration-150 active:scale-[0.985] cursor-pointer"
+                      className="w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-black dark:bg-white dark:hover:bg-zinc-100 dark:active:bg-zinc-200 text-white dark:text-zinc-950 font-black text-xs uppercase tracking-wider transition-all duration-150 active:scale-[0.985] cursor-pointer shadow-lg shadow-black/10 dark:shadow-white/10"
                     >
                       Dismiss
                     </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDismiss();
-                        onRetry?.();
-                      }}
-                      className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-[10px] uppercase tracking-wider transition-all duration-150 active:scale-[0.985] cursor-pointer shadow-md shadow-amber-500/20"
-                    >
-                      <RefreshCw size={11} />
-                      <span>Try Again</span>
-                    </button>
+
+                    {/* Secondary Actions: Check VTOP & Retry */}
+                    <div className="w-full flex items-center gap-2">
+                      <a
+                        href={VTOP_PORTAL_URL}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200/80 dark:bg-zinc-800/80 dark:hover:bg-zinc-700/80 text-slate-700 dark:text-zinc-200 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer border border-slate-200/60 dark:border-zinc-700/60"
+                      >
+                        <ExternalLink size={12} />
+                        <span>Check VTOP</span>
+                      </a>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          cancelAllRequests("Retrying sync");
+                          onDismiss();
+                          onRetry?.();
+                        }}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 active:bg-rose-500/25 text-rose-600 dark:text-rose-400 border border-rose-500/30 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-sm shadow-rose-500/10"
+                      >
+                        <RefreshCw size={12} />
+                        <span>Retry Sync</span>
+                      </button>
+                    </div>
                   </div>
                 </m.div>
-              ) : outcome === "success" ? (
-                /* Success tick takes over the whole sheet; everything else
-                    disappears the moment it appears */
+              ) : vtopState === "checking" ? (
+                /* 3B. CHECKING VTOP STATUS TAKEOVER (PREVENTS FLASHING "SYNC FAILED") */
                 <m.div
-                  initial={{ opacity: 0, scale: 0.9 }}
+                  initial={{ opacity: 0, scale: 0.96 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  transition={{ type: "spring", damping: 18, stiffness: 240 }}
-                  className="flex flex-col items-center text-center py-8 px-4"
+                  className="flex flex-col items-center text-center py-8 px-4 w-full"
                 >
-                  <div className="w-16 h-16 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xl shadow-emerald-500/30">
-                    <Check className="w-8 h-8" strokeWidth={3} />
+                  <div className="relative w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/10">
+                    <Loader2 className="w-7 h-7 animate-spin" />
                   </div>
-                  <h4 className="mt-4 text-base font-black text-zinc-900 dark:text-white font-outfit">
-                    Sync successful
+                  <div className="mt-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-600 dark:text-amber-400 text-[10px] font-black uppercase tracking-widest">
+                    <span>Checking Reachability</span>
+                  </div>
+                  <h4 className="mt-2.5 text-base font-black text-slate-900 dark:text-white font-outfit">
+                    Connecting to VTOP…
                   </h4>
-                  <p className="mt-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                    All records are up to date
+                  <p className="mt-1 text-xs font-medium text-slate-500 dark:text-zinc-400 max-w-[280px] leading-relaxed">
+                    Checking if vtopcc.vit.ac.in is online to determine server status.
                   </p>
+                </m.div>
+              ) : (
+                /* 3C. OTHER ERRORS (Auth Rejection / General Error) */
+                <m.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ type: "spring", damping: 20, stiffness: 240 }}
+                  className="flex flex-col items-center text-center py-6 px-4 w-full"
+                >
+                  {/* ICON BADGE */}
+                  {authFailure ? (
+                    <div className="w-14 h-14 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center border border-amber-500/25 shadow-lg shadow-amber-500/20 ring-1 ring-amber-500/30">
+                      <KeyRound className="w-7 h-7" strokeWidth={2.2} />
+                    </div>
+                  ) : (
+                    <div className="w-14 h-14 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center border border-rose-500/25 shadow-lg shadow-rose-500/20 ring-1 ring-rose-500/30">
+                      <AlertCircle className="w-7 h-7" strokeWidth={2.2} />
+                    </div>
+                  )}
+
+                  {/* HEADLINE */}
+                  <h4 className="mt-3.5 text-base font-black text-slate-900 dark:text-white font-outfit">
+                    {authFailure === "bad-credentials"
+                      ? "Check Your Password"
+                      : authFailure
+                        ? "Sign-in Rejected"
+                        : "Sync Failed"}
+                  </h4>
+
+                  {/* EXPLANATORY DESCRIPTION */}
+                  <p className="mt-1 text-xs font-medium text-slate-500 dark:text-zinc-400 max-w-[280px] leading-relaxed">
+                    {authFailure === "bad-credentials" ? (
+                      "VTOP rejected your saved credentials. Update your password or reset it directly on the university portal."
+                    ) : authFailure ? (
+                      <>
+                        Your VTOP session was rejected. Please log in directly to{" "}
+                        <span className="font-bold text-amber-600 dark:text-amber-400">vtopcc.vit.ac.in</span> to verify
+                        or change your password.
+                      </>
+                    ) : vtopState === "up" ? (
+                      "VTOP portal is online, but our sync API gateways could not connect. Try switching to the Backup API or retry."
+                    ) : (
+                      "Unable to synchronize your academic records from VTOP. Please check your network and try again."
+                    )}
+                  </p>
+
+                  {/* ACTION BUTTONS ROW */}
+                  <div className="w-full flex flex-col gap-2 mt-5">
+                    {authFailure === "bad-credentials" ? (
+                      <div className="w-full flex flex-col gap-2">
+                        {onChangePassword && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onChangePassword();
+                            }}
+                            className="w-full flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md shadow-indigo-600/20"
+                          >
+                            <KeyRound size={12} />
+                            <span>Change Password</span>
+                          </button>
+                        )}
+                        <div className="w-full flex items-center gap-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDismiss();
+                            }}
+                            className="flex-1 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
+                          >
+                            Dismiss
+                          </button>
+                          <a
+                            href={VTOP_PORTAL_URL}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md shadow-amber-500/20"
+                          >
+                            <ExternalLink size={12} />
+                            <span>Reset on VTOP</span>
+                          </a>
+                        </div>
+                      </div>
+                    ) : authFailure ? (
+                      <div className="w-full flex items-center gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDismiss();
+                          }}
+                          className="flex-1 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
+                        >
+                          Dismiss
+                        </button>
+                        <a
+                          href={VTOP_PORTAL_URL}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md shadow-amber-500/20"
+                        >
+                          <ExternalLink size={12} />
+                          <span>Open VTOP</span>
+                        </a>
+                      </div>
+                    ) : (
+                      <div className="w-full flex flex-col gap-2">
+                        {hasBackupApi() && getActiveApiUrl() === PRIMARY_API_URL && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSwitchToBackup();
+                            }}
+                            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-amber-500/10 hover:bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/20 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
+                          >
+                            <RefreshCw size={12} />
+                            <span>Switch to Backup API</span>
+                          </button>
+                        )}
+                        <div className="w-full flex items-center gap-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDismiss();
+                            }}
+                            className="flex-1 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
+                          >
+                            Dismiss
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDismiss();
+                              onRetry?.();
+                            }}
+                            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md shadow-rose-600/20"
+                          >
+                            <RefreshCw size={12} />
+                            <span>Retry Sync</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* OPTIONAL DIAGNOSTICS ACCORDION IN OTHER ERRORS (Omitted when VTOP is down) */}
+                    {logLines.length > 0 && (
+                      <div className="w-full mt-3 text-left">
+                        <button
+                          type="button"
+                          onClick={() => setShowConsole(!showConsole)}
+                          className="w-full flex items-center justify-between py-1.5 px-3 rounded-xl bg-slate-100/70 hover:bg-slate-200/70 dark:bg-zinc-900/80 dark:hover:bg-zinc-800 border border-slate-200/50 dark:border-zinc-800/60 transition-colors cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Terminal size={12} className="text-slate-400 dark:text-zinc-500 shrink-0" />
+                            <span className="text-[10.5px] font-semibold text-slate-600 dark:text-zinc-400">
+                              Error Log & Diagnostics ({logLines.length} events)
+                            </span>
+                          </div>
+                          {showConsole ? (
+                            <ChevronUp size={12} className="text-slate-400" />
+                          ) : (
+                            <ChevronDown size={12} className="text-slate-400" />
+                          )}
+                        </button>
+
+                        <AnimatePresence>
+                          {showConsole && (
+                            <m.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="overflow-hidden mt-1.5"
+                            >
+                              <div className="bg-slate-900 dark:bg-black/90 text-slate-200 rounded-xl p-3 max-h-[140px] overflow-y-auto text-[10px] font-mono space-y-1.5 scrollbar-none border border-slate-800">
+                                {logLines.map((line, idx) => {
+                                  const isLast = idx === logLines.length - 1;
+                                  const { text, status } = parseLogLine(line, isLast);
+                                  return (
+                                    <div key={idx} className="flex items-start gap-2">
+                                      {getStatusIcon(status)}
+                                      <span
+                                        className={
+                                          status === "error"
+                                            ? "text-rose-400 font-bold"
+                                            : isLast
+                                              ? "text-white font-bold"
+                                              : "text-slate-400"
+                                        }
+                                      >
+                                        {text}
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </m.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    )}
+                  </div>
+                </m.div>
+              )
+            ) : hasSwitched ? (
+              /* 4. SWITCHED TO BACKUP STATE */
+              <m.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.2 }}
+                className="flex flex-col items-center text-center py-5 px-3 gap-3.5"
+              >
+                <div className="w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-100 dark:border-emerald-900/30">
+                  <CheckCircle2 size={24} />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="font-extrabold text-slate-900 dark:text-white text-sm font-outfit">
+                    Backup Server Active
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-zinc-400 leading-relaxed font-medium">
+                    Connection updated to bypass local firewall filters.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-2.5 pr-1.5 select-none">
+                  <Globe size={13} className="text-slate-400 dark:text-zinc-500 shrink-0" />
+                  <span className="text-[10px] text-slate-600 dark:text-zinc-400 font-mono truncate text-left flex-1 font-semibold">
+                    {BACKUP_API_URL}
+                  </span>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      onDismiss();
+                      handleCopy();
                     }}
-                    className="mt-5 px-8 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black transition-all cursor-pointer active:scale-95"
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200 hover:bg-slate-200 dark:hover:bg-zinc-800 transition-colors"
                   >
-                    Done
+                    {copied ? <Check size={11} className="text-emerald-500" /> : <Copy size={11} />}
                   </button>
-                </m.div>
-              ) : (
-                <>
-                  {!hasSwitched ? (
-                  <>
-                  {/* Header section with live target status */}
-                  <div className="flex flex-col gap-1 pr-12">
-                    <div className="flex items-center gap-2">
-                      <Terminal className="w-4.5 h-4.5 text-blue-600 dark:text-blue-400 shrink-0" />
-                      <h3 className="font-extrabold text-slate-900 dark:text-white text-sm font-outfit">{modeLabel ?? "VTOP Sync"}</h3>
-                    </div>
-                    <p className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold tracking-wide leading-relaxed">
-                      Securing credentials and pulling academic records
-                    </p>
-                  </div>
+                </div>
 
-                  {/* Sync mode switcher: re-runs the reload with another mode. */}
-                  {modes && modes.length > 0 && onSelectMode && modeId && (
-                    <div className="flex items-center gap-2">
-                      <div className="min-w-0 flex-1">
-                        <SyncModePicker modes={modes} activeId={modeId} defaultId={defaultModeId ?? modeId} onSelect={onSelectMode} />
-                      </div>
-                      {onOpenEditor && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onOpenEditor();
-                          }}
-                          className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-zinc-900 transition-colors cursor-pointer shrink-0"
-                          title="Manage sync modes"
-                        >
-                          <Settings size={14} />
-                        </button>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Target server: selectable mid-sync, and honest about who is
-                      actually answering right now. */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between bg-slate-50 dark:bg-[var(--surface-secondary)] border border-slate-200/60 dark:border-[var(--border-muted)] p-3 rounded-xl gap-2">
-                      <span className="text-[10px] text-slate-500 dark:text-gray-400 font-bold shrink-0">
-                        Target Server:
-                      </span>
-                          <SelectField
-                            value={targetValue}
-                            onChange={handleTargetChange}
-                            options={[
-                              { value: PRIMARY_API_URL, label: "AmazeCC" },
-                              ...(hasBackupApi()
-                                ? [{ value: BACKUP_API_URL, label: "AmazeCC (Backup)" }]
-                                : []),
-                              ...(uniccAvailable ? [{ value: UNICC_API_URL, label: "UniCC" }] : []),
-                            ]}
-                            searchable={false}
-                            size="xs"
-                            role="group"
-                            aria-label="Target server"
-                            className="min-w-0 flex-1 [&>button:first-child]:border-none [&>button:first-child]:bg-transparent [&>button:first-child]:px-0 [&>button:first-child]:text-[10px] [&>button:first-child]:text-indigo-600 dark:[&>button:first-child]:text-indigo-400"
-                          />
-                        </div>
-
-                    {/* Which API is answering, as opposed to which one was
-                        asked for. Reported even when the user did not opt in,
-                        because a third party quietly serving a student's data is
-                        exactly the thing that should never be invisible. */}
-                    {serving && (
-                      <m.div
-                        initial={{ opacity: 0, y: -4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className={`flex items-start gap-2 px-2.5 py-1.5 rounded-lg border text-[9.5px] font-bold leading-snug ${serving.tone}`}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDismiss();
+                  }}
+                  className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-wider transition-all active:scale-[0.985] cursor-pointer shadow-md shadow-blue-500/15"
+                >
+                  Dismiss & Try Again
+                </button>
+              </m.div>
+            ) : (
+              /* 5. ACTIVE RUNNING SYNC VIEW */
+              <>
+                {/* 1. UNIFIED HEADER TOOLBAR */}
+                <div className="flex items-center justify-between gap-2 pb-1">
+                  {/* Left: Mode Chip Selector */}
+                  <div className="relative" ref={modeMenuRef}>
+                    {modes && modes.length > 0 && onSelectMode ? (
+                      <button
+                        onClick={() => {
+                          setShowModeMenu(!showModeMenu);
+                          setShowServerMenu(false);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-900/40 hover:bg-blue-100/60 dark:hover:bg-blue-900/50 transition-colors cursor-pointer"
+                        title="Change sync mode"
                       >
-                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 mt-1 ${serving.dot}`} />
-                        <span>{serving.text}</span>
-                      </m.div>
+                        <Sparkles size={11} className="text-blue-500 dark:text-blue-400 shrink-0" />
+                        <span className="truncate max-w-[130px]">{activeModeTitle}</span>
+                        <ChevronDown size={11} className="opacity-70 shrink-0" />
+                      </button>
+                    ) : (
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 dark:bg-zinc-800/70 text-slate-700 dark:text-zinc-300">
+                        <Layers size={11} className="text-slate-500 shrink-0" />
+                        <span>{activeModeTitle}</span>
+                      </div>
+                    )}
+
+                    {/* Mode Dropdown Menu */}
+                    {showModeMenu && (
+                      <div className="absolute left-0 top-full mt-1.5 z-30 w-60 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-xl p-1.5 space-y-0.5 animate-in fade-in zoom-in-95 duration-100">
+                        {modes?.map((m) => {
+                          const isSelected = m.id === modeId;
+                          const isDefault = defaultModeId === m.id;
+                          return (
+                            <button
+                              key={m.id}
+                              onClick={() => {
+                                onSelectMode?.(m.id);
+                                setShowModeMenu(false);
+                              }}
+                              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs transition-colors ${
+                                isSelected
+                                  ? "bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 font-bold"
+                                  : "text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800/60 font-medium"
+                              }`}
+                            >
+                              <div className="min-w-0 pr-2">
+                                <div className="flex items-center gap-1.5">
+                                  {isDefault && (
+                                    <span className="text-[10px] text-amber-500 font-bold" title="Default Mode">
+                                      ★
+                                    </span>
+                                  )}
+                                  <span className="truncate">{m.label}</span>
+                                </div>
+                                <span className="text-[10px] text-slate-400 dark:text-zinc-500 truncate block">
+                                  {m.description}
+                                </span>
+                              </div>
+                              {isSelected && <Check size={13} className="shrink-0 text-blue-500" />}
+                            </button>
+                          );
+                        })}
+
+                        {onOpenEditor && (
+                          <div className="pt-1 mt-1 border-t border-slate-100 dark:border-zinc-800">
+                            <button
+                              onClick={() => {
+                                setShowModeMenu(false);
+                                onOpenEditor();
+                              }}
+                              className="w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-left text-xs font-semibold text-slate-500 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800/60 transition-colors"
+                            >
+                              <Settings size={12} />
+                              <span>Manage Custom Modes</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
 
-                  {/* Custom styled progress indicator */}
-                  <div className="w-full space-y-2 bg-slate-50 dark:bg-[var(--surface-secondary)] p-4 rounded-2xl border border-slate-200/50 dark:border-[var(--border-muted)] shadow-sm">
-                    <div className="flex justify-between items-baseline text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-gray-500">
-                      <span>Transfer Rate</span>
-                      <span className="text-blue-600 dark:text-blue-400 font-extrabold">{Math.min(100, Math.round(progress))}%</span>
-                    </div>
-                    <div className="w-full bg-slate-200 dark:bg-zinc-800 h-2 rounded-full overflow-hidden relative">
-                      <m.div
-                        className="h-full bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-500 dark:to-indigo-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.3)]"
-                        animate={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
-                        transition={{ type: "spring", damping: 20, stiffness: 120 }}
-                      />
-                    </div>
-                  </div>
+                  {/* Right: Target Server Pill + Prominent Minimize Button */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    {/* Server Status Chip */}
+                    <div className="relative" ref={serverMenuRef}>
+                      <button
+                        onClick={() => {
+                          setShowServerMenu(!showServerMenu);
+                          setShowModeMenu(false);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-bold bg-slate-100 hover:bg-slate-200/70 dark:bg-zinc-800/80 dark:hover:bg-zinc-800 border border-slate-200/60 dark:border-zinc-700/60 text-slate-700 dark:text-zinc-300 transition-colors cursor-pointer"
+                        title="Target Server Status"
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            uniccTarget === "unicc"
+                              ? "bg-amber-500 animate-pulse"
+                              : targetValue === BACKUP_API_URL
+                                ? "bg-indigo-500"
+                                : "bg-emerald-500"
+                          }`}
+                        />
+                        <span>{activeServerLabel}</span>
+                        <ChevronDown size={10} className="text-slate-400 dark:text-zinc-500" />
+                      </button>
 
-                  {/* Status Message Log Container */}
-                  <div className="bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3.5 max-h-[120px] overflow-y-auto text-[10.5px] space-y-2 text-slate-700 dark:text-gray-300 font-sans scrollbar-none">
-                    <AnimatePresence initial={false}>
-                      {logLines.map((line, idx) => {
-                        const isLast = idx === logLines.length - 1;
-                        const { text, status } = parseLogLine(line, isLast);
-                        return (
-                          <m.div 
-                            key={idx} 
-                            initial={{ opacity: 0, y: 4 }} 
-                            animate={{ opacity: 1, y: 0 }} 
-                            transition={{ duration: 0.15 }}
-                            className="flex items-start gap-2"
+                      {/* Server Selection Dropdown */}
+                      {showServerMenu && (
+                        <div className="absolute right-0 top-full mt-1.5 z-30 w-56 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-xl p-1.5 space-y-1 animate-in fade-in zoom-in-95 duration-100">
+                          <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
+                            Switch Gateway
+                          </div>
+                          <button
+                            onClick={() => handleTargetChange(PRIMARY_API_URL)}
+                            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs font-semibold transition-colors ${
+                              targetValue === PRIMARY_API_URL && uniccTarget !== "unicc"
+                                ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400"
+                                : "text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800"
+                            }`}
                           >
-                            {getStatusIcon(status)}
-                            <span className={isLast ? "font-extrabold text-slate-900 dark:text-white" : "text-slate-500 dark:text-gray-400"}>
-                              {text}
-                            </span>
-                          </m.div>
-                        );
-                      })}
-                    </AnimatePresence>
-                  </div>
-
-                  {/* Rejected sign-in: say what to check and offer the fix
-                      here, because the run cannot recover on its own and the
-                      log line alone tells the student nothing actionable.
-                      Buttons, not links: a phone is a thumb, and an
-                      underlined link in a sheet is a small target. */}
-                  {authFailure && (
-                    <m.div
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ type: "spring", damping: 20, stiffness: 240 }}
-                      className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-3.5 space-y-3"
-                    >
-                      <div className="flex items-start gap-2">
-                        <KeyRound className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                        <div className="space-y-1 min-w-0">
-                          <p className="text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-400">
-                            {authFailure === "bad-credentials" ? "Check your password" : "Sign-in rejected"}
-                          </p>
-                          <p className="text-[10.5px] font-semibold text-slate-700 dark:text-gray-300 leading-relaxed">
-                            {authFailure === "bad-credentials" ? (
-                              <>
-                                Are you sure your password is the same? If you believe your password has
-                                changed, please change the password otherwise VTOP may force you to reset your
-                                password on the next attempt.
-                              </>
-                            ) : (
-                              <>
-                                Your VTOP Password may need to change, please log in to
-                                {" "}
-                                <span className="font-black text-amber-700 dark:text-amber-400">
-                                  vtopcc.vit.ac.in
-                                </span>{" "}
-                                to change your password.
-                              </>
+                            <span>AmazeCC (Primary)</span>
+                            {targetValue === PRIMARY_API_URL && uniccTarget !== "unicc" && (
+                              <Check size={13} className="text-emerald-500" />
                             )}
-                          </p>
-                        </div>
-                      </div>
+                          </button>
 
-                      {authFailure === "bad-credentials" ? (
-                        <>
-                          {onChangePassword && (
+                          {hasBackupApi() && (
                             <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onChangePassword();
-                              }}
-                              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold text-[10px] uppercase tracking-wider transition-all duration-150 active:scale-[0.985] cursor-pointer shadow-md shadow-indigo-500/20"
+                              onClick={() => handleTargetChange(BACKUP_API_URL)}
+                              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs font-semibold transition-colors ${
+                                targetValue === BACKUP_API_URL && uniccTarget !== "unicc"
+                                  ? "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400"
+                                  : "text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800"
+                              }`}
                             >
-                              <KeyRound size={11} />
-                              <span>Change Password</span>
+                              <span>AmazeCC (Backup)</span>
+                              {targetValue === BACKUP_API_URL && uniccTarget !== "unicc" && (
+                                <Check size={13} className="text-indigo-500" />
+                              )}
                             </button>
                           )}
-                          {/* A button, not a link: the password may have been
-                              changed on VTOP itself, and only VTOP can undo
-                              that. */}
-                          <a
-                            href="https://vtopcc.vit.ac.in"
-                            target="_blank"
-                            rel="noreferrer"
-                            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 active:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/25 font-bold text-[10px] uppercase tracking-wider transition-all duration-150 active:scale-[0.985] cursor-pointer"
-                          >
-                            <ExternalLink size={11} />
-                            <span>Reset on VTOP</span>
-                          </a>
-                        </>
-                      ) : (
-                        <a
-                          href="https://vtopcc.vit.ac.in"
-                          target="_blank"
-                          rel="noreferrer"
-                          className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-bold text-[10px] uppercase tracking-wider transition-all duration-150 active:scale-[0.985] cursor-pointer shadow-md shadow-amber-500/25"
-                        >
-                          <ExternalLink size={11} />
-                          <span>Change Password on VTOP</span>
-                        </a>
-                      )}
-                    </m.div>
-                  )}
 
-                  {/* Slow connection switch backup button */}
-                  <AnimatePresence>
-                    {showBackupBtn && hasBackupApi() && (
-                      <m.div
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 8 }}
-                        transition={{ type: "spring", damping: 20, stiffness: 200 }}
+                          {uniccAvailable && (
+                            <button
+                              onClick={() => handleTargetChange(UNICC_API_URL)}
+                              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs font-semibold transition-colors ${
+                                uniccTarget === "unicc"
+                                  ? "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400"
+                                  : "text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800"
+                              }`}
+                            >
+                              <span>UniCC Proxy</span>
+                              {uniccTarget === "unicc" && <Check size={13} className="text-amber-500" />}
+                            </button>
+                          )}
+
+                          {servingText && (
+                            <div className="mt-1 pt-1 border-t border-slate-100 dark:border-zinc-800 px-2 py-1 text-[9.5px] font-medium text-slate-500 dark:text-zinc-400 leading-tight">
+                              {servingText}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Bigger Minimize Button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsMinimized(true);
+                      }}
+                      className="p-2 sm:p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 dark:bg-zinc-800/80 dark:hover:bg-zinc-700/80 text-slate-600 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white border border-slate-200/60 dark:border-zinc-700/60 transition-all active:scale-95 cursor-pointer shadow-xs"
+                      title="Minimize / Run in background"
+                    >
+                      <Minimize2 size={17} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2. HERO STAGE (PROGRESS & ACTIVE HEADLINE) */}
+                <div className="w-full space-y-2 pt-0.5">
+                  <div className="flex justify-between items-baseline gap-2">
+                    <h3 className="font-extrabold text-slate-900 dark:text-white text-sm font-outfit truncate">
+                      {cleanedHeadline}
+                    </h3>
+                    <span className="text-xs font-mono font-black text-blue-600 dark:text-blue-400 shrink-0">
+                      {Math.min(100, Math.round(progress))}%
+                    </span>
+                  </div>
+
+                  {/* High performance spring progress bar */}
+                  <div className="w-full bg-slate-100 dark:bg-zinc-800 h-2 rounded-full overflow-hidden relative">
+                    <m.div
+                      className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-600 rounded-full"
+                      animate={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+                      transition={{ type: "spring", damping: 24, stiffness: 140 }}
+                    />
+                  </div>
+                </div>
+
+                {/* 3. MILESTONE STEPPER */}
+                <div className="space-y-1.5 py-1">
+                  {milestones.map((mItem) => {
+                    return (
+                      <div
+                        key={mItem.id}
+                        className="flex items-center justify-between py-1.5 px-3 rounded-xl bg-slate-50/70 dark:bg-zinc-900/50 border border-slate-200/50 dark:border-zinc-800/50 text-xs"
                       >
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSwitchToBackup();
-                          }}
-                          className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-amber-500/10 hover:bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/20 font-bold text-[10px] uppercase tracking-wider transition-all duration-150 active:scale-[0.985] cursor-pointer"
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          {mItem.status === "completed" ? (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                          ) : mItem.status === "error" ? (
+                            <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                          ) : mItem.status === "active" ? (
+                            <Loader2 className="w-4 h-4 text-blue-500 animate-spin shrink-0" />
+                          ) : (
+                            <div className="w-4 h-4 rounded-full border-2 border-slate-300 dark:border-zinc-700 shrink-0" />
+                          )}
+                          <span
+                            className={`font-semibold truncate ${
+                              mItem.status === "active"
+                                ? "text-slate-900 dark:text-white font-bold"
+                                : mItem.status === "completed"
+                                  ? "text-slate-700 dark:text-zinc-300"
+                                  : "text-slate-400 dark:text-zinc-500"
+                            }`}
+                          >
+                            {mItem.label}
+                          </span>
+                        </div>
+                        <span
+                          className={`text-[10px] font-medium shrink-0 ${
+                            mItem.status === "completed"
+                              ? "text-emerald-600 dark:text-emerald-400 font-bold"
+                              : mItem.status === "error"
+                                ? "text-rose-500 font-bold"
+                                : mItem.status === "active"
+                                  ? "text-blue-500 animate-pulse font-semibold"
+                                  : "text-slate-400 dark:text-zinc-600"
+                          }`}
                         >
-                          <RefreshCw size={11} className="animate-spin text-amber-500" style={{ animationDuration: '3s' }} />
-                          <span>Slow network? Use Backup API</span>
+                          {mItem.detail}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* INLINE VTOP DOWN ALERT (DURING RUN) */}
+                {vtopState === "down" && (
+                  <m.div
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 flex items-start gap-2.5 shadow-[0_0_16px_rgba(244,63,94,0.18)]"
+                  >
+                    <ServerOff className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5 min-w-0 flex-1">
+                      <div className="flex items-center justify-between">
+                        <p className="text-[11px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400">
+                          VTOP is Down
+                        </p>
+                        <span className="text-[9px] font-bold text-rose-500/80">Offline</span>
+                      </div>
+                      <p className="text-[10.5px] font-medium text-slate-700 dark:text-zinc-300 leading-relaxed">
+                        Direct connection to vtopcc.vit.ac.in timed out. The university portal appears to be offline.
+                      </p>
+                    </div>
+                  </m.div>
+                )}
+
+                {/* 4. PROGRESSIVE DISCLOSURE: LIVE CONSOLE LOG DRAWER */}
+                <div className="w-full space-y-1.5">
+                  <div className="w-full flex items-center justify-between py-1.5 px-3 rounded-xl bg-slate-100/80 dark:bg-zinc-900 border border-slate-200/60 dark:border-zinc-800/80 transition-colors">
+                    <button
+                      type="button"
+                      onClick={() => setShowConsole(!showConsole)}
+                      className="flex items-center gap-2 min-w-0 flex-1 text-left cursor-pointer select-none py-0.5"
+                    >
+                      <Terminal size={12} className="text-slate-500 dark:text-zinc-400 shrink-0" />
+                      <span className="text-[11px] font-semibold text-slate-700 dark:text-zinc-300">
+                        Diagnostics ({logLines.length} events)
+                      </span>
+                    </button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {showConsole && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(message);
+                            setCopied(true);
+                            setTimeout(() => setCopied(false), 1500);
+                          }}
+                          className="p-1 rounded text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 transition-colors cursor-pointer"
+                          title="Copy full logs"
+                        >
+                          {copied ? <Check size={11} className="text-emerald-500" /> : <Copy size={11} />}
                         </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setShowConsole(!showConsole)}
+                        className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors cursor-pointer"
+                      >
+                        {showConsole ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <AnimatePresence>
+                    {showConsole && (
+                      <m.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="bg-slate-900 dark:bg-black/80 text-slate-200 rounded-xl p-3 max-h-[130px] overflow-y-auto text-[10px] font-mono space-y-1.5 scrollbar-none border border-slate-800">
+                          {logLines.map((line, idx) => {
+                            const isLast = idx === logLines.length - 1;
+                            const { text, status } = parseLogLine(line, isLast);
+                            return (
+                              <div key={idx} className="flex items-start gap-2">
+                                {getStatusIcon(status)}
+                                <span className={isLast ? "text-white font-bold" : "text-slate-400"}>{text}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </m.div>
                     )}
                   </AnimatePresence>
-                </>
-              ) : (
-                /* Switched to backup server success screen */
-                <m.div 
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.2 }}
-                  className="flex flex-col items-center text-center p-1 gap-4"
-                >
-                  <div className="w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-100 dark:border-emerald-900/30">
-                    <CheckCircle2 size={24} className="animate-bounce" style={{ animationDuration: '2s' }} />
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <h3 className="font-extrabold text-slate-900 dark:text-white text-sm font-outfit">Backup Server Active</h3>
-                    <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-relaxed font-semibold">
-                      API connection updated to bypass local hostel firewall filters.
-                    </p>
-                  </div>
+                </div>
 
-                  {/* Copyable URL box */}
-                  <div className="flex items-center gap-2 w-full bg-slate-50 dark:bg-[var(--surface-secondary)] border border-slate-200 dark:border-[var(--border-muted)] rounded-xl p-2.5 pr-1.5 select-none">
-                    <Globe size={12} className="text-slate-400 dark:text-gray-500 shrink-0" />
-                    <span className="text-[9px] text-slate-600 dark:text-gray-400 font-mono truncate text-left flex-1 font-bold">
-                      {BACKUP_API_URL}
-                    </span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCopy();
-                      }}
-                      className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-gray-200 hover:bg-slate-200 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                {/* 5. SLOW NETWORK ALERT BUTTON */}
+                <AnimatePresence>
+                  {showBackupBtn && hasBackupApi() && (
+                    <m.div
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 6 }}
+                      transition={{ type: "spring", damping: 20, stiffness: 200 }}
                     >
-                      {copied ? <Check size={10} className="text-emerald-500" /> : <Copy size={10} />}
-                    </button>
-                  </div>
-
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDismiss();
-                    }}
-                    className="w-full py-3 px-4 mt-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] uppercase tracking-wider transition-all duration-150 active:scale-[0.985] cursor-pointer shadow-md shadow-blue-500/10"
-                  >
-                    Dismiss & Try Again
-                  </button>
-                </m.div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSwitchToBackup();
+                        }}
+                        className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/20 font-bold text-[10px] uppercase tracking-wider transition-all active:scale-[0.985] cursor-pointer"
+                      >
+                        <RefreshCw
+                          size={11}
+                          className="animate-spin text-amber-500"
+                          style={{ animationDuration: "3s" }}
+                        />
+                        <span>Slow network? Switch to Backup API</span>
+                      </button>
+                    </m.div>
                   )}
-                </>
-              )}
-            </div>
-            </BottomSheet>
-          )}
+                </AnimatePresence>
+
+                {/* 6. RED NEON CANCEL SYNC BUTTON */}
+                <div className="pt-1.5 w-full">
+                  <button
+                    onClick={handleCancelSync}
+                    className="group relative w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-rose-500/80 dark:border-rose-500 bg-rose-500/[0.08] hover:bg-rose-500/[0.18] active:bg-rose-500/[0.28] dark:bg-rose-950/40 dark:hover:bg-rose-950/70 text-rose-600 dark:text-rose-400 font-black text-xs uppercase tracking-wider transition-all duration-200 active:scale-[0.985] cursor-pointer shadow-[0_0_15px_rgba(244,63,94,0.35),inset_0_0_8px_rgba(244,63,94,0.12)] hover:shadow-[0_0_24px_rgba(244,63,94,0.6),inset_0_0_12px_rgba(244,63,94,0.22)] ring-1 ring-rose-500/40 dark:ring-rose-400/50"
+                  >
+                    <X
+                      size={15}
+                      className="stroke-[2.7] text-rose-500 dark:text-rose-400 drop-shadow-[0_0_4px_rgba(244,63,94,0.8)]"
+                    />
+                    <span className="drop-shadow-[0_0_6px_rgba(244,63,94,0.4)]">Cancel Sync</span>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </BottomSheet>
+      )}
     </AnimatePresence>
   );
 }
