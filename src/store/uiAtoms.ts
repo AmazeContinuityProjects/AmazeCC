@@ -2,7 +2,7 @@ import { atom } from "jotai";
 
 export const activeTabAtom = atom<string>("home");
 export const activeSubTabAtom = atom<string>("courses-simplified");
-export const activeAttendanceSubTabAtom = atom<string>("attendance");
+export const activeAttendanceSubTabAtom = atom<string>("calendar");
 export const activeToolsSubTabAtom = atom<string>("overview");
 export const activeDayscholarSubTabAtom = atom<string>("finder");
 export const activeMoreSubTabAtom = atom<string>("social");

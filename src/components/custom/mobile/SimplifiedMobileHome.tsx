@@ -621,8 +621,8 @@ export default function SimplifiedMobileHome({
         badge: "Warning",
         badgeColor: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
         onClick: () => {
-          setActiveTab("attendance");
-          setActiveAttendanceSubTab("attendance");
+          setActiveTab("academics");
+          setActiveSubTab("courses-simplified");
         },
       });
     } else {

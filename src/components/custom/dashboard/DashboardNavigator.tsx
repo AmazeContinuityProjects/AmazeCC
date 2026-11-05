@@ -1,6 +1,15 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode, type SetStateAction } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+  type SetStateAction,
+} from "react";
 import { useAtom } from "jotai";
 import {
   activeAttendanceSubTabAtom,
@@ -59,15 +68,18 @@ export function DashboardNavigatorProvider({ children }: { children: ReactNode }
   const [activeDay, setActiveDay] = useAtom(activeDayAtom);
   const [settings] = useAtom(settingsAtom);
 
-  const selectTab = useCallback((tab: string) => {
-    if (tab === activeTab) setActivePageResetKey(key => key + 1);
-    setActiveTab(tab);
-  }, [activeTab, setActiveTab]);
+  const selectTab = useCallback(
+    (tab: string) => {
+      if (tab === activeTab) setActivePageResetKey((key) => key + 1);
+      setActiveTab(tab);
+    },
+    [activeTab, setActiveTab],
+  );
 
   useEffect(() => {
     if (settings.defaultLandingTab === "attendance") {
       setActiveTab("attendance");
-      setActiveAttendanceSubTab("attendance");
+      setActiveAttendanceSubTab("calendar");
     }
   }, [settings.defaultLandingTab, setActiveAttendanceSubTab, setActiveTab]);
 
@@ -110,53 +122,56 @@ export function DashboardNavigatorProvider({ children }: { children: ReactNode }
     setActiveProfileSubTab,
   ]);
 
-  const value = useMemo(() => ({
-    courseDashboardTarget,
-    setCourseDashboardTarget,
-    activePageResetKey,
-    selectTab,
-    activeTab,
-    setActiveTab,
-    activeSubTab,
-    setActiveSubTab,
-    activeAttendanceSubTab,
-    setActiveAttendanceSubTab,
-    activeToolsSubTab,
-    setActiveToolsSubTab,
-    activeDayscholarSubTab,
-    setActiveDayscholarSubTab,
-    activeMoreSubTab,
-    setActiveMoreSubTab,
-    activeProfileSubTab,
-    setActiveProfileSubTab,
-    hostelActiveSubTab,
-    setHostelActiveSubTab,
-    activeDay,
-    setActiveDay,
-  }), [
-    courseDashboardTarget,
-    setCourseDashboardTarget,
-    activePageResetKey,
-    selectTab,
-    activeTab,
-    setActiveTab,
-    activeSubTab,
-    setActiveSubTab,
-    activeAttendanceSubTab,
-    setActiveAttendanceSubTab,
-    activeToolsSubTab,
-    setActiveToolsSubTab,
-    activeDayscholarSubTab,
-    setActiveDayscholarSubTab,
-    activeMoreSubTab,
-    setActiveMoreSubTab,
-    activeProfileSubTab,
-    setActiveProfileSubTab,
-    hostelActiveSubTab,
-    setHostelActiveSubTab,
-    activeDay,
-    setActiveDay,
-  ]);
+  const value = useMemo(
+    () => ({
+      courseDashboardTarget,
+      setCourseDashboardTarget,
+      activePageResetKey,
+      selectTab,
+      activeTab,
+      setActiveTab,
+      activeSubTab,
+      setActiveSubTab,
+      activeAttendanceSubTab,
+      setActiveAttendanceSubTab,
+      activeToolsSubTab,
+      setActiveToolsSubTab,
+      activeDayscholarSubTab,
+      setActiveDayscholarSubTab,
+      activeMoreSubTab,
+      setActiveMoreSubTab,
+      activeProfileSubTab,
+      setActiveProfileSubTab,
+      hostelActiveSubTab,
+      setHostelActiveSubTab,
+      activeDay,
+      setActiveDay,
+    }),
+    [
+      courseDashboardTarget,
+      setCourseDashboardTarget,
+      activePageResetKey,
+      selectTab,
+      activeTab,
+      setActiveTab,
+      activeSubTab,
+      setActiveSubTab,
+      activeAttendanceSubTab,
+      setActiveAttendanceSubTab,
+      activeToolsSubTab,
+      setActiveToolsSubTab,
+      activeDayscholarSubTab,
+      setActiveDayscholarSubTab,
+      activeMoreSubTab,
+      setActiveMoreSubTab,
+      activeProfileSubTab,
+      setActiveProfileSubTab,
+      hostelActiveSubTab,
+      setHostelActiveSubTab,
+      activeDay,
+      setActiveDay,
+    ],
+  );
 
   return <DashboardNavigatorContext.Provider value={value}>{children}</DashboardNavigatorContext.Provider>;
 }
@@ -168,7 +183,15 @@ export function useDashboardNavigator(): NavigatorValue {
 }
 
 /** Mounts only the page selected by the navigator. */
-export function DashboardRoute({ route, enabled = true, children }: { route: string; enabled?: boolean; children: ReactNode }) {
+export function DashboardRoute({
+  route,
+  enabled = true,
+  children,
+}: {
+  route: string;
+  enabled?: boolean;
+  children: ReactNode;
+}) {
   const { activeTab } = useDashboardNavigator();
   return enabled && activeTab === route ? <>{children}</> : null;
 }

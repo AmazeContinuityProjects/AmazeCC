@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import dynamic from "next/dynamic";
 import type { attendanceRes, ODListItem } from "@/types/data/attendance";
 import type { AllGradesRes } from "@/types/data/allgrades";
@@ -43,10 +44,11 @@ function FeatureLoading() {
   );
 }
 
-const AttendanceTabs = dynamic(() => import("../attendance/AttendanceTabs"), { loading: FeatureLoading });
 const CalendarSubpage = dynamic(() => import("../attendance/CalendarSubpage"), { loading: FeatureLoading });
 const CircularsTab = dynamic(() => import("../exams/CircularsTab"), { loading: FeatureLoading });
-const OverallAttendancePredictor = dynamic(() => import("../attendance/OverallAttendancePredictor"), { loading: FeatureLoading });
+const OverallAttendancePredictor = dynamic(() => import("../attendance/OverallAttendancePredictor"), {
+  loading: FeatureLoading,
+});
 const ODTrackerSubpage = dynamic(() => import("../attendance/ODTrackerSubpage"), { loading: FeatureLoading });
 
 /** Attendance, calendar, predictor, circulars, and OD screens. */
@@ -76,27 +78,15 @@ export default function DashboardAttendanceFeature({
 }: DashboardAttendanceFeatureProps) {
   const attendance = attendanceData?.attendance ?? [];
 
+  useEffect(() => {
+    if (activeSubTab === "attendance") {
+      setActiveSubTab("calendar");
+    }
+  }, [activeSubTab, setActiveSubTab]);
+
   return (
     <div className="animate-fadeIn">
-      {activeSubTab === "attendance" && attendanceData?.attendance && (
-        <AttendanceTabs
-          key={`attendance-tabs-${resetKey}`}
-          data={attendanceData}
-          activeDay={activeDay}
-          setActiveDay={setActiveDay}
-          calendars={calendarData.calendars}
-          decimalValues={settings.decimalValues}
-          isDayscholarWithBus={settings.isDayscholarWithBus}
-          setIsSubpageOpen={setIsSubpageOpen}
-          ODhoursData={ODhoursData}
-          ODhoursIsOpen={ODhoursIsOpen}
-          setODhoursIsOpen={setODhoursIsOpen}
-          setActiveTab={setActiveTab}
-          setActiveSubTab={setActiveSubTab}
-        />
-      )}
-
-      {activeSubTab === "calendar" && (
+      {(activeSubTab === "calendar" || activeSubTab === "attendance") && (
         <CalendarSubpage
           calendars={calendarData?.calendars}
           calendarType={settings.calendarType}
@@ -119,7 +109,7 @@ export default function DashboardAttendanceFeature({
         <CircularsTab loginToVTOP={loginToVTOP} onBack={() => setActiveSubTab("calendar")} />
       )}
 
-      {activeSubTab === "predictor" && (
+      {activeSubTab === "predictor" &&
         (() => {
           const { results, impDates } = buildMilestoneDates(calendarData);
           return (
@@ -129,7 +119,7 @@ export default function DashboardAttendanceFeature({
               dayCardsMap={buildAttendanceDayCardsMap(
                 attendance,
                 undefined,
-                (typeof window !== "undefined" ? localStorage.getItem("saturday_timetable_override") : null) || "SAT"
+                (typeof window !== "undefined" ? localStorage.getItem("saturday_timetable_override") : null) || "SAT",
               )}
               impDates={impDates}
               isDayscholarWithBus={settings.isDayscholarWithBus}
@@ -137,8 +127,7 @@ export default function DashboardAttendanceFeature({
               onBack={onSystemBack}
             />
           );
-        })()
-      )}
+        })()}
 
       {activeSubTab === "od" && (
         <ODTrackerSubpage

@@ -34,7 +34,7 @@ import { usePwaInstall } from "@/lib/pwaInstall";
 import config from "../../../../config.json";
 import { api } from "@/lib/sync-engine";
 import SimplifiedMobileHome from "../mobile/SimplifiedMobileHome";
-import AttendanceTabs from "../attendance/AttendanceTabs";
+import DesktopCourseDetail from "../attendance/DesktopCourseDetail";
 import SelectField from "../shared/primitives/SelectField";
 import OnboardingIntro, { type IntroPhase } from "./OnboardingIntro";
 import {
@@ -510,18 +510,13 @@ export default function AmazeOnboardingFlow({
                     <h4 className="text-xs font-bold text-indigo-300 font-outfit">Direct Attendance Mode</h4>
                     <p className="text-[11px] text-zinc-400 mt-0.5">Opens straight into your Course Attendance list.</p>
                   </div>
-                  {attendanceData?.attendance && (
-                    <AttendanceTabs
-                      data={attendanceData}
-                      marksData={marksData}
-                      ODhoursData={ODhoursData}
-                      settings={previewSettings}
-                      setSettings={setSettings}
-                      calendarData={calendarData}
-                      moodleData={moodleData}
-                      scheduleData={ScheduleData}
+                  {attendanceData?.attendance && attendanceData.attendance[0] && (
+                    <DesktopCourseDetail
+                      course={attendanceData.attendance[0]}
                       isDayscholarWithBus={settings?.isDayscholarWithBus || false}
-                      setIsSubpageOpen={() => {}}
+                      decimalValues={previewSettings.decimalValues}
+                      onViewFullPage={() => {}}
+                      className="block bg-white dark:bg-[#080808] border border-gray-200 dark:border-gray-800/80 rounded-2xl p-6 shadow-sm text-left"
                     />
                   )}
                 </div>
