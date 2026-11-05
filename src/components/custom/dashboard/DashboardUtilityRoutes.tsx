@@ -8,7 +8,13 @@ import type BusFinderComponent from "../dayscholar/BusFinder";
 type BusFinderProps = ComponentProps<typeof BusFinderComponent>;
 
 function FeatureLoading() {
-  return <div className="min-h-40 animate-pulse rounded-2xl bg-slate-100 dark:bg-zinc-900" role="status" aria-label="Loading page" />;
+  return (
+    <div
+      className="min-h-40 animate-pulse rounded-2xl bg-slate-100 dark:bg-zinc-900"
+      role="status"
+      aria-label="Loading page"
+    />
+  );
 }
 
 const CabShareTab = dynamic(() => import("../hostel/CabShare/CabShareTab"), { loading: FeatureLoading });
@@ -20,6 +26,7 @@ const ClubHubTab = dynamic(() => import("../clubs/ClubHubTab"), { loading: Featu
 const CommunityFeed = dynamic(() => import("../clubs/CommunityFeed"), { loading: FeatureLoading });
 const FreeClassroomsTab = dynamic(() => import("../exams/FreeClassroomsTab"), { loading: FeatureLoading });
 const FacultyScheduleTab = dynamic(() => import("../exams/FacultyScheduleTab"), { loading: FeatureLoading });
+const PaperScannerPage = dynamic(() => import("../tools/scanner/PaperScannerPage"), { loading: FeatureLoading });
 const MoreTab = dynamic(() => import("../more/MoreTab"), { loading: FeatureLoading });
 const AboutTab = dynamic(() => import("../AboutTab"), { loading: FeatureLoading });
 
@@ -68,23 +75,80 @@ export default function DashboardUtilityRoutes({
 
   return (
     <>
-      <DashboardRoute route="cabshare"><CabShareTab onBack={onSystemBack} /></DashboardRoute>
+      <DashboardRoute route="cabshare">
+        <CabShareTab onBack={onSystemBack} />
+      </DashboardRoute>
       {/* BusFinder owns page chrome; refresh remains in the app shell action slot. */}
-      <DashboardRoute route="dayscholar"><BusFinder {...busProps} buses={dayscholarBuses} /></DashboardRoute>
-      <DashboardRoute route="transport"><BusFinder {...busProps} buses={transportBuses} /></DashboardRoute>
-      <DashboardRoute route="payments"><div className="animate-fadeIn"><PaymentsTab loginToVTOP={loginToVTOP} onBack={onSystemBack} /></div></DashboardRoute>
-      <DashboardRoute route="libraries"><div className="animate-fadeIn"><LibrariesTab loginToVTOP={loginToVTOP} onBack={onSystemBack} /></div></DashboardRoute>
+      <DashboardRoute route="dayscholar">
+        <BusFinder {...busProps} buses={dayscholarBuses} />
+      </DashboardRoute>
+      <DashboardRoute route="transport">
+        <BusFinder {...busProps} buses={transportBuses} />
+      </DashboardRoute>
+      <DashboardRoute route="payments">
+        <div className="animate-fadeIn">
+          <PaymentsTab loginToVTOP={loginToVTOP} onBack={onSystemBack} />
+        </div>
+      </DashboardRoute>
+      <DashboardRoute route="libraries">
+        <div className="animate-fadeIn">
+          <LibrariesTab loginToVTOP={loginToVTOP} onBack={onSystemBack} />
+        </div>
+      </DashboardRoute>
       <DashboardRoute route="events">
-        <div className="animate-fadeIn"><EventHubTab IDs={IDs} onBack={onSystemBack} setIsSubpageOpen={setIsSubpageOpen} registeredEvents={registeredEvents} setRegisteredEvents={setRegisteredEvents} /></div>
+        <div className="animate-fadeIn">
+          <EventHubTab
+            IDs={IDs}
+            onBack={onSystemBack}
+            setIsSubpageOpen={setIsSubpageOpen}
+            registeredEvents={registeredEvents}
+            setRegisteredEvents={setRegisteredEvents}
+          />
+        </div>
       </DashboardRoute>
-      <DashboardRoute route="clubs"><div className="animate-fadeIn"><ClubHubTab IDs={IDs} loginToVTOP={loginToVTOP} onBack={onSystemBack} /></div></DashboardRoute>
-      <DashboardRoute route="community"><div className="animate-fadeIn"><CommunityFeed IDs={IDs} loginToVTOP={loginToVTOP} onBack={onSystemBack} /></div></DashboardRoute>
-      <DashboardRoute route="free-class"><div className="animate-fadeIn"><FreeClassroomsTab onBack={onSystemBack} /></div></DashboardRoute>
-      <DashboardRoute route="faculty-schedule"><div className="animate-fadeIn"><FacultyScheduleTab onBack={onSystemBack} /></div></DashboardRoute>
+      <DashboardRoute route="clubs">
+        <div className="animate-fadeIn">
+          <ClubHubTab IDs={IDs} loginToVTOP={loginToVTOP} onBack={onSystemBack} />
+        </div>
+      </DashboardRoute>
+      <DashboardRoute route="community">
+        <div className="animate-fadeIn">
+          <CommunityFeed IDs={IDs} loginToVTOP={loginToVTOP} onBack={onSystemBack} />
+        </div>
+      </DashboardRoute>
+      <DashboardRoute route="free-class">
+        <div className="animate-fadeIn">
+          <FreeClassroomsTab onBack={onSystemBack} />
+        </div>
+      </DashboardRoute>
+      <DashboardRoute route="faculty-schedule">
+        <div className="animate-fadeIn">
+          <FacultyScheduleTab onBack={onSystemBack} />
+        </div>
+      </DashboardRoute>
+      <DashboardRoute route="paper-scanner">
+        <div className="animate-fadeIn">
+          <PaperScannerPage onBack={onSystemBack} />
+        </div>
+      </DashboardRoute>
       <DashboardRoute route="more">
-        <div className="animate-fadeIn"><MoreTab attendanceData={attendanceData} activeMoreSubTab={activeMoreSubTab} setActiveMoreSubTab={setActiveMoreSubTab} IDs={IDs} loginToVTOP={loginToVTOP} isSubpageOpen={isSubpageOpen} setIsSubpageOpen={setIsSubpageOpen} /></div>
+        <div className="animate-fadeIn">
+          <MoreTab
+            attendanceData={attendanceData}
+            activeMoreSubTab={activeMoreSubTab}
+            setActiveMoreSubTab={setActiveMoreSubTab}
+            IDs={IDs}
+            loginToVTOP={loginToVTOP}
+            isSubpageOpen={isSubpageOpen}
+            setIsSubpageOpen={setIsSubpageOpen}
+          />
+        </div>
       </DashboardRoute>
-      <DashboardRoute route="about"><div className="animate-fadeIn"><AboutTab /></div></DashboardRoute>
+      <DashboardRoute route="about">
+        <div className="animate-fadeIn">
+          <AboutTab />
+        </div>
+      </DashboardRoute>
     </>
   );
 }

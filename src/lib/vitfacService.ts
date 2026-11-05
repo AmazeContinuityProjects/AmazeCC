@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { safeSessionStorage } from "./ffcsGeneratorSessionPrefs";
+import { WORKER_BASE, CDN_BASE, toCdnImageUrl } from "./workerBase";
 import type { ParsedCourse } from "@/lib/ffcsTypes";
 import { buildFacultyRatingLookup, type FacultyRatingLookup } from "@/lib/ffcsFacultyRanking";
 
@@ -210,8 +211,9 @@ export function useVitfacEnabled(): boolean {
   );
 }
 
-export const VITFAC_WORKER_BASE = "https://cache.amazecc.com";
+export const VITFAC_WORKER_BASE = WORKER_BASE;
 export const CACHE_BASE = VITFAC_WORKER_BASE;
+export { CDN_BASE, toCdnImageUrl };
 const VITFAC_CACHE_KEY = "vitfac_faculty_catalog_v1";
 const VITFAC_CACHE_TIMESTAMP_KEY = "vitfac_faculty_catalog_ts_v1";
 const CATALOG_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -280,6 +282,7 @@ function indexCatalog(list: VitfacFaculty[]) {
     const enriched: VitfacFaculty = {
       ...item,
       employeeId: decodedEmpId,
+      image_url: toCdnImageUrl(item.image_url) || item.image_url,
     };
 
     if (decodedEmpId) {
@@ -656,7 +659,7 @@ export async function getFacultyDirectoryProfile(idOrEmpId: string): Promise<Fac
           campus: prof?.campus || null,
           schoolPage: prof?.schoolPage || null,
           image: dir?.image || prof?.image || null,
-          imageUrl: prof?.image_url || prof?.imageUrl || null,
+          imageUrl: toCdnImageUrl(prof?.image_url || prof?.imageUrl) || null,
           email: dir?.email || null,
           intercom: dir?.intercom || null,
           phd: dir?.phd || null,
@@ -807,15 +810,16 @@ const IMG_CACHE_MAX_BYTES = 60 * 1024; // 60 KB per image
 const IMG_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 export function useCachedImage(url: string | null | undefined): string | null {
-  const [src, setSrc] = useState<string | null>(url || null);
+  const cdnUrl = toCdnImageUrl(url);
+  const [src, setSrc] = useState<string | null>(cdnUrl || null);
 
   useEffect(() => {
-    if (!url) {
+    if (!cdnUrl) {
       setSrc(null);
       return;
     }
-    if (url.startsWith("data:")) {
-      setSrc(url);
+    if (cdnUrl.startsWith("data:")) {
+      setSrc(cdnUrl);
       return;
     }
 
@@ -823,7 +827,7 @@ export function useCachedImage(url: string | null | undefined): string | null {
 
     // 1. Serve from local cache if present (with TTL).
     try {
-      const key = IMG_CACHE_PREFIX + url;
+      const key = IMG_CACHE_PREFIX + cdnUrl;
       const cached = safeSessionStorage.getItem(key);
       if (cached) {
         try {
@@ -846,7 +850,7 @@ export function useCachedImage(url: string | null | undefined): string | null {
     // 2. Fetch once, cache, then swap the src in.
     (async () => {
       try {
-        const res = await fetch(url);
+        const res = await fetch(cdnUrl);
         if (!res.ok) return;
         const blob = await res.blob();
         if (blob.size > IMG_CACHE_MAX_BYTES) return;
@@ -857,27 +861,27 @@ export function useCachedImage(url: string | null | undefined): string | null {
           if (!dataUrl) return;
           setSrc(dataUrl);
           try {
-            safeSessionStorage.setItem(IMG_CACHE_PREFIX + url, JSON.stringify({ d: dataUrl, t: Date.now() }));
+            safeSessionStorage.setItem(IMG_CACHE_PREFIX + cdnUrl, JSON.stringify({ d: dataUrl, t: Date.now() }));
           } catch {
             // Quota exceeded: drop the whole image namespace and retry once.
             try {
               Object.keys(sessionStorage)
                 .filter((k) => k.startsWith(IMG_CACHE_PREFIX))
                 .forEach((k) => sessionStorage.removeItem(k));
-              safeSessionStorage.setItem(IMG_CACHE_PREFIX + url, JSON.stringify({ d: dataUrl, t: Date.now() }));
+              safeSessionStorage.setItem(IMG_CACHE_PREFIX + cdnUrl, JSON.stringify({ d: dataUrl, t: Date.now() }));
             } catch {}
           }
         };
         reader.readAsDataURL(blob);
       } catch {
-        // leave src as the original url (browser fetches directly)
+        // leave src as the cdn url (browser fetches directly)
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [url]);
+  }, [cdnUrl]);
 
   return src;
 }

@@ -93,10 +93,21 @@ describe("importing the course report this app ships with", () => {
     const result = await importFile(fileOf(contents, "ffcsReport.csv"));
 
     expect(result.error).toBeNull();
-    expect(result.headers).toEqual(["CODE", "TITLE", "TYPE", "CREDITS", "SLOT", "FACULTY", "VENUE"]);
-    expect(result.ignoredHeaders).toEqual([]);
+    expect(result.headers).toEqual([
+      "COURSE CODE",
+      "COURSE TITLE",
+      "TYPE",
+      "CREDITS",
+      "CLASS ID",
+      "ROOM",
+      "SLOT",
+      "ERP ID",
+      "EMPLOYEE NAME",
+      "EMPLOYEE SCHOOL",
+    ]);
+    expect(result.ignoredHeaders).toEqual(["CLASS ID", "ERP ID", "EMPLOYEE SCHOOL"]);
     expect(result.missingFields).toEqual([]);
-    // 2357 data rows; anything meaningfully fewer means a column went astray.
+    // 2362 data rows; anything meaningfully fewer means a column went astray.
     expect(result.courses.length).toBeGreaterThan(2300);
     expect(result.skipped).toBe(0);
 

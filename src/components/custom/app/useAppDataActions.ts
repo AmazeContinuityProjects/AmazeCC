@@ -18,6 +18,7 @@ import {
   bumpSyncProgress,
 } from "@/lib/sync-engine/sync-session";
 import type { Ids } from "@/lib/sync-engine/types";
+import { broadcastGlobalSemesterChange, mapToFinalSemesterId } from "@/lib/ffcsReports";
 
 interface AppDataActionOptions {
   IDs: any;
@@ -296,6 +297,10 @@ export function useAppDataActions({
           const next = { ...prev, currSemesterID: targetSemesterID };
           return next;
         });
+        const mapped = mapToFinalSemesterId(targetSemesterID);
+        if (mapped) {
+          broadcastGlobalSemesterChange(mapped);
+        }
       }
       const mode = resolveMode(modeId ?? settings.defaultSyncMode ?? "quick", customModes) ?? BUILT_IN_MODES[1];
 

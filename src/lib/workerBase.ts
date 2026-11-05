@@ -13,6 +13,59 @@ import { API_BASE } from "./fetch-utils";
 export const WORKER_BASE = (process.env.NEXT_PUBLIC_WORKER_BASE || "https://cache.amazecc.com").replace(/\/+$/, "");
 
 /**
+ * Base URL of the Cloudflare CDN (`cdn.amazecc.com`).
+ *
+ * Fronts Supabase Storage for faculty photos and public media to protect
+ * the origin database and buckets from getting overwhelmed.
+ */
+export const CDN_BASE = (process.env.NEXT_PUBLIC_CDN_BASE || "https://cdn.amazecc.com").replace(/\/+$/, "");
+
+/**
+ * Return the canonical unified CDN image URL for a faculty member.
+ * The CDN serves as a single chokepoint that resolves and permanently caches
+ * the highest quality version across Supabase, VIT Chennai WordPress, and Directorycc.
+ *
+ * e.g. "https://cdn.amazecc.com/faculty/51351.webp"
+ */
+export function getFacultyCdnUrl(employeeId: string | null | undefined): string | null {
+  if (!employeeId) return null;
+  const trimmed = employeeId.trim();
+  if (!trimmed) return null;
+  return `${CDN_BASE}/faculty/${trimmed}.webp`;
+}
+
+/**
+ * Rewrite Supabase Storage and VIT Chennai media URLs to the Cloudflare CDN.
+ * Safe to pass null/undefined or already-rewritten URLs through.
+ */
+export function toCdnImageUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+
+  // Canonicalize any Supabase or legacy CDN images/* path to unified /faculty/:empId.webp
+  const facultyImageMatch = trimmed.match(
+    /(?:\.supabase\.co\/storage\/v1\/object\/public\/images\/|cdn\.amazecc\.com\/images\/)([0-9a-zA-Z_-]+)\.(?:webp|jpg|jpeg|png)$/i,
+  );
+  if (facultyImageMatch) {
+    return `${CDN_BASE}/faculty/${facultyImageMatch[1]}.webp`;
+  }
+
+  if (trimmed.startsWith(CDN_BASE)) return trimmed;
+  // Supabase storage public URLs for other buckets:
+  // e.g. https://blfxhlmpvdhcpdwgrffr.supabase.co/storage/v1/object/public/docs/file.pdf -> https://cdn.amazecc.com/docs/file.pdf
+  if (/^https:\/\/[a-z0-9]+\.supabase\.co\/storage\/v1\/object\/public\//i.test(trimmed)) {
+    return trimmed.replace(/^https:\/\/[a-z0-9]+\.supabase\.co\/storage\/v1\/object\/public\//i, `${CDN_BASE}/`);
+  }
+  // VIT Chennai WordPress media / upload URLs:
+  // e.g. https://chennai.vit.ac.in/wp-content/uploads/faculty.jpg -> https://cdn.amazecc.com/chennai/wp-content/uploads/faculty.jpg
+  if (/^https:\/\/chennai\.vit\.ac\.in\//i.test(trimmed)) {
+    return trimmed.replace(/^https:\/\/chennai\.vit\.ac\.in\//i, `${CDN_BASE}/chennai/`);
+  }
+  return trimmed;
+}
+
+/**
  * API routes the Worker answers instead of api.amazecc.com.
  *
  * A route belongs here only if it needs **no student credentials**: the worker

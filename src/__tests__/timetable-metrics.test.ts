@@ -242,6 +242,7 @@ describe("real report data", () => {
         const cells = line.split(",");
         const row: Record<string, string> = {};
         head.forEach((h, i) => (row[h.trim()] = cells[i] ?? ""));
+        if (!row.CODE && row["COURSE CODE"]) row.CODE = row["COURSE CODE"];
         return row;
       });
 

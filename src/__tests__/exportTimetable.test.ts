@@ -11,7 +11,11 @@ import {
   downloadModernDossierHtml,
   openModernPrintableDossier,
   openTimetablePrintablePage,
+  generateExamScheduleHtml,
+  compileExamSchedulePdf,
+  downloadExamSchedulePdf,
 } from "../lib/exportTimetable";
+import { renderVerticalGridHtml } from "../lib/exportTimetableHtml";
 import type { AddedCourse, TimetablePeriod, ParsedCourse } from "@/lib/ffcsTypes";
 import * as vitfacService from "../lib/vitfacService";
 
@@ -131,6 +135,575 @@ describe("Modern Timetable Export", () => {
     expect(html).toContain("Dr. Ramesh");
     expect(html).toContain("TIME");
     expect(html).toContain("MON");
+    expect(html).toContain("table-layout: fixed");
+    expect(html).toContain("<colgroup>");
+    expect(html).toContain("calc((100% - 110px) / 5)");
+  });
+
+  it("ensures every day column in vertical timetable has equal width and Wednesday is not squished", () => {
+    const days = [
+      { id: "mon", name: "Monday" },
+      { id: "tue", name: "Tuesday" },
+      { id: "wed", name: "Wednesday" },
+      { id: "thu", name: "Thursday" },
+      { id: "fri", name: "Friday" },
+    ];
+    const html = renderVerticalGridHtml(mockCourses, mockTheoryPeriods, mockLabPeriods, days, false);
+
+    expect(html).toContain("table-layout: fixed");
+    expect(html).toContain("<colgroup>");
+    // Each day column gets the exact same calculated width
+    const expectedWidth = "calc((100% - 110px) / 5)";
+    expect(html).toContain(`width: ${expectedWidth}`);
+    // Check that Wednesday's th has the exact same width as Monday and Friday
+    expect(html).toContain(
+      `<th style="padding: 10px 8px; font-size: 12px; font-weight: 800; color: #93c5fd; background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255,255,255,0.08); text-align: center; text-transform: uppercase; letter-spacing: 0.5px; width: ${expectedWidth}; box-sizing: border-box;">\n      WED\n    </th>`,
+    );
+  });
+
+  it("generates exam schedule HTML with all exams rendered as cards by default", () => {
+    const mockSchedule = {
+      CAT1: [
+        {
+          courseCode: "BCSE301L",
+          courseTitle: "Database Management Systems",
+          slot: "B1+TB1",
+          examDate: "19-Nov-2025",
+          examTime: "09:15 AM - 12:30 PM",
+          examSession: "FN",
+          reportingTime: "08:45 AM",
+          venue: "SJT 401",
+          seatLocation: "R3C4",
+          seatNo: "42",
+        },
+      ],
+      FAT: [
+        {
+          courseCode: "BCSE302L",
+          courseTitle: "Operating Systems",
+          slot: "C1",
+          examDate: "10-Dec-2025",
+          examTime: "02:00 PM - 05:30 PM",
+          examSession: "AN",
+          reportingTime: "01:30 PM",
+          venue: "TT 202",
+          seatLocation: "-",
+          seatNo: "18",
+        },
+      ],
+    };
+
+    const html = generateExamScheduleHtml({
+      scheduleObj: mockSchedule,
+      semester: "Winter 2025-26",
+      isLight: false,
+    });
+
+    // Check header info
+    expect(html).toContain("AmazeCC");
+    expect(html).toContain("Exam Schedule");
+    expect(html).toContain("Winter 2025-26");
+    expect(html).toContain("Total Exams");
+    expect(html).toContain(">2<"); // 2 exams
+    expect(html).toContain(">2<"); // 2 series
+
+    // Check series headers
+    expect(html).toContain("CAT1");
+    expect(html).toContain("FAT");
+
+    // Check card details
+    expect(html).toContain("BCSE301L");
+    expect(html).toContain("Database Management Systems");
+    expect(html).toContain("Slot: B1+TB1");
+    expect(html).toContain("19-Nov-2025");
+    expect(html).toContain("09:15 AM - 12:30 PM");
+    expect(html).toContain("SJT 401");
+    expect(html).toContain("FN · Report: 08:45 AM");
+    expect(html).toContain("Loc: R3C4 · No: 42");
+
+    // Check second exam
+    expect(html).toContain("BCSE302L");
+    expect(html).toContain("Operating Systems");
+    expect(html).toContain("TT 202");
+    expect(html).toContain("Loc: R9C2 · No: 18"); // Seat calculation for seat 18
+  });
+
+  it("generates exam schedule HTML with all exams rendered as tables when layout is table", () => {
+    const mockSchedule = {
+      FAT: [
+        {
+          courseCode: "BCSE301L",
+          courseTitle: "Database Management Systems",
+          slot: "B1",
+          examDate: "19-Nov-2025",
+          examTime: "09:15 AM - 12:30 PM",
+          examSession: "FN",
+          reportingTime: "08:45 AM",
+          venue: "SJT 401",
+          seatLocation: "R3C4",
+          seatNo: "42",
+        },
+      ],
+    };
+
+    const html = generateExamScheduleHtml({
+      scheduleObj: mockSchedule,
+      semester: "Winter 2025-26",
+      isLight: true,
+      layout: "table",
+    });
+
+    expect(html).toContain("<table");
+    expect(html).toContain("COURSE");
+    expect(html).toContain("SLOT");
+    expect(html).toContain("DATE &amp; TIME");
+    expect(html).toContain("SESSION");
+    expect(html).toContain("VENUE");
+    expect(html).toContain("SEAT");
+    expect(html).toContain("BCSE301L");
+    expect(html).toContain("Database Management Systems");
+  });
+
+  it("generates print-friendly exam schedule document HTML when layout is admit_card or document", () => {
+    const mockSchedule = {
+      FAT: [
+        {
+          courseCode: "BAECE203",
+          courseTitle: "Analog Electronics",
+          slot: "A1+TA1",
+          examDate: "14-Nov-2026",
+          examTime: "09:30 AM - 12:30 PM",
+          examSession: "FN1",
+          reportingTime: "09:15 AM",
+          venue: "AB1-811",
+          seatLocation: "R5C6",
+          seatNo: "46",
+        },
+      ],
+    };
+
+    const html = generateExamScheduleHtml({
+      scheduleObj: mockSchedule,
+      semester: "CH20262701",
+      layout: "admit_card",
+    });
+
+    // Student initiative header
+    expect(html).toContain("AmazeCC");
+    expect(html).toContain("Student Academic Initiative");
+    expect(html).toContain("EXAMINATION SCHEDULE — Fall 2026-27");
+
+    // Metadata summary box
+    expect(html).toContain("Academic Term:");
+    expect(html).toContain("Fall 2026-27");
+    expect(html).toContain("1 Examination");
+    expect(html).toContain("FAT");
+
+    // Table header and row
+    expect(html).toContain("Course Code &amp; Title");
+    expect(html).toContain("Final Assessment Test (FAT)");
+    expect(html).toContain("BAECE203");
+    expect(html).toContain("Analog Electronics");
+    expect(html).toContain("A1+TA1");
+    expect(html).toContain("14-Nov-2026");
+    expect(html).toContain("09:30 AM - 12:30 PM");
+    expect(html).toContain("FN1 · Report: 09:15 AM");
+    expect(html).toContain("AB1-811");
+    expect(html).toContain("Loc: R5C6 · No: 46");
+
+    // Candidate guidelines
+    expect(html).toContain("Important Exam Guidelines &amp; Student Notes");
+    expect(html).toContain("Reporting &amp; Punctuality:");
+    expect(html).toContain("Identification:");
+    expect(html).toContain("Seating Protocols:");
+    expect(html).toContain("Prohibited Items:");
+
+    // Student initiative footer
+    expect(html).toContain("AmazeCC is an independent student initiative");
+  });
+
+  it("filters download to specific exam series (e.g. FAT only) when selectedSeries is provided", () => {
+    const multiSchedule = {
+      CAT1: [
+        {
+          courseCode: "CAT1_ONLY",
+          courseTitle: "CAT1 Subject",
+          slot: "A1",
+          examDate: "10-Aug-2026",
+          examTime: "09:30 AM - 11:00 AM",
+        },
+      ],
+      FAT: [
+        {
+          courseCode: "FAT_ONLY",
+          courseTitle: "FAT Subject",
+          slot: "B1",
+          examDate: "14-Nov-2026",
+          examTime: "09:30 AM - 12:30 PM",
+        },
+      ],
+    };
+
+    const html = generateExamScheduleHtml({
+      scheduleObj: multiSchedule,
+      semester: "Fall 2026-27",
+      layout: "admit_card",
+      selectedSeries: "FAT",
+    });
+
+    expect(html).toContain("FAT_ONLY");
+    expect(html).toContain("FAT Subject");
+    expect(html).toContain("FINAL ASSESSMENT TEST (FAT) — EXAMINATION SCHEDULE");
+    // CAT1 exam is excluded when selectedSeries is FAT
+    expect(html).not.toContain("CAT1_ONLY");
+    expect(html).not.toContain("CAT1 Subject");
+  });
+
+  it("handles empty exam schedule gracefully in generateExamScheduleHtml", () => {
+    const html = generateExamScheduleHtml({
+      scheduleObj: {},
+      isLight: false,
+    });
+
+    expect(html).toContain("No exam schedule data available to export");
+  });
+
+  it("accurately renders user real-world exam payload (CH20262701 with CAT1, CAT2, FAT)", () => {
+    const userPayload = {
+      semester: "CH20262701",
+      Schedule: {
+        FAT: [
+          {
+            courseCode: "BAECE203",
+            courseTitle: "Analog Electronics",
+            classId: "CH2026270102001",
+            slot: "A1+TA1",
+            examDate: "14-Nov-2026",
+            examSession: "FN1",
+            reportingTime: "09:15 AM",
+            examTime: "09:30 AM - 12:30 PM",
+            venue: "",
+            seatLocation: "-",
+            seatNo: "",
+          },
+          {
+            courseCode: "BASTS101",
+            courseTitle: "Qualitative and Quantitative Skills Practice I",
+            classId: "CH2026270100046",
+            slot: "B1+TB1",
+            examDate: "17-Nov-2026",
+            examSession: "FN1",
+            reportingTime: "09:15 AM",
+            examTime: "09:30 AM - 10:30 AM",
+            venue: "",
+            seatLocation: "-",
+            seatNo: "",
+          },
+          {
+            courseCode: "BACSE106",
+            courseTitle: "Operating Systems",
+            classId: "CH2026270102163",
+            slot: "C1+TC1",
+            examDate: "19-Nov-2026",
+            examSession: "FN1",
+            reportingTime: "09:15 AM",
+            examTime: "09:30 AM - 12:30 PM",
+            venue: "",
+            seatLocation: "-",
+            seatNo: "",
+          },
+          {
+            courseCode: "BAMAT209",
+            courseTitle: "Mathematical Foundations for Computation",
+            classId: "CH2026270100228",
+            slot: "D1+TD1+TDD1",
+            examDate: "21-Nov-2026",
+            examSession: "FN1",
+            reportingTime: "09:15 AM",
+            examTime: "09:30 AM - 12:30 PM",
+            venue: "",
+            seatLocation: "-",
+            seatNo: "",
+          },
+          {
+            courseCode: "BACSE105",
+            courseTitle: "Data Structures and Algorithms",
+            classId: "CH2026270102407",
+            slot: "F1+TF1",
+            examDate: "26-Nov-2026",
+            examSession: "FN1",
+            reportingTime: "09:15 AM",
+            examTime: "09:30 AM - 12:30 PM",
+            venue: "",
+            seatLocation: "-",
+            seatNo: "",
+          },
+          {
+            courseCode: "BAHUM251",
+            courseTitle: "Indian Constitution",
+            classId: "CH2026270100946",
+            slot: "G1+TG1",
+            examDate: "28-Nov-2026",
+            examSession: "FN1",
+            reportingTime: "09:15 AM",
+            examTime: "09:30 AM - 12:30 PM",
+            venue: "",
+            seatLocation: "-",
+            seatNo: "",
+          },
+          {
+            courseCode: "BAGER101",
+            courseTitle: "German Level I",
+            classId: "CH2026270101766",
+            slot: "TE1",
+            examDate: "01-Dec-2026",
+            examSession: "FN2",
+            reportingTime: "09:15 AM",
+            examTime: "09:30 AM - 12:30 PM",
+            venue: "",
+            seatLocation: "-",
+            seatNo: "",
+          },
+        ],
+        CAT2: [
+          {
+            courseCode: "BAECE203",
+            courseTitle: "Analog Electronics",
+            classId: "CH2026270102001",
+            slot: "A1+TA1",
+            examDate: "25-Sep-2026",
+            examSession: "AN2",
+            reportingTime: "01:45 PM",
+            examTime: "02:00 PM - 03:30 PM",
+            venue: "AB1-811",
+            seatLocation: "R5C6",
+            seatNo: "46",
+          },
+          {
+            courseCode: "BASTS101",
+            courseTitle: "Qualitative and Quantitative Skills Practice I",
+            classId: "CH2026270100046",
+            slot: "B1+TB1",
+            examDate: "26-Sep-2026",
+            examSession: "FN3",
+            reportingTime: "11:45 AM",
+            examTime: "12:00 PM - 01:00 PM",
+            venue: "AB3-202",
+            seatLocation: "R3C2",
+            seatNo: "13",
+          },
+          {
+            courseCode: "BACSE106",
+            courseTitle: "Operating Systems",
+            classId: "CH2026270102163",
+            slot: "C1+TC1",
+            examDate: "27-Sep-2026",
+            examSession: "AN1",
+            reportingTime: "11:45 AM",
+            examTime: "12:00 PM - 01:30 PM",
+            venue: "AB1-701",
+            seatLocation: "R8C7",
+            seatNo: "69",
+          },
+          {
+            courseCode: "BAMAT209",
+            courseTitle: "Mathematical Foundations for Computation",
+            classId: "CH2026270100228",
+            slot: "D1+TD1+TDD1",
+            examDate: "28-Sep-2026",
+            examSession: "AN2",
+            reportingTime: "01:45 PM",
+            examTime: "02:00 PM - 03:30 PM",
+            venue: "AB4-211",
+            seatLocation: "R2C4",
+            seatNo: "16",
+          },
+          {
+            courseCode: "BACSE105",
+            courseTitle: "Data Structures and Algorithms",
+            classId: "CH2026270102407",
+            slot: "F1+TF1",
+            examDate: "30-Sep-2026",
+            examSession: "AN2",
+            reportingTime: "01:45 PM",
+            examTime: "02:00 PM - 03:30 PM",
+            venue: "AB3-609",
+            seatLocation: "R2C4",
+            seatNo: "22",
+          },
+          {
+            courseCode: "BAHUM251",
+            courseTitle: "Indian Constitution",
+            classId: "CH2026270100946",
+            slot: "G1+TG1",
+            examDate: "01-Oct-2026",
+            examSession: "AN2",
+            reportingTime: "01:45 PM",
+            examTime: "02:00 PM - 03:30 PM",
+            venue: "AB3-704",
+            seatLocation: "R2C8",
+            seatNo: "58",
+          },
+          {
+            courseCode: "BAGER101",
+            courseTitle: "German Level I",
+            classId: "CH2026270101766",
+            slot: "TE1",
+            examDate: "29-Sep-2026",
+            examSession: "AN1",
+            reportingTime: "11:45 AM",
+            examTime: "12:00 PM - 01:30 PM",
+            venue: "AB1-308",
+            seatLocation: "R6C4",
+            seatNo: "30",
+          },
+        ],
+        CAT1: [
+          {
+            courseCode: "BAECE203",
+            courseTitle: "Analog Electronics",
+            classId: "CH2026270102001",
+            slot: "A1+TA1",
+            examDate: "08-Aug-2026",
+            examSession: "FN1",
+            reportingTime: "09:15 AM",
+            examTime: "09:30 AM - 11:00 AM",
+            venue: "AB1-811",
+            seatLocation: "R6C5",
+            seatNo: "47",
+          },
+          {
+            courseCode: "BASTS101",
+            courseTitle: "Qualitative and Quantitative Skills Practice I",
+            classId: "CH2026270100046",
+            slot: "B1+TB1",
+            examDate: "09-Aug-2026",
+            examSession: "FN2",
+            reportingTime: "09:15 AM",
+            examTime: "09:30 AM - 10:30 AM",
+            venue: "AB3-202",
+            seatLocation: "R3C2",
+            seatNo: "13",
+          },
+          {
+            courseCode: "BACSE106",
+            courseTitle: "Operating Systems",
+            classId: "CH2026270102163",
+            slot: "C1+TC1",
+            examDate: "10-Aug-2026",
+            examSession: "FN1",
+            reportingTime: "09:15 AM",
+            examTime: "09:30 AM - 11:00 AM",
+            venue: "AB1-701",
+            seatLocation: "R8C7",
+            seatNo: "69",
+          },
+          {
+            courseCode: "BAMAT209",
+            courseTitle: "Mathematical Foundations for Computation",
+            classId: "CH2026270100228",
+            slot: "D1+TD1+TDD1",
+            examDate: "11-Aug-2026",
+            examSession: "FN1",
+            reportingTime: "09:15 AM",
+            examTime: "09:30 AM - 11:00 AM",
+            venue: "AB3-506",
+            seatLocation: "R2C6",
+            seatNo: "40",
+          },
+          {
+            courseCode: "BACSE105",
+            courseTitle: "Data Structures and Algorithms",
+            classId: "CH2026270102407",
+            slot: "F1+TF1",
+            examDate: "13-Aug-2026",
+            examSession: "FN1",
+            reportingTime: "09:15 AM",
+            examTime: "09:30 AM - 11:00 AM",
+            venue: "AB3-406",
+            seatLocation: "R2C4",
+            seatNo: "22",
+          },
+          {
+            courseCode: "BAHUM251",
+            courseTitle: "Indian Constitution",
+            classId: "CH2026270100946",
+            slot: "G1+TG1",
+            examDate: "14-Aug-2026",
+            examSession: "FN1",
+            reportingTime: "09:15 AM",
+            examTime: "09:30 AM - 11:00 AM",
+            venue: "AB3-603",
+            seatLocation: "R9C6",
+            seatNo: "54",
+          },
+          {
+            courseCode: "BAGER101",
+            courseTitle: "German Level I",
+            classId: "CH2026270101766",
+            slot: "TE1",
+            examDate: "12-Aug-2026",
+            examSession: "AN1",
+            reportingTime: "11:45 AM",
+            examTime: "12:00 PM - 01:30 PM",
+            venue: "AB1-308",
+            seatLocation: "R6C4",
+            seatNo: "30",
+          },
+        ],
+      },
+    };
+
+    const htmlCards = generateExamScheduleHtml({
+      scheduleObj: userPayload.Schedule,
+      semester: userPayload.semester,
+      isLight: false,
+      layout: "cards",
+    });
+
+    // Formatted semester
+    expect(htmlCards).toContain("Fall 2026-27");
+    // Stats: 21 total exams across 3 series
+    expect(htmlCards).toContain(">21<");
+    expect(htmlCards).toContain(">3<");
+
+    // All courses rendered
+    expect(htmlCards).toContain("BAECE203");
+    expect(htmlCards).toContain("Analog Electronics");
+    expect(htmlCards).toContain("Qualitative and Quantitative Skills Practice I");
+    expect(htmlCards).toContain("BACSE106");
+    expect(htmlCards).toContain("BAMAT209");
+    expect(htmlCards).toContain("BACSE105");
+    expect(htmlCards).toContain("BAHUM251");
+    expect(htmlCards).toContain("BAGER101");
+
+    // Empty/unallocated seats and venues in FAT display cleanly as TBA
+    expect(htmlCards).toContain("TBA");
+
+    // Allocated seats and venues in CAT1 & CAT2 display accurately
+    expect(htmlCards).toContain("Loc: R5C6 · No: 46");
+    expect(htmlCards).toContain("AB1-811");
+    expect(htmlCards).toContain("Loc: R8C7 · No: 69");
+    expect(htmlCards).toContain("AB1-701");
+
+    // Chronological order: CAT1 (Aug) appears before CAT2 (Sep) which appears before FAT (Nov)
+    const cat1Index = htmlCards.indexOf("CAT1");
+    const cat2Index = htmlCards.indexOf("CAT2");
+    const fatIndex = htmlCards.indexOf("FAT");
+    expect(cat1Index).toBeGreaterThan(-1);
+    expect(cat2Index).toBeGreaterThan(cat1Index);
+    expect(fatIndex).toBeGreaterThan(cat2Index);
+
+    // Also verify table layout works seamlessly on this payload
+    const htmlTable = generateExamScheduleHtml({
+      scheduleObj: userPayload.Schedule,
+      semester: userPayload.semester,
+      isLight: true,
+      layout: "table",
+    });
+    expect(htmlTable).toContain("<table");
+    expect(htmlTable).toContain("Fall 2026-27");
+    expect(htmlTable).toContain("Qualitative and Quantitative Skills Practice I");
   });
 
   it("generates modern HTML for horizontal grid view", () => {
@@ -508,6 +1081,109 @@ describe("Modern Timetable Export", () => {
 
       expect(res.fileName).toBe("Fallback_Test_DARK_FFCS_Dossier.pdf");
       expect(res.pdfBuffer).toBeInstanceOf(ArrayBuffer);
+
+      vi.restoreAllMocks();
+    });
+
+    it("compileExamSchedulePdf compiles exam schedule PDF in A4 portrait format", async () => {
+      const origCreateElement = document.createElement.bind(document);
+      vi.spyOn(document, "createElement").mockImplementation((tagName: string) => {
+        const el = origCreateElement(tagName);
+        if (tagName.toLowerCase() === "canvas") {
+          const canvas = el as HTMLCanvasElement;
+          canvas.getContext = vi.fn().mockReturnValue({
+            fillStyle: "",
+            fillRect: vi.fn(),
+            drawImage: vi.fn(),
+          } as unknown as CanvasRenderingContext2D);
+          canvas.toDataURL = vi.fn().mockReturnValue("data:image/jpeg;base64,mockjpegdata");
+        }
+        return el;
+      });
+
+      const dummy1x1DataUrl =
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+      const mockSchedule = {
+        FAT: [
+          {
+            courseCode: "BAECE203",
+            courseTitle: "Analog Electronics",
+            slot: "A1+TA1",
+            examDate: "14-Nov-2026",
+            examTime: "09:30 AM - 12:30 PM",
+            examSession: "FN1",
+            reportingTime: "09:15 AM",
+            venue: "AB1-811",
+            seatLocation: "R5C6",
+            seatNo: "46",
+          },
+        ],
+      };
+
+      const result = await compileExamSchedulePdf({
+        scheduleObj: mockSchedule,
+        semester: "CH20262701",
+        dataUrl: dummy1x1DataUrl,
+      });
+
+      expect(result.fileName).toBe("CH20262701_Exam_Schedule.pdf");
+      expect(result.pdfBuffer).toBeInstanceOf(ArrayBuffer);
+      expect(result.pdfBuffer.byteLength).toBeGreaterThan(0);
+      expect(result.pdfBlob).toBeInstanceOf(Blob);
+
+      // Also test with selectedSeries = "FAT"
+      const fatResult = await compileExamSchedulePdf({
+        scheduleObj: mockSchedule,
+        semester: "CH20262701",
+        selectedSeries: "FAT",
+        dataUrl: dummy1x1DataUrl,
+      });
+      expect(fatResult.fileName).toBe("CH20262701_FAT_Exam_Schedule.pdf");
+
+      vi.restoreAllMocks();
+    });
+
+    it("downloadExamSchedulePdf creates download anchor and clicks it without opening a new tab", async () => {
+      const origCreateElement = document.createElement.bind(document);
+      let clicked = false;
+      let downloadName = "";
+      vi.spyOn(document, "createElement").mockImplementation((tagName: string) => {
+        const el = origCreateElement(tagName);
+        if (tagName.toLowerCase() === "canvas") {
+          const canvas = el as HTMLCanvasElement;
+          canvas.getContext = vi.fn().mockReturnValue({
+            fillStyle: "",
+            fillRect: vi.fn(),
+            drawImage: vi.fn(),
+          } as unknown as CanvasRenderingContext2D);
+          canvas.toDataURL = vi.fn().mockReturnValue("data:image/jpeg;base64,mockjpegdata");
+        }
+        if (tagName.toLowerCase() === "a") {
+          const a = el as HTMLAnchorElement;
+          a.click = () => {
+            clicked = true;
+            downloadName = a.download;
+          };
+        }
+        return el;
+      });
+
+      // Ensure window.open is NOT called
+      const openSpy = vi.spyOn(window, "open");
+
+      const dummy1x1DataUrl =
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+      await downloadExamSchedulePdf({
+        scheduleObj: { FAT: [] },
+        semester: "Fall 2026",
+        dataUrl: dummy1x1DataUrl,
+      });
+
+      expect(clicked).toBe(true);
+      expect(downloadName).toBe("Fall_2026_Exam_Schedule.pdf");
+      expect(openSpy).not.toHaveBeenCalled();
 
       vi.restoreAllMocks();
     });

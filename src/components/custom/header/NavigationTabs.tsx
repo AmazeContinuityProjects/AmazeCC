@@ -47,6 +47,7 @@ import {
   DoorOpen,
   Users,
   UserSearch,
+  ScanLine,
   type LucideIcon,
 } from "lucide-react";
 import { AnimatePresence, m } from "framer-motion";
@@ -299,6 +300,7 @@ export default function NavigationTabs({
       clubs: { icon: <LayoutGrid className="h-5 w-5 stroke-[2]" />, label: "Club Hub" },
       community: { icon: <Rss className="h-5 w-5 stroke-[2]" />, label: "Announcements" },
       "free-class": { icon: <DoorOpen className="h-5 w-5 stroke-[2]" />, label: "Free Classrooms" },
+      "paper-scanner": { icon: <ScanLine className="h-5 w-5 stroke-[2]" />, label: "Paper Scanner" },
       "faculty-schedule": { icon: <UserSearch className="h-5 w-5 stroke-[2]" />, label: "Faculty Schedule" },
       cabshare: { icon: <CarTaxiFront className="h-5 w-5 stroke-[2]" />, label: "Cab Share" },
       transport: { icon: <Bus className="h-5 w-5 stroke-[2]" />, label: "Transport" },
@@ -565,6 +567,13 @@ export default function NavigationTabs({
         onSelect: navigateToFFCSPlanner,
       },
       {
+        id: "paper-scanner",
+        label: "Paper Scanner",
+        icon: ScanLine,
+        isActive: activeTab === "paper-scanner",
+        onSelect: () => selectTab("paper-scanner"),
+      },
+      {
         id: "tools",
         label: "Tools & Utilities Hub",
         icon: Layers,
@@ -699,6 +708,14 @@ export default function NavigationTabs({
         isActive: activeTab === "faculty-schedule",
         onSelect: () => {
           selectTab("faculty-schedule");
+        },
+      },
+      "paper-scanner": {
+        label: "Paper Scanner",
+        icon: ScanLine,
+        isActive: activeTab === "paper-scanner",
+        onSelect: () => {
+          selectTab("paper-scanner");
         },
       },
       cabshare: {
@@ -1458,7 +1475,10 @@ export default function NavigationTabs({
                           "transport",
                         ].includes(activeTab)
                       : group.id === "tools"
-                        ? activeTab === "tools" || activeTab === "more" || activeTab === "cabshare"
+                        ? activeTab === "tools" ||
+                          activeTab === "more" ||
+                          activeTab === "cabshare" ||
+                          activeTab === "paper-scanner"
                         : activeTab === "profile" || activeTab === "about";
 
                 return (

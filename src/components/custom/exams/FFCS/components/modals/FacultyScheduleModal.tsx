@@ -52,6 +52,10 @@ export interface FacultyScheduleModalProps {
    * directory entry's name. The first matching group is selected.
    */
   initialFaculty?: string;
+  /**
+   * Faculty ERP ID to resolve directly against the groups.
+   */
+  initialErpId?: string;
   /** True while the report is still being read (Faculty Explorer fetches it). */
   loading?: boolean;
   /** Master parsed courses list if available from caller */
@@ -63,6 +67,7 @@ export function FacultyScheduleModal({
   onClose,
   groups,
   initialFaculty,
+  initialErpId,
   loading = false,
   masterCourses,
 }: FacultyScheduleModalProps) {
@@ -100,17 +105,17 @@ export function FacultyScheduleModal({
       setQuery("");
       return;
     }
-    if (autoSelectedRef.current || !initialFaculty || selectedKey) return;
-    const match = findFirstMatchingGroup(groups, initialFaculty);
+    if (autoSelectedRef.current || (!initialFaculty && !initialErpId) || selectedKey) return;
+    const match = findFirstMatchingGroup(groups, initialFaculty ?? "", initialErpId);
     if (match) {
       setSelectedKey(match.key);
       autoSelectedRef.current = true;
     }
-  }, [open, initialFaculty, groups, selectedKey]);
+  }, [open, initialFaculty, initialErpId, groups, selectedKey]);
 
   const periods = useMemo(() => facultySchedulePeriods(), []);
   const selected = groups.find((group) => group.key === selectedKey) ?? null;
-  const selectedEmpId = selected?.offerings.find((o) => o.ERP_ID)?.ERP_ID;
+  const selectedEmpId = selected?.erpId || selected?.offerings.find((o) => o.ERP_ID)?.ERP_ID;
   const { profile: directoryProfile } = useVitfacDirectoryProfile(selectedEmpId);
   const courses = useMemo(() => (selected ? facultyGroupToAddedCourses(selected) : []), [selected]);
 
@@ -121,6 +126,7 @@ export function FacultyScheduleModal({
       (group) =>
         group.canonical.toLowerCase().includes(term) ||
         group.key.toLowerCase().includes(term) ||
+        (group.erpId && group.erpId.toLowerCase().includes(term)) ||
         group.names.some((name) => name.toLowerCase().includes(term)),
     );
   }, [groups, query]);
@@ -171,9 +177,14 @@ export function FacultyScheduleModal({
                     <h2 className="text-base font-black text-text-heading truncate">
                       {selected ? `${selected.canonical}'s Schedule` : "Faculty Schedule"}
                     </h2>
+                    {selected && selectedEmpId && (
+                      <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-surface-secondary border border-border-strong text-text-muted shrink-0">
+                        #{selectedEmpId}
+                      </span>
+                    )}
                     {selected && (
                       <VitfacReviewPill
-                        employeeId={selected.offerings.find((o) => o.ERP_ID)?.ERP_ID}
+                        employeeId={selectedEmpId}
                         name={selected.canonical}
                         onClick={(e) => {
                           e.stopPropagation();

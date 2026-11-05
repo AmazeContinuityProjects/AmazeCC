@@ -264,6 +264,7 @@ const FacultyCard = memo(
     );
   },
 );
+FacultyCard.displayName = "FacultyCard";
 
 /**
  * Two screens, one hop apart.

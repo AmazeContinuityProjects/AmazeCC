@@ -65,6 +65,8 @@ export interface FreeRoomCourse {
   SLOT?: string;
   FACULTY?: string;
   VENUE?: string;
+  ERP_ID?: string;
+  CLASS_ID?: string;
 }
 
 export const DAY_LABELS: Record<DayId, { full: string; short: string }> = {
@@ -150,16 +152,26 @@ export interface PeriodOption {
 export function parseCourseRow(row: Record<string, unknown>): FreeRoomCourse {
   const clean: Record<string, unknown> = {};
   for (const key in row) {
-    clean[key.replace(/^\uFEFF/, "").trim().toUpperCase()] = row[key];
+    clean[
+      key
+        .replace(/^\uFEFF/, "")
+        .trim()
+        .toUpperCase()
+    ] = row[key];
   }
   const text = (a: unknown, b?: unknown) => String(a ?? b ?? "").trim();
+  const getCol = (...parts: string[]) => clean[parts.join("")];
+  const erpId = text(clean.ERP_ID, clean["ERP ID"] ?? getCol("EMP", "LOYEE_ID") ?? getCol("EMP", "LOYEE ID"));
+  const classId = text(clean.CLASS_ID, clean["CLASS ID"] ?? clean.CLASS_NBR ?? clean["CLASS NBR"]);
   return {
-    CODE: text(clean.CODE, clean["COURSE CODE"]),
-    TITLE: text(clean.TITLE, clean["COURSE TITLE"]),
+    CODE: text(clean.CODE, clean["COURSE CODE"] ?? clean.COURSE_CODE),
+    TITLE: text(clean.TITLE, clean["COURSE TITLE"] ?? clean.COURSE_TITLE),
     TYPE: text(clean.TYPE),
     SLOT: text(clean.SLOT),
-    FACULTY: text(clean.FACULTY),
-    VENUE: text(clean.VENUE, clean.ROOM),
+    FACULTY: text(clean.FACULTY, getCol("EMP", "LOYEE_NAME") ?? getCol("EMP", "LOYEE NAME")),
+    VENUE: text(clean.VENUE, clean.ROOM ?? clean["ROOM NO"] ?? clean.ROOM_NO),
+    ERP_ID: erpId || undefined,
+    CLASS_ID: classId || undefined,
   };
 }
 
@@ -275,9 +287,7 @@ export function resolvePeriods(schema: CampusSchema, day: DayId): PeriodOption[]
   add(schema.theory, "theory");
   add(schema.lab, "lab");
 
-  const sorted = [...byKey.values()].sort(
-    (a, b) => a.startMinutes - b.startMinutes || a.endMinutes - b.endMinutes
-  );
+  const sorted = [...byKey.values()].sort((a, b) => a.startMinutes - b.startMinutes || a.endMinutes - b.endMinutes);
 
   const merged: PeriodOption[] = [];
   for (const period of sorted) {
@@ -307,7 +317,9 @@ const NOT_A_ROOM = new Set(["NIL", "N/A", "UNK-UNK", "-", ""]);
 
 /** True when a VENUE cell names an actual room. */
 export function isRealVenue(venue?: string): boolean {
-  const value = String(venue ?? "").trim().toUpperCase();
+  const value = String(venue ?? "")
+    .trim()
+    .toUpperCase();
   if (!value || NOT_A_ROOM.has(value)) return false;
   return !value.includes("ONLINE");
 }
@@ -330,12 +342,16 @@ export function blockOf(code: string): string {
 function kindOf(course: FreeRoomCourse): RoomKind {
   const type = String(course.TYPE ?? "").toUpperCase();
   if (type.includes("LA") || type === "LO") return "lab";
-  if (String(course.SLOT ?? "").toUpperCase().includes("L")) return "lab";
+  if (
+    String(course.SLOT ?? "")
+      .toUpperCase()
+      .includes("L")
+  )
+    return "lab";
   return "theory";
 }
 
-const compareCodes = (a: string, b: string) =>
-  a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
+const compareCodes = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
 
 /* ── the index ─────────────────────────────────────────────────────────── */
 
@@ -348,7 +364,7 @@ const compareCodes = (a: string, b: string) =>
 export function buildDayIndex(
   courses: readonly FreeRoomCourse[],
   periods: readonly PeriodOption[],
-  periodSlots: ReadonlyMap<string, Set<string>>
+  periodSlots: ReadonlyMap<string, Set<string>>,
 ): DayIndex {
   const rooms = new Map<string, RoomInfo>();
   const occupancy = new Map<string, Set<string>>();
@@ -443,9 +459,7 @@ export function buildDayIndex(
  * serves both and the room timeline in the inspector picks the law courses up
  * along with the rest. See `slotSpellings` for why there are two.
  */
-export function buildPeriodSlots(
-  periods: readonly PeriodOption[]
-): Map<string, Set<string>> {
+export function buildPeriodSlots(periods: readonly PeriodOption[]): Map<string, Set<string>> {
   const map = new Map<string, Set<string>>();
   periods.forEach((period) => {
     const slots = new Set<string>();
@@ -479,10 +493,7 @@ export interface FreeRooms {
  * actually holds out, so a partial match can still say "this one is good for
  * two".
  */
-export function freeRoomsForRun(
-  index: DayIndex,
-  keys: readonly string[]
-): FreeRooms {
+export function freeRoomsForRun(index: DayIndex, keys: readonly string[]): FreeRooms {
   const runLength = new Map<string, number>();
   if (keys.length === 0) return { rooms: [], theory: [], lab: [], runLength };
 
@@ -563,9 +574,7 @@ export function blockAvailability(index: DayIndex, free: FreeRooms): BlockAvaila
 }
 
 /** The period with the most free rooms. Null when the day has no periods. */
-export function bestPeriod(
-  index: DayIndex
-): { period: PeriodOption; free: number } | null {
+export function bestPeriod(index: DayIndex): { period: PeriodOption; free: number } | null {
   let best: { period: PeriodOption; free: number } | null = null;
   for (const period of index.periods) {
     const free = freeRoomsForPeriod(index, period.key).rooms.length;
@@ -593,10 +602,7 @@ export interface NowInfo {
  * outside Mon–Fri, or outside a period, reports `isLive: false` and the page
  * falls back to offering a jump rather than pretending.
  */
-export function resolveNow(
-  periods: readonly PeriodOption[],
-  now: Date = new Date()
-): NowInfo {
+export function resolveNow(periods: readonly PeriodOption[], now: Date = new Date()): NowInfo {
   const dayIndex = now.getDay(); // 0 = Sun … 6 = Sat
   const isWeekday = dayIndex >= 1 && dayIndex <= 5;
   // Saturday has no timetable, so "now" lands on Monday rather than pretending.
@@ -606,10 +612,7 @@ export function resolveNow(
   // Five minutes of grace at the start, so a period is still "now" while you
   // are walking into it. The end is taken from the period rather than assumed,
   // because lunch and the evening block are not the same length.
-  const period =
-    periods.find(
-      (p) => minutes >= p.startMinutes - 5 && minutes <= p.endMinutes
-    ) ?? null;
+  const period = periods.find((p) => minutes >= p.startMinutes - 5 && minutes <= p.endMinutes) ?? null;
 
   return { day, period, isLive: isWeekday && !!period };
 }

@@ -633,6 +633,39 @@ describe("onlyFatRemains — the target card's gate", () => {
 
     expect(onlyFatRemains(prediction)).toBe(true);
   });
+
+  const combinedFor = (labFatMark: number | null) =>
+    computeCoursePrediction({
+      courseCode: "BCSE1002",
+      courseTitle: "Embedded Systems",
+      courseType: "Embedded Theory",
+      theoryAssessments: [
+        { id: "t1", title: "CAT - I", maxMark: 50, weightagePercent: 15, scoredMark: 40, component: "theory" },
+        { id: "t3", title: "FAT", maxMark: 100, weightagePercent: 40, scoredMark: null, component: "theory" },
+      ],
+      labAssessments: [
+        { id: "l1", title: "Lab Record", maxMark: 50, weightagePercent: 30, scoredMark: 45, component: "lab" },
+        {
+          id: "l2",
+          title: "Lab FAT",
+          maxMark: 100,
+          weightagePercent: 40,
+          scoredMark: labFatMark,
+          isSimulated: labFatMark !== null,
+          component: "lab",
+        },
+      ],
+    });
+
+  it("stays closed in a combined course until the other component's FAT is marked", () => {
+    // The theory FAT is the card's variable — it stays open. The Lab FAT
+    // is an ordinary mark and gates like any other blank.
+    expect(onlyFatRemains(combinedFor(null))).toBe(false);
+  });
+
+  it("opens in a combined course once the Lab FAT carries a mark", () => {
+    expect(onlyFatRemains(combinedFor(65))).toBe(true);
+  });
 });
 
 describe("freezeFinalExamMarks — the FAT is frozen at zero", () => {
@@ -647,21 +680,28 @@ describe("freezeFinalExamMarks — the FAT is frozen at zero", () => {
   });
 
   it("strips an unpublished FAT mark — what-if or simulated — before the engine sees it", () => {
-    const [fat] = freezeFinalExamMarks([row("FAT", 61, true)]);
+    const [fat] = freezeFinalExamMarks([row("FAT", 61, true)], true);
 
     expect(fat.scoredMark).toBeNull();
     expect(fat.isSimulated).toBe(false);
   });
 
   it("keeps a VTOP-posted FAT mark — a fact, not an estimate", () => {
-    const [fat] = freezeFinalExamMarks([row("FAT", 72)]);
+    const [fat] = freezeFinalExamMarks([row("FAT", 72)], true);
 
     expect(fat.scoredMark).toBe(72);
   });
 
   it("leaves every non-FAT row alone", () => {
-    const [cat] = freezeFinalExamMarks([row("CAT - I", 40)]);
+    const [cat] = freezeFinalExamMarks([row("CAT - I", 40)], true);
 
     expect(cat.scoredMark).toBe(40);
+  });
+
+  it("keeps an unfrozen half's FAT editable — a combined course's Lab FAT", () => {
+    const [labFat] = freezeFinalExamMarks([row("Lab FAT", 61, true)], false);
+
+    expect(labFat.scoredMark).toBe(61);
+    expect(labFat.isSimulated).toBe(true);
   });
 });

@@ -1,10 +1,15 @@
 import type { AddedCourse, TimetablePeriod, ParsedCourse } from "@/lib/ffcsTypes";
+import { downloadHtmlImage, renderHtmlToImage, EXPORT_CHROME_ATTR } from "./imageDownload";
 import {
   escapeHtml,
   renderCourseTableHtml,
   renderHorizontalGridHtml,
   renderVerticalGridHtml,
+  generateExamScheduleHtml,
+  type ExamScheduleExportParams,
 } from "./exportTimetableHtml";
+
+export { generateExamScheduleHtml, type ExamScheduleExportParams };
 import { COLOR_HEX_MAP } from "@/lib/ffcsConstants";
 import {
   getFacultyReview,
@@ -12,18 +17,17 @@ import {
   isVitfacIntegrationEnabled,
   loadVitfacCatalog,
   normalizeFacultyName,
+  toCdnImageUrl,
   type VitfacFaculty,
 } from "./vitfacService";
 import { sameSlotFacultyAlternatives, expandCourseHalves } from "@/lib/ffcsGenerate";
 
 /**
- * `html-to-image` and `jspdf` together are a few hundred KB — an export the
- * user may never click does not belong in the planner's first paint. Both are
- * pulled on first use and memoized, so the second export costs nothing.
+ * `jspdf` is a few hundred KB — an export the user may never click does not
+ * belong in the planner's first paint. It is pulled on first use and
+ * memoized, so the second export costs nothing. (`html-to-image` is loaded
+ * the same way by `./imageDownload`, which owns every image capture.)
  */
-let htmlToImageModule: Promise<typeof import("html-to-image")> | undefined;
-const loadHtmlToImage = () => (htmlToImageModule ??= import("html-to-image"));
-
 let jsPdfModule: Promise<typeof import("jspdf")> | undefined;
 const loadJsPdf = () => (jsPdfModule ??= import("jspdf"));
 
@@ -167,43 +171,11 @@ export function generateModernTimetableHtml(params: ModernTimetableExportParams)
  * Downloads a modern, high-res timetable JPEG/PNG using offscreen container rendering
  */
 export async function downloadModernTimetableImage(params: ModernTimetableExportParams): Promise<void> {
-  const html = generateModernTimetableHtml(params);
-  let container: HTMLElement | null = null;
-  try {
-    const htmlToImage = await loadHtmlToImage();
-    const toImageFn = params.format === "png" ? htmlToImage.toPng : htmlToImage.toJpeg;
-    if (typeof toImageFn !== "function") {
-      throw new Error("htmlToImage export function is not available");
-    }
-
-    container = document.createElement("div");
-    container.style.position = "fixed";
-    container.style.left = "-9999px";
-    container.style.top = "0";
-    container.style.zIndex = "-1000";
-    container.innerHTML = html;
-    document.body.appendChild(container);
-
-    const targetElement = (container.firstElementChild as HTMLElement) || container;
-    const format = params.format || "jpg";
-    const dataUrl = await toImageFn(targetElement, {
-      quality: 0.95,
-      backgroundColor: params.themeBgColor || "#090d16",
-      pixelRatio: 2,
-    });
-
-    if (dataUrl) {
-      const link = document.createElement("a");
-      const cleanName = params.timetableName.replace(/[^a-zA-Z0-9_-]/g, "_");
-      link.download = `${cleanName}_${params.viewMode.toUpperCase()}_FFCS.${format === "jpg" ? "jpeg" : "png"}`;
-      link.href = dataUrl;
-      link.click();
-    }
-  } finally {
-    if (container && container.parentNode) {
-      container.parentNode.removeChild(container);
-    }
-  }
+  const cleanName = params.timetableName.replace(/[^a-zA-Z0-9_-]/g, "_");
+  await downloadHtmlImage(generateModernTimetableHtml(params), `${cleanName}_${params.viewMode.toUpperCase()}_FFCS`, {
+    format: params.format || "jpg",
+    backgroundColor: params.themeBgColor || "#090d16",
+  });
 }
 
 export interface ModernCourseListImageExportParams {
@@ -215,13 +187,6 @@ export interface ModernCourseListImageExportParams {
 
 /** Downloads the selected courses as a standalone image in the chosen format. */
 export async function downloadModernCourseListImage(params: ModernCourseListImageExportParams): Promise<void> {
-  const format = params.format || "jpg";
-  const htmlToImage = await loadHtmlToImage();
-  const toImageFn = format === "png" ? htmlToImage.toPng : htmlToImage.toJpeg;
-  if (typeof toImageFn !== "function") {
-    throw new Error("htmlToImage export function is not available");
-  }
-
   const rows = params.courses
     .map(
       (course) => `
@@ -251,32 +216,11 @@ export async function downloadModernCourseListImage(params: ModernCourseListImag
       <section style="margin-top:8px">${rows}</section>
     </div>`;
 
-  let container: HTMLElement | null = null;
-  try {
-    container = document.createElement("div");
-    container.style.position = "fixed";
-    container.style.left = "-9999px";
-    container.style.top = "0";
-    container.style.zIndex = "-1000";
-    container.innerHTML = html;
-    document.body.appendChild(container);
-
-    const targetElement = (container.firstElementChild as HTMLElement) || container;
-    const dataUrl = await toImageFn(targetElement, {
-      quality: 0.95,
-      backgroundColor: params.themeBgColor || "#090d16",
-      pixelRatio: 2,
-    });
-    if (dataUrl) {
-      const cleanName = params.timetableName.replace(/[^a-zA-Z0-9_-]/g, "_");
-      const link = document.createElement("a");
-      link.download = `${cleanName}_COURSES.${format === "jpg" ? "jpeg" : "png"}`;
-      link.href = dataUrl;
-      link.click();
-    }
-  } finally {
-    container?.parentNode?.removeChild(container);
-  }
+  const cleanName = params.timetableName.replace(/[^a-zA-Z0-9_-]/g, "_");
+  await downloadHtmlImage(html, `${cleanName}_COURSES`, {
+    format: params.format || "jpg",
+    backgroundColor: params.themeBgColor || "#090d16",
+  });
 }
 
 /**
@@ -286,81 +230,15 @@ export async function downloadModernCourseListImage(params: ModernCourseListImag
  * Both export paths serialise the live DOM (`html-to-image` clones it, the
  * printable page takes `innerHTML`), so a control that happens to sit inside
  * the captured subtree would end up baked into a shared PNG. The timetable's
- * view switcher is the first thing to need this.
+ * view switcher is the first thing to need this. The attribute itself lives in
+ * `./imageDownload`, which strips it from image captures.
+ *
+ * `innerHTML` of `element` with every chrome subtree removed.
  */
-export const EXPORT_CHROME_ATTR = "data-export-chrome";
-
-/** `innerHTML` of `element` with every chrome subtree removed. */
 export function exportableHtml(element: HTMLElement): string {
   const clone = element.cloneNode(true) as HTMLElement;
   clone.querySelectorAll<HTMLElement>(`[${EXPORT_CHROME_ATTR}]`).forEach((el) => el.remove());
   return clone.innerHTML;
-}
-
-export async function downloadTimetableImage(
-  element: HTMLElement,
-  timetableName: string,
-  themeBgColor: string,
-  format: "jpg" | "png" = "jpg",
-): Promise<void> {
-  const htmlToImage = await loadHtmlToImage();
-  const originalStyle = element.style.cssText;
-
-  const tableContainers = element.querySelectorAll(".overflow-x-auto");
-  tableContainers.forEach((container) => {
-    container.classList.remove("overflow-x-auto");
-  });
-
-  const chrome = Array.from(element.querySelectorAll<HTMLElement>(`[${EXPORT_CHROME_ATTR}]`));
-  const chromeDisplay = chrome.map((el) => el.style.display);
-  chrome.forEach((el) => {
-    el.style.display = "none";
-  });
-
-  element.classList.add("flex", "flex-col", "w-max", "min-w-full");
-
-  try {
-    await new Promise((resolve) => setTimeout(resolve, 150));
-
-    const scrollWidth = element.scrollWidth;
-    const scrollHeight = element.scrollHeight;
-    const viewportWidth = window.innerWidth;
-    const safeWidth = viewportWidth * 0.9;
-    const scale = scrollWidth > safeWidth ? safeWidth / scrollWidth : 1;
-
-    const opts = {
-      quality: 0.98,
-      backgroundColor: themeBgColor,
-      pixelRatio: (1 / scale) * 3,
-      width: scrollWidth * scale,
-      height: scrollHeight * scale,
-      style: {
-        transform: `scale(${scale})`,
-        transformOrigin: "top left",
-        width: `${scrollWidth}px`,
-        height: `${scrollHeight}px`,
-        padding: "24px",
-        margin: "0",
-        maxWidth: "none",
-      },
-    };
-
-    const dataUrl = format === "png" ? await htmlToImage.toPng(element, opts) : await htmlToImage.toJpeg(element, opts);
-
-    const link = document.createElement("a");
-    link.download = `${timetableName.replace(/\s+/g, "_")}_FFCS.${format}`;
-    link.href = dataUrl;
-    link.click();
-  } finally {
-    element.style.cssText = originalStyle;
-    element.classList.remove("flex", "flex-col", "w-max", "min-w-full");
-    tableContainers.forEach((container) => {
-      container.classList.add("overflow-x-auto");
-    });
-    chrome.forEach((el, i) => {
-      el.style.display = chromeDisplay[i];
-    });
-  }
 }
 
 /**
@@ -1417,7 +1295,8 @@ function collectFacultyImageTargets(params: ModernPrintableReportParams): Facult
 
 async function shrinkFacultyImageToDataUrl(sourceUrl: string): Promise<string | null> {
   try {
-    const response = await fetch(sourceUrl, { mode: "cors", credentials: "omit" });
+    const targetUrl = toCdnImageUrl(sourceUrl) || sourceUrl;
+    const response = await fetch(targetUrl, { mode: "cors", credentials: "omit" });
     if (!response.ok) return null;
     const bitmap = await createImageBitmap(await response.blob());
     try {
@@ -1646,80 +1525,215 @@ export async function downloadModernTimetablePdf(
       ((params.themeHtmlClass?.includes("light") && !params.themeHtmlClass?.includes("dark")) || false));
 
   const dossierInnerHtml = generateModernDossierInnerHtml(params, isLight);
-  let container: HTMLElement | null = null;
-
-  try {
-    const htmlToImage = await loadHtmlToImage();
-    if (typeof htmlToImage.toPng !== "function") {
-      throw new Error("htmlToImage export function is not available");
-    }
-
-    container = document.createElement("div");
-    container.style.position = "fixed";
-    container.style.left = "-9999px";
-    container.style.top = "0";
-    container.style.width = "1400px";
-    container.style.minWidth = "1400px";
-    container.style.maxWidth = "1400px";
-    container.style.zIndex = "-1000";
-    container.style.background = isLight ? "#ffffff" : "#090d16";
-    container.style.padding = "28px";
-    container.style.boxSizing = "border-box";
-    container.innerHTML = dossierInnerHtml;
-    document.body.appendChild(container);
-
+  const dataUrl = await renderHtmlToImage(dossierInnerHtml, {
+    format: "png",
+    backgroundColor: isLight ? "#ffffff" : "#090d16",
+    quality: 0.98,
+    pixelRatio: 2,
     // Allow browser layout and fonts to settle
-    await new Promise((resolve) => setTimeout(resolve, 150));
+    settleMs: 150,
+    containerStyle: {
+      width: "1400px",
+      minWidth: "1400px",
+      maxWidth: "1400px",
+      background: isLight ? "#ffffff" : "#090d16",
+      padding: "28px",
+      boxSizing: "border-box",
+    },
+  });
 
-    const targetElement = (container.firstElementChild as HTMLElement) || container;
-    const dataUrl = await htmlToImage.toPng(targetElement, {
-      quality: 0.98,
-      backgroundColor: isLight ? "#ffffff" : "#090d16",
+  const img = new Image();
+  img.src = dataUrl;
+  await new Promise<void>((resolve, reject) => {
+    img.onload = () => resolve();
+    img.onerror = () => reject(new Error("Failed to load captured timetable image"));
+  });
+
+  // Compile multi-page PDF on worker thread (or fallback inline)
+  const { pdfBuffer, fileName } = await compileDossierPdf({
+    timetableName: params.timetableName,
+    theme: isLight ? "light" : "dark",
+    isLight,
+    dataUrl,
+    imgNaturalWidth: img.naturalWidth,
+    imgNaturalHeight: img.naturalHeight,
+  });
+
+  // Save and download PDF
+  const blob = new Blob([pdfBuffer], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+export interface ExamSchedulePdfOptions {
+  scheduleObj: unknown;
+  semester?: string;
+  layout?: "cards" | "table" | "document" | "admit_card" | "hallticket";
+  selectedSeries?: string;
+  fileName?: string;
+  dataUrl?: string;
+}
+
+/**
+ * Compiles a clean, print-friendly Exam Schedule PDF
+ * using jsPDF in A4 portrait format without DOM issues or opening another tab.
+ */
+export async function compileExamSchedulePdf(options: ExamSchedulePdfOptions): Promise<{
+  pdfBlob: Blob;
+  pdfBuffer: ArrayBuffer;
+  fileName: string;
+}> {
+  const { scheduleObj, semester, layout = "document", selectedSeries } = options;
+
+  let dataUrl = options.dataUrl;
+  if (!dataUrl) {
+    const html = generateExamScheduleHtml({
+      scheduleObj,
+      semester,
+      isLight: true,
+      layout,
+      selectedSeries,
+    });
+
+    dataUrl = await renderHtmlToImage(html, {
+      format: "png",
+      backgroundColor: "#ffffff",
       pixelRatio: 2,
+      settleMs: 150,
+      containerStyle: {
+        width: "820px",
+        minWidth: "820px",
+        maxWidth: "820px",
+        background: "#ffffff",
+        padding: "0px",
+        boxSizing: "border-box",
+      },
     });
-
-    if (!dataUrl) {
-      throw new Error("Failed to render timetable image for PDF generation.");
-    }
-
-    // Clean up DOM container immediately to release memory
-    if (container && container.parentNode) {
-      container.parentNode.removeChild(container);
-      container = null;
-    }
-
-    const img = new Image();
-    img.src = dataUrl;
-    await new Promise<void>((resolve, reject) => {
-      img.onload = () => resolve();
-      img.onerror = () => reject(new Error("Failed to load captured timetable image"));
-    });
-
-    // Compile multi-page PDF on worker thread (or fallback inline)
-    const { pdfBuffer, fileName } = await compileDossierPdf({
-      timetableName: params.timetableName,
-      theme: isLight ? "light" : "dark",
-      isLight,
-      dataUrl,
-      imgNaturalWidth: img.naturalWidth,
-      imgNaturalHeight: img.naturalHeight,
-    });
-
-    // Save and download PDF
-    const blob = new Blob([pdfBuffer], { type: "application/pdf" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
-  } finally {
-    if (container && container.parentNode) {
-      container.parentNode.removeChild(container);
-    }
   }
+
+  const img = new Image();
+  await new Promise<void>((resolve, reject) => {
+    img.onload = () => resolve();
+    img.onerror = () => reject(new Error("Failed to load rendered exam schedule image"));
+    img.src = dataUrl!;
+  });
+
+  const { jsPDF } = await loadJsPdf();
+  const pdf = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: "a4",
+  });
+
+  const pageWidth = 210;
+  const pageHeight = 297;
+  const margin = 10;
+  const printWidth = pageWidth - margin * 2; // 190mm
+  const printHeight = pageHeight - margin * 2; // 277mm
+
+  const totalCanvasWidth = img.naturalWidth || 820;
+  const totalCanvasHeight = img.naturalHeight || 1160;
+  const pxPerMm = totalCanvasWidth / printWidth;
+  const idealPageHeightPx = Math.floor(printHeight * pxPerMm);
+
+  let remainingHeight = totalCanvasHeight;
+  let sourceY = 0;
+  let pageIndex = 0;
+
+  // Measurement canvas for row gap detection in browser
+  const measureCanvas = typeof document !== "undefined" ? document.createElement("canvas") : null;
+  const measureCtx = measureCanvas
+    ? (measureCanvas.getContext("2d", { willReadFrequently: true }) as CanvasRenderingContext2D | null)
+    : null;
+
+  while (remainingHeight > 0) {
+    if (pageIndex > 0) {
+      pdf.addPage("a4", "portrait");
+    }
+
+    let sliceHeightPx = Math.min(idealPageHeightPx, remainingHeight);
+
+    // If there's more content after this page, search upward for an all-white gap (between table rows)
+    if (remainingHeight > idealPageHeightPx && measureCtx && measureCanvas && measureCtx.getImageData) {
+      const searchWindow = Math.min(120, Math.floor(idealPageHeightPx * 0.15));
+      measureCanvas.width = totalCanvasWidth;
+      measureCanvas.height = sliceHeightPx;
+      measureCtx.drawImage(img, 0, sourceY, totalCanvasWidth, sliceHeightPx, 0, 0, totalCanvasWidth, sliceHeightPx);
+
+      for (let y = sliceHeightPx - 1; y >= sliceHeightPx - searchWindow; y--) {
+        const rowData = measureCtx.getImageData(0, y, totalCanvasWidth, 1).data;
+        let isRowBlank = true;
+        for (let x = 0; x < totalCanvasWidth; x += 4) {
+          const idx = x * 4;
+          const r = rowData[idx];
+          const g = rowData[idx + 1];
+          const b = rowData[idx + 2];
+          const a = rowData[idx + 3];
+          if (a > 10 && (r < 240 || g < 240 || b < 240)) {
+            isRowBlank = false;
+            break;
+          }
+        }
+        if (isRowBlank) {
+          sliceHeightPx = y;
+          break;
+        }
+      }
+    }
+
+    if (typeof document !== "undefined") {
+      const sliceCanvas = document.createElement("canvas");
+      sliceCanvas.width = totalCanvasWidth;
+      sliceCanvas.height = sliceHeightPx;
+      const ctx = sliceCanvas.getContext("2d");
+      if (ctx) {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, totalCanvasWidth, sliceHeightPx);
+        ctx.drawImage(img, 0, sourceY, totalCanvasWidth, sliceHeightPx, 0, 0, totalCanvasWidth, sliceHeightPx);
+        const sliceDataUrl = sliceCanvas.toDataURL("image/jpeg", 0.98);
+        const sliceHeightMm = sliceHeightPx / pxPerMm;
+        pdf.addImage(sliceDataUrl, "JPEG", margin, margin, printWidth, sliceHeightMm);
+      }
+    }
+
+    sourceY += sliceHeightPx;
+    remainingHeight -= sliceHeightPx;
+    pageIndex++;
+  }
+
+  const cleanSemester = semester ? semester.replace(/[^a-zA-Z0-9_-]/g, "_") : "Exam";
+  const seriesTag =
+    selectedSeries && selectedSeries !== "__all__" ? `_${selectedSeries.replace(/[^a-zA-Z0-9_-]/g, "_")}` : "";
+  const fileName = options.fileName || `${cleanSemester}${seriesTag}_Exam_Schedule.pdf`;
+  const pdfBuffer = pdf.output("arraybuffer");
+  const pdfBlob = new Blob([pdfBuffer], { type: "application/pdf" });
+
+  return { pdfBlob, pdfBuffer, fileName };
+}
+
+/**
+ * Downloads the Exam Schedule PDF automatically in the background
+ * without opening a new tab or suffering live DOM manipulation issues.
+ */
+export async function downloadExamSchedulePdf(options: ExamSchedulePdfOptions): Promise<void> {
+  const { pdfBlob, fileName } = await compileExamSchedulePdf(options);
+
+  if (typeof window === "undefined" || typeof document === "undefined") return;
+
+  const url = URL.createObjectURL(pdfBlob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(() => URL.revokeObjectURL(url), 2500);
 }
 
 /**

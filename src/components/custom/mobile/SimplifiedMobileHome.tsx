@@ -78,6 +78,10 @@ import {
 } from "@/lib/weekStrip";
 import TaskBadge from "../tasks/TaskBadge";
 import { KIND_CONFIG } from "../tasks/TaskCard";
+import { parseCachedCourses, parseCourseRows, type FreeRoomCourse } from "@/lib/freeClassrooms";
+import { facultyGroupKey } from "../exams/FFCS/logic/facultyGroups";
+import { getSelectedFinalReportPath, getSelectedFinalSemesterId, mapToFinalSemesterId } from "@/lib/ffcsReports";
+import FreeClassroomsWidget from "./FreeClassroomsWidget";
 
 interface SimplifiedMobileHomeProps {
   attendanceData: any;
@@ -259,11 +263,107 @@ export default function SimplifiedMobileHome({
 
   // Timetable sheet registers itself for system back via BottomSheet.
 
+  const activeSemesterId = useMemo(
+    () => mapToFinalSemesterId(settings?.currSemesterID) ?? getSelectedFinalSemesterId(),
+    [settings?.currSemesterID],
+  );
+
+  const [reportCourses, setReportCourses] = useState<FreeRoomCourse[]>(() => {
+    if (typeof window === "undefined") return [];
+    return parseCachedCourses(
+      localStorage.getItem(`ffcs_raw_courses_${activeSemesterId}`) || localStorage.getItem("ffcs_raw_courses"),
+    );
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const XLSX = await import("xlsx");
+        const reportPath = getSelectedFinalReportPath(activeSemesterId);
+        const response = await fetch(reportPath);
+        if (!response.ok) return;
+        const workbook = XLSX.read(new Uint8Array(await response.arrayBuffer()), { type: "array" });
+        const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[workbook.SheetNames[0]]);
+        const parsed = parseCourseRows(rows);
+        if (!cancelled && parsed.length > 0) {
+          setReportCourses(parsed);
+          try {
+            localStorage.setItem(`ffcs_raw_courses_${activeSemesterId}`, JSON.stringify(parsed));
+          } catch {}
+        }
+      } catch {}
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeSemesterId]);
+
+  const facultyErpLookup = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of reportCourses) {
+      if (!c.ERP_ID) continue;
+      if (c.CLASS_ID) {
+        map.set(`class:${c.CLASS_ID.toUpperCase()}`, c.ERP_ID);
+      }
+      if (c.CODE) {
+        const code = c.CODE.toUpperCase();
+        if (c.SLOT) {
+          map.set(`code_slot:${code}:${c.SLOT.toUpperCase()}`, c.ERP_ID);
+        }
+        if (c.FACULTY) {
+          map.set(`code_fac:${code}:${facultyGroupKey(c.FACULTY)}`, c.ERP_ID);
+        }
+      }
+      if (c.FACULTY) {
+        map.set(`fac:${facultyGroupKey(c.FACULTY)}`, c.ERP_ID);
+      }
+    }
+    return map;
+  }, [reportCourses]);
+
+  const getFacultyErp = useCallback(
+    (cls: any): string | undefined => {
+      if (cls?.employeeId) return cls.employeeId;
+      if (cls?.classId) {
+        const hit = facultyErpLookup.get(`class:${String(cls.classId).toUpperCase()}`);
+        if (hit) return hit;
+      }
+      if (cls?.courseCode) {
+        const code = String(cls.courseCode)
+          .toUpperCase()
+          .replace(/\([LPT]\)$/i, "");
+        if (cls?.slotName) {
+          const hit = facultyErpLookup.get(`code_slot:${code}:${String(cls.slotName).toUpperCase()}`);
+          if (hit) return hit;
+        }
+        if (cls?.faculty) {
+          const hit = facultyErpLookup.get(`code_fac:${code}:${facultyGroupKey(cls.faculty)}`);
+          if (hit) return hit;
+        }
+      }
+      if (cls?.faculty) {
+        const hit = facultyErpLookup.get(`fac:${facultyGroupKey(cls.faculty)}`);
+        if (hit) return hit;
+      }
+      return undefined;
+    },
+    [facultyErpLookup],
+  );
+
   const handleOpenFreeClassrooms = () => {
     setActiveTab("free-class");
   };
 
-  const handleOpenFacultySchedule = () => {
+  const handleOpenFacultySchedule = (facultyNameOrErp?: string | React.MouseEvent) => {
+    if (typeof facultyNameOrErp === "string" && facultyNameOrErp.trim()) {
+      const clean = facultyNameOrErp.trim();
+      if (/^\d{3,}$/.test(clean) || clean.startsWith("erp:")) {
+        localStorage.setItem("faculty_schedule_target_erp", clean.replace(/^erp:/, ""));
+      } else {
+        localStorage.setItem("faculty_schedule_target_name", clean);
+      }
+    }
     setActiveTab("faculty-schedule");
   };
 
@@ -1604,6 +1704,28 @@ export default function SimplifiedMobileHome({
                             <MapPin className="w-3 h-3 text-zinc-400" />
                             {cls.slotVenue || "Room Assigned"}
                           </span>
+                          {cls.faculty && (
+                            <>
+                              <span className="text-zinc-300 dark:text-zinc-700">•</span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const erp = getFacultyErp(cls);
+                                  handleOpenFacultySchedule(erp || cls.faculty);
+                                }}
+                                className="inline-flex items-center gap-1 font-semibold text-zinc-600 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer truncate max-w-[140px]"
+                                title="View faculty timetable schedule"
+                              >
+                                <span className="truncate">{cls.faculty}</span>
+                                {getFacultyErp(cls) && (
+                                  <span className="text-[9px] font-mono px-1 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500">
+                                    #{getFacultyErp(cls)}
+                                  </span>
+                                )}
+                              </button>
+                            </>
+                          )}
                           <span className="text-zinc-300 dark:text-zinc-700">•</span>
                           <span
                             className={`font-bold inline-flex items-center gap-1 px-1.5 py-0.2 rounded-md text-[10.5px] ${
@@ -1747,10 +1869,28 @@ export default function SimplifiedMobileHome({
                       <h3 className="font-extrabold text-base text-zinc-900 dark:text-white leading-snug font-outfit">
                         {cls.courseTitle}
                       </h3>
-                      <p className="text-xs text-zinc-400 dark:text-zinc-500 font-semibold mt-1 flex items-center gap-2">
+                      <p className="text-xs text-zinc-400 dark:text-zinc-500 font-semibold mt-1 flex items-center gap-2 flex-wrap">
                         <span>{cls.courseCode}</span>
                         <span>•</span>
-                        <span className="truncate">{cls.faculty || "Faculty Assigned"}</span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const erp = getFacultyErp(cls);
+                            handleOpenFacultySchedule(erp || cls.faculty);
+                          }}
+                          className="inline-flex items-center gap-1.5 font-bold text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer group/fac"
+                          title="View faculty timetable schedule"
+                        >
+                          <span className="truncate group-hover/fac:underline underline-offset-2">
+                            {cls.faculty || "Faculty Assigned"}
+                          </span>
+                          {getFacultyErp(cls) && (
+                            <span className="text-[10px] font-mono px-1 py-0.2 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200/50 dark:border-zinc-700/50">
+                              #{getFacultyErp(cls)}
+                            </span>
+                          )}
+                        </button>
                       </p>
                     </div>
 
@@ -1923,6 +2063,9 @@ export default function SimplifiedMobileHome({
             <span>Find Faculty Schedule</span>
           </button>
         </div>
+
+        {/* Free Classrooms Widget */}
+        <FreeClassroomsWidget />
       </div>
 
       {/* Full Timetable Sheet */}

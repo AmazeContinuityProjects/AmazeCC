@@ -15,6 +15,7 @@ import { Check, Copy, Download, Link2, Loader2, MessageSquare, RefreshCcw, Shiel
 import { QRCodeSVG } from "qrcode.react";
 import BottomSheet from "../shared/BottomSheet";
 import { useSocialData } from "@/lib/social/useSocialData";
+import { downloadHtmlImage } from "@/lib/imageDownload";
 
 export default function ShareHandleSheet({ onClose }: { onClose: () => void }) {
   const { handle, identity, markDirty } = useSocialData();
@@ -41,26 +42,14 @@ export default function ShareHandleSheet({ onClose }: { onClose: () => void }) {
     if (!handle) return;
     const svg = document.querySelector("#social-handle-qr svg");
     if (!svg) return;
+    // The QR rides into the capture as markup: white 30px padding on every
+    // side (the canvas version's +60px), rendered by the shared engine.
     const svgData = new XMLSerializer().serializeToString(svg);
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    const img = new Image();
-    img.onload = () => {
-      canvas.width = img.width + 60;
-      canvas.height = img.height + 60;
-      if (!ctx) return;
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 30, 30);
-      const link = document.createElement("a");
-      link.href = canvas.toDataURL("image/png");
-      link.download = `${name.replace(/\s+/g, "_")}_amaze_handle.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    };
-    img.onerror = () => setQrError(true);
-    img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
+    void downloadHtmlImage(
+      `<div style="display:inline-block;background:#ffffff;padding:30px">${svgData}</div>`,
+      `${name.replace(/\s+/g, "_")}_amaze_handle`,
+      { format: "png", backgroundColor: "#ffffff" },
+    ).catch(() => setQrError(true));
   }, [handle, name]);
 
   const shareWhatsApp = useCallback(() => {
@@ -139,11 +128,13 @@ export default function ShareHandleSheet({ onClose }: { onClose: () => void }) {
                 What your handle gives away
               </p>
               <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed">
-                Nothing. The handle identifies you, not your schedule. A student who enters it can
-                request a pairing, and{" "}
-                <strong className="text-zinc-700 dark:text-zinc-200">that grants them your
-                timetable for this term</strong> — pairing is mutual, and every pair shares full
-                detail: course, venue and title. End it any time from Pairs.
+                Nothing. The handle identifies you, not your schedule. A student who enters it can request a pairing,
+                and{" "}
+                <strong className="text-zinc-700 dark:text-zinc-200">
+                  that grants them your timetable for this term
+                </strong>{" "}
+                — pairing is mutual, and every pair shares full detail: course, venue and title. End it any time from
+                Pairs.
               </p>
             </div>
           </>
@@ -157,8 +148,8 @@ export default function ShareHandleSheet({ onClose }: { onClose: () => void }) {
                 Your handle is not ready yet
               </h4>
               <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed max-w-[280px] mx-auto">
-                A handle is issued the first time your timetable is derived from VTOP. Run a sync and
-                it will appear here.
+                A handle is issued the first time your timetable is derived from VTOP. Run a sync and it will appear
+                here.
               </p>
             </div>
             <button

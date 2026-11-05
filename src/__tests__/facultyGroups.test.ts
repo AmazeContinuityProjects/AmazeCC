@@ -68,10 +68,7 @@ describe("facultyNameMatches", () => {
 
 describe("buildFacultyNameGroups", () => {
   it("groups reordered spellings under the first spelling seen", () => {
-    const groups = buildFacultyNameGroups([
-      offering({ FACULTY: "V PARTHIBAN" }),
-      offering({ FACULTY: "PARTHIBAN V" }),
-    ]);
+    const groups = buildFacultyNameGroups([offering({ FACULTY: "V PARTHIBAN" }), offering({ FACULTY: "PARTHIBAN V" })]);
 
     expect(groups).toHaveLength(1);
     expect(groups[0].canonical).toBe("V PARTHIBAN");
@@ -93,14 +90,36 @@ describe("buildFacultyNameGroups", () => {
     const groups = buildFacultyNameGroups([offering({ FACULTY: "   " })]);
     expect(groups).toHaveLength(0);
   });
+
+  it("groups by ERP ID and separates faculty with identical names but different ERP IDs", () => {
+    const groups = buildFacultyNameGroups([
+      offering({ FACULTY: "SURESH KUMAR", ERP_ID: "10001", CODE: "BCSE101" }),
+      offering({ FACULTY: "SURESH KUMAR", ERP_ID: "10002", CODE: "BCSE102" }),
+      offering({ FACULTY: "KUMAR SURESH", ERP_ID: "10001", CODE: "BCSE103" }),
+    ]);
+
+    expect(groups).toHaveLength(2);
+    expect(groups[0].erpId).toBe("10001");
+    expect(groups[0].offerings).toHaveLength(2);
+    expect(groups[0].names).toEqual(["SURESH KUMAR", "KUMAR SURESH"]);
+    expect(groups[1].erpId).toBe("10002");
+    expect(groups[1].offerings).toHaveLength(1);
+  });
 });
 
 describe("findFirstMatchingGroup", () => {
-  it("returns the first group whose spellings match", () => {
+  it("resolves accurately by ERP ID when provided", () => {
     const groups = buildFacultyNameGroups([
-      offering({ FACULTY: "RADHA S" }),
-      offering({ FACULTY: "PARTHIBAN V" }),
+      offering({ FACULTY: "SURESH KUMAR", ERP_ID: "10001" }),
+      offering({ FACULTY: "SURESH KUMAR", ERP_ID: "10002" }),
     ]);
+
+    expect(findFirstMatchingGroup(groups, "SURESH KUMAR", "10002")?.erpId).toBe("10002");
+    expect(findFirstMatchingGroup(groups, "erp:10001")?.erpId).toBe("10001");
+  });
+
+  it("returns the first group whose spellings match", () => {
+    const groups = buildFacultyNameGroups([offering({ FACULTY: "RADHA S" }), offering({ FACULTY: "PARTHIBAN V" })]);
 
     expect(findFirstMatchingGroup(groups, "V PARTHIBAN")?.canonical).toBe("PARTHIBAN V");
     expect(findFirstMatchingGroup(groups, "RADHA S")?.canonical).toBe("RADHA S");
@@ -115,19 +134,14 @@ describe("findFirstMatchingGroup", () => {
 describe("facultyGroupToAddedCourses", () => {
   it("splits combined slots and drops NIL", () => {
     const [course] = facultyGroupToAddedCourses(
-      buildFacultyNameGroups([
-        offering({ SLOT: "A1+TA1" }),
-        offering({ SLOT: "NIL" }),
-      ])[0]
+      buildFacultyNameGroups([offering({ SLOT: "A1+TA1" }), offering({ SLOT: "NIL" })])[0],
     );
 
     expect(course.slots).toEqual(["A1", "TA1"]);
   });
 
   it("maps the report fields onto a timetable course", () => {
-    const [course] = facultyGroupToAddedCourses(
-      buildFacultyNameGroups([offering()])[0]
-    );
+    const [course] = facultyGroupToAddedCourses(buildFacultyNameGroups([offering()])[0]);
 
     expect(course.code).toBe("BCSE101");
     expect(course.faculty).toBe("PARTHIBAN V");

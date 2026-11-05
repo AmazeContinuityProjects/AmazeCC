@@ -4,6 +4,7 @@ import { COLOR_HEX_MAP, typeLabels } from "@/lib/ffcsConstants";
 import { expandCourseHalves, sameSlotFacultyAlternatives } from "@/lib/ffcsGenerate";
 import { ensureLunchPeriod } from "@/lib/slots";
 import type { ModernPrintableReportParams } from "./exportTimetable";
+import { renderHtmlToImage } from "./imageDownload";
 
 export type DossierGridMode = "vector" | "image";
 
@@ -172,19 +173,12 @@ function makeGridHtml(params: ModernPrintableReportParams, theme: Palette): stri
 }
 
 async function gridImage(params: ModernPrintableReportParams, theme: Palette): Promise<string> {
-  const htmlToImage = await import("html-to-image");
-  const node = document.createElement("div");
-  node.style.cssText = "position:fixed;left:-20000px;top:0;width:1080px;z-index:-1";
-  node.innerHTML = makeGridHtml(params, theme);
-  document.body.appendChild(node);
-  try {
-    return await htmlToImage.toPng(node.firstElementChild as HTMLElement, {
-      pixelRatio: 2,
-      backgroundColor: theme.surface,
-    });
-  } finally {
-    node.remove();
-  }
+  return renderHtmlToImage(makeGridHtml(params, theme), {
+    format: "png",
+    pixelRatio: 2,
+    backgroundColor: theme.surface,
+    containerStyle: { width: "1080px" },
+  });
 }
 
 function addPage(pdf: jsPDF, theme: Palette, pageNumber: number) {

@@ -258,6 +258,46 @@ describe("labelled halves keep the engine they always had", () => {
     expect(merged.ROOM).toBe("AB1-101 / SB1-201");
     expect(merged.TITLE).toBe("Test course [Embedded Theory and Lab]");
   });
+
+  it("applies Priority 5 to pair 1 ETH with multiple non-overlapping ELA batches", () => {
+    // A faculty has 1 theory section (F1+TF1) and 2 lab sections (L5+L6, L49+L50).
+    // Both lab batches should pair with the single theory, yielding 2 combined offerings.
+    const grouped = processParsedCourses([
+      winterRow({
+        CODE: "BAMEE203",
+        TYPE: "ETH",
+        SLOT: "F1+TF1",
+        CREDITS: "3",
+        ROOM: "AB2-301",
+        FACULTY: "JOSEPH DANIEL",
+        CLASS_ID: "CH2026270100608",
+      }),
+      winterRow({
+        CODE: "BAMEE203",
+        TYPE: "ELA",
+        SLOT: "L5+L6",
+        CREDITS: "1",
+        ROOM: "AB1-005",
+        FACULTY: "JOSEPH DANIEL",
+        CLASS_ID: "CH2026270100616",
+      }),
+      winterRow({
+        CODE: "BAMEE203",
+        TYPE: "ELA",
+        SLOT: "L49+L50",
+        CREDITS: "1",
+        ROOM: "AB1-005",
+        FACULTY: "JOSEPH DANIEL",
+        CLASS_ID: "CH2026270100617",
+      }),
+    ]);
+
+    expect(grouped).toHaveLength(2);
+    expect(grouped.every((c) => c.TYPE === "ETH+ELA")).toBe(true);
+    const slots = grouped.map((c) => c.SLOT);
+    expect(slots).toContain("F1+TF1+L5+L6");
+    expect(slots).toContain("F1+TF1+L49+L50");
+  });
 });
 
 describe("the shipped reports", () => {
@@ -286,10 +326,11 @@ describe("the shipped reports", () => {
 
     const grouped = processParsedCourses(parsed);
     const combos = grouped.filter((c) => c.TYPE === "ETH+ELA");
-    // Pinned to today's winter dataset: 1079 inferred embedded offerings,
-    // 690 of them BA-prefixed. Every one is validated below.
-    expect(combos.length).toBe(1079);
-    expect(combos.filter((c) => c.CODE.startsWith("BA")).length).toBe(690);
+    // Pinned to today's winter dataset: 1128 inferred embedded offerings (up from 1079
+    // thanks to Priority 5 faculty single-ETH to multi-ELA lab batch expansion),
+    // 726 of them BA-prefixed. Every one is validated below.
+    expect(combos.length).toBe(1128);
+    expect(combos.filter((c) => c.CODE.startsWith("BA")).length).toBe(726);
 
     // Index code families both ways so a merged L/P base still finds its
     // suffixed report row.
@@ -313,7 +354,7 @@ describe("the shipped reports", () => {
   });
 
   it("changes nothing about the previous report's pairings", () => {
-    const parsed = loadCsv("public/ffcs/ffcsReport.csv");
+    const parsed = loadCsv("public/ffcs/fall-2026-2027-final-ffcs.csv");
     expect(parsed.every((c) => c.TYPE !== "")).toBe(true);
 
     const grouped = processParsedCourses(parsed);
@@ -325,9 +366,10 @@ describe("the shipped reports", () => {
     expect(bamat.ROOM).toContain(" / ");
 
     const combos = grouped.filter((c) => c.TYPE === "ETH+ELA");
-    // Pinned to the shipped previous-semester dataset: the engine keeps
-    // forming exactly the pairings it always did.
-    expect(combos.length).toBe(335);
+    // Pinned to the shipped Fall dataset: 365 embedded offerings (including all 10 pairings
+    // of BAMEE203 dynamically resolved via Priority 5 single-ETH to multi-ELA expansion).
+    expect(combos.length).toBe(365);
+    expect(combos.filter((c) => c.CODE === "BAMEE203").length).toBe(10);
     expect(grouped.length).toBe(1734);
     for (const combo of combos) {
       const halves = halvesOf(combo);

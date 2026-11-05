@@ -9,6 +9,11 @@ import {
   getFFCSSemesterByClassIdPrefix,
   getFFCSSemesterByClassIdPrefixCode,
   isFFCSSemesterId,
+  FINAL_FFCS_REPORTS,
+  finalSemesterToVtopId,
+  getSelectedFinalReportPath,
+  getSelectedFinalSemesterId,
+  mapToFinalSemesterId,
   legacyOfferingId,
   offeringId,
   offeringMatches,
@@ -28,10 +33,11 @@ describe("semester reports", () => {
     expect(FFCS_SEMESTER_REPORTS.map((report) => report.id)).toEqual([
       "winter-2026-2027",
       "winter-2026-2027-mock",
-      "previous",
+      "fall-2026-2027",
       "codechef-vit",
     ]);
-    expect(getFFCSSemester("previous").path).toBe("/ffcs/ffcsReport.csv");
+    expect(getFFCSSemester("fall-2026-2027").path).toBe("/ffcs/fall-2026-2027-final-ffcs.csv");
+    expect(getFFCSSemester("previous").path).toBe("/ffcs/fall-2026-2027-final-ffcs.csv");
     expect(getFFCSSemester(null).id).toBe(DEFAULT_FFCS_SEMESTER);
     expect(getFFCSSemester("summer-2027").id).toBe(DEFAULT_FFCS_SEMESTER);
   });
@@ -57,6 +63,9 @@ describe("semester reports", () => {
     // would die on the ambiguity.
     expect(getFFCSSemesterByClassIdPrefix("CH202627050")?.id).toBe(DEFAULT_FFCS_SEMESTER);
     expect(getFFCSSemesterByClassIdPrefix("CH2026270503524")?.id).toBe(DEFAULT_FFCS_SEMESTER);
+    expect(getFFCSSemesterByClassIdPrefix("CH202627010")?.id).toBe("fall-2026-2027");
+    expect(getFFCSSemesterByClassIdPrefix("CH2026270100011")?.id).toBe("fall-2026-2027");
+    expect(getFFCSSemesterByClassIdPrefixCode("0")?.id).toBe("fall-2026-2027");
     expect(getFFCSSemesterByClassIdPrefix("CH999999999")).toBeNull();
   });
 
@@ -77,15 +86,16 @@ describe("semester reports", () => {
   it("credits each report for what it is", () => {
     const winter = FFCS_SEMESTER_REPORTS.find((entry) => entry.id === "winter-2026-2027");
     const mock = FFCS_SEMESTER_REPORTS.find((entry) => entry.id === "winter-2026-2027-mock");
-    const previous = FFCS_SEMESTER_REPORTS.find((entry) => entry.id === "previous");
+    const fall = FFCS_SEMESTER_REPORTS.find((entry) => entry.id === "fall-2026-2027");
     expect(winter?.attribution).toBe("Course data from VIT's Winter 2026-2027 course offered list.");
     expect(mock?.attribution).toContain("Mock");
-    expect(previous?.attribution).toBe("Course data from VIT's previous-semester registration report.");
+    expect(fall?.attribution).toBe("Course data from VIT's Fall 2026-2027 course allocation report.");
   });
 
   it("accepts only ids this build knows", () => {
     expect(isFFCSSemesterId("winter-2026-2027")).toBe(true);
     expect(isFFCSSemesterId("winter-2026-2027-mock")).toBe(true);
+    expect(isFFCSSemesterId("fall-2026-2027")).toBe(true);
     expect(isFFCSSemesterId("previous")).toBe(true);
     expect(isFFCSSemesterId("codechef-vit")).toBe(true);
     expect(isFFCSSemesterId("ffcs_semester")).toBe(false);
@@ -189,6 +199,14 @@ describe("parsing report rows", () => {
     const mock = load("public/ffcs/winter-2026-2027-slot-timetable.csv");
     expect(mock).toHaveLength(3426);
     expect(new Set(mock.map((course) => course.CODE)).size).toBe(686);
+
+    // The upgraded Fall Semester 2026-2027 final allocation list.
+    const fall = load("public/ffcs/fall-2026-2027-final-ffcs.csv");
+    expect(fall).toHaveLength(2362);
+    expect(new Set(fall.map((course) => course.CODE)).size).toBe(497);
+    expect(fall.every((course) => course.SLOT && course.CLASS_ID && course.ERP_ID)).toBe(true);
+    expect(fall.every((course) => course.EMPLOYEE_SCHOOL)).toBe(true);
+    expect(fall.every((course) => course.CLASS_ID?.startsWith("CH202627010"))).toBe(true);
   });
 
   it("joins wrapped names at word boundaries without splitting words", () => {
@@ -199,5 +217,32 @@ describe("parsing report rows", () => {
 
     expect(courses.find((course) => course.CODE === "MATR706")?.FACULTY).toBe("THARASI DILLESWAR RAO");
     expect(courses.find((course) => course.CODE === "PRMC001L")?.FACULTY).toBe("BALAMURUGAN B J");
+  });
+});
+
+describe("global final semester mapping and resolution", () => {
+  it("maps VTOP semester IDs to final report semester IDs", () => {
+    expect(mapToFinalSemesterId("CH20262701")).toBe("fall-2026-2027");
+    expect(mapToFinalSemesterId("CH20262705")).toBe("winter-2026-2027");
+    expect(mapToFinalSemesterId("fall-2026-2027")).toBe("fall-2026-2027");
+    expect(mapToFinalSemesterId("previous")).toBe("fall-2026-2027");
+    expect(mapToFinalSemesterId("winter-2026-2027")).toBe("winter-2026-2027");
+    expect(mapToFinalSemesterId(null)).toBeNull();
+  });
+
+  it("maps FinalFFCSSemesterId to VTOP IDs", () => {
+    expect(finalSemesterToVtopId("fall-2026-2027")).toBe("CH20262701");
+    expect(finalSemesterToVtopId("winter-2026-2027")).toBe("CH20262705");
+  });
+
+  it("resolves the final report path dynamically", () => {
+    expect(getSelectedFinalReportPath("CH20262701")).toBe("/ffcs/fall-2026-2027-final-ffcs.csv");
+    expect(getSelectedFinalReportPath("CH20262705")).toBe("/ffcs/winter-2026-2027-final-ffcs.csv");
+    expect(getSelectedFinalReportPath("fall-2026-2027")).toBe("/ffcs/fall-2026-2027-final-ffcs.csv");
+    expect(getSelectedFinalReportPath("winter-2026-2027")).toBe("/ffcs/winter-2026-2027-final-ffcs.csv");
+  });
+
+  it("ships FINAL_FFCS_REPORTS with exactly winter and fall", () => {
+    expect(FINAL_FFCS_REPORTS.map((r) => r.id)).toEqual(["winter-2026-2027", "fall-2026-2027"]);
   });
 });

@@ -46,6 +46,7 @@ import {
   DoorOpen,
   Users,
   UserSearch,
+  ScanLine,
 } from "lucide-react";
 import { AppLibrary } from "@amazecontinuityprojects/amazeui";
 import config from "../../../../config.json";
@@ -75,6 +76,7 @@ function getTabIdFromLabel(label: string): string | null {
   if (lower === "club hub" || lower === "clubs") return "clubs";
   if (lower === "community feed" || lower === "community" || lower === "announcements") return "community";
   if (lower === "cab share") return "cabshare";
+  if (lower === "paper scanner" || lower === "paper-scanner" || lower === "scan") return "paper-scanner";
   if (lower === "transport") return "transport";
   if (lower === "credentials") return "credentials";
   return null;
@@ -274,6 +276,14 @@ const AppLibraryPortal = memo(
           icon: DoorOpen,
           action: () => {
             selectTab("free-class");
+          },
+        },
+        {
+          label: "Paper Scanner",
+          group: "Tools",
+          icon: ScanLine,
+          action: () => {
+            selectTab("paper-scanner");
           },
         },
         {
@@ -492,6 +502,14 @@ const AppLibraryPortal = memo(
               action: () => {
                 selectTab("tools");
                 setActiveToolsSubTab?.("cabshare");
+              },
+            },
+            {
+              label: "Paper Scanner",
+              icon: ScanLine,
+              type: "link",
+              action: () => {
+                selectTab("paper-scanner");
               },
             },
           ],
@@ -883,6 +901,7 @@ const AppLibraryPortal = memo(
               { id: "libraries", label: "Libraries" },
               { id: "free-class", label: "Free Classrooms" },
               { id: "faculty-schedule", label: "Faculty Schedule" },
+              { id: "paper-scanner", label: "Paper Scanner" },
               { id: "events", label: "Event Hub" },
               { id: "clubs", label: "Club Hub" },
               { id: "community", label: "Announcements" },

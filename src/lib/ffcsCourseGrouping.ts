@@ -150,6 +150,42 @@ const computePairScore = (t: ParsedCourse, l: ParsedCourse): number => {
   return score;
 };
 
+const createCombinedCourse = (t: ParsedCourse, l: ParsedCourse): ParsedCourse => {
+  const tType = t.TYPE.trim().toUpperCase();
+  const lType = l.TYPE.trim().toUpperCase();
+  const combinedType = tType && lType ? `${tType}+${lType}` : "ETH+ELA";
+
+  const combinedTitle =
+    (t as any).ORIGINAL_CODE?.endsWith("L") && (l as any).ORIGINAL_CODE?.endsWith("P")
+      ? `${t.TITLE} [${
+          tType === "ETH" || tType.includes("EMBEDDED") || lType === "ELA" || lType.includes("EMBEDDED")
+            ? "Embedded Theory and Lab"
+            : "Theory + Lab"
+        }]`
+      : `${t.TITLE} [Embedded Theory and Lab]`;
+
+  let combinedFac = t.FACULTY;
+  if (t.FACULTY && l.FACULTY && t.FACULTY !== l.FACULTY) {
+    combinedFac = `${t.FACULTY} / ${l.FACULTY}`;
+  }
+
+  return {
+    ...t,
+    TYPE: combinedType,
+    TITLE: combinedTitle,
+    CREDITS: String(
+      tType.includes("EMBEDDED") && lType.includes("EMBEDDED")
+        ? Math.max(parseFloat(t.CREDITS || "0"), parseFloat(l.CREDITS || "0"))
+        : parseFloat(t.CREDITS || "0") + parseFloat(l.CREDITS || "0"),
+    ),
+    SLOT: `${t.SLOT}+${l.SLOT}`,
+    CLASS_IDS: Array.from(new Set([t.CLASS_ID, l.CLASS_ID].filter((id): id is string => Boolean(id)))),
+    ROOM: t.ROOM && l.ROOM ? `${t.ROOM} / ${l.ROOM}` : t.ROOM || l.ROOM,
+    ORIGINAL_CODE: (t as any).ORIGINAL_CODE || t.CODE,
+    FACULTY: combinedFac,
+  } as any;
+};
+
 // Only exported for the tests; callers inside the app go through masterCourses.
 export const processParsedCourses = (parsed: ParsedCourse[], manualLinks: ManualLink[] = []): ParsedCourse[] => {
   // 1. Find all codes that end with L or P
@@ -244,41 +280,7 @@ export const processParsedCourses = (parsed: ParsedCourse[], manualLinks: Manual
         if (tMatches.length > 0 && lMatches.length > 0) {
           tMatches.forEach((t) => {
             lMatches.forEach((l) => {
-              const tType = t.TYPE.trim().toUpperCase();
-              const lType = l.TYPE.trim().toUpperCase();
-              const combinedType = tType && lType ? `${tType}+${lType}` : "ETH+ELA";
-
-              let combinedTitle = t.TITLE;
-              if ((t as any).ORIGINAL_CODE?.endsWith("L") && (l as any).ORIGINAL_CODE?.endsWith("P")) {
-                const typeLabel =
-                  tType === "ETH" || tType.includes("EMBEDDED") || lType === "ELA" || lType.includes("EMBEDDED")
-                    ? "Embedded Theory and Lab"
-                    : "Theory + Lab";
-                combinedTitle = `${t.TITLE} [${typeLabel}]`;
-              } else {
-                combinedTitle = `${t.TITLE} [Embedded Theory and Lab]`;
-              }
-
-              let combinedFac = t.FACULTY;
-              if (t.FACULTY !== l.FACULTY) {
-                combinedFac = `${t.FACULTY} / ${l.FACULTY}`;
-              }
-
-              combined.push({
-                ...t,
-                TYPE: combinedType,
-                TITLE: combinedTitle,
-                CREDITS: String(
-                  tType.includes("EMBEDDED") && lType.includes("EMBEDDED")
-                    ? Math.max(parseFloat(t.CREDITS || "0"), parseFloat(l.CREDITS || "0"))
-                    : parseFloat(t.CREDITS || "0") + parseFloat(l.CREDITS || "0"),
-                ),
-                SLOT: `${t.SLOT}+${l.SLOT}`,
-                CLASS_IDS: Array.from(new Set([t.CLASS_ID, l.CLASS_ID].filter((id): id is string => Boolean(id)))),
-                ROOM: t.ROOM && l.ROOM ? `${t.ROOM} / ${l.ROOM}` : t.ROOM || l.ROOM,
-                ORIGINAL_CODE: (t as any).ORIGINAL_CODE || t.CODE,
-                FACULTY: combinedFac,
-              } as any);
+              combined.push(createCombinedCourse(t, l));
             });
           });
 
@@ -335,6 +337,21 @@ export const processParsedCourses = (parsed: ParsedCourse[], manualLinks: Manual
         });
 
         if (theorySlots.length > 0 && labSlots.length > 0) {
+          // Priority 5: When a faculty has exactly 1 theory (ETH) entry and multiple lab (ELA) entries for a course,
+          // merge that single theory entry with each of the non-overlapping lab entries so every lab batch forms
+          // a complete embedded offering (ETH+ELA) instead of leaving lab batches orphaned.
+          if (theorySlots.length === 1 && labSlots.length > 1) {
+            const t = theorySlots[0];
+            const nonOverlappingLabs = labSlots.filter((l) => !isOverlap(t.SLOT, l.SLOT));
+            if (nonOverlappingLabs.length > 0) {
+              nonOverlappingLabs.forEach((l) => {
+                combined.push(createCombinedCourse(t, l));
+              });
+              labSlots.filter((l) => isOverlap(t.SLOT, l.SLOT)).forEach((l) => combined.push(l));
+              return;
+            }
+          }
+
           let bestMatch: { tIdx: number; lIdx: number }[] = [];
           let bestScore = -Infinity;
           const maxPossible = Math.min(theorySlots.length, labSlots.length);
@@ -386,36 +403,7 @@ export const processParsedCourses = (parsed: ParsedCourse[], manualLinks: Manual
             bestMatch.forEach((m) => {
               const t = theorySlots[m.tIdx];
               const l = labSlots[m.lIdx];
-
-              const tType = t.TYPE.trim().toUpperCase();
-              const lType = l.TYPE.trim().toUpperCase();
-              const combinedType = tType && lType ? `${tType}+${lType}` : "ETH+ELA";
-
-              let combinedTitle = t.TITLE;
-              if ((t as any).ORIGINAL_CODE?.endsWith("L") && (l as any).ORIGINAL_CODE?.endsWith("P")) {
-                const typeLabel =
-                  tType === "ETH" || tType.includes("EMBEDDED") || lType === "ELA" || lType.includes("EMBEDDED")
-                    ? "Embedded Theory and Lab"
-                    : "Theory + Lab";
-                combinedTitle = `${t.TITLE} [${typeLabel}]`;
-              } else {
-                combinedTitle = `${t.TITLE} [Embedded Theory and Lab]`;
-              }
-
-              combined.push({
-                ...t,
-                TYPE: combinedType,
-                TITLE: combinedTitle,
-                CREDITS: String(
-                  tType.includes("EMBEDDED") && lType.includes("EMBEDDED")
-                    ? Math.max(parseFloat(t.CREDITS || "0"), parseFloat(l.CREDITS || "0"))
-                    : parseFloat(t.CREDITS || "0") + parseFloat(l.CREDITS || "0"),
-                ),
-                SLOT: `${t.SLOT}+${l.SLOT}`,
-                CLASS_IDS: Array.from(new Set([t.CLASS_ID, l.CLASS_ID].filter((id): id is string => Boolean(id)))),
-                ROOM: t.ROOM && l.ROOM ? `${t.ROOM} / ${l.ROOM}` : t.ROOM || l.ROOM,
-                ORIGINAL_CODE: (t as any).ORIGINAL_CODE || t.CODE,
-              } as any);
+              combined.push(createCombinedCourse(t, l));
             });
 
             theorySlots.forEach((t, i) => {

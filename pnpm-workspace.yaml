@@ -4,6 +4,7 @@ allowBuilds:
   core-js: true
   esbuild: true
   sharp: true
+  tesseract.js: true
   unrs-resolver: true
   workerd: true
 overrides:
@@ -20,3 +21,5 @@ overrides:
 permissions:
   dotenv:
     skills: true
+  tesseract.js:
+    build: true

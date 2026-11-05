@@ -55,12 +55,12 @@ import { AnimatePresence } from "framer-motion";
 import BottomSheet from "../shared/BottomSheet";
 import FFCSDashboardHeader from "./FFCS/components/FFCSDashboardHeader";
 import {
-  downloadTimetableImage,
   downloadModernTimetableImage,
   downloadModernCourseListImage,
   openModernPrintableDossier,
   downloadModernDossierHtml,
 } from "@/lib/exportTimetable";
+import { downloadElementImage } from "@/lib/imageDownload";
 import { getTimetableSchema } from "@/lib/campusSchema";
 
 import { groupSelectedCourses } from "./FFCS/logic/groupSelectedCourses";
@@ -127,10 +127,14 @@ import {
   DEFAULT_FFCS_SEMESTER,
   FFCS_SEMESTER_REPORTS,
   FFCS_SEMESTER_STORAGE_KEY,
+  GLOBAL_SEMESTER_CHANGE_EVENT,
+  broadcastGlobalSemesterChange,
   getFFCSSemester,
   isFFCSSemesterId,
+  mapToFinalSemesterId,
   parseReportRows,
   type FFCSSemesterId,
+  type FinalFFCSSemesterId,
 } from "@/lib/ffcsReports";
 import { DAYS, COLORS } from "@/lib/ffcsConstants";
 import { renderCourseTypeChips } from "./FFCS/components/CourseTypeChips";
@@ -763,9 +767,32 @@ export default function FFCSTimetableTab({
       }
 
       safeStorage.setItem(FFCS_SEMESTER_STORAGE_KEY, nextSemesterId);
+      if (nextSemesterId === "winter-2026-2027" || nextSemesterId === "fall-2026-2027") {
+        broadcastGlobalSemesterChange(nextSemesterId);
+      }
     },
     [semesterId, loadSemesterReport],
   );
+
+  // Sync on global semester change event
+  useEffect(() => {
+    const handleGlobalChange = (e: Event) => {
+      const customEvent = e as CustomEvent<{ semesterId?: FinalFFCSSemesterId }>;
+      const nextSem = customEvent.detail?.semesterId;
+      if (
+        nextSem &&
+        nextSem !== semesterId &&
+        mapToFinalSemesterId(semesterId) !== nextSem &&
+        isFFCSSemesterId(nextSem)
+      ) {
+        void handleSemesterChange(nextSem);
+      }
+    };
+    window.addEventListener(GLOBAL_SEMESTER_CHANGE_EVENT, handleGlobalChange);
+    return () => {
+      window.removeEventListener(GLOBAL_SEMESTER_CHANGE_EVENT, handleGlobalChange);
+    };
+  }, [handleSemesterChange, semesterId]);
 
   // Load from local storage on mount and fetch the selected semester's report.
   useEffect(() => {
@@ -910,7 +937,7 @@ export default function FFCSTimetableTab({
   // converted in that shape), so it publishes alongside the previous dataset —
   // and being same-origin static data, it is also what a reload finds offline.
   useEffect(() => {
-    if (isLoaded && (semesterId === "previous" || semesterId === "codechef-vit")) {
+    if (isLoaded && (semesterId === "fall-2026-2027" || semesterId === "previous" || semesterId === "codechef-vit")) {
       safeStorage.setItem("ffcs_raw_courses", JSON.stringify(rawParsedCourses));
     }
   }, [rawParsedCourses, isLoaded, semesterId]);
@@ -1345,20 +1372,24 @@ export default function FFCSTimetableTab({
         } catch (err) {
           console.warn("Modern offscreen image export failed, trying live capture fallback:", err);
           if (captureRef.current) {
-            const captureElement = captureRef.current;
-            const originalClassName = captureElement.className;
             try {
-              if (showVerticalTimetableBesideWidgets) {
-                captureElement.classList.remove("xl:contents");
-                captureElement.classList.add("xl:col-span-full");
-              }
-              await downloadTimetableImage(captureElement, activeTimetable.name, themeBgColor, format);
+              // The clone (not the live node) gets the layout fix: in the
+              // off-screen wrapper it is no longer a grid item, and
+              // `display: contents` would leave it without a box to capture.
+              await downloadElementImage(captureRef.current, `${activeTimetable.name.replace(/\s+/g, "_")}_FFCS`, {
+                format,
+                backgroundColor: themeBgColor,
+                prepareClone: (clone) => {
+                  if (showVerticalTimetableBesideWidgets) {
+                    clone.classList.remove("xl:contents");
+                    clone.classList.add("xl:col-span-full");
+                  }
+                },
+              });
               track("export_image", { format, fallback: true });
               timetableExported = true;
             } catch {
               // The error below reports that neither export path succeeded.
-            } finally {
-              captureElement.className = originalClassName;
             }
           }
           if (!timetableExported) setError("Failed to download timetable image.");

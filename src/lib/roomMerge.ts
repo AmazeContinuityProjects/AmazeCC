@@ -33,17 +33,8 @@
  * server has nothing for.
  */
 
-import {
-  freeRoomsForRun,
-  type BlockAvailability,
-  type DayIndex,
-  type FreeRooms,
-} from "@/lib/freeClassrooms";
-import {
-  livePeriodFor,
-  liveRunFor,
-  type LiveDay,
-} from "@/lib/roomAvailability";
+import { freeRoomsForRun, type BlockAvailability, type DayIndex, type FreeRooms } from "@/lib/freeClassrooms";
+import { livePeriodFor, liveRunFor, type LiveDay } from "@/lib/roomAvailability";
 
 export type MergedRoom = {
   code: string;
@@ -57,6 +48,10 @@ export type MergedOccupant = {
   courseCode: string;
   title: string;
   faculty: string;
+  erpId?: string;
+  classId?: string;
+  slot?: string;
+  type?: string;
   source: "live" | "report";
 };
 
@@ -87,8 +82,7 @@ export type MergedDay = {
   runs: Map<string, MergedRun>;
 };
 
-const compareCodes = (a: string, b: string) =>
-  a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
+const compareCodes = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
 
 /**
  * Merge the report and the server for one day.
@@ -141,9 +135,7 @@ export function mergeDay(input: {
 
   return {
     rooms: [...universe.values()].sort((a, b) => compareCodes(a.code, b.code)),
-    kinds: new Map(
-      [...universe.values()].map((room) => [room.code, room.kind] as const)
-    ),
+    kinds: new Map([...universe.values()].map((room) => [room.code, room.kind] as const)),
     periods,
     runs,
   };
@@ -154,7 +146,7 @@ function mergePeriod(
   index: DayIndex,
   live: LiveDay | null,
   periodKey: string,
-  universe: Map<string, MergedRoom>
+  universe: Map<string, MergedRoom>,
 ): MergedPeriod {
   const reportBusy = index.byPeriod.get(periodKey) ?? new Set<string>();
   const serverPeriod = livePeriodFor(live, periodKey);
@@ -178,8 +170,11 @@ function mergePeriod(
           courseCode: o.courseCode,
           title: o.title,
           faculty: o.faculty,
+          classId: o.classId,
+          slot: o.slots?.join("+"),
+          type: o.component,
           source: "live" as const,
-        }))
+        })),
       );
       continue;
     }
@@ -196,8 +191,12 @@ function mergePeriod(
           courseCode: c.CODE ?? "",
           title: c.TITLE ?? "",
           faculty: c.FACULTY ?? "",
+          erpId: c.ERP_ID,
+          classId: c.CLASS_ID,
+          slot: c.SLOT,
+          type: c.TYPE,
           source: "report" as const,
-        }))
+        })),
       );
     }
   }
@@ -219,7 +218,7 @@ function mergePeriod(
 function mergeRun(
   input: { index: DayIndex; live: LiveDay | null },
   window: string[],
-  universe: Map<string, MergedRoom>
+  universe: Map<string, MergedRoom>,
 ): MergedRun {
   const reportRun = freeRoomsForRun(input.index, window);
   const serverRun = liveRunFor(input.live, window[0]);
@@ -227,9 +226,7 @@ function mergeRun(
   const runLength = new Map<string, number>();
   for (const code of universe.keys()) {
     const reportHeld = reportRun.runLength.get(code) ?? window.length;
-    const serverHeld = serverRun
-      ? Number(serverRun.runLength?.[code] ?? window.length)
-      : window.length;
+    const serverHeld = serverRun ? Number(serverRun.runLength?.[code] ?? window.length) : window.length;
     runLength.set(code, Math.min(reportHeld, serverHeld));
   }
 
@@ -253,10 +250,7 @@ function mergeRun(
  * The same shape and the same ordering as the report-only answer, so the page
  * renders the same way whichever source is answering.
  */
-function blocksFor(
-  universe: Map<string, MergedRoom>,
-  free: readonly string[]
-): BlockAvailability[] {
+function blocksFor(universe: Map<string, MergedRoom>, free: readonly string[]): BlockAvailability[] {
   const blocks = new Map<string, { total: number; freeTheory: string[]; freeLab: string[] }>();
   for (const room of universe.values()) {
     const entry = blocks.get(room.block) ?? { total: 0, freeTheory: [], freeLab: [] };

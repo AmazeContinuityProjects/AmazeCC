@@ -662,6 +662,7 @@ describe("the real report", () => {
         const cells = line.split(",");
         const r: Record<string, string> = {};
         head.forEach((h, i) => (r[h.trim()] = cells[i] ?? ""));
+        if (!r.CODE && r["COURSE CODE"]) r.CODE = r["COURSE CODE"];
         return r as unknown as ParsedCourse;
       })
       .filter((c) => c.CODE && c.SLOT && c.SLOT !== "NIL");

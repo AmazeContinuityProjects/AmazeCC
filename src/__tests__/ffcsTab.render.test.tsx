@@ -686,7 +686,7 @@ describe("FFCSTimetableTab", () => {
     const plannerMenu = within(screen.getByRole("navigation", { name: "Planner menu" }));
     fireEvent.click(plannerMenu.getByRole("button", { name: /Switch Course List/ }));
     expect(screen.getByRole("heading", { name: "Switch Course List" })).toBeDefined();
-    expect(screen.getByRole("button", { name: /Previous Semester/ })).toBeDefined();
+    expect(screen.getByRole("button", { name: /Fall Semester/ })).toBeDefined();
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
 
     fireEvent.click(plannerMenu.getByRole("button", { name: /Switch Planner View/ }));

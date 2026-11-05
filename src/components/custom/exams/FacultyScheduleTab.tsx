@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAtom } from "jotai";
 import { ChevronRight, GraduationCap, Search, Users } from "lucide-react";
 import { attendanceDataAtom, marksDataAtom } from "@/store/dataAtoms";
+import { settingsAtom } from "@/store/settingsAtoms";
 import {
   EmptyPanel,
   ListRowText,
@@ -11,6 +12,7 @@ import {
   ListSkeleton,
   PageShell,
   SectionHeader,
+  SegmentedControl,
   ToneBadge,
 } from "../shared/primitives";
 import { LIST_ROW, SEARCH_FIELD, TONE_ICON_TILE } from "@/lib/uiTokens";
@@ -18,11 +20,22 @@ import FacultyScheduleModal from "./FFCS/components/modals/FacultyScheduleModal"
 import { VitfacReviewPill, FacultyAvatar } from "./FFCS/components/FacultyReviewSheet";
 import {
   buildFacultyNameGroups,
+  facultyNameMatches,
   findFirstMatchingGroup,
   loadFacultyOfferings,
   type FacultyNameGroup,
 } from "./FFCS/logic/facultyGroups";
 import type { TimetableState } from "@/lib/ffcsTypes";
+import {
+  FINAL_FFCS_REPORTS,
+  GLOBAL_SEMESTER_CHANGE_EVENT,
+  broadcastGlobalSemesterChange,
+  finalSemesterToVtopId,
+  getSelectedFinalSemesterId,
+  mapToFinalSemesterId,
+  type FinalFFCSSemesterId,
+} from "@/lib/ffcsReports";
+import { splitSlots } from "@/lib/slots";
 
 /**
  * The faculties on the courses in the reader's active FFCS timetable.
@@ -39,7 +52,15 @@ import type { TimetableState } from "@/lib/ffcsTypes";
  * throwing when the storage is absent or corrupt; a reader who has never opened
  * the planner simply contributes no names here.
  */
-export function readCurrentCourseFaculties(): string[] {
+export interface CurrentCourseFacultyRef {
+  name: string;
+  employeeId?: string;
+  classId?: string;
+  courseCode?: string;
+  slot?: string;
+}
+
+export function readCurrentCourseRefs(): CurrentCourseFacultyRef[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = window.localStorage.getItem("ffcs_timetables");
@@ -49,19 +70,34 @@ export function readCurrentCourseFaculties(): string[] {
     const active = timetables.find((t) => t.id === activeId) ?? timetables[0];
     if (!active?.courses?.length) return [];
 
-    const seen = new Set<string>();
-    const names: string[] = [];
+    const refs: CurrentCourseFacultyRef[] = [];
     for (const course of active.courses) {
-      const faculty = String(course?.faculty ?? "").trim();
-      if (faculty && !seen.has(faculty)) {
-        seen.add(faculty);
-        names.push(faculty);
+      const name = String(course?.faculty ?? "").trim();
+      const employeeId = String(course?.employeeId ?? "").trim() || undefined;
+      const classId = String(course?.classId ?? "").trim() || undefined;
+      const courseCode = String(course?.code ?? "").trim() || undefined;
+      const slot = Array.isArray(course?.slots) ? course.slots.join("+") : undefined;
+      if (name || employeeId) {
+        refs.push({ name, employeeId, classId, courseCode, slot });
       }
     }
-    return names;
+    return refs;
   } catch {
     return [];
   }
+}
+
+export function readCurrentCourseFaculties(): string[] {
+  const refs = readCurrentCourseRefs();
+  const seen = new Set<string>();
+  const names: string[] = [];
+  for (const ref of refs) {
+    if (ref.name && !seen.has(ref.name)) {
+      seen.add(ref.name);
+      names.push(ref.name);
+    }
+  }
+  return names;
 }
 
 /** The courses a faculty teaches, as a one-line subtitle: `BCSE101 · CSSE202 · +1`. */
@@ -89,11 +125,53 @@ function courseSummary(group: FacultyNameGroup): string {
  * hoisting costs nothing for a name the reader is only now remembering.
  */
 export default function FacultyScheduleTab({ onBack }: { onBack?: () => void }) {
+  const [settings, setSettings] = useAtom(settingsAtom);
+  const globalFinalSemester = useMemo(
+    () => mapToFinalSemesterId(settings?.currSemesterID) ?? getSelectedFinalSemesterId(),
+    [settings?.currSemesterID],
+  );
+  const [semesterId, setSemesterId] = useState<FinalFFCSSemesterId>(globalFinalSemester);
   const [groups, setGroups] = useState<FacultyNameGroup[]>([]);
   const [loading, setLoading] = useState(true);
-  const [ffcsNames, setFfcsNames] = useState<string[]>([]);
+  const [ffcsRefs, setFfcsRefs] = useState<CurrentCourseFacultyRef[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
+  const [selectedErp, setSelectedErp] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+
+  // Sync when global semester changes in settingsAtom
+  useEffect(() => {
+    if (globalFinalSemester && globalFinalSemester !== semesterId) {
+      setSemesterId(globalFinalSemester);
+    }
+  }, [globalFinalSemester, semesterId]);
+
+  // Sync on window event or storage event
+  useEffect(() => {
+    const handleGlobalChange = (e: Event) => {
+      const customEvent = e as CustomEvent<{ semesterId?: FinalFFCSSemesterId }>;
+      const nextSem = customEvent.detail?.semesterId || getSelectedFinalSemesterId();
+      if (nextSem && nextSem !== semesterId) {
+        setSemesterId(nextSem);
+      }
+    };
+
+    window.addEventListener(GLOBAL_SEMESTER_CHANGE_EVENT, handleGlobalChange);
+    window.addEventListener("storage", handleGlobalChange);
+    return () => {
+      window.removeEventListener(GLOBAL_SEMESTER_CHANGE_EVENT, handleGlobalChange);
+      window.removeEventListener("storage", handleGlobalChange);
+    };
+  }, [semesterId]);
+
+  const handleSemesterSwitch = useCallback(
+    (next: FinalFFCSSemesterId) => {
+      if (next === semesterId) return;
+      setSemesterId(next);
+      broadcastGlobalSemesterChange(next);
+      setSettings((prev) => ({ ...prev, currSemesterID: finalSemesterToVtopId(next) }));
+    },
+    [semesterId, setSettings],
+  );
 
   // The current timetable (attendance) and the current semester's enrolled
   // courses (marks) are global jotai atoms, so this page reads them directly
@@ -107,10 +185,11 @@ export default function FacultyScheduleTab({ onBack }: { onBack?: () => void }) 
   // empty and the empty state explains why.
   useEffect(() => {
     let cancelled = false;
-    setFfcsNames(readCurrentCourseFaculties());
+    setLoading(true);
+    setFfcsRefs(readCurrentCourseRefs());
     (async () => {
       try {
-        const offerings = await loadFacultyOfferings();
+        const offerings = await loadFacultyOfferings(semesterId);
         if (!cancelled) setGroups(buildFacultyNameGroups(offerings));
       } catch {
         // No report available — the empty state below is the message.
@@ -121,60 +200,140 @@ export default function FacultyScheduleTab({ onBack }: { onBack?: () => void }) 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [semesterId]);
+
+  // Handle external navigation target (e.g. from SimplifiedMobileHome)
+  useEffect(() => {
+    if (typeof window === "undefined" || groups.length === 0) return;
+    try {
+      const targetErp = window.localStorage.getItem("faculty_schedule_target_erp");
+      const targetName = window.localStorage.getItem("faculty_schedule_target_name");
+      if (targetErp) {
+        window.localStorage.removeItem("faculty_schedule_target_erp");
+        const match = findFirstMatchingGroup(groups, targetName || "", targetErp);
+        if (match) {
+          setSelected(match.canonical);
+          setSelectedErp(match.erpId || targetErp);
+        }
+      } else if (targetName) {
+        window.localStorage.removeItem("faculty_schedule_target_name");
+        const match = findFirstMatchingGroup(groups, targetName);
+        if (match) {
+          setSelected(match.canonical);
+          setSelectedErp(match.erpId || null);
+        }
+      }
+    } catch {}
+  }, [groups]);
 
   /**
-   * Every name that ties a course the reader is actually sitting in to a
-   * faculty member, unioned across the app's three sources of that fact:
-   *
+   * Union all course references across the app's three sources:
    *  1. the FFCS planner's registration — what they are *planning* to take;
-   *  2. the current timetable — VTOP attendance rows, which carry `faculty`;
-   *  3. the current semester — VTOP marks rows, which carry `faculty` too.
-   *
-   * They overlap almost completely in a normal week, so this dedupes raw
-   * strings; the section itself then dedupes again by group key, so a professor
-   * spelled two different ways across marks and attendance still hoists as one
-   * row. The FFCS read is mount-time (storage is not reactive); the other two
-   * are atoms and re-run whenever a sync repopulates them.
+   *  2. the current timetable — VTOP attendance rows;
+   *  3. the current semester — VTOP marks rows.
    */
-  const currentNames = useMemo(() => {
-    const names: string[] = [...ffcsNames];
-    const push = (raw: unknown) => {
-      const value = String(raw ?? "").trim();
-      if (value) names.push(value);
-    };
+  const currentCourseRefs = useMemo<CurrentCourseFacultyRef[]>(() => {
+    const refs: CurrentCourseFacultyRef[] = [...ffcsRefs];
 
     const marksCourses = (marksData as { courses?: unknown[] } | null)?.courses;
     if (Array.isArray(marksCourses)) {
-      for (const course of marksCourses) push((course as { faculty?: unknown })?.faculty);
+      for (const raw of marksCourses) {
+        const course = raw as { faculty?: unknown; courseCode?: unknown; classId?: unknown };
+        const name = String(course?.faculty ?? "").trim();
+        const classId = String(course?.classId ?? "").trim() || undefined;
+        const courseCode = String(course?.courseCode ?? "").trim() || undefined;
+        if (name || classId) {
+          refs.push({ name, classId, courseCode });
+        }
+      }
     }
 
     const attendanceItems = (attendanceData as { attendance?: unknown[] } | null)?.attendance;
     if (Array.isArray(attendanceItems)) {
-      for (const item of attendanceItems) push((item as { faculty?: unknown })?.faculty);
+      for (const raw of attendanceItems) {
+        const item = raw as { faculty?: unknown; courseCode?: unknown; slotName?: unknown; classId?: unknown };
+        const name = String(item?.faculty ?? "").trim();
+        const classId = String(item?.classId ?? "").trim() || undefined;
+        const courseCode = String(item?.courseCode ?? "").trim() || undefined;
+        const slot = String(item?.slotName ?? "").trim() || undefined;
+        if (name || classId) {
+          refs.push({ name, classId, courseCode, slot });
+        }
+      }
     }
 
-    return Array.from(new Set(names));
-  }, [ffcsNames, marksData, attendanceData]);
+    return refs;
+  }, [ffcsRefs, marksData, attendanceData]);
 
   /**
-   * Which groups are on the reader's own courses.
-   *
-   * A name from any source is resolved to a group the same way the rest of the
-   * app resolves one (`findFirstMatchingGroup`), so "PARTHIBAN V" as typed by
-   * the planner lands on the report's first spelling of that person. Keys, not
-   * names, are what the section membership compares — two spellings of one
-   * professor across marks, attendance and the FFCS draft must hoist a single
-   * row, not three.
+   * Resolves which groups belong to the reader's own courses, leveraging ERP IDs
+   * and class IDs to accurately match each faculty member's full schedule.
    */
   const currentKeys = useMemo(() => {
     const keys = new Set<string>();
-    for (const name of currentNames) {
-      const group = findFirstMatchingGroup(groups, name);
-      if (group) keys.add(group.key);
+
+    for (const ref of currentCourseRefs) {
+      // 1. Direct ERP ID match
+      if (ref.employeeId) {
+        const match = findFirstMatchingGroup(groups, ref.name, ref.employeeId);
+        if (match) {
+          keys.add(match.key);
+          continue;
+        }
+      }
+
+      // 2. Class ID match against report offerings
+      if (ref.classId) {
+        const match = groups.find((g) =>
+          g.offerings.some((o) => o.CLASS_ID && o.CLASS_ID.toUpperCase() === ref.classId!.toUpperCase()),
+        );
+        if (match) {
+          keys.add(match.key);
+          continue;
+        }
+      }
+
+      // 3. Course Code + Slot match
+      if (ref.courseCode && (ref.slot || ref.name)) {
+        const match = groups.find((g) =>
+          g.offerings.some((o) => {
+            const cleanRefCode = ref.courseCode!.toUpperCase().replace(/\([LPT]\)$/i, "");
+            const cleanOCode = o.CODE.toUpperCase().replace(/\([LPT]\)$/i, "");
+            if (
+              cleanRefCode !== cleanOCode &&
+              !cleanRefCode.startsWith(cleanOCode) &&
+              !cleanOCode.startsWith(cleanRefCode)
+            ) {
+              return false;
+            }
+            if (ref.slot && o.SLOT) {
+              const oSlots = splitSlots(o.SLOT);
+              const refSlots = splitSlots(ref.slot);
+              const overlaps = refSlots.some((s) => oSlots.includes(s));
+              if (overlaps) {
+                return !ref.name || facultyNameMatches(o.FACULTY, ref.name);
+              }
+            }
+            return ref.name ? facultyNameMatches(o.FACULTY, ref.name) : false;
+          }),
+        );
+        if (match) {
+          keys.add(match.key);
+          continue;
+        }
+      }
+
+      // 4. Name match fallback
+      if (ref.name) {
+        const match = findFirstMatchingGroup(groups, ref.name);
+        if (match) {
+          keys.add(match.key);
+        }
+      }
     }
+
     return keys;
-  }, [groups, currentNames]);
+  }, [groups, currentCourseRefs]);
 
   const query = search.trim().toLowerCase();
 
@@ -205,17 +364,21 @@ export default function FacultyScheduleTab({ onBack }: { onBack?: () => void }) 
 
   /** The grade-history row: avatar (vitfac image), name + courses, review pill, chevron. */
   const renderRow = (group: FacultyNameGroup) => {
-    const empId = group.offerings.find((o) => o.ERP_ID)?.ERP_ID;
+    const empId = group.erpId || group.offerings.find((o) => o.ERP_ID)?.ERP_ID;
     return (
       <div
         key={group.key}
         role="button"
         tabIndex={0}
-        onClick={() => setSelected(group.canonical)}
+        onClick={() => {
+          setSelected(group.canonical);
+          setSelectedErp(empId || null);
+        }}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
             setSelected(group.canonical);
+            setSelectedErp(empId || null);
           }
         }}
         className={`${LIST_ROW} cursor-pointer`}
@@ -229,6 +392,11 @@ export default function FacultyScheduleTab({ onBack }: { onBack?: () => void }) 
         <span className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-bold text-text-heading truncate">{group.canonical}</span>
+            {empId && (
+              <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 shrink-0">
+                #{empId}
+              </span>
+            )}
             <VitfacReviewPill
               employeeId={empId}
               name={group.canonical}
@@ -344,6 +512,15 @@ export default function FacultyScheduleTab({ onBack }: { onBack?: () => void }) 
         eyebrow="Faculty Schedule"
         title="Find a faculty's classes"
         subtitle="Your professors first, then every faculty on the FFCS report."
+        actions={
+          <SegmentedControl
+            options={FINAL_FFCS_REPORTS.map((r) => ({ value: r.id, label: r.label }))}
+            value={semesterId}
+            onChange={(val) => {
+              handleSemesterSwitch(val as FinalFFCSSemesterId);
+            }}
+          />
+        }
         selectable
       >
         {content}
@@ -351,10 +528,14 @@ export default function FacultyScheduleTab({ onBack }: { onBack?: () => void }) 
 
       <FacultyScheduleModal
         open={selected !== null}
-        onClose={() => setSelected(null)}
+        onClose={() => {
+          setSelected(null);
+          setSelectedErp(null);
+        }}
         groups={groups}
         loading={loading}
         initialFaculty={selected ?? undefined}
+        initialErpId={selectedErp ?? undefined}
       />
     </>
   );
