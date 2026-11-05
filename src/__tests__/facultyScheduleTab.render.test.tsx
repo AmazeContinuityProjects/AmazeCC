@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { getDefaultStore } from "jotai";
 import { attendanceDataAtom, marksDataAtom } from "../store/dataAtoms";
 import FacultyScheduleTab from "../components/custom/exams/FacultyScheduleTab";
+import { broadcastGlobalSemesterChange } from "@/lib/ffcsReports";
 
 /**
  * This jsdom environment has no `localStorage` — not even on `window`. Stubbed
@@ -54,8 +55,7 @@ const jotaiStore = getDefaultStore();
  */
 
 vi.mock("../components/custom/exams/FFCS/logic/facultyGroups", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("../components/custom/exams/FFCS/logic/facultyGroups")>();
+  const actual = await importOriginal<typeof import("../components/custom/exams/FFCS/logic/facultyGroups")>();
   return {
     ...actual,
     loadFacultyOfferings: async () => [
@@ -112,7 +112,7 @@ function seedRegistration() {
           },
         ],
       },
-    ])
+    ]),
   );
   store.setItem("ffcs_activeTimetableId", "default");
 }
@@ -141,9 +141,7 @@ describe("FacultyScheduleTab", () => {
     const meena = screen.getByText("MEENA R");
     expect(meena.compareDocumentPosition(othersHeader) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const parthiban = screen.getByText("PARTHIBAN V");
-    expect(
-      othersHeader.compareDocumentPosition(parthiban) & Node.DOCUMENT_POSITION_FOLLOWING
-    ).toBeTruthy();
+    expect(othersHeader.compareDocumentPosition(parthiban) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("hoists faculties from the current timetable and semester even without an FFCS draft", async () => {
@@ -162,17 +160,14 @@ describe("FacultyScheduleTab", () => {
     const othersHeader = screen.getByText("All other faculty");
     // Both atom-sourced faculties are hoisted...
     expect(
-      screen.getByText("ARJUN K").compareDocumentPosition(othersHeader) &
-        Node.DOCUMENT_POSITION_FOLLOWING
+      screen.getByText("ARJUN K").compareDocumentPosition(othersHeader) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
-      screen.getByText("PARTHIBAN V").compareDocumentPosition(othersHeader) &
-        Node.DOCUMENT_POSITION_FOLLOWING
+      screen.getByText("PARTHIBAN V").compareDocumentPosition(othersHeader) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     // ...while MEENA R, who appears only in the report, stays below.
     expect(
-      othersHeader.compareDocumentPosition(screen.getByText("MEENA R")) &
-        Node.DOCUMENT_POSITION_FOLLOWING
+      othersHeader.compareDocumentPosition(screen.getByText("MEENA R")) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 
@@ -199,5 +194,21 @@ describe("FacultyScheduleTab", () => {
     expect(await screen.findByText("All faculty")).toBeTruthy();
     expect(screen.queryByText("Your course faculties")).toBeNull();
     expect(screen.getByText(/Once your timetable and marks are synced/)).toBeTruthy();
+  });
+
+  it("switches semester automatically when global semester change event fires", async () => {
+    store.clear();
+    render(<FacultyScheduleTab />);
+    await screen.findByText("All faculty");
+
+    expect(screen.getByRole("button", { name: "Fall 2026-27" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Winter 2026-27" })).toBeTruthy();
+
+    // Broadcast global switch to Fall
+    act(() => {
+      broadcastGlobalSemesterChange("fall-2026-2027");
+    });
+
+    expect(store.getItem("ffcs_semester")).toBe("fall-2026-2027");
   });
 });

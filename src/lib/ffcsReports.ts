@@ -86,6 +86,129 @@ export const FFCS_SEMESTER_REPORTS: readonly FFCSSemesterReport[] = [
 export const DEFAULT_FFCS_SEMESTER: FFCSSemesterId = "winter-2026-2027";
 export const FFCS_SEMESTER_STORAGE_KEY = "ffcs_semester";
 
+/**
+ * The final registration course allocation reports for each semester.
+ * Used by Free Classrooms, Faculty Schedule, and Home widgets to dynamically
+ * resolve classrooms, faculty schedules, and course offerings.
+ */
+export const FINAL_FFCS_REPORTS = [
+  {
+    id: "winter-2026-2027" as const,
+    label: "Winter 2026-27",
+    fullLabel: "Winter Semester 2026-2027 (Final)",
+    path: "/ffcs/winter-2026-2027-final-ffcs.csv",
+  },
+  {
+    id: "fall-2026-2027" as const,
+    label: "Fall 2026-27",
+    fullLabel: "Fall Semester 2026-2027 (Final)",
+    path: "/ffcs/fall-2026-2027-final-ffcs.csv",
+  },
+] as const;
+
+export type FinalFFCSSemesterId = (typeof FINAL_FFCS_REPORTS)[number]["id"];
+
+export const GLOBAL_SEMESTER_CHANGE_EVENT = "amaze_global_semester_change";
+
+/**
+ * Maps any semester identifier (VTOP semId like "CH20262701", "CH20262705",
+ * or FFCS semId like "fall-2026-2027", "winter-2026-2027", "previous") to the
+ * corresponding FinalFFCSSemesterId ("fall-2026-2027" | "winter-2026-2027").
+ */
+export function mapToFinalSemesterId(rawId?: string | null): FinalFFCSSemesterId | null {
+  if (!rawId) return null;
+  const norm = String(rawId).trim().toLowerCase();
+  if (
+    norm === "fall-2026-2027" ||
+    norm === "previous" ||
+    norm.includes("fall") ||
+    (norm.startsWith("ch") && norm.endsWith("01"))
+  ) {
+    return "fall-2026-2027";
+  }
+  if (
+    norm === "winter-2026-2027" ||
+    norm === "winter-2026-2027-mock" ||
+    norm.includes("winter") ||
+    (norm.startsWith("ch") && norm.endsWith("05"))
+  ) {
+    return "winter-2026-2027";
+  }
+  return null;
+}
+
+/**
+ * Maps a FinalFFCSSemesterId to the canonical VTOP semester ID ("CH20262705" or "CH20262701").
+ */
+export function finalSemesterToVtopId(semesterId: FinalFFCSSemesterId): string {
+  if (semesterId === "fall-2026-2027") {
+    return "CH20262701";
+  }
+  return "CH20262705";
+}
+
+/**
+ * Resolves which final report semester ID is active.
+ * Checked in order:
+ *  1. Explicitly provided argument (mapped if VTOP/FFCS code)
+ *  2. Global settings currSemesterID in localStorage
+ *  3. ffcs_semester in localStorage
+ *  4. Default: "winter-2026-2027"
+ */
+export function getSelectedFinalSemesterId(semesterId?: string | null): FinalFFCSSemesterId {
+  const fromParam = mapToFinalSemesterId(semesterId);
+  if (fromParam) return fromParam;
+
+  if (typeof window !== "undefined") {
+    try {
+      const rawSettings = window.localStorage.getItem("settings");
+      if (rawSettings) {
+        const parsed = JSON.parse(rawSettings);
+        const fromSettings = mapToFinalSemesterId(parsed?.currSemesterID);
+        if (fromSettings) return fromSettings;
+      }
+    } catch {}
+
+    const ffcsSem = window.localStorage.getItem(FFCS_SEMESTER_STORAGE_KEY);
+    const fromFfcs = mapToFinalSemesterId(ffcsSem);
+    if (fromFfcs) return fromFfcs;
+  }
+
+  return "winter-2026-2027";
+}
+
+/**
+ * Resolves the final FFCS report path dynamically based on the selected semester.
+ */
+export function getSelectedFinalReportPath(semesterId?: string | null): string {
+  const activeId = getSelectedFinalSemesterId(semesterId);
+  if (activeId === "fall-2026-2027") {
+    return "/ffcs/fall-2026-2027-final-ffcs.csv";
+  }
+  return "/ffcs/winter-2026-2027-final-ffcs.csv";
+}
+
+/**
+ * Broadcasts a global semester change across all tabs and components in AmazeCC,
+ * ensuring Free Classrooms, Faculty Schedule, FFCS planner, and VTOP views stay in sync.
+ */
+export function broadcastGlobalSemesterChange(semesterId: FinalFFCSSemesterId): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(FFCS_SEMESTER_STORAGE_KEY, semesterId);
+    const vtopId = finalSemesterToVtopId(semesterId);
+    const rawSettings = window.localStorage.getItem("settings");
+    if (rawSettings) {
+      const parsed = JSON.parse(rawSettings);
+      if (parsed.currSemesterID !== vtopId) {
+        parsed.currSemesterID = vtopId;
+        window.localStorage.setItem("settings", JSON.stringify(parsed));
+      }
+    }
+    window.dispatchEvent(new CustomEvent(GLOBAL_SEMESTER_CHANGE_EVENT, { detail: { semesterId, vtopId } }));
+  } catch {}
+}
+
 export function isFFCSSemesterId(value: unknown): value is FFCSSemesterId {
   return value === "previous" || FFCS_SEMESTER_REPORTS.some((report) => report.id === value);
 }

@@ -28,6 +28,7 @@ import { useDashboardWelcomeState } from "./dashboard/useDashboardWelcomeState";
 import { DashboardRoute, useDashboardNavigator } from "./dashboard/DashboardNavigator";
 import { useDashboardDataActions } from "./dashboard/useDashboardDataActions";
 import { useDashboardTransportState } from "./dashboard/useDashboardTransportState";
+import { broadcastGlobalSemesterChange, mapToFinalSemesterId } from "@/lib/ffcsReports";
 
 function FeatureLoading() {
   return (
@@ -217,6 +218,8 @@ function DashboardContent({
             const next = { ...prev, currSemesterID: val };
             return next;
           });
+          const mapped = mapToFinalSemesterId(val);
+          if (mapped) broadcastGlobalSemesterChange(mapped);
         }}
         handleLogin={handleLogin}
         setIsReloading={setIsReloading}

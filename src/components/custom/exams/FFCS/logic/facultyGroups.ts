@@ -4,6 +4,7 @@ import { parseCourseRows } from "@/lib/freeClassrooms";
 import { COLORS } from "@/lib/ffcsConstants";
 import type { AddedCourse } from "@/lib/ffcsTypes";
 import { splitSlots } from "@/lib/slots";
+import { getSelectedFinalReportPath } from "@/lib/ffcsReports";
 
 /**
  * Faculty name groups, and the schedule built from one group.
@@ -45,21 +46,24 @@ export interface FacultyOffering {
   ROOM?: string;
   VENUE?: string;
   ERP_ID?: string;
+  CLASS_ID?: string;
 }
 
 /**
  * One faculty member, as the report's spellings of them.
  *
- * `key` is the sorted-token identity (order-independent, so `"PARTHIBAN V"` and
- * `"V PARTHIBAN"` land in the same group). `canonical` is the first spelling
- * seen and is what the UI displays. `names` is every spelling observed, in
- * first-seen order, so the UI can show that a group is more than one string.
+ * `key` is either the unique ERP ID (`erp:${erpId}`) when the report supplies
+ * one or the sorted-token identity. `canonical` is the first spelling seen and
+ * is what the UI displays. `names` is every spelling observed, in first-seen
+ * order, so the UI can show that a group is more than one string. `erpId` is
+ * the faculty member's employee ID.
  */
 export interface FacultyNameGroup {
   key: string;
   canonical: string;
   names: string[];
   offerings: FacultyOffering[];
+  erpId?: string;
 }
 
 /** Loose titles that prefix a portal name and never carry identity. */
@@ -127,17 +131,32 @@ export function buildFacultyNameGroups(offerings: readonly FacultyOffering[]): F
 
   for (const offering of offerings) {
     const raw = String(offering.FACULTY ?? "").trim();
-    if (!raw) continue;
-    const key = facultyGroupKey(raw);
+    const erpId = String(offering.ERP_ID ?? "").trim();
+    if (!raw && !erpId) continue;
+    // When an ERP ID is present, it uniquely identifies the faculty member,
+    // avoiding collisions between distinct instructors sharing the same name
+    // and correctly grouping all classes taught by that instructor.
+    const key = erpId ? `erp:${erpId}` : facultyGroupKey(raw);
     if (!key) continue;
 
     let group = byKey.get(key);
     if (!group) {
-      group = { key, canonical: raw, names: [raw], offerings: [] };
+      group = {
+        key,
+        canonical: raw || `Faculty (${erpId})`,
+        names: raw ? [raw] : [],
+        offerings: [],
+        erpId: erpId || undefined,
+      };
       byKey.set(key, group);
       groups.push(group);
-    } else if (!group.names.includes(raw)) {
-      group.names.push(raw);
+    } else {
+      if (raw && !group.names.includes(raw)) {
+        group.names.push(raw);
+      }
+      if (!group.erpId && erpId) {
+        group.erpId = erpId;
+      }
     }
     group.offerings.push(offering);
   }
@@ -146,15 +165,33 @@ export function buildFacultyNameGroups(offerings: readonly FacultyOffering[]): F
 }
 
 /**
- * The first group whose names match `name`, or null.
+ * The first group whose names or ERP ID match, or null.
  *
  * "First" is the requirement, not a detail: a directory entry is matched against
  * the group list in report order, so the schedule shown is the one belonging to
- * the first spelling the report used for that person.
+ * the first spelling the report used for that person. When an ERP ID is supplied
+ * or detected, exact ERP matching takes precedence over heuristic name comparison.
  */
-export function findFirstMatchingGroup(groups: readonly FacultyNameGroup[], name: string): FacultyNameGroup | null {
+export function findFirstMatchingGroup(
+  groups: readonly FacultyNameGroup[],
+  identifier: string,
+  erpId?: string | null,
+): FacultyNameGroup | null {
+  const cleanErp = String(erpId ?? "").trim();
+  if (cleanErp) {
+    const match = groups.find((g) => g.erpId === cleanErp || g.key === `erp:${cleanErp}`);
+    if (match) return match;
+  }
+
+  const cleanIdent = String(identifier ?? "").trim();
+  if (cleanIdent.startsWith("erp:") || /^\d{3,}$/.test(cleanIdent)) {
+    const targetErp = cleanIdent.replace(/^erp:/, "").trim();
+    const match = groups.find((g) => g.erpId === targetErp || g.key === `erp:${targetErp}`);
+    if (match) return match;
+  }
+
   for (const group of groups) {
-    if (group.names.some((candidate) => facultyNameMatches(candidate, name))) {
+    if (group.names.some((candidate) => facultyNameMatches(candidate, cleanIdent))) {
       return group;
     }
   }
@@ -204,9 +241,19 @@ type OfferingLike = {
   FACULTY?: string;
   ROOM?: string;
   VENUE?: string;
+  ERP_ID?: string;
+  "ERP ID"?: string;
+  EMPLOYEE_ID?: string;
+  "EMPLOYEE ID"?: string;
+  CLASS_ID?: string;
+  "CLASS ID"?: string;
+  CLASS_NBR?: string;
+  "CLASS NBR"?: string;
 };
 
 function toOffering(row: OfferingLike): FacultyOffering {
+  const erp = String(row.ERP_ID ?? row["ERP ID"] ?? row.EMPLOYEE_ID ?? row["EMPLOYEE ID"] ?? "").trim();
+  const classId = String(row.CLASS_ID ?? row["CLASS ID"] ?? row.CLASS_NBR ?? row["CLASS NBR"] ?? "").trim();
   return {
     CODE: String(row.CODE ?? "").trim(),
     TITLE: String(row.TITLE ?? "").trim(),
@@ -215,35 +262,24 @@ function toOffering(row: OfferingLike): FacultyOffering {
     SLOT: String(row.SLOT ?? "").trim(),
     FACULTY: String(row.FACULTY ?? "").trim(),
     ROOM: String(row.ROOM ?? row.VENUE ?? "").trim(),
+    ERP_ID: erp || undefined,
+    CLASS_ID: classId || undefined,
   };
 }
 
 /**
  * Load the FFCS report rows for a consumer that is not the planner itself.
  *
- * The planner keeps its own `rawParsedCourses`; everyone else (the Faculty
- * Explorer, the free-classroom surfaces) reads the shared `ffcs_raw_courses`
- * cache, which `lib/freeClassrooms` normalises — folding the `ROOM`/`VENUE`
- * aliases and stripping the header BOM — and returns nothing rather than
- * throwing when the cache is corrupt. Only when there is no cache at all does
- * this fetch the CSV, so a consumer that has already been to the planner pays
- * nothing.
+ * Dynamically resolves from the selected semester's final course allocation
+ * report (`/ffcs/winter-2026-2027-final-ffcs.csv` or `/ffcs/fall-2026-2027-final-ffcs.csv`).
  */
-export async function loadFacultyOfferings(): Promise<FacultyOffering[]> {
-  // Resolve from the shipped fall-semester report (fall-2026-2027-final-ffcs.csv) rather
-  // than the shared `ffcs_raw_courses` cache, which may hold a stale or
-  // different-semester report and cause faculty names to stop matching the
-  // reader's current course list. The cache is still refreshed below so the
-  // free-classroom surfaces stay aligned with the same data.
+export async function loadFacultyOfferings(semesterId?: string | null): Promise<FacultyOffering[]> {
   const XLSX = await import("xlsx");
-  const response = await fetch("/ffcs/fall-2026-2027-final-ffcs.csv");
+  const reportPath = getSelectedFinalReportPath(semesterId);
+  const response = await fetch(reportPath);
   if (!response.ok) throw new Error("Failed to load FFCS course report");
   const workbook = XLSX.read(new Uint8Array(await response.arrayBuffer()), { type: "array" });
   const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[workbook.SheetNames[0]]);
   const parsed = parseCourseRows(rows);
-  // Do not overwrite the shared `ffcs_raw_courses` cache here: that cache
-  // belongs to the planner's currently selected report (/ffcs and the
-  // free-classroom surfaces). The faculty schedule keeps its own copy in
-  // component state, resolved from the shipped fall report.
   return parsed.map(toOffering);
 }

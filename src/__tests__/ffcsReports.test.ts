@@ -9,6 +9,11 @@ import {
   getFFCSSemesterByClassIdPrefix,
   getFFCSSemesterByClassIdPrefixCode,
   isFFCSSemesterId,
+  FINAL_FFCS_REPORTS,
+  finalSemesterToVtopId,
+  getSelectedFinalReportPath,
+  getSelectedFinalSemesterId,
+  mapToFinalSemesterId,
   legacyOfferingId,
   offeringId,
   offeringMatches,
@@ -212,5 +217,32 @@ describe("parsing report rows", () => {
 
     expect(courses.find((course) => course.CODE === "MATR706")?.FACULTY).toBe("THARASI DILLESWAR RAO");
     expect(courses.find((course) => course.CODE === "PRMC001L")?.FACULTY).toBe("BALAMURUGAN B J");
+  });
+});
+
+describe("global final semester mapping and resolution", () => {
+  it("maps VTOP semester IDs to final report semester IDs", () => {
+    expect(mapToFinalSemesterId("CH20262701")).toBe("fall-2026-2027");
+    expect(mapToFinalSemesterId("CH20262705")).toBe("winter-2026-2027");
+    expect(mapToFinalSemesterId("fall-2026-2027")).toBe("fall-2026-2027");
+    expect(mapToFinalSemesterId("previous")).toBe("fall-2026-2027");
+    expect(mapToFinalSemesterId("winter-2026-2027")).toBe("winter-2026-2027");
+    expect(mapToFinalSemesterId(null)).toBeNull();
+  });
+
+  it("maps FinalFFCSSemesterId to VTOP IDs", () => {
+    expect(finalSemesterToVtopId("fall-2026-2027")).toBe("CH20262701");
+    expect(finalSemesterToVtopId("winter-2026-2027")).toBe("CH20262705");
+  });
+
+  it("resolves the final report path dynamically", () => {
+    expect(getSelectedFinalReportPath("CH20262701")).toBe("/ffcs/fall-2026-2027-final-ffcs.csv");
+    expect(getSelectedFinalReportPath("CH20262705")).toBe("/ffcs/winter-2026-2027-final-ffcs.csv");
+    expect(getSelectedFinalReportPath("fall-2026-2027")).toBe("/ffcs/fall-2026-2027-final-ffcs.csv");
+    expect(getSelectedFinalReportPath("winter-2026-2027")).toBe("/ffcs/winter-2026-2027-final-ffcs.csv");
+  });
+
+  it("ships FINAL_FFCS_REPORTS with exactly winter and fall", () => {
+    expect(FINAL_FFCS_REPORTS.map((r) => r.id)).toEqual(["winter-2026-2027", "fall-2026-2027"]);
   });
 });

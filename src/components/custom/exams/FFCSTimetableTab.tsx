@@ -127,10 +127,14 @@ import {
   DEFAULT_FFCS_SEMESTER,
   FFCS_SEMESTER_REPORTS,
   FFCS_SEMESTER_STORAGE_KEY,
+  GLOBAL_SEMESTER_CHANGE_EVENT,
+  broadcastGlobalSemesterChange,
   getFFCSSemester,
   isFFCSSemesterId,
+  mapToFinalSemesterId,
   parseReportRows,
   type FFCSSemesterId,
+  type FinalFFCSSemesterId,
 } from "@/lib/ffcsReports";
 import { DAYS, COLORS } from "@/lib/ffcsConstants";
 import { renderCourseTypeChips } from "./FFCS/components/CourseTypeChips";
@@ -763,9 +767,26 @@ export default function FFCSTimetableTab({
       }
 
       safeStorage.setItem(FFCS_SEMESTER_STORAGE_KEY, nextSemesterId);
+      const mapped = mapToFinalSemesterId(nextSemesterId);
+      if (mapped) broadcastGlobalSemesterChange(mapped);
     },
     [semesterId, loadSemesterReport],
   );
+
+  // Sync on global semester change event
+  useEffect(() => {
+    const handleGlobalChange = (e: Event) => {
+      const customEvent = e as CustomEvent<{ semesterId?: FinalFFCSSemesterId }>;
+      const nextSem = customEvent.detail?.semesterId;
+      if (nextSem && nextSem !== semesterId && isFFCSSemesterId(nextSem)) {
+        void handleSemesterChange(nextSem);
+      }
+    };
+    window.addEventListener(GLOBAL_SEMESTER_CHANGE_EVENT, handleGlobalChange);
+    return () => {
+      window.removeEventListener(GLOBAL_SEMESTER_CHANGE_EVENT, handleGlobalChange);
+    };
+  }, [handleSemesterChange, semesterId]);
 
   // Load from local storage on mount and fetch the selected semester's report.
   useEffect(() => {

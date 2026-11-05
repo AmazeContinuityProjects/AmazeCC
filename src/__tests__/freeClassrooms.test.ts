@@ -100,6 +100,24 @@ describe("parseCourseRow", () => {
     expect(parseCourseRow({ ROOM: "AB2-202" }).VENUE).toBe("AB2-202");
   });
 
+  it("extracts ERP ID and CLASS ID across header variations", () => {
+    const row1 = parseCourseRow({
+      "COURSE CODE": "BCSE101",
+      "ERP ID": "100234",
+      "CLASS ID": "CH2026270501234",
+    });
+    expect(row1.ERP_ID).toBe("100234");
+    expect(row1.CLASS_ID).toBe("CH2026270501234");
+
+    const row2 = parseCourseRow({
+      CODE: "BCSE102",
+      EMPLOYEE_ID: "100567",
+      CLASS_NBR: "CH2026270105678",
+    });
+    expect(row2.ERP_ID).toBe("100567");
+    expect(row2.CLASS_ID).toBe("CH2026270105678");
+  });
+
   it("keeps a row with no code, so the caller can drop it deliberately", () => {
     expect(parseCourseRow({ TITLE: "nameless" }).CODE).toBe("");
   });
@@ -124,7 +142,7 @@ describe("parseCachedCourses", () => {
   // scan died on `undefined.toUpperCase()` — taking the whole home page with it.
   it("reads back a cache written by the other screen's shape", () => {
     const rows = parseCachedCourses(
-      JSON.stringify([{ CODE: "A1", TITLE: "Maths", TYPE: "TH", SLOT: "A1", ROOM: "ab5-101" }])
+      JSON.stringify([{ CODE: "A1", TITLE: "Maths", TYPE: "TH", SLOT: "A1", ROOM: "ab5-101" }]),
     );
     expect(rows).toHaveLength(1);
     // The room survives under the one name this module reads, whatever the
@@ -133,9 +151,7 @@ describe("parseCachedCourses", () => {
   });
 
   it("reads back its own shape too", () => {
-    const rows = parseCachedCourses(
-      JSON.stringify([{ CODE: "A1", TYPE: "TH", SLOT: "A1", VENUE: "AB5-101" }])
-    );
+    const rows = parseCachedCourses(JSON.stringify([{ CODE: "A1", TYPE: "TH", SLOT: "A1", VENUE: "AB5-101" }]));
     expect(rows[0].VENUE).toBe("AB5-101");
   });
 
@@ -213,7 +229,7 @@ describe("resolvePeriods", () => {
         theory: [{ start: "8:55 AM", end: "9:45 AM", days: { mon: "F1" } }],
         lab: [{ start: "08:50 AM", end: "09:40 AM", days: { mon: "L2" } }],
       },
-      "mon"
+      "mon",
     );
     expect(periods).toHaveLength(1);
     expect(periods[0].start).toBe("8:50 AM");
@@ -234,7 +250,7 @@ describe("resolvePeriods", () => {
         ],
         lab: [],
       },
-      "mon"
+      "mon",
     );
     expect(periods).toHaveLength(2);
   });
@@ -245,7 +261,7 @@ describe("resolvePeriods", () => {
         theory: [{ start: "8:55 AM", end: "9:45 AM", days: { mon: "F1" } }],
         lab: [{ start: "08:50 AM", end: "09:40 AM", days: { mon: "L2" } }],
       },
-      "mon"
+      "mon",
     );
     expect(only.key).toBe(periodKey("8:50 AM", "9:45 AM"));
   });
@@ -258,7 +274,7 @@ describe("resolvePeriods", () => {
   it("skips the lunch marker and sorts by start time", () => {
     const periods = resolvePeriods(
       { theory: [{ lunch: true, days: { mon: "L" } }, ...CHENNAI.theory!], lab: [] },
-      "mon"
+      "mon",
     );
     expect(periods.every((p) => p.start && p.end)).toBe(true);
     const starts = periods.map((p) => p.startMinutes);
@@ -268,9 +284,7 @@ describe("resolvePeriods", () => {
 
 describe("isRealVenue", () => {
   it("rejects the placeholders VTOP uses for a non-room", () => {
-    ["", "NIL", "N/A", "unk-unk", "-", "ONLINE SESSION"].forEach((v) =>
-      expect(isRealVenue(v)).toBe(false)
-    );
+    ["", "NIL", "N/A", "unk-unk", "-", "ONLINE SESSION"].forEach((v) => expect(isRealVenue(v)).toBe(false));
   });
 
   it("keeps a real room", () => {
@@ -349,10 +363,7 @@ describe("buildDayIndex", () => {
   });
 
   it("merges venues that differ only by trailing space into one room", () => {
-    const index = monday([
-      course({ SLOT: "A1", VENUE: "AB3-101" }),
-      course({ SLOT: "A2", VENUE: "AB3-101 " }),
-    ]);
+    const index = monday([course({ SLOT: "A1", VENUE: "AB3-101" }), course({ SLOT: "A2", VENUE: "AB3-101 " })]);
     expect([...index.rooms.keys()]).toEqual(["AB3-101"]);
     expect(index.blocks.get("AB3")).toEqual(["AB3-101"]);
   });
@@ -369,9 +380,7 @@ describe("buildDayIndex", () => {
    * while a class was sitting in it.
    */
   it("counts a law course booked without a period number", () => {
-    const index = monday([
-      course({ CODE: "TLAW524L", TYPE: "TH", SLOT: "A+TA", VENUE: "AB5-405" }),
-    ]);
+    const index = monday([course({ CODE: "TLAW524L", TYPE: "TH", SLOT: "A+TA", VENUE: "AB5-405" })]);
     expect(freeRoomsForPeriod(index, "8:00am-8:50am").rooms).not.toContain("AB5-405");
   });
 
@@ -382,9 +391,7 @@ describe("buildDayIndex", () => {
    * class.
    */
   it("leaves a law room free in the evening, because law has no evening", () => {
-    const index = monday([
-      course({ CODE: "TLAW524L", TYPE: "TH", SLOT: "A+TA", VENUE: "AB5-405" }),
-    ]);
+    const index = monday([course({ CODE: "TLAW524L", TYPE: "TH", SLOT: "A+TA", VENUE: "AB5-405" })]);
     expect(freeRoomsForPeriod(index, "8:55am-9:45am").rooms).toContain("AB5-405");
   });
 });
@@ -417,12 +424,13 @@ describe("buildPeriodSlots", () => {
  * school's `TEE` and `TFF` actually land. So this uses the real file.
  */
 describe("the 12:35 periods in the real Chennai schema", () => {
-  const law = (over: Partial<FreeRoomCourse>) => course({
-    CODE: "TLAW304L",
-    TYPE: "TH",
-    VENUE: "AB5-303",
-    ...over,
-  });
+  const law = (over: Partial<FreeRoomCourse>) =>
+    course({
+      CODE: "TLAW304L",
+      TYPE: "TH",
+      VENUE: "AB5-303",
+      ...over,
+    });
 
   it("counts a TEE course in the Monday S11 period", () => {
     const index = realChennai("mon", [law({ SLOT: "E+TE+TEE" })]);
@@ -540,12 +548,10 @@ describe("bestPeriod", () => {
 
   it("has no answer on a day where every room is taken in every period", () => {
     // Ten rooms, each booked into all four of the day's slots.
-    const rooms = Array.from({ length: 10 }, (_, i) =>
-      course({ SLOT: "A1", VENUE: `AB1-10${i}` })
-    ).concat(
+    const rooms = Array.from({ length: 10 }, (_, i) => course({ SLOT: "A1", VENUE: `AB1-10${i}` })).concat(
       ["A2", "A3", "L9"].flatMap((slot) =>
-        Array.from({ length: 10 }, (_, i) => course({ SLOT: slot, VENUE: `AB1-10${i}` }))
-      )
+        Array.from({ length: 10 }, (_, i) => course({ SLOT: slot, VENUE: `AB1-10${i}` })),
+      ),
     );
     expect(bestPeriod(monday(rooms))).toBeNull();
   });

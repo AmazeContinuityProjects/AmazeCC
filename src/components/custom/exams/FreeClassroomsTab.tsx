@@ -39,9 +39,10 @@ import {
   type PeriodOption,
 } from "@/lib/freeClassrooms";
 import { fetchLiveDay, type LiveDay } from "@/lib/roomAvailability";
-import { mergeDay, type MergedDay } from "@/lib/roomMerge";
+import { mergeDay, type MergedDay, type MergedOccupant } from "@/lib/roomMerge";
 import { getCurrentSemesterId } from "@/lib/officialOd";
 import BottomSheet from "../shared/BottomSheet";
+import ClassDetailsModal from "./ClassDetailsModal";
 import {
   ChipTabs,
   DotPill,
@@ -62,6 +63,18 @@ import {
 } from "../shared/primitives";
 
 import chennaiSchema from "@/data/campus/chennai.json";
+import { useAtom } from "jotai";
+import { settingsAtom } from "@/store/settingsAtoms";
+import {
+  FINAL_FFCS_REPORTS,
+  GLOBAL_SEMESTER_CHANGE_EVENT,
+  broadcastGlobalSemesterChange,
+  finalSemesterToVtopId,
+  getSelectedFinalReportPath,
+  getSelectedFinalSemesterId,
+  mapToFinalSemesterId,
+  type FinalFFCSSemesterId,
+} from "@/lib/ffcsReports";
 
 /**
  * Free Classrooms.
@@ -247,8 +260,49 @@ function DayPicker({
 
 export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
   const [courses, setCourses] = useState<FreeRoomCourse[]>([]);
+  const [settings, setSettings] = useAtom(settingsAtom);
+  const globalFinalSemester = useMemo(
+    () => mapToFinalSemesterId(settings?.currSemesterID) ?? getSelectedFinalSemesterId(),
+    [settings?.currSemesterID],
+  );
+  const [semesterId, setSemesterId] = useState<FinalFFCSSemesterId>(globalFinalSemester);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Sync when global semester changes in settingsAtom
+  useEffect(() => {
+    if (globalFinalSemester && globalFinalSemester !== semesterId) {
+      setSemesterId(globalFinalSemester);
+    }
+  }, [globalFinalSemester, semesterId]);
+
+  // Sync on window event or storage event
+  useEffect(() => {
+    const handleGlobalChange = (e: Event) => {
+      const customEvent = e as CustomEvent<{ semesterId?: FinalFFCSSemesterId }>;
+      const nextSem = customEvent.detail?.semesterId || getSelectedFinalSemesterId();
+      if (nextSem && nextSem !== semesterId) {
+        setSemesterId(nextSem);
+      }
+    };
+
+    window.addEventListener(GLOBAL_SEMESTER_CHANGE_EVENT, handleGlobalChange);
+    window.addEventListener("storage", handleGlobalChange);
+    return () => {
+      window.removeEventListener(GLOBAL_SEMESTER_CHANGE_EVENT, handleGlobalChange);
+      window.removeEventListener("storage", handleGlobalChange);
+    };
+  }, [semesterId]);
+
+  const handleSemesterSwitch = useCallback(
+    (next: FinalFFCSSemesterId) => {
+      if (next === semesterId) return;
+      setSemesterId(next);
+      broadcastGlobalSemesterChange(next);
+      setSettings((prev) => ({ ...prev, currSemesterID: finalSemesterToVtopId(next) }));
+    },
+    [semesterId, setSettings],
+  );
 
   const [day, setDay] = useState<DayId>("mon");
   const [periodKey, setPeriodKey] = useState("");
@@ -262,6 +316,15 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
   const [inspectedRoom, setInspectedRoom] = useState<string | null>(null);
   const [inspectDay, setInspectDay] = useState<DayId>("mon");
   const [copied, setCopied] = useState<string | null>(null);
+
+  /** Selected class occupant for detail sheet */
+  const [selectedClassOccupant, setSelectedClassOccupant] = useState<{
+    occupant: MergedOccupant;
+    occupants: MergedOccupant[];
+    roomCode: string;
+    periodLabel: string;
+    dayLabel: string;
+  } | null>(null);
 
   /**
    * The server's answer, per day.
@@ -283,58 +346,51 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
 
   /* ── data ─────────────────────────────────────────────────────────────── */
 
-  const load = useCallback(async (forceReload = false) => {
-    setLoading(true);
-    setError(null);
+  const load = useCallback(
+    async (forceReload = false, targetSemester = semesterId) => {
+      setLoading(true);
+      setError(null);
 
-    if (!forceReload) {
-      /**
-       * The shared `ffcs_raw_courses` cache has three writers and two shapes:
-       * the FFCS timetable tab writes the room as `ROOM`, this page writes it
-       * as `VENUE`. Whichever screen the user visited last owns the key, so a
-       * raw `JSON.parse` here could hand the index rows with no `VENUE` at all
-       * — and `buildDayIndex` skips every one of them, rendering "no rooms"
-       * over a full report. `parseCachedCourses` is the tested normaliser that
-       * folds the aliases and survives a corrupt cache as "no rows" (so we
-       * still fall through to the CSV), which is what the mobile widget and
-       * the faculty-group loader already do.
-       */
-      const parsed = parseCachedCourses(localStorage.getItem("ffcs_raw_courses"));
-      if (parsed.length) {
-        setCourses(parsed);
-        setLoading(false);
-        return;
+      if (!forceReload) {
+        const parsed = parseCachedCourses(localStorage.getItem(`ffcs_raw_courses_${targetSemester}`));
+        if (parsed.length) {
+          setCourses(parsed);
+          setLoading(false);
+          return;
+        }
       }
-    }
 
-    try {
-      const XLSX = await import("xlsx");
-      const response = await fetch("/ffcs/fall-2026-2027-final-ffcs.csv");
-      if (!response.ok) throw new Error("Failed to load campus timetable records");
-      const workbook = XLSX.read(new Uint8Array(await response.arrayBuffer()), { type: "array" });
-      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[workbook.SheetNames[0]]);
-
-      // Header normalisation (the BOM, the CODE/VENUE aliases) lives in the
-      // lib and is tested there. Doing it inline here once shipped a mangled
-      // byte-order mark that silently dropped every course in the report.
-      const parsed = parseCourseRows(rows);
-
-      setCourses(parsed);
       try {
-        localStorage.setItem("ffcs_raw_courses", JSON.stringify(parsed));
-      } catch {}
-    } catch (err: any) {
-      setError(err.message || "Failed to load timetable data");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+        const XLSX = await import("xlsx");
+        const reportPath = getSelectedFinalReportPath(targetSemester);
+        const response = await fetch(reportPath);
+        if (!response.ok) throw new Error("Failed to load campus timetable records");
+        const workbook = XLSX.read(new Uint8Array(await response.arrayBuffer()), { type: "array" });
+        const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[workbook.SheetNames[0]]);
+
+        // Header normalisation (the BOM, the CODE/VENUE aliases) lives in the
+        // lib and is tested there. Doing it inline here once shipped a mangled
+        // byte-order mark that silently dropped every course in the report.
+        const parsed = parseCourseRows(rows);
+
+        setCourses(parsed);
+        try {
+          localStorage.setItem(`ffcs_raw_courses_${targetSemester}`, JSON.stringify(parsed));
+          localStorage.setItem("ffcs_raw_courses", JSON.stringify(parsed));
+        } catch {}
+      } catch (err: any) {
+        setError(err.message || "Failed to load timetable data");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [semesterId],
+  );
 
   useEffect(() => {
-    // Refresh from the shipped report on every entry so the page never shows a
-    // stale cached report from another semester.
-    load(true);
-  }, [load]);
+    // Refresh from the active report on semester switch or mount
+    load(true, semesterId);
+  }, [load, semesterId]);
 
   /* ── the day ──────────────────────────────────────────────────────────── */
 
@@ -700,9 +756,18 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
       title="Find an empty room"
       subtitle="Every room on campus, from the FFCS report and the live timetable."
       actions={
-        <IconButton title="Reload timetable" onClick={() => load(true)} disabled={loading}>
-          <RefreshCcw className={loading ? "animate-spin" : ""} />
-        </IconButton>
+        <div className="flex items-center gap-2">
+          <SegmentedControl
+            options={FINAL_FFCS_REPORTS.map((r) => ({ value: r.id, label: r.label }))}
+            value={semesterId}
+            onChange={(val) => {
+              handleSemesterSwitch(val as FinalFFCSSemesterId);
+            }}
+          />
+          <IconButton title="Reload timetable" onClick={() => load(true, semesterId)} disabled={loading}>
+            <RefreshCcw className={loading ? "animate-spin" : ""} />
+          </IconButton>
+        </div>
       }
       selectable
     >
@@ -1037,7 +1102,11 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
                     occupants.length
                       ? occupants
                           .map((o) =>
-                            [o.title || o.courseCode, o.courseCode && o.title ? o.courseCode : "", o.faculty]
+                            [
+                              o.title || o.courseCode,
+                              o.courseCode && o.title ? o.courseCode : "",
+                              o.faculty ? `${o.faculty}${o.erpId ? ` (#${o.erpId})` : ""}` : "",
+                            ]
                               .filter(Boolean)
                               .join(" · "),
                           )
@@ -1047,12 +1116,19 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
                   tone={occupants.length ? "zinc" : "emerald"}
                   badge={occupants.length ? "Taken" : "Free"}
                   selected={isSelected}
-                  // Takes the list to this day and period together, so
-                  // "it's free Thursday 2 PM" turns into the list of rooms
-                  // that are free Thursday 2 PM.
                   onClick={() => {
-                    setDay(inspectDay);
-                    setPeriodKey(period.key);
+                    if (occupants.length > 0) {
+                      setSelectedClassOccupant({
+                        occupant: occupants[0],
+                        occupants,
+                        roomCode: inspectedRoom,
+                        periodLabel: period.label,
+                        dayLabel: DAY_LABELS[inspectDay]?.full ?? inspectDay,
+                      });
+                    } else {
+                      setDay(inspectDay);
+                      setPeriodKey(period.key);
+                    }
                   }}
                 />
               ))}
@@ -1060,6 +1136,17 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
           </div>
         </BottomSheet>
       )}
+
+      {/* ── CLASS DETAILS MODAL ── */}
+      <ClassDetailsModal
+        isOpen={Boolean(selectedClassOccupant)}
+        onClose={() => setSelectedClassOccupant(null)}
+        occupant={selectedClassOccupant?.occupant ?? null}
+        occupants={selectedClassOccupant?.occupants}
+        roomCode={selectedClassOccupant?.roomCode}
+        dayLabel={selectedClassOccupant?.dayLabel}
+        periodLabel={selectedClassOccupant?.periodLabel}
+      />
     </PageShell>
   );
 }
