@@ -767,8 +767,9 @@ export default function FFCSTimetableTab({
       }
 
       safeStorage.setItem(FFCS_SEMESTER_STORAGE_KEY, nextSemesterId);
-      const mapped = mapToFinalSemesterId(nextSemesterId);
-      if (mapped) broadcastGlobalSemesterChange(mapped);
+      if (nextSemesterId === "winter-2026-2027" || nextSemesterId === "fall-2026-2027") {
+        broadcastGlobalSemesterChange(nextSemesterId);
+      }
     },
     [semesterId, loadSemesterReport],
   );
@@ -778,7 +779,12 @@ export default function FFCSTimetableTab({
     const handleGlobalChange = (e: Event) => {
       const customEvent = e as CustomEvent<{ semesterId?: FinalFFCSSemesterId }>;
       const nextSem = customEvent.detail?.semesterId;
-      if (nextSem && nextSem !== semesterId && isFFCSSemesterId(nextSem)) {
+      if (
+        nextSem &&
+        nextSem !== semesterId &&
+        mapToFinalSemesterId(semesterId) !== nextSem &&
+        isFFCSSemesterId(nextSem)
+      ) {
         void handleSemesterChange(nextSem);
       }
     };
