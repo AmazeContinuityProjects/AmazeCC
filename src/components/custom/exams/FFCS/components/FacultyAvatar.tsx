@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { ENABLE_VITFAC_INTEGRATION, useVitfacReview, useCachedImage, useChennaiImage } from "@/lib/vitfacService";
+import { ENABLE_VITFAC_INTEGRATION, useVitfacReview, useChennaiImage } from "@/lib/vitfacService";
 import { getFacultyCdnUrl, toCdnImageUrl } from "@/lib/workerBase";
 
 /*
@@ -102,13 +102,7 @@ export function FacultyAvatar({
   const tertiaryUrl = externalFallback && !failedUrls.includes(externalFallback) ? externalFallback : null;
 
   const sourceUrl = primaryUrl || secondaryUrl || tertiaryUrl;
-  const cachedUrl = useCachedImage(sourceUrl);
-  const effectiveUrl =
-    cachedUrl && !failedUrls.includes(cachedUrl)
-      ? cachedUrl
-      : sourceUrl && !failedUrls.includes(sourceUrl)
-        ? sourceUrl
-        : null;
+  const effectiveUrl = sourceUrl && !failedUrls.includes(sourceUrl) ? sourceUrl : null;
 
   const sizeClasses = {
     xs: "w-6 h-6 rounded-md text-[10px]",

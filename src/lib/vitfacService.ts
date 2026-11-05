@@ -802,88 +802,22 @@ export function useVitfacReview(employeeId?: string | null, name?: string | null
 // base64). Once one has been fetched we keep a copy in sessionStorage so the
 // next render (and the next visit) is instant and does not hit the network
 // again. Base64 payloads are stored as-is; external URLs are fetched once,
-// converted to a data URL, and cached. Entries larger than the size cap are
-// skipped, and quota failures evict the whole namespace and retry once.
-
-const IMG_CACHE_PREFIX = "amazecc_img_";
-const IMG_CACHE_MAX_BYTES = 60 * 1024; // 60 KB per image
-const IMG_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+// Images are served directly via Cloudflare CDN (cdn.amazecc.com) with 1-year
+// immutable cache headers, cached natively by the browser HTTP cache.
+// Local sessionStorage blob caching has been removed to eliminate memory
+// bloat and duplicate network fetches.
 
 export function useCachedImage(url: string | null | undefined): string | null {
-  const cdnUrl = toCdnImageUrl(url);
-  const [src, setSrc] = useState<string | null>(cdnUrl || null);
+  return toCdnImageUrl(url) || null;
+}
 
-  useEffect(() => {
-    if (!cdnUrl) {
-      setSrc(null);
-      return;
-    }
-    if (cdnUrl.startsWith("data:")) {
-      setSrc(cdnUrl);
-      return;
-    }
-
-    let cancelled = false;
-
-    // 1. Serve from local cache if present (with TTL).
-    try {
-      const key = IMG_CACHE_PREFIX + cdnUrl;
-      const cached = safeSessionStorage.getItem(key);
-      if (cached) {
-        try {
-          const parsed = JSON.parse(cached);
-          if (parsed && typeof parsed === "object" && "d" in parsed) {
-            if (Date.now() - (parsed.t || 0) < IMG_CACHE_TTL_MS) {
-              if (!cancelled) setSrc(parsed.d);
-              return;
-            }
-            // expired — fall through and refetch
-          } else {
-            // legacy bare dataUrl — treat as expired
-          }
-        } catch {
-          // legacy bare dataUrl — treat as expired
-        }
-      }
-    } catch {}
-
-    // 2. Fetch once, cache, then swap the src in.
-    (async () => {
-      try {
-        const res = await fetch(cdnUrl);
-        if (!res.ok) return;
-        const blob = await res.blob();
-        if (blob.size > IMG_CACHE_MAX_BYTES) return;
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          if (cancelled) return;
-          const dataUrl = reader.result as string;
-          if (!dataUrl) return;
-          setSrc(dataUrl);
-          try {
-            safeSessionStorage.setItem(IMG_CACHE_PREFIX + cdnUrl, JSON.stringify({ d: dataUrl, t: Date.now() }));
-          } catch {
-            // Quota exceeded: drop the whole image namespace and retry once.
-            try {
-              Object.keys(sessionStorage)
-                .filter((k) => k.startsWith(IMG_CACHE_PREFIX))
-                .forEach((k) => sessionStorage.removeItem(k));
-              safeSessionStorage.setItem(IMG_CACHE_PREFIX + cdnUrl, JSON.stringify({ d: dataUrl, t: Date.now() }));
-            } catch {}
-          }
-        };
-        reader.readAsDataURL(blob);
-      } catch {
-        // leave src as the cdn url (browser fetches directly)
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [cdnUrl]);
-
-  return src;
+// Clean up any legacy sessionStorage image blobs to free up browser storage
+if (typeof window !== "undefined") {
+  try {
+    Object.keys(sessionStorage)
+      .filter((k) => k.startsWith("amazecc_img_"))
+      .forEach((k) => sessionStorage.removeItem(k));
+  } catch {}
 }
 
 // ---------- chennai.vit.ac.in faculty images ----------
