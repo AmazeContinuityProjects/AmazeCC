@@ -80,12 +80,7 @@ import TaskBadge from "../tasks/TaskBadge";
 import { KIND_CONFIG } from "../tasks/TaskCard";
 import { parseCachedCourses, parseCourseRows, type FreeRoomCourse } from "@/lib/freeClassrooms";
 import { facultyGroupKey } from "../exams/FFCS/logic/facultyGroups";
-import {
-  GLOBAL_SEMESTER_CHANGE_EVENT,
-  getSelectedFinalReportPath,
-  getSelectedFinalSemesterId,
-  mapToFinalSemesterId,
-} from "@/lib/ffcsReports";
+import { getSelectedFinalReportPath, getSelectedFinalSemesterId, mapToFinalSemesterId } from "@/lib/ffcsReports";
 import FreeClassroomsWidget from "./FreeClassroomsWidget";
 
 interface SimplifiedMobileHomeProps {
@@ -294,7 +289,8 @@ export default function SimplifiedMobileHome({
         if (!cancelled && parsed.length > 0) {
           setReportCourses(parsed);
           try {
-            localStorage.setItem(`ffcs_raw_courses_${activeSemesterId}`, JSON.stringify(parsed));
+            const cacheSafeCourses = parsed.map(({ ERP_ID, FACULTY, ...course }) => course);
+            localStorage.setItem(`ffcs_raw_courses_${activeSemesterId}`, JSON.stringify(cacheSafeCourses));
           } catch {}
         }
       } catch {}

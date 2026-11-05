@@ -317,8 +317,8 @@ export async function uploadStoredScan(
   const emit = (done: number) => options.onProgress?.({ stage: "upload", done, total: 1 });
 
   emit(0);
-  let meta = await deps.store.patch(id, { upload: { status: "queued", lastTriedAt: now() } });
-  meta = await deps.store.patch(id, { upload: { status: "uploading", lastTriedAt: now() } });
+  await deps.store.patch(id, { upload: { status: "queued", lastTriedAt: now() } });
+  let meta = await deps.store.patch(id, { upload: { status: "uploading", lastTriedAt: now() } });
 
   try {
     const result = await upload(

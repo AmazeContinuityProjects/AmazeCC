@@ -351,12 +351,16 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
       setLoading(true);
       setError(null);
 
+      let hasCached = false;
       if (!forceReload) {
-        const parsed = parseCachedCourses(localStorage.getItem(`ffcs_raw_courses_${targetSemester}`));
-        if (parsed.length) {
-          setCourses(parsed);
+        const cached = parseCachedCourses(localStorage.getItem(`ffcs_raw_courses_${targetSemester}`));
+        if (cached.length) {
+          setCourses(cached);
           setLoading(false);
-          return;
+          hasCached = true;
+          if (cached.some((c) => c.ERP_ID || c.FACULTY)) {
+            return;
+          }
         }
       }
 
@@ -364,7 +368,10 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
         const XLSX = await import("xlsx");
         const reportPath = getSelectedFinalReportPath(targetSemester);
         const response = await fetch(reportPath);
-        if (!response.ok) throw new Error("Failed to load campus timetable records");
+        if (!response.ok) {
+          if (!hasCached) throw new Error("Failed to load campus timetable records");
+          return;
+        }
         const workbook = XLSX.read(new Uint8Array(await response.arrayBuffer()), { type: "array" });
         const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[workbook.SheetNames[0]]);
 
@@ -375,11 +382,14 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
 
         setCourses(parsed);
         try {
-          localStorage.setItem(`ffcs_raw_courses_${targetSemester}`, JSON.stringify(parsed));
-          localStorage.setItem("ffcs_raw_courses", JSON.stringify(parsed));
+          const cacheSafeParsed = parsed.map(({ ERP_ID, FACULTY, ...rest }) => rest);
+          localStorage.setItem(`ffcs_raw_courses_${targetSemester}`, JSON.stringify(cacheSafeParsed));
+          localStorage.setItem("ffcs_raw_courses", JSON.stringify(cacheSafeParsed));
         } catch {}
       } catch (err: any) {
-        setError(err.message || "Failed to load timetable data");
+        if (!hasCached) {
+          setError(err.message || "Failed to load timetable data");
+        }
       } finally {
         setLoading(false);
       }

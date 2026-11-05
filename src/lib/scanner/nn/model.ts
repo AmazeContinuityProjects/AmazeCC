@@ -81,7 +81,7 @@ function ensureValid(): void {
     }
   }
   if (weights.sizes[weights.sizes.length - 1] !== weights.classes.length) {
-    throw new Error("Scanner model output layer does not match its class list. ${fix}");
+    throw new Error(`Scanner model output layer does not match its class list. ${fix}`);
   }
   validated = true;
 }

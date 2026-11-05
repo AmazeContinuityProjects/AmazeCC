@@ -15,7 +15,7 @@ import {
   CalendarPlus,
 } from "lucide-react";
 import { useTheme } from "next-themes";
-import { downloadExamSchedulePdf, openTimetablePrintablePage } from "@/lib/exportTimetable";
+import { downloadExamSchedulePdf } from "@/lib/exportTimetable";
 import { generateExamScheduleHtml } from "@/lib/exportTimetableHtml";
 import { downloadHtmlImage } from "@/lib/imageDownload";
 import BottomSheet from "../shared/BottomSheet";
@@ -188,8 +188,6 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
     },
     [scheduleObj, allRows.length, semester, typeFilter],
   );
-
-  const handlePrint = handleDownloadPdf;
 
   const handleDownloadImage = useCallback(
     async (seriesOverride?: string) => {

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { Search, MapPin, Loader2, Clock, CalendarDays, RefreshCw, DoorOpen, Copy, Check } from "lucide-react";
+import { Search, MapPin, Loader2, Clock, CalendarDays, DoorOpen, Copy, Check } from "lucide-react";
 import { cn } from "@amazecontinuityprojects/amazeui";
 
 import SelectField from "../shared/primitives/SelectField";

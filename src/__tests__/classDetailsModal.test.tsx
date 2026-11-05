@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import ClassDetailsModal from "../components/custom/exams/ClassDetailsModal";
 import type { MergedOccupant } from "@/lib/roomMerge";
 import { getDefaultStore } from "jotai";

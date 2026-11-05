@@ -446,7 +446,7 @@ export default function ScannerEditor({
 
           {pageCount > 1 && (
             <span className="text-[11px] font-black uppercase tracking-wider text-zinc-400 px-2">
-              {pageCount} {pageCount === 1 ? "page" : "pages"} ready
+              {pageCount} pages ready
             </span>
           )}
 

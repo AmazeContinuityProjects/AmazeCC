@@ -155,16 +155,14 @@ const createCombinedCourse = (t: ParsedCourse, l: ParsedCourse): ParsedCourse =>
   const lType = l.TYPE.trim().toUpperCase();
   const combinedType = tType && lType ? `${tType}+${lType}` : "ETH+ELA";
 
-  let combinedTitle = t.TITLE;
-  if ((t as any).ORIGINAL_CODE?.endsWith("L") && (l as any).ORIGINAL_CODE?.endsWith("P")) {
-    const typeLabel =
-      tType === "ETH" || tType.includes("EMBEDDED") || lType === "ELA" || lType.includes("EMBEDDED")
-        ? "Embedded Theory and Lab"
-        : "Theory + Lab";
-    combinedTitle = `${t.TITLE} [${typeLabel}]`;
-  } else {
-    combinedTitle = `${t.TITLE} [Embedded Theory and Lab]`;
-  }
+  const combinedTitle =
+    (t as any).ORIGINAL_CODE?.endsWith("L") && (l as any).ORIGINAL_CODE?.endsWith("P")
+      ? `${t.TITLE} [${
+          tType === "ETH" || tType.includes("EMBEDDED") || lType === "ELA" || lType.includes("EMBEDDED")
+            ? "Embedded Theory and Lab"
+            : "Theory + Lab"
+        }]`
+      : `${t.TITLE} [Embedded Theory and Lab]`;
 
   let combinedFac = t.FACULTY;
   if (t.FACULTY && l.FACULTY && t.FACULTY !== l.FACULTY) {

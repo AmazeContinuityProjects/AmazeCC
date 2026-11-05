@@ -6,10 +6,12 @@ import {
   ScannerSettingsDefaults,
   SCANNER_SETTINGS_KEY,
   SETTINGS_REVISION,
+  _resetSessionApiKey,
 } from "../lib/scanner/settings";
 
 beforeEach(() => {
   localStorage.removeItem(SCANNER_SETTINGS_KEY);
+  _resetSessionApiKey();
 });
 
 afterEach(() => {
@@ -77,7 +79,8 @@ describe("scanner settings: save / load", () => {
 
     expect(next).toMatchObject({ ocrEngine: "auto", ocrApiKey: "k1", autoUpload: true });
     expect(loadScannerSettings()).toEqual(next);
-    expect(JSON.parse(localStorage.getItem(SCANNER_SETTINGS_KEY) ?? "{}")).toEqual(next);
+    const { ocrApiKey: _omit, ...expectedStored } = next;
+    expect(JSON.parse(localStorage.getItem(SCANNER_SETTINGS_KEY) ?? "{}")).toEqual(expectedStored);
   });
 
   it("round-trips through storage unchanged", () => {

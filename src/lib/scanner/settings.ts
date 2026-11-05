@@ -96,27 +96,41 @@ export function sanitizeScannerSettings(raw: unknown): ScannerSettings {
   };
 }
 
+let sessionApiKey = "";
+
+/** Internal helper to reset session state between tests. */
+export function _resetSessionApiKey(): void {
+  sessionApiKey = "";
+}
+
 /** Current settings, or defaults when storage is empty, corrupt or forbidden. */
 export function loadScannerSettings(): ScannerSettings {
   try {
     const raw = localStorage.getItem(SCANNER_SETTINGS_KEY);
-    if (raw === null) return { ...ScannerSettingsDefaults };
-    return sanitizeScannerSettings(JSON.parse(raw));
+    if (raw === null) return { ...ScannerSettingsDefaults, ocrApiKey: sessionApiKey };
+    return sanitizeScannerSettings({ ...JSON.parse(raw), ocrApiKey: sessionApiKey });
   } catch {
-    return { ...ScannerSettingsDefaults };
+    return { ...ScannerSettingsDefaults, ocrApiKey: sessionApiKey };
   }
 }
 
 /**
  * Merge `patch` into the stored settings and persist the result.
  *
+ * Sensitive credentials like `ocrApiKey` are kept in memory for the active
+ * session and stripped from clear-text localStorage to avoid CWE-312.
+ *
  * Always returns the record that was actually written (or that which *would*
  * have been, if storage refused), so callers never need to re-read.
  */
 export function saveScannerSettings(patch: Partial<ScannerSettings>): ScannerSettings {
-  const next = sanitizeScannerSettings({ ...loadScannerSettings(), ...patch });
+  if (patch.ocrApiKey !== undefined) {
+    sessionApiKey = typeof patch.ocrApiKey === "string" ? patch.ocrApiKey.trim() : "";
+  }
+  const next = sanitizeScannerSettings({ ...loadScannerSettings(), ...patch, ocrApiKey: sessionApiKey });
   try {
-    localStorage.setItem(SCANNER_SETTINGS_KEY, JSON.stringify(next));
+    const { ocrApiKey: _omit, ...safeSettings } = next;
+    localStorage.setItem(SCANNER_SETTINGS_KEY, JSON.stringify(safeSettings));
   } catch {
     /* quota or private mode: the session keeps working with `next` */
   }

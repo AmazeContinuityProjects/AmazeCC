@@ -2,20 +2,7 @@
 
 import React, { useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import {
-  BookOpen,
-  DoorOpen,
-  User,
-  Clock,
-  Copy,
-  Check,
-  Calendar,
-  Layers,
-  Hash,
-  ExternalLink,
-  ChevronRight,
-  Sparkles,
-} from "lucide-react";
+import { BookOpen, DoorOpen, User, Clock, Copy, Check, Layers, Hash, ChevronRight } from "lucide-react";
 import BottomSheet from "../shared/BottomSheet";
 import type { MergedOccupant } from "@/lib/roomMerge";
 import { useAtom } from "jotai";
