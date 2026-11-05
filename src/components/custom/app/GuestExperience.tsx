@@ -66,7 +66,8 @@ export default function GuestExperience({ onGetStarted, onTryDemo }: GuestExperi
         <div className="flex min-w-0 items-center gap-7">
           <a href="/" className="flex shrink-0 items-center gap-2.5 font-bold tracking-tight" aria-label="AmazeCC home">
             <img
-              loading="lazy"
+              loading="eager"
+              fetchPriority="high"
               src="/logo.png"
               alt=""
               width="32"

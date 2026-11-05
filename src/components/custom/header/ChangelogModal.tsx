@@ -216,30 +216,52 @@ export default function ChangelogModal({ handleClose }: { handleClose: () => voi
                 }
               />
               <ListShell>
-                {group.commits.map((commit) => (
-                  <div key={commit.sha} className="flex items-start gap-3 py-3 px-4">
-                    <span className="shrink-0 pt-0.5">{typeBadge(commit.type)}</span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold text-text-heading leading-relaxed">{commit.cleanMessage}</p>
-                      <p className="mt-1 text-[10px] font-medium text-text-muted">
-                        by{" "}
-                        <span className="font-bold text-text-secondary dark:text-text-secondary">
-                          {commit.authorName}
-                        </span>
-                      </p>
-                    </div>
-                    <a
-                      href={commit.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      title={`Open commit ${commit.shortSha} on GitHub`}
-                      className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-surface-tertiary dark:bg-surface-secondary px-2 py-1 text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400 border border-border-muted hover:border-indigo-500/40 transition-colors"
+                {group.commits.map((commit) => {
+                  const conf = TYPE_CONFIG[commit.type] ?? DEFAULT_TYPE_CONFIG;
+                  const Icon = conf.icon;
+                  return (
+                    <div
+                      key={commit.sha}
+                      className="flex items-start gap-3 py-3 px-3.5 sm:px-4 hover:bg-surface-secondary/40 transition-colors group"
                     >
-                      <GitCommit className="h-2.5 w-2.5" />
-                      {commit.shortSha}
-                    </a>
-                  </div>
-                ))}
+                      {/* Modern Tactile Icon Well */}
+                      <div
+                        className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center border shrink-0 mt-0.5 transition-transform group-hover:scale-105 ${conf.containerClass}`}
+                        title={conf.label}
+                        aria-label={conf.label}
+                      >
+                        <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${conf.iconClass}`} />
+                      </div>
+
+                      <div className="min-w-0 flex-1 pt-0.5">
+                        <p className="text-xs font-semibold text-text-heading leading-relaxed line-clamp-2 sm:line-clamp-none">
+                          {commit.cleanMessage}
+                        </p>
+                        <div className="mt-1 flex items-center gap-1.5 text-[10.5px] font-medium text-text-muted">
+                          <span>
+                            by{" "}
+                            <span className="font-bold text-text-secondary dark:text-text-secondary">
+                              {commit.authorName}
+                            </span>
+                          </span>
+                          <span className="text-border-muted opacity-60">·</span>
+                          <span className="text-[10px] font-semibold text-text-muted capitalize">{conf.label}</span>
+                        </div>
+                      </div>
+
+                      <a
+                        href={commit.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        title={`Open commit ${commit.shortSha} on GitHub`}
+                        className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-surface-tertiary dark:bg-surface-secondary px-2 py-1 text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400 border border-border-muted hover:border-indigo-500/40 active:scale-95 transition-all"
+                      >
+                        <GitCommit className="h-2.5 w-2.5" />
+                        {commit.shortSha}
+                      </a>
+                    </div>
+                  );
+                })}
               </ListShell>
             </div>
           ))
