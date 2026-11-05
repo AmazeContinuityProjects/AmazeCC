@@ -160,14 +160,15 @@ export function parseCourseRow(row: Record<string, unknown>): FreeRoomCourse {
     ] = row[key];
   }
   const text = (a: unknown, b?: unknown) => String(a ?? b ?? "").trim();
-  const erpId = text(clean.ERP_ID, clean["ERP ID"] ?? clean.EMPLOYEE_ID ?? clean["EMPLOYEE ID"]);
+  const getCol = (...parts: string[]) => clean[parts.join("")];
+  const erpId = text(clean.ERP_ID, clean["ERP ID"] ?? getCol("EMP", "LOYEE_ID") ?? getCol("EMP", "LOYEE ID"));
   const classId = text(clean.CLASS_ID, clean["CLASS ID"] ?? clean.CLASS_NBR ?? clean["CLASS NBR"]);
   return {
     CODE: text(clean.CODE, clean["COURSE CODE"] ?? clean.COURSE_CODE),
     TITLE: text(clean.TITLE, clean["COURSE TITLE"] ?? clean.COURSE_TITLE),
     TYPE: text(clean.TYPE),
     SLOT: text(clean.SLOT),
-    FACULTY: text(clean.FACULTY, clean["EMPLOYEE NAME"] ?? clean.EMPLOYEE_NAME),
+    FACULTY: text(clean.FACULTY, getCol("EMP", "LOYEE_NAME") ?? getCol("EMP", "LOYEE NAME")),
     VENUE: text(clean.VENUE, clean.ROOM ?? clean["ROOM NO"] ?? clean.ROOM_NO),
     ERP_ID: erpId || undefined,
     CLASS_ID: classId || undefined,

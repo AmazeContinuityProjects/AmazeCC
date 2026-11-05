@@ -289,8 +289,7 @@ export default function SimplifiedMobileHome({
         if (!cancelled && parsed.length > 0) {
           setReportCourses(parsed);
           try {
-            const cacheSafeCourses = parsed.map(({ ERP_ID, FACULTY, ...course }) => course);
-            localStorage.setItem(`ffcs_raw_courses_${activeSemesterId}`, JSON.stringify(cacheSafeCourses));
+            localStorage.setItem(`ffcs_raw_courses_${activeSemesterId}`, JSON.stringify(parsed));
           } catch {}
         }
       } catch {}

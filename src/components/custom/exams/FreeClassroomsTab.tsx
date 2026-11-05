@@ -382,9 +382,8 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
 
         setCourses(parsed);
         try {
-          const cacheSafeParsed = parsed.map(({ ERP_ID, FACULTY, ...rest }) => rest);
-          localStorage.setItem(`ffcs_raw_courses_${targetSemester}`, JSON.stringify(cacheSafeParsed));
-          localStorage.setItem("ffcs_raw_courses", JSON.stringify(cacheSafeParsed));
+          localStorage.setItem(`ffcs_raw_courses_${targetSemester}`, JSON.stringify(parsed));
+          localStorage.setItem("ffcs_raw_courses", JSON.stringify(parsed));
         } catch {}
       } catch (err: any) {
         if (!hasCached) {
