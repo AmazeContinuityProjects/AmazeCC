@@ -309,7 +309,7 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
 
     try {
       const XLSX = await import("xlsx");
-      const response = await fetch("/ffcs/ffcsReport.csv");
+      const response = await fetch("/ffcs/fall-2026-2027-final-ffcs.csv");
       if (!response.ok) throw new Error("Failed to load campus timetable records");
       const workbook = XLSX.read(new Uint8Array(await response.arrayBuffer()), { type: "array" });
       const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[workbook.SheetNames[0]]);

@@ -454,7 +454,7 @@ export function decodeCompactTimetableShare(encoded: string): CompactShareWire |
     const wire = raw as Record<string, unknown>;
     if (
       wire.v !== FFCS_SHARE_VERSION ||
-      (wire.s !== "winter-2026-2027" && wire.s !== "previous") ||
+      (wire.s !== "winter-2026-2027" && wire.s !== "fall-2026-2027" && wire.s !== "previous") ||
       typeof wire.p !== "string" ||
       wire.p.length < 4 ||
       wire.p.length > 100 ||
@@ -473,7 +473,7 @@ export function decodeCompactTimetableShare(encoded: string): CompactShareWire |
     }
     return {
       v: FFCS_SHARE_VERSION,
-      s: wire.s as FFCSSemesterId,
+      s: (wire.s === "previous" ? "fall-2026-2027" : wire.s) as FFCSSemesterId,
       p: wire.p,
       i: wire.i as string[],
       n: wire.n,

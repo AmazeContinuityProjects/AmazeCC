@@ -230,13 +230,13 @@ function toOffering(row: OfferingLike): FacultyOffering {
  * nothing.
  */
 export async function loadFacultyOfferings(): Promise<FacultyOffering[]> {
-  // Resolve from the shipped fall-semester report (ffcsReport.csv) rather
+  // Resolve from the shipped fall-semester report (fall-2026-2027-final-ffcs.csv) rather
   // than the shared `ffcs_raw_courses` cache, which may hold a stale or
   // different-semester report and cause faculty names to stop matching the
   // reader's current course list. The cache is still refreshed below so the
   // free-classroom surfaces stay aligned with the same data.
   const XLSX = await import("xlsx");
-  const response = await fetch("/ffcs/ffcsReport.csv");
+  const response = await fetch("/ffcs/fall-2026-2027-final-ffcs.csv");
   if (!response.ok) throw new Error("Failed to load FFCS course report");
   const workbook = XLSX.read(new Uint8Array(await response.arrayBuffer()), { type: "array" });
   const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[workbook.SheetNames[0]]);

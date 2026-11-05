@@ -86,12 +86,12 @@ export default function FreeClassroomsWidget() {
       setLoading(true);
       setError(null);
 
-      // Resolve from the shipped fall-semester report (ffcsReport.csv) so the
+      // Resolve from the shipped fall-semester report (fall-2026-2027-final-ffcs.csv) so the
       // mobile home reflects the current course list rather than a stale
       // cached report from another semester.
       try {
         const XLSX = await import("xlsx");
-        const response = await fetch("/ffcs/ffcsReport.csv");
+        const response = await fetch("/ffcs/fall-2026-2027-final-ffcs.csv");
         if (!response.ok) throw new Error("Failed to load FFCS report");
         const arrayBuffer = await response.arrayBuffer();
         const data = new Uint8Array(arrayBuffer);
@@ -116,7 +116,7 @@ export default function FreeClassroomsWidget() {
               CREDITS: String(cleanRow.CREDITS || "0").trim(),
               ROOM: String(cleanRow.ROOM || cleanRow.VENUE || "").trim(),
               SLOT: String(cleanRow.SLOT || "").trim(),
-              FACULTY: String(cleanRow.FACULTY || "").trim(),
+              FACULTY: String(cleanRow.FACULTY || cleanRow["EMPLOYEE NAME"] || cleanRow.EMPLOYEE_NAME || "").trim(),
             };
           })
           .filter((c) => c.CODE);

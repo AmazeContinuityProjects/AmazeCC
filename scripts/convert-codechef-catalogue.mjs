@@ -264,7 +264,7 @@ function buildCreditsLookup(file, codeIndex, creditsIndex, lookup, source) {
 const creditsLookup = new Map();
 const ffcsRoot = path.resolve(import.meta.dirname, "../public/ffcs");
 buildCreditsLookup(path.join(ffcsRoot, "winter-2026-2027-slot-timetable.csv"), 0, 2, creditsLookup, "winter");
-buildCreditsLookup(path.join(ffcsRoot, "ffcsReport.csv"), 0, 3, creditsLookup, "previous");
+buildCreditsLookup(path.join(ffcsRoot, "fall-2026-2027-final-ffcs.csv"), 0, 3, creditsLookup, "previous");
 
 function creditsFor(code, type) {
   const byType = creditsLookup.get(code);

@@ -910,7 +910,7 @@ export default function FFCSTimetableTab({
   // converted in that shape), so it publishes alongside the previous dataset —
   // and being same-origin static data, it is also what a reload finds offline.
   useEffect(() => {
-    if (isLoaded && (semesterId === "previous" || semesterId === "codechef-vit")) {
+    if (isLoaded && (semesterId === "fall-2026-2027" || semesterId === "previous" || semesterId === "codechef-vit")) {
       safeStorage.setItem("ffcs_raw_courses", JSON.stringify(rawParsedCourses));
     }
   }, [rawParsedCourses, isLoaded, semesterId]);

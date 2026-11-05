@@ -18,7 +18,8 @@ import type { ParsedCourse } from "@/lib/ffcsTypes";
  * it carries no class IDs, so it is deliberately kept out of share-link
  * resolution — a name-free share can only point at a registration report.
  */
-export type FFCSSemesterId = "winter-2026-2027" | "winter-2026-2027-mock" | "previous" | "codechef-vit";
+export type FFCSSemesterId =
+  "winter-2026-2027" | "winter-2026-2027-mock" | "fall-2026-2027" | "previous" | "codechef-vit";
 
 export interface FFCSSemesterReport {
   id: FFCSSemesterId;
@@ -63,12 +64,14 @@ export const FFCS_SEMESTER_REPORTS: readonly FFCSSemesterReport[] = [
     attribution: "Mock course data published before VIT's final Winter 2026-2027 course offered list.",
   },
   {
-    id: "previous",
-    label: "Previous Semester",
-    shortLabel: "Previous",
-    path: "/ffcs/ffcsReport.csv",
-    name: "previous semester slot timetable",
-    attribution: "Course data from VIT's previous-semester registration report.",
+    id: "fall-2026-2027",
+    label: "Fall Semester 2026-2027",
+    shortLabel: "Fall 2026-27",
+    path: "/ffcs/fall-2026-2027-final-ffcs.csv",
+    classIdPrefix: "CH202627010",
+    classIdPrefixCode: "0",
+    name: "Fall Semester 2026-2027 final FFCS course list",
+    attribution: "Course data from VIT's Fall 2026-2027 course allocation report.",
   },
   {
     id: "codechef-vit",
@@ -84,12 +87,13 @@ export const DEFAULT_FFCS_SEMESTER: FFCSSemesterId = "winter-2026-2027";
 export const FFCS_SEMESTER_STORAGE_KEY = "ffcs_semester";
 
 export function isFFCSSemesterId(value: unknown): value is FFCSSemesterId {
-  return FFCS_SEMESTER_REPORTS.some((report) => report.id === value);
+  return value === "previous" || FFCS_SEMESTER_REPORTS.some((report) => report.id === value);
 }
 
 export function getFFCSSemester(id: string | null | undefined): FFCSSemesterReport {
+  const targetId = id === "previous" ? "fall-2026-2027" : id;
   return (
-    FFCS_SEMESTER_REPORTS.find((report) => report.id === id) ??
+    FFCS_SEMESTER_REPORTS.find((report) => report.id === targetId || report.id === id) ??
     FFCS_SEMESTER_REPORTS.find((report) => report.id === DEFAULT_FFCS_SEMESTER)!
   );
 }
