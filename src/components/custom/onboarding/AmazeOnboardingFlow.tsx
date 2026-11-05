@@ -34,7 +34,6 @@ import { usePwaInstall } from "@/lib/pwaInstall";
 import config from "../../../../config.json";
 import { api } from "@/lib/sync-engine";
 import SimplifiedMobileHome from "../mobile/SimplifiedMobileHome";
-import DesktopCourseDetail from "../attendance/DesktopCourseDetail";
 import SelectField from "../shared/primitives/SelectField";
 import OnboardingIntro, { type IntroPhase } from "./OnboardingIntro";
 import {
@@ -44,7 +43,7 @@ import {
   useSyncSession,
 } from "@/lib/sync-engine/sync-session";
 
-export type InterfaceOptionId = "simplified" | "attendance";
+export type InterfaceOptionId = "simplified";
 
 const COLOR_PALETTES = [
   { id: "default", label: "Ocean", color: "#0ea5e9" },
@@ -221,18 +220,9 @@ export default function AmazeOnboardingFlow({
       title: "Minimal Dashboard",
       icon: Sparkles,
     },
-    {
-      id: "attendance",
-      title: "Direct Attendance",
-      icon: CheckCircle2,
-    },
   ];
 
-  const initialModeIdx = Math.max(
-    0,
-    interfaces.findIndex((i) => i.id === (temp.defaultLandingTab === "attendance" ? "attendance" : "simplified")),
-  );
-  const [activeInterfaceIdx, setActiveInterfaceIdx] = useState(initialModeIdx >= 0 ? initialModeIdx : 0);
+  const [activeInterfaceIdx, setActiveInterfaceIdx] = useState(0);
 
   const currentOption = interfaces[activeInterfaceIdx];
 
@@ -260,7 +250,6 @@ export default function AmazeOnboardingFlow({
   const finish = () => {
     const finalSettings = {
       ...temp,
-      defaultLandingTab: currentOption.id === "attendance" ? "attendance" : "home",
       interfaceChosen: true,
     };
     try {
@@ -340,7 +329,6 @@ export default function AmazeOnboardingFlow({
   // Preview settings proxy for live dashboard render
   const previewSettings = {
     ...temp,
-    defaultLandingTab: currentOption.id === "attendance" ? "attendance" : "home",
     timetablePillStyle: temp.timetablePillStyle || "compact",
   };
 
@@ -502,24 +490,6 @@ export default function AmazeOnboardingFlow({
                   setGradesDisplayIsOpen={setGradesDisplayIsOpen}
                   setODhoursIsOpen={setODhoursIsOpen}
                 />
-              )}
-
-              {currentOption.id === "attendance" && (
-                <div className="space-y-4">
-                  <div className="p-3.5 rounded-2xl bg-indigo-950/30 border border-indigo-900/40 text-left">
-                    <h4 className="text-xs font-bold text-indigo-300 font-outfit">Direct Attendance Mode</h4>
-                    <p className="text-[11px] text-zinc-400 mt-0.5">Opens straight into your Course Attendance list.</p>
-                  </div>
-                  {attendanceData?.attendance && attendanceData.attendance[0] && (
-                    <DesktopCourseDetail
-                      course={attendanceData.attendance[0]}
-                      isDayscholarWithBus={settings?.isDayscholarWithBus || false}
-                      decimalValues={previewSettings.decimalValues}
-                      onViewFullPage={() => {}}
-                      className="block bg-white dark:bg-[#080808] border border-gray-200 dark:border-gray-800/80 rounded-2xl p-6 shadow-sm text-left"
-                    />
-                  )}
-                </div>
               )}
             </m.div>
           </AnimatePresence>
@@ -969,9 +939,8 @@ export default function AmazeOnboardingFlow({
                         <span>{currentOption.title}</span>
                       </p>
                       <p className="text-[11px] text-zinc-400 leading-relaxed">
-                        {currentOption.id === "simplified"
-                          ? "Clean, focused single-page view with essential widgets, quick timetable glance, and simplified cards."
-                          : "Direct launcher that opens straight into your Course Attendance list and live Bunk Margin calculations."}
+                        Clean, focused single-page view with essential widgets, quick timetable glance, and simplified
+                        cards.
                       </p>
                     </div>
                   </div>

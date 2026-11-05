@@ -132,8 +132,6 @@ function DashboardContent({
     setActiveProfileSubTab,
     hostelActiveSubTab: HostelActiveSubTab,
     setHostelActiveSubTab,
-    activeDay,
-    setActiveDay,
   } = useDashboardNavigator();
   const {
     showFresherWelcome,
@@ -315,8 +313,6 @@ function DashboardContent({
               activeSubTab={activeAttendanceSubTab}
               setActiveSubTab={setActiveAttendanceSubTab}
               attendanceData={attendanceData}
-              activeDay={activeDay}
-              setActiveDay={setActiveDay}
               calendarData={calendarData}
               scheduleData={ScheduleData}
               moodleData={moodleData}

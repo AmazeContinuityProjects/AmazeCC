@@ -13,7 +13,6 @@ import {
 import { useAtom } from "jotai";
 import {
   activeAttendanceSubTabAtom,
-  activeDayAtom,
   activeDayscholarSubTabAtom,
   activeMoreSubTabAtom,
   activeProfileSubTabAtom,
@@ -22,7 +21,6 @@ import {
   activeToolsSubTabAtom,
   hostelActiveSubTabAtom,
 } from "@/store/uiAtoms";
-import { settingsAtom } from "@/store/settingsAtoms";
 
 type NavigatorValue = {
   courseDashboardTarget: CourseDashboardTarget;
@@ -45,8 +43,6 @@ type NavigatorValue = {
   setActiveProfileSubTab: (update: SetStateAction<string>) => void;
   hostelActiveSubTab: string;
   setHostelActiveSubTab: (update: SetStateAction<string>) => void;
-  activeDay: string;
-  setActiveDay: (update: SetStateAction<string>) => void;
 };
 
 export type CourseDashboardTarget = { courseCode: string; targetTab?: string } | null;
@@ -65,9 +61,6 @@ export function DashboardNavigatorProvider({ children }: { children: ReactNode }
   const [activeMoreSubTab, setActiveMoreSubTab] = useAtom(activeMoreSubTabAtom);
   const [activeProfileSubTab, setActiveProfileSubTab] = useAtom(activeProfileSubTabAtom);
   const [hostelActiveSubTab, setHostelActiveSubTab] = useAtom(hostelActiveSubTabAtom);
-  const [activeDay, setActiveDay] = useAtom(activeDayAtom);
-  const [settings] = useAtom(settingsAtom);
-
   const selectTab = useCallback(
     (tab: string) => {
       if (tab === activeTab) setActivePageResetKey((key) => key + 1);
@@ -75,13 +68,6 @@ export function DashboardNavigatorProvider({ children }: { children: ReactNode }
     },
     [activeTab, setActiveTab],
   );
-
-  useEffect(() => {
-    if (settings.defaultLandingTab === "attendance") {
-      setActiveTab("attendance");
-      setActiveAttendanceSubTab("calendar");
-    }
-  }, [settings.defaultLandingTab, setActiveAttendanceSubTab, setActiveTab]);
 
   useEffect(() => {
     const academicsHome = "courses-simplified";
@@ -144,8 +130,6 @@ export function DashboardNavigatorProvider({ children }: { children: ReactNode }
       setActiveProfileSubTab,
       hostelActiveSubTab,
       setHostelActiveSubTab,
-      activeDay,
-      setActiveDay,
     }),
     [
       courseDashboardTarget,
@@ -168,8 +152,6 @@ export function DashboardNavigatorProvider({ children }: { children: ReactNode }
       setActiveProfileSubTab,
       hostelActiveSubTab,
       setHostelActiveSubTab,
-      activeDay,
-      setActiveDay,
     ],
   );
 

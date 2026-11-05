@@ -1472,41 +1472,6 @@ export default function ProfilePage({
           </div>
         </div>
 
-        {/* Dashboard Layout Selector */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
-          <div>
-            <div className="flex items-center gap-2">
-              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Dashboard Layout</p>
-              <button
-                type="button"
-                onClick={() => window.dispatchEvent(new Event("open-interface-selector"))}
-                className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/40 hover:bg-indigo-100 transition-colors cursor-pointer"
-              >
-                Visual Picker
-              </button>
-            </div>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              Select your default landing and widget configuration
-            </p>
-          </div>
-          <SelectField
-            value={settings?.defaultLandingTab === "attendance" ? "attendance" : "simplified"}
-            onChange={(val) => {
-              if (val === "attendance") {
-                updateSetting("defaultLandingTab", "attendance");
-              } else {
-                updateSetting("defaultLandingTab", "home");
-              }
-              updateSetting("interfaceChosen", true);
-            }}
-            options={[
-              { value: "simplified", label: "✨ Minimal (Timetable & Stat Cards)" },
-              { value: "attendance", label: "📊 Direct Attendance (Instant Tracker)" },
-            ]}
-            className="shrink-0"
-          />
-        </div>
-
         {/* Timetable Pill Style */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
           <div>

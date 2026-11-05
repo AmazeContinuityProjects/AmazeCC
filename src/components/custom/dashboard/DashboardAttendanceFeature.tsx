@@ -14,8 +14,6 @@ interface DashboardAttendanceFeatureProps {
   activeSubTab: string;
   setActiveSubTab: (subTab: string) => void;
   attendanceData: attendanceRes | null;
-  activeDay: any;
-  setActiveDay: (day: any) => void;
   calendarData: any;
   scheduleData: object;
   moodleData: any[];
@@ -56,8 +54,6 @@ export default function DashboardAttendanceFeature({
   activeSubTab,
   setActiveSubTab,
   attendanceData,
-  activeDay,
-  setActiveDay,
   calendarData,
   scheduleData,
   moodleData,

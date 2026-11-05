@@ -18,7 +18,6 @@ export const activeMoreSubTabAtom = atom<string>("social");
  */
 export const activeProfileSubTabAtom = atom<string>("settings");
 export const hostelActiveSubTabAtom = atom<string>("mess");
-export const activeDayAtom = atom<string>("");
 
 export const commandPaletteOpenAtom = atom<boolean>(false);
 export const isShortcutsHelpOpenAtom = atom<boolean>(false);

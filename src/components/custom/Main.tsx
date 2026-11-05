@@ -67,7 +67,6 @@ export default function LoginPage(props: MainProps) {
 
 function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
   const { theme, setTheme } = useTheme();
-  const { setActiveDay } = useDashboardNavigator();
   // --- State Management via Jotai Atoms ---
   const [IDs, setIDs] = useAtom(credentialsAtom);
   const setMessage = useSetAtom(messageAtom);
@@ -109,12 +108,6 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
   useTaskReminderScheduler(isLoggedIn || demoMode);
 
   useSyncSessionBridge();
-
-  useEffect(() => {
-    if (!isLoggedIn && !demoMode) return;
-    const day = new Date().toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
-    setActiveDay(day);
-  }, [isLoggedIn, demoMode, setActiveDay]);
 
   useAppAppearance(settings, theme);
 
