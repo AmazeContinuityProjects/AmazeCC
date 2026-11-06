@@ -770,3 +770,17 @@ input[type="range"].m3-range::-moz-range-track {
     opacity: 0.75;
   }
 }
+
+/*
+ * Early entry transition (Controller Architecture):
+ * When an active session is detected early in head, suppress the guest
+ * landing and show the opening workspace skeleton before hydration finishes.
+ * For first-time visitors (guests), no class is present and the guest hero paints
+ * with zero layout shift and zero spinner delay.
+ */
+html.has-stored-session .guest-experience-root {
+  display: none !important;
+}
+html.has-stored-session .opening-screen-fallback {
+  display: flex !important;
+}
