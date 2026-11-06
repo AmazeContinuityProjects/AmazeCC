@@ -14,6 +14,9 @@ import {
   isRegistrationNumber,
   aliasPostHogUser,
   getPostHogUserIdentifiers,
+  resolveModalInfo,
+  resolveScreenFeature,
+  trackFeatureUsage,
 } from "../lib/posthog";
 
 vi.mock("posthog-js", () => {
@@ -198,6 +201,89 @@ describe("posthog integration utilities", () => {
   it("captures custom events", () => {
     trackCustomEvent("custom_experiment", { variant: "A" });
     expect(posthog.capture).toHaveBeenCalledWith("custom_experiment", { variant: "A" });
+  });
+
+  it("categorizes modals into feature buckets and resolves friendly names", () => {
+    const roomInspector = resolveModalInfo("room-inspector");
+    expect(roomInspector).toEqual({
+      modal_id: "room-inspector",
+      modal_name: "Free Classroom Room Inspector",
+      feature_category: "free_classrooms",
+    });
+
+    const ffcsAuto = resolveModalInfo("ffcs-auto-generator");
+    expect(ffcsAuto).toEqual({
+      modal_id: "ffcs-auto-generator",
+      modal_name: "FFCS Auto Timetable Generator",
+      feature_category: "ffcs_generator",
+    });
+
+    const taskEdit = resolveModalInfo("task-edit-sheet");
+    expect(taskEdit).toEqual({
+      modal_id: "task-edit-sheet",
+      modal_name: "Task Create & Edit Sheet",
+      feature_category: "tasks",
+    });
+
+    const qbankUpload = resolveModalInfo("qbank-upload");
+    expect(qbankUpload).toEqual({
+      modal_id: "qbank-upload",
+      modal_name: "Upload Paper to QBank",
+      feature_category: "qbank",
+    });
+
+    const dynamicPredictor = resolveModalInfo("predictor-add-fat");
+    expect(dynamicPredictor.feature_category).toBe("marks_predictor");
+    expect(dynamicPredictor.modal_name).toContain("FAT");
+  });
+
+  it("resolves screen and subtab features accurately", () => {
+    expect(resolveScreenFeature("attendance", "calendar")).toEqual({
+      feature_category: "attendance",
+      feature_name: "Attendance Tracker",
+    });
+
+    expect(resolveScreenFeature("tools", "scanner")).toEqual({
+      feature_category: "paper_scanner",
+      feature_name: "Paper Scanner",
+    });
+
+    expect(resolveScreenFeature("tools", "free-rooms")).toEqual({
+      feature_category: "free_classrooms",
+      feature_name: "Free Classrooms",
+    });
+
+    expect(resolveScreenFeature("ffcs", "generator")).toEqual({
+      feature_category: "ffcs_generator",
+      feature_name: "FFCS Generator",
+    });
+  });
+
+  it("tracks explicit feature usage and enriches modal opens with feature category", () => {
+    trackFeatureUsage("free_classrooms", "filter_rooms", { block: "SJT" });
+    expect(posthog.capture).toHaveBeenCalledWith("feature_used", {
+      feature_category: "free_classrooms",
+      action: "filter_rooms",
+      block: "SJT",
+    });
+
+    trackModalOpen("room-inspector");
+    expect(posthog.capture).toHaveBeenCalledWith(
+      "modal_opened",
+      expect.objectContaining({
+        modal_id: "room-inspector",
+        modal_name: "Free Classroom Room Inspector",
+        feature_category: "free_classrooms",
+      }),
+    );
+    expect(posthog.capture).toHaveBeenCalledWith(
+      "feature_used",
+      expect.objectContaining({
+        feature_category: "free_classrooms",
+        action: "modal_opened",
+        target: "room-inspector",
+      }),
+    );
   });
 
   describe("registration number vs enrollment number resolution", () => {
