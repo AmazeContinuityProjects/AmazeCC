@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@/lib/sync-engine";
+import { updatePostHogPersonName } from "@/lib/posthog";
 import TabHelpFooter from "../shared/TabHelpFooter";
 import {
   switchApiHost,
@@ -749,6 +750,10 @@ export default function ProfilePage({
         if (data?.profile) {
           setProfileData(data.profile);
           localStorage.setItem("profile", JSON.stringify(data.profile));
+          // The identify pass may already have run with no name to send (the
+          // blob arrives without touching anything that pass depends on), so
+          // label the person now that the VTOP name is in storage.
+          updatePostHogPersonName();
         }
       } catch (e) {
         console.error("Failed to fetch profile", e);

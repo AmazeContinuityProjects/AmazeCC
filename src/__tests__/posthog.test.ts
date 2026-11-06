@@ -14,6 +14,7 @@ import {
   isRegistrationNumber,
   aliasPostHogUser,
   getPostHogUserIdentifiers,
+  updatePostHogPersonName,
   resolveModalInfo,
   resolveScreenFeature,
   trackFeatureUsage,
@@ -30,6 +31,10 @@ vi.mock("posthog-js", () => {
     register: vi.fn(),
     unregister: vi.fn(),
     alias: vi.fn(),
+    people: {
+      set: vi.fn(),
+      set_once: vi.fn(),
+    },
     isFeatureEnabled: vi.fn(() => true),
     onFeatureFlags: vi.fn(),
     get_distinct_id: vi.fn(() => "test-user-123"),
@@ -64,6 +69,7 @@ describe("posthog integration utilities", () => {
   });
 
   it("identifies user with distinctId and properties", () => {
+    window.localStorage.clear();
     identifyPostHogUser("21BCE0001", { campus: "chennai", theme: "dark" });
     expect(posthog.identify).toHaveBeenCalledWith("21BCE0001", {
       campus: "chennai",
@@ -71,9 +77,45 @@ describe("posthog integration utilities", () => {
     });
   });
 
+  it("folds the student profile's name into identify and registers it as a super property", () => {
+    window.localStorage.clear();
+    window.localStorage.setItem("profile", JSON.stringify({ registerNo: "25BLC1081", name: "Aarav Sharma" }));
+
+    identifyPostHogUser("25BLC1081", { campus: "chennai" });
+
+    expect(posthog.identify).toHaveBeenCalledWith("25BLC1081", {
+      campus: "chennai",
+      name: "Aarav Sharma",
+    });
+    // …and on every later event, not only on the identify call itself.
+    expect(posthog.register).toHaveBeenCalledWith({
+      registration_number: "25BLC1081",
+      name: "Aarav Sharma",
+    });
+  });
+
+  it("updates the person when the profile segment lands after identify", () => {
+    window.localStorage.clear();
+    // Nothing to say yet — no profile blob at all.
+    updatePostHogPersonName();
+    expect(posthog.people.set).not.toHaveBeenCalled();
+
+    window.localStorage.setItem("profile", JSON.stringify({ registerNo: "25BLC1081", name: "Aarav Sharma" }));
+    updatePostHogPersonName();
+
+    // The distinct id does not move, only the label on the person.
+    expect(posthog.identify).not.toHaveBeenCalled();
+    expect(posthog.people.set).toHaveBeenCalledWith({ name: "Aarav Sharma" });
+    expect(posthog.register).toHaveBeenCalledWith({ name: "Aarav Sharma" });
+  });
+
   it("resets user on logout", () => {
     resetPostHogUser();
     expect(posthog.reset).toHaveBeenCalled();
+    // The name is a super property now — it must not survive into the next
+    // person's events.
+    expect(posthog.unregister).toHaveBeenCalledWith("name");
+    expect(posthog.unregister).toHaveBeenCalledWith("registration_number");
   });
 
   it("tracks screen views and registers super properties", () => {
@@ -367,6 +409,36 @@ describe("posthog integration utilities", () => {
     it("aliases distinct identities in PostHog safely", () => {
       aliasPostHogUser("25BLC1081", "20626703");
       expect(posthog.alias).toHaveBeenCalledWith("25BLC1081", "20626703");
+    });
+  });
+
+  describe("VTOP name collection", () => {
+    it("reads the name off the live student profile segment", () => {
+      window.localStorage.clear();
+      window.localStorage.setItem("profile", JSON.stringify({ registerNo: "25BLC1081", name: "Aarav Sharma" }));
+
+      const identity = getPostHogUserIdentifiers({ authorizedID: "25BLC1081" });
+
+      expect(identity?.name).toBe("Aarav Sharma");
+      // The name rides along; it never becomes the identity itself.
+      expect(identity?.distinctId).toBe("25BLC1081");
+    });
+
+    it("reads the demo payload's spelling of the same field", () => {
+      window.localStorage.clear();
+      window.localStorage.setItem(
+        "profile",
+        JSON.stringify({ registerNumber: "22BCE1234", studentName: "Demo Student" }),
+      );
+
+      expect(getPostHogUserIdentifiers({ authorizedID: "22BCE1234" })?.name).toBe("Demo Student");
+    });
+
+    it("leaves the name unset when the profile carries none", () => {
+      window.localStorage.clear();
+      window.localStorage.setItem("profile", JSON.stringify({ registerNo: "25BLC1081" }));
+
+      expect(getPostHogUserIdentifiers({ authorizedID: "25BLC1081" })?.name).toBeUndefined();
     });
   });
 });

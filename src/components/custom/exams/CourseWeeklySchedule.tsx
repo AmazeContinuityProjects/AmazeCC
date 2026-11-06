@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Clock, Calendar, ChevronDown, ChevronUp } from "lucide-react";
+import { Clock, Calendar } from "lucide-react";
 import { LIST_ROW, TONE_ICON_TILE } from "@/lib/uiTokens";
 import { SectionHeader, ToneBadge, EmptyPanel, ListShell, ListRowText } from "../shared/primitives";
 import {
@@ -55,7 +55,6 @@ export default function CourseWeeklySchedule({
   detailEntriesByScope,
   renderScopeBadge,
 }: CourseWeeklyScheduleProps) {
-  const [showVtopTable, setShowVtopTable] = useState(false);
   const cleanSelected = courseCode
     .replace(/\([LPT]\)$/i, "")
     .trim()
@@ -282,98 +281,6 @@ export default function CourseWeeklySchedule({
               </div>
             );
           })}
-        </div>
-      )}
-
-      {/* Secondary Collapsible Accordion: Official VTOP viewDetail scrape */}
-      {(viewDetail || onFetchViewDetail) && (
-        <div className="pt-1">
-          <button
-            type="button"
-            onClick={() => {
-              if (!showVtopTable && !viewDetail && onFetchViewDetail) {
-                onFetchViewDetail();
-              }
-              setShowVtopTable(!showVtopTable);
-            }}
-            className="w-full flex items-center justify-between p-3.5 rounded-2xl border border-border-muted dark:border-zinc-800 bg-surface-secondary/40 dark:bg-zinc-900/30 hover:bg-surface-secondary dark:hover:bg-zinc-900/60 transition-colors cursor-pointer text-left"
-          >
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-text-muted" />
-              <span className="text-xs font-bold text-text-secondary">Official VTOP Scraped Schedule Table</span>
-              {viewLoading && <span className="text-[11px] text-indigo-500 animate-pulse font-medium">Loading…</span>}
-            </div>
-            {showVtopTable ? (
-              <ChevronUp className="w-4 h-4 text-text-muted" />
-            ) : (
-              <ChevronDown className="w-4 h-4 text-text-muted" />
-            )}
-          </button>
-
-          {showVtopTable && (
-            <div className="mt-3 p-4 rounded-2xl border border-border-muted dark:border-zinc-800 bg-surface-primary dark:bg-zinc-900/60 animate-in fade-in duration-200">
-              {viewLoading ? (
-                <p className="text-xs text-text-muted animate-pulse py-4 text-center">Loading VTOP course details…</p>
-              ) : viewDetail && reviewScopes && detailEntriesByScope ? (
-                <div className="space-y-4">
-                  {reviewScopes.map((scope) => {
-                    const entries = detailEntriesByScope(scope);
-                    if (entries.length === 0) return null;
-                    return (
-                      <div key={scope} className="space-y-3">
-                        {renderScopeBadge?.(scope)}
-                        {entries.map((vd: any, ci: number) => (
-                          <div key={ci} className="space-y-3">
-                            {vd.data.tables?.slice(1).map((t: any, ti: number) => (
-                              <div key={ti} className="overflow-x-auto hide-scrollbar">
-                                {t.caption && (
-                                  <h5 className="mb-2 text-[10px] font-black text-text-muted uppercase tracking-widest">
-                                    {t.caption}
-                                  </h5>
-                                )}
-                                <table className="w-full text-xs">
-                                  <thead>
-                                    <tr className="border-b border-border-muted dark:border-border">
-                                      {t.headers?.map((h: string, hi: number) => (
-                                        <th
-                                          key={hi}
-                                          className="text-left py-2 px-2 font-black text-text-muted uppercase tracking-widest whitespace-nowrap"
-                                        >
-                                          {h}
-                                        </th>
-                                      ))}
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {t.rows?.map((row: any, ri: number) => (
-                                      <tr
-                                        key={ri}
-                                        className="border-b border-border-muted/40 dark:border-border/40 last:border-0 hover:bg-surface-hover/40"
-                                      >
-                                        {t.headers?.map((h: string, colIdx: number) => (
-                                          <td key={colIdx} className="py-2 px-2 text-text-secondary whitespace-nowrap">
-                                            {row[h] || "—"}
-                                          </td>
-                                        ))}
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
-                            ))}
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="text-xs text-text-muted text-center py-4">
-                  No detailed VTOP table available for this course.
-                </p>
-              )}
-            </div>
-          )}
         </div>
       )}
     </div>

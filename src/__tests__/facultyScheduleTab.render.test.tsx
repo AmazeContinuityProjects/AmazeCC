@@ -197,6 +197,57 @@ describe("FacultyScheduleTab", () => {
     expect(screen.getByText(/Once your timetable and marks are synced/)).toBeTruthy();
   });
 
+  it("ignores the FFCS planner's picks when opened from the simplified mobile home", async () => {
+    // The home's launch handler stamps this before switching tabs; MEENA R
+    // exists only in the seeded FFCS draft, so she must not be hoisted.
+    store.setItem("faculty_schedule_source", "home");
+    render(<FacultyScheduleTab />);
+
+    expect(await screen.findByText("All faculty")).toBeTruthy();
+    expect(screen.queryByText("Your course faculties")).toBeNull();
+    const allHeader = screen.getByText("All faculty");
+    expect(
+      allHeader.compareDocumentPosition(screen.getByText("MEENA R")) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    // The join hint names only the enrolled sources — the planner is not one
+    // of them for this launch.
+    expect(screen.getByText(/Once your timetable and marks are synced/)).toBeTruthy();
+    expect(screen.queryByText(/FFCS planner/)).toBeNull();
+  });
+
+  it("still hoists the enrolled faculties on a home launch", async () => {
+    store.setItem("faculty_schedule_source", "home");
+    jotaiStore.set(attendanceDataAtom, {
+      attendance: [{ courseCode: "BCSE303", faculty: "ARJUN K" }],
+    } as any);
+
+    render(<FacultyScheduleTab />);
+    expect(await screen.findByText("Your course faculties")).toBeTruthy();
+
+    const othersHeader = screen.getByText("All other faculty");
+    expect(
+      screen.getByText("ARJUN K").compareDocumentPosition(othersHeader) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // …while the planner-only name stays below, unhoisted.
+    expect(
+      othersHeader.compareDocumentPosition(screen.getByText("MEENA R")) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it("clears the home launch flag on unmount so later launches keep the planner hoisting", async () => {
+    store.setItem("faculty_schedule_source", "home");
+    const first = render(<FacultyScheduleTab />);
+    await screen.findByText("All faculty");
+    first.unmount();
+    expect(store.getItem("faculty_schedule_source")).toBeNull();
+
+    // A header-nav / app-library launch afterwards has no flag → planner picks
+    // are counted again, exactly as before this scoping existed.
+    render(<FacultyScheduleTab />);
+    expect(await screen.findByText("Your course faculties")).toBeTruthy();
+  });
+
   it("switches semester automatically when global semester change event fires", async () => {
     store.clear();
     render(<FacultyScheduleTab />);

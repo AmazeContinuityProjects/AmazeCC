@@ -1497,12 +1497,12 @@ export default function CourseDetailSubpage({
     const primaryFaculty =
       selectedGroup?.theory?.faculty || theoryAttItem?.faculty || selectedGroup?.lab?.faculty || labAttItem?.faculty;
     if (primaryFaculty) {
-      const { cleanName, school } = parseFacultyInfo(primaryFaculty);
+      const { cleanName, school, department } = parseFacultyInfo(primaryFaculty);
       slides.push({
         id: "faculty",
         label: "Faculty Assigned",
         value: cleanName || "Faculty Assigned",
-        sub: school || "Course Instructor",
+        sub: department || school || "Course Instructor",
         badge: "Faculty",
         tone: "violet",
       });
@@ -2610,7 +2610,7 @@ export default function CourseDetailSubpage({
                                         key={ri}
                                         className="hover:bg-surface-secondary dark:hover:bg-surface-hover/40 transition-colors"
                                       >
-                                        {t.headers.map((h: string, hi: number) => (
+                                        {(t.headers || []).map((h: string, hi: number) => (
                                           <td key={hi} className="py-2.5 px-4 text-xs font-medium text-text-secondary">
                                             {row[h] || "—"}
                                           </td>
@@ -2652,7 +2652,9 @@ export default function CourseDetailSubpage({
 
             {qcmError && !qcmData && <p className="px-1 text-sm text-red-500">{qcmError}</p>}
 
-            {(!qcmData || qcmData.length === 0) && !qcmLoading ? (
+            {qcmLoading && (!qcmData || qcmTotalRows === 0) ? (
+              <ListSkeleton rows={3} />
+            ) : !qcmData || qcmTotalRows === 0 ? (
               <EmptyPanel
                 icon={<MessageSquare className="w-7 h-7" />}
                 title={`No QCM feedback recorded`}
@@ -2660,8 +2662,8 @@ export default function CourseDetailSubpage({
               />
             ) : (
               <ListShell>
-                {qcmData.flatMap((table: any, ti: number) =>
-                  (table.rows || []).map((row: any, ri: number) => {
+                {(Array.isArray(qcmData) ? qcmData : []).flatMap((table: any, ti: number) =>
+                  (table?.rows || []).map((row: any, ri: number) => {
                     const findCol = (keywords: string[]) => {
                       const key = Object.keys(row).find((k) => keywords.some((kw) => k.toLowerCase().includes(kw)));
                       return key ? row[key] : null;

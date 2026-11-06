@@ -99,6 +99,8 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
   const { appHydrated, setAttendanceAndOD } = useAppBootstrap();
   const didStartInitialIntent = useRef(false);
   const identifiedDistinctId = useRef<string | null>(null);
+  /** The name last sent, so a profile that lands after identify re-runs it. */
+  const identifiedName = useRef<string | null>(null);
 
   const {
     activeTab,
@@ -282,6 +284,7 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
   useEffect(() => {
     if (!isLoggedIn || demoMode) {
       identifiedDistinctId.current = null;
+      identifiedName.current = null;
       return;
     }
 
@@ -296,7 +299,12 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
     });
 
     if (!identity || !identity.distinctId) return;
-    if (identifiedDistinctId.current === identity.distinctId) return;
+    // A profile segment that lands *after* the first identify changes nothing
+    // here but the name — re-run anyway, since sending it is the whole point
+    // of this pass. The aliasing below is a no-op when the id is unchanged.
+    if (identifiedDistinctId.current === identity.distinctId && identifiedName.current === (identity.name ?? "")) {
+      return;
+    }
 
     const previousId = identifiedDistinctId.current;
     if (previousId && previousId !== identity.distinctId) {
@@ -310,7 +318,11 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
     }
 
     const regNumber = identity.registrationNumber || identity.distinctId;
+    const studentName = identity.name;
     posthog.identify(identity.distinctId, {
+      // PostHog's person page reads `name`, which is what makes a person
+      // readable as the student rather than as a bare registration number.
+      ...(studentName ? { name: studentName } : {}),
       registration_number: regNumber,
       reg_number: regNumber,
       enrollment_number: identity.enrollmentNumber,
@@ -324,8 +336,11 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
     });
     posthog.register({
       registration_number: regNumber,
+      // …and as a super property, so every event after identify carries it too.
+      ...(studentName ? { name: studentName } : {}),
     });
     identifiedDistinctId.current = identity.distinctId;
+    identifiedName.current = studentName ?? "";
   }, [
     activeRegNumber,
     appHydrated,

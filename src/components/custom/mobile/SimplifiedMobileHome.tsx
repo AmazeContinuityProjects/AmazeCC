@@ -365,6 +365,9 @@ export default function SimplifiedMobileHome({
         localStorage.setItem("faculty_schedule_target_name", clean);
       }
     }
+    // Home launches count only the reader's *enrolled* faculties — the picks
+    // they made in the /ffcs planner are a plan, not this screen's courses.
+    localStorage.setItem("faculty_schedule_source", "home");
     setActiveTab("faculty-schedule");
   };
 

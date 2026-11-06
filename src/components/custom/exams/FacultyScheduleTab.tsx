@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAtom } from "jotai";
 import { ChevronRight, GraduationCap, Search, Users } from "lucide-react";
 import { attendanceDataAtom, marksDataAtom } from "@/store/dataAtoms";
@@ -146,6 +146,19 @@ export default function FacultyScheduleTab({
   const [groups, setGroups] = useState<FacultyNameGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [ffcsRefs, setFfcsRefs] = useState<CurrentCourseFacultyRef[]>([]);
+  /**
+   * `true` when this page was opened from the simplified mobile home, whose
+   * "Find Faculty Schedule" button asks for the faculties on the reader's
+   * *enrolled* courses. The planner's drafts are then left out of the hoisted
+   * section: a plan is not an enrolment, and on the home screen the two read
+   * as the same claim ("my professor") — which is the pollution this guards
+   * against. Written by the home's launch handler as
+   * `faculty_schedule_source = "home"`, read once here, and cleared on
+   * unmount so a later launch (header nav, app library, command palette)
+   * starts from the default again.
+   */
+  const [openedFromHome, setOpenedFromHome] = useState(false);
+  const launchSourceRead = useRef(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [selectedErp, setSelectedErp] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -201,10 +214,34 @@ export default function FacultyScheduleTab({
   // The report is the planner's cache to share: read it first, fetch the CSV
   // only when the reader has never been there. A failed load leaves `groups`
   // empty and the empty state explains why.
+  //
+  // The launch source is read once per mount (the flag is a launch signal, not
+  // state — re-reading it after a semester switch or React's StrictMode re-run
+  // would race with the unmount clear), and `openedFromHome` joins the deps of
+  // the load below so the refs are rebuilt the moment it is known to be `true`.
+  useEffect(() => {
+    if (launchSourceRead.current) return;
+    launchSourceRead.current = true;
+    try {
+      if (window.localStorage.getItem("faculty_schedule_source") === "home") {
+        setOpenedFromHome(true);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(
+    () => () => {
+      try {
+        window.localStorage.removeItem("faculty_schedule_source");
+      } catch {}
+    },
+    [],
+  );
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    setFfcsRefs(readCurrentCourseRefs());
+    setFfcsRefs(openedFromHome ? [] : readCurrentCourseRefs());
     (async () => {
       try {
         const offerings = await loadFacultyOfferings(semesterId);
@@ -218,7 +255,7 @@ export default function FacultyScheduleTab({
     return () => {
       cancelled = true;
     };
-  }, [semesterId]);
+  }, [semesterId, openedFromHome]);
 
   // Handle external navigation target (e.g. from SimplifiedMobileHome)
   useEffect(() => {
@@ -495,9 +532,11 @@ export default function FacultyScheduleTab({
           ) : (
             /* Nothing hoisted yet — say so instead of leaving the reader
                wondering where their own professors went. Name the two ways in:
-               a synced timetable/semester, or an FFCS draft. */
+               a synced timetable/semester, or an FFCS draft (the latter only
+               when the planner's picks are being counted at all). */
             <div className="rounded-2xl border border-dashed border-border-muted p-4 text-[11px] leading-relaxed font-medium text-text-secondary dark:text-text-muted">
-              Once your timetable and marks are synced — or you add courses in the FFCS planner — the faculties teaching{" "}
+              Once your timetable and marks are synced
+              {openedFromHome ? "" : " — or you add courses in the FFCS planner"} — the faculties teaching{" "}
               <span className="font-bold text-text-heading">your</span> courses will be listed here first.
             </div>
           )}
