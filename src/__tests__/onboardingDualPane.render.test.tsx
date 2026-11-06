@@ -1,6 +1,6 @@
 import React from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import AmazeOnboardingFlow from "../components/custom/onboarding/AmazeOnboardingFlow";
 
 // Mock Sync Engine API
@@ -20,65 +20,30 @@ vi.mock("framer-motion", () => ({
   },
 }));
 
-describe("AmazeOnboardingFlow Responsive Dual-Pane Layout", () => {
+describe("AmazeOnboardingFlow interface selection", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("switches to dual-pane layout when horizontal (width > height) on interface picker step", () => {
-    window.innerWidth = 1280;
-    window.innerHeight = 800;
+  it("skips the interface step when only one interface is available", () => {
+    render(<AmazeOnboardingFlow initialStep={1} settings={{}} setSettings={vi.fn()} onComplete={vi.fn()} />);
 
-    render(
-      <AmazeOnboardingFlow
-        initialStep={1}
-        isStandaloneInterfacePicker={true}
-        settings={{}}
-        setSettings={vi.fn()}
-        onComplete={vi.fn()}
-      />
-    );
-
-    // Left pane elements
-    expect(screen.getByText("Workspace Layout")).toBeDefined();
-    expect(screen.getByText("Choose your interface")).toBeDefined();
-    expect(screen.getByText("Select Mode")).toBeDefined();
-    expect(screen.getByText("Minimal Dashboard")).toBeDefined();
-
-    // Verify Continue / Select button
-    expect(screen.getByText(/Select Minimal Dashboard|Continue/i)).toBeDefined();
+    expect(screen.queryByText("Choose your interface")).toBeNull();
+    expect(screen.getByText("Display & Goals")).toBeDefined();
+    expect(screen.getByText("Step 2 of 5")).toBeDefined();
   });
 
-  it("keeps the left pane scrollable on a short landscape phone so actions can't clip", () => {
-    // iPhone-class landscape: dual-pane kicks in (width > height) but there is
-    // only ~350px of height — less than one step's content. The shell is
-    // overflow-hidden, so the centre section between the pinned header and the
-    // pinned action row must be its own scroll container.
-    window.innerWidth = 844;
-    window.innerHeight = 390;
+  it("continues from welcome directly to display settings", () => {
+    render(<AmazeOnboardingFlow initialStep={0} settings={{}} setSettings={vi.fn()} onComplete={vi.fn()} />);
 
-    render(
-      <AmazeOnboardingFlow
-        initialStep={1}
-        isStandaloneInterfacePicker={true}
-        settings={{}}
-        setSettings={vi.fn()}
-        onComplete={vi.fn()}
-      />
-    );
+    fireEvent.click(screen.getByRole("button", { name: /^Continue$/i }));
 
-    const heading = screen.getByText("Workspace Layout");
-    expect(heading.closest("div.min-h-0.overflow-y-auto")).not.toBeNull();
-    // Header and action row stay pinned outside the scroller, still reachable.
-    expect(screen.getByText(/Select Minimal Dashboard|Continue/i)).toBeDefined();
+    expect(screen.queryByText("Choose your interface")).toBeNull();
+    expect(screen.getByText("Display & Goals")).toBeDefined();
   });
 
-  it("makes the portrait step container scrollable on a phone", () => {
-    // Portrait phone: steps render in the single-column branch; a tall card
-    // (or the keyboard covering half the screen) must scroll inside <main>
-    // instead of being clipped by the fixed shell.
-    window.innerWidth = 390;
-    window.innerHeight = 844;
+  it("skips the standalone picker and applies the only available interface", async () => {
+    const onComplete = vi.fn();
 
     render(
       <AmazeOnboardingFlow
@@ -86,11 +51,12 @@ describe("AmazeOnboardingFlow Responsive Dual-Pane Layout", () => {
         isStandaloneInterfacePicker={true}
         settings={{}}
         setSettings={vi.fn()}
-        onComplete={vi.fn()}
-      />
+        onComplete={onComplete}
+      />,
     );
 
-    const heading = screen.getByText("Choose your interface");
-    expect(heading.closest("main.overflow-y-auto")).not.toBeNull();
+    expect(screen.queryByText("Choose your interface")).toBeNull();
+
+    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
   });
 });

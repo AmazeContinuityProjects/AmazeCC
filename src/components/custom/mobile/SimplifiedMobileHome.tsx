@@ -369,21 +369,6 @@ export default function SimplifiedMobileHome({
   };
 
   const [selectedCourseCode, setSelectedCourseCode] = useState<string | null>(null);
-  const [isDesktopViewport, setIsDesktopViewport] = useState(false);
-
-  useEffect(() => {
-    if (typeof window.matchMedia !== "function") {
-      const updateViewport = () => setIsDesktopViewport(window.innerWidth >= 1024);
-      updateViewport();
-      window.addEventListener("resize", updateViewport);
-      return () => window.removeEventListener("resize", updateViewport);
-    }
-    const media = window.matchMedia("(min-width: 1024px)");
-    const updateViewport = () => setIsDesktopViewport(media.matches);
-    updateViewport();
-    media.addEventListener("change", updateViewport);
-    return () => media.removeEventListener("change", updateViewport);
-  }, []);
 
   const handleCourseClick = (courseCode: string) => {
     if (!courseCode) return;
@@ -391,11 +376,25 @@ export default function SimplifiedMobileHome({
       .replace(/\([LPT]\)$/i, "")
       .trim();
 
-    setSelectedCourseCode(cleanCode);
+    const isDesktop = typeof window !== "undefined" && window.innerWidth >= 1024;
 
-    const isAlreadySelected = selectedCourseCode && cleanCode.toUpperCase() === selectedCourseCode.toUpperCase();
+    if (isDesktop) {
+      // In desktop mode, clicking a class displays its side view pane.
+      // If clicking the already selected course, navigate to full dashboard.
+      const isAlreadySelected = selectedCourseCode && cleanCode.toUpperCase() === selectedCourseCode.toUpperCase();
 
-    if (!isDesktopViewport || isAlreadySelected) {
+      if (isAlreadySelected) {
+        try {
+          localStorage.setItem("course_dashboard_target", cleanCode);
+          localStorage.setItem("course_dashboard_tab", "overview");
+        } catch {}
+        setActiveTab("academics");
+        setActiveSubTab("course-dashboard");
+      } else {
+        setSelectedCourseCode(cleanCode);
+      }
+    } else {
+      // Mobile mode: directly navigate to course dashboard
       try {
         localStorage.setItem("course_dashboard_target", cleanCode);
         localStorage.setItem("course_dashboard_tab", "overview");
@@ -1061,47 +1060,27 @@ export default function SimplifiedMobileHome({
     return rows;
   }, [selectedDayClasses, selectedDayLabFat]);
 
-  // Selected course object for desktop course side view pane
+  // Selected course object for desktop course side view pane (active when a class is clicked)
   const selectedCourseObj = useMemo(() => {
-    if (!attendanceData?.attendance || !Array.isArray(attendanceData.attendance)) return null;
+    if (!selectedCourseCode || !attendanceData?.attendance || !Array.isArray(attendanceData.attendance)) {
+      return null;
+    }
 
-    if (selectedCourseCode) {
-      const clean = selectedCourseCode
-        .replace(/\([LPT]\)$/i, "")
-        .trim()
-        .toUpperCase();
-      const match = attendanceData.attendance.find((c: any) => {
+    const clean = selectedCourseCode
+      .replace(/\([LPT]\)$/i, "")
+      .trim()
+      .toUpperCase();
+
+    return (
+      attendanceData.attendance.find((c: any) => {
         const cCode = String(c?.courseCode || "")
           .replace(/\([LPT]\)$/i, "")
           .trim()
           .toUpperCase();
         return cCode === clean;
-      });
-      if (match) return match;
-    }
-
-    // Default to first class of the selected day if available in attendance
-    if (selectedDayClasses && selectedDayClasses.length > 0) {
-      for (const cls of selectedDayClasses) {
-        if (!cls.courseCode) continue;
-        const clsClean = String(cls.courseCode)
-          .replace(/\([LPT]\)$/i, "")
-          .trim()
-          .toUpperCase();
-        const match = attendanceData.attendance.find((c: any) => {
-          const cCode = String(c?.courseCode || "")
-            .replace(/\([LPT]\)$/i, "")
-            .trim()
-            .toUpperCase();
-          return cCode === clsClean;
-        });
-        if (match) return match;
-      }
-    }
-
-    // Fallback: first course in attendance list
-    return attendanceData.attendance[0] || null;
-  }, [attendanceData?.attendance, selectedCourseCode, selectedDayClasses]);
+      }) || null
+    );
+  }, [attendanceData?.attendance, selectedCourseCode]);
 
   // Month & Year header for the calendar row
   const calendarWeekHeader = useMemo(() => {
@@ -2224,29 +2203,40 @@ export default function SimplifiedMobileHome({
           </div>
         </div>
 
-        {/* ── RIGHT COLUMN: DESKTOP COURSE SIDE VIEW PANE ── */}
-        {isDesktopViewport && (
-          <aside className="hidden lg:block w-80 xl:w-96 shrink-0 sticky top-6 self-start">
-            <DesktopCourseDetail
-              course={selectedCourseObj}
-              isDayscholarWithBus={settings?.isDayscholarWithBus || false}
-              decimalValues={settings?.decimalValues || false}
-              dayCardsMap={timetableMap}
-              results={analyzedCalendarResults}
-              onViewFullPage={() => {
-                if (!selectedCourseObj?.courseCode) return;
-                const cleanCode = String(selectedCourseObj.courseCode)
-                  .replace(/\([LPT]\)$/i, "")
-                  .trim();
-                try {
-                  localStorage.setItem("course_dashboard_target", cleanCode);
-                  localStorage.setItem("course_dashboard_tab", "overview");
-                } catch {}
-                setActiveTab("academics");
-                setActiveSubTab("course-dashboard");
-              }}
-              className="w-full bg-white dark:bg-[#080808] border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xs text-left"
-            />
+        {/* ── RIGHT COLUMN: DESKTOP COURSE SIDE VIEW PANE (SHOWN ON CLASS CLICK) ── */}
+        {selectedCourseObj && (
+          <aside className="hidden lg:block w-80 xl:w-96 shrink-0 sticky top-6 self-start animate-in fade-in duration-200">
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setSelectedCourseCode(null)}
+                className="absolute top-4 right-4 z-20 p-1.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-colors cursor-pointer"
+                title="Close side view"
+                aria-label="Close side view"
+              >
+                <X className="w-4 h-4" />
+              </button>
+              <DesktopCourseDetail
+                course={selectedCourseObj}
+                isDayscholarWithBus={settings?.isDayscholarWithBus || false}
+                decimalValues={settings?.decimalValues || false}
+                dayCardsMap={timetableMap}
+                results={analyzedCalendarResults}
+                onViewFullPage={() => {
+                  if (!selectedCourseObj?.courseCode) return;
+                  const cleanCode = String(selectedCourseObj.courseCode)
+                    .replace(/\([LPT]\)$/i, "")
+                    .trim();
+                  try {
+                    localStorage.setItem("course_dashboard_target", cleanCode);
+                    localStorage.setItem("course_dashboard_tab", "overview");
+                  } catch {}
+                  setActiveTab("academics");
+                  setActiveSubTab("course-dashboard");
+                }}
+                className="w-full bg-white dark:bg-[#080808] border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xs text-left"
+              />
+            </div>
           </aside>
         )}
       </div>

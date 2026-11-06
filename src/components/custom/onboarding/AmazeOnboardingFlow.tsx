@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import {
   Sparkles,
   LayoutGrid,
@@ -44,6 +44,18 @@ import {
 } from "@/lib/sync-engine/sync-session";
 
 export type InterfaceOptionId = "simplified";
+
+const INTERFACES: Array<{
+  id: InterfaceOptionId;
+  title: string;
+  icon: any;
+}> = [
+  {
+    id: "simplified",
+    title: "Minimal Dashboard",
+    icon: Sparkles,
+  },
+];
 
 const COLOR_PALETTES = [
   { id: "default", label: "Ocean", color: "#0ea5e9" },
@@ -146,7 +158,10 @@ export default function AmazeOnboardingFlow({
   eptData,
   acknowledgementData,
 }: AmazeOnboardingFlowProps) {
-  const [step, setStep] = useState(initialStep);
+  const hasMultipleInterfaces = INTERFACES.length > 1;
+  const [step, setStep] = useState(() =>
+    initialStep === 1 && !isStandaloneInterfacePicker && !hasMultipleInterfaces ? 2 : initialStep,
+  );
   // Sign-in + the first full sync + the welcome beat live in front of the
   // numbered steps; the standalone interface picker has none of them.
   const [introDone, setIntroDone] = useState(!intro);
@@ -210,21 +225,13 @@ export default function AmazeOnboardingFlow({
 
   const isHorizontal = isMounted && viewportDimensions.width > viewportDimensions.height;
 
-  const interfaces: Array<{
-    id: InterfaceOptionId;
-    title: string;
-    icon: any;
-  }> = [
-    {
-      id: "simplified",
-      title: "Minimal Dashboard",
-      icon: Sparkles,
-    },
-  ];
+  const interfaces = INTERFACES;
 
   const [activeInterfaceIdx, setActiveInterfaceIdx] = useState(0);
 
   const currentOption = interfaces[activeInterfaceIdx];
+  const shouldAutoSelectInterface = isStandaloneInterfacePicker && interfaces.length <= 1;
+  const hasAutoSelectedInterface = useRef(false);
 
   const update = (key: string, val: any) => {
     setTemp((prev: any) => ({ ...prev, [key]: val }));
@@ -239,15 +246,26 @@ export default function AmazeOnboardingFlow({
   };
 
   const nextStep = () => {
+    if (isStandaloneInterfacePicker) {
+      finish();
+      return;
+    }
+
+    if (step === 0 && !hasMultipleInterfaces) {
+      setStep(2);
+      return;
+    }
+
     if (step < 5) setStep(step + 1);
     else finish();
   };
 
   const prevStep = () => {
-    if (step > 0) setStep(step - 1);
+    if (!hasMultipleInterfaces && step === 2) setStep(0);
+    else if (step > 0) setStep(step - 1);
   };
 
-  const finish = () => {
+  const finish = useCallback(() => {
     const finalSettings = {
       ...temp,
       interfaceChosen: true,
@@ -268,7 +286,13 @@ export default function AmazeOnboardingFlow({
 
     setSettings(() => finalSettings);
     onComplete(finalSettings.currSemesterID);
-  };
+  }, [temp, setSettings, onComplete]);
+
+  useEffect(() => {
+    if (!shouldAutoSelectInterface || hasAutoSelectedInterface.current) return;
+    hasAutoSelectedInterface.current = true;
+    finish();
+  }, [finish, shouldAutoSelectInterface]);
 
   const enableNotifications = async () => {
     if (typeof window === "undefined" || !("Notification" in window)) return;
@@ -332,7 +356,8 @@ export default function AmazeOnboardingFlow({
     timetablePillStyle: temp.timetablePillStyle || "compact",
   };
 
-  const totalSteps = 6;
+  const totalSteps = hasMultipleInterfaces ? 6 : 5;
+  const visibleStep = hasMultipleInterfaces || step === 0 ? step : step - 1;
 
   // Render Helpers for shared cards across vertical & horizontal dual-pane layouts
   const renderProfileCard = () => (
@@ -809,6 +834,8 @@ export default function AmazeOnboardingFlow({
     return <OnboardingIntro initialPhase={intro.initialPhase} login={intro.login} onDone={() => setIntroDone(true)} />;
   }
 
+  if (shouldAutoSelectInterface) return null;
+
   return (
     <div className="fixed inset-0 z-50 bg-zinc-950 text-zinc-100 flex flex-col justify-between overflow-hidden select-none px-5 sm:px-8 pt-[calc(env(safe-area-inset-top,0px)+1rem)] pb-[calc(env(safe-area-inset-bottom,0px)+1rem)] sm:pt-[calc(env(safe-area-inset-top,0px)+1.5rem)] sm:pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)] animate-in fade-in duration-300">
       {/* Background ambient lighting */}
@@ -856,9 +883,9 @@ export default function AmazeOnboardingFlow({
                     <div
                       key={i}
                       className={`h-1.5 rounded-full transition-all duration-300 ${
-                        i === step
+                        i === visibleStep
                           ? "w-7 bg-indigo-500 shadow-xs shadow-indigo-500/50"
-                          : i < step
+                          : i < visibleStep
                             ? "w-2.5 bg-indigo-400/50"
                             : "w-2 bg-zinc-800"
                       }`}
@@ -869,7 +896,7 @@ export default function AmazeOnboardingFlow({
 
               {!isStandaloneInterfacePicker ? (
                 <span className="text-[11px] font-bold text-zinc-400 font-outfit">
-                  Step {step + 1} of {totalSteps}
+                  Step {visibleStep + 1} of {totalSteps}
                 </span>
               ) : (
                 <div className="w-16" />
@@ -920,6 +947,7 @@ export default function AmazeOnboardingFlow({
                             type="button"
                             onClick={() => setActiveInterfaceIdx(idx)}
                             title={item.title}
+                            aria-pressed={isCurrent}
                             className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer ${
                               isCurrent
                                 ? "bg-indigo-600 text-white shadow-md scale-105"
@@ -1049,7 +1077,7 @@ export default function AmazeOnboardingFlow({
 
             {/* Bottom: Action Buttons on the Left */}
             <div className="flex items-center gap-2.5 shrink-0 pt-2 w-full">
-              {(step === 1 || isStandaloneInterfacePicker) && (
+              {interfaces.length > 1 && (step === 1 || isStandaloneInterfacePicker) && (
                 <button
                   type="button"
                   onClick={() => setActiveInterfaceIdx((prev) => (prev - 1 + interfaces.length) % interfaces.length)}
@@ -1077,7 +1105,7 @@ export default function AmazeOnboardingFlow({
                 <ArrowRight className="w-4 h-4 shrink-0" />
               </button>
 
-              {(step === 1 || isStandaloneInterfacePicker) && (
+              {interfaces.length > 1 && (step === 1 || isStandaloneInterfacePicker) && (
                 <button
                   type="button"
                   onClick={() => setActiveInterfaceIdx((prev) => (prev + 1) % interfaces.length)}
@@ -1132,9 +1160,9 @@ export default function AmazeOnboardingFlow({
                   <div
                     key={i}
                     className={`h-1.5 rounded-full transition-all duration-300 ${
-                      i === step
+                      i === visibleStep
                         ? "w-7 bg-indigo-500 shadow-xs shadow-indigo-500/50"
-                        : i < step
+                        : i < visibleStep
                           ? "w-2.5 bg-indigo-400/50"
                           : "w-2 bg-zinc-800"
                     }`}
@@ -1145,7 +1173,7 @@ export default function AmazeOnboardingFlow({
 
             {!isStandaloneInterfacePicker ? (
               <span className="text-[11px] font-bold text-zinc-400 font-outfit">
-                Step {step + 1} of {totalSteps}
+                Step {visibleStep + 1} of {totalSteps}
               </span>
             ) : (
               <div className="w-16" />
@@ -1226,6 +1254,7 @@ export default function AmazeOnboardingFlow({
                             type="button"
                             onClick={() => setActiveInterfaceIdx(idx)}
                             title={item.title}
+                            aria-pressed={isCurrent}
                             className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer ${
                               isCurrent
                                 ? "bg-indigo-600 text-white shadow-md scale-105"
@@ -1357,7 +1386,7 @@ export default function AmazeOnboardingFlow({
           {/* ── BOTTOM ACTION BAR (GENEROUS SPACING & DUAL ARROWS) ── */}
           <footer className="relative z-20 w-full max-w-sm sm:max-w-md mx-auto flex items-center justify-center gap-2.5 shrink-0 pb-1 sm:pb-3">
             {/* If on interface step, provide left & right carousel arrows */}
-            {(step === 1 || isStandaloneInterfacePicker) && (
+            {interfaces.length > 1 && (step === 1 || isStandaloneInterfacePicker) && (
               <button
                 type="button"
                 onClick={() => setActiveInterfaceIdx((prev) => (prev - 1 + interfaces.length) % interfaces.length)}
@@ -1387,7 +1416,7 @@ export default function AmazeOnboardingFlow({
             </button>
 
             {/* If on interface step, provide right arrow */}
-            {(step === 1 || isStandaloneInterfacePicker) && (
+            {interfaces.length > 1 && (step === 1 || isStandaloneInterfacePicker) && (
               <button
                 type="button"
                 onClick={() => setActiveInterfaceIdx((prev) => (prev + 1) % interfaces.length)}

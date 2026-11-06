@@ -1,0 +1,381 @@
+"use client";
+
+import React, { useState, useMemo } from "react";
+import { Clock, Calendar, ChevronDown, ChevronUp } from "lucide-react";
+import { LIST_ROW, TONE_ICON_TILE } from "@/lib/uiTokens";
+import { SectionHeader, ToneBadge, EmptyPanel, ListShell, ListRowText } from "../shared/primitives";
+import {
+  ATTENDANCE_DAYS,
+  AttendanceDayCardsMap,
+  getAttendanceTimeRange,
+  getTodayAttendanceDay,
+} from "@/lib/attendanceTimetable";
+import config from "../../../../config.json";
+
+export interface CourseWeeklyScheduleProps {
+  courseCode: string;
+  dayCardsMap?: AttendanceDayCardsMap;
+  theorySlot?: string;
+  labSlot?: string;
+  theoryVenue?: string;
+  labVenue?: string;
+  theoryFaculty?: string;
+  labFaculty?: string;
+  viewDetail?: any;
+  viewLoading?: boolean;
+  onFetchViewDetail?: () => void;
+  reviewScopes?: Array<"theory" | "lab">;
+  detailEntriesByScope?: (scope: "theory" | "lab") => any[];
+  renderScopeBadge?: (scope: "theory" | "lab") => React.ReactNode;
+}
+
+const DAY_NAMES: Record<string, { label: string; full: string }> = {
+  MON: { label: "Mon", full: "Monday" },
+  TUE: { label: "Tue", full: "Tuesday" },
+  WED: { label: "Wed", full: "Wednesday" },
+  THU: { label: "Thu", full: "Thursday" },
+  FRI: { label: "Fri", full: "Friday" },
+  SAT: { label: "Sat", full: "Saturday" },
+  SUN: { label: "Sun", full: "Sunday" },
+};
+
+export default function CourseWeeklySchedule({
+  courseCode,
+  dayCardsMap,
+  theorySlot,
+  labSlot,
+  theoryVenue,
+  labVenue,
+  theoryFaculty,
+  labFaculty,
+  viewDetail,
+  viewLoading,
+  onFetchViewDetail,
+  reviewScopes,
+  detailEntriesByScope,
+  renderScopeBadge,
+}: CourseWeeklyScheduleProps) {
+  const [showVtopTable, setShowVtopTable] = useState(false);
+  const cleanSelected = courseCode
+    .replace(/\([LPT]\)$/i, "")
+    .trim()
+    .toUpperCase();
+  const todayKey = getTodayAttendanceDay();
+
+  // 1. Primary Source: Live timetable day cards
+  const scheduledDays = useMemo(() => {
+    if (!dayCardsMap) return [];
+
+    const result = (ATTENDANCE_DAYS as readonly string[])
+      .map((dayKey) => {
+        const classes = (dayCardsMap[dayKey] || []).filter((cls: any) => {
+          const cCode = String(cls.courseCode || "")
+            .replace(/\([LPT]\)$/i, "")
+            .trim()
+            .toUpperCase();
+          return cCode === cleanSelected;
+        });
+
+        return {
+          dayKey,
+          ...(DAY_NAMES[dayKey] || { label: dayKey, full: dayKey }),
+          classes,
+        };
+      })
+      .filter((d) => d.classes.length > 0);
+
+    return result;
+  }, [dayCardsMap, cleanSelected]);
+
+  // 2. Fallback: Parse from config.slotMap if dayCardsMap is empty
+  const effectiveDays = useMemo(() => {
+    if (scheduledDays.length > 0) return scheduledDays;
+
+    const slotMap = (config as any).slotMap;
+    if (!slotMap) return [];
+
+    const theorySlots = (theorySlot || "")
+      .split("+")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const labSlots = (labSlot || "")
+      .split("+")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    if (theorySlots.length === 0 && labSlots.length === 0) return [];
+
+    return (ATTENDANCE_DAYS as readonly string[])
+      .map((dayKey) => {
+        const daySlots = slotMap[dayKey] || {};
+        const classes: any[] = [];
+
+        theorySlots.forEach((slotName) => {
+          if (daySlots[slotName]) {
+            classes.push({
+              slotName,
+              time: daySlots[slotName].time,
+              courseCode: cleanSelected,
+              courseType: "Theory",
+              slotVenue: theoryVenue,
+              faculty: theoryFaculty,
+            });
+          }
+        });
+
+        labSlots.forEach((slotName) => {
+          if (daySlots[slotName]) {
+            classes.push({
+              slotName,
+              time: daySlots[slotName].time,
+              courseCode: `${cleanSelected}(L)`,
+              courseType: "Lab",
+              slotVenue: labVenue,
+              faculty: labFaculty,
+            });
+          }
+        });
+
+        // Sort classes by start time
+        classes.sort((a, b) => {
+          const tA = getAttendanceTimeRange(a.time);
+          const tB = getAttendanceTimeRange(b.time);
+          return tA.start - tB.start;
+        });
+
+        return {
+          dayKey,
+          ...(DAY_NAMES[dayKey] || { label: dayKey, full: dayKey }),
+          classes,
+        };
+      })
+      .filter((d) => d.classes.length > 0);
+  }, [scheduledDays, cleanSelected, theorySlot, labSlot, theoryVenue, labVenue, theoryFaculty, labFaculty]);
+
+  // Total classes per week count
+  const totalClassesCount = useMemo(() => {
+    return effectiveDays.reduce((acc, d) => acc + d.classes.length, 0);
+  }, [effectiveDays]);
+
+  const todayClassesCount = useMemo(() => {
+    const today = effectiveDays.find((d) => d.dayKey === todayKey);
+    return today ? today.classes.length : 0;
+  }, [effectiveDays, todayKey]);
+
+  // Real-time live session checking
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  return (
+    <div className="space-y-4">
+      <SectionHeader
+        icon={Calendar}
+        title="Weekly Timetable Schedule"
+        count={totalClassesCount || undefined}
+        right={
+          todayClassesCount > 0 ? (
+            <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">
+              {todayClassesCount} today
+            </span>
+          ) : undefined
+        }
+      />
+
+      {effectiveDays.length === 0 ? (
+        <EmptyPanel
+          icon={<Calendar className="w-7 h-7" />}
+          title="No scheduled timetable sessions"
+          description="No classes for this course were found in the current weekly timetable."
+        />
+      ) : (
+        <div className="space-y-4">
+          {effectiveDays.map(({ dayKey, full, label, classes }) => {
+            const isToday = dayKey === todayKey;
+
+            return (
+              <div key={dayKey} className="space-y-2">
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-text-muted font-outfit">
+                      {full}
+                    </span>
+                    {isToday && (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-extrabold uppercase bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        Today
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs text-text-muted font-medium">
+                    {classes.length} {classes.length === 1 ? "class" : "classes"}
+                  </span>
+                </div>
+
+                <ListShell>
+                  {classes.map((cls: any, idx: number) => {
+                    const isLab =
+                      cls.courseType?.toLowerCase().includes("lab") ||
+                      String(cls.courseCode || "").endsWith("(L)") ||
+                      String(cls.courseCode || "").endsWith("(P)") ||
+                      String(cls.slotName || "")
+                        .toLowerCase()
+                        .startsWith("l");
+
+                    const timeRange = getAttendanceTimeRange(cls.time);
+                    const isLive =
+                      isToday &&
+                      timeRange.start > 0 &&
+                      currentMinutes >= timeRange.start &&
+                      currentMinutes <= timeRange.end;
+
+                    return (
+                      <div key={`${dayKey}-${cls.slotName}-${idx}`} className={`${LIST_ROW} py-3`}>
+                        {/* Leading Icon Tile */}
+                        <span
+                          className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${
+                            isLive
+                              ? TONE_ICON_TILE.emerald
+                              : isToday
+                                ? TONE_ICON_TILE.indigo
+                                : "border-border-muted bg-surface-secondary text-text-muted"
+                          }`}
+                        >
+                          <Clock className="w-4.5 h-4.5" />
+                        </span>
+
+                        {/* Title & Subtitle */}
+                        <ListRowText
+                          titleTag="span"
+                          title={
+                            <span className="flex items-center gap-2">
+                              <span className="font-outfit font-black text-text-heading">{cls.time}</span>
+                              <ToneBadge tone={isLab ? "emerald" : "blue"}>
+                                {cls.courseType || (isLab ? "Lab" : "Theory")}
+                              </ToneBadge>
+                            </span>
+                          }
+                          subtitle={
+                            <span className="flex items-center gap-1.5 flex-wrap">
+                              <span>Slot {cls.slotName}</span>
+                              <span>&middot;</span>
+                              <span>
+                                Venue: <span className="font-semibold text-text-heading">{cls.slotVenue || "—"}</span>
+                              </span>
+                              {cls.faculty ? <span>&middot; {cls.faculty}</span> : null}
+                            </span>
+                          }
+                        />
+
+                        {/* Right Side Badges */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          {isLive ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-extrabold uppercase bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                              Live
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </ListShell>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Secondary Collapsible Accordion: Official VTOP viewDetail scrape */}
+      {(viewDetail || onFetchViewDetail) && (
+        <div className="pt-1">
+          <button
+            type="button"
+            onClick={() => {
+              if (!showVtopTable && !viewDetail && onFetchViewDetail) {
+                onFetchViewDetail();
+              }
+              setShowVtopTable(!showVtopTable);
+            }}
+            className="w-full flex items-center justify-between p-3.5 rounded-2xl border border-border-muted dark:border-zinc-800 bg-surface-secondary/40 dark:bg-zinc-900/30 hover:bg-surface-secondary dark:hover:bg-zinc-900/60 transition-colors cursor-pointer text-left"
+          >
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-text-muted" />
+              <span className="text-xs font-bold text-text-secondary">Official VTOP Scraped Schedule Table</span>
+              {viewLoading && <span className="text-[11px] text-indigo-500 animate-pulse font-medium">Loading…</span>}
+            </div>
+            {showVtopTable ? (
+              <ChevronUp className="w-4 h-4 text-text-muted" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-text-muted" />
+            )}
+          </button>
+
+          {showVtopTable && (
+            <div className="mt-3 p-4 rounded-2xl border border-border-muted dark:border-zinc-800 bg-surface-primary dark:bg-zinc-900/60 animate-in fade-in duration-200">
+              {viewLoading ? (
+                <p className="text-xs text-text-muted animate-pulse py-4 text-center">Loading VTOP course details…</p>
+              ) : viewDetail && reviewScopes && detailEntriesByScope ? (
+                <div className="space-y-4">
+                  {reviewScopes.map((scope) => {
+                    const entries = detailEntriesByScope(scope);
+                    if (entries.length === 0) return null;
+                    return (
+                      <div key={scope} className="space-y-3">
+                        {renderScopeBadge?.(scope)}
+                        {entries.map((vd: any, ci: number) => (
+                          <div key={ci} className="space-y-3">
+                            {vd.data.tables?.slice(1).map((t: any, ti: number) => (
+                              <div key={ti} className="overflow-x-auto hide-scrollbar">
+                                {t.caption && (
+                                  <h5 className="mb-2 text-[10px] font-black text-text-muted uppercase tracking-widest">
+                                    {t.caption}
+                                  </h5>
+                                )}
+                                <table className="w-full text-xs">
+                                  <thead>
+                                    <tr className="border-b border-border-muted dark:border-border">
+                                      {t.headers?.map((h: string, hi: number) => (
+                                        <th
+                                          key={hi}
+                                          className="text-left py-2 px-2 font-black text-text-muted uppercase tracking-widest whitespace-nowrap"
+                                        >
+                                          {h}
+                                        </th>
+                                      ))}
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {t.rows?.map((row: any, ri: number) => (
+                                      <tr
+                                        key={ri}
+                                        className="border-b border-border-muted/40 dark:border-border/40 last:border-0 hover:bg-surface-hover/40"
+                                      >
+                                        {t.headers?.map((h: string, colIdx: number) => (
+                                          <td key={colIdx} className="py-2 px-2 text-text-secondary whitespace-nowrap">
+                                            {row[h] || "—"}
+                                          </td>
+                                        ))}
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-text-muted text-center py-4">
+                  No detailed VTOP table available for this course.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

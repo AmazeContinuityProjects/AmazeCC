@@ -25,9 +25,7 @@ export const odHoursDataAtom = atom<object>({});
 // NOTE: strictNullChecks is off in this repo, so a bare `null` initialiser would
 // match jotai's read-function overload and yield a read-only atom. The cast
 // keeps the runtime `null` while selecting the PrimitiveAtom overload.
-export const officialOdDataAtom = atom<OfficialOdResponse | null>(
-  null as unknown as OfficialOdResponse,
-);
+export const officialOdDataAtom = atom<OfficialOdResponse | null>(null as unknown as OfficialOdResponse);
 export const moodleDataAtom = atom<any[]>([]);
 export const vitolDataAtom = atom<any[]>([]);
 export const registeredEventsAtom = atom<any[]>([]);
@@ -35,4 +33,4 @@ export const eventHubEventsAtom = atom<any[]>([]);
 export const tasksAtom = atom<Task[]>([]);
 export const pomodoroSessionsAtom = atom<PomodoroSession[]>([]);
 export const focusingTaskIdAtom = atom<string | null>(null as unknown as string | null);
-
+export const qcmDataAtom = atom<any>(null);
