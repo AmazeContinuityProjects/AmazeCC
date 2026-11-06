@@ -102,12 +102,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${geist.className} ${geistMono.className} ${dmSans.className}`}
     >
       <head>
-        <style
-          id="amaze-early-detect-css"
-          dangerouslySetInnerHTML={{
-            __html: `html.has-stored-session .guest-experience-root{display:none!important}html.has-stored-session .opening-screen-fallback{display:flex!important}`,
-          }}
-        />
         <script
           id="amaze-session-early-detect"
           dangerouslySetInnerHTML={{

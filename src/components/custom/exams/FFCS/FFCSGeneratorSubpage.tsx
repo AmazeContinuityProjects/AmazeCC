@@ -932,10 +932,12 @@ export function FFCSGeneratorSubpage({
     setResultFilters(DEFAULT_RESULT_FILTERS);
     track("generation_started", { courses: generatorTargets.length, ranking: `${enabledFactors.length} factors` });
     if (posthogConfigured) {
-      posthog.capture("timetable_generation_started", {
+      const payload = {
         target_course_count: generatorTargets.length,
         ranking_factor_count: enabledFactors.length,
-      });
+      };
+      posthog.capture("ffcs_timetable_generation_started", payload);
+      posthog.capture("timetable_generation_started", payload);
     }
     const startedAt = performance.now();
     let facultyRatings: FacultyRatingLookup = {};
@@ -1024,11 +1026,13 @@ export function FFCSGeneratorSubpage({
       const durationMs = Math.round(performance.now() - startedAt);
       track("generation_done", { found, capped, ms: durationMs });
       if (posthogConfigured) {
-        posthog.capture("timetable_generation_completed", {
+        const payload = {
           result_count: found,
           is_capped: capped,
           duration_ms: durationMs,
-        });
+        };
+        posthog.capture("ffcs_timetable_generation_completed", payload);
+        posthog.capture("timetable_generation_completed", payload);
       }
     };
 
@@ -1233,7 +1237,9 @@ export function FFCSGeneratorSubpage({
     setTimetables((prev) => [...prev, ...selected]);
     track("timetable_saved", { source: "generator" });
     if (posthogConfigured) {
-      posthog.capture("timetable_saved", { source: "generator", timetable_count: selected.length });
+      const payload = { source: "generator", timetable_count: selected.length };
+      posthog.capture("ffcs_timetable_saved", payload);
+      posthog.capture("timetable_saved", payload);
     }
     if (selected.length > 0) setActiveTimetableId(selected[0].id);
     setStagedTimetables([]);
@@ -1475,7 +1481,9 @@ export function FFCSGeneratorSubpage({
           setTimetables((prev) => [...prev, generatorPreviewTimetable]);
           track("timetable_saved", { source: "generator" });
           if (posthogConfigured) {
-            posthog.capture("timetable_saved", { source: "generator", timetable_count: 1 });
+            const payload = { source: "generator", timetable_count: 1 };
+            posthog.capture("ffcs_timetable_saved", payload);
+            posthog.capture("timetable_saved", payload);
           }
           setActiveTimetableId(generatorPreviewTimetable.id);
           setStagedTimetables([]);
