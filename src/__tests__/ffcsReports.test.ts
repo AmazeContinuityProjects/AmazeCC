@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import * as XLSX from "xlsx";
@@ -10,6 +10,7 @@ import {
   getFFCSSemesterByClassIdPrefixCode,
   isFFCSSemesterId,
   FINAL_FFCS_REPORTS,
+  broadcastGlobalSemesterChange,
   finalSemesterToVtopId,
   getSelectedFinalReportPath,
   getSelectedFinalSemesterId,
@@ -244,5 +245,67 @@ describe("global final semester mapping and resolution", () => {
 
   it("ships FINAL_FFCS_REPORTS with exactly winter and fall", () => {
     expect(FINAL_FFCS_REPORTS.map((r) => r.id)).toEqual(["winter-2026-2027", "fall-2026-2027"]);
+  });
+});
+
+/**
+ * The app's semester and the FFCS planner's report are two independent
+ * resolutions that used to be wired together in both directions: the app's
+ * broadcast wrote `ffcs_semester`, and the app's resolver read it back. Each
+ * direction is now cut, so both are pinned here — a regression in either one
+ * re-couples a planner report switch to Free Classrooms / Faculty Schedule (or
+ * the other way round).
+ *
+ * This jsdom run has no `localStorage`, so the same in-memory shim the
+ * storage-backed component suites install is installed per test and removed
+ * again, keeping the rest of this file's pure assertions untouched.
+ */
+describe("app semester and planner semester resolve independently", () => {
+  let hadOwnDescriptor = false;
+  const map = new Map<string, string>();
+
+  beforeEach(() => {
+    hadOwnDescriptor = Object.prototype.hasOwnProperty.call(window, "localStorage");
+    map.clear();
+    const stub: Storage = {
+      get length() {
+        return map.size;
+      },
+      key: (i: number) => Array.from(map.keys())[i] ?? null,
+      getItem: (k: string) => (map.has(k) ? map.get(k)! : null),
+      setItem: (k: string, v: string) => void map.set(k, String(v)),
+      removeItem: (k: string) => void map.delete(k),
+      clear: () => map.clear(),
+    };
+    Object.defineProperty(window, "localStorage", { value: stub, configurable: true, writable: true });
+  });
+
+  afterEach(() => {
+    if (!hadOwnDescriptor) Reflect.deleteProperty(window, "localStorage");
+  });
+
+  it("resolves the app semester from settings and never from the planner's key", () => {
+    // The planner's report switch, saved under its own key...
+    map.set("ffcs_semester", "fall-2026-2027");
+    // ...while the app's own semester says winter.
+    map.set("settings", JSON.stringify({ currSemesterID: "CH20262705" }));
+    expect(getSelectedFinalSemesterId()).toBe("winter-2026-2027");
+
+    // No app semester recorded at all: the planner's key still must not leak
+    // in as a fallback — the default wins instead.
+    map.delete("settings");
+    expect(getSelectedFinalSemesterId()).toBe(DEFAULT_FFCS_SEMESTER);
+  });
+
+  it("broadcasts the app semester without writing the planner's key", () => {
+    map.set("settings", JSON.stringify({ currSemesterID: "CH20262705" }));
+    map.set("ffcs_semester", "winter-2026-2027");
+
+    broadcastGlobalSemesterChange("fall-2026-2027");
+
+    // The app's surfaces get the new term...
+    expect(JSON.parse(map.get("settings")!).currSemesterID).toBe("CH20262701");
+    // ...and the planner's saved report is left exactly as it was.
+    expect(map.get("ffcs_semester")).toBe("winter-2026-2027");
   });
 });

@@ -248,8 +248,11 @@ describe("FacultyScheduleTab", () => {
     expect(await screen.findByText("Your course faculties")).toBeTruthy();
   });
 
-  it("switches semester automatically when global semester change event fires", async () => {
+  it("moves the app's semester on a global broadcast without touching the planner's", async () => {
     store.clear();
+    // Seed the app's own semester (winter) so the broadcast's settings write is
+    // observable, and leave `ffcs_semester` absent to prove it stays that way.
+    store.setItem("settings", JSON.stringify({ currSemesterID: "CH20262705" }));
     render(<FacultyScheduleTab />);
     await screen.findByText("All faculty");
 
@@ -261,7 +264,10 @@ describe("FacultyScheduleTab", () => {
       broadcastGlobalSemesterChange("fall-2026-2027");
     });
 
-    expect(store.getItem("ffcs_semester")).toBe("fall-2026-2027");
+    // The app's semester follows the broadcast; the planner's own
+    // `ffcs_semester` key is not touched — the two are decoupled.
+    expect(store.getItem("ffcs_semester")).toBeNull();
+    expect(JSON.parse(store.getItem("settings") || "{}").currSemesterID).toBe("CH20262701");
   });
 
   it("hands a user semester switch to the shell reload, not a local relabel", async () => {
