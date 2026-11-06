@@ -1,6 +1,7 @@
-import { request, setAuthProvider, type AuthCreds } from "./request-layer";
+import { request, setAuthProvider, cancelAllRequests, type AuthCreds } from "./request-layer";
 import { AuthError, backoff } from "./errors";
 import { storage } from "../storage";
+import { pingVtopDirectly } from "../vtopHealth";
 import type { AuthDomain, Ids, VtopCreds } from "./types";
 
 interface FailedPair {
@@ -79,9 +80,7 @@ class CredentialManager {
    * Concurrent callers share one login, because a login costs a captcha solve and
    * `loginVtop` is deliberately not retried.
    */
-  async ensureVtopSession(
-    opts: { demoMode?: boolean; forceNew?: boolean } = {}
-  ): Promise<VtopCreds> {
+  async ensureVtopSession(opts: { demoMode?: boolean; forceNew?: boolean } = {}): Promise<VtopCreds> {
     if (opts.demoMode) {
       return { cookies: [], authorizedID: "DEMO123", csrf: "", fetchedAt: Date.now() };
     }
@@ -139,10 +138,7 @@ class CredentialManager {
    * Single-flight for the same reason as VTOP: a login is a network round trip
    * and concurrent callers must not each start one.
    */
-  async ensureEventHubSession(
-    ids: Ids,
-    opts: { demoMode?: boolean } = {}
-  ): Promise<string> {
+  async ensureEventHubSession(ids: Ids, opts: { demoMode?: boolean } = {}): Promise<string> {
     if (opts.demoMode || ids.VtopUsername === "demo") return "";
     if (this.refreshingEventHub) return this.refreshingEventHub;
     if (this.eventHub && !this.isEventHubStale()) return this.eventHub;
@@ -228,10 +224,7 @@ class CredentialManager {
     }
   }
 
-  async loginVtop(
-    ids: Ids,
-    opts: { demoMode?: boolean; forceNew?: boolean } = {},
-  ): Promise<VtopCreds> {
+  async loginVtop(ids: Ids, opts: { demoMode?: boolean; forceNew?: boolean } = {}): Promise<VtopCreds> {
     if (opts.demoMode || ids.VtopUsername === "demo") {
       return { cookies: [], authorizedID: "DEMO123", csrf: "", fetchedAt: Date.now() };
     }
@@ -242,6 +235,14 @@ class CredentialManager {
       );
     }
     if (this.vtop && !opts.forceNew) return this.vtop;
+
+    if (typeof window !== "undefined" && !opts.demoMode && ids.VtopUsername !== "demo") {
+      const isUp = await pingVtopDirectly(4000);
+      if (!isUp) {
+        cancelAllRequests("VTOP is down");
+        throw new AuthError("VTOP portal unreachable (vtopcc.vit.ac.in is down)", "vtop");
+      }
+    }
 
     let res: any;
     try {
@@ -274,10 +275,7 @@ class CredentialManager {
     return this.vtop;
   }
 
-  async loginEventHub(
-    ids: Ids,
-    opts: { demoMode?: boolean; forceNew?: boolean } = {},
-  ): Promise<string> {
+  async loginEventHub(ids: Ids, opts: { demoMode?: boolean; forceNew?: boolean } = {}): Promise<string> {
     if (opts.demoMode || ids.VtopUsername === "demo") return "";
     if (this.isBlocked("eventhub", ids)) {
       throw new AuthError("Event Hub login failed — stopped retrying.", "eventhub");

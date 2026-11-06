@@ -16,6 +16,11 @@ import { QRCodeSVG } from "qrcode.react";
 import BottomSheet from "../shared/BottomSheet";
 import { useSocialData } from "@/lib/social/useSocialData";
 import { downloadHtmlImage } from "@/lib/imageDownload";
+import posthog from "posthog-js";
+
+const posthogConfigured = Boolean(
+  process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST,
+);
 
 export default function ShareHandleSheet({ onClose }: { onClose: () => void }) {
   const { handle, identity, markDirty } = useSocialData();
@@ -27,9 +32,11 @@ export default function ShareHandleSheet({ onClose }: { onClose: () => void }) {
 
   const copy = useCallback(() => {
     if (!handle) return;
-    void navigator.clipboard.writeText(handle);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    void navigator.clipboard.writeText(handle).then(() => {
+      if (posthogConfigured) posthog.capture("social_handle_shared", { method: "copy" });
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
   }, [handle]);
 
   const requestSync = useCallback(() => {
@@ -49,13 +56,18 @@ export default function ShareHandleSheet({ onClose }: { onClose: () => void }) {
       `<div style="display:inline-block;background:#ffffff;padding:30px">${svgData}</div>`,
       `${name.replace(/\s+/g, "_")}_amaze_handle`,
       { format: "png", backgroundColor: "#ffffff" },
-    ).catch(() => setQrError(true));
+    )
+      .then(() => {
+        if (posthogConfigured) posthog.capture("social_handle_shared", { method: "qr_download" });
+      })
+      .catch(() => setQrError(true));
   }, [handle, name]);
 
   const shareWhatsApp = useCallback(() => {
     if (!handle) return;
     const text = encodeURIComponent(`Share your timetable with me on AmazeCC. My handle is ${handle}`);
     window.open(`https://wa.me/?text=${text}`, "_blank");
+    if (posthogConfigured) posthog.capture("social_handle_shared", { method: "whatsapp" });
   }, [handle]);
 
   return (

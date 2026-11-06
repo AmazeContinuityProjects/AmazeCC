@@ -30,12 +30,8 @@ import { isDueOnDay } from "@/lib/taskMatch";
 import { getTodayAttendanceDay } from "@/lib/attendanceTimetable";
 import type { Task } from "@/types/tasks";
 import { isTaskOverdue } from "@/types/tasks";
-import {
-  InsightCarousel,
-  PageShell,
-  useCarousel,
-  type InsightSlide,
-} from "../shared/primitives";
+import posthog from "posthog-js";
+import { InsightCarousel, PageShell, useCarousel, type InsightSlide } from "../shared/primitives";
 import { TILE } from "@/lib/uiTokens";
 import KanbanView from "./KanbanView";
 import TaskListView from "./TaskListView";
@@ -43,6 +39,11 @@ import TaskWeekView from "./TaskWeekView";
 import FocusPage from "./FocusPage";
 import TaskEditSheet from "./TaskEditSheet";
 import MoodleImportModal from "./MoodleImportModal";
+
+const posthogConfigured = Boolean(
+  process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST,
+);
+const posthogTaskLogger = posthog.logger;
 
 export type TasksViewMode = "kanban" | "list" | "week" | "focus";
 
@@ -72,26 +73,18 @@ const TONE_BADGE: Record<string, string> = {
 
 const CARD_BASE = `${TILE} min-h-36 sm:min-h-40`;
 
-const SEG_ACTIVE =
-  "bg-indigo-600 text-white shadow-xs";
+const SEG_ACTIVE = "bg-indigo-600 text-white shadow-xs";
 const SEG_IDLE =
   "bg-white/80 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white";
 
-const VIEW_META: Record<
-  TasksViewMode,
-  { label: string; icon: React.ElementType; section: string }
-> = {
+const VIEW_META: Record<TasksViewMode, { label: string; icon: React.ElementType; section: string }> = {
   kanban: { label: "Kanban", icon: Columns, section: "Board" },
   list: { label: "List", icon: List, section: "Timeline" },
   week: { label: "Week", icon: Calendar, section: "Week plan" },
   focus: { label: "Focus", icon: Timer, section: "Focus" },
 };
 
-export default function TasksTab({
-  initialView = "kanban",
-  initialCourseCode,
-  onBack,
-}: TasksTabProps) {
+export default function TasksTab({ initialView = "kanban", initialCourseCode, onBack }: TasksTabProps) {
   const [tasks, setTasks] = useAtom(tasksAtom);
   const quickAddRequest = useAtomValue(tasksQuickAddRequestAtom);
   const setQuickAddRequest = useSetAtom(tasksQuickAddRequestAtom);
@@ -101,9 +94,7 @@ export default function TasksTab({
   // Edit sheet state
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
-  const [prefilledCourseCode, setPrefilledCourseCode] = useState<string | undefined>(
-    initialCourseCode
-  );
+  const [prefilledCourseCode, setPrefilledCourseCode] = useState<string | undefined>(initialCourseCode);
   const [prefilledTitle, setPrefilledTitle] = useState<string>("");
 
   // Moodle modal state
@@ -127,11 +118,7 @@ export default function TasksTab({
   // just surfaces them in a banner.
   useEffect(() => {
     return subscribeReminders((reminder) => {
-      setActiveNotification(
-        `Reminder: ${reminder.taskTitle}${
-          reminder.kind === "due_lead" ? " — due soon" : ""
-        }`
-      );
+      setActiveNotification(`Reminder: ${reminder.taskTitle}${reminder.kind === "due_lead" ? " — due soon" : ""}`);
     });
   }, []);
 
@@ -146,25 +133,51 @@ export default function TasksTab({
   }, [quickAddRequest, setQuickAddRequest]);
 
   // Handlers
+  const taskProperties = (task: Partial<Task>) => ({
+    task_kind: task.kind,
+    status: task.status,
+    has_due_date: Boolean(task.dueDate),
+    reminder_count: task.reminders?.length ?? 0,
+    scheduled_chunk_count: task.schedule?.length ?? 0,
+    has_pomodoro_plan: Boolean(task.pomodoro),
+  });
+
   const handleCreateTask = (draft: Partial<Task> & { title: string }) => {
     const updated = createTask(draft);
     setTasks(updated);
+    if (posthogConfigured) {
+      posthog.capture("task_created", taskProperties(draft));
+      posthogTaskLogger.info("task created", taskProperties(draft));
+    }
   };
 
   const handleUpdateTask = (draft: Partial<Task> & { title: string }) => {
     if (!draft.id) return;
     const updated = updateTask(draft.id, draft);
     setTasks(updated);
+    if (posthogConfigured) {
+      posthog.capture("task_updated", taskProperties(draft));
+      posthogTaskLogger.info("task updated", taskProperties(draft));
+    }
   };
 
   const handleStatusCycle = (id: string) => {
     const updated = cycleTaskStatus(id);
     setTasks(updated);
+    const task = updated.find((candidate) => candidate.id === id);
+    if (task && posthogConfigured) {
+      posthog.capture("task_status_changed", { status: task.status });
+      posthogTaskLogger.info("task status changed", { status: task.status });
+    }
   };
 
   const handleDeleteTask = (id: string) => {
     const updated = deleteTask(id);
     setTasks(updated);
+    if (posthogConfigured) {
+      posthog.capture("task_deleted");
+      posthogTaskLogger.info("task deleted");
+    }
   };
 
   const handleOpenNewTask = () => {
@@ -185,9 +198,7 @@ export default function TasksTab({
     return t.courseCode === selectedCourseFilter;
   });
 
-  const uniqueCourseCodes = Array.from(
-    new Set(tasks.map((t) => t.courseCode).filter(Boolean))
-  );
+  const uniqueCourseCodes = Array.from(new Set(tasks.map((t) => t.courseCode).filter(Boolean)));
 
   // ── Page-level stats (unfiltered, like the course page heroes) ──
   const now = new Date();
@@ -201,14 +212,9 @@ export default function TasksTab({
     return due >= now.getTime() && due <= now.getTime() + 7 * 24 * 60 * 60 * 1000;
   }).length;
   const todayTasks = openTasks.filter(
-    (t) =>
-      (t.schedule || []).some((c) => c.day === todayCode) ||
-      isDueOnDay(t.dueDate, now)
+    (t) => (t.schedule || []).some((c) => c.day === todayCode) || isDueOnDay(t.dueDate, now),
   ).length;
-  const scheduledChunks = openTasks.reduce(
-    (sum, t) => sum + (t.schedule || []).length,
-    0
-  );
+  const scheduledChunks = openTasks.reduce((sum, t) => sum + (t.schedule || []).length, 0);
 
   // ── Rotating insight carousel (mirrors the course-overview stat cards) ──
   const slides = useMemo(
@@ -217,10 +223,7 @@ export default function TasksTab({
         id: "today",
         title: "Today",
         headline: String(todayTasks),
-        subline:
-          todayTasks > 0
-            ? "session or due today"
-            : "nothing scheduled today",
+        subline: todayTasks > 0 ? "session or due today" : "nothing scheduled today",
         badge: "Today",
         tone: todayTasks > 0 ? "red" : "zinc",
         onClick: () => setViewMode("week"),
@@ -229,10 +232,7 @@ export default function TasksTab({
         id: "overdue",
         title: "Overdue",
         headline: String(overdueTasks.length),
-        subline:
-          overdueTasks.length > 0
-            ? "past due, still open"
-            : "nothing past due",
+        subline: overdueTasks.length > 0 ? "past due, still open" : "nothing past due",
         badge: overdueTasks.length > 0 ? "Overdue" : "Clear",
         tone: overdueTasks.length > 0 ? "red" : "emerald",
         onClick: () => setViewMode("list"),
@@ -241,10 +241,7 @@ export default function TasksTab({
         id: "focus",
         title: "Focus",
         headline: String(scheduledChunks),
-        subline:
-          scheduledChunks > 0
-            ? "weekly session chunks planned"
-            : "no chunks scheduled yet",
+        subline: scheduledChunks > 0 ? "weekly session chunks planned" : "no chunks scheduled yet",
         badge: "Focus",
         tone: "indigo",
         onClick: () => setViewMode("focus"),
@@ -259,7 +256,7 @@ export default function TasksTab({
         onClick: () => setViewMode("kanban"),
       },
     ],
-    [todayTasks, overdueTasks.length, scheduledChunks, doneCount]
+    [todayTasks, overdueTasks.length, scheduledChunks, doneCount],
   );
 
   const carousel = useCarousel(slides.length);
@@ -274,7 +271,7 @@ export default function TasksTab({
         tone: s.tone,
         onClick: s.onClick,
       })),
-    [slides]
+    [slides],
   );
   const openTone = overdueTasks.length > 0 ? "red" : openTasks.length > 0 ? "indigo" : "zinc";
 
@@ -367,23 +364,21 @@ export default function TasksTab({
 
         {uniqueCourseCodes.length > 0 && (
           <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1">
-            {[{ id: "all", label: "All courses" }, ...uniqueCourseCodes.map((c) => ({ id: c, label: c }))].map(
-              (f) => {
-                const isActive = selectedCourseFilter === f.id;
-                return (
-                  <button
-                    key={f.id}
-                    type="button"
-                    onClick={() => setSelectedCourseFilter(f.id)}
-                    className={`px-3 py-2 rounded-xl text-xs font-black whitespace-nowrap transition-all cursor-pointer ${
-                      isActive ? SEG_ACTIVE : SEG_IDLE
-                    }`}
-                  >
-                    {f.label}
-                  </button>
-                );
-              }
-            )}
+            {[{ id: "all", label: "All courses" }, ...uniqueCourseCodes.map((c) => ({ id: c, label: c }))].map((f) => {
+              const isActive = selectedCourseFilter === f.id;
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setSelectedCourseFilter(f.id)}
+                  className={`px-3 py-2 rounded-xl text-xs font-black whitespace-nowrap transition-all cursor-pointer ${
+                    isActive ? SEG_ACTIVE : SEG_IDLE
+                  }`}
+                >
+                  {f.label}
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
@@ -459,19 +454,11 @@ export default function TasksTab({
         )}
 
         {viewMode === "week" && (
-          <TaskWeekView
-            tasks={filteredTasks}
-            onEdit={handleOpenEdit}
-            onNewTask={handleOpenNewTask}
-          />
+          <TaskWeekView tasks={filteredTasks} onEdit={handleOpenEdit} onNewTask={handleOpenNewTask} />
         )}
 
         {viewMode === "focus" && (
-          <FocusPage
-            tasks={filteredTasks}
-            onCycleStatus={handleStatusCycle}
-            onEditTask={handleOpenEdit}
-          />
+          <FocusPage tasks={filteredTasks} onCycleStatus={handleStatusCycle} onEditTask={handleOpenEdit} />
         )}
       </div>
 

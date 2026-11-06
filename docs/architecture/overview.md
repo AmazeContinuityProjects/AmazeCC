@@ -73,11 +73,13 @@ AmazeCC follows a modern, full-stack architecture built on Next.js 16 with a cle
 ## Key Architectural Decisions
 
 ### 1. Monorepo with Next.js App Router
+
 - Single repository for frontend and backend
 - Uses Next.js 16 App Router for both UI and API routes
 - Shared TypeScript types between frontend and backend
 
 ### 2. VTOP Scraping Proxy Pattern
+
 - Backend acts as a proxy to VIT's VTOP portal
 - Handles authentication, session management, and scraping
 - Returns clean JSON to frontend
@@ -86,25 +88,36 @@ AmazeCC follows a modern, full-stack architecture built on Next.js 16 with a cle
 - ~10 Admin endpoints
 
 ### 3. Database-First for Persistent Data
+
 - PostgreSQL (Supabase) for user data, preferences, cached data
 - HMAC-SHA256 token-based authentication
 - Row-level security where applicable
 
 ### 4. Component-Driven Frontend
+
 - Radix UI primitives for accessible components
 - Tailwind CSS v4 for styling
 - Framer Motion for animations
 - Custom theme system (Light/Dark/Midnight)
 
 ### 5. PWA-First Approach
+
 - Service worker for offline support
 - Push notifications via Web Push API
 - Manifest for installability
 - Background sync for data
 
+### 6. Cloudflare Edge Workers & CDN Layer
+
+- **`cdn.amazecc.com`**: Unified media and faculty photo chokepoint backed by permanent Cloudflare KV store (`FACULTY_IMAGES`) and 1-year immutable edge caching.
+- **`cache.amazecc.com`**: Campus-wide public data and metadata cache (buses, mess menus, laundry slots, faculty roster & review aggregates).
+- Decouples frontend client from upstream rate limits, egress bandwidth costs, and on-premise university server downtime.
+- See complete details in [Edge Infrastructure & CDN Architecture](./edge-infrastructure.md).
+
 ## Data Flow
 
 ### Authentication Flow
+
 ```
 1. User enters credentials on frontend
 2. Frontend POST /api/login
@@ -118,6 +131,7 @@ AmazeCC follows a modern, full-stack architecture built on Next.js 16 with a cle
 ```
 
 ### Data Fetching Flow
+
 ```
 1. Frontend component needs data
 2. Calls API client (src/lib/api-client.ts)
@@ -132,20 +146,20 @@ AmazeCC follows a modern, full-stack architecture built on Next.js 16 with a cle
 
 ## Technology Stack Summary
 
-| Layer | Technology | Version |
-|-------|------------|---------|
-| Framework | Next.js | 16 |
-| Language | TypeScript | 5.9 |
-| Styling | Tailwind CSS | v4 |
-| UI Components | Radix UI | Latest |
-| Animations | Framer Motion | Latest |
-| Charts | Recharts | Latest |
-| Database | PostgreSQL | 16 (Supabase) |
-| ORM | Raw SQL / Supabase Client | - |
-| Scraping | Cheerio + Axios | Latest |
-| Cookies | tough-cookie | Latest |
-| Testing | Vitest | Latest |
-| Linting | ESLint | Latest |
+| Layer         | Technology                | Version       |
+| ------------- | ------------------------- | ------------- |
+| Framework     | Next.js                   | 16            |
+| Language      | TypeScript                | 5.9           |
+| Styling       | Tailwind CSS              | v4            |
+| UI Components | Radix UI                  | Latest        |
+| Animations    | Framer Motion             | Latest        |
+| Charts        | Recharts                  | Latest        |
+| Database      | PostgreSQL                | 16 (Supabase) |
+| ORM           | Raw SQL / Supabase Client | -             |
+| Scraping      | Cheerio + Axios           | Latest        |
+| Cookies       | tough-cookie              | Latest        |
+| Testing       | Vitest                    | Latest        |
+| Linting       | ESLint                    | Latest        |
 
 ## Scalability Considerations
 

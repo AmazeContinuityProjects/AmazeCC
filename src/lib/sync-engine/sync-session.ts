@@ -3,6 +3,7 @@ import type { ProgressEvent } from "./types";
 import { getOpMeta } from "./operation-registry";
 import { classifyAuthFailure } from "./errors";
 import { subscribeUniccLogEvents } from "../unicc-fallback";
+import { cancelAllRequests, resetActiveSignal } from "./request-layer";
 
 export type SyncLineStatus = "success" | "error" | "pending" | "info" | "loading";
 
@@ -67,6 +68,7 @@ export function openSyncSession(title: string, notice: SyncNotice = null) {
     clearTimeout(closeTimer);
     closeTimer = null;
   }
+  resetActiveSignal();
   dismissedRunId = -1;
   state = {
     open: true,
@@ -130,21 +132,22 @@ export function bumpSyncProgress(delta: number) {
  * dismissed, because the sheet is where the password prompt and its CTA
  * live, and a timed close would take them away before the student can act.
  */
-export function closeSyncSession(
-  holdMs: number = DEFAULT_HOLD_MS,
-  outcome: Exclude<SyncOutcome, null> = "success"
-) {
+export function closeSyncSession(holdMs: number = DEFAULT_HOLD_MS, outcome: Exclude<SyncOutcome, null> = "success") {
   if (!state.open) return;
   setSyncProgress(100);
   state = { ...state, outcome };
   emit();
 
   // Nothing this run can fix on its own, so the hold would only take the CTA
-  // away. `dismissSyncSession` (the sheet's X) is the way out.
+  // away. `dismissSyncSession` (the sheet's X or Dismiss) is the way out.
   const signInFailure =
+    outcome === "error" && state.lines.some((l) => l.status === "error" && classifyAuthFailure(l.text) !== null);
+  const isVtopDownFailure =
     outcome === "error" &&
-    state.lines.some((l) => l.status === "error" && classifyAuthFailure(l.text) !== null);
-  if (signInFailure) return;
+    state.lines.some(
+      (l) => l.status === "error" && /vtop.*down|vtopcc\.vit\.ac\.in.*down|portal unreachable/i.test(l.text),
+    );
+  if (signInFailure || isVtopDownFailure) return;
 
   const runId = state.runId;
   if (closeTimer) clearTimeout(closeTimer);
@@ -157,13 +160,14 @@ export function closeSyncSession(
   }, holdMs);
 }
 
-/** User-dismissed mid-flight: close now and suppress re-opens from this run. */
+/** User-dismissed mid-flight: close now, cancel in-flight requests, and suppress re-opens from this run. */
 export function dismissSyncSession() {
   dismissedRunId = state.runId;
   if (closeTimer) {
     clearTimeout(closeTimer);
     closeTimer = null;
   }
+  cancelAllRequests("Sync dismissed by user");
   if (state.open) {
     state = { ...state, open: false };
     emit();

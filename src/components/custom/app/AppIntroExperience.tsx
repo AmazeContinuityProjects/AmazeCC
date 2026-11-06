@@ -79,11 +79,14 @@ export default function AppIntroExperience({
       settings={settings}
       username={IDs.VtopUsername}
       setSettings={setSettings}
-      onComplete={async (finalSemesterID?: string) => {
+      onComplete={(finalSemesterID?: string) => {
         localStorage.setItem("introDone", "true");
         setShowIntro(false);
         if (finalSemesterID && finalSemesterID !== settings.currSemesterID) {
-          await handleReloadRequest(finalSemesterID);
+          // Picking a semester during onboarding forces a full sync (every
+          // cache belongs to the term just left) — but launch must not block
+          // on it: fire it and let the app open over the background sweep.
+          void handleReloadRequest(finalSemesterID);
         }
         onFinished?.();
       }}

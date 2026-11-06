@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { clearEventHubSession } from "@/lib/sync-engine";
 import { defaultCredentials } from "@/store/authAtoms";
 import { defaultSettings } from "@/store/settingsAtoms";
+import posthog from "posthog-js";
 
 interface LogoutActionOptions {
   theme: string | undefined;
@@ -39,6 +40,9 @@ export function useLogoutAction({
 }: LogoutActionOptions) {
   return useCallback(() => {
     const savedTheme = localStorage.getItem("theme") || theme || "light";
+    if (process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST) {
+      posthog.reset();
+    }
     setIsLoggedIn(false);
     setIDs(defaultCredentials);
     setDemoMode(false);

@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import dynamic from "next/dynamic";
-import { useAtom, useSetAtom } from "jotai";
+import { useAtom, useSetAtom, useAtomValue } from "jotai";
 import {
   credentialsAtom,
   messageAtom,
@@ -25,6 +25,7 @@ import {
   authorizedIDAtom,
   defaultSettings,
 } from "@/store";
+import { activeRegNumberAtom } from "@/store/socialAtoms";
 import IntroSong from "@/lib/introSong/IntroSong";
 import config from "../../../config.json";
 import { useTaskReminderScheduler } from "./tasks/useTaskReminderScheduler";
@@ -37,6 +38,7 @@ import { BUILT_IN_MODES, listModes, loadCustomModes, resolveMode, type SyncMode 
 import { dismissSyncSession, getSyncSessionSnapshot, isSyncSessionOpen } from "@/lib/sync-engine/sync-session";
 const CredentialEditorModal = dynamic(() => import("./CredentialEditorModal"));
 const SyncModeEditor = dynamic(() => import("@/components/custom/shared/SyncModeEditor"));
+const FeedbackModal = dynamic(() => import("./feedback/FeedbackModal"));
 import { useOverlayBack } from "@/lib/overlayStack";
 import type { Ids } from "@/lib/sync-engine/types";
 import { storage } from "@/lib/storage";
@@ -51,6 +53,9 @@ import { useAppNetworkStatus } from "./app/useAppNetworkStatus";
 import AuthenticatedWorkspace from "./app/AuthenticatedWorkspace";
 import SyncSessionHost from "./app/SyncSessionHost";
 import { useSyncSessionBridge } from "./app/useSyncSessionBridge";
+import posthog from "posthog-js";
+import { trackScreenView, getPostHogUserIdentifiers, aliasPostHogUser } from "@/lib/posthog";
+import buildInfo from "@/data/buildInfo.json";
 
 interface MainProps {
   initialIntent?: "login" | "demo";
@@ -67,7 +72,6 @@ export default function LoginPage(props: MainProps) {
 
 function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
   const { theme, setTheme } = useTheme();
-  const { setActiveDay } = useDashboardNavigator();
   // --- State Management via Jotai Atoms ---
   const [IDs, setIDs] = useAtom(credentialsAtom);
   const setMessage = useSetAtom(messageAtom);
@@ -82,6 +86,7 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
   const setOfficialOdData = useSetAtom(officialOdDataAtom);
   const [isLoggedIn, setIsLoggedIn] = useAtom(isLoggedInAtom);
   const [authorizedID, setAuthorizedID] = useAtom(authorizedIDAtom);
+  const activeRegNumber = useAtomValue(activeRegNumberAtom);
   const setMoodleData = useSetAtom(moodleDataAtom);
   const [demoMode, setDemoMode] = useAtom(demoModeAtom);
   const [settings, setSettings] = useAtom(settingsAtom);
@@ -93,6 +98,40 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
   useAppNetworkStatus(isLoggedIn, demoMode);
   const { appHydrated, setAttendanceAndOD } = useAppBootstrap();
   const didStartInitialIntent = useRef(false);
+  const identifiedDistinctId = useRef<string | null>(null);
+
+  const {
+    activeTab,
+    activeSubTab,
+    activeAttendanceSubTab,
+    activeToolsSubTab,
+    activeDayscholarSubTab,
+    activeMoreSubTab,
+    activeProfileSubTab,
+    hostelActiveSubTab,
+  } = useDashboardNavigator();
+
+  useEffect(() => {
+    if (!appHydrated) return;
+    trackScreenView(activeTab, activeSubTab, {
+      attendanceSubTab: activeAttendanceSubTab,
+      toolsSubTab: activeToolsSubTab,
+      dayscholarSubTab: activeDayscholarSubTab,
+      moreSubTab: activeMoreSubTab,
+      profileSubTab: activeProfileSubTab,
+      hostelSubTab: hostelActiveSubTab,
+    });
+  }, [
+    appHydrated,
+    activeTab,
+    activeSubTab,
+    activeAttendanceSubTab,
+    activeToolsSubTab,
+    activeDayscholarSubTab,
+    activeMoreSubTab,
+    activeProfileSubTab,
+    hostelActiveSubTab,
+  ]);
   // Custom sync modes (built-ins come from the engine). Refreshed whenever the
   // editor reports a change, so the sheet picker and palette stay current.
   const [customModes, setCustomModes] = useState<SyncMode[]>(() => loadCustomModes());
@@ -109,12 +148,6 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
   useTaskReminderScheduler(isLoggedIn || demoMode);
 
   useSyncSessionBridge();
-
-  useEffect(() => {
-    if (!isLoggedIn && !demoMode) return;
-    const day = new Date().toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
-    setActiveDay(day);
-  }, [isLoggedIn, demoMode, setActiveDay]);
 
   useAppAppearance(settings, theme);
 
@@ -244,6 +277,65 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
     }
   }, [handleDemoClick, initialIntent, onSignedOut]);
 
+  // Identify user in PostHog, prioritizing their real VIT registration number (e.g. 25BLC1081)
+  // over purely numeric enrollment / application numbers (e.g. 20626703).
+  useEffect(() => {
+    if (!isLoggedIn || demoMode) {
+      identifiedDistinctId.current = null;
+      return;
+    }
+
+    if (!appHydrated || !process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN || !process.env.NEXT_PUBLIC_POSTHOG_HOST) {
+      return;
+    }
+
+    const identity = getPostHogUserIdentifiers({
+      authorizedID,
+      username: IDs?.VtopUsername,
+      activeReg: activeRegNumber,
+    });
+
+    if (!identity || !identity.distinctId) return;
+    if (identifiedDistinctId.current === identity.distinctId) return;
+
+    const previousId = identifiedDistinctId.current;
+    if (previousId && previousId !== identity.distinctId) {
+      aliasPostHogUser(identity.distinctId, previousId);
+    } else {
+      // If PostHog previously stored a numeric enrollment number, alias it to the registration number
+      const currentPhId = (posthog as unknown as { get_distinct_id?: () => string }).get_distinct_id?.();
+      if (currentPhId && currentPhId !== identity.distinctId && /^\d{6,12}$/.test(currentPhId)) {
+        aliasPostHogUser(identity.distinctId, currentPhId);
+      }
+    }
+
+    const regNumber = identity.registrationNumber || identity.distinctId;
+    posthog.identify(identity.distinctId, {
+      registration_number: regNumber,
+      reg_number: regNumber,
+      enrollment_number: identity.enrollmentNumber,
+      application_number: identity.enrollmentNumber,
+      semester: settings.currSemesterID,
+      residential_status: settings.residentialStatus,
+      theme: theme,
+      default_sync_mode: settings.defaultSyncMode,
+      demo_mode: demoMode,
+      app_version: buildInfo.commitHash,
+    });
+    identifiedDistinctId.current = identity.distinctId;
+  }, [
+    activeRegNumber,
+    appHydrated,
+    authorizedID,
+    demoMode,
+    IDs?.VtopUsername,
+    isLoggedIn,
+    settings.currSemesterID,
+    settings.residentialStatus,
+    settings.defaultSyncMode,
+    theme,
+  ]);
+
   useGlobalShortcuts({ theme, setTheme, settings, setSettings, setCommandPaletteOpen, setIsShortcutsHelpOpen });
 
   // Bootstrap reads the stored session and the intro flag in one effect; the
@@ -339,6 +431,7 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
             setModeEditorOpen={setModeEditorOpen}
             customModes={customModes}
           />
+          <FeedbackModal />
           <AnimatePresence>
             {isShortcutsHelpOpen && <GlobalShortcutsModal onClose={() => setIsShortcutsHelpOpen(false)} />}
           </AnimatePresence>

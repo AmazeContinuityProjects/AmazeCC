@@ -64,7 +64,6 @@ export type Settings = {
    */
   timetableDensityTouched?: boolean;
   interfaceChosen?: boolean;
-  defaultLandingTab?: "home" | "attendance" | "academics";
 
   // Push Notifications Settings & Feature Options
   pushNotificationsEnabled?: boolean;

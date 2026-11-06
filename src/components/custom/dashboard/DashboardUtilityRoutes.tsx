@@ -32,6 +32,8 @@ const AboutTab = dynamic(() => import("../AboutTab"), { loading: FeatureLoading 
 
 interface DashboardUtilityRoutesProps {
   onSystemBack: () => void;
+  /** Reload action for the semester pickers below; forces a full sync on switch. */
+  handleReloadRequest?: (semesterId?: string, modeId?: string) => Promise<void>;
   dayscholarBuses: BusFinderProps["buses"];
   transportBuses: BusFinderProps["buses"];
   transportData: BusFinderProps["transportData"];
@@ -50,6 +52,7 @@ interface DashboardUtilityRoutesProps {
 /** Lazy route roots for campus, transport, payment, and secondary pages. */
 export default function DashboardUtilityRoutes({
   onSystemBack,
+  handleReloadRequest,
   dayscholarBuses,
   transportBuses,
   transportData,
@@ -118,12 +121,12 @@ export default function DashboardUtilityRoutes({
       </DashboardRoute>
       <DashboardRoute route="free-class">
         <div className="animate-fadeIn">
-          <FreeClassroomsTab onBack={onSystemBack} />
+          <FreeClassroomsTab onBack={onSystemBack} handleReloadRequest={handleReloadRequest} />
         </div>
       </DashboardRoute>
       <DashboardRoute route="faculty-schedule">
         <div className="animate-fadeIn">
-          <FacultyScheduleTab onBack={onSystemBack} />
+          <FacultyScheduleTab onBack={onSystemBack} handleReloadRequest={handleReloadRequest} />
         </div>
       </DashboardRoute>
       <DashboardRoute route="paper-scanner">

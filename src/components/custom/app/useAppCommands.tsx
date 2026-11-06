@@ -28,6 +28,7 @@ import {
   attendancePercentageAtom,
   isLoggedInAtom,
   demoModeAtom,
+  isFeedbackModalOpenAtom,
 } from "@/store";
 
 interface AppCommandInputs {
@@ -57,6 +58,7 @@ export function useAppCommands(input: AppCommandInputs) {
   const setGradesDisplayIsOpen = useSetAtom(gradesDisplayIsOpenAtom);
   const setSettings = useSetAtom(settingsAtom);
   const setTasksQuickAddRequest = useSetAtom(tasksQuickAddRequestAtom);
+  const setIsFeedbackOpen = useSetAtom(isFeedbackModalOpenAtom);
   const isLoggedIn = useAtomValue(isLoggedInAtom);
   const demoMode = useAtomValue(demoModeAtom);
   const { theme, setTheme } = useTheme();
@@ -445,17 +447,6 @@ export function useAppCommands(input: AppCommandInputs) {
         },
       },
       {
-        id: "acad-course-dashboard",
-        label: "Course Dashboard",
-        description: "Detailed per-course view",
-        icon: "📘",
-        category: "Academics",
-        onSelect: () => {
-          setActiveTab("academics");
-          setActiveSubTab("course-dashboard");
-        },
-      },
-      {
         id: "acad-circulars",
         label: "Academic Circulars",
         description: "View academic circulars & notices",
@@ -506,6 +497,26 @@ export function useAppCommands(input: AppCommandInputs) {
         category: "Profile",
         onSelect: () => {
           setActiveTab("profile");
+        },
+      },
+      {
+        id: "help-feedback",
+        label: "Send Feedback",
+        description: "Share thoughts, report bugs, or request features",
+        icon: "💬",
+        category: "Help & Feedback",
+        onSelect: () => {
+          setIsFeedbackOpen(true);
+        },
+      },
+      {
+        id: "help-bug",
+        label: "Report a Bug",
+        description: "Report an issue, broken button, or glitch",
+        icon: "🐞",
+        category: "Help & Feedback",
+        onSelect: () => {
+          setIsFeedbackOpen(true);
         },
       },
     );
@@ -2156,6 +2167,7 @@ export function useAppCommands(input: AppCommandInputs) {
     customModes,
     isLoggedIn,
     demoMode,
+    setIsFeedbackOpen,
   ]);
 
   return cmds;

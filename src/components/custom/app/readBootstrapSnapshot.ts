@@ -7,17 +7,19 @@ export function hasStoredVtopCredentials(
   legacyUsername: string | null,
   legacyPassword: string | null,
 ): boolean {
-  return Boolean(
-    (ids?.VtopUsername && ids?.VtopPassword) ||
-    (legacyUsername && legacyPassword)
-  );
+  return Boolean((ids?.VtopUsername && ids?.VtopPassword) || (legacyUsername && legacyPassword));
 }
 
 /** Read only the small browser keys needed to choose guest or app entry. */
 export function hasStoredAppSession(): boolean {
-  const ids = storage.ids.get();
-  const legacyUsername = storage.username.get();
-  const legacyPassword = storage.password.get();
+  if (typeof window === "undefined") return false;
+  try {
+    const ids = storage.ids.get();
+    const legacyUsername = storage.username.get();
+    const legacyPassword = storage.password.get();
 
-  return storage.demoMode.get() || hasStoredVtopCredentials(ids, legacyUsername, legacyPassword);
+    return Boolean(storage.demoMode.get() || hasStoredVtopCredentials(ids, legacyUsername, legacyPassword));
+  } catch {
+    return false;
+  }
 }

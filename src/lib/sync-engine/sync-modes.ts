@@ -252,6 +252,24 @@ export function resolveMode(id: string, customModes: SyncMode[] = []): SyncMode 
   return customModes.find((m) => m.id === id) ?? BUILT_IN_MODES.find((m) => m.id === id);
 }
 
+/**
+ * Which mode a reload runs when the user may have switched semester.
+ *
+ * A semester change invalidates every cached module — attendance, marks and
+ * grades are all keyed to the term just left — so a switch forces the `full`
+ * sweep, whatever the caller asked for and whatever the saved default says.
+ * Everything else keeps the explicit mode, then the user's default, then
+ * `quick`.
+ */
+export function resolveReloadModeId(opts: {
+  switchedSemester: boolean;
+  modeId?: string;
+  defaultSyncMode?: string;
+}): string {
+  if (opts.switchedSemester) return "full";
+  return opts.modeId ?? opts.defaultSyncMode ?? "quick";
+}
+
 export function listModes(customModes: SyncMode[] = []): SyncMode[] {
   return [...BUILT_IN_MODES, ...customModes];
 }

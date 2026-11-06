@@ -4,6 +4,7 @@ import {
   ExternalLink,
   FileText,
   Github,
+  HeartHandshake,
   History,
   Link2,
   MessagesSquare,
@@ -12,6 +13,8 @@ import {
   Users,
 } from "lucide-react";
 import type { ReactNode } from "react";
+import { useSetAtom } from "jotai";
+import { isFeedbackModalOpenAtom } from "@/store/uiAtoms";
 import quickLinks from "../../data/quickLinks.json";
 import Links from "./header/Links";
 import { ListRowText, ListShell, SectionHeader } from "./shared/primitives";
@@ -46,9 +49,7 @@ function ResourceRow({
 }) {
   const inner = (
     <>
-      <span
-        className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${iconClass}`}
-      >
+      <span className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${iconClass}`}>
         {icon}
       </span>
       <ListRowText title={title} subtitle={desc} />
@@ -77,21 +78,14 @@ function ResourceRow({
   );
 }
 
-export default function ResourcesSection({
-  setActiveSubpage,
-}: {
-  setActiveSubpage: (page: Subpage) => void;
-}) {
+export default function ResourcesSection({ setActiveSubpage }: { setActiveSubpage: (page: Subpage) => void }) {
+  const setIsFeedbackOpen = useSetAtom(isFeedbackModalOpenAtom);
   const community = quickLinks.communityLinks;
 
   return (
     <div className="space-y-6">
       <div className="space-y-3">
-        <SectionHeader
-          icon={Link2}
-          title="Important links"
-          count={quickLinks.importantLinks.length}
-        />
+        <SectionHeader icon={Link2} title="Important links" count={quickLinks.importantLinks.length} />
         <ListShell>
           {quickLinks.importantLinks.map((link) => (
             <ResourceRow
@@ -130,6 +124,13 @@ export default function ResourcesSection({
       <div className="space-y-3">
         <SectionHeader icon={Users} title="Project" />
         <ListShell>
+          <ResourceRow
+            onClick={() => setIsFeedbackOpen(true)}
+            icon={<HeartHandshake className="w-4.5 h-4.5" />}
+            iconClass={TONE_ICON_TILE.rose}
+            title="Share Feedback"
+            desc="Send thoughts, report bugs, or request features directly"
+          />
           <ResourceRow
             onClick={() => setActiveSubpage("changelog")}
             icon={<History className="w-4.5 h-4.5" />}

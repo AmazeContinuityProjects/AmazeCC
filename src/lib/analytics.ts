@@ -29,6 +29,8 @@
  * escrow, and escrow does not survive a "no".
  */
 
+import { isPostHogConfigured, posthog } from "./posthog";
+
 const ENABLED_KEY = "ffcs_analytics_enabled";
 const QUEUE_KEY = "ffcs_analytics_queue";
 
@@ -172,6 +174,15 @@ function flush(): void {
 export function track<E extends AnalyticsEvent>(event: E, props?: AnalyticsEventMap[E]): void {
   if (!isAnalyticsEnabled() || typeof window === "undefined") return;
 
+  // Mirror events directly to PostHog
+  try {
+    if (isPostHogConfigured()) {
+      posthog.capture(event, props as Record<string, unknown> | undefined);
+    }
+  } catch {
+    /* safely ignore errors in analytics sinks */
+  }
+
   const send = sink();
   if (send) {
     flush();
@@ -186,6 +197,18 @@ export function track<E extends AnalyticsEvent>(event: E, props?: AnalyticsEvent
   const queue = readQueue();
   queue.push({ e: event, p: props as Record<string, unknown> | undefined, t: Date.now() });
   writeQueue(queue);
+}
+
+/**
+ * Direct PostHog event emitter for surfaces or interactions.
+ */
+export function trackPostHogEvent(name: string, properties?: Record<string, unknown>): void {
+  if (!isAnalyticsEnabled() || typeof window === "undefined") return;
+  try {
+    if (isPostHogConfigured()) {
+      posthog.capture(name, properties);
+    }
+  } catch {}
 }
 
 /** Backlog size, for tests and for a settings row that wants to show it. */

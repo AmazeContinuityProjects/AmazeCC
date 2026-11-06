@@ -81,7 +81,6 @@ import { KIND_CONFIG } from "../tasks/TaskCard";
 import { parseCachedCourses, parseCourseRows, type FreeRoomCourse } from "@/lib/freeClassrooms";
 import { facultyGroupKey } from "../exams/FFCS/logic/facultyGroups";
 import { getSelectedFinalReportPath, getSelectedFinalSemesterId, mapToFinalSemesterId } from "@/lib/ffcsReports";
-import FreeClassroomsWidget from "./FreeClassroomsWidget";
 
 interface SimplifiedMobileHomeProps {
   attendanceData: any;
@@ -622,8 +621,8 @@ export default function SimplifiedMobileHome({
         badge: "Warning",
         badgeColor: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
         onClick: () => {
-          setActiveTab("attendance");
-          setActiveAttendanceSubTab("attendance");
+          setActiveTab("academics");
+          setActiveSubTab("courses-simplified");
         },
       });
     } else {
@@ -2063,9 +2062,6 @@ export default function SimplifiedMobileHome({
             <span>Find Faculty Schedule</span>
           </button>
         </div>
-
-        {/* Free Classrooms Widget */}
-        <FreeClassroomsWidget />
       </div>
 
       {/* Full Timetable Sheet */}

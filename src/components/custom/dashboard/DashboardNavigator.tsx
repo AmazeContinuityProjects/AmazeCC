@@ -1,10 +1,18 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode, type SetStateAction } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+  type SetStateAction,
+} from "react";
 import { useAtom } from "jotai";
 import {
   activeAttendanceSubTabAtom,
-  activeDayAtom,
   activeDayscholarSubTabAtom,
   activeMoreSubTabAtom,
   activeProfileSubTabAtom,
@@ -13,7 +21,6 @@ import {
   activeToolsSubTabAtom,
   hostelActiveSubTabAtom,
 } from "@/store/uiAtoms";
-import { settingsAtom } from "@/store/settingsAtoms";
 
 type NavigatorValue = {
   courseDashboardTarget: CourseDashboardTarget;
@@ -36,8 +43,6 @@ type NavigatorValue = {
   setActiveProfileSubTab: (update: SetStateAction<string>) => void;
   hostelActiveSubTab: string;
   setHostelActiveSubTab: (update: SetStateAction<string>) => void;
-  activeDay: string;
-  setActiveDay: (update: SetStateAction<string>) => void;
 };
 
 export type CourseDashboardTarget = { courseCode: string; targetTab?: string } | null;
@@ -56,20 +61,13 @@ export function DashboardNavigatorProvider({ children }: { children: ReactNode }
   const [activeMoreSubTab, setActiveMoreSubTab] = useAtom(activeMoreSubTabAtom);
   const [activeProfileSubTab, setActiveProfileSubTab] = useAtom(activeProfileSubTabAtom);
   const [hostelActiveSubTab, setHostelActiveSubTab] = useAtom(hostelActiveSubTabAtom);
-  const [activeDay, setActiveDay] = useAtom(activeDayAtom);
-  const [settings] = useAtom(settingsAtom);
-
-  const selectTab = useCallback((tab: string) => {
-    if (tab === activeTab) setActivePageResetKey(key => key + 1);
-    setActiveTab(tab);
-  }, [activeTab, setActiveTab]);
-
-  useEffect(() => {
-    if (settings.defaultLandingTab === "attendance") {
-      setActiveTab("attendance");
-      setActiveAttendanceSubTab("attendance");
-    }
-  }, [settings.defaultLandingTab, setActiveAttendanceSubTab, setActiveTab]);
+  const selectTab = useCallback(
+    (tab: string) => {
+      if (tab === activeTab) setActivePageResetKey((key) => key + 1);
+      setActiveTab(tab);
+    },
+    [activeTab, setActiveTab],
+  );
 
   useEffect(() => {
     const academicsHome = "courses-simplified";
@@ -110,53 +108,52 @@ export function DashboardNavigatorProvider({ children }: { children: ReactNode }
     setActiveProfileSubTab,
   ]);
 
-  const value = useMemo(() => ({
-    courseDashboardTarget,
-    setCourseDashboardTarget,
-    activePageResetKey,
-    selectTab,
-    activeTab,
-    setActiveTab,
-    activeSubTab,
-    setActiveSubTab,
-    activeAttendanceSubTab,
-    setActiveAttendanceSubTab,
-    activeToolsSubTab,
-    setActiveToolsSubTab,
-    activeDayscholarSubTab,
-    setActiveDayscholarSubTab,
-    activeMoreSubTab,
-    setActiveMoreSubTab,
-    activeProfileSubTab,
-    setActiveProfileSubTab,
-    hostelActiveSubTab,
-    setHostelActiveSubTab,
-    activeDay,
-    setActiveDay,
-  }), [
-    courseDashboardTarget,
-    setCourseDashboardTarget,
-    activePageResetKey,
-    selectTab,
-    activeTab,
-    setActiveTab,
-    activeSubTab,
-    setActiveSubTab,
-    activeAttendanceSubTab,
-    setActiveAttendanceSubTab,
-    activeToolsSubTab,
-    setActiveToolsSubTab,
-    activeDayscholarSubTab,
-    setActiveDayscholarSubTab,
-    activeMoreSubTab,
-    setActiveMoreSubTab,
-    activeProfileSubTab,
-    setActiveProfileSubTab,
-    hostelActiveSubTab,
-    setHostelActiveSubTab,
-    activeDay,
-    setActiveDay,
-  ]);
+  const value = useMemo(
+    () => ({
+      courseDashboardTarget,
+      setCourseDashboardTarget,
+      activePageResetKey,
+      selectTab,
+      activeTab,
+      setActiveTab,
+      activeSubTab,
+      setActiveSubTab,
+      activeAttendanceSubTab,
+      setActiveAttendanceSubTab,
+      activeToolsSubTab,
+      setActiveToolsSubTab,
+      activeDayscholarSubTab,
+      setActiveDayscholarSubTab,
+      activeMoreSubTab,
+      setActiveMoreSubTab,
+      activeProfileSubTab,
+      setActiveProfileSubTab,
+      hostelActiveSubTab,
+      setHostelActiveSubTab,
+    }),
+    [
+      courseDashboardTarget,
+      setCourseDashboardTarget,
+      activePageResetKey,
+      selectTab,
+      activeTab,
+      setActiveTab,
+      activeSubTab,
+      setActiveSubTab,
+      activeAttendanceSubTab,
+      setActiveAttendanceSubTab,
+      activeToolsSubTab,
+      setActiveToolsSubTab,
+      activeDayscholarSubTab,
+      setActiveDayscholarSubTab,
+      activeMoreSubTab,
+      setActiveMoreSubTab,
+      activeProfileSubTab,
+      setActiveProfileSubTab,
+      hostelActiveSubTab,
+      setHostelActiveSubTab,
+    ],
+  );
 
   return <DashboardNavigatorContext.Provider value={value}>{children}</DashboardNavigatorContext.Provider>;
 }
@@ -168,7 +165,15 @@ export function useDashboardNavigator(): NavigatorValue {
 }
 
 /** Mounts only the page selected by the navigator. */
-export function DashboardRoute({ route, enabled = true, children }: { route: string; enabled?: boolean; children: ReactNode }) {
+export function DashboardRoute({
+  route,
+  enabled = true,
+  children,
+}: {
+  route: string;
+  enabled?: boolean;
+  children: ReactNode;
+}) {
   const { activeTab } = useDashboardNavigator();
   return enabled && activeTab === route ? <>{children}</> : null;
 }

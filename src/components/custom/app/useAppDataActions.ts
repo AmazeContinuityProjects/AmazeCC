@@ -2,14 +2,15 @@
 
 import { useCallback } from "react";
 import config from "../../../../config.json";
-import { syncEngine, api, clearEventHubSession, eventHubRequest } from "@/lib/sync-engine";
+import { syncEngine, api, clearEventHubSession, eventHubRequest, cancelAllRequests } from "@/lib/sync-engine";
 import { storage } from "@/lib/storage";
 import { syncMarksDiff } from "@/lib/marksSync";
 import { syncPastSemesters } from "@/lib/pastDataSync";
 import { loadActivityTree, saveActivityTree } from "@/lib/activity-tree";
 import { reportError } from "@/lib/error-utils";
 import { DEMO_OFFICIAL_OD } from "@/lib/officialOd";
-import { BUILT_IN_MODES, resolveMode, type SyncMode } from "@/lib/sync-engine/sync-modes";
+import { pingVtopDirectly } from "@/lib/vtopHealth";
+import { BUILT_IN_MODES, resolveMode, resolveReloadModeId, type SyncMode } from "@/lib/sync-engine/sync-modes";
 import {
   openSyncSession,
   appendSyncLine,
@@ -69,6 +70,11 @@ export function useAppDataActions({
     if (demoMode || IDs.VtopUsername === "demo") {
       return { cookies: [], authorizedID: "DEMO123", csrf: "" };
     }
+    const isVtopUp = await pingVtopDirectly(4000);
+    if (!isVtopUp) {
+      cancelAllRequests("VTOP is down");
+      throw new Error("VTOP portal unreachable (vtopcc.vit.ac.in is down)");
+    }
     // `SyncEngine.login` publishes the authorizedID itself; see the note there.
     return syncEngine.login(IDs, demoMode);
   }, [IDs, demoMode]);
@@ -120,6 +126,15 @@ export function useAppDataActions({
         // all caches start warm. Later reloads use the default sync mode
         // (quick out of the box) unless the user picks another.
         openSyncSession("Full Sync");
+        appendSyncLine("Checking VTOP portal (vtopcc.vit.ac.in)…", "loading");
+        const isVtopUp = await pingVtopDirectly(4000);
+        if (!isVtopUp) {
+          cancelAllRequests("VTOP is down");
+          appendSyncLine("VTOP is down (vtopcc.vit.ac.in unreachable) — sync cancelled", "error");
+          setIsReloading(false);
+          closeSyncSession(0, "error");
+          return false;
+        }
         appendSyncLine("Verifying VTOP credentials…", "loading");
         const ids = loginIds ?? IDs;
         await syncEngine.login(ids as Ids, demoMode);
@@ -285,14 +300,18 @@ export function useAppDataActions({
 
   // --- Event Handlers ---
   // `modeId` selects a sync mode (built-in or custom). Defaults to the user's
-  // preferred mode in settings. Quick runs attendance only; balanced/full run
-  // the classic sweep (full awaits the background tail); anything else runs
-  // generically through the engine so custom modes stay in one code path.
+  // preferred mode in settings — EXCEPT on a semester switch, which always
+  // forces the full sweep: every cache (attendance, marks, grades) is keyed to
+  // the term just left, so a quick attendance-only pass would leave the app
+  // half-old-term. Quick runs attendance only; balanced/full run the classic
+  // sweep (full awaits the background tail); anything else runs generically
+  // through the engine so custom modes stay in one code path.
   const handleReloadRequest = useCallback(
     async (targetSemesterID?: string, modeId?: string) => {
       const activeSem =
         targetSemesterID || settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2];
-      if (targetSemesterID && targetSemesterID !== settings.currSemesterID) {
+      const switchedSemester = !!targetSemesterID && targetSemesterID !== settings.currSemesterID;
+      if (switchedSemester) {
         setSettings((prev) => {
           const next = { ...prev, currSemesterID: targetSemesterID };
           return next;
@@ -302,7 +321,15 @@ export function useAppDataActions({
           broadcastGlobalSemesterChange(mapped);
         }
       }
-      const mode = resolveMode(modeId ?? settings.defaultSyncMode ?? "quick", customModes) ?? BUILT_IN_MODES[1];
+      const mode =
+        resolveMode(
+          resolveReloadModeId({
+            switchedSemester,
+            modeId,
+            defaultSyncMode: settings.defaultSyncMode,
+          }),
+          customModes,
+        ) ?? BUILT_IN_MODES[1];
 
       if (demoMode) {
         const demoData = await (await fetch("/data/demoData.json")).json();
@@ -348,6 +375,17 @@ export function useAppDataActions({
       setIsReloading(true);
       openSyncSession(mode.label);
       localStorage.setItem("IDs", JSON.stringify(IDs));
+
+      // Pre-flight check: verify VTOP portal is up before dispatching requests to AmazeCC API
+      appendSyncLine("Checking VTOP portal (vtopcc.vit.ac.in)…", "loading");
+      const isVtopUp = await pingVtopDirectly(4000);
+      if (!isVtopUp) {
+        cancelAllRequests("VTOP is down");
+        appendSyncLine("VTOP is down (vtopcc.vit.ac.in unreachable) — sync cancelled", "error");
+        setIsReloading(false);
+        closeSyncSession(0, "error");
+        return;
+      }
 
       try {
         if ((settings as any).reloadAllData) {
@@ -729,7 +767,11 @@ export function useAppDataActions({
         } else {
           void runBackgroundSync();
         }
-      } catch (err) {
+      } catch (err: any) {
+        if (err?.name === "AbortError" || /aborted/i.test(err?.message)) {
+          setIsReloading(false);
+          return;
+        }
         console.error(err);
         appendSyncLine(err instanceof Error ? err.message : "Login failed", "error");
         setSyncProgress(0);

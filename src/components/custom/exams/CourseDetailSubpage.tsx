@@ -56,7 +56,7 @@ import TaskEditSheet from "../tasks/TaskEditSheet";
 import { AnimatePresence, m } from "framer-motion";
 import { useOverlayBack } from "@/lib/overlayStack";
 import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
-import { countRemainingClasses, UpcomingClassesList } from "../attendance/AttendanceSubpage";
+import { countRemainingClasses, UpcomingClassesList } from "@/lib/attendanceRemainingClasses";
 import HeatMap from "@uiw/react-heat-map";
 import dynamic from "next/dynamic";
 import CourseQBankTab from "./CourseQBankTab";

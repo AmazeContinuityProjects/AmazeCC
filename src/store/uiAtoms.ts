@@ -2,7 +2,7 @@ import { atom } from "jotai";
 
 export const activeTabAtom = atom<string>("home");
 export const activeSubTabAtom = atom<string>("courses-simplified");
-export const activeAttendanceSubTabAtom = atom<string>("attendance");
+export const activeAttendanceSubTabAtom = atom<string>("calendar");
 export const activeToolsSubTabAtom = atom<string>("overview");
 export const activeDayscholarSubTabAtom = atom<string>("finder");
 export const activeMoreSubTabAtom = atom<string>("social");
@@ -18,10 +18,10 @@ export const activeMoreSubTabAtom = atom<string>("social");
  */
 export const activeProfileSubTabAtom = atom<string>("settings");
 export const hostelActiveSubTabAtom = atom<string>("mess");
-export const activeDayAtom = atom<string>("");
 
 export const commandPaletteOpenAtom = atom<boolean>(false);
 export const isShortcutsHelpOpenAtom = atom<boolean>(false);
+export const isFeedbackModalOpenAtom = atom<boolean>(false);
 
 /**
  * Set by the command palette's quick-add command; consumed by TasksTab to open
