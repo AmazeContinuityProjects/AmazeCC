@@ -13,6 +13,15 @@ if (typeof window !== "undefined") {
       capture_pageleave: true,
       autocapture: true,
       capture_exceptions: true,
+      capture_performance: {
+        web_vitals: true,
+        web_vitals_attribution: true,
+      },
+      metrics: {
+        serviceName: "amazecc-web",
+        environment: process.env.NODE_ENV,
+        network: true,
+      },
       disable_session_recording: true,
       debug: process.env.NODE_ENV === "development",
       logs: {

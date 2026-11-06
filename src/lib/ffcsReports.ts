@@ -148,12 +148,17 @@ export function finalSemesterToVtopId(semesterId: FinalFFCSSemesterId): string {
 }
 
 /**
- * Resolves which final report semester ID is active.
+ * Resolves which final report semester ID the app-side surfaces (Free
+ * Classrooms, Faculty Schedule, home widgets) should read.
+ *
+ * This is deliberately app-scoped: it reads the app's own semester setting and
+ * never the planner's `ffcs_semester` key, so the planner's report switch and
+ * the app's semester stay independent of each other.
+ *
  * Checked in order:
  *  1. Explicitly provided argument (mapped if VTOP/FFCS code)
  *  2. Global settings currSemesterID in localStorage
- *  3. ffcs_semester in localStorage
- *  4. Default: "winter-2026-2027"
+ *  3. Default: "winter-2026-2027"
  */
 export function getSelectedFinalSemesterId(semesterId?: string | null): FinalFFCSSemesterId {
   const fromParam = mapToFinalSemesterId(semesterId);
@@ -168,10 +173,6 @@ export function getSelectedFinalSemesterId(semesterId?: string | null): FinalFFC
         if (fromSettings) return fromSettings;
       }
     } catch {}
-
-    const ffcsSem = window.localStorage.getItem(FFCS_SEMESTER_STORAGE_KEY);
-    const fromFfcs = mapToFinalSemesterId(ffcsSem);
-    if (fromFfcs) return fromFfcs;
   }
 
   return "winter-2026-2027";
@@ -189,13 +190,16 @@ export function getSelectedFinalReportPath(semesterId?: string | null): string {
 }
 
 /**
- * Broadcasts a global semester change across all tabs and components in AmazeCC,
- * ensuring Free Classrooms, Faculty Schedule, FFCS planner, and VTOP views stay in sync.
+ * Broadcasts a semester change to the app-side surfaces (Free Classrooms,
+ * Faculty Schedule, home widgets) so they follow the app's semester.
+ *
+ * The FFCS planner is deliberately not one of them: it keeps its own
+ * `ffcs_semester` key and does not subscribe to this event, so a change here
+ * never moves the planner's report and vice versa.
  */
 export function broadcastGlobalSemesterChange(semesterId: FinalFFCSSemesterId): void {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(FFCS_SEMESTER_STORAGE_KEY, semesterId);
     const vtopId = finalSemesterToVtopId(semesterId);
     const rawSettings = window.localStorage.getItem("settings");
     if (rawSettings) {

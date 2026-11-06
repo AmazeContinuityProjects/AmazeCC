@@ -9,9 +9,7 @@ type ErrorWithDigest = Error & { digest?: string };
 
 export default function ErrorPage({ error, reset }: { error: ErrorWithDigest; reset: () => void }) {
   useEffect(() => {
-    if (process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST) {
-      posthog.captureException(error);
-    }
+    posthog.captureException(error);
     console.error("[AmazeCC client route error]", error);
     if (!isChunkLoadError(error)) return;
 

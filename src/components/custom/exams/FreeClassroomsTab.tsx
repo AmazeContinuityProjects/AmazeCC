@@ -149,41 +149,48 @@ function RoomChip({
 }) {
   const lab = kind === "lab";
   return (
-    <span
+    <div
       className={cn(
-        "inline-flex items-center rounded-xl border overflow-hidden transition-colors",
+        "group inline-flex items-center rounded-xl border text-xs font-bold font-outfit shadow-2xs select-none transition-all duration-150",
         lab
-          ? "bg-cyan-500/5 border-cyan-500/20 hover:border-cyan-400/40"
-          : "bg-indigo-500/5 border-indigo-500/20 hover:border-indigo-400/40",
+          ? "bg-cyan-500/5 border-cyan-500/25 hover:border-cyan-400/50 hover:bg-cyan-500/10 text-cyan-800 dark:text-cyan-200"
+          : "bg-indigo-500/5 border-indigo-500/25 hover:border-indigo-400/50 hover:bg-indigo-500/10 text-indigo-800 dark:text-indigo-200",
       )}
     >
-      <button
-        type="button"
-        onClick={() => onCopy(code)}
-        title={`Copy ${code}`}
-        className={cn(
-          "px-2.5 py-1.5 text-xs font-bold font-outfit tabular-nums transition-colors cursor-pointer inline-flex items-center gap-1",
-          lab ? "text-cyan-700 dark:text-cyan-300" : "text-indigo-700 dark:text-indigo-300",
-        )}
-      >
-        {roomNumber(code)}
-        {copied && <Check className="w-3 h-3 text-emerald-500" />}
-      </button>
       <button
         type="button"
         onClick={() => onInspect(code)}
         title={`Schedule for ${code}`}
         aria-label={`View the schedule for ${code}`}
+        className="pl-2.5 pr-1.5 py-1.5 cursor-pointer inline-flex items-center gap-1.5 active:scale-95 transition-transform"
+      >
+        <span className="tabular-nums tracking-tight">{roomNumber(code)}</span>
+        {lab && (
+          <span className="text-[9px] font-semibold px-1 py-0.2 rounded bg-cyan-500/20 text-cyan-700 dark:text-cyan-300">
+            Lab
+          </span>
+        )}
+      </button>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onCopy(code);
+        }}
+        title={`Copy ${code}`}
+        aria-label={`Copy ${code}`}
         className={cn(
-          "px-1.5 py-1.5 border-l cursor-pointer transition-colors",
-          lab
-            ? "border-cyan-500/20 text-cyan-500/70 hover:text-cyan-600 hover:bg-cyan-500/10"
-            : "border-indigo-500/20 text-indigo-500/70 hover:text-indigo-600 hover:bg-indigo-500/10",
+          "pr-2 pl-1 py-1.5 cursor-pointer text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-100 transition-colors active:scale-90",
+          copied && "text-emerald-500",
         )}
       >
-        <ChevronRight className="w-3.5 h-3.5" />
+        {copied ? (
+          <Check className="w-3.5 h-3.5 text-emerald-500" />
+        ) : (
+          <Copy className="w-3 h-3 opacity-40 group-hover:opacity-100 transition-opacity" />
+        )}
       </button>
-    </span>
+    </div>
   );
 }
 
@@ -798,83 +805,69 @@ export default function FreeClassroomsTab({
       }
       selectable
     >
-      {/* ── HERO ── */}
+      {/* ── HERO STAT TILES ── */}
       {loading ? (
         <div className="grid grid-cols-2 gap-3 sm:gap-4">
           <Skeleton className="h-32 sm:h-36 rounded-[24px]" />
           <Skeleton className="h-32 sm:h-36 rounded-[24px]" />
         </div>
       ) : error ? null : (
-        <>
-          <div className="grid grid-cols-2 gap-3 sm:gap-4">
-            <button
-              type="button"
-              onClick={jumpToNow}
-              title="Jump to the current period"
-              className="w-full text-left cursor-pointer transition-transform hover:scale-[1.01] active:scale-[0.98]"
-            >
-              <StatTile
-                label="Free now"
-                value={metrics.total}
-                sub={`${metrics.blocks} ${metrics.blocks === 1 ? "block" : "blocks"} with space`}
-                badge={isLiveSlot ? "Live" : "Selected"}
-                tone={isLiveSlot ? "emerald" : "indigo"}
-              />
-            </button>
-            <InsightCarousel
-              slides={insightSlides}
-              carousel={carousel}
-              height="h-32 sm:h-36"
-              ariaLabel="Availability insights"
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+          <button
+            type="button"
+            onClick={jumpToNow}
+            title="Jump to the current period"
+            className="w-full text-left cursor-pointer transition-transform hover:scale-[1.01] active:scale-[0.98]"
+          >
+            <StatTile
+              label="Free now"
+              value={metrics.total}
+              sub={`${metrics.blocks} ${metrics.blocks === 1 ? "block" : "blocks"} with space`}
+              badge={isLiveSlot ? "Live" : "Selected"}
+              tone={isLiveSlot ? "emerald" : "indigo"}
             />
-          </div>
-
-          <p className="px-1 -mt-3 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
-            {isLiveSlot
-              ? "Live: this is the period running now. A room is free when no course is booked into it for this slot — tap any room number to copy it, or its arrow to see the whole day."
-              : "Not the current period, so these are the rooms free for the time you picked. Tap the headline to jump back to now."}
-          </p>
-          <p className="px-1 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
-            {livePending && !liveDays[day]
-              ? "Checking the live timetable…"
-              : liveDays[day]
-                ? "Rooms are merged from the live timetable students sync and the FFCS report. A room is offered only when neither source has a class booked in it."
-                : "Rooms come from the FFCS report. Sync your timetable and the live campus timetable is merged in."}
-          </p>
-        </>
+          </button>
+          <InsightCarousel
+            slides={insightSlides}
+            carousel={carousel}
+            height="h-32 sm:h-36"
+            ariaLabel="Availability insights"
+          />
+        </div>
       )}
 
-      {/* ── WHEN ── */}
+      {/* ── TIME SELECTOR ── */}
       {!loading && !error && (
-        <div className="space-y-4">
-          <SectionHeader
-            icon={Clock}
-            title="When"
-            right={
-              isLiveSlot ? (
-                <ToneBadge tone="emerald">Right now</ToneBadge>
-              ) : (
-                <GhostButton onClick={jumpToNow} title="Jump to the current period">
-                  <Zap className="w-3.5 h-3.5" />
-                  Now
-                </GhostButton>
-              )
-            }
-          />
+        <div className="rounded-2xl p-3 sm:p-3.5 bg-zinc-50/80 dark:bg-zinc-900/60 border border-zinc-200/70 dark:border-zinc-800/70 space-y-2.5">
+          <div className="flex items-center justify-between gap-2 px-0.5">
+            <div className="flex items-center gap-1.5 text-xs font-bold font-outfit text-zinc-700 dark:text-zinc-300">
+              <Clock className="w-3.5 h-3.5 text-indigo-500" />
+              <span>Day & Slot</span>
+            </div>
+            {isLiveSlot ? (
+              <ToneBadge tone="emerald">Right now</ToneBadge>
+            ) : (
+              <button
+                type="button"
+                onClick={jumpToNow}
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[11px] font-bold font-outfit text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 active:scale-95 transition-all cursor-pointer"
+                title="Jump to current live period"
+              >
+                <Zap className="w-3 h-3" />
+                Now
+              </button>
+            )}
+          </div>
 
-          {/* Day. Five short options, so a segmented control; today is ringed
-              and emerald because "today" is a different fact from "selected". */}
           <DayPicker value={day} onChange={setDay} today={now.day} />
 
-          {/* Period. A stepper for stepping and the amazeui dropdown for jumping —
-              twelve periods is too many to scan and too many to scroll. */}
           <div className="flex items-center gap-2">
             <IconButton
               title="Previous period"
               onClick={() => setPeriodKey(periods[Math.max(0, periodIndex - 1)]?.key ?? activePeriodKey)}
               className={cn(periodIndex === 0 && "opacity-40 pointer-events-none")}
             >
-              <ChevronLeft />
+              <ChevronLeft className="w-4 h-4" />
             </IconButton>
 
             <OptionPicker
@@ -882,11 +875,7 @@ export default function FreeClassroomsTab({
               onChange={setPeriodKey}
               options={periods.map((p) => ({ value: p.key, label: p.label }))}
               searchable={false}
-              // The primitive hard-codes the trigger's own chrome, so the size is
-              // corrected through the wrapper — the root renders as its first-child
-              // div, and the overlay lives in a body portal, so `:first-child`
-              // rules can never leak onto it.
-              className="flex-1 [&>div:first-child]:h-11 [&>div:first-child]:rounded-xl [&>div:first-child]:px-3.5 [&>div:first-child]:text-sm [&>div:first-child]:font-bold [&>div:first-child]:font-outfit"
+              className="flex-1 [&>div:first-child]:h-10 [&>div:first-child]:rounded-xl [&>div:first-child]:px-3.5 [&>div:first-child]:text-xs [&>div:first-child]:font-bold [&>div:first-child]:font-outfit"
             />
 
             <IconButton
@@ -896,7 +885,7 @@ export default function FreeClassroomsTab({
               }
               className={cn(periodIndex === periods.length - 1 && "opacity-40 pointer-events-none")}
             >
-              <ChevronRight />
+              <ChevronRight className="w-4 h-4" />
             </IconButton>
 
             <span className="text-[11px] font-bold text-zinc-400 dark:text-zinc-500 tabular-nums shrink-0 hidden xs:inline">
@@ -906,7 +895,7 @@ export default function FreeClassroomsTab({
         </div>
       )}
 
-      {/* ── ROOMS ── */}
+      {/* ── ROOMS & SEARCH ── */}
       {error ? (
         <EmptyPanel
           tone="red"
@@ -941,40 +930,43 @@ export default function FreeClassroomsTab({
             }
           />
 
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             <div className="relative">
               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Filter rooms, e.g. 208 or AB5…"
+                placeholder="Filter rooms by number (e.g. 101, 208, AB3)…"
                 aria-label="Filter rooms"
-                className={cn(SEARCH_FIELD, "pl-10 pr-10")}
+                className={cn(SEARCH_FIELD, "pl-10 pr-10 h-10 text-xs rounded-xl font-medium")}
               />
               {query && (
                 <button
                   type="button"
                   onClick={() => setQuery("")}
                   aria-label="Clear filter"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
 
-            <div className="flex items-center gap-2 flex-wrap">
-              {runOnly && (
+            {runOnly && (
+              <div className="flex items-center gap-2 flex-wrap">
                 <button
                   type="button"
                   onClick={() => setRunOnly(false)}
-                  className={cn(TONE_BADGE.emerald, "cursor-pointer hover:opacity-80")}
+                  className={cn(
+                    TONE_BADGE.emerald,
+                    "cursor-pointer hover:opacity-80 active:scale-95 transition-transform",
+                  )}
                   title="Stop filtering to the multi-period run"
                 >
                   Free for {RUN_LENGTH} periods ✕
                 </button>
-              )}
-            </div>
+              </div>
+            )}
 
             {blockTabs.length > 2 && (
               <ChipTabs options={blockTabs} value={blockFilter} onChange={setBlockFilter} size="sm" />
@@ -987,7 +979,7 @@ export default function FreeClassroomsTab({
               title="Nothing free here"
               description={
                 blockFilter === "All"
-                  ? "Every room on campus is taken for this period. Try another time — the emptiest period of the day is on the tile above."
+                  ? "Every room on campus is taken for this period. Try another time or jump to the emptiest slot above."
                   : `No rooms free in ${blockFilter} for this period. Try "All blocks", or another time.`
               }
               action={
@@ -1012,11 +1004,11 @@ export default function FreeClassroomsTab({
                 const pct = block.total > 0 ? Math.round((block.free / block.total) * 100) : 0;
 
                 return (
-                  <div key={block.block} className={cn(TILE_CARD, "space-y-3.5")}>
+                  <div key={block.block} className={cn(TILE_CARD, "space-y-3 p-4 rounded-2xl")}>
                     <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
-                          <Building2 className="w-4.5 h-4.5" />
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                          <Building2 className="w-4 h-4" />
                         </span>
                         <div className="min-w-0">
                           <h3 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight truncate">
@@ -1028,12 +1020,12 @@ export default function FreeClassroomsTab({
                         </div>
                       </div>
                       <ToneBadge tone={block.free >= 20 ? "emerald" : block.free >= 5 ? "amber" : "zinc"}>
-                        {pct}%
+                        {pct}% free
                       </ToneBadge>
                     </div>
 
-                    {/* How empty the block is — the question you pick a block by. */}
-                    <div className="h-1.5 w-full rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
+                    {/* Progress bar */}
+                    <div className="h-1 w-full rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
                       <m.div
                         className="h-full rounded-full bg-emerald-500"
                         initial={false}
@@ -1042,7 +1034,7 @@ export default function FreeClassroomsTab({
                       />
                     </div>
 
-                    <div className="flex flex-wrap gap-1.5">
+                    <div className="flex flex-wrap gap-1.5 pt-0.5">
                       {shown.map((code) => (
                         <RoomChip
                           key={code}
@@ -1059,7 +1051,7 @@ export default function FreeClassroomsTab({
                       <button
                         type="button"
                         onClick={() => setExpanded((e) => ({ ...e, [block.block]: true }))}
-                        className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer active:scale-95 transition-transform"
                       >
                         +{hidden} more in {block.block}
                         <ChevronRight className="w-3.5 h-3.5" />
@@ -1069,7 +1061,7 @@ export default function FreeClassroomsTab({
                       <button
                         type="button"
                         onClick={() => setExpanded((e) => ({ ...e, [block.block]: false }))}
-                        className="text-[11px] font-bold text-zinc-400 dark:text-zinc-500 hover:underline cursor-pointer"
+                        className="text-[11px] font-bold text-zinc-400 dark:text-zinc-500 hover:underline cursor-pointer active:scale-95 transition-transform"
                       >
                         Show fewer
                       </button>
@@ -1079,6 +1071,17 @@ export default function FreeClassroomsTab({
               })}
             </div>
           )}
+
+          {/* ── FOOTNOTE / ATTRIBUTION ── */}
+          <div className="flex items-center justify-between text-[11px] text-zinc-400 dark:text-zinc-500 pt-1 px-1">
+            <span className="inline-flex items-center gap-1.5">
+              <span className={cn("w-1.5 h-1.5 rounded-full", liveDays[day] ? "bg-emerald-500" : "bg-zinc-400")} />
+              {liveDays[day]
+                ? "Rooms merged from live synced timetable and official FFCS course catalog"
+                : "Rooms based on official campus FFCS course catalog"}
+            </span>
+            {livePending && <span className="animate-pulse text-indigo-500 font-medium">Checking live updates…</span>}
+          </div>
         </div>
       )}
 

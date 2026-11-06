@@ -199,7 +199,7 @@ const BusFinder = ({
   );
 };
 
-/** The route sheet. Stops are capped because the sheet is height-constrained. */
+/** The route detail sheet showing full stops and schedule details. */
 function BusDetailSheet({ bus, onClose }: { bus: BusRoute; onClose: () => void }) {
   const stops = bus.stops || [];
   const boardingPoints = bus.boardingPoints || [];
@@ -229,12 +229,7 @@ function BusDetailSheet({ bus, onClose }: { bus: BusRoute; onClose: () => void }
 
         {stops.length > 0 ? (
           <RouteSection title="Stops & pickup times" icon={MapPin} count={stops.length}>
-            <StopsTimeline stops={stops} limit={5} />
-            {stops.length > 5 && (
-              <p className="px-1 text-[11px] font-medium text-text-muted">
-                +{stops.length - 5} more stops
-              </p>
-            )}
+            <StopsTimeline stops={stops} />
           </RouteSection>
         ) : boardingPoints.length > 0 ? (
           <RouteSection title="Route path" icon={MapPin} count={boardingPoints.length}>

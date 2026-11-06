@@ -99,7 +99,9 @@ describe("FreeClassroomsTab semester switch", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Winter 2026-27" }));
 
     // Bare mount (tests, standalone use): broadcast + settings write as before.
-    expect(store.getItem("ffcs_semester")).toBe("winter-2026-2027");
+    // The app's semester moves; the planner's own key must not — the two are
+    // resolved independently now.
+    expect(store.getItem("ffcs_semester")).toBeNull();
     expect(JSON.parse(store.getItem("settings") || "{}").currSemesterID).toBe("CH20262705");
   });
 });

@@ -42,6 +42,8 @@ const KNOWN = [
   "bulk",
   "lms",
   "officialOd",
+  "curriculum",
+  "qcm",
   "social",
 ];
 
@@ -252,6 +254,7 @@ describe("syncMode runner", () => {
       "all-grades",
       // Background step: settled after the foreground chain, still reported.
       "curriculum",
+      "qcm",
     ]);
     expect(res.aborted).toBe(false);
     expect(res.errors).toEqual([]);

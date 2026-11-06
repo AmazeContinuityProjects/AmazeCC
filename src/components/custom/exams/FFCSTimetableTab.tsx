@@ -127,14 +127,10 @@ import {
   DEFAULT_FFCS_SEMESTER,
   FFCS_SEMESTER_REPORTS,
   FFCS_SEMESTER_STORAGE_KEY,
-  GLOBAL_SEMESTER_CHANGE_EVENT,
-  broadcastGlobalSemesterChange,
   getFFCSSemester,
   isFFCSSemesterId,
-  mapToFinalSemesterId,
   parseReportRows,
   type FFCSSemesterId,
-  type FinalFFCSSemesterId,
 } from "@/lib/ffcsReports";
 import { DAYS, COLORS } from "@/lib/ffcsConstants";
 import { renderCourseTypeChips } from "./FFCS/components/CourseTypeChips";
@@ -766,33 +762,14 @@ export default function FFCSTimetableTab({
         return;
       }
 
+      // The planner's term is its own: persist it for the next visit, but do
+      // NOT broadcast it. The app's semester (`settings.currSemesterID`) and
+      // the planner's report are resolved independently, so a planner switch
+      // must not move Free Classrooms / Faculty Schedule in the app.
       safeStorage.setItem(FFCS_SEMESTER_STORAGE_KEY, nextSemesterId);
-      if (nextSemesterId === "winter-2026-2027" || nextSemesterId === "fall-2026-2027") {
-        broadcastGlobalSemesterChange(nextSemesterId);
-      }
     },
     [semesterId, loadSemesterReport],
   );
-
-  // Sync on global semester change event
-  useEffect(() => {
-    const handleGlobalChange = (e: Event) => {
-      const customEvent = e as CustomEvent<{ semesterId?: FinalFFCSSemesterId }>;
-      const nextSem = customEvent.detail?.semesterId;
-      if (
-        nextSem &&
-        nextSem !== semesterId &&
-        mapToFinalSemesterId(semesterId) !== nextSem &&
-        isFFCSSemesterId(nextSem)
-      ) {
-        void handleSemesterChange(nextSem);
-      }
-    };
-    window.addEventListener(GLOBAL_SEMESTER_CHANGE_EVENT, handleGlobalChange);
-    return () => {
-      window.removeEventListener(GLOBAL_SEMESTER_CHANGE_EVENT, handleGlobalChange);
-    };
-  }, [handleSemesterChange, semesterId]);
 
   // Load from local storage on mount and fetch the selected semester's report.
   useEffect(() => {

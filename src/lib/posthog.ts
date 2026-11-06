@@ -1,7 +1,7 @@
 "use client";
 
 import posthog from "posthog-js";
-import { getActiveRegNumber } from "./social/identity";
+import { getActiveDisplayName, getActiveRegNumber } from "./social/identity";
 import { getCachedRegisterNumber } from "./introSong/gate";
 
 /**
@@ -49,6 +49,16 @@ export interface PostHogUserIdentity {
   distinctId: string;
   registrationNumber?: string;
   enrollmentNumber?: string;
+  /**
+   * The reader's name as VTOP knows it — the `name` field on the student
+   * profile segment (`localStorage.profile`, written by ProfilePage and the
+   * sync engine from `/api/student`; the demo payload spells it
+   * `studentName`). Sent as a *person property* so the PostHog person reads
+   * as a student rather than as a bare registration number. Never an
+   * identifier: the distinct id stays the registration number, so a name — or
+   * a rename — cannot split one person into two.
+   */
+  name?: string;
 }
 
 /**
@@ -137,11 +147,18 @@ export function getPostHogUserIdentifiers(options?: {
   const primaryReg = regCandidates[0];
   const primaryEnrollment = enrollmentCandidates[0];
 
+  // The name rides along with whichever identifier won, so both return paths
+  // below carry it. `getActiveDisplayName()` reads the same profile blob the
+  // identity walk above already inspected — it is the canonical reader for the
+  // two live spellings (`name` / `studentName`).
+  const name = getActiveDisplayName() || undefined;
+
   if (primaryReg) {
     return {
       distinctId: primaryReg,
       registrationNumber: primaryReg,
       enrollmentNumber: primaryEnrollment,
+      name,
     };
   }
 
@@ -149,6 +166,7 @@ export function getPostHogUserIdentifiers(options?: {
     return {
       distinctId: primaryEnrollment,
       enrollmentNumber: primaryEnrollment,
+      name,
     };
   }
 
@@ -157,22 +175,58 @@ export function getPostHogUserIdentifiers(options?: {
 
 /**
  * Associate events with a verified user identity and persist person properties.
+ * Also registers `registration_number` as a super property on all future events.
+ *
+ * The reader's name is folded in here too (caller-supplied `name` wins, the
+ * profile segment is the fallback) so no caller can identify a person without
+ * also labelling them.
  */
 export function identifyPostHogUser(distinctId: string, properties?: Record<string, unknown>): void {
   if (!isPostHogConfigured() || !distinctId) return;
   try {
-    posthog.identify(distinctId, properties);
+    const given = typeof properties?.name === "string" ? properties.name.trim() : "";
+    const name = given || getActiveDisplayName();
+    posthog.identify(distinctId, name ? { ...properties, name } : properties);
+    const reg = (properties?.registration_number as string) || distinctId;
+    posthog.register(name ? { registration_number: reg, name } : { registration_number: reg });
   } catch (err) {
     console.debug("[PostHog identify]", err);
   }
 }
 
 /**
- * Clear the current user identity on sign out.
+ * Push the reader's VTOP name onto the person PostHog already knows, and onto
+ * every event after it.
+ *
+ * The identify pass runs on hydration/sync, but the student profile segment
+ * can land *after* it: ProfilePage refetching `/api/student` writes the blob
+ * without changing anything Main's identify effect depends on, so the name
+ * would otherwise never reach the person. Called at that write instead. The
+ * distinct id does not move — only the label does.
+ *
+ * @param name Defaults to the name currently sitting in the profile segment.
+ */
+export function updatePostHogPersonName(name: string = getActiveDisplayName()): void {
+  const trimmed = typeof name === "string" ? name.trim() : "";
+  if (!trimmed || !isPostHogLoaded()) return;
+  try {
+    posthog.people.set({ name: trimmed });
+    posthog.register({ name: trimmed });
+  } catch (err) {
+    console.debug("[PostHog person name]", err);
+  }
+}
+
+/**
+ * Clear the current user identity and super properties on sign out.
  */
 export function resetPostHogUser(): void {
   if (!isPostHogConfigured()) return;
   try {
+    posthog.unregister("registration_number");
+    posthog.unregister("name");
+    posthog.unregister("current_modal");
+    posthog.unregister("current_modal_name");
     posthog.reset();
   } catch (err) {
     console.debug("[PostHog reset]", err);
@@ -655,6 +709,51 @@ export function submitPostHogFeedback(data: UserFeedbackSubmission): boolean {
   } catch (err) {
     console.error("[PostHog submitFeedback]", err);
     return false;
+  }
+}
+
+/**
+ * Records a counter metric (values that increment).
+ */
+export function trackMetricCount(name: string, value: number = 1, options?: Record<string, unknown>): void {
+  if (!isPostHogConfigured()) return;
+  try {
+    const ph = posthog as unknown as { metrics?: { count: (name: string, value?: number, options?: unknown) => void } };
+    ph.metrics?.count(name, value, options);
+  } catch (err) {
+    console.debug("[PostHog metric count]", err);
+  }
+}
+
+/**
+ * Records a gauge metric (values that fluctuate up and down).
+ */
+export function trackMetricGauge(name: string, value: number, options?: Record<string, unknown>): void {
+  if (!isPostHogConfigured()) return;
+  try {
+    const ph = posthog as unknown as { metrics?: { gauge: (name: string, value: number, options?: unknown) => void } };
+    ph.metrics?.gauge(name, value, options);
+  } catch (err) {
+    console.debug("[PostHog metric gauge]", err);
+  }
+}
+
+/**
+ * Records a distribution/histogram metric (e.g. latency in ms, payload sizes).
+ */
+export function trackMetricHistogram(
+  name: string,
+  value: number,
+  options?: { unit?: string; [key: string]: unknown },
+): void {
+  if (!isPostHogConfigured()) return;
+  try {
+    const ph = posthog as unknown as {
+      metrics?: { histogram: (name: string, value: number, options?: unknown) => void };
+    };
+    ph.metrics?.histogram(name, value, options);
+  } catch (err) {
+    console.debug("[PostHog metric histogram]", err);
   }
 }
 

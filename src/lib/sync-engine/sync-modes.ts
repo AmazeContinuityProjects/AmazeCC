@@ -61,6 +61,7 @@ export const BUILT_IN_MODES: SyncMode[] = [
       step("transport", { background: true }),
       step("events", { background: true }),
       step("curriculum", { background: true }),
+      step("qcm", { background: true }),
       step("bulk", { background: true }),
       step("lms", { background: true }),
       step("officialOd", { background: true }),
@@ -82,6 +83,7 @@ export const BUILT_IN_MODES: SyncMode[] = [
       step("transport", { background: true }),
       step("events", { background: true }),
       step("curriculum", { background: true }),
+      step("qcm", { background: true }),
       step("bulk", { background: true }),
       step("lms", { background: true }),
       step("officialOd", { background: true }),
@@ -101,6 +103,7 @@ export const BUILT_IN_MODES: SyncMode[] = [
       step("calendar"),
       step("all-grades"),
       step("curriculum", { background: true }),
+      step("qcm", { background: true }),
     ],
   },
   {

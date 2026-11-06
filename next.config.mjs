@@ -1,5 +1,6 @@
 // @ts-check
 import withSerwistInit from "@serwist/next";
+import { withPostHogConfig } from "@posthog/nextjs-config";
 import { createRequire } from "module";
 import { execSync } from "child_process";
 import path from "path";
@@ -24,39 +25,39 @@ const withSerwist = withSerwistInit({
 
 // Set to your repository name (e.g. '/AmazeCC') if deploying to <username>.github.io/<repo-name>
 // Keep empty '' if deploying to a custom domain (like amazecc.com) or a root user/org page.
-const basePath = '';
+const basePath = "";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    agentUpgrade: 'security',
+    agentUpgrade: "security",
   },
-  output: 'export',
+  output: "export",
   basePath: basePath,
   trailingSlash: true,
-  allowedDevOrigins: ['192.168.1.101', 'localhost:3001', '192.168.1.101:3001'],
+  allowedDevOrigins: ["192.168.1.101", "localhost:3001", "192.168.1.101:3001"],
   env: {
     NEXT_PUBLIC_BASE_PATH: basePath,
   },
-  transpilePackages: ['@amazecontinuityprojects/amazeui'],
+  transpilePackages: ["@amazecontinuityprojects/amazeui"],
   reactStrictMode: true,
   devIndicators: false,
   images: {
     remotePatterns: [
       {
-        protocol: 'https',
-        hostname: 'avatars.githubusercontent.com',
+        protocol: "https",
+        hostname: "avatars.githubusercontent.com",
       },
       {
-        protocol: 'https',
-        hostname: 'cdn.discordapp.com',
+        protocol: "https",
+        hostname: "cdn.discordapp.com",
       },
       {
-        protocol: 'https',
-        hostname: 'lh3.googleusercontent.com',
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
       },
     ],
-    unoptimized: true
+    unoptimized: true,
   },
   webpack: (config, { isServer }) => {
     if (isServer) {
@@ -64,8 +65,8 @@ const nextConfig = {
     }
     config.resolve.alias = {
       ...(config.resolve.alias || {}),
-      'react-native$': require.resolve('react-native-web'),
-    }
+      "react-native$": require.resolve("react-native-web"),
+    };
     return config;
   },
   typescript: {
@@ -73,4 +74,12 @@ const nextConfig = {
   },
 };
 
-export default withSerwist(nextConfig);
+export default withPostHogConfig(withSerwist(nextConfig), {
+  personalApiKey: process.env.POSTHOG_API_KEY ?? "",
+  projectId: process.env.POSTHOG_PROJECT_ID,
+  host: process.env.POSTHOG_HOST,
+  sourcemaps: {
+    enabled: Boolean(process.env.POSTHOG_API_KEY && process.env.POSTHOG_PROJECT_ID),
+    deleteAfterUpload: true,
+  },
+});

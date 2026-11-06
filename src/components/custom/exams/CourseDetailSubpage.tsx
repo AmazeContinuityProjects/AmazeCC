@@ -47,7 +47,21 @@ import {
   Plus,
   ShieldCheck,
   StickyNote,
+  Download,
+  FileDown,
+  RefreshCw,
+  AlertCircle,
+  Check,
+  User,
 } from "lucide-react";
+import CourseFacultyCard, { parseFacultyInfo } from "./CourseFacultyCard";
+import CourseWeeklySchedule from "./CourseWeeklySchedule";
+import { useFacultyReviewSheet } from "./FFCS/hooks/useFacultyReviewSheet";
+import { buildFacultyNameGroups, loadFacultyOfferings, type FacultyNameGroup } from "./FFCS/logic/facultyGroups";
+import { storage } from "@/lib/storage";
+
+const FacultyReviewSheetHost = dynamic(() => import("./FFCS/components/FacultyReviewSheetHost"), { ssr: false });
+const FacultyScheduleModal = dynamic(() => import("./FFCS/components/modals/FacultyScheduleModal"), { ssr: false });
 import { useAtom } from "jotai";
 import { cn } from "@amazecontinuityprojects/amazeui";
 import { tasksAtom, marksStatsAtom } from "@/store/dataAtoms";
@@ -139,8 +153,145 @@ export default function CourseDetailSubpage({
   const [qcmData, setQcmData] = useState<any>(null);
   const [qcmLoading, setQcmLoading] = useState(false);
   const [qcmError, setQcmError] = useState("");
+  const [expandedQcmKey, setExpandedQcmKey] = useState<string | null>(null);
   const [tasks, setTasks] = useAtom(tasksAtom);
   const [isTaskSheetOpen, setIsTaskSheetOpen] = useState(false);
+
+  // Vitfac Faculty Review & Schedule
+  const { target: facultyReviewTarget, open: openFacultyReview, close: closeFacultyReview } = useFacultyReviewSheet();
+  const [facultyGroups, setFacultyGroups] = useState<FacultyNameGroup[]>([]);
+  const [groupsLoading, setGroupsLoading] = useState(false);
+  const [scheduleModalFaculty, setScheduleModalFaculty] = useState<string | null>(null);
+  const [scheduleModalErpId, setScheduleModalErpId] = useState<string | undefined>(undefined);
+
+  const handleOpenFacultySchedule = useCallback(
+    (facultyName: string, employeeId?: string) => {
+      setScheduleModalFaculty(facultyName);
+      setScheduleModalErpId(employeeId);
+      if (facultyGroups.length === 0) {
+        setGroupsLoading(true);
+        loadFacultyOfferings()
+          .then((offerings) => {
+            const built = buildFacultyNameGroups(offerings);
+            setFacultyGroups(built);
+          })
+          .catch((err) => console.error("Error loading faculty offerings:", err))
+          .finally(() => setGroupsLoading(false));
+      }
+    },
+    [facultyGroups.length],
+  );
+
+  // Curriculum & Syllabus Download States
+  const [downloadingSyllabus, setDownloadingSyllabus] = useState(false);
+  const [downloadingCurriculum, setDownloadingCurriculum] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
+
+  const handleDownloadSyllabus = async () => {
+    setDownloadingSyllabus(true);
+    setDownloadError(null);
+    setDownloadSuccess(null);
+    try {
+      let c = creds;
+      if (!c) {
+        c = await loginToVTOP();
+        setCreds(c);
+      }
+      if (!c) throw new Error("Please log in to VTOP first.");
+
+      const cachedCurriculum = storage.curriculum.get() as any;
+      const pageCsrf = cachedCurriculum?.pageCsrf || c.csrf;
+
+      const res = await api("curriculum/syllabus", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: {
+          cookies: c.cookies,
+          authorizedID: c.authorizedID,
+          csrf: pageCsrf || c.csrf,
+          courseCode: selectedCode,
+        },
+        parse: "raw",
+      });
+
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error(errBody.error || `Download failed (${res.status})`);
+      }
+
+      const ct = res.headers.get("content-type") || "";
+      const filename = ct.includes("zip") ? `${selectedCode}_syllabus.zip` : `${selectedCode}_syllabus.pdf`;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setDownloadSuccess(`Downloaded ${filename}`);
+      setTimeout(() => setDownloadSuccess(null), 3500);
+    } catch (err: any) {
+      console.error("Syllabus download error:", err);
+      setDownloadError(err.message || "Failed to download course syllabus.");
+    } finally {
+      setDownloadingSyllabus(false);
+    }
+  };
+
+  const handleDownloadCurriculum = async () => {
+    setDownloadingCurriculum(true);
+    setDownloadError(null);
+    setDownloadSuccess(null);
+    try {
+      let c = creds;
+      if (!c) {
+        c = await loginToVTOP();
+        setCreds(c);
+      }
+      if (!c) throw new Error("Please log in to VTOP first.");
+
+      const cachedCurriculum = storage.curriculum.get() as any;
+      const pageCsrf = cachedCurriculum?.pageCsrf || c.csrf;
+
+      const res = await api("curriculum/download", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: {
+          cookies: c.cookies,
+          authorizedID: c.authorizedID,
+          csrf: pageCsrf || c.csrf,
+        },
+        parse: "raw",
+      });
+
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error(errBody.error || `Download failed (${res.status})`);
+      }
+
+      const ct = res.headers.get("content-type") || "";
+      const filename = ct.includes("zip") ? "curriculum.zip" : "curriculum.pdf";
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setDownloadSuccess(`Downloaded ${filename}`);
+      setTimeout(() => setDownloadSuccess(null), 3500);
+    } catch (err: any) {
+      console.error("Curriculum download error:", err);
+      setDownloadError(err.message || "Failed to download programme curriculum.");
+    } finally {
+      setDownloadingCurriculum(false);
+    }
+  };
 
   // Attendance log filter (shared by the Theory / Lab log pages)
 
@@ -174,6 +325,7 @@ export default function CourseDetailSubpage({
   useEffect(() => {
     ovActiveCarousel.reset();
     ovAttCarousel.reset();
+    coursePlanCarousel.reset();
     setInnerTab(initialTab || "overview");
     // `reset` is a stable useCallback, so it is intentionally not a dep here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -186,6 +338,7 @@ export default function CourseDetailSubpage({
   useOverlayBack("course-subpage-tab", innerTab !== "overview", () => {
     ovActiveCarousel.reset();
     ovAttCarousel.reset();
+    coursePlanCarousel.reset();
     setInnerTab("overview");
   });
 
@@ -715,6 +868,74 @@ export default function CourseDetailSubpage({
     }
   };
 
+  // Helper to extract and map QCM rows matching the course code across all tables/semesters
+  const mapQcmForCourse = useCallback((rawData: any, code: string) => {
+    if (!rawData || typeof rawData !== "object") return [];
+    const clean = code
+      .replace(/\([LPT]\)$/i, "")
+      .trim()
+      .toUpperCase();
+    const courseQcmTables: any[] = [];
+
+    const semestersObj = rawData.data || rawData;
+    for (const [, sem] of Object.entries(semestersObj)) {
+      if ((sem as any)?.tables) {
+        for (const table of (sem as any).tables) {
+          const matchingRows = (table.rows || []).filter((row: any) => {
+            return Object.values(row).some((val: any) => typeof val === "string" && val.toUpperCase().includes(clean));
+          });
+          if (matchingRows.length > 0) {
+            courseQcmTables.push({
+              caption: table.caption,
+              headers: table.headers,
+              rows: matchingRows,
+            });
+          }
+        }
+      }
+    }
+    return courseQcmTables;
+  }, []);
+
+  const fetchQcmForCourse = useCallback(
+    async (codeToMap?: string) => {
+      if (!selectedGroup) return;
+      setQcmLoading(true);
+      setQcmError("");
+      try {
+        let c = creds;
+        if (!c) {
+          c = await loginToVTOP();
+          setCreds(c);
+        }
+        if (!c) return;
+
+        const semId = selectedGroup.semesterSubId === "Current" ? "" : selectedGroup.semesterSubId || "";
+        const d = (await api("qcm-view", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: { cookies: c.cookies, authorizedID: c.authorizedID, csrf: c.csrf, semesterId: semId },
+        })) as any;
+
+        if (d.success && d.data) {
+          try {
+            storage.qcmData.set(d.data);
+          } catch {}
+          const targetCode = codeToMap || selectedCode;
+          const mapped = mapQcmForCourse(d.data, targetCode);
+          setQcmData(mapped);
+        } else {
+          setQcmError(d.error || "No QCM recorded yet for this semester");
+        }
+      } catch (e: any) {
+        setQcmError(e.message);
+      } finally {
+        setQcmLoading(false);
+      }
+    },
+    [selectedGroup, creds, loginToVTOP, selectedCode, mapQcmForCourse],
+  );
+
   useEffect(() => {
     if (selectedCode) {
       setCoursePlan(null);
@@ -722,82 +943,39 @@ export default function CourseDetailSubpage({
       setQcmError("");
       fetchCoursePlan();
 
-      const cached = localStorage.getItem("qcmData");
-      if (cached) {
-        try {
-          const d = JSON.parse(cached);
-          let courseQcmTables: any[] = [];
-          for (const [key, sem] of Object.entries(d)) {
-            if ((sem as any).tables) {
-              for (const table of (sem as any).tables) {
-                const matchingRows = table.rows.filter((row: any) => {
-                  return Object.values(row).some((val: any) => typeof val === "string" && val.includes(selectedCode));
-                });
-                if (matchingRows.length > 0) {
-                  courseQcmTables.push({
-                    caption: table.caption,
-                    headers: table.headers,
-                    rows: matchingRows,
-                  });
-                }
-              }
-            }
+      // Automatic QCM automapping from storage/cache
+      const cachedRaw =
+        storage.qcmData.get() ||
+        (() => {
+          try {
+            const item = localStorage.getItem("qcmData");
+            return item ? JSON.parse(item) : null;
+          } catch {
+            return null;
           }
-          setQcmData(courseQcmTables.length > 0 ? courseQcmTables : []);
-        } catch (e) {
-          setQcmData(null);
+        })();
+
+      if (cachedRaw) {
+        const mapped = mapQcmForCourse(cachedRaw, selectedCode);
+        if (mapped.length > 0) {
+          setQcmData(mapped);
+        } else {
+          // Attempt refresh if not found in existing cache
+          fetchQcmForCourse(selectedCode);
         }
       } else {
-        setQcmData(null);
+        // Auto-fetch if storage is empty
+        fetchQcmForCourse(selectedCode);
       }
     }
   }, [selectedCode]);
-
-  const fetchQcmForCourse = async () => {
-    if (!selectedGroup || !creds) return;
-    setQcmLoading(true);
-    setQcmError("");
-    try {
-      const semId = selectedGroup.semesterSubId === "Current" ? "" : selectedGroup.semesterSubId || "";
-      const d = (await api("qcm-view", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: { cookies: creds.cookies, authorizedID: creds.authorizedID, csrf: creds.csrf, semesterId: semId },
-      })) as any;
-      if (d.success && d.data) {
-        let courseQcmTables = [];
-        for (const [key, sem] of Object.entries(d.data)) {
-          if ((sem as any).tables) {
-            for (const table of (sem as any).tables) {
-              const matchingRows = table.rows.filter((row: any) => {
-                return Object.values(row).some((val: any) => typeof val === "string" && val.includes(selectedCode));
-              });
-              if (matchingRows.length > 0) {
-                courseQcmTables.push({
-                  caption: table.caption,
-                  headers: table.headers,
-                  rows: matchingRows,
-                });
-              }
-            }
-          }
-        }
-        setQcmData(courseQcmTables.length > 0 ? courseQcmTables : []);
-      } else {
-        setQcmError(d.error || "Failed to fetch QCM data");
-      }
-    } catch (e: any) {
-      setQcmError(e.message);
-    } finally {
-      setQcmLoading(false);
-    }
-  };
 
   // Hierarchical back: subtab -> overview -> course list (never straight home)
   const handleBack = () => {
     if (innerTab !== "overview") {
       ovActiveCarousel.reset();
       ovAttCarousel.reset();
+      coursePlanCarousel.reset();
       setInnerTab("overview");
       return;
     }
@@ -1245,6 +1423,118 @@ export default function CourseDetailSubpage({
       })),
     [ovMarksSlides, ovGo],
   );
+
+  const totalCredits = useMemo(() => {
+    const thCreds = selectedGroup?.theory
+      ? getCourseCredits(selectedGroup.theory)
+      : Number(theoryAttItem?.credits) || 0;
+    const lbCreds = selectedGroup?.lab ? getCourseCredits(selectedGroup.lab) : Number(labAttItem?.credits) || 0;
+    const sum = (thCreds > 0 ? thCreds : 0) + (lbCreds > 0 ? lbCreds : 0);
+    if (sum > 0) return sum;
+    const singleCred =
+      Number(mainCourse?.credits) || Number(theoryAttItem?.credits) || Number(labAttItem?.credits) || 0;
+    return singleCred > 0 ? singleCred : null;
+  }, [selectedGroup, theoryAttItem, labAttItem, mainCourse]);
+
+  const totalWeeklyClassesCount = useMemo(() => {
+    if (dayCardsMap) {
+      const cleanSelected = selectedCode
+        .replace(/\([LPT]\)$/i, "")
+        .trim()
+        .toUpperCase();
+      let count = 0;
+      (ATTENDANCE_DAYS as readonly string[]).forEach((dayKey) => {
+        const clsList = dayCardsMap[dayKey] || [];
+        count += clsList.filter(
+          (c: any) =>
+            String(c.courseCode || "")
+              .replace(/\([LPT]\)$/i, "")
+              .trim()
+              .toUpperCase() === cleanSelected,
+        ).length;
+      });
+      if (count > 0) return count;
+    }
+    return 0;
+  }, [dayCardsMap, selectedCode]);
+
+  const qcmTotalRows = useMemo(() => {
+    if (!qcmData || !Array.isArray(qcmData)) return 0;
+    return qcmData.reduce((acc: number, t: any) => acc + (t.rows?.length || 0), 0);
+  }, [qcmData]);
+
+  // Course Plan hero carousel slides
+  const coursePlanInsightSlides = useMemo<InsightSlide[]>(() => {
+    const slides: InsightSlide[] = [];
+
+    // 1. Weekly classes count
+    if (totalWeeklyClassesCount > 0) {
+      slides.push({
+        id: "schedule",
+        label: "Weekly Classes",
+        value: `${totalWeeklyClassesCount} sessions`,
+        sub: "Across active timetable",
+        badge: "Schedule",
+        tone: "emerald",
+      });
+    }
+
+    // 2. Slots
+    const thSlot = selectedGroup?.theory?.slot || theoryAttItem?.slotName;
+    const lbSlot = selectedGroup?.lab?.slot || labAttItem?.slotName;
+    if (thSlot || lbSlot) {
+      slides.push({
+        id: "slots",
+        label: "Assigned Slots",
+        value: thSlot && lbSlot ? `${thSlot} + ${lbSlot}` : thSlot || lbSlot || "—",
+        sub: isEmbedded ? "Theory & Lab components" : "Timetable slot",
+        badge: "Slot",
+        tone: "blue",
+      });
+    }
+
+    // 3. Faculty
+    const primaryFaculty =
+      selectedGroup?.theory?.faculty || theoryAttItem?.faculty || selectedGroup?.lab?.faculty || labAttItem?.faculty;
+    if (primaryFaculty) {
+      const { cleanName, school, department } = parseFacultyInfo(primaryFaculty);
+      slides.push({
+        id: "faculty",
+        label: "Faculty Assigned",
+        value: cleanName || "Faculty Assigned",
+        sub: department || school || "Course Instructor",
+        badge: "Faculty",
+        tone: "violet",
+      });
+    }
+
+    // 4. QCM records if any
+    if (qcmTotalRows > 0) {
+      slides.push({
+        id: "qcm",
+        label: "QCM Feedback",
+        value: `${qcmTotalRows} records`,
+        sub: "Student & Committee feedback",
+        badge: "QCM",
+        tone: "amber",
+      });
+    }
+
+    if (slides.length === 0) {
+      slides.push({
+        id: "info",
+        label: "Status",
+        value: "Active",
+        sub: "Current semester registration",
+        badge: "Status",
+        tone: "indigo",
+      });
+    }
+
+    return slides;
+  }, [totalWeeklyClassesCount, selectedGroup, theoryAttItem, labAttItem, isEmbedded, qcmTotalRows]);
+
+  const coursePlanCarousel = useCarousel(innerTab === "plan" ? coursePlanInsightSlides.length : 0);
   // Review-tab scope helpers: theory/lab plan + schedule stay separated.
   const reviewScopes: Array<"theory" | "lab"> = isEmbedded
     ? ["theory", "lab"]
@@ -2123,71 +2413,205 @@ export default function CourseDetailSubpage({
       {/* LAB PREDICTOR */}
       {effectiveTab === "lab-predictor" && renderPredictorPage(labAttItem, labData, "Lab")}
 
-      {/* COURSE PLAN - Full tables without truncation */}
+      {/* COURSE PLAN - Full details, schedule, faculty & syllabus */}
       {innerTab === "plan" && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6 mt-4">
-          {/* 1 ── COURSE DETAILS */}
+          {/* 1 ── HERO STATS (2-up StatTile + InsightCarousel) */}
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+            <StatTile
+              label="Course Overview"
+              value={totalCredits ? `${totalCredits} Credits` : mainCourse?.courseType || "Active"}
+              sub={isEmbedded ? "Theory + Lab Components" : mainCourse?.courseType || "Registered Course"}
+              tone="indigo"
+              badge={isEmbedded ? "Embedded" : mainCourse?.courseType || "Course"}
+            />
+            <InsightCarousel
+              slides={coursePlanInsightSlides}
+              carousel={coursePlanCarousel}
+              height="min-h-32 sm:min-h-36"
+            />
+          </div>
+
+          {/* 2 ── OFFICIAL DOCUMENTS & SYLLABUS DOWNLOAD */}
           <div className="space-y-4">
-            <SectionHeader icon={BookOpen} title="Course details" />
-            {isEmbedded ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {renderCourseDetailCard(selectedGroup.theory, theoryAttItem, "Theory")}
-                {renderCourseDetailCard(selectedGroup.lab, labAttItem, "Lab")}
+            <SectionHeader icon={Download} title="Official Documents" count={2} />
+
+            <ListShell>
+              {/* Syllabus PDF Row */}
+              <div className={`${LIST_ROW} py-3.5`}>
+                <span
+                  className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.indigo}`}
+                >
+                  <FileText className="w-5 h-5" />
+                </span>
+                <ListRowText
+                  title="Course Syllabus"
+                  subtitle={`Official syllabus, learning objectives and textbooks for ${selectedCode}`}
+                />
+                <button
+                  type="button"
+                  onClick={handleDownloadSyllabus}
+                  disabled={downloadingSyllabus}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0"
+                  title={`Download syllabus PDF for ${selectedCode}`}
+                >
+                  {downloadingSyllabus ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5" />
+                  )}
+                  <span>{downloadingSyllabus ? "Downloading…" : "Syllabus PDF"}</span>
+                </button>
               </div>
-            ) : (
-              renderCourseDetailCard(mainCourse, theoryAttItem || labAttItem, null)
+
+              {/* Programme Curriculum PDF Row */}
+              <div className={`${LIST_ROW} py-3.5`}>
+                <span
+                  className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.emerald}`}
+                >
+                  <FileDown className="w-5 h-5" />
+                </span>
+                <ListRowText
+                  title="Programme Curriculum"
+                  subtitle="Complete programme baskets, elective options and degree requirements"
+                />
+                <button
+                  type="button"
+                  onClick={handleDownloadCurriculum}
+                  disabled={downloadingCurriculum}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0"
+                  title="Download full programme curriculum PDF"
+                >
+                  {downloadingCurriculum ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5" />
+                  )}
+                  <span>{downloadingCurriculum ? "Downloading…" : "Curriculum PDF"}</span>
+                </button>
+              </div>
+            </ListShell>
+
+            {downloadError && (
+              <div className="p-3 text-xs text-red-600 dark:text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{downloadError}</span>
+              </div>
+            )}
+
+            {downloadSuccess && (
+              <div className="p-3 text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center gap-2">
+                <Check className="w-4 h-4 shrink-0" />
+                <span>{downloadSuccess}</span>
+              </div>
             )}
           </div>
 
-          {/* 2 ── COURSE PLAN TABLES (theory / lab separated) */}
+          {/* 3 ── FACULTY & INSTRUCTION WITH VITFAC REVIEWS & SCHEDULE */}
           <div className="space-y-4">
-            <SectionHeader icon={FileText} title="Course syllabus & plan" />
+            <SectionHeader
+              icon={User}
+              title="Faculty & Instruction"
+              count={isEmbedded && selectedGroup.theory && selectedGroup.lab ? 2 : 1}
+            />
+            {isEmbedded ? (
+              <div className="space-y-3">
+                <CourseFacultyCard
+                  scope="Theory"
+                  courseComp={selectedGroup.theory}
+                  attItem={theoryAttItem}
+                  isEmbedded={true}
+                  courseCode={selectedCode}
+                  onOpenFacultyReview={openFacultyReview}
+                  onOpenFacultySchedule={handleOpenFacultySchedule}
+                />
+                <CourseFacultyCard
+                  scope="Lab"
+                  courseComp={selectedGroup.lab}
+                  attItem={labAttItem}
+                  isEmbedded={true}
+                  courseCode={selectedCode}
+                  onOpenFacultyReview={openFacultyReview}
+                  onOpenFacultySchedule={handleOpenFacultySchedule}
+                />
+              </div>
+            ) : (
+              <CourseFacultyCard
+                scope={theoryAttItem ? "Theory" : labAttItem ? "Lab" : "Course"}
+                courseComp={mainCourse}
+                attItem={theoryAttItem || labAttItem}
+                isEmbedded={false}
+                courseCode={selectedCode}
+                onOpenFacultyReview={openFacultyReview}
+                onOpenFacultySchedule={handleOpenFacultySchedule}
+              />
+            )}
+          </div>
+
+          {/* 4 ── WEEKLY TIMETABLE SCHEDULE (DERIVED FROM CURRENT TIMETABLE) */}
+          <CourseWeeklySchedule
+            courseCode={selectedCode}
+            dayCardsMap={dayCardsMap}
+            theorySlot={selectedGroup?.theory?.slot || theoryAttItem?.slotName}
+            labSlot={selectedGroup?.lab?.slot || labAttItem?.slotName}
+            theoryVenue={theoryAttItem?.slotVenue || selectedGroup?.theory?.venue}
+            labVenue={labAttItem?.slotVenue || selectedGroup?.lab?.venue}
+            theoryFaculty={selectedGroup?.theory?.faculty || theoryAttItem?.faculty}
+            labFaculty={selectedGroup?.lab?.faculty || labAttItem?.faculty}
+            viewDetail={viewDetail}
+            viewLoading={viewLoading}
+            onFetchViewDetail={fetchViewDetail}
+            reviewScopes={reviewScopes}
+            detailEntriesByScope={detailEntriesByScope}
+            renderScopeBadge={renderScopeBadge}
+          />
+
+          {/* 5 ── COURSE SYLLABUS & LECTURE PLAN */}
+          <div className="space-y-4">
+            <SectionHeader icon={FileText} title="Course syllabus & lecture plan" />
 
             {planLoading ? (
               <ListSkeleton rows={4} />
             ) : coursePlan && coursePlan.length > 0 ? (
-              <div className="space-y-6">
+              <div className="space-y-4">
                 {reviewScopes.map((scope) => {
                   const entries = planEntriesByScope(scope);
                   if (entries.length === 0) return null;
                   const showBadge = reviewScopes.filter((s) => planEntriesByScope(s).length > 0).length > 1;
                   return (
-                    <div key={scope} className="space-y-4">
+                    <div key={scope} className="space-y-3">
                       {showBadge && <div className="px-1">{renderScopeBadge(scope)}</div>}
                       {entries.map((cp: any, ci: number) => (
-                        <div key={ci} className="space-y-4">
+                        <div key={ci} className="space-y-3">
                           {cp.data.tables?.map((t: any, ti: number) => (
-                            <div key={ti} className={TILE_CARD}>
+                            <ListShell key={ti}>
                               {t.caption && (
-                                <h4 className="mb-4 text-[11px] font-black text-text-muted uppercase tracking-wider">
+                                <div className="px-4 py-2.5 bg-surface-secondary/70 dark:bg-zinc-800/60 border-b border-border-muted dark:border-border text-xs font-black font-outfit uppercase tracking-wider text-text-muted">
                                   {t.caption}
-                                </h4>
+                                </div>
                               )}
                               <div className="overflow-x-auto hide-scrollbar">
                                 <table className="w-full text-sm">
                                   <thead>
-                                    <tr className="border-b border-border-muted dark:border-border">
+                                    <tr className="border-b border-border-muted dark:border-border bg-surface-secondary/40 dark:bg-zinc-900/40">
                                       {t.headers?.map((h: string, hi: number) => (
                                         <th
                                           key={hi}
-                                          className="text-left py-3 px-3 text-[10px] font-black text-text-muted uppercase tracking-widest whitespace-nowrap"
+                                          className="text-left py-2.5 px-4 text-[10px] font-black text-text-muted uppercase tracking-widest whitespace-nowrap"
                                         >
                                           {h}
                                         </th>
                                       ))}
                                     </tr>
                                   </thead>
-                                  <tbody>
+                                  <tbody className="divide-y divide-border-muted dark:divide-border/60">
                                     {t.rows?.map((row: any, ri: number) => (
                                       <tr
                                         key={ri}
-                                        className="border-b border-border-muted/60 dark:border-border/60 last:border-0 hover:bg-surface-secondary dark:hover:bg-surface-hover/40 transition-colors"
+                                        className="hover:bg-surface-secondary dark:hover:bg-surface-hover/40 transition-colors"
                                       >
-                                        {t.headers.map((h: string, hi: number) => (
-                                          <td
-                                            key={hi}
-                                            className="py-3 px-3 text-sm font-medium text-text-secondary dark:text-text-secondary"
-                                          >
+                                        {(t.headers || []).map((h: string, hi: number) => (
+                                          <td key={hi} className="py-2.5 px-4 text-xs font-medium text-text-secondary">
                                             {row[h] || "—"}
                                           </td>
                                         ))}
@@ -2196,7 +2620,7 @@ export default function CourseDetailSubpage({
                                   </tbody>
                                 </table>
                               </div>
-                            </div>
+                            </ListShell>
                           ))}
                         </div>
                       ))}
@@ -2205,176 +2629,130 @@ export default function CourseDetailSubpage({
                 })}
               </div>
             ) : (
-              <EmptyPanel variant="dashed" title="Course plan is unavailable or loading." />
+              <EmptyPanel
+                icon={<FileText className="w-7 h-7" />}
+                title="Course plan tables are unavailable or loading"
+                description="VTOP syllabus plan tables for this course are not available at the moment."
+              />
             )}
           </div>
 
-          {/* Schedule toggle */}
-          <div className="space-y-4">
-            <SectionHeader
-              icon={Calendar}
-              title="Weekly schedule"
-              right={
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (viewDetail) setViewDetail(null);
-                    else fetchViewDetail();
-                  }}
-                  disabled={viewLoading}
-                  className="text-[11px] font-black uppercase tracking-widest px-4 py-2 rounded-xl bg-surface-tertiary dark:bg-surface-secondary text-text-secondary dark:text-text-muted hover:bg-border-muted dark:hover:bg-surface-hover disabled:opacity-50 transition-colors cursor-pointer"
-                >
-                  {viewLoading ? "Loading..." : viewDetail ? "Hide schedule" : "Load schedule"}
-                </button>
-              }
-            />
-            {viewDetail && (
-              <div className={TILE_CARD}>
-                {reviewScopes.map((scope) => {
-                  const entries = detailEntriesByScope(scope);
-                  if (entries.length === 0) return null;
-                  const showBadge = reviewScopes.filter((s) => detailEntriesByScope(s).length > 0).length > 1;
-                  return (
-                    <div key={scope} className="space-y-4">
-                      {showBadge && renderScopeBadge(scope)}
-                      {entries.map((vd: any, ci: number) => (
-                        <div key={ci} className="space-y-4">
-                          {vd.data.tables?.slice(1).map((t: any, ti: number) => (
-                            <div key={ti} className="overflow-x-auto hide-scrollbar">
-                              {t.caption && (
-                                <h5 className="mb-3 text-[10px] font-black text-text-muted uppercase tracking-widest">
-                                  {t.caption}
-                                </h5>
-                              )}
-                              <table className="w-full text-sm">
-                                <thead>
-                                  <tr className="border-b border-border-muted dark:border-border">
-                                    {t.headers?.map((h: string, hi: number) => (
-                                      <th
-                                        key={hi}
-                                        className="text-left py-2 px-2 text-[10px] font-black text-text-muted uppercase tracking-widest whitespace-nowrap"
-                                      >
-                                        {h}
-                                      </th>
-                                    ))}
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {t.rows?.map((row: any, ri: number) => (
-                                    <tr
-                                      key={ri}
-                                      className="border-b border-border-muted/60 dark:border-border/60 last:border-0 hover:bg-surface-secondary dark:hover:bg-surface-hover/40 transition-colors"
-                                    >
-                                      {t.headers.map((h: string, ci: number) => (
-                                        <td
-                                          key={ci}
-                                          className="py-2.5 px-2 text-sm font-medium text-text-secondary dark:text-text-secondary whitespace-nowrap"
-                                        >
-                                          {row[h] || "—"}
-                                        </td>
-                                      ))}
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          ))}
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* 4 ── QUALITY CIRCLE MEETING (QCM) */}
+          {/* 6 ── QUALITY CIRCLE MEETING (QCM) — AUTOMAPPED */}
           <div className="space-y-4">
             <SectionHeader
               icon={MessageSquare}
-              title="Quality Circle Meeting"
-              count={qcmData?.length}
+              title="Quality Circle Meeting (QCM)"
+              count={qcmTotalRows || undefined}
               right={
-                !qcmData ? (
-                  <button
-                    type="button"
-                    onClick={fetchQcmForCourse}
-                    disabled={qcmLoading}
-                    className="text-xs font-bold px-4 py-2 rounded-xl bg-surface-tertiary dark:bg-surface-secondary text-text-secondary dark:text-text-muted hover:bg-border-muted dark:hover:bg-surface-hover disabled:opacity-50 transition-colors cursor-pointer w-fit"
-                  >
-                    {qcmLoading ? "Loading..." : "Load QCM data"}
-                  </button>
+                qcmLoading ? (
+                  <span className="text-xs font-bold text-indigo-500 animate-pulse">Syncing QCM…</span>
                 ) : null
               }
             />
 
-            {qcmError && <p className="px-1 text-sm text-red-500">{qcmError}</p>}
+            {qcmError && !qcmData && <p className="px-1 text-sm text-red-500">{qcmError}</p>}
 
-            {qcmData && qcmData.length === 0 && (
-              <EmptyPanel variant="dashed" title={`No QCM data for ${selectedCode} this semester.`} />
-            )}
+            {qcmLoading && (!qcmData || qcmTotalRows === 0) ? (
+              <ListSkeleton rows={3} />
+            ) : !qcmData || qcmTotalRows === 0 ? (
+              <EmptyPanel
+                icon={<MessageSquare className="w-7 h-7" />}
+                title={`No QCM feedback recorded`}
+                description={`No Quality Circle Meeting feedback was found for ${selectedCode} this semester.`}
+              />
+            ) : (
+              <ListShell>
+                {(Array.isArray(qcmData) ? qcmData : []).flatMap((table: any, ti: number) =>
+                  (table?.rows || []).map((row: any, ri: number) => {
+                    const findCol = (keywords: string[]) => {
+                      const key = Object.keys(row).find((k) => keywords.some((kw) => k.toLowerCase().includes(kw)));
+                      return key ? row[key] : null;
+                    };
 
-            {qcmData && qcmData.length > 0 && (
-              <div className="space-y-4">
-                {qcmData.map((table: any, ti: number) => (
-                  <div key={ti} className="space-y-4">
-                    {table.caption && (
-                      <p className="px-1 text-sm font-semibold text-text-secondary dark:text-text-muted">
-                        {table.caption}
-                      </p>
-                    )}
-                    {table.rows.map((row: any, ri: number) => {
-                      const findCol = (keywords: string[]) => {
-                        const key = Object.keys(row).find((k) => keywords.some((kw) => k.toLowerCase().includes(kw)));
-                        return key ? row[key] : null;
-                      };
+                    const qcmNo = findCol(["qcm no", "qcm"]);
+                    const action = findCol(["action"]);
+                    const suggestions = findCol(["suggestion", "feedback", "remarks"]);
+                    const facultyReply = findCol(["faculty reply", "faculty comment"]);
+                    const hodComments = findCol(["hod comment", "hod reply", "hod"]);
 
-                      const qcmNo = findCol(["qcm no", "qcm"]);
-                      const action = findCol(["action"]);
-                      const suggestions = findCol(["suggestion", "feedback", "remarks"]);
-                      const facultyReply = findCol(["faculty reply", "faculty comment"]);
-                      const hodComments = findCol(["hod comment", "hod reply", "hod"]);
+                    const key = `qcm-${ti}-${ri}`;
+                    const isExpanded = expandedQcmKey === key;
 
-                      return (
-                        <div key={ri} className={TILE_CARD}>
-                          <div className="mb-3 flex justify-between items-center gap-2">
-                            <span className="text-xs font-bold text-text-muted uppercase tracking-wider">
-                              QCM {qcmNo || ri + 1}
-                            </span>
-                            {action && <ToneBadge tone="blue">{action}</ToneBadge>}
+                    return (
+                      <div key={key}>
+                        <button
+                          type="button"
+                          onClick={() => setExpandedQcmKey(isExpanded ? null : key)}
+                          className={`${LIST_ROW} cursor-pointer py-3.5`}
+                        >
+                          <span
+                            className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.violet}`}
+                          >
+                            <MessageSquare className="w-4.5 h-4.5" />
+                          </span>
+
+                          <ListRowText
+                            title={`Meeting #${qcmNo || ri + 1}`}
+                            subtitle={action || suggestions || "Student & Faculty Feedback Review"}
+                          />
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            {action && <ToneBadge tone="violet">{action}</ToneBadge>}
+                            <ChevronRight
+                              className={`h-4 w-4 text-zinc-400 transition-transform duration-200 ${
+                                isExpanded ? "rotate-90" : ""
+                              }`}
+                            />
                           </div>
-                          <div className="space-y-3">
-                            {suggestions && (
-                              <div>
-                                <p className="mb-0.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">
-                                  Suggestions / Feedback
-                                </p>
-                                <p className="text-sm text-text-heading">{suggestions}</p>
+                        </button>
+
+                        <AnimatePresence initial={false}>
+                          {isExpanded && (
+                            <m.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.22, ease: "easeInOut" }}
+                              className="overflow-hidden"
+                            >
+                              <div className="p-4 bg-surface-secondary/40 dark:bg-zinc-900/40 border-t border-border-muted dark:border-border/70 space-y-3">
+                                {suggestions && (
+                                  <div className="p-3 rounded-xl bg-surface dark:bg-zinc-800/60 border border-border-muted dark:border-zinc-700/60 space-y-1">
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted block">
+                                      Student Suggestions & Committee Feedback
+                                    </span>
+                                    <p className="text-xs sm:text-sm font-medium text-text-heading leading-relaxed">
+                                      {suggestions}
+                                    </p>
+                                  </div>
+                                )}
+
+                                {facultyReply && (
+                                  <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-950 dark:text-emerald-200 space-y-1">
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
+                                      Faculty Response / Action Taken
+                                    </span>
+                                    <p className="text-xs sm:text-sm font-medium leading-relaxed">{facultyReply}</p>
+                                  </div>
+                                )}
+
+                                {hodComments && (
+                                  <div className="p-3 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-950 dark:text-violet-200 space-y-1">
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-violet-600 dark:text-violet-400 block">
+                                      HOD Remarks
+                                    </span>
+                                    <p className="text-xs sm:text-sm font-medium leading-relaxed">{hodComments}</p>
+                                  </div>
+                                )}
                               </div>
-                            )}
-                            {facultyReply && (
-                              <div className="border-l-2 border-emerald-200 pl-3 dark:border-emerald-900/50">
-                                <p className="mb-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                                  Faculty Reply
-                                </p>
-                                <p className="text-sm text-text-secondary dark:text-text-secondary">{facultyReply}</p>
-                              </div>
-                            )}
-                            {hodComments && (
-                              <div className="border-l-2 border-violet-200 pl-3 dark:border-violet-900/50">
-                                <p className="mb-0.5 text-[10px] font-bold uppercase tracking-wider text-violet-600 dark:text-violet-400">
-                                  HOD Comments
-                                </p>
-                                <p className="text-sm text-text-secondary dark:text-text-secondary">{hodComments}</p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ))}
-              </div>
+                            </m.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    );
+                  }),
+                )}
+              </ListShell>
             )}
           </div>
         </div>
@@ -2549,6 +2927,22 @@ export default function CourseDetailSubpage({
           const updated = createTask(draft);
           setTasks(updated);
         }}
+      />
+
+      {/* Faculty Review Sheet Host */}
+      <FacultyReviewSheetHost target={facultyReviewTarget} onClose={closeFacultyReview} />
+
+      {/* Faculty Schedule Modal */}
+      <FacultyScheduleModal
+        open={Boolean(scheduleModalFaculty)}
+        onClose={() => {
+          setScheduleModalFaculty(null);
+          setScheduleModalErpId(undefined);
+        }}
+        groups={facultyGroups}
+        initialFaculty={scheduleModalFaculty || undefined}
+        initialErpId={scheduleModalErpId}
+        loading={groupsLoading}
       />
     </div>
   );

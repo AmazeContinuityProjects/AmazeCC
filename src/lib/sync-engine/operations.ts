@@ -3,13 +3,7 @@ import { credentialManager } from "./credential-manager";
 import { registerOp, type OpCtx } from "./operation-registry";
 import { dataAtoms } from "./state-bridge";
 import { toEngineError, assertApiSuccess } from "./errors";
-import {
-  clearPeerTimetables,
-  writeGrants,
-  writeIdentity,
-  writeOwnTimetable,
-  writePeers,
-} from "../social/storage";
+import { clearPeerTimetables, writeGrants, writeIdentity, writeOwnTimetable, writePeers } from "../social/storage";
 import type { SocialSyncPayload } from "../social/types";
 import { getActiveRegNumber } from "../social/identity";
 import { activeRegNumberAtom } from "../../store/socialAtoms";
@@ -33,11 +27,7 @@ let cachedSemester: string | null = null;
  * Run one request with its own start/done/error emits so the sync log shows
  * per-module results instead of a single opaque parent-op line.
  */
-async function trackedRequest<T>(
-  ctx: OpCtx,
-  opName: string,
-  request: () => Promise<T>
-): Promise<T> {
+async function trackedRequest<T>(ctx: OpCtx, opName: string, request: () => Promise<T>): Promise<T> {
   ctx.emit({ op: opName, phase: "start" });
   try {
     const result = await request();
@@ -72,11 +62,7 @@ registerOp({
   },
   async run(ctx, args) {
     const semesterId = args?.semesterId as string;
-    const data = await ctx.request(
-      "attendance",
-      { semesterId },
-      { auth: "vtop", retry: { max: 1 } },
-    );
+    const data = await ctx.request("attendance", { semesterId }, { auth: "vtop", retry: { max: 1 } });
     if (!data?.attRes || !data.attRes.attendance) {
       throw new Error("Session verification failed. Please try again.");
     }
@@ -117,10 +103,7 @@ registerOp({
     const collect = (courses: unknown) => {
       if (!Array.isArray(courses)) return;
       for (const c of courses) {
-        const id =
-          c && typeof c === "object"
-            ? (c as { classNbr?: unknown }).classNbr
-            : undefined;
+        const id = c && typeof c === "object" ? (c as { classNbr?: unknown }).classNbr : undefined;
         if (typeof id === "string" && id.length > 0) ids.add(id);
       }
     };
@@ -150,13 +133,11 @@ registerOp({
     const res = await trackedRequest(ctx, "marksStats", () =>
       ctx
         .request("marks/stats", { classIds }, { auth: "vtop" })
-        .then((r: any) => (assertApiSuccess(r, "Cohort statistics"), r))
+        .then((r: any) => (assertApiSuccess(r, "Cohort statistics"), r)),
     );
 
     const fresh = (res as { stats?: Record<string, unknown> })?.stats ?? {};
-    const prev =
-      (ctx.bridge.getAtom(dataAtoms.marksStatsAtom) as Record<string, unknown>) ??
-      {};
+    const prev = (ctx.bridge.getAtom(dataAtoms.marksStatsAtom) as Record<string, unknown>) ?? {};
     // Merge, never overwrite: a failed fetch for one semester must not wipe the
     // classes another one already resolved.
     const merged = { ...prev, ...fresh };
@@ -175,9 +156,7 @@ registerOp({
 
 async function fetchGrades(ctx: OpCtx, semesterId: string) {
   return trackedRequest(ctx, "grades", () =>
-    ctx
-      .request("grades", { semesterId }, { auth: "vtop" })
-      .then((r: any) => (assertApiSuccess(r, "Grades"), r)),
+    ctx.request("grades", { semesterId }, { auth: "vtop" }).then((r: any) => (assertApiSuccess(r, "Grades"), r)),
   );
 }
 
@@ -203,9 +182,7 @@ async function fetchCalendar(ctx: OpCtx, semesterId: string, calendarType: strin
 
 async function fetchAllGrades(ctx: OpCtx) {
   return trackedRequest(ctx, "all-grades", () =>
-    ctx
-      .request("all-grades", {}, { auth: "vtop" })
-      .then((r: any) => (assertApiSuccess(r, "All grades history"), r)),
+    ctx.request("all-grades", {}, { auth: "vtop" }).then((r: any) => (assertApiSuccess(r, "All grades history"), r)),
   );
 }
 
@@ -219,14 +196,7 @@ async function fetchProfileImages(ctx: OpCtx) {
 }
 
 /** The six modules `core` bundles, in bundle order. */
-export const CORE_CHILD_OPS = [
-  "grades",
-  "schedule",
-  "hostel",
-  "calendar",
-  "all-grades",
-  "profile-images",
-] as const;
+export const CORE_CHILD_OPS = ["grades", "schedule", "hostel", "calendar", "all-grades", "profile-images"] as const;
 
 export type CoreChildOp = (typeof CORE_CHILD_OPS)[number];
 
@@ -387,11 +357,7 @@ registerOp({
       await Promise.allSettled([
         runOrSkip("grades", () => fetchGrades(ctx, semesterId)),
         runOrSkip("schedule", () => fetchSchedule(ctx, semesterId)),
-        wanted.has("hostel")
-          ? isHosteller
-            ? fetchHostel(ctx)
-            : Promise.resolve({})
-          : Promise.resolve(null),
+        wanted.has("hostel") ? (isHosteller ? fetchHostel(ctx) : Promise.resolve({})) : Promise.resolve(null),
         runOrSkip("calendar", () => fetchCalendar(ctx, semesterId, calendarType)),
         runOrSkip("all-grades", () => fetchAllGrades(ctx)),
         runOrSkip("profile-images", () => fetchProfileImages(ctx)),
@@ -441,7 +407,13 @@ registerOp({
     try {
       const data = await ctx.request("od", { semesterId }, { auth: "vtop", retry: { max: 1 } });
       if (data?.success === false) return null;
-      const payload = { success: true, semesterId, totalCount: data?.totalCount ?? 0, note: data?.note ?? null, records: data?.records ?? [] };
+      const payload = {
+        success: true,
+        semesterId,
+        totalCount: data?.totalCount ?? 0,
+        note: data?.note ?? null,
+        records: data?.records ?? [],
+      };
       try {
         storage.officialOd.set(semesterId, payload);
       } catch {}
@@ -492,7 +464,8 @@ registerOp({
     needsSemester: true,
   },
   async run(ctx, args) {
-    const allGradesRes = (args?.allGradesRes as { grades?: Record<string, unknown> }) || (storage.allGrades.get() as any) || {};
+    const allGradesRes =
+      (args?.allGradesRes as { grades?: Record<string, unknown> }) || (storage.allGrades.get() as any) || {};
     const currSemesterID = args?.semesterId as string;
     const pastSemesters = Object.keys(allGradesRes?.grades || {}).filter((s) => s !== currSemesterID);
     if (pastSemesters.length === 0) return;
@@ -524,7 +497,7 @@ registerOp({
       const res = await ctx.request(
         "bulk",
         { endpoints: ["ept-schedule", "acknowledgement"] },
-        { auth: "vtop", retry: { max: 0 } }
+        { auth: "vtop", retry: { max: 0 } },
       );
       const results = (res as { results?: Record<string, { success?: boolean }> } | null)?.results ?? {};
       if (results["ept-schedule"]?.success) storage.cache.set("ept_schedule", results["ept-schedule"]);
@@ -610,7 +583,7 @@ registerOp({
             password: ids.VtopPassword,
             ...(sid ? { jsessionid: sid } : {}),
           },
-          { auth: "none", retry: { max: 0 } }
+          { auth: "none", retry: { max: 0 } },
         );
       const [eventsRes, publicEvents] = await Promise.all([
         (async () => {
@@ -618,9 +591,7 @@ registerOp({
           let r: any = await fetchProfile(jsessionid);
           if ((r as { reauthenticate?: boolean } | null)?.reauthenticate) {
             credentialManager.clearEventHub();
-            const fresh = await credentialManager
-              .ensureEventHubSession(ids, { demoMode })
-              .catch(() => "");
+            const fresh = await credentialManager.ensureEventHubSession(ids, { demoMode }).catch(() => "");
             r = await fetchProfile(fresh);
           }
           return r;
@@ -643,11 +614,7 @@ registerOp({
 });
 
 /** Bulk endpoints gated by `syncAdditionalData` (registrations). */
-export const BULK_ADDITIONAL_ENDPOINTS = [
-  "exc-registration",
-  "minor-honour",
-  "course-completion",
-] as const;
+export const BULK_ADDITIONAL_ENDPOINTS = ["exc-registration", "minor-honour", "course-completion"] as const;
 
 /** Bulk endpoints gated by `syncProfileData` (profile + payments + library). */
 export const BULK_PROFILE_ENDPOINTS = [
@@ -662,10 +629,7 @@ export const BULK_PROFILE_ENDPOINTS = [
   "wallet",
 ] as const;
 
-export const ALL_BULK_ENDPOINTS: readonly string[] = [
-  ...BULK_ADDITIONAL_ENDPOINTS,
-  ...BULK_PROFILE_ENDPOINTS,
-];
+export const ALL_BULK_ENDPOINTS: readonly string[] = [...BULK_ADDITIONAL_ENDPOINTS, ...BULK_PROFILE_ENDPOINTS];
 
 /**
  * The bulk endpoints `/api/bulk` can run inside one invocation. Everything not
@@ -722,10 +686,7 @@ registerOp({
     // Granular subset: custom modes pass `only` to cache some endpoints
     // without the whole sweep. Unknown names are dropped, never fetched.
     const only = args?.only as string[] | undefined;
-    const wanted =
-      only && only.length > 0
-        ? bulkEndpoints.filter((p) => only.includes(p))
-        : bulkEndpoints;
+    const wanted = only && only.length > 0 ? bulkEndpoints.filter((p) => only.includes(p)) : bulkEndpoints;
 
     // Split into the endpoints that /api/bulk can run together and the ones that
     // must still be fetched individually.
@@ -738,11 +699,7 @@ registerOp({
     const results: Record<string, unknown> = {};
     if (batched.length > 0) {
       try {
-        const res = await ctx.request(
-          "bulk",
-          { endpoints: batched },
-          { auth: "vtop", retry: { max: 0 } }
-        );
+        const res = await ctx.request("bulk", { endpoints: batched }, { auth: "vtop", retry: { max: 0 } });
         const r = (res as { results?: Record<string, unknown> } | null)?.results;
         if (r) Object.assign(results, r);
       } catch {
@@ -790,17 +747,14 @@ registerOp({
       // through; otherwise the server resolves the linked account itself.
       const username = args?.username as string | undefined;
       const pass = (args?.pass ?? args?.password) as string | undefined;
-      const body: Record<string, unknown> =
-        username && pass ? { username, pass } : {};
+      const body: Record<string, unknown> = username && pass ? { username, pass } : {};
       const res = await ctx.request("lms-data", body, { auth: "vtop", retry: { max: 0 } });
       if (Array.isArray(res)) {
         // Preserve per-course `hidden` flags across refreshes.
         try {
           const prev = JSON.parse(localStorage.getItem("moodleData") || "[]");
           const merged = res.map((item: any) => {
-            const prevItem = Array.isArray(prev)
-              ? prev.find((p: any) => p?.url === item?.url)
-              : undefined;
+            const prevItem = Array.isArray(prev) ? prev.find((p: any) => p?.url === item?.url) : undefined;
             return { ...item, hidden: prevItem?.hidden ?? false };
           });
           localStorage.setItem("moodleData", JSON.stringify(merged));
@@ -863,6 +817,33 @@ registerOp({
   },
 });
 
+registerOp({
+  name: "qcm",
+  auth: "vtop",
+  meta: {
+    label: "Quality Circle Meeting (QCM)",
+    description: "Course committee feedback, suggestions and faculty remarks.",
+    category: "academics",
+    cost: "light",
+    needsSemester: true,
+  },
+  async run(ctx, args) {
+    const res = await ctx.request(
+      "qcm-view",
+      { semesterId: args?.semesterId || "" },
+      { auth: "vtop", retry: { max: 1 } },
+    );
+    assertApiSuccess(res, "Quality Circle Meeting (QCM)");
+    if (res && typeof res === "object") {
+      try {
+        const payload = (res as any).data || res;
+        storage.qcmData.set(payload);
+      } catch {}
+    }
+    return res;
+  },
+});
+
 /**
  * Social timetable sharing.
  *
@@ -911,17 +892,13 @@ registerOp({
     }
 
     const semesterId =
-      (args?.proposedSemesterId as string) ||
-      (args?.semesterId as string) ||
-      (args?.activeSem as string) ||
-      "";
+      (args?.proposedSemesterId as string) || (args?.semesterId as string) || (args?.activeSem as string) || "";
 
     try {
-      const res = (await ctx.request(
-        "social/identity/sync",
-        semesterId ? { proposedSemesterId: semesterId } : {},
-        { auth: "vtop", retry: { max: 1 } }
-      )) as SocialSyncPayload | null;
+      const res = (await ctx.request("social/identity/sync", semesterId ? { proposedSemesterId: semesterId } : {}, {
+        auth: "vtop",
+        retry: { max: 1 },
+      })) as SocialSyncPayload | null;
 
       if (!res || res.success === false || !res.identity) {
         // Previously this returned `null` with nothing recorded, so an
@@ -930,7 +907,7 @@ registerOp({
         // changed". Surface it as a real failure instead.
         throw toEngineError(
           (res as { message?: string } | null)?.message ||
-            "Social sync did not return an identity — the VTOP session may have expired."
+            "Social sync did not return an identity — the VTOP session may have expired.",
         );
       }
 
