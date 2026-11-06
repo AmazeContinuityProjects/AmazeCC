@@ -32,6 +32,7 @@ import { type GeneratorErrorCode } from "./logic/generator";
 import { useGenerationRun } from "./hooks/useGenerationRun";
 import { RANKING_FACTORS, type RankingFactor } from "@/lib/ffcsRanking";
 import { track } from "@/lib/analytics";
+import posthog from "posthog-js";
 import type { FFCSSettings } from "@/lib/ffcsSettings";
 import { storage } from "@/lib/storage";
 import {
@@ -79,6 +80,10 @@ import FacultyPriorityModal from "./components/modals/FacultyPriorityModal";
 import { loadVitfacRankingData } from "@/lib/vitfacService";
 import type { FacultyRatingLookup } from "@/lib/ffcsFacultyRanking";
 import { DAYS_OF_WEEK, timeToMinutes, type DayId } from "@/lib/slots";
+
+const posthogConfigured = Boolean(
+  process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST,
+);
 
 const GENERATOR_TIME_PREFERENCE_OPTIONS = [
   {
@@ -926,6 +931,12 @@ export function FFCSGeneratorSubpage({
     // from last time would silently hide the new run's options.
     setResultFilters(DEFAULT_RESULT_FILTERS);
     track("generation_started", { courses: generatorTargets.length, ranking: `${enabledFactors.length} factors` });
+    if (posthogConfigured) {
+      posthog.capture("timetable_generation_started", {
+        target_course_count: generatorTargets.length,
+        ranking_factor_count: enabledFactors.length,
+      });
+    }
     const startedAt = performance.now();
     let facultyRatings: FacultyRatingLookup = {};
     let facultyRatingsAvailable = false;
@@ -1009,12 +1020,17 @@ export function FFCSGeneratorSubpage({
       runOptions,
     );
 
-    const settle = (found: number, capped: boolean) =>
-      track("generation_done", {
-        found,
-        capped,
-        ms: Math.round(performance.now() - startedAt),
-      });
+    const settle = (found: number, capped: boolean) => {
+      const durationMs = Math.round(performance.now() - startedAt);
+      track("generation_done", { found, capped, ms: durationMs });
+      if (posthogConfigured) {
+        posthog.capture("timetable_generation_completed", {
+          result_count: found,
+          is_capped: capped,
+          duration_ms: durationMs,
+        });
+      }
+    };
 
     if (outcome.kind === "error") {
       settle(0, false);
@@ -1216,6 +1232,9 @@ export function FFCSGeneratorSubpage({
     });
     setTimetables((prev) => [...prev, ...selected]);
     track("timetable_saved", { source: "generator" });
+    if (posthogConfigured) {
+      posthog.capture("timetable_saved", { source: "generator", timetable_count: selected.length });
+    }
     if (selected.length > 0) setActiveTimetableId(selected[0].id);
     setStagedTimetables([]);
     setSelectedStagedIds(new Set());
@@ -1455,6 +1474,9 @@ export function FFCSGeneratorSubpage({
         onClick={() => {
           setTimetables((prev) => [...prev, generatorPreviewTimetable]);
           track("timetable_saved", { source: "generator" });
+          if (posthogConfigured) {
+            posthog.capture("timetable_saved", { source: "generator", timetable_count: 1 });
+          }
           setActiveTimetableId(generatorPreviewTimetable.id);
           setStagedTimetables([]);
           setSelectedStagedIds(new Set());

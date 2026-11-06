@@ -101,14 +101,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning
       className={`${geist.className} ${geistMono.className} ${dmSans.className}`}
     >
-      <head>
-        <script
-          id="amaze-session-early-detect"
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var k=localStorage.getItem("IDs")||localStorage.getItem("username")||(localStorage.getItem("demoMode")==="true");if(k){document.documentElement.classList.add("has-stored-session");}}catch(e){}})();`,
-          }}
-        />
-      </head>
       <body suppressHydrationWarning className="antialiased font-sans">
         <IconUpdater />
         <ServiceWorkerRegistrar />

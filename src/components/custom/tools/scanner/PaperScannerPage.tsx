@@ -32,10 +32,15 @@ import { createScanStore, isIndexedDbAvailable, type ScanStore } from "@/lib/sca
 import { loadScannerSettings } from "@/lib/scanner/settings";
 import { decodeToRaster } from "@/lib/scanner/rasterIO";
 import type { CleanupMode, PaperKind, Quad, Raster, ScanMeta, ScanRecord } from "@/lib/scanner/types";
+import posthog from "posthog-js";
 import ScannerCamera from "./ScannerCamera";
 import ScannerEditor from "./ScannerEditor";
 import PaperDetailSheet from "./PaperDetailSheet";
 import ScannerSettingsSheet from "./ScannerSettingsSheet";
+
+const posthogConfigured = Boolean(
+  process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST,
+);
 
 /**
  * Paper Scanner: capture → edge detect → warp/cleanup → PDF → OCR → classify,
@@ -282,6 +287,7 @@ export default function PaperScannerPage({ onBack }: PaperScannerPageProps) {
     setProgress({ stage: "pages", done: 0, total: pages.length });
     setMode({ name: "processing", raster: finalRaster });
 
+    let warningCount = 0;
     try {
       const record = await processScan(
         pages,
@@ -290,9 +296,19 @@ export default function PaperScannerPage({ onBack }: PaperScannerPageProps) {
           cleanup,
           signal: controller.signal,
           onProgress: setProgress,
-          onWarning: (w) => setWarnings((prev) => [...prev, w]),
+          onWarning: (w) => {
+            warningCount += 1;
+            setWarnings((prev) => [...prev, w]);
+          },
         },
       );
+      if (posthogConfigured) {
+        posthog.capture("paper_scan_completed", {
+          page_count: pages.length,
+          cleanup_mode: cleanup,
+          warning_count: warningCount,
+        });
+      }
       setMetas((prev) => [record.meta, ...(prev ?? [])]);
       setPending([]);
       setUnprocessedQueue([]);

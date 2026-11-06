@@ -21,6 +21,7 @@ export const hostelActiveSubTabAtom = atom<string>("mess");
 
 export const commandPaletteOpenAtom = atom<boolean>(false);
 export const isShortcutsHelpOpenAtom = atom<boolean>(false);
+export const isFeedbackModalOpenAtom = atom<boolean>(false);
 
 /**
  * Set by the command palette's quick-add command; consumed by TasksTab to open

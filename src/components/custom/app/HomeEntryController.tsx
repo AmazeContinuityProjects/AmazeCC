@@ -84,19 +84,5 @@ export default function HomeEntryController() {
   }
 
   // Guest experience: rendered statically on server and hydrated immediately without spinner flash.
-  return (
-    <>
-      <div
-        className="opening-screen-fallback hidden min-h-screen items-center justify-center gap-3 bg-slate-50 text-slate-600 dark:bg-[#03060f] dark:text-slate-300"
-        role="status"
-        aria-label="Opening your workspace"
-      >
-        <span className="h-5 w-5 animate-spin rounded-full border-2 border-current border-r-transparent" />
-        <span className="text-sm font-semibold">Opening your workspace…</span>
-      </div>
-      <div className="guest-experience-root flex min-h-screen flex-col">
-        <GuestExperience onGetStarted={handleGetStarted} onTryDemo={handleTryDemo} />
-      </div>
-    </>
-  );
+  return <GuestExperience onGetStarted={handleGetStarted} onTryDemo={handleTryDemo} />;
 }

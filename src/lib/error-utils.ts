@@ -1,3 +1,5 @@
+import { isPostHogConfigured, posthog } from "./posthog";
+
 type ErrorLevel = "silent" | "log" | "warn" | "error";
 
 export interface ReportErrorOptions {
@@ -19,10 +21,22 @@ export function reportError(err: unknown, options: ReportErrorOptions = {}): voi
       break;
     case "warn":
       console.warn(`${prefix} ${message}`, err);
+      if (isPostHogConfigured()) {
+        try {
+          posthog.capture("app_warning", { message, context, userMessage });
+        } catch {}
+      }
       break;
     case "error":
     default:
       console.error(`${prefix} ${message}`, err);
+      if (isPostHogConfigured()) {
+        try {
+          posthog.captureException(err, {
+            extra: { context, userMessage, level },
+          });
+        } catch {}
+      }
       break;
   }
 

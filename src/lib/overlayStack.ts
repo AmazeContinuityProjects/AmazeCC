@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { continueBackPastDeadEntry, readHistoryOp, writeHistoryEntry } from "./historyStack";
+import { trackModalClose, trackModalInteraction, trackModalOpen } from "./posthog";
 
 interface OverlayEntry {
   id: string;
@@ -115,8 +116,49 @@ export function useOverlayBack(id: string, open: boolean, onClose: () => void | 
     removeEntry(id);
     stack.push({ id, close: () => closeRef.current() });
     writeHistoryEntry("push", { op: { kind: "overlay", id } });
+
+    const startTime = Date.now();
+    let interactionCount = 0;
+    let hasInteracted = false;
+
+    // Track modal open in PostHog
+    trackModalOpen(id, { depth: stack.length });
+
+    const handleInteraction = () => {
+      interactionCount++;
+      if (!hasInteracted) {
+        hasInteracted = true;
+        trackModalInteraction(id, "first_interaction", {
+          interaction_count: 1,
+          time_to_first_interaction_ms: Date.now() - startTime,
+        });
+      }
+    };
+
+    const handlePointerDown = () => {
+      if (isTopOverlay(id)) handleInteraction();
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" && isTopOverlay(id)) handleInteraction();
+    };
+
+    window.addEventListener("pointerdown", handlePointerDown, { passive: true });
+    window.addEventListener("keydown", handleKeyDown, { passive: true });
+
     return () => {
+      window.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("keydown", handleKeyDown);
       removeEntry(id);
+
+      const durationMs = Date.now() - startTime;
+      const parentModalId = stack.length > 0 ? stack[stack.length - 1].id : null;
+      trackModalClose(id, {
+        duration_ms: durationMs,
+        interacted: hasInteracted,
+        interaction_count: interactionCount,
+        parentModalId,
+      });
     };
   }, [id, open]);
 }

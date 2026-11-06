@@ -24,6 +24,17 @@ vi.mock("next-themes", () => ({
   }),
 }));
 
+// Provide a mock IntersectionObserver for framer-motion in jsdom
+class MockIntersectionObserver {
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+}
+if (typeof window !== "undefined") {
+  window.IntersectionObserver = MockIntersectionObserver as any;
+  globalThis.IntersectionObserver = MockIntersectionObserver as any;
+}
+
 describe("HomeEntryController", () => {
   beforeEach(() => {
     localStorage.clear();
@@ -90,12 +101,11 @@ describe("HomeEntryController", () => {
     });
   });
 
-  it("returns cleanly to guest experience and removes session class when user signs out", async () => {
+  it("returns cleanly to guest experience when user signs out", async () => {
     storage.ids.set({
       VtopUsername: "21BCE1234",
       VtopPassword: "password123",
     } as any);
-    document.documentElement.classList.add("has-stored-session");
 
     render(<HomeEntryController />);
 
@@ -110,7 +120,6 @@ describe("HomeEntryController", () => {
       expect(screen.getByText("Your VIT life,")).toBeDefined();
     });
 
-    expect(document.documentElement.classList.contains("has-stored-session")).toBe(false);
     expect(screen.queryByTestId("authenticated-workspace")).toBeNull();
   });
 });

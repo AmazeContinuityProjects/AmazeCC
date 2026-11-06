@@ -1,19 +1,17 @@
 "use client";
 
 import { useEffect } from "react";
+import posthog from "posthog-js";
 import ErrorDiagnosticCard from "@/components/custom/ErrorDiagnosticCard";
 import { isChunkLoadError, recoverFromChunkLoad } from "@/lib/chunkRecovery";
 
 type ErrorWithDigest = Error & { digest?: string };
 
-export default function GlobalError({
-  error,
-  reset,
-}: {
-  error: ErrorWithDigest;
-  reset: () => void;
-}) {
+export default function GlobalError({ error, reset }: { error: ErrorWithDigest; reset: () => void }) {
   useEffect(() => {
+    if (process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST) {
+      posthog.captureException(error);
+    }
     console.error("[AmazeCC global app error]", error);
     if (!isChunkLoadError(error)) return;
 

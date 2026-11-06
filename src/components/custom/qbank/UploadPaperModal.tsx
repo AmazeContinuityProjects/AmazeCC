@@ -4,8 +4,25 @@ import { api } from "@/lib/sync-engine";
 import BottomSheet from "../shared/BottomSheet";
 import { Input, Select, Button } from "@amazecontinuityprojects/amazeui";
 import { QBankCourse } from "@/types/qbank.types";
+import posthog from "posthog-js";
 
-export default function UploadPaperModal({ isOpen, onClose, courses, username, isAdmin = false }: { isOpen: boolean, onClose: () => void, courses: QBankCourse[], username: string, isAdmin?: boolean }) {
+const posthogConfigured = Boolean(
+  process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST,
+);
+
+export default function UploadPaperModal({
+  isOpen,
+  onClose,
+  courses,
+  username,
+  isAdmin = false,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  courses: QBankCourse[];
+  username: string;
+  isAdmin?: boolean;
+}) {
   const [courseCode, setCourseCode] = useState("");
   const [customCourseCode, setCustomCourseCode] = useState("");
   const [useCustomCode, setUseCustomCode] = useState(false);
@@ -37,7 +54,7 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
         examYear: year,
         uploaderRegNo: username,
         fileUrl,
-        isAdmin
+        isAdmin,
       };
 
       const json = (await api("qbank/upload", {
@@ -49,6 +66,14 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
         throw new Error(json.error || "Upload failed");
       }
 
+      if (posthogConfigured) {
+        posthog.capture("qbank_paper_submitted", {
+          paper_type: paperType,
+          semester,
+          year,
+          is_admin: isAdmin,
+        });
+      }
       setSuccess(true);
       setTimeout(() => {
         onClose();
@@ -68,7 +93,13 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
       overlayId="qbank-upload"
       maxWidth="max-w-lg"
       title="Upload Past Paper Link"
-      subtitle={isAdmin ? <span className="bg-green-100 text-green-700 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full dark:bg-green-900/30 dark:text-green-400">Admin Mode</span> : undefined}
+      subtitle={
+        isAdmin ? (
+          <span className="bg-green-100 text-green-700 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full dark:bg-green-900/30 dark:text-green-400">
+            Admin Mode
+          </span>
+        ) : undefined
+      }
       closeLabel="Close upload form"
     >
       {success ? (
@@ -83,142 +114,138 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
         </div>
       ) : (
         <form onSubmit={handleUpload} className="space-y-5 pt-1">
-            {error && (
-              <div className="p-3 rounded-lg bg-red-50 text-red-700 text-sm border border-red-200 flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            {/* Course Code */}
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <label className="block text-sm font-medium text-foreground">Course Code</label>
-                <button
-                  type="button"
-                  onClick={() => setUseCustomCode(!useCustomCode)}
-                  className="flex items-center gap-1 text-xs text-accent hover:underline"
-                >
-                  <Plus className="w-3 h-3" />
-                  {useCustomCode ? "Select from list" : "Enter custom code"}
-                </button>
-              </div>
-              {useCustomCode ? (
-                <Input
-                  type="text"
-                  required
-                  value={customCourseCode}
-                  onChange={(e: any) => setCustomCourseCode(e.target.value)}
-                  placeholder="e.g. CSE2001"
-                  className="uppercase placeholder:normal-case"
-                />
-              ) : (
-                <Select
-                  value={courseCode}
-                  onChange={(e: any) => setCourseCode(e.target.value)}
-                  options={[
-                    { value: "", label: "Select a course" },
-                    ...courses.map((c: any) => ({
-                      value: c.code,
-                      label: `${c.code} - ${c.title}`
-                    }))
-                  ]}
-                />
-              )}
+          {error && (
+            <div className="p-3 rounded-lg bg-red-50 text-red-700 text-sm border border-red-200 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+              <span>{error}</span>
             </div>
+          )}
 
-            {/* Paper Type + Sem + Year */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Type</label>
-                <Select
-                  value={paperType}
-                  onChange={(e: any) => setPaperType(e.target.value)}
-                  options={[
-                    { value: "CAT 1", label: "CAT 1" },
-                    { value: "CAT 2", label: "CAT 2" },
-                    { value: "FAT", label: "FAT" },
-                    { value: "Quiz", label: "Quiz" },
-                    { value: "Assignment", label: "Assignment" }
-                  ]}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Sem</label>
-                <Select
-                  value={semester}
-                  onChange={(e: any) => setSemester(e.target.value)}
-                  options={[
-                    { value: "Fall", label: "Fall" },
-                    { value: "Winter", label: "Winter" },
-                    { value: "Summer", label: "Summer" }
-                  ]}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Year</label>
-                <Input
-                  type="number"
-                  required
-                  value={year}
-                  onChange={(e: any) => setYear(e.target.value)}
-                />
-              </div>
+          {/* Course Code */}
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <label className="block text-sm font-medium text-foreground">Course Code</label>
+              <button
+                type="button"
+                onClick={() => setUseCustomCode(!useCustomCode)}
+                className="flex items-center gap-1 text-xs text-accent hover:underline"
+              >
+                <Plus className="w-3 h-3" />
+                {useCustomCode ? "Select from list" : "Enter custom code"}
+              </button>
             </div>
-
-            {/* Title */}
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">Title</label>
+            {useCustomCode ? (
               <Input
                 type="text"
                 required
-                placeholder="e.g. Winter Semester FAT Question Paper"
-                value={title}
-                onChange={(e: any) => setTitle(e.target.value)}
+                value={customCourseCode}
+                onChange={(e: any) => setCustomCourseCode(e.target.value)}
+                placeholder="e.g. CSE2001"
+                className="uppercase placeholder:normal-case"
               />
-            </div>
+            ) : (
+              <Select
+                value={courseCode}
+                onChange={(e: any) => setCourseCode(e.target.value)}
+                options={[
+                  { value: "", label: "Select a course" },
+                  ...courses.map((c: any) => ({
+                    value: c.code,
+                    label: `${c.code} - ${c.title}`,
+                  })),
+                ]}
+              />
+            )}
+          </div>
 
-            {/* PDF File Link */}
+          {/* Paper Type + Sem + Year */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1">
-                Link to Document (Google Drive, Dropbox, etc.)
-              </label>
-              <Input
-                type="url"
-                required
-                value={fileUrl}
-                onChange={(e: any) => setFileUrl(e.target.value)}
-                placeholder="https://drive.google.com/..."
+              <label className="block text-sm font-medium text-foreground mb-1">Type</label>
+              <Select
+                value={paperType}
+                onChange={(e: any) => setPaperType(e.target.value)}
+                options={[
+                  { value: "CAT 1", label: "CAT 1" },
+                  { value: "CAT 2", label: "CAT 2" },
+                  { value: "FAT", label: "FAT" },
+                  { value: "Quiz", label: "Quiz" },
+                  { value: "Assignment", label: "Assignment" },
+                ]}
               />
             </div>
-
-            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-yellow-500 mt-0.5 shrink-0" />
-              <div className="text-sm text-yellow-600 dark:text-yellow-400">
-                <strong>Important:</strong> Please ensure the link is set to "Anyone with the link can view" before submitting. Your paper will be reviewed by an admin before being published to the Q-Bank.
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">Sem</label>
+              <Select
+                value={semester}
+                onChange={(e: any) => setSemester(e.target.value)}
+                options={[
+                  { value: "Fall", label: "Fall" },
+                  { value: "Winter", label: "Winter" },
+                  { value: "Summer", label: "Summer" },
+                ]}
+              />
             </div>
-
-            {/* Submit */}
-            <div className="pt-2">
-              <Button
-                type="submit"
-                disabled={!effectiveCourseCode || uploading}
-                className="w-full flex items-center justify-center gap-2 py-3"
-              >
-                {uploading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    Uploading...
-                  </>
-                ) : (
-                  <>
-                    <UploadCloud className="w-5 h-5" /> Submit Paper
-                  </>
-                )}
-              </Button>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">Year</label>
+              <Input type="number" required value={year} onChange={(e: any) => setYear(e.target.value)} />
             </div>
-          </form>
+          </div>
+
+          {/* Title */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1">Title</label>
+            <Input
+              type="text"
+              required
+              placeholder="e.g. Winter Semester FAT Question Paper"
+              value={title}
+              onChange={(e: any) => setTitle(e.target.value)}
+            />
+          </div>
+
+          {/* PDF File Link */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1">
+              Link to Document (Google Drive, Dropbox, etc.)
+            </label>
+            <Input
+              type="url"
+              required
+              value={fileUrl}
+              onChange={(e: any) => setFileUrl(e.target.value)}
+              placeholder="https://drive.google.com/..."
+            />
+          </div>
+
+          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-yellow-500 mt-0.5 shrink-0" />
+            <div className="text-sm text-yellow-600 dark:text-yellow-400">
+              <strong>Important:</strong> Please ensure the link is set to "Anyone with the link can view" before
+              submitting. Your paper will be reviewed by an admin before being published to the Q-Bank.
+            </div>
+          </div>
+
+          {/* Submit */}
+          <div className="pt-2">
+            <Button
+              type="submit"
+              disabled={!effectiveCourseCode || uploading}
+              className="w-full flex items-center justify-center gap-2 py-3"
+            >
+              {uploading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <UploadCloud className="w-5 h-5" /> Submit Paper
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
       )}
     </BottomSheet>
   );
