@@ -322,6 +322,9 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
       demo_mode: demoMode,
       app_version: buildInfo.commitHash,
     });
+    posthog.register({
+      registration_number: regNumber,
+    });
     identifiedDistinctId.current = identity.distinctId;
   }, [
     activeRegNumber,

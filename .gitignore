@@ -58,6 +58,9 @@ src/data/buildInfo.json
 config.bat
 .env
 
+# posthog wizard artifacts
+.posthog-wizard-cache
+
 # LibreOffice lock files
 .~lock.*
 

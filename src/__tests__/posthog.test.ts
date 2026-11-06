@@ -17,6 +17,9 @@ import {
   resolveModalInfo,
   resolveScreenFeature,
   trackFeatureUsage,
+  trackMetricCount,
+  trackMetricGauge,
+  trackMetricHistogram,
 } from "../lib/posthog";
 
 vi.mock("posthog-js", () => {
@@ -31,6 +34,11 @@ vi.mock("posthog-js", () => {
     onFeatureFlags: vi.fn(),
     get_distinct_id: vi.fn(() => "test-user-123"),
     get_session_id: vi.fn(() => "test-session-456"),
+    metrics: {
+      count: vi.fn(),
+      gauge: vi.fn(),
+      histogram: vi.fn(),
+    },
     __loaded: true,
   };
   return {
@@ -201,6 +209,17 @@ describe("posthog integration utilities", () => {
   it("captures custom events", () => {
     trackCustomEvent("custom_experiment", { variant: "A" });
     expect(posthog.capture).toHaveBeenCalledWith("custom_experiment", { variant: "A" });
+  });
+
+  it("records application metrics counters, gauges, and histograms", () => {
+    trackMetricCount("sync_completed", 1, { status: "success" });
+    expect((posthog as any).metrics.count).toHaveBeenCalledWith("sync_completed", 1, { status: "success" });
+
+    trackMetricGauge("active_courses_count", 6);
+    expect((posthog as any).metrics.gauge).toHaveBeenCalledWith("active_courses_count", 6, undefined);
+
+    trackMetricHistogram("vtop_fetch_duration_ms", 342, { unit: "ms" });
+    expect((posthog as any).metrics.histogram).toHaveBeenCalledWith("vtop_fetch_duration_ms", 342, { unit: "ms" });
   });
 
   it("categorizes modals into feature buckets and resolves friendly names", () => {

@@ -157,22 +157,30 @@ export function getPostHogUserIdentifiers(options?: {
 
 /**
  * Associate events with a verified user identity and persist person properties.
+ * Also registers `registration_number` as a super property on all future events.
  */
 export function identifyPostHogUser(distinctId: string, properties?: Record<string, unknown>): void {
   if (!isPostHogConfigured() || !distinctId) return;
   try {
     posthog.identify(distinctId, properties);
+    const reg = (properties?.registration_number as string) || distinctId;
+    posthog.register({
+      registration_number: reg,
+    });
   } catch (err) {
     console.debug("[PostHog identify]", err);
   }
 }
 
 /**
- * Clear the current user identity on sign out.
+ * Clear the current user identity and super properties on sign out.
  */
 export function resetPostHogUser(): void {
   if (!isPostHogConfigured()) return;
   try {
+    posthog.unregister("registration_number");
+    posthog.unregister("current_modal");
+    posthog.unregister("current_modal_name");
     posthog.reset();
   } catch (err) {
     console.debug("[PostHog reset]", err);
@@ -655,6 +663,51 @@ export function submitPostHogFeedback(data: UserFeedbackSubmission): boolean {
   } catch (err) {
     console.error("[PostHog submitFeedback]", err);
     return false;
+  }
+}
+
+/**
+ * Records a counter metric (values that increment).
+ */
+export function trackMetricCount(name: string, value: number = 1, options?: Record<string, unknown>): void {
+  if (!isPostHogConfigured()) return;
+  try {
+    const ph = posthog as unknown as { metrics?: { count: (name: string, value?: number, options?: unknown) => void } };
+    ph.metrics?.count(name, value, options);
+  } catch (err) {
+    console.debug("[PostHog metric count]", err);
+  }
+}
+
+/**
+ * Records a gauge metric (values that fluctuate up and down).
+ */
+export function trackMetricGauge(name: string, value: number, options?: Record<string, unknown>): void {
+  if (!isPostHogConfigured()) return;
+  try {
+    const ph = posthog as unknown as { metrics?: { gauge: (name: string, value: number, options?: unknown) => void } };
+    ph.metrics?.gauge(name, value, options);
+  } catch (err) {
+    console.debug("[PostHog metric gauge]", err);
+  }
+}
+
+/**
+ * Records a distribution/histogram metric (e.g. latency in ms, payload sizes).
+ */
+export function trackMetricHistogram(
+  name: string,
+  value: number,
+  options?: { unit?: string; [key: string]: unknown },
+): void {
+  if (!isPostHogConfigured()) return;
+  try {
+    const ph = posthog as unknown as {
+      metrics?: { histogram: (name: string, value: number, options?: unknown) => void };
+    };
+    ph.metrics?.histogram(name, value, options);
+  } catch (err) {
+    console.debug("[PostHog metric histogram]", err);
   }
 }
 

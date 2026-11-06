@@ -51,3 +51,7 @@ jobs:
           NEXT_PUBLIC_UNICC_API_URL: ${{ vars.NEXT_PUBLIC_UNICC_API_URL || 'https://api-unicc.arya22.dev' }}
           NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN: ${{ secrets.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN || vars.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN || 'phc_obkUKCrFiFpJGfqSbx9LsJzmZDNdzdHhvpSFDhxSwGUt' }}
           NEXT_PUBLIC_POSTHOG_HOST: ${{ vars.NEXT_PUBLIC_POSTHOG_HOST || 'https://shoot.amazecc.com' }}
+          # Source-map upload is optional when these are unset (for example on forked PRs).
+          POSTHOG_API_KEY: ${{ secrets.POSTHOG_API_KEY }}
+          POSTHOG_PROJECT_ID: ${{ vars.POSTHOG_PROJECT_ID }}
+          POSTHOG_HOST: ${{ vars.POSTHOG_HOST }}

@@ -116,18 +116,20 @@ export function StopsTimeline({
   limit,
 }: {
   stops: BusStop[];
-  /** The sheet is height-constrained; the registration card shows all of them. */
+  /** Optional cap on stops shown (e.g. for preview cards). */
   limit?: number;
 }) {
   const ordered = [...stops].sort((a, b) => a.stopOrder - b.stopOrder);
   const shown = limit ? ordered.slice(0, limit) : ordered;
   if (shown.length === 0) return null;
 
+  const hasMore = ordered.length > shown.length;
+
   return (
     <div className={LIST_SHELL}>
       {shown.map((stop, i) => {
         const isFirst = i === 0;
-        const isLast = i === shown.length - 1 && !limit;
+        const isLast = i === shown.length - 1 && !hasMore;
         return (
           <div key={`${stop.stopOrder}-${stop.stopName}`} className="flex items-start gap-3 py-2.5 px-4">
             <span className="shrink-0 w-11 text-right text-[10px] font-black font-outfit text-text-heading pt-0.5">

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   CalendarCheck,
   Clock,
@@ -52,12 +52,14 @@ import { isLabFatMarked, labFatPapersByDate, labSlotTokens, type LabFatPaper } f
 import { cn } from "@amazecontinuityprojects/amazeui";
 import { TILE } from "@/lib/uiTokens";
 import TimetableGrid from "../attendance/TimetableGrid";
+import DesktopCourseDetail from "../attendance/DesktopCourseDetail";
 import BottomSheet from "../shared/BottomSheet";
 import { useSyncTrigger } from "../shared/useSyncTrigger";
 import {
   EmptyPanel,
   IconButton,
   InsightCarousel,
+  StatTile,
   ListShell,
   SegmentedControl,
   useCarousel,
@@ -366,17 +368,41 @@ export default function SimplifiedMobileHome({
     setActiveTab("faculty-schedule");
   };
 
+  const [selectedCourseCode, setSelectedCourseCode] = useState<string | null>(null);
+  const [isDesktopViewport, setIsDesktopViewport] = useState(false);
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") {
+      const updateViewport = () => setIsDesktopViewport(window.innerWidth >= 1024);
+      updateViewport();
+      window.addEventListener("resize", updateViewport);
+      return () => window.removeEventListener("resize", updateViewport);
+    }
+    const media = window.matchMedia("(min-width: 1024px)");
+    const updateViewport = () => setIsDesktopViewport(media.matches);
+    updateViewport();
+    media.addEventListener("change", updateViewport);
+    return () => media.removeEventListener("change", updateViewport);
+  }, []);
+
   const handleCourseClick = (courseCode: string) => {
     if (!courseCode) return;
     const cleanCode = String(courseCode)
       .replace(/\([LPT]\)$/i, "")
       .trim();
-    try {
-      localStorage.setItem("course_dashboard_target", cleanCode);
-      localStorage.setItem("course_dashboard_tab", "overview");
-    } catch {}
-    setActiveTab("academics");
-    setActiveSubTab("course-dashboard");
+
+    setSelectedCourseCode(cleanCode);
+
+    const isAlreadySelected = selectedCourseCode && cleanCode.toUpperCase() === selectedCourseCode.toUpperCase();
+
+    if (!isDesktopViewport || isAlreadySelected) {
+      try {
+        localStorage.setItem("course_dashboard_target", cleanCode);
+        localStorage.setItem("course_dashboard_tab", "overview");
+      } catch {}
+      setActiveTab("academics");
+      setActiveSubTab("course-dashboard");
+    }
   };
 
   // Carousel slide index for the dynamic secondary stat card
@@ -686,9 +712,55 @@ export default function SimplifiedMobileHome({
     setGradesDisplayIsOpen,
   ]);
 
-  // Carousel auto-advance (state + timer live in the primitive)
-  const carousel = useCarousel(insightSlides.length);
-  const carouselSlides = useMemo<InsightSlide[]>(
+  const statsContainerRef = useRef<HTMLDivElement>(null);
+  const [statTileCount, setStatTileCount] = useState(2);
+
+  useEffect(() => {
+    const container = statsContainerRef.current;
+    if (!container) return;
+
+    const updateCount = (width: number) => {
+      if (width > 0) {
+        // Fits tiles of ~220px + 12px gap
+        const count = Math.max(2, Math.floor((width + 12) / (220 + 12)));
+        setStatTileCount(count);
+      }
+    };
+
+    updateCount(container.getBoundingClientRect().width);
+    if (typeof ResizeObserver !== "undefined") {
+      const observer = new ResizeObserver(([entry]) => updateCount(entry.contentRect.width));
+      observer.observe(container);
+      return () => observer.disconnect();
+    }
+
+    const handleResize = () => updateCount(container.getBoundingClientRect().width);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const attendanceTile = useMemo(
+    () => ({
+      id: "attendance",
+      label: "Attendance",
+      value:
+        overallAttendance.percentage > 0
+          ? `${overallAttendance.percentage.toFixed(settings?.decimalValues ? 1 : 0)}%`
+          : "—",
+      sub: `${overallAttendance.attended} of ${overallAttendance.total} attended`,
+      badge: overallAttendance.status,
+      badgeColor: undefined as string | undefined,
+      tone: overallAttendance.status === "Safe" ? "emerald" : overallAttendance.status === "Warning" ? "amber" : "red",
+      blur: undefined as string | undefined,
+      onClick: () => {
+        setActiveTab("attendance");
+        setActiveAttendanceSubTab("predictor");
+      },
+    }),
+    [overallAttendance, settings?.decimalValues, setActiveTab, setActiveAttendanceSubTab],
+  );
+
+  const secondaryTiles = useMemo(
     () =>
       insightSlides.map((s) => ({
         id: s.id,
@@ -696,12 +768,54 @@ export default function SimplifiedMobileHome({
         value: s.headline,
         sub: s.subline,
         badge: s.badge,
-        badgeClassName: s.badgeColor,
+        badgeColor: s.badgeColor,
+        tone:
+          s.id === "alerts"
+            ? "red"
+            : s.id === "cgpa"
+              ? "indigo"
+              : s.id === "credits"
+                ? "blue"
+                : s.id === "exam"
+                  ? "emerald"
+                  : s.id === "od"
+                    ? "emerald"
+                    : "amber",
         blur: s.id === "cgpa" && (settings?.CGPAHidden || settings?.blurGrades) ? "blur-[5px]" : undefined,
         onClick: s.onClick,
       })),
     [insightSlides, settings?.CGPAHidden, settings?.blurGrades],
   );
+
+  const allStatTiles = useMemo(() => [attendanceTile, ...secondaryTiles], [attendanceTile, secondaryTiles]);
+
+  const hasStatOverflow = allStatTiles.length > statTileCount;
+  const directTileCount = hasStatOverflow ? Math.max(1, statTileCount - 1) : allStatTiles.length;
+  const directTiles = useMemo(() => allStatTiles.slice(0, directTileCount), [allStatTiles, directTileCount]);
+  const directStatIds = useMemo(() => new Set(directTiles.map((t) => t.id)), [directTiles]);
+
+  const overflowSlides = useMemo<InsightSlide[]>(
+    () =>
+      allStatTiles
+        .filter((tile) => !directStatIds.has(tile.id))
+        .map((tile) => ({
+          id: tile.id,
+          label: tile.label,
+          value: tile.value,
+          sub: tile.sub,
+          badge: tile.badge,
+          badgeClassName: tile.badgeColor,
+          tone: tile.tone,
+          blur: tile.blur,
+          onClick: tile.onClick,
+        })),
+    [allStatTiles, directStatIds],
+  );
+
+  const statCarousel = useCarousel(overflowSlides.length);
+  const carousel = statCarousel;
+  const carouselSlides = overflowSlides;
+  const statColumnCount = directTiles.length + (overflowSlides.length > 0 ? 1 : 0);
 
   // All weekly timetable cards map
   const timetableMap = useMemo(() => {
@@ -947,6 +1061,48 @@ export default function SimplifiedMobileHome({
     return rows;
   }, [selectedDayClasses, selectedDayLabFat]);
 
+  // Selected course object for desktop course side view pane
+  const selectedCourseObj = useMemo(() => {
+    if (!attendanceData?.attendance || !Array.isArray(attendanceData.attendance)) return null;
+
+    if (selectedCourseCode) {
+      const clean = selectedCourseCode
+        .replace(/\([LPT]\)$/i, "")
+        .trim()
+        .toUpperCase();
+      const match = attendanceData.attendance.find((c: any) => {
+        const cCode = String(c?.courseCode || "")
+          .replace(/\([LPT]\)$/i, "")
+          .trim()
+          .toUpperCase();
+        return cCode === clean;
+      });
+      if (match) return match;
+    }
+
+    // Default to first class of the selected day if available in attendance
+    if (selectedDayClasses && selectedDayClasses.length > 0) {
+      for (const cls of selectedDayClasses) {
+        if (!cls.courseCode) continue;
+        const clsClean = String(cls.courseCode)
+          .replace(/\([LPT]\)$/i, "")
+          .trim()
+          .toUpperCase();
+        const match = attendanceData.attendance.find((c: any) => {
+          const cCode = String(c?.courseCode || "")
+            .replace(/\([LPT]\)$/i, "")
+            .trim()
+            .toUpperCase();
+          return cCode === clsClean;
+        });
+        if (match) return match;
+      }
+    }
+
+    // Fallback: first course in attendance list
+    return attendanceData.attendance[0] || null;
+  }, [attendanceData?.attendance, selectedCourseCode, selectedDayClasses]);
+
   // Month & Year header for the calendar row
   const calendarWeekHeader = useMemo(() => {
     if (weekDays.length === 0) return "";
@@ -1072,131 +1228,114 @@ export default function SimplifiedMobileHome({
   const stillOnCount = dayRows.filter((row) => row.kind === "class").length;
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6 pt-3 sm:pt-5 md:pb-8 animate-in fade-in duration-300">
-      {/* ── TOP APP BAR: AVATAR / ICON ABOVE GREETING & CONTROLS ── */}
-      <div className="flex items-start justify-between px-1">
-        <div className="flex flex-col items-start min-w-0 text-left">
-          {/* Avatar or AmazeCC Icon Above */}
-          <div className="mb-3">
-            {shouldDisplayProfilePhoto && profileImage ? (
-              <img
-                loading="lazy"
-                src={profileImage}
-                alt=""
-                decoding="async"
-                className="h-10 w-10 sm:h-11 sm:w-11 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 object-cover shadow-xs"
-              />
-            ) : (
-              <img
-                loading="lazy"
-                src={getAssetPath("/logo.png")}
-                alt="AmazeCC"
-                decoding="async"
-                className="h-10 w-10 sm:h-11 sm:w-11 rounded-2xl object-contain shadow-xs border border-zinc-200/60 dark:border-zinc-800/80 p-0.5 bg-white dark:bg-zinc-900"
+    <div className="w-full max-w-4xl lg:max-w-none mx-auto lg:mx-0 pt-3 sm:pt-5 md:pb-8 animate-in fade-in duration-300">
+      <div className="flex flex-col lg:flex-row items-start gap-6 xl:gap-8 w-full">
+        {/* Left Column: Feed, Stats, Timetable, Shortcuts */}
+        <div className="w-full lg:flex-1 lg:min-w-0 space-y-6 text-left">
+          {/* ── TOP APP BAR: AVATAR / ICON ABOVE GREETING & CONTROLS ── */}
+          <div className="flex items-start justify-between px-1">
+            <div className="flex flex-col items-start min-w-0 text-left">
+              {/* Avatar or AmazeCC Icon Above */}
+              <div className="mb-3">
+                {shouldDisplayProfilePhoto && profileImage ? (
+                  <img
+                    loading="lazy"
+                    src={profileImage}
+                    alt=""
+                    decoding="async"
+                    className="h-10 w-10 sm:h-11 sm:w-11 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 object-cover shadow-xs"
+                  />
+                ) : (
+                  <img
+                    loading="lazy"
+                    src={getAssetPath("/logo.png")}
+                    alt="AmazeCC"
+                    decoding="async"
+                    className="h-10 w-10 sm:h-11 sm:w-11 rounded-2xl object-contain shadow-xs border border-zinc-200/60 dark:border-zinc-800/80 p-0.5 bg-white dark:bg-zinc-900"
+                  />
+                )}
+              </div>
+
+              {/* Multiline Greeting & Name Below */}
+              <p className="text-xs font-semibold text-zinc-400 dark:text-zinc-500 leading-none mb-1">
+                {getGreeting()},
+              </p>
+              <h1 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white tracking-tight leading-tight font-outfit truncate">
+                {profileName}
+              </h1>
+            </div>
+
+            {/* Action Controls */}
+            <div className="flex items-center gap-2 pt-0.5">
+              {/* Sync Button */}
+              <button
+                onClick={handleSyncClick}
+                className={`relative hit-expand px-2.5 py-2.5 rounded-xl transition-all active:scale-95 cursor-pointer shadow-2xs flex items-center gap-1.5 text-xs font-bold ${
+                  isOffline
+                    ? "bg-amber-50 hover:bg-amber-100/80 dark:bg-amber-950/30 dark:hover:bg-amber-900/30 border border-amber-200/70 dark:border-amber-500/30 text-amber-700 dark:text-amber-400"
+                    : "bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300"
+                }`}
+                title={isOffline ? "You're offline — tap for details" : "Sync Data from VTOP"}
+                aria-label={isOffline ? "Offline — tap for details" : "Sync Data from VTOP"}
+              >
+                {isOffline ? (
+                  <>
+                    <WifiOff className="w-4 h-4 shrink-0" />
+                    <span>Offline</span>
+                  </>
+                ) : (
+                  <RefreshCcw className={`w-4 h-4 ${isSpinning ? "animate-spin text-indigo-500" : ""}`} />
+                )}
+              </button>
+
+              {/* Spotlight Search */}
+              <button
+                onClick={onOpenCommandPalette}
+                className="p-2.5 rounded-xl bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 transition-all active:scale-95 cursor-pointer shadow-2xs"
+                title="Search (Cmd+K)"
+              >
+                <Search className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* ── STATS: DYNAMIC MULTI-TILE & CAROUSEL GRID ── */}
+          <div
+            ref={statsContainerRef}
+            className="grid gap-3 sm:gap-4 text-left"
+            style={{
+              gridTemplateColumns: `repeat(${statColumnCount}, minmax(0, 1fr))`,
+            }}
+          >
+            {directTiles.map((tile) => (
+              <div key={tile.id} onClick={tile.onClick} className={cn("min-w-0", tile.onClick && "cursor-pointer")}>
+                <StatTile
+                  label={tile.label}
+                  value={tile.value}
+                  sub={tile.sub}
+                  badge={tile.badge}
+                  tone={tile.tone}
+                  className={cn(
+                    tile.onClick && "transition-all hover:scale-[1.01] active:scale-[0.98] group",
+                    tile.blur,
+                  )}
+                />
+              </div>
+            ))}
+
+            {overflowSlides.length > 0 && (
+              <InsightCarousel
+                slides={overflowSlides}
+                carousel={statCarousel}
+                ariaLabel="Rotating insights"
+                className="min-w-0"
               />
             )}
           </div>
 
-          {/* Multiline Greeting & Name Below */}
-          <p className="text-xs font-semibold text-zinc-400 dark:text-zinc-500 leading-none mb-1">{getGreeting()},</p>
-          <h1 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white tracking-tight leading-tight font-outfit truncate">
-            {profileName}
-          </h1>
-        </div>
-
-        {/* Action Controls */}
-        <div className="flex items-center gap-2 pt-0.5">
-          {/* Sync Button */}
-          <button
-            onClick={handleSyncClick}
-            className={`relative hit-expand px-2.5 py-2.5 rounded-xl transition-all active:scale-95 cursor-pointer shadow-2xs flex items-center gap-1.5 text-xs font-bold ${
-              isOffline
-                ? "bg-amber-50 hover:bg-amber-100/80 dark:bg-amber-950/30 dark:hover:bg-amber-900/30 border border-amber-200/70 dark:border-amber-500/30 text-amber-700 dark:text-amber-400"
-                : "bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300"
-            }`}
-            title={isOffline ? "You're offline — tap for details" : "Sync Data from VTOP"}
-            aria-label={isOffline ? "Offline — tap for details" : "Sync Data from VTOP"}
-          >
-            {isOffline ? (
-              <>
-                <WifiOff className="w-4 h-4 shrink-0" />
-                <span>Offline</span>
-              </>
-            ) : (
-              <RefreshCcw className={`w-4 h-4 ${isSpinning ? "animate-spin text-indigo-500" : ""}`} />
-            )}
-          </button>
-
-          {/* Spotlight Search */}
-          <button
-            onClick={onOpenCommandPalette}
-            className="p-2.5 rounded-xl bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 transition-all active:scale-95 cursor-pointer shadow-2xs"
-            title="Search (Cmd+K)"
-          >
-            <Search className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* ── STATS: SPACIOUS, MINIMAL SIDE-BY-SIDE CARDS ── */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4">
-        {/* CARD 1: PINNED HERO ATTENDANCE (NAVIGATES TO PREDICTOR) */}
-        <div
-          onClick={() => {
-            setActiveTab("attendance");
-            setActiveAttendanceSubTab("predictor");
-          }}
-          className={cn(
-            TILE,
-            "h-32 sm:h-36 transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer group",
-          )}
-        >
-          <div className="flex items-center justify-between gap-1">
-            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">
-              Attendance
-            </span>
-            <span
-              className={`text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shrink-0 ${
-                overallAttendance.status === "Safe"
-                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                  : overallAttendance.status === "Warning"
-                    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
-                    : "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20"
-              }`}
-            >
-              {overallAttendance.status}
-            </span>
-          </div>
-
-          {/* Big clean percentage with state color */}
-          <div className="my-auto">
-            <span
-              className={`text-3xl sm:text-4xl font-black font-outfit tracking-tight leading-none block ${
-                overallAttendance.status === "Safe"
-                  ? "text-emerald-600 dark:text-emerald-400"
-                  : overallAttendance.status === "Warning"
-                    ? "text-amber-500 dark:text-amber-400"
-                    : "text-red-500 dark:text-red-400"
-              }`}
-            >
-              {overallAttendance.percentage > 0
-                ? `${overallAttendance.percentage.toFixed(settings?.decimalValues ? 1 : 0)}%`
-                : "—"}
-            </span>
-          </div>
-
-          <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">
-            {overallAttendance.attended} of {overallAttendance.total} attended
-          </p>
-        </div>
-
-        {/* CARD 2: ROTATING DYNAMIC INSIGHT CAROUSEL (SPACIOUS & MINIMAL) */}
-        <InsightCarousel slides={carouselSlides} carousel={carousel} ariaLabel="Rotating insights" />
-      </div>
-
-      {/* ── TIMETABLE & INTEGRATED ACADEMIC CALENDAR SECTION ── */}
-      <div className="space-y-4 text-left">
-        {/* Calendar Header: Week Navigation (left) & Display Controls (right)
+          {/* ── TIMETABLE & INTEGRATED ACADEMIC CALENDAR SECTION ── */}
+          <div className="space-y-4 text-left">
+            {/* Calendar Header: Week Navigation (left) & Display Controls (right)
 
             `gap-2` and `flex-wrap` are load-bearing on this row, not polish. It
             has two children at opposite ends of the width, and the left one
@@ -1214,36 +1353,36 @@ export default function SimplifiedMobileHome({
             own pill rather than shorten, so refusing to shrink is the honest
             answer and `ml-auto` keeps it right-aligned when it wraps to a line
             of its own. */}
-        <div className="flex flex-wrap items-center justify-between gap-2 px-1">
-          <div className="flex items-center gap-2 flex-wrap min-w-0">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <CalendarDays className="w-4 h-4 text-indigo-500 shrink-0" />
-              <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight truncate">
-                {calendarWeekHeader}
-              </h2>
-            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+              <div className="flex items-center gap-2 flex-wrap min-w-0">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <CalendarDays className="w-4 h-4 text-indigo-500 shrink-0" />
+                  <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight truncate">
+                    {calendarWeekHeader}
+                  </h2>
+                </div>
 
-            {/* Week navigation arrows. The strip itself is swipeable too; these
+                {/* Week navigation arrows. The strip itself is swipeable too; these
                 stay because a chevron is the one affordance that works with a
                 keyboard and a screen reader without a gesture. */}
-            <div className="flex items-center gap-1 ml-1 shrink-0">
-              <button
-                onClick={() => goToWeek(weekOffset - 1, -1)}
-                className="p-1 rounded-lg bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 transition-all cursor-pointer"
-                title="Previous Week"
-                aria-label="Previous Week"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => goToWeek(weekOffset + 1, 1)}
-                className="p-1 rounded-lg bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 transition-all cursor-pointer"
-                title="Next Week"
-                aria-label="Next Week"
-              >
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-              {/* "Today" — the way back, from wherever the selection is.
+                <div className="flex items-center gap-1 ml-1 shrink-0">
+                  <button
+                    onClick={() => goToWeek(weekOffset - 1, -1)}
+                    className="p-1 rounded-lg bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 transition-all cursor-pointer"
+                    title="Previous Week"
+                    aria-label="Previous Week"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => goToWeek(weekOffset + 1, 1)}
+                    className="p-1 rounded-lg bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 transition-all cursor-pointer"
+                    title="Next Week"
+                    aria-label="Next Week"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                  {/* "Today" — the way back, from wherever the selection is.
 
                   This started life as a "This Week" chip that only appeared
                   when the week had been paged away from, and it already did
@@ -1261,56 +1400,56 @@ export default function SimplifiedMobileHome({
                   `setSelectedDay(today)` while a browsed week is showing would
                   select *this* week's Tuesday on a week that has no Tuesday on
                   it, and the highlight would land on nothing. */}
-              {(weekOffset !== 0 || selectedDay !== todayDayCode) && (
-                <button
-                  onClick={() => {
-                    // Direction from wherever the user currently is, so the
-                    // reset slides the same way a swipe from that week would.
-                    if (weekOffset !== 0) goToWeek(0, 0 < weekOffset ? 1 : -1);
-                    setSelectedDay(todayDayCode);
-                  }}
-                  className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/40 ml-1 cursor-pointer"
-                  title="Back to today"
-                >
-                  Today
-                </button>
-              )}
-            </div>
-          </div>
+                  {(weekOffset !== 0 || selectedDay !== todayDayCode) && (
+                    <button
+                      onClick={() => {
+                        // Direction from wherever the user currently is, so the
+                        // reset slides the same way a swipe from that week would.
+                        if (weekOffset !== 0) goToWeek(0, 0 < weekOffset ? 1 : -1);
+                        setSelectedDay(todayDayCode);
+                      }}
+                      className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/40 ml-1 cursor-pointer"
+                      title="Back to today"
+                    >
+                      Today
+                    </button>
+                  )}
+                </div>
+              </div>
 
-          <div className="flex items-center gap-2 shrink-0 ml-auto">
-            {/* No deep link to the full academic calendar here any more. The
+              <div className="flex items-center gap-2 shrink-0 ml-auto">
+                {/* No deep link to the full academic calendar here any more. The
                 strip is the home page's calendar now, and a second "open the
                 calendar" button pointing at a month grid of the same data
                 asked the user to choose between two views of one thing. The
                 link survives on small screens, on the selected-day row below,
                 where it is the only route to it. */}
 
-            {/* Pill Style Selector (Compact 2-Line vs Detailed) */}
-            {!isExamDay && !isHolidayOrOff && (
-              <SegmentedControl
-                options={[
-                  {
-                    value: "compact" as const,
-                    label: "Compact",
-                    icon: <List className="w-3.5 h-3.5" />,
-                    title: "2-Line Compact Pill View",
-                  },
-                  {
-                    value: "detailed" as const,
-                    label: "Detailed",
-                    icon: <Layers className="w-3.5 h-3.5" />,
-                    title: "Spacious Detailed Card View",
-                  },
-                ]}
-                value={pillStyle}
-                onChange={setPillStyle}
-              />
-            )}
-          </div>
-        </div>
+                {/* Pill Style Selector (Compact 2-Line vs Detailed) */}
+                {!isExamDay && !isHolidayOrOff && (
+                  <SegmentedControl
+                    options={[
+                      {
+                        value: "compact" as const,
+                        label: "Compact",
+                        icon: <List className="w-3.5 h-3.5" />,
+                        title: "2-Line Compact Pill View",
+                      },
+                      {
+                        value: "detailed" as const,
+                        label: "Detailed",
+                        icon: <Layers className="w-3.5 h-3.5" />,
+                        title: "Spacious Detailed Card View",
+                      },
+                    ]}
+                    value={pillStyle}
+                    onChange={setPillStyle}
+                  />
+                )}
+              </div>
+            </div>
 
-        {/* ── INTEGRATED CALENDAR WEEK ROW ──
+            {/* ── INTEGRATED CALENDAR WEEK ROW ──
             Seven circles, one per day, each tinted by what kind of day it is.
             The day kind used to be a pill that spelled it out (`Exam` / `Off` /
             `3 cls`), which at this size was an eight-pixel smudge competing with
@@ -1329,739 +1468,787 @@ export default function SimplifiedMobileHome({
             padding between two circles would otherwise flip the dashboard out
             from under the strip. Circles are exempt already (they are buttons);
             this container covers the rest. */}
-        <div
-          data-prevent-swipe="true"
-          role="group"
-          aria-label="Week"
-          {...weekSwipe.handlers}
-          className={cn("w-full", weekSwipe.className)}
-        >
-          <AnimatePresence mode="wait" initial={false}>
-            <m.div
-              key={weekOffset}
-              initial={{ opacity: 0, x: weekSlideDir * 28 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: weekSlideDir * -28 }}
-              transition={{ duration: 0.2 }}
-              // Tracks are equal so the gaps stay even, but each circle is
-              // capped: 7 x 46px already fills a 390px phone, and on a desktop
-              // this is a 900px column where a stretched circle would be a
-              // swimming pool. `justify-self` parks the capped circle in the
-              // middle of its track.
-              className="grid grid-cols-7 gap-0.5 sm:gap-1.5"
+            <div
+              data-prevent-swipe="true"
+              role="group"
+              aria-label="Week"
+              {...weekSwipe.handlers}
+              className={cn("w-full", weekSwipe.className)}
             >
-              {weekDays.map((item) => {
-                const isSelected = selectedDay === item.dayCode;
-                const count = timetableMap[item.detectedDayOrder || item.dayCode]?.length || 0;
-                const flavour = weekStripFlavour(item);
-                const tint = WEEK_STRIP_TINT[flavour];
-                // Today keeps its green number only when nothing more
-                // important is going on that day. An exam outranks "it is
-                // Tuesday" for attention, and the emerald ring still marks it.
-                const ink = flavour === "teaching" && item.isToday && !isSelected ? TODAY_INK : tint.ink;
-                const title = weekStripTitle(item, count);
-                const labFatNote = item.isLabFatDay ? " · Lab FAT" : "";
+              <AnimatePresence mode="wait" initial={false}>
+                <m.div
+                  key={weekOffset}
+                  initial={{ opacity: 0, x: weekSlideDir * 28 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: weekSlideDir * -28 }}
+                  transition={{ duration: 0.2 }}
+                  // Tracks are equal so the gaps stay even, but each circle is
+                  // capped: 7 x 46px already fills a 390px phone, and on a desktop
+                  // this is a 900px column where a stretched circle would be a
+                  // swimming pool. `justify-self` parks the capped circle in the
+                  // middle of its track.
+                  className="grid grid-cols-7 gap-0.5 sm:gap-1.5"
+                >
+                  {weekDays.map((item) => {
+                    const isSelected = selectedDay === item.dayCode;
+                    const count = timetableMap[item.detectedDayOrder || item.dayCode]?.length || 0;
+                    const flavour = weekStripFlavour(item);
+                    const tint = WEEK_STRIP_TINT[flavour];
+                    // Today keeps its green number only when nothing more
+                    // important is going on that day. An exam outranks "it is
+                    // Tuesday" for attention, and the emerald ring still marks it.
+                    const ink = flavour === "teaching" && item.isToday && !isSelected ? TODAY_INK : tint.ink;
+                    const title = weekStripTitle(item, count);
+                    const labFatNote = item.isLabFatDay ? " · Lab FAT" : "";
 
-                return (
-                  <button
-                    key={item.dayCode}
-                    type="button"
-                    onClick={() => setSelectedDay(item.dayCode)}
-                    title={`${title}${labFatNote}`}
-                    aria-label={`${title}${labFatNote}${weekStripExamNote(item.exams.length)}`}
-                    // A circle navigates, it does not toggle: `aria-current`
-                    // is the honest annotation, and the selection ring is
-                    // visual only.
-                    aria-current={item.isToday ? "date" : undefined}
-                    className={cn(
-                      "w-full max-w-[46px] aspect-square justify-self-center rounded-full border flex flex-col items-center justify-center gap-1 transition-all duration-150 cursor-pointer active:scale-95",
-                      tint.fill,
-                      tint.edge,
-                      isSelected
-                        ? cn(SELECTED_RING, "scale-105")
-                        : item.isToday
-                          ? TODAY_RING
-                          : "hover:bg-zinc-100 dark:hover:bg-zinc-800/60",
-                    )}
-                  >
-                    <span className="text-[10px] font-bold uppercase tracking-wider leading-none text-zinc-400 dark:text-zinc-500">
-                      {item.dayCode}
-                    </span>
-                    <span className={cn("text-[15px] font-black font-outfit leading-none", ink)}>{item.dayNumber}</span>
-                  </button>
-                );
-              })}
-            </m.div>
-          </AnimatePresence>
-        </div>
-
-        {/* Selected Day Sub-Header */}
-        <div className="flex items-center justify-between px-1 pt-1">
-          <div>
-            <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
-              {getSelectedDayFormattedDate()}
-            </h3>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
-              {isLabFatDay ? (
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="font-extrabold text-red-600 dark:text-red-400">
-                    Lab FAT{selectedDayLabFat.length > 1 ? ` ×${selectedDayLabFat.length}` : ""}
-                  </span>
-                  {stillOnCount > 0
-                    ? `· ${stillOnCount} ${stillOnCount === 1 ? "session" : "sessions"} still on`
-                    : null}
-                </span>
-              ) : isExamDay ? (
-                `${selectedDayMeta.exams.length} ${selectedDayMeta.exams.length === 1 ? "exam" : "exams"} scheduled`
-              ) : isHolidayOrOff ? (
-                "Academic Holiday / Non-Instructional"
-              ) : (
-                `${selectedDayClasses.length} ${selectedDayClasses.length === 1 ? "session" : "sessions"} scheduled`
-              )}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                setActiveTab("attendance");
-                setActiveAttendanceSubTab("calendar");
-              }}
-              className="sm:hidden text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50/70 dark:bg-indigo-950/30 px-2.5 py-1 rounded-xl"
-            >
-              Calendar
-            </button>
-          </div>
-        </div>
-
-        {/* Day Order Override Banner (Auto-detected from Academic Calendar) */}
-        {selectedDayMeta?.orderInfo && !isExamDay && !isHolidayOrOff && (
-          <div className="p-3 rounded-2xl bg-indigo-50/80 dark:bg-indigo-950/30 border border-indigo-200/80 dark:border-indigo-900/40 text-xs font-bold text-indigo-700 dark:text-indigo-300 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-indigo-500 shrink-0" />
-              <span>{selectedDayMeta.orderInfo} (Applied)</span>
+                    return (
+                      <button
+                        key={item.dayCode}
+                        type="button"
+                        onClick={() => setSelectedDay(item.dayCode)}
+                        title={`${title}${labFatNote}`}
+                        aria-label={`${title}${labFatNote}${weekStripExamNote(item.exams.length)}`}
+                        // A circle navigates, it does not toggle: `aria-current`
+                        // is the honest annotation, and the selection ring is
+                        // visual only.
+                        aria-current={item.isToday ? "date" : undefined}
+                        className={cn(
+                          "w-full max-w-[46px] aspect-square justify-self-center rounded-full border flex flex-col items-center justify-center gap-1 transition-all duration-150 cursor-pointer active:scale-95",
+                          tint.fill,
+                          tint.edge,
+                          isSelected
+                            ? cn(SELECTED_RING, "scale-105")
+                            : item.isToday
+                              ? TODAY_RING
+                              : "hover:bg-zinc-100 dark:hover:bg-zinc-800/60",
+                        )}
+                      >
+                        <span className="text-[10px] font-bold uppercase tracking-wider leading-none text-zinc-400 dark:text-zinc-500">
+                          {item.dayCode}
+                        </span>
+                        <span className={cn("text-[15px] font-black font-outfit leading-none", ink)}>
+                          {item.dayNumber}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </m.div>
+              </AnimatePresence>
             </div>
-            <span className="text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-md bg-indigo-500/15 text-indigo-600 dark:text-indigo-400">
-              Calendar Auto
-            </span>
-          </div>
-        )}
 
-        {/* ── VIEWPORT STATE 1: EXAM SCHEDULE DAY (STICKY & SPACIOUS) ── */}
-        {isExamDay ? (
-          <div className="sticky top-4 z-20 space-y-3.5 max-h-[80vh] overflow-y-auto pr-0.5">
-            {selectedDayMeta.exams.map((ex: any, idx: number) => (
-              <div
-                key={`${ex.courseCode}-${ex.classId || idx}`}
-                className="p-5 sm:p-6 rounded-[28px] bg-gradient-to-br from-red-500/10 via-white/90 to-amber-500/10 dark:from-red-950/30 dark:via-zinc-900/90 dark:to-amber-950/20 backdrop-blur-xl border border-red-500/30 dark:border-red-800/40 shadow-lg text-left space-y-4"
-              >
-                {/* Exam Header */}
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-black uppercase tracking-wider px-3 py-1 rounded-xl bg-red-500 text-white shadow-xs">
-                      {ex.examCategory || "Exam Day"}
+            {/* Selected Day Sub-Header */}
+            <div className="flex items-center justify-between px-1 pt-1">
+              <div>
+                <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
+                  {getSelectedDayFormattedDate()}
+                </h3>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+                  {isLabFatDay ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="font-extrabold text-red-600 dark:text-red-400">
+                        Lab FAT{selectedDayLabFat.length > 1 ? ` ×${selectedDayLabFat.length}` : ""}
+                      </span>
+                      {stillOnCount > 0
+                        ? `· ${stillOnCount} ${stillOnCount === 1 ? "session" : "sessions"} still on`
+                        : null}
                     </span>
-                    {ex.examSession && (
-                      <span className="text-xs font-extrabold text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-950/50 px-2.5 py-1 rounded-xl border border-red-200 dark:border-red-900/50">
-                        Session: {ex.examSession}
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-xs font-bold text-zinc-400 dark:text-zinc-500">Slot {ex.slot || "—"}</span>
-                </div>
-
-                {/* Course Details */}
-                <div>
-                  <h2 className="text-lg sm:text-xl font-black text-zinc-900 dark:text-white font-outfit leading-snug">
-                    {ex.courseTitle || "Course Examination"}
-                  </h2>
-                  <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 mt-1">{ex.courseCode}</p>
-                </div>
-
-                {/* Timing, Venue & Seating Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-red-200/50 dark:border-red-900/30">
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2 text-xs text-zinc-700 dark:text-zinc-300 font-semibold">
-                      <Clock className="w-4 h-4 text-red-500 shrink-0" />
-                      <span>{ex.examTime || "Morning Session"}</span>
-                    </div>
-                    {ex.reportingTime && (
-                      <p className="text-[11px] text-zinc-500 dark:text-zinc-400 pl-6">
-                        Reporting:{" "}
-                        <span className="font-bold text-zinc-800 dark:text-zinc-200">{ex.reportingTime}</span>
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2 text-xs text-zinc-700 dark:text-zinc-300 font-semibold">
-                      <Building className="w-4 h-4 text-red-500 shrink-0" />
-                      <span>
-                        Venue:{" "}
-                        <strong className="text-zinc-900 dark:text-white font-bold">
-                          {ex.venue || "Hall Assigned"}
-                        </strong>
-                      </span>
-                    </div>
-                    {(ex.seatNo || ex.seatLocation) && (
-                      <p className="text-[11px] text-zinc-500 dark:text-zinc-400 pl-6">
-                        Seat:{" "}
-                        <strong className="text-zinc-900 dark:text-white font-bold">No. {ex.seatNo || "—"}</strong> (
-                        {ex.seatLocation || "Row"})
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Footer Action */}
-                <div className="pt-2 flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-red-600 dark:text-red-400">
-                    No regular lectures on exam day
-                  </span>
-                  <button
-                    onClick={() => {
-                      setActiveTab("academics");
-                      setActiveSubTab("schedule");
-                    }}
-                    className="text-xs font-bold text-white bg-red-600 hover:bg-red-700 px-3.5 py-1.5 rounded-xl transition-all shadow-xs cursor-pointer"
-                  >
-                    Hall Details
-                  </button>
-                </div>
+                  ) : isExamDay ? (
+                    `${selectedDayMeta.exams.length} ${selectedDayMeta.exams.length === 1 ? "exam" : "exams"} scheduled`
+                  ) : isHolidayOrOff ? (
+                    "Academic Holiday / Non-Instructional"
+                  ) : (
+                    `${selectedDayClasses.length} ${selectedDayClasses.length === 1 ? "session" : "sessions"} scheduled`
+                  )}
+                </p>
               </div>
-            ))}
-          </div>
-        ) : isHolidayOrOff ? (
-          /* ── VIEWPORT STATE 2: HOLIDAY / NON-INSTRUCTIONAL DAY (SPACIOUS & MINIMAL) ── */
-          <EmptyPanel
-            tone="amber"
-            icon={<Sun className="w-7 h-7" />}
-            title="No classes today"
-            description={`${selectedDayMeta.holidayInfo} • Non-instructional day as per the official Academic Calendar.`}
-            action={
-              <div className="pt-1">
+
+              <div className="flex items-center gap-2">
                 <button
                   onClick={() => {
                     setActiveTab("attendance");
                     setActiveAttendanceSubTab("calendar");
                   }}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/30 px-4 py-2 rounded-xl active:scale-95 transition-all cursor-pointer"
+                  className="sm:hidden text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50/70 dark:bg-indigo-950/30 px-2.5 py-1 rounded-xl"
                 >
-                  <CalendarIcon className="w-3.5 h-3.5" /> View Academic Calendar
+                  Calendar
                 </button>
               </div>
-            }
-          />
-        ) : dayRows.length === 0 ? (
-          /* ── VIEWPORT STATE 3: FREE DAY (NO CLASSES SCHEDULED) ── */
-          <div className="p-8 rounded-[28px] card-surface border border-zinc-200/60 dark:border-zinc-800/80 text-center space-y-3 shadow-2xs">
-            <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center mx-auto text-indigo-500">
-              <Coffee className="w-6 h-6" />
             </div>
-            <div>
-              <h3 className="font-black text-sm text-zinc-900 dark:text-white font-outfit">
-                No classes on {selectedDay}!
-              </h3>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 max-w-xs mx-auto">
-                No lectures or lab sessions are scheduled for this day. Enjoy your free time or check free classrooms.
-              </p>
-            </div>
-            <div className="flex justify-center gap-2 pt-1">
-              <button
-                onClick={() => {
-                  // Free Classrooms lives in Tools, so it is opened there
-                  // directly rather than through an Academics value that
-                  // Dashboard used to translate into a Tools section switch.
-                  setActiveTab("tools");
-                  setActiveToolsSubTab?.("free-class");
-                }}
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/30 px-3.5 py-2 rounded-xl active:scale-95 transition-all cursor-pointer"
-              >
-                Free Classrooms <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-        ) : (
-          /* ── VIEWPORT STATE 4: REGULAR TIMETABLE CLASSES ── */
-          <div className="space-y-3">
-            {dayRows.map((row: any, index: number) => {
-              // A lab slot taken over by its Lab FAT paper renders as the
-              // collapsed exam slot, in the class's own place in the list.
-              if (row.kind === "labFat") {
-                return (
-                  <LabFatExamSlot
-                    key={`labfat-${row.paper.courseCode}-${row.paper.slot}`}
-                    paper={row.paper}
-                    time={row.time}
-                    onHallDetails={() => {
-                      setActiveTab("academics");
-                      setActiveSubTab("schedule");
-                    }}
-                  />
-                );
-              }
-              const cls = row.cls;
-              const {
-                status,
-                progressPct,
-                minutesLeft,
-                minutesUntilStart,
-                attended,
-                total,
-                currentPct,
-                bunkStatus,
-                bunkText,
-              } = getClassProgressAndBunk(cls);
 
-              const isLive = status === "live";
-              const isCompleted = status === "completed";
-              const isUpcoming = status === "upcoming";
+            {/* Day Order Override Banner (Auto-detected from Academic Calendar) */}
+            {selectedDayMeta?.orderInfo && !isExamDay && !isHolidayOrOff && (
+              <div className="p-3 rounded-2xl bg-indigo-50/80 dark:bg-indigo-950/30 border border-indigo-200/80 dark:border-indigo-900/40 text-xs font-bold text-indigo-700 dark:text-indigo-300 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-indigo-500 shrink-0" />
+                  <span>{selectedDayMeta.orderInfo} (Applied)</span>
+                </div>
+                <span className="text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-md bg-indigo-500/15 text-indigo-600 dark:text-indigo-400">
+                  Calendar Auto
+                </span>
+              </div>
+            )}
 
-              const [startTimeStr, endTimeStr] = String(cls.time || "")
-                .split("-")
-                .map((t) => t.trim());
-              const clsTimeRange =
-                startTimeStr && endTimeStr
-                  ? {
-                      start: parseAttendanceTime(startTimeStr),
-                      end: parseAttendanceTime(endTimeStr),
-                    }
-                  : undefined;
-              const taskSummary = classTaskSummary(tasks, cls, effectiveTimetableDay, clsTimeRange, {
-                dayDate: viewedDayDate,
-                // "…today" labels + the red tint are reserved for the real
-                // current date; browsing another weekday stays generic.
-                literalToday: isTodayView,
-              });
-              const showTaskBadgeInline = settings?.tasksInlineOnHome !== false || taskSummary.total > 0;
-              // Red is reserved for a test sitting in today's session; every
-              // other linked-task state gets the softer amber treatment.
-              const taskBorderClass =
-                taskSummary.today.tests > 0 && taskSummary.today.sessionTotal > 0
-                  ? "border-red-400 dark:border-red-500/60 ring-1 ring-red-500/20"
-                  : taskSummary.total > 0
-                    ? "border-amber-400 dark:border-amber-500/60 ring-1 ring-amber-500/20"
-                    : "";
-
-              if (pillStyle === "compact") {
-                /* ── OPTION A: COMPACT 2-LINE PILL (HIGH DENSITY WITH PERCENTAGE ON RIGHT) ── */
-                return (
+            {/* ── VIEWPORT STATE 1: EXAM SCHEDULE DAY (STICKY & SPACIOUS) ── */}
+            {isExamDay ? (
+              <div className="sticky top-4 z-20 space-y-3.5 max-h-[80vh] overflow-y-auto pr-0.5">
+                {selectedDayMeta.exams.map((ex: any, idx: number) => (
                   <div
-                    key={`${cls.courseCode}-${cls.slotName}-${index}`}
-                    onClick={() => handleCourseClick(cls.courseCode)}
-                    className={`relative overflow-hidden rounded-2xl transition-all duration-200 cursor-pointer text-left border ${taskBorderClass} ${
-                      isLive
-                        ? "bg-white dark:bg-zinc-900 border-indigo-500 dark:border-indigo-500 shadow-md ring-1 ring-indigo-500/20"
-                        : isCompleted
-                          ? "bg-zinc-50/70 dark:bg-zinc-900/40 border-zinc-200/50 dark:border-zinc-800 opacity-75 hover:opacity-100"
-                          : "card-surface border-zinc-200/70 dark:border-zinc-800/80 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700"
-                    } hover:scale-[1.006] active:scale-[0.99]`}
+                    key={`${ex.courseCode}-${ex.classId || idx}`}
+                    className="p-5 sm:p-6 rounded-[28px] bg-gradient-to-br from-red-500/10 via-white/90 to-amber-500/10 dark:from-red-950/30 dark:via-zinc-900/90 dark:to-amber-950/20 backdrop-blur-xl border border-red-500/30 dark:border-red-800/40 shadow-lg text-left space-y-4"
                   >
-                    {/* Live Progress Background Fill Bar */}
-                    {isLive && (
-                      <div
-                        className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-indigo-500/15 to-emerald-500/15 pointer-events-none transition-all duration-700 ease-linear"
-                        style={{ width: `${progressPct}%` }}
+                    {/* Exam Header */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black uppercase tracking-wider px-3 py-1 rounded-xl bg-red-500 text-white shadow-xs">
+                          {ex.examCategory || "Exam Day"}
+                        </span>
+                        {ex.examSession && (
+                          <span className="text-xs font-extrabold text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-950/50 px-2.5 py-1 rounded-xl border border-red-200 dark:border-red-900/50">
+                            Session: {ex.examSession}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs font-bold text-zinc-400 dark:text-zinc-500">Slot {ex.slot || "—"}</span>
+                    </div>
+
+                    {/* Course Details */}
+                    <div>
+                      <h2 className="text-lg sm:text-xl font-black text-zinc-900 dark:text-white font-outfit leading-snug">
+                        {ex.courseTitle || "Course Examination"}
+                      </h2>
+                      <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 mt-1">{ex.courseCode}</p>
+                    </div>
+
+                    {/* Timing, Venue & Seating Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-red-200/50 dark:border-red-900/30">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2 text-xs text-zinc-700 dark:text-zinc-300 font-semibold">
+                          <Clock className="w-4 h-4 text-red-500 shrink-0" />
+                          <span>{ex.examTime || "Morning Session"}</span>
+                        </div>
+                        {ex.reportingTime && (
+                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 pl-6">
+                            Reporting:{" "}
+                            <span className="font-bold text-zinc-800 dark:text-zinc-200">{ex.reportingTime}</span>
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2 text-xs text-zinc-700 dark:text-zinc-300 font-semibold">
+                          <Building className="w-4 h-4 text-red-500 shrink-0" />
+                          <span>
+                            Venue:{" "}
+                            <strong className="text-zinc-900 dark:text-white font-bold">
+                              {ex.venue || "Hall Assigned"}
+                            </strong>
+                          </span>
+                        </div>
+                        {(ex.seatNo || ex.seatLocation) && (
+                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 pl-6">
+                            Seat:{" "}
+                            <strong className="text-zinc-900 dark:text-white font-bold">No. {ex.seatNo || "—"}</strong>{" "}
+                            ({ex.seatLocation || "Row"})
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Footer Action */}
+                    <div className="pt-2 flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-red-600 dark:text-red-400">
+                        No regular lectures on exam day
+                      </span>
+                      <button
+                        onClick={() => {
+                          setActiveTab("academics");
+                          setActiveSubTab("schedule");
+                        }}
+                        className="text-xs font-bold text-white bg-red-600 hover:bg-red-700 px-3.5 py-1.5 rounded-xl transition-all shadow-xs cursor-pointer"
+                      >
+                        Hall Details
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : isHolidayOrOff ? (
+              /* ── VIEWPORT STATE 2: HOLIDAY / NON-INSTRUCTIONAL DAY (SPACIOUS & MINIMAL) ── */
+              <EmptyPanel
+                tone="amber"
+                icon={<Sun className="w-7 h-7" />}
+                title="No classes today"
+                description={`${selectedDayMeta.holidayInfo} • Non-instructional day as per the official Academic Calendar.`}
+                action={
+                  <div className="pt-1">
+                    <button
+                      onClick={() => {
+                        setActiveTab("attendance");
+                        setActiveAttendanceSubTab("calendar");
+                      }}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/30 px-4 py-2 rounded-xl active:scale-95 transition-all cursor-pointer"
+                    >
+                      <CalendarIcon className="w-3.5 h-3.5" /> View Academic Calendar
+                    </button>
+                  </div>
+                }
+              />
+            ) : dayRows.length === 0 ? (
+              /* ── VIEWPORT STATE 3: FREE DAY (NO CLASSES SCHEDULED) ── */
+              <div className="p-8 rounded-[28px] card-surface border border-zinc-200/60 dark:border-zinc-800/80 text-center space-y-3 shadow-2xs">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center mx-auto text-indigo-500">
+                  <Coffee className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm text-zinc-900 dark:text-white font-outfit">
+                    No classes on {selectedDay}!
+                  </h3>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 max-w-xs mx-auto">
+                    No lectures or lab sessions are scheduled for this day. Enjoy your free time or check free
+                    classrooms.
+                  </p>
+                </div>
+                <div className="flex justify-center gap-2 pt-1">
+                  <button
+                    onClick={() => {
+                      // Free Classrooms lives in Tools, so it is opened there
+                      // directly rather than through an Academics value that
+                      // Dashboard used to translate into a Tools section switch.
+                      setActiveTab("tools");
+                      setActiveToolsSubTab?.("free-class");
+                    }}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/30 px-3.5 py-2 rounded-xl active:scale-95 transition-all cursor-pointer"
+                  >
+                    Free Classrooms <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* ── VIEWPORT STATE 4: REGULAR TIMETABLE CLASSES ── */
+              <div className="space-y-3">
+                {dayRows.map((row: any, index: number) => {
+                  // A lab slot taken over by its Lab FAT paper renders as the
+                  // collapsed exam slot, in the class's own place in the list.
+                  if (row.kind === "labFat") {
+                    return (
+                      <LabFatExamSlot
+                        key={`labfat-${row.paper.courseCode}-${row.paper.slot}`}
+                        paper={row.paper}
+                        time={row.time}
+                        onHallDetails={() => {
+                          setActiveTab("academics");
+                          setActiveSubTab("schedule");
+                        }}
                       />
-                    )}
+                    );
+                  }
+                  const cls = row.cls;
+                  const {
+                    status,
+                    progressPct,
+                    minutesLeft,
+                    minutesUntilStart,
+                    attended,
+                    total,
+                    currentPct,
+                    bunkStatus,
+                    bunkText,
+                  } = getClassProgressAndBunk(cls);
 
-                    <div className="relative py-3 px-4 z-10 flex items-center justify-between gap-3">
-                      {/* Left: 2 Lines of info */}
-                      <div className="min-w-0 flex-1">
-                        {/* Line 1: Slot + Title + Status */}
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 shrink-0 border border-indigo-100 dark:border-indigo-900/30">
-                            {cls.slotName}
-                          </span>
-                          <h3
-                            className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight"
-                            title={cls.courseTitle}
-                          >
-                            {cls.courseTitle}
-                          </h3>
-                          {isLive && (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500 text-white shrink-0 shadow-2xs animate-pulse [animation-duration:2.5s]">
-                              <span className="w-1 h-1 rounded-full bg-white animate-ping [animation-duration:2.5s]" />
-                              Live ({minutesLeft}m)
-                            </span>
-                          )}
-                          {isCompleted && (
-                            <span className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800/60 px-1.5 py-0.2 rounded shrink-0">
-                              Done
-                            </span>
-                          )}
-                        </div>
+                  const isLive = status === "live";
+                  const isCompleted = status === "completed";
+                  const isUpcoming = status === "upcoming";
 
-                        {/* Line 2: Time • Venue • Bunkable count */}
-                        <div className="flex items-center gap-2 mt-1.5 text-[11px] text-zinc-500 dark:text-zinc-400 flex-wrap">
-                          <span className="flex items-center gap-1 font-semibold text-zinc-700 dark:text-zinc-300 shrink-0">
-                            <Clock className="w-3 h-3 text-indigo-500" />
-                            {cls.time}
-                          </span>
-                          <span className="text-zinc-300 dark:text-zinc-700">•</span>
-                          <span className="flex items-center gap-1 shrink-0 font-medium text-zinc-600 dark:text-zinc-400">
-                            <MapPin className="w-3 h-3 text-zinc-400" />
-                            {cls.slotVenue || "Room Assigned"}
-                          </span>
-                          {cls.faculty && (
-                            <>
-                              <span className="text-zinc-300 dark:text-zinc-700">•</span>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  const erp = getFacultyErp(cls);
-                                  handleOpenFacultySchedule(erp || cls.faculty);
-                                }}
-                                className="inline-flex items-center gap-1 font-semibold text-zinc-600 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer truncate max-w-[140px]"
-                                title="View faculty timetable schedule"
+                  const [startTimeStr, endTimeStr] = String(cls.time || "")
+                    .split("-")
+                    .map((t) => t.trim());
+                  const clsTimeRange =
+                    startTimeStr && endTimeStr
+                      ? {
+                          start: parseAttendanceTime(startTimeStr),
+                          end: parseAttendanceTime(endTimeStr),
+                        }
+                      : undefined;
+                  const taskSummary = classTaskSummary(tasks, cls, effectiveTimetableDay, clsTimeRange, {
+                    dayDate: viewedDayDate,
+                    // "…today" labels + the red tint are reserved for the real
+                    // current date; browsing another weekday stays generic.
+                    literalToday: isTodayView,
+                  });
+                  const showTaskBadgeInline = settings?.tasksInlineOnHome !== false || taskSummary.total > 0;
+                  // Red is reserved for a test sitting in today's session; every
+                  // other linked-task state gets the softer amber treatment.
+                  const taskBorderClass =
+                    taskSummary.today.tests > 0 && taskSummary.today.sessionTotal > 0
+                      ? "border-red-400 dark:border-red-500/60 ring-1 ring-red-500/20"
+                      : taskSummary.total > 0
+                        ? "border-amber-400 dark:border-amber-500/60 ring-1 ring-amber-500/20"
+                        : "";
+
+                  const isSelectedCourse = Boolean(
+                    selectedCourseObj?.courseCode &&
+                    cls.courseCode &&
+                    String(cls.courseCode)
+                      .replace(/\([LPT]\)$/i, "")
+                      .trim()
+                      .toUpperCase() ===
+                      String(selectedCourseObj.courseCode)
+                        .replace(/\([LPT]\)$/i, "")
+                        .trim()
+                        .toUpperCase(),
+                  );
+
+                  if (pillStyle === "compact") {
+                    /* ── OPTION A: COMPACT 2-LINE PILL (HIGH DENSITY WITH PERCENTAGE ON RIGHT) ── */
+                    return (
+                      <div
+                        key={`${cls.courseCode}-${cls.slotName}-${index}`}
+                        onClick={() => handleCourseClick(cls.courseCode)}
+                        className={`relative overflow-hidden rounded-2xl transition-all duration-200 cursor-pointer text-left border ${taskBorderClass} ${
+                          isSelectedCourse ? "lg:ring-2 lg:ring-indigo-500/80 lg:border-indigo-500 shadow-sm" : ""
+                        } ${
+                          isLive
+                            ? "bg-white dark:bg-zinc-900 border-indigo-500 dark:border-indigo-500 shadow-md ring-1 ring-indigo-500/20"
+                            : isCompleted
+                              ? "bg-zinc-50/70 dark:bg-zinc-900/40 border-zinc-200/50 dark:border-zinc-800 opacity-75 hover:opacity-100"
+                              : "card-surface border-zinc-200/70 dark:border-zinc-800/80 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700"
+                        } hover:scale-[1.006] active:scale-[0.99]`}
+                      >
+                        {/* Live Progress Background Fill Bar */}
+                        {isLive && (
+                          <div
+                            className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-indigo-500/15 to-emerald-500/15 pointer-events-none transition-all duration-700 ease-linear"
+                            style={{ width: `${progressPct}%` }}
+                          />
+                        )}
+
+                        <div className="relative py-3 px-4 z-10 flex items-center justify-between gap-3">
+                          {/* Left: 2 Lines of info */}
+                          <div className="min-w-0 flex-1">
+                            {/* Line 1: Slot + Title + Status */}
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 shrink-0 border border-indigo-100 dark:border-indigo-900/30">
+                                {cls.slotName}
+                              </span>
+                              <h3
+                                className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight"
+                                title={cls.courseTitle}
                               >
-                                <span className="truncate">{cls.faculty}</span>
-                                {getFacultyErp(cls) && (
-                                  <span className="text-[9px] font-mono px-1 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500">
-                                    #{getFacultyErp(cls)}
-                                  </span>
-                                )}
-                              </button>
-                            </>
-                          )}
-                          <span className="text-zinc-300 dark:text-zinc-700">•</span>
-                          <span
-                            className={`font-bold inline-flex items-center gap-1 px-1.5 py-0.2 rounded-md text-[10.5px] ${
-                              bunkStatus === "safe"
-                                ? "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30"
-                                : bunkStatus === "warning"
-                                  ? "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30"
-                                  : "text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/30"
-                            }`}
-                          >
+                                {cls.courseTitle}
+                              </h3>
+                              {isLive && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500 text-white shrink-0 shadow-2xs animate-pulse [animation-duration:2.5s]">
+                                  <span className="w-1 h-1 rounded-full bg-white animate-ping [animation-duration:2.5s]" />
+                                  Live ({minutesLeft}m)
+                                </span>
+                              )}
+                              {isCompleted && (
+                                <span className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800/60 px-1.5 py-0.2 rounded shrink-0">
+                                  Done
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Line 2: Time • Venue • Bunkable count */}
+                            <div className="flex items-center gap-2 mt-1.5 text-[11px] text-zinc-500 dark:text-zinc-400 flex-wrap">
+                              <span className="flex items-center gap-1 font-semibold text-zinc-700 dark:text-zinc-300 shrink-0">
+                                <Clock className="w-3 h-3 text-indigo-500" />
+                                {cls.time}
+                              </span>
+                              <span className="text-zinc-300 dark:text-zinc-700">•</span>
+                              <span className="flex items-center gap-1 shrink-0 font-medium text-zinc-600 dark:text-zinc-400">
+                                <MapPin className="w-3 h-3 text-zinc-400" />
+                                {cls.slotVenue || "Room Assigned"}
+                              </span>
+                              {cls.faculty && (
+                                <>
+                                  <span className="text-zinc-300 dark:text-zinc-700">•</span>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const erp = getFacultyErp(cls);
+                                      handleOpenFacultySchedule(erp || cls.faculty);
+                                    }}
+                                    className="inline-flex items-center gap-1 font-semibold text-zinc-600 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer truncate max-w-[140px]"
+                                    title="View faculty timetable schedule"
+                                  >
+                                    <span className="truncate">{cls.faculty}</span>
+                                    {getFacultyErp(cls) && (
+                                      <span className="text-[9px] font-mono px-1 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500">
+                                        #{getFacultyErp(cls)}
+                                      </span>
+                                    )}
+                                  </button>
+                                </>
+                              )}
+                              <span className="text-zinc-300 dark:text-zinc-700">•</span>
+                              <span
+                                className={`font-bold inline-flex items-center gap-1 px-1.5 py-0.2 rounded-md text-[10.5px] ${
+                                  bunkStatus === "safe"
+                                    ? "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30"
+                                    : bunkStatus === "warning"
+                                      ? "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30"
+                                      : "text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/30"
+                                }`}
+                              >
+                                <span
+                                  className={`w-1.5 h-1.5 rounded-full ${
+                                    bunkStatus === "safe"
+                                      ? "bg-emerald-500"
+                                      : bunkStatus === "warning"
+                                        ? "bg-amber-500"
+                                        : "bg-red-500"
+                                  }`}
+                                />
+                                {bunkText}
+                              </span>
+                            </div>
+
+                            {/* Line 3: Task Badge if pending */}
+                            {showTaskBadgeInline && taskSummary.total > 0 && (
+                              <div className="mt-1.5 flex items-center gap-1.5">
+                                <TaskBadge
+                                  summary={taskSummary}
+                                  onClick={() => {
+                                    setActiveTab("tools");
+                                    setActiveToolsSubTab?.("tasks");
+                                  }}
+                                />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Right: Attendance Percentage & Ratio */}
+                          <div className="text-right shrink-0 flex flex-col items-end justify-center pl-2">
                             <span
-                              className={`w-1.5 h-1.5 rounded-full ${
-                                bunkStatus === "safe"
-                                  ? "bg-emerald-500"
-                                  : bunkStatus === "warning"
-                                    ? "bg-amber-500"
-                                    : "bg-red-500"
+                              className={`text-base font-black font-outfit tracking-tight leading-none ${
+                                currentPct >= targetAttendancePct + 5
+                                  ? "text-emerald-600 dark:text-emerald-400"
+                                  : currentPct >= targetAttendancePct
+                                    ? "text-amber-600 dark:text-amber-400"
+                                    : "text-red-600 dark:text-red-400"
                               }`}
-                            />
-                            {bunkText}
-                          </span>
+                            >
+                              {currentPct.toFixed(0)}%
+                            </span>
+                            <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 mt-0.5">
+                              {attended}/{total}
+                            </span>
+                          </div>
                         </div>
 
-                        {/* Line 3: Task Badge if pending */}
-                        {showTaskBadgeInline && taskSummary.total > 0 && (
-                          <div className="mt-1.5 flex items-center gap-1.5">
-                            <TaskBadge
-                              summary={taskSummary}
-                              onClick={() => {
-                                setActiveTab("tools");
-                                setActiveToolsSubTab?.("tasks");
-                              }}
+                        {/* Progress Bar for Ongoing Class */}
+                        {isLive && (
+                          <div className="w-full bg-zinc-100 dark:bg-zinc-800 h-1 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500 rounded-full transition-all duration-700 ease-linear"
+                              style={{ width: `${progressPct}%` }}
                             />
                           </div>
                         )}
                       </div>
+                    );
+                  }
 
-                      {/* Right: Attendance Percentage & Ratio */}
-                      <div className="text-right shrink-0 flex flex-col items-end justify-center pl-2">
-                        <span
-                          className={`text-base font-black font-outfit tracking-tight leading-none ${
-                            currentPct >= targetAttendancePct + 5
-                              ? "text-emerald-600 dark:text-emerald-400"
-                              : currentPct >= targetAttendancePct
-                                ? "text-amber-600 dark:text-amber-400"
-                                : "text-red-600 dark:text-red-400"
-                          }`}
-                        >
-                          {currentPct.toFixed(0)}%
-                        </span>
-                        <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 mt-0.5">
-                          {attended}/{total}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Progress Bar for Ongoing Class */}
-                    {isLive && (
-                      <div className="w-full bg-zinc-100 dark:bg-zinc-800 h-1 rounded-full overflow-hidden">
+                  /* ── OPTION B: DETAILED SPACIOUS PILL (EXPANDED CARD VIEW) ── */
+                  return (
+                    <div
+                      key={`${cls.courseCode}-${cls.slotName}-${index}`}
+                      onClick={() => handleCourseClick(cls.courseCode)}
+                      className={`relative overflow-hidden rounded-[24px] transition-all duration-300 cursor-pointer text-left border ${taskBorderClass} ${
+                        isSelectedCourse ? "lg:ring-2 lg:ring-indigo-500/80 lg:border-indigo-500 shadow-sm" : ""
+                      } ${
+                        isLive
+                          ? "bg-white dark:bg-zinc-900 border-indigo-500 dark:border-indigo-500 shadow-md ring-1 ring-indigo-500/20"
+                          : isCompleted
+                            ? "bg-zinc-50/70 dark:bg-zinc-900/40 border-zinc-200/50 dark:border-zinc-800 opacity-75 hover:opacity-100"
+                            : "card-surface border-zinc-200/70 dark:border-zinc-800/80 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700"
+                      } hover:scale-[1.008] active:scale-[0.99]`}
+                    >
+                      {/* Dynamic Progress Fill Bar */}
+                      {isLive && (
                         <div
-                          className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500 rounded-full transition-all duration-700 ease-linear"
+                          className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-indigo-500/15 to-violet-500/20 pointer-events-none transition-all duration-700 ease-linear"
                           style={{ width: `${progressPct}%` }}
                         />
+                      )}
+
+                      {/* Main Pill Content */}
+                      <div className="relative p-5 z-10 flex flex-col justify-between gap-3">
+                        {/* Top Row: Slot & Status Badges */}
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-black tracking-wider uppercase px-2.5 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/30">
+                              {cls.slotName}
+                            </span>
+
+                            {isLive && (
+                              <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.8 rounded-xl bg-emerald-500 text-white shadow-xs animate-pulse [animation-duration:2.5s]">
+                                <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping [animation-duration:2.5s]" />
+                                Live ({minutesLeft}m left)
+                              </span>
+                            )}
+
+                            {isUpcoming && selectedDay === todayDayCode && weekOffset === 0 && (
+                              <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-lg">
+                                {minutesUntilStart <= 60 ? `In ${minutesUntilStart} mins` : `Upcoming`}
+                              </span>
+                            )}
+
+                            {isCompleted && (
+                              <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800/60 px-2 py-0.5 rounded-lg flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3 text-zinc-400" /> Done
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Course Attendance % Badge */}
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className="text-[11px] font-bold text-zinc-400 dark:text-zinc-500">
+                              {attended}/{total}
+                            </span>
+                            <span
+                              className={`text-xs font-black px-2 py-0.5 rounded-lg font-outfit ${
+                                currentPct >= targetAttendancePct + 5
+                                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                  : currentPct >= targetAttendancePct
+                                    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                                    : "bg-red-500/10 text-red-600 dark:text-red-400"
+                              }`}
+                            >
+                              {currentPct.toFixed(0)}%
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Middle Row: Title & Course Meta */}
+                        <div>
+                          <h3 className="font-extrabold text-base text-zinc-900 dark:text-white leading-snug font-outfit">
+                            {cls.courseTitle}
+                          </h3>
+                          <p className="text-xs text-zinc-400 dark:text-zinc-500 font-semibold mt-1 flex items-center gap-2 flex-wrap">
+                            <span>{cls.courseCode}</span>
+                            <span>•</span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const erp = getFacultyErp(cls);
+                                handleOpenFacultySchedule(erp || cls.faculty);
+                              }}
+                              className="inline-flex items-center gap-1.5 font-bold text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer group/fac"
+                              title="View faculty timetable schedule"
+                            >
+                              <span className="truncate group-hover/fac:underline underline-offset-2">
+                                {cls.faculty || "Faculty Assigned"}
+                              </span>
+                              {getFacultyErp(cls) && (
+                                <span className="text-[10px] font-mono px-1 py-0.2 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200/50 dark:border-zinc-700/50">
+                                  #{getFacultyErp(cls)}
+                                </span>
+                              )}
+                            </button>
+                          </p>
+                        </div>
+
+                        {/* Bottom Row: Time, Venue & Bunkable Subtext */}
+                        <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                          {/* Time & Venue */}
+                          <div className="flex items-center gap-3.5 text-xs text-zinc-600 dark:text-zinc-300 font-medium">
+                            <span className="flex items-center gap-1.5 shrink-0 font-bold">
+                              <Clock className="w-3.5 h-3.5 text-indigo-500" />
+                              {cls.time}
+                            </span>
+                            <span className="flex items-center gap-1.5 shrink-0">
+                              <MapPin className="w-3.5 h-3.5 text-zinc-400" />
+                              <span className="font-bold text-zinc-800 dark:text-zinc-200">
+                                {cls.slotVenue || "Room Assigned"}
+                              </span>
+                            </span>
+                          </div>
+
+                          {/* Bunkable Classes Subtext Indicator */}
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className={`text-xs font-bold px-2.5 py-1 rounded-xl flex items-center gap-1.5 ${
+                                bunkStatus === "safe"
+                                  ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-900/30"
+                                  : bunkStatus === "warning"
+                                    ? "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200/50 dark:border-amber-900/30"
+                                    : "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border border-red-200/50 dark:border-red-900/30"
+                              }`}
+                            >
+                              <span
+                                className={`w-1.5 h-1.5 rounded-full ${
+                                  bunkStatus === "safe"
+                                    ? "bg-emerald-500"
+                                    : bunkStatus === "warning"
+                                      ? "bg-amber-500"
+                                      : "bg-red-500"
+                                }`}
+                              />
+                              {bunkText}
+                            </span>
+
+                            {showTaskBadgeInline && taskSummary.total > 0 && (
+                              <TaskBadge
+                                summary={taskSummary}
+                                onClick={() => {
+                                  setActiveTab("tools");
+                                  setActiveToolsSubTab?.("tasks");
+                                }}
+                              />
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Progress Bar for Ongoing Class */}
+                        {isLive && (
+                          <div className="w-full bg-zinc-100 dark:bg-zinc-800 h-1.5 rounded-full overflow-hidden mt-1">
+                            <div
+                              className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500 rounded-full transition-all duration-700 ease-linear"
+                              style={{ width: `${progressPct}%` }}
+                            />
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* ── TODAY'S TASKS SECTION (WHEN TASKSINLINEONHOME IS FALSE) ── */}
+            {settings?.tasksInlineOnHome === false &&
+              (() => {
+                // Chunked on this day, plus (on the real current date) tasks that are
+                // only due today — otherwise a Moodle DA is invisible in this mode.
+                const todayTasks = (() => {
+                  const chunked = tasksForDay(effectiveTimetableDay, tasks);
+                  if (!isTodayView || !viewedDayDate) return chunked;
+                  const seen = new Set(chunked.map((t) => t.id));
+                  const dueOnly = tasks.filter(
+                    (t) => t.status !== "done" && !seen.has(t.id) && isDueOnDay(t.dueDate, viewedDayDate as Date),
+                  );
+                  return [...chunked, ...dueOnly];
+                })();
+                if (todayTasks.length === 0) return null;
+                return (
+                  <div className="pt-2 space-y-2.5">
+                    <div className="flex items-center justify-between px-1">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-indigo-500" />
+                        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
+                          Today&apos;s Tasks &amp; Schedule
+                        </h3>
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
+                          {todayTasks.length}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab("tools");
+                          setActiveToolsSubTab?.("tasks");
+                        }}
+                        className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                      >
+                        View All Tasks
+                      </button>
+                    </div>
+
+                    <ListShell>
+                      {todayTasks.map((t) => (
+                        <div
+                          key={t.id}
+                          onClick={() => {
+                            setActiveTab("tools");
+                            setActiveToolsSubTab?.("tasks");
+                          }}
+                          className="p-3.5 flex items-center justify-between gap-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/40 cursor-pointer transition-colors"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <span
+                                className={`text-[9.5px] font-extrabold uppercase px-1.5 py-0.2 rounded border ${
+                                  (KIND_CONFIG[t.kind] || KIND_CONFIG.homework).badgeClass
+                                }`}
+                              >
+                                {(KIND_CONFIG[t.kind] || KIND_CONFIG.homework).label}
+                              </span>
+                              {t.courseCode && (
+                                <span className="text-[10px] font-bold text-zinc-600 dark:text-zinc-400">
+                                  {t.courseCode}
+                                </span>
+                              )}
+                            </div>
+                            <h4 className="text-xs font-bold text-zinc-900 dark:text-white truncate font-outfit">
+                              {t.title}
+                            </h4>
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-zinc-400 shrink-0" />
+                        </div>
+                      ))}
+                    </ListShell>
                   </div>
                 );
-              }
+              })()}
 
-              /* ── OPTION B: DETAILED SPACIOUS PILL (EXPANDED CARD VIEW) ── */
-              return (
-                <div
-                  key={`${cls.courseCode}-${cls.slotName}-${index}`}
-                  onClick={() => handleCourseClick(cls.courseCode)}
-                  className={`relative overflow-hidden rounded-[24px] transition-all duration-300 cursor-pointer text-left border ${taskBorderClass} ${
-                    isLive
-                      ? "bg-white dark:bg-zinc-900 border-indigo-500 dark:border-indigo-500 shadow-md ring-1 ring-indigo-500/20"
-                      : isCompleted
-                        ? "bg-zinc-50/70 dark:bg-zinc-900/40 border-zinc-200/50 dark:border-zinc-800 opacity-75 hover:opacity-100"
-                        : "card-surface border-zinc-200/70 dark:border-zinc-800/80 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700"
-                  } hover:scale-[1.008] active:scale-[0.99]`}
-                >
-                  {/* Dynamic Progress Fill Bar */}
-                  {isLive && (
-                    <div
-                      className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-indigo-500/15 to-violet-500/20 pointer-events-none transition-all duration-700 ease-linear"
-                      style={{ width: `${progressPct}%` }}
-                    />
-                  )}
-
-                  {/* Main Pill Content */}
-                  <div className="relative p-5 z-10 flex flex-col justify-between gap-3">
-                    {/* Top Row: Slot & Status Badges */}
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-black tracking-wider uppercase px-2.5 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/30">
-                          {cls.slotName}
-                        </span>
-
-                        {isLive && (
-                          <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.8 rounded-xl bg-emerald-500 text-white shadow-xs animate-pulse [animation-duration:2.5s]">
-                            <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping [animation-duration:2.5s]" />
-                            Live ({minutesLeft}m left)
-                          </span>
-                        )}
-
-                        {isUpcoming && selectedDay === todayDayCode && weekOffset === 0 && (
-                          <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-lg">
-                            {minutesUntilStart <= 60 ? `In ${minutesUntilStart} mins` : `Upcoming`}
-                          </span>
-                        )}
-
-                        {isCompleted && (
-                          <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800/60 px-2 py-0.5 rounded-lg flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3 text-zinc-400" /> Done
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Course Attendance % Badge */}
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="text-[11px] font-bold text-zinc-400 dark:text-zinc-500">
-                          {attended}/{total}
-                        </span>
-                        <span
-                          className={`text-xs font-black px-2 py-0.5 rounded-lg font-outfit ${
-                            currentPct >= targetAttendancePct + 5
-                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                              : currentPct >= targetAttendancePct
-                                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                                : "bg-red-500/10 text-red-600 dark:text-red-400"
-                          }`}
-                        >
-                          {currentPct.toFixed(0)}%
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Middle Row: Title & Course Meta */}
-                    <div>
-                      <h3 className="font-extrabold text-base text-zinc-900 dark:text-white leading-snug font-outfit">
-                        {cls.courseTitle}
-                      </h3>
-                      <p className="text-xs text-zinc-400 dark:text-zinc-500 font-semibold mt-1 flex items-center gap-2 flex-wrap">
-                        <span>{cls.courseCode}</span>
-                        <span>•</span>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const erp = getFacultyErp(cls);
-                            handleOpenFacultySchedule(erp || cls.faculty);
-                          }}
-                          className="inline-flex items-center gap-1.5 font-bold text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer group/fac"
-                          title="View faculty timetable schedule"
-                        >
-                          <span className="truncate group-hover/fac:underline underline-offset-2">
-                            {cls.faculty || "Faculty Assigned"}
-                          </span>
-                          {getFacultyErp(cls) && (
-                            <span className="text-[10px] font-mono px-1 py-0.2 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200/50 dark:border-zinc-700/50">
-                              #{getFacultyErp(cls)}
-                            </span>
-                          )}
-                        </button>
-                      </p>
-                    </div>
-
-                    {/* Bottom Row: Time, Venue & Bunkable Subtext */}
-                    <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                      {/* Time & Venue */}
-                      <div className="flex items-center gap-3.5 text-xs text-zinc-600 dark:text-zinc-300 font-medium">
-                        <span className="flex items-center gap-1.5 shrink-0 font-bold">
-                          <Clock className="w-3.5 h-3.5 text-indigo-500" />
-                          {cls.time}
-                        </span>
-                        <span className="flex items-center gap-1.5 shrink-0">
-                          <MapPin className="w-3.5 h-3.5 text-zinc-400" />
-                          <span className="font-bold text-zinc-800 dark:text-zinc-200">
-                            {cls.slotVenue || "Room Assigned"}
-                          </span>
-                        </span>
-                      </div>
-
-                      {/* Bunkable Classes Subtext Indicator */}
-                      <div className="flex items-center gap-1.5">
-                        <span
-                          className={`text-xs font-bold px-2.5 py-1 rounded-xl flex items-center gap-1.5 ${
-                            bunkStatus === "safe"
-                              ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-900/30"
-                              : bunkStatus === "warning"
-                                ? "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200/50 dark:border-amber-900/30"
-                                : "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border border-red-200/50 dark:border-red-900/30"
-                          }`}
-                        >
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              bunkStatus === "safe"
-                                ? "bg-emerald-500"
-                                : bunkStatus === "warning"
-                                  ? "bg-amber-500"
-                                  : "bg-red-500"
-                            }`}
-                          />
-                          {bunkText}
-                        </span>
-
-                        {showTaskBadgeInline && taskSummary.total > 0 && (
-                          <TaskBadge
-                            summary={taskSummary}
-                            onClick={() => {
-                              setActiveTab("tools");
-                              setActiveToolsSubTab?.("tasks");
-                            }}
-                          />
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Progress Bar for Ongoing Class */}
-                    {isLive && (
-                      <div className="w-full bg-zinc-100 dark:bg-zinc-800 h-1.5 rounded-full overflow-hidden mt-1">
-                        <div
-                          className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500 rounded-full transition-all duration-700 ease-linear"
-                          style={{ width: `${progressPct}%` }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* ── TODAY'S TASKS SECTION (WHEN TASKSINLINEONHOME IS FALSE) ── */}
-        {settings?.tasksInlineOnHome === false &&
-          (() => {
-            // Chunked on this day, plus (on the real current date) tasks that are
-            // only due today — otherwise a Moodle DA is invisible in this mode.
-            const todayTasks = (() => {
-              const chunked = tasksForDay(effectiveTimetableDay, tasks);
-              if (!isTodayView || !viewedDayDate) return chunked;
-              const seen = new Set(chunked.map((t) => t.id));
-              const dueOnly = tasks.filter(
-                (t) => t.status !== "done" && !seen.has(t.id) && isDueOnDay(t.dueDate, viewedDayDate as Date),
-              );
-              return [...chunked, ...dueOnly];
-            })();
-            if (todayTasks.length === 0) return null;
-            return (
-              <div className="pt-2 space-y-2.5">
-                <div className="flex items-center justify-between px-1">
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-indigo-500" />
-                    <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
-                      Today&apos;s Tasks &amp; Schedule
-                    </h3>
-                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
-                      {todayTasks.length}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveTab("tools");
-                      setActiveToolsSubTab?.("tasks");
-                    }}
-                    className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
-                  >
-                    View All Tasks
-                  </button>
-                </div>
-
-                <ListShell>
-                  {todayTasks.map((t) => (
-                    <div
-                      key={t.id}
-                      onClick={() => {
-                        setActiveTab("tools");
-                        setActiveToolsSubTab?.("tasks");
-                      }}
-                      className="p-3.5 flex items-center justify-between gap-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/40 cursor-pointer transition-colors"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <span
-                            className={`text-[9.5px] font-extrabold uppercase px-1.5 py-0.2 rounded border ${
-                              (KIND_CONFIG[t.kind] || KIND_CONFIG.homework).badgeClass
-                            }`}
-                          >
-                            {(KIND_CONFIG[t.kind] || KIND_CONFIG.homework).label}
-                          </span>
-                          {t.courseCode && (
-                            <span className="text-[10px] font-bold text-zinc-600 dark:text-zinc-400">
-                              {t.courseCode}
-                            </span>
-                          )}
-                        </div>
-                        <h4 className="text-xs font-bold text-zinc-900 dark:text-white truncate font-outfit">
-                          {t.title}
-                        </h4>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-zinc-400 shrink-0" />
-                    </div>
-                  ))}
-                </ListShell>
-              </div>
-            );
-          })()}
-
-        {/* ── TIMETABLE & QUICK TOOLS BUTTONS (PLACED CLEANLY AFTER ALL CLASSES) ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2">
-          <button
-            onClick={() => setShowTimetableModal(true)}
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-white/80 dark:bg-zinc-900/80 hover:bg-white dark:hover:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-300 dark:hover:border-indigo-800/60 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
-          >
-            <CalendarIcon className="w-4 h-4 text-indigo-500" />
-            <span>Full Weekly Timetable</span>
-          </button>
-          <button
-            onClick={handleOpenFreeClassrooms}
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-emerald-50/80 hover:bg-emerald-100/80 dark:bg-emerald-950/30 dark:hover:bg-emerald-900/40 border border-emerald-200/70 dark:border-emerald-800/50 text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:border-emerald-300 dark:hover:border-emerald-700 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
-          >
-            <DoorOpen className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            <span>Find Free Classrooms</span>
-          </button>
-          {/* Spans both columns on sm+ so it sits directly under the two-up row,
+            {/* ── TIMETABLE & QUICK TOOLS BUTTONS (PLACED CLEANLY AFTER ALL CLASSES) ── */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2">
+              <button
+                onClick={() => setShowTimetableModal(true)}
+                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-white/80 dark:bg-zinc-900/80 hover:bg-white dark:hover:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-300 dark:hover:border-indigo-800/60 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
+              >
+                <CalendarIcon className="w-4 h-4 text-indigo-500" />
+                <span>Full Weekly Timetable</span>
+              </button>
+              <button
+                onClick={handleOpenFreeClassrooms}
+                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-emerald-50/80 hover:bg-emerald-100/80 dark:bg-emerald-950/30 dark:hover:bg-emerald-900/40 border border-emerald-200/70 dark:border-emerald-800/50 text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:border-emerald-300 dark:hover:border-emerald-700 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
+              >
+                <DoorOpen className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <span>Find Free Classrooms</span>
+              </button>
+              {/* Spans both columns on sm+ so it sits directly under the two-up row,
               reading as the next item rather than a lone half-width button. */}
-          <button
-            onClick={handleOpenFacultySchedule}
-            className="sm:col-span-2 w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-indigo-50/80 hover:bg-indigo-100/80 dark:bg-indigo-950/30 dark:hover:bg-indigo-900/40 border border-indigo-200/70 dark:border-indigo-800/50 text-xs font-bold text-indigo-700 dark:text-indigo-300 hover:border-indigo-300 dark:hover:border-indigo-700 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
-          >
-            <UserSearch className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-            <span>Find Faculty Schedule</span>
-          </button>
+              <button
+                onClick={handleOpenFacultySchedule}
+                className="sm:col-span-2 w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-indigo-50/80 hover:bg-indigo-100/80 dark:bg-indigo-950/30 dark:hover:bg-indigo-900/40 border border-indigo-200/70 dark:border-indigo-800/50 text-xs font-bold text-indigo-700 dark:text-indigo-300 hover:border-indigo-300 dark:hover:border-indigo-700 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
+              >
+                <UserSearch className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                <span>Find Faculty Schedule</span>
+              </button>
+            </div>
+          </div>
         </div>
+
+        {/* ── RIGHT COLUMN: DESKTOP COURSE SIDE VIEW PANE ── */}
+        {isDesktopViewport && (
+          <aside className="hidden lg:block w-80 xl:w-96 shrink-0 sticky top-6 self-start">
+            <DesktopCourseDetail
+              course={selectedCourseObj}
+              isDayscholarWithBus={settings?.isDayscholarWithBus || false}
+              decimalValues={settings?.decimalValues || false}
+              dayCardsMap={timetableMap}
+              results={analyzedCalendarResults}
+              onViewFullPage={() => {
+                if (!selectedCourseObj?.courseCode) return;
+                const cleanCode = String(selectedCourseObj.courseCode)
+                  .replace(/\([LPT]\)$/i, "")
+                  .trim();
+                try {
+                  localStorage.setItem("course_dashboard_target", cleanCode);
+                  localStorage.setItem("course_dashboard_tab", "overview");
+                } catch {}
+                setActiveTab("academics");
+                setActiveSubTab("course-dashboard");
+              }}
+              className="w-full bg-white dark:bg-[#080808] border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xs text-left"
+            />
+          </aside>
+        )}
       </div>
 
       {/* Full Timetable Sheet */}
