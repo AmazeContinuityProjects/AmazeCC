@@ -3,11 +3,13 @@ import posthog from "posthog-js";
 const posthogProjectToken =
   process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN || "phc_obkUKCrFiFpJGfqSbx9LsJzmZDNdzdHhvpSFDhxSwGUt";
 const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://shoot.amazecc.com";
+const posthogUiHost = process.env.NEXT_PUBLIC_POSTHOG_UI_HOST || "https://us.posthog.com";
 
 if (typeof window !== "undefined") {
   if (posthogProjectToken && posthogHost) {
     posthog.init(posthogProjectToken, {
       api_host: posthogHost,
+      ui_host: posthogUiHost,
       defaults: "2026-05-30",
       capture_pageview: true,
       capture_pageleave: true,

@@ -1160,8 +1160,10 @@ export function applyPostHogIdentityVerification(distinctId: string, identityHas
   try {
     const projectToken = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN || "";
     const host = process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://shoot.amazecc.com";
+    const uiHost = process.env.NEXT_PUBLIC_POSTHOG_UI_HOST || "https://us.posthog.com";
     posthog.init(projectToken, {
       api_host: host,
+      ui_host: uiHost,
       identity_distinct_id: distinctId,
       identity_hash: identityHash,
     } as any);
