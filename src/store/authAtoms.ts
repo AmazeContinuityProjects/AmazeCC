@@ -36,3 +36,14 @@ export const showIntroAtom = atom<boolean | null>(null as boolean | null);
  * identify a student, so it is deliberately not persisted to `localStorage`.
  */
 export const authorizedIDAtom = atom<string>("");
+
+/**
+ * The signed-in student's registration number, published once it is knowable.
+ *
+ * It comes from `localStorage["profile"]`, which the sync engine writes
+ * asynchronously, so a component reading it on first render would see "" with
+ * no reactive way to look again. The `studentProfile` op fills this atom when
+ * the profile lands (PostHog identification depends on it); readers fall back
+ * to a direct read, so a reload with a cached profile still has it on first paint.
+ */
+export const activeRegNumberAtom = atom<string>("");

@@ -1,7 +1,7 @@
 // Both symbols originate in `social/schedule` (`attendanceTimetable` only
 // re-delegates). Importing from the source keeps this module out of the
 // attendanceTimetable → calendarDay → taskMatch cycle.
-import { toMinutes as parseAttendanceTime, type Day as AttendanceDay } from "./social/schedule";
+import { toMinutes as parseAttendanceTime, type Day as AttendanceDay } from "./schedule";
 import type { Task, WeekChunk } from "@/types/tasks";
 
 /**

@@ -35,7 +35,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@amazecontinuityprojects/amazeui";
-import { dayKeyForDate } from "@/lib/social/schedule";
+import { dayKeyForDate } from "@/lib/schedule";
 import { weekDateForDayId, type Band } from "@/lib/buildBands";
 
 export type ShellDay = { id: string; name: string };

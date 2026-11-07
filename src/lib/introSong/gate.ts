@@ -37,7 +37,7 @@
  * is what to do when the audio is replaced.
  */
 
-import { getActiveRegNumber } from "@/lib/social/identity";
+import { getActiveRegNumber } from "@/lib/activeIdentity";
 import { storage } from "@/lib/storage";
 
 export const INTRO_SONG_KEY = "intro_song_played_v2";
@@ -89,10 +89,7 @@ export const INTRO_SONG_START_SECONDS = 22;
  */
 
 /** Register numbers (`registerNo`) — the primary allowlist. */
-export const INTRO_SONG_ALLOWED_REG_NUMBERS: readonly string[] = [
-  "25BLC1081",
-  "25MID1139",
-] as const;
+export const INTRO_SONG_ALLOWED_REG_NUMBERS: readonly string[] = ["25BLC1081", "25MID1139"] as const;
 
 /**
  * Application numbers (`applicationNumber`).
@@ -102,10 +99,7 @@ export const INTRO_SONG_ALLOWED_REG_NUMBERS: readonly string[] = [
  * fetched payments would otherwise be locked out of a feature it is on the
  * allowlist for.
  */
-export const INTRO_SONG_ALLOWED_APPLICATION_NUMBERS: readonly string[] = [
-  "20626703",
-  "2025001264",
-] as const;
+export const INTRO_SONG_ALLOWED_APPLICATION_NUMBERS: readonly string[] = ["20626703", "2025001264"] as const;
 
 /** Union, for display in the diagnostic log only. Never used for matching. */
 export const INTRO_SONG_ALLOWED_IDS: readonly string[] = [
@@ -123,12 +117,7 @@ const PAYMENTS_CACHE = "payments";
  * declares `registerNumber`, and the demo data uses that too. Both are read so a
  * rename in either direction cannot silently stop the song.
  */
-const REGISTER_KEYS = [
-  "registerNo",
-  "registerNumber",
-  "regNo",
-  "regNumber",
-] as const;
+const REGISTER_KEYS = ["registerNo", "registerNumber", "regNo", "regNumber"] as const;
 
 /**
  * The `registerNo` from the cached payments payload, or null.
@@ -170,13 +159,12 @@ export function getIntroSongRegisterNumber(): string {
 }
 
 function normalise(value: string | null | undefined): string {
-  return String(value ?? "").trim().toUpperCase();
+  return String(value ?? "")
+    .trim()
+    .toUpperCase();
 }
 
-function inList(
-  value: string | null | undefined,
-  list: readonly string[]
-): boolean {
+function inList(value: string | null | undefined, list: readonly string[]): boolean {
   const id = normalise(value);
   return id.length > 0 && list.includes(id);
 }
@@ -191,10 +179,7 @@ export function isAllowedAuthorizedId(authorizedId: string | null | undefined): 
 
 /** Accepts either kind of number, because the client may only have resolved one. */
 export function isAllowedRegNumber(regNumber: string | null | undefined): boolean {
-  return (
-    inList(regNumber, INTRO_SONG_ALLOWED_REG_NUMBERS) ||
-    inList(regNumber, INTRO_SONG_ALLOWED_APPLICATION_NUMBERS)
-  );
+  return inList(regNumber, INTRO_SONG_ALLOWED_REG_NUMBERS) || inList(regNumber, INTRO_SONG_ALLOWED_APPLICATION_NUMBERS);
 }
 
 /**
@@ -205,10 +190,7 @@ export function isAllowedRegNumber(regNumber: string | null | undefined): boolea
  * always wins — that keeps this a pure function of its arguments whenever the
  * caller has one, which is what makes it testable.
  */
-export function isAllowedIdentifier(
-  authorizedId?: string | null,
-  regNumber?: string | null
-): boolean {
+export function isAllowedIdentifier(authorizedId?: string | null, regNumber?: string | null): boolean {
   if (isAllowedAuthorizedId(authorizedId)) return true;
   if (isAllowedRegNumber(regNumber)) return true;
   return isAllowedRegNumber(getCachedRegisterNumber());
@@ -235,35 +217,30 @@ function safeSet(key: string, value: string): void {
 
 /** Prefers the number, so the flag survives a session id change. */
 function flagKey(authorizedId?: string | null, regNumber?: string | null): string | null {
-  const reg = String(regNumber ?? "").trim().toUpperCase();
+  const reg = String(regNumber ?? "")
+    .trim()
+    .toUpperCase();
   if (reg) return `${INTRO_SONG_KEY}_${reg}`;
-  const id = String(authorizedId ?? "").trim().toUpperCase();
+  const id = String(authorizedId ?? "")
+    .trim()
+    .toUpperCase();
   return id ? `${INTRO_SONG_KEY}_${id}` : null;
 }
 
-export function hasPlayedIntroSong(
-  authorizedId?: string | null,
-  regNumber?: string | null
-): boolean {
+export function hasPlayedIntroSong(authorizedId?: string | null, regNumber?: string | null): boolean {
   const key = flagKey(authorizedId, regNumber);
   if (!key) return false;
   return safeGet(key) === "1";
 }
 
-export function markIntroSongPlayed(
-  authorizedId?: string | null,
-  regNumber?: string | null
-): void {
+export function markIntroSongPlayed(authorizedId?: string | null, regNumber?: string | null): void {
   const key = flagKey(authorizedId, regNumber);
   if (!key) return;
   safeSet(key, "1");
 }
 
 /** Test seam, and the reset switch. */
-export function clearIntroSongFlag(
-  authorizedId?: string | null,
-  regNumber?: string | null
-): void {
+export function clearIntroSongFlag(authorizedId?: string | null, regNumber?: string | null): void {
   const key = flagKey(authorizedId, regNumber);
   if (typeof window === "undefined" || !key) return;
   try {

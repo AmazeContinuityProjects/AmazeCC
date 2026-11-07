@@ -31,7 +31,7 @@
  */
 
 import type { TimetablePeriod } from "@amazecontinuityprojects/amazeui";
-import { DAYS, mondaySkeleton, slotMap, slotRange, type Day, type SlotMap } from "@/lib/social/schedule";
+import { DAYS, mondaySkeleton, slotMap, slotRange, type Day, type SlotMap } from "@/lib/schedule";
 import { buildBandRows, type Band } from "@/lib/buildBands";
 
 /** The theory/lab slot pair inside one band, on one day. */

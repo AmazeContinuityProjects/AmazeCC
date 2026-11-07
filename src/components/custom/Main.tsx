@@ -25,7 +25,7 @@ import {
   authorizedIDAtom,
   defaultSettings,
 } from "@/store";
-import { activeRegNumberAtom } from "@/store/socialAtoms";
+import { activeRegNumberAtom } from "@/store/authAtoms";
 import IntroSong from "@/lib/introSong/IntroSong";
 import config from "../../../config.json";
 import { useTaskReminderScheduler } from "./tasks/useTaskReminderScheduler";
