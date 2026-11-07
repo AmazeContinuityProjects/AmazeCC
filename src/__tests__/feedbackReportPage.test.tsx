@@ -57,10 +57,10 @@ vi.mock("@/lib/posthog", async () => {
   };
 });
 
-function renderFeedbackPage() {
+function renderFeedbackPage(props?: { initialMode?: "guided" | "classic"; initialStep?: 1 | 2 | 3 }) {
   return render(
     <Provider>
-      <FeedbackReportPage />
+      <FeedbackReportPage {...props} />
     </Provider>,
   );
 }
@@ -74,7 +74,7 @@ describe("FeedbackReportPage", () => {
     cleanup();
   });
 
-  it("renders page header, categories, and PostHog badge", () => {
+  it("renders page header, categories in guided hero mode, and PostHog badge", () => {
     renderFeedbackPage();
 
     expect(screen.getByText("Feedback and Bug Report")).toBeDefined();
@@ -83,11 +83,17 @@ describe("FeedbackReportPage", () => {
     expect(screen.getByText("UI / UX Polish")).toBeDefined();
     expect(screen.getByText("General Notes")).toBeDefined();
     expect(screen.getByText("PostHog Analytics")).toBeDefined();
+    expect(screen.getByText("Guided Hero")).toBeDefined();
+    expect(screen.getByText("Classic Form")).toBeDefined();
   });
 
-  it("toggles reactive DOM session recording and shows privacy guidance", () => {
+  it("advances to Step 2 in Guided Hero Mode and toggles reactive DOM recording", () => {
     renderFeedbackPage();
 
+    // Step 1: Click Bug Report menu entry
+    fireEvent.click(screen.getByText("Bug Report"));
+
+    // Step 2: Now on concern screen
     const recordingToggle = screen.getByLabelText(/Toggle reactive DOM session recording/i);
     expect(recordingToggle).toBeDefined();
 
@@ -101,18 +107,27 @@ describe("FeedbackReportPage", () => {
     expect(posthogModule.startPostHogSessionRecording).toHaveBeenCalled();
   });
 
-  it("submits bug report with PostHog session recording opt-in", async () => {
+  it("walks the full Guided Hero flow and submits a bug report", async () => {
     renderFeedbackPage();
 
-    // Fill in subject & description
+    // Step 1: Click on Bug Report menu entry
+    fireEvent.click(screen.getByText("Bug Report"));
+
+    // Step 2: Fill in concern and enable session recording
     const descInput = screen.getByPlaceholderText(/Explain what went wrong/i);
     fireEvent.change(descInput, { target: { value: "Buttons are unresponsive in Safari 17" } });
 
-    // Enable session recording
     const recordingToggle = screen.getByLabelText(/Toggle reactive DOM session recording/i);
     fireEvent.click(recordingToggle);
 
-    // Click submit
+    // Click "Continue to Contact" to reach Step 3
+    const continueBtn = screen.getByRole("button", { name: /Continue to Contact/i });
+    fireEvent.click(continueBtn);
+
+    // Step 3: Now on contact screen with review recap and Submit Report button
+    expect(screen.getByText("Where Should We Reach You?")).toBeDefined();
+    expect(screen.getByText(/Submission Summary/i)).toBeDefined();
+
     const submitBtn = screen.getByRole("button", { name: /Submit Report/i });
     fireEvent.click(submitBtn);
 
@@ -128,6 +143,31 @@ describe("FeedbackReportPage", () => {
 
     expect(screen.getByText("Report Dispatched to PostHog")).toBeDefined();
     expect(screen.getByText("Ticket ID: #ticket_999")).toBeDefined();
+  });
+
+  it("can switch to Classic Form mode and submit in all-in-one view", async () => {
+    renderFeedbackPage();
+
+    // Switch to Classic Form mode
+    fireEvent.click(screen.getByText("Classic Form"));
+
+    // All form inputs are now visible simultaneously
+    const descInput = screen.getByPlaceholderText(/Explain what went wrong/i);
+    fireEvent.change(descInput, { target: { value: "Classic form feedback submission" } });
+
+    const submitBtn = screen.getByRole("button", { name: /Submit Report/i });
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(posthogModule.sendPostHogSupportTicket).toHaveBeenCalledWith(
+        expect.objectContaining({
+          category: "bug",
+          message: expect.stringContaining("Classic form feedback submission"),
+        }),
+      );
+    });
+
+    expect(screen.getByText("Report Dispatched to PostHog")).toBeDefined();
   });
 
   it("switches to My Tickets & Support tab and renders tickets", async () => {

@@ -180,7 +180,7 @@ export const SECTIONS: SectionConfig[] = [
   {
     id: "navigation",
     label: "Mobile & Navigation",
-    subtitle: "Pinned bottom bar tabs, compact views, and push notifications",
+    subtitle: "Pinned bottom bar tabs and push notifications",
     icon: Grid,
     iconBg: "bg-sky-500/10 dark:bg-sky-500/20",
     iconColor: "text-sky-600 dark:text-sky-400",
@@ -249,8 +249,6 @@ export default function ProfilePage({
   setResidentialStatus,
   calendarType,
   setCalendarType,
-  hideMobileHeader,
-  setHideMobileHeader,
   reloadAllData,
   setReloadAllData,
   isLoggedIn,
@@ -2221,16 +2219,6 @@ export default function ProfilePage({
               </button>
             );
           })}
-        </div>
-
-        <div className="flex items-center justify-between py-3 border-t border-zinc-100 dark:border-zinc-800/80">
-          <div>
-            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Compact Mobile Header</p>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              Hide bulky headers on small screens to maximize reading area
-            </p>
-          </div>
-          <Switch checked={hideMobileHeader} onCheckedChange={setHideMobileHeader} />
         </div>
       </div>
 

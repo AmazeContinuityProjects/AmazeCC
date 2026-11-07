@@ -21,54 +21,43 @@ import {
   ShieldCheck,
   RefreshCw,
   Mail,
-  Activity,
-  Terminal,
-  ExternalLink,
   ChevronRight,
+  ChevronLeft,
+  ArrowRight,
   Info,
-  Clock,
+  Layers,
   Sparkle,
 } from "lucide-react";
+import { AnimatePresence, m } from "framer-motion";
+import { PageShell, SegmentedControl, ToneBadge, Switch } from "../shared/primitives";
+import { TILE_CARD, SEARCH_FIELD } from "@/lib/uiTokens";
 import {
-  PageShell,
-  SectionHeader,
-  SegmentedControl,
-  StatTile,
-  ToneBadge,
-  EmptyPanel,
-  Switch,
-  ListShell,
-  ListRowText,
-} from "../shared/primitives";
-import { TILE, TILE_CARD, SEARCH_FIELD, CHIP } from "@/lib/uiTokens";
-import {
-  isPostHogConfigured,
-  isPostHogConversationsAvailable,
   getPostHogConversations,
   sendPostHogSupportTicket,
   startPostHogSessionRecording,
   stopPostHogSessionRecording,
   isPostHogSessionRecordingActive,
-  getPostHogSessionReplayUrl,
   getPostHogSessionId,
-  getPostHogDistinctId,
   resolveCanonicalDistinctId,
   syncPostHogIdentityVerification,
   type PostHogConversationTicket,
   type PostHogConversationMessage,
 } from "@/lib/posthog";
 import { getActiveDisplayName, getActiveRegNumber } from "@/lib/social/identity";
-import buildInfo from "@/data/buildInfo.json";
 
-type ReportCategory = "bug" | "feature" | "experience" | "other";
+export type ReportCategory = "bug" | "feature" | "experience" | "other";
 
-const CATEGORIES: {
+export const CATEGORIES: {
   id: ReportCategory;
   label: string;
   icon: typeof Bug;
   desc: string;
   badgeClass: string;
   tag: string;
+  headlinePlaceholder: string;
+  concernPlaceholder: string;
+  promptTitle: string;
+  promptSubtitle: string;
 }[] = [
   {
     id: "bug",
@@ -77,6 +66,10 @@ const CATEGORIES: {
     desc: "Glitch, broken button, or calculation error",
     badgeClass: "text-rose-500 bg-rose-500/10 border-rose-500/20",
     tag: "Urgent Fix",
+    headlinePlaceholder: "e.g. Schedule clashes not showing on Safari",
+    concernPlaceholder: "Explain what went wrong, which button you clicked, and what you expected to see...",
+    promptTitle: "What glitch did you encounter?",
+    promptSubtitle: "Explain where the app broke and how to reproduce it.",
   },
   {
     id: "feature",
@@ -85,6 +78,10 @@ const CATEGORIES: {
     desc: "New tool ideas or workflow enhancements",
     badgeClass: "text-indigo-500 bg-indigo-500/10 border-indigo-500/20",
     tag: "Idea",
+    headlinePlaceholder: "e.g. Push notification when mess menu changes",
+    concernPlaceholder: "Describe your idea and how it will improve your day at VIT...",
+    promptTitle: "What feature would help you most?",
+    promptSubtitle: "Share your vision for new features or student workflows.",
   },
   {
     id: "experience",
@@ -93,6 +90,10 @@ const CATEGORIES: {
     desc: "Haptics, themes, spacing, and animations",
     badgeClass: "text-amber-500 bg-amber-500/10 border-amber-500/20",
     tag: "Design",
+    headlinePlaceholder: "e.g. High contrast mode for timetable grid",
+    concernPlaceholder: "Tell us what could look sharper, smoother, or more comfortable...",
+    promptTitle: "How can we refine the design?",
+    promptSubtitle: "Give feedback on dark mode, layouts, animations, or readability.",
   },
   {
     id: "other",
@@ -101,6 +102,10 @@ const CATEGORIES: {
     desc: "Thoughts, suggestions, or quick questions",
     badgeClass: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
     tag: "Feedback",
+    headlinePlaceholder: "e.g. Quick note for the team",
+    concernPlaceholder: "Share your question, suggestion, or quick thought...",
+    promptTitle: "What's on your mind?",
+    promptSubtitle: "Send a direct message or inquiry to our development team.",
   },
 ];
 
@@ -112,14 +117,24 @@ const SEVERITIES = [
 
 export interface FeedbackReportPageProps {
   onBack?: () => void;
+  initialMode?: "guided" | "classic";
+  initialCategory?: ReportCategory;
+  initialStep?: 1 | 2 | 3;
 }
 
-export default function FeedbackReportPage({ onBack }: FeedbackReportPageProps) {
+export default function FeedbackReportPage({
+  onBack,
+  initialMode = "guided",
+  initialCategory = "bug",
+  initialStep = 1,
+}: FeedbackReportPageProps) {
   const [activeTab, setActiveTab] = useState<"report" | "tickets" | "diagnostics">("report");
+  const [flowMode, setFlowMode] = useState<"guided" | "classic">(initialMode);
+  const [guidedStep, setGuidedStep] = useState<1 | 2 | 3>(initialStep);
   const [, startTransition] = useTransition();
 
   // Form state
-  const [category, setCategory] = useState<ReportCategory>("bug");
+  const [category, setCategory] = useState<ReportCategory>(initialCategory);
   const [severity, setSeverity] = useState("normal");
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
@@ -299,19 +314,18 @@ export default function FeedbackReportPage({ onBack }: FeedbackReportPageProps) 
               ? res.results
               : [];
 
-        // Merge remote + local (remote wins on status, local ensures newly submitted tickets aren't missing)
-        const ticketMap = new Map<string, PostHogConversationTicket>();
-        local.forEach((t) => ticketMap.set(String(t.id), t));
-        remoteList.forEach((t) => ticketMap.set(String(t.id), { ...ticketMap.get(String(t.id)), ...t }));
+        const mergedMap = new Map<string, PostHogConversationTicket>();
+        for (const t of local) mergedMap.set(t.id, t);
+        for (const t of remoteList) mergedMap.set(t.id, t);
 
-        const merged = Array.from(ticketMap.values()).sort(
+        const merged = Array.from(mergedMap.values()).sort(
           (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
         );
 
         setTickets(merged);
         saveStoredTickets(merged);
       } catch (err) {
-        console.debug("[PostHog getTickets]", err);
+        console.warn("[PostHog getTickets]", err);
         setTickets(local);
       }
     } else {
@@ -326,11 +340,11 @@ export default function FeedbackReportPage({ onBack }: FeedbackReportPageProps) 
     }
   }, [activeTab]);
 
-  // Load messages for a ticket
   const openTicketThread = async (ticket: PostHogConversationTicket) => {
     setActiveTicket(ticket);
     setIsLoadingMessages(true);
     const client = getPostHogConversations();
+
     if (client && typeof client.getMessages === "function") {
       try {
         const res: any = await client.getMessages(ticket.id);
@@ -342,101 +356,125 @@ export default function FeedbackReportPage({ onBack }: FeedbackReportPageProps) 
               ? res.results
               : [];
         setTicketMessages(msgs);
-        client.markAsRead?.(ticket.id);
+        if (typeof client.markAsRead === "function") {
+          client.markAsRead(ticket.id).catch(() => {});
+        }
       } catch (err) {
-        console.debug("[PostHog getMessages]", err);
+        console.warn("[PostHog getMessages]", err);
+        setTicketMessages([
+          {
+            id: `local_${ticket.id}`,
+            content: ticket.last_message || ticket.subject,
+            created_at: ticket.created_at,
+            is_customer: true,
+          },
+        ]);
       }
+    } else {
+      setTicketMessages([
+        {
+          id: `local_${ticket.id}`,
+          content: ticket.last_message || ticket.subject,
+          created_at: ticket.created_at,
+          is_customer: true,
+        },
+      ]);
     }
     setIsLoadingMessages(false);
   };
 
-  const handleSendReply = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!replyMessage.trim() || !activeTicket || isSendingReply) return;
+  const handleSendReply = async () => {
+    if (!replyMessage.trim() || !activeTicket) return;
+    const client = getPostHogConversations();
+    if (!client || typeof client.sendMessage !== "function") return;
 
     setIsSendingReply(true);
-    const client = getPostHogConversations();
-    if (client && typeof client.sendMessage === "function") {
-      try {
-        await client.sendMessage(
-          replyMessage.trim(),
-          {
-            name: userName || userReg || "Student",
-            ticket_id: activeTicket.id,
-          },
-          false,
-        );
-        setReplyMessage("");
-        // Reload messages
-        const res = await client.getMessages(activeTicket.id);
-        setTicketMessages(res.messages || []);
-      } catch (err) {
-        console.error("[PostHog send reply]", err);
-      }
+    try {
+      await client.sendMessage(
+        replyMessage.trim(),
+        {
+          ticket_id: activeTicket.id,
+          distinct_id: distinctId,
+          email: contactEmail.trim() || undefined,
+        },
+        false,
+      );
+
+      setTicketMessages((prev) => [
+        ...prev,
+        {
+          id: `tmp_${Date.now()}`,
+          content: replyMessage.trim(),
+          created_at: new Date().toISOString(),
+          is_customer: true,
+        },
+      ]);
+      setReplyMessage("");
+    } catch (err) {
+      console.error("[PostHog sendReply]", err);
+    } finally {
+      setIsSendingReply(false);
     }
-    setIsSendingReply(false);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!description.trim() || isSubmitting) return;
 
     setIsSubmitting(true);
     setSubmitError(null);
 
-    const fullMessage = [
-      subject.trim() ? `**Subject**: ${subject.trim()}` : "",
-      `**Category**: ${category.toUpperCase()}`,
-      `**Severity**: ${severity}`,
-      `**Description**: ${description.trim()}`,
-      stepsToReproduce.trim() ? `**Steps to Reproduce**:\n${stepsToReproduce.trim()}` : "",
-      userReg ? `**Student Reg**: ${userReg}` : "",
-      `**Commit**: ${buildInfo.commitHash || "latest"}`,
-    ]
-      .filter(Boolean)
-      .join("\n\n");
-
     try {
+      const fullMessage = [
+        subject.trim() ? `### ${subject.trim()}` : "",
+        `**Category**: ${category.toUpperCase()}`,
+        category === "bug" ? `**Severity**: ${severity.toUpperCase()}` : "",
+        `**Concern**:\n${description.trim()}`,
+        stepsToReproduce.trim() ? `**Steps to Reproduce**:\n${stepsToReproduce.trim()}` : "",
+        contactEmail.trim() ? `**Contact Email**: ${contactEmail.trim()}` : "",
+        `**Author**: ${userReg || "Anonymous"} (${userName || "Student"})`,
+        `**App Session**: \`${sessionId}\``,
+      ]
+        .filter(Boolean)
+        .join("\n\n");
+
       const result = await sendPostHogSupportTicket({
-        message: fullMessage,
         category,
+        message: fullMessage,
         contact: contactEmail.trim() || undefined,
         name: userName || userReg || undefined,
         includeSessionRecording: enableSessionRecording,
         metadata: {
           subject: subject.trim() || `${category.toUpperCase()} Report`,
           severity,
-          steps_to_reproduce: stepsToReproduce.trim(),
-          app_version: buildInfo.commitHash,
-          url: typeof window !== "undefined" ? window.location.href : "",
-          user_agent: typeof navigator !== "undefined" ? navigator.userAgent : "",
+          has_clip: hasClip,
+          clip_duration_s: clipDuration,
+          author_reg: userReg,
+          author_name: userName,
           session_id: sessionId,
-          distinct_id: distinctId,
-          replay_url: getPostHogSessionReplayUrl(),
-          contact_email: contactEmail.trim() || undefined,
+          verified_hmac: isIdentityVerified,
         },
       });
 
       if (result.success) {
+        if (result.ticketId) {
+          const newTicket: PostHogConversationTicket = {
+            id: result.ticketId,
+            subject: subject.trim() || `${category.toUpperCase()}: ${description.slice(0, 30)}...`,
+            status: "open",
+            created_at: new Date().toISOString(),
+            last_message: description.trim(),
+          };
+          const existing = getStoredTickets();
+          saveStoredTickets([newTicket, ...existing]);
+        }
+
         if (contactEmail.trim()) {
           try {
             window.localStorage.setItem("amazecc_feedback_email", contactEmail.trim());
           } catch {}
         }
-        if (result.ticketId) {
-          const newTicket: PostHogConversationTicket = {
-            id: result.ticketId,
-            subject: subject.trim() || `${category.toUpperCase()} Report`,
-            status: "open",
-            created_at: new Date().toISOString(),
-            last_message: description.trim(),
-          };
-          const updated = [newTicket, ...getStoredTickets().filter((t) => String(t.id) !== String(result.ticketId))];
-          saveStoredTickets(updated);
-          setTickets(updated);
-        }
-        stopPostHogSessionRecording();
-        setIsRecordingLive(false);
+
         setEnableSessionRecording(false);
         setIsBugRecordingActive(false);
         setHasClip(false);
@@ -462,7 +500,14 @@ export default function FeedbackReportPage({ onBack }: FeedbackReportPageProps) 
     setStepsToReproduce("");
     setCategory("bug");
     setSeverity("normal");
+    setGuidedStep(1);
   };
+
+  const activeCatMeta = useMemo(() => {
+    return CATEGORIES.find((c) => c.id === category) || CATEGORIES[0];
+  }, [category]);
+
+  const ActiveCatIcon = activeCatMeta.icon;
 
   return (
     <PageShell
@@ -490,7 +535,7 @@ export default function FeedbackReportPage({ onBack }: FeedbackReportPageProps) 
     >
       <div className="space-y-6">
         {/* Navigation Tabs */}
-        <div className="flex justify-center sm:justify-start">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <SegmentedControl
             options={[
               { value: "report", label: "New Report" },
@@ -500,52 +545,489 @@ export default function FeedbackReportPage({ onBack }: FeedbackReportPageProps) 
             value={activeTab}
             onChange={(tab) => startTransition(() => setActiveTab(tab))}
           />
+
+          {/* Mode Switcher for New Report */}
+          {activeTab === "report" && !submitSuccess && (
+            <div className="flex items-center gap-1.5 bg-surface-secondary/70 p-1 rounded-2xl border border-border-muted self-start sm:self-auto">
+              <button
+                type="button"
+                onClick={() => setFlowMode("guided")}
+                className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  flowMode === "guided"
+                    ? "bg-indigo-600 text-white shadow-xs"
+                    : "text-text-muted hover:text-text-primary"
+                }`}
+              >
+                <Sparkle className="w-3.5 h-3.5" />
+                <span>Guided Hero</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setFlowMode("classic")}
+                className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  flowMode === "classic"
+                    ? "bg-surface text-text-primary border border-border-muted shadow-xs"
+                    : "text-text-muted hover:text-text-primary"
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span>Classic Form</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* ── TAB 1: NEW REPORT ── */}
         {activeTab === "report" && (
-          <div className="space-y-6">
+          <div>
             {submitSuccess ? (
-              <div className={`${TILE_CARD} text-center py-10 space-y-4`}>
-                <div className="w-16 h-16 mx-auto rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+              <div
+                className={`${TILE_CARD} text-center py-12 px-6 space-y-4 max-w-xl mx-auto rounded-3xl border border-emerald-500/30 bg-emerald-500/5 shadow-xl`}
+              >
+                <div className="w-16 h-16 mx-auto rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center border border-emerald-500/20">
                   <CheckCircle2 className="w-10 h-10 animate-in zoom-in-75 duration-200" />
                 </div>
                 <div className="space-y-1.5 max-w-md mx-auto">
-                  <h3 className="text-lg font-bold text-text-primary">Report Dispatched to PostHog</h3>
+                  <h3 className="text-xl font-black text-text-primary font-outfit">Report Dispatched to PostHog</h3>
                   <p className="text-xs text-text-muted leading-relaxed">
                     Your feedback and session metrics were securely delivered to our PostHog Support channel.
                     {submittedTicketId && (
-                      <span className="block mt-2 font-mono font-semibold text-indigo-500 text-[11px]">
+                      <span className="block mt-2 font-mono font-semibold text-indigo-500 text-xs bg-indigo-500/10 py-1.5 px-3 rounded-xl border border-indigo-500/20">
                         Ticket ID: #{submittedTicketId}
                       </span>
                     )}
                   </p>
                 </div>
-                <div className="pt-2 flex justify-center gap-3">
+                <div className="pt-4 flex flex-wrap justify-center gap-3">
                   <button
                     type="button"
                     onClick={handleResetForm}
-                    className="px-4 py-2 rounded-xl border border-border-muted hover:bg-surface-secondary text-xs font-bold text-text-primary transition-colors cursor-pointer"
+                    className="px-5 py-2.5 rounded-xl border border-border-muted hover:bg-surface-secondary text-xs font-bold text-text-primary transition-colors cursor-pointer"
                   >
                     Submit Another Note
                   </button>
                   <button
                     type="button"
                     onClick={() => setActiveTab("tickets")}
-                    className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-transform active:scale-95 cursor-pointer shadow-xs"
+                    className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-transform active:scale-95 cursor-pointer shadow-md"
                   >
                     View Developer Tickets
                   </button>
                 </div>
               </div>
+            ) : flowMode === "guided" ? (
+              /* ── GUIDED HERO MODE (TYPEFORM STYLE) ── */
+              <div className="space-y-6">
+                {/* Step indicator bar */}
+                <div className="max-w-2xl mx-auto flex items-center justify-between px-2 text-xs font-bold text-text-muted">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${
+                        guidedStep >= 1 ? "bg-indigo-600 text-white" : "bg-surface-secondary text-text-muted"
+                      }`}
+                    >
+                      1
+                    </span>
+                    <span className={guidedStep === 1 ? "text-indigo-600 dark:text-indigo-400 font-black" : ""}>
+                      Category
+                    </span>
+                  </div>
+                  <div
+                    className={`h-0.5 flex-1 mx-3 rounded-full ${guidedStep >= 2 ? "bg-indigo-600" : "bg-border-muted"}`}
+                  />
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${
+                        guidedStep >= 2 ? "bg-indigo-600 text-white" : "bg-surface-secondary text-text-muted"
+                      }`}
+                    >
+                      2
+                    </span>
+                    <span className={guidedStep === 2 ? "text-indigo-600 dark:text-indigo-400 font-black" : ""}>
+                      Concern
+                    </span>
+                  </div>
+                  <div
+                    className={`h-0.5 flex-1 mx-3 rounded-full ${guidedStep >= 3 ? "bg-indigo-600" : "bg-border-muted"}`}
+                  />
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${
+                        guidedStep >= 3 ? "bg-indigo-600 text-white" : "bg-surface-secondary text-text-muted"
+                      }`}
+                    >
+                      3
+                    </span>
+                    <span className={guidedStep === 3 ? "text-indigo-600 dark:text-indigo-400 font-black" : ""}>
+                      Contact
+                    </span>
+                  </div>
+                </div>
+
+                <AnimatePresence mode="wait">
+                  {/* ── GUIDED STEP 1: CATEGORY SELECTION MENU ── */}
+                  {guidedStep === 1 && (
+                    <m.div
+                      key="step-1"
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -15 }}
+                      transition={{ duration: 0.2 }}
+                      className="space-y-6 max-w-3xl mx-auto py-2"
+                    >
+                      <div className="text-center space-y-2">
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 font-outfit">
+                          Step 1 of 3 · Choose Category
+                        </div>
+                        <h2 className="text-2xl sm:text-3xl font-black text-text-primary font-outfit tracking-tight">
+                          What would you like to share?
+                        </h2>
+                        <p className="text-xs sm:text-sm text-text-muted font-medium max-w-md mx-auto">
+                          Select a category below to open a focused, clean screen.
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {CATEGORIES.map((cat) => {
+                          const Icon = cat.icon;
+                          const isSelected = category === cat.id;
+                          return (
+                            <button
+                              key={cat.id}
+                              type="button"
+                              onClick={() => {
+                                setCategory(cat.id);
+                                setGuidedStep(2);
+                              }}
+                              className={`group p-5 rounded-3xl border text-left transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between min-h-[140px] ${
+                                isSelected
+                                  ? "border-indigo-500 bg-indigo-500/10 ring-2 ring-indigo-500/25 shadow-md"
+                                  : "border-border-strong dark:border-border bg-surface dark:bg-surface-secondary hover:border-indigo-500/50 hover:bg-surface-secondary shadow-xs hover:shadow-md hover:scale-[1.01] active:scale-[0.99]"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between w-full mb-3">
+                                <div className={`p-3 rounded-2xl ${cat.badgeClass}`}>
+                                  <Icon className="w-5 h-5" />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-surface-tertiary text-text-muted border border-border-muted font-outfit">
+                                    {cat.tag}
+                                  </span>
+                                  <div className="w-7 h-7 rounded-full bg-surface-secondary group-hover:bg-indigo-600 group-hover:text-white text-text-muted flex items-center justify-center transition-colors">
+                                    <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+                                  </div>
+                                </div>
+                              </div>
+                              <div>
+                                <h3 className="text-base font-black text-text-primary font-outfit">{cat.label}</h3>
+                                <p className="text-xs text-text-muted font-medium leading-relaxed mt-1">{cat.desc}</p>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </m.div>
+                  )}
+
+                  {/* ── GUIDED STEP 2: CONCERN SCREEN (TYPEFORM STYLE) ── */}
+                  {guidedStep === 2 && (
+                    <m.div
+                      key="step-2"
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -15 }}
+                      transition={{ duration: 0.2 }}
+                      className="max-w-2xl mx-auto space-y-6 py-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <button
+                          type="button"
+                          onClick={() => setGuidedStep(1)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-muted text-xs font-bold text-text-muted hover:text-text-primary hover:bg-surface-secondary transition-colors cursor-pointer"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                          <span>Back to Categories</span>
+                        </button>
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 font-outfit">
+                          Step 2 of 3 · Your Concern
+                        </div>
+                      </div>
+
+                      <div className="text-center space-y-2">
+                        <div
+                          className={`w-12 h-12 mx-auto rounded-2xl flex items-center justify-center ${activeCatMeta.badgeClass}`}
+                        >
+                          <ActiveCatIcon className="w-6 h-6" />
+                        </div>
+                        <h2 className="text-2xl sm:text-3xl font-black text-text-primary font-outfit tracking-tight">
+                          {activeCatMeta.promptTitle}
+                        </h2>
+                        <p className="text-xs sm:text-sm text-text-muted font-medium max-w-md mx-auto">
+                          {activeCatMeta.promptSubtitle}
+                        </p>
+                      </div>
+
+                      <div
+                        className={`${TILE_CARD} space-y-5 p-6 rounded-3xl border border-border-strong dark:border-border shadow-lg`}
+                      >
+                        <div>
+                          <label className="block text-xs font-bold text-text-primary mb-1.5">
+                            Headline / Topic <span className="text-text-muted font-normal">(Optional)</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={subject}
+                            onChange={(e) => setSubject(e.target.value)}
+                            placeholder={activeCatMeta.headlinePlaceholder}
+                            className={SEARCH_FIELD}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold text-text-primary mb-1.5">
+                            Detailed Concern <span className="text-rose-500">*</span>
+                          </label>
+                          <textarea
+                            required
+                            rows={5}
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            placeholder={activeCatMeta.concernPlaceholder}
+                            className="w-full px-4 py-3.5 rounded-2xl bg-surface dark:bg-surface-secondary border border-border-strong dark:border-border text-sm font-medium text-text-heading placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all leading-relaxed"
+                          />
+                        </div>
+
+                        {category === "bug" && (
+                          <>
+                            {/* Severity selection */}
+                            <div>
+                              <label className="block text-xs font-bold text-text-primary mb-1.5">Severity Level</label>
+                              <div className="grid grid-cols-3 gap-2">
+                                {SEVERITIES.map((s) => (
+                                  <button
+                                    key={s.value}
+                                    type="button"
+                                    onClick={() => setSeverity(s.value)}
+                                    className={`py-2 px-3 rounded-xl border text-center transition-all cursor-pointer ${
+                                      severity === s.value
+                                        ? "border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold shadow-xs"
+                                        : "border-border-muted bg-surface-secondary/40 text-text-secondary text-xs hover:bg-surface-secondary"
+                                    }`}
+                                  >
+                                    <div className="text-xs font-bold">{s.label}</div>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Reactive DOM recording toggle */}
+                            <div className="p-4 rounded-2xl border border-indigo-500/30 bg-indigo-500/5 space-y-3">
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex items-start gap-3">
+                                  <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-500 shrink-0 mt-0.5">
+                                    {isRecordingLive ? (
+                                      <Video className="w-5 h-5 animate-pulse text-rose-500" />
+                                    ) : (
+                                      <VideoOff className="w-5 h-5" />
+                                    )}
+                                  </div>
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs sm:text-sm font-bold text-text-primary">
+                                        Attach Reactive DOM Session Recording
+                                      </span>
+                                      {isRecordingLive && (
+                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-rose-500/10 text-rose-500 border border-rose-500/20 animate-pulse">
+                                          Recording Active
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-xs text-text-muted leading-relaxed">
+                                      The session recording will automatically take place within the reactive DOM of the
+                                      app so your phone is not overwhelmed by screen casting or video encoding. You can
+                                      navigate anywhere in AmazeCC to replicate the glitch. If you reload, it cancels.
+                                    </p>
+                                    <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+                                      Note: the recording may include personal data or grades rendered on screen during
+                                      your session. Passwords and sensitive inputs are masked by default.
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="shrink-0 pt-1">
+                                  <Switch
+                                    checked={enableSessionRecording}
+                                    onCheckedChange={handleToggleRecording}
+                                    label="Toggle reactive DOM session recording"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      <div className="flex justify-end pt-2">
+                        <button
+                          type="button"
+                          disabled={!description.trim()}
+                          onClick={() => setGuidedStep(3)}
+                          className="inline-flex items-center gap-2 py-3 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-md"
+                        >
+                          <span>Continue to Contact</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </m.div>
+                  )}
+
+                  {/* ── GUIDED STEP 3: CONTACT & SUBMIT ── */}
+                  {guidedStep === 3 && (
+                    <m.div
+                      key="step-3"
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -15 }}
+                      transition={{ duration: 0.2 }}
+                      className="max-w-2xl mx-auto space-y-6 py-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <button
+                          type="button"
+                          onClick={() => setGuidedStep(2)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-muted text-xs font-bold text-text-muted hover:text-text-primary hover:bg-surface-secondary transition-colors cursor-pointer"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                          <span>Back to Concern</span>
+                        </button>
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-outfit">
+                          Step 3 of 3 · Final Step
+                        </div>
+                      </div>
+
+                      <div className="text-center space-y-2">
+                        <div className="w-12 h-12 mx-auto rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 flex items-center justify-center">
+                          <Mail className="w-6 h-6" />
+                        </div>
+                        <h2 className="text-2xl sm:text-3xl font-black text-text-primary font-outfit tracking-tight">
+                          Where Should We Reach You?
+                        </h2>
+                        <p className="text-xs sm:text-sm text-text-muted font-medium max-w-md mx-auto">
+                          Developer updates and support responses will be delivered straight to your personal inbox.
+                        </p>
+                      </div>
+
+                      <div
+                        className={`${TILE_CARD} space-y-5 p-6 rounded-3xl border border-border-strong dark:border-border shadow-lg`}
+                      >
+                        <div>
+                          <label className="block text-xs font-bold text-text-primary mb-1.5">
+                            Personal Email Address <span className="text-text-muted font-normal">(Optional)</span>
+                          </label>
+                          <div className="relative">
+                            <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" />
+                            <input
+                              type="email"
+                              value={contactEmail}
+                              onChange={(e) => handleEmailChange(e.target.value)}
+                              placeholder="your.personal.email@gmail.com"
+                              className={`${SEARCH_FIELD} pl-10`}
+                            />
+                          </div>
+                          <p className="text-[11px] text-text-muted mt-1.5 leading-relaxed">
+                            Developer replies from the PostHog dashboard will be delivered to this email and synced
+                            in-app.
+                          </p>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold text-text-primary mb-1.5">Author Identifier</label>
+                          <div className="px-4 py-3 rounded-2xl bg-surface-secondary/50 border border-border-muted text-xs font-mono text-text-muted flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <ShieldCheck className="w-4 h-4 text-indigo-500" />
+                              <span className="font-bold text-text-primary">{distinctId}</span>
+                            </div>
+                            <ToneBadge tone={isIdentityVerified ? "emerald" : "indigo"}>
+                              {isIdentityVerified ? "Verified HMAC" : userReg ? "Reg Number" : "Guest"}
+                            </ToneBadge>
+                          </div>
+                        </div>
+
+                        {/* Summary Recap Card */}
+                        <div className="p-4 rounded-2xl bg-surface-secondary/60 border border-border-muted space-y-2">
+                          <div className="text-[11px] font-black uppercase tracking-wider text-text-muted font-outfit">
+                            Submission Summary
+                          </div>
+                          <div className="flex flex-wrap gap-2 text-xs">
+                            <span className="px-2.5 py-1 rounded-xl bg-surface font-bold text-text-primary border border-border-muted">
+                              Category: {activeCatMeta.label}
+                            </span>
+                            {category === "bug" && (
+                              <span className="px-2.5 py-1 rounded-xl bg-surface font-bold text-rose-500 border border-border-muted">
+                                Severity: {severity.toUpperCase()}
+                              </span>
+                            )}
+                            {enableSessionRecording && (
+                              <span className="px-2.5 py-1 rounded-xl bg-rose-500/10 text-rose-500 border border-rose-500/20 font-bold">
+                                🎥 Replay Attached
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-text-muted line-clamp-2 italic pt-1">&quot;{description}&quot;</p>
+                        </div>
+                      </div>
+
+                      {submitError && (
+                        <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-semibold">
+                          {submitError}
+                        </div>
+                      )}
+
+                      <div className="flex justify-between items-center pt-2">
+                        <button
+                          type="button"
+                          onClick={() => setGuidedStep(2)}
+                          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-border-muted text-xs font-bold text-text-muted hover:text-text-primary hover:bg-surface-secondary transition-colors cursor-pointer"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                          <span>Back</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={isSubmitting || !description.trim()}
+                          onClick={() => handleSubmit()}
+                          className="inline-flex items-center gap-2 py-3 px-8 rounded-2xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-lg"
+                        >
+                          {isSubmitting ? (
+                            <>
+                              <RefreshCw className="w-4 h-4 animate-spin" />
+                              <span>Sending to PostHog…</span>
+                            </>
+                          ) : (
+                            <>
+                              <Send className="w-4 h-4" />
+                              <span>Submit Report</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </m.div>
+                  )}
+                </AnimatePresence>
+              </div>
             ) : (
+              /* ── CLASSIC ALL-IN-ONE FORM MODE ── */
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Category selector */}
                 <div className="space-y-2">
-                  <SectionHeader title="What are you submitting?" />
-                  <p className="text-xs text-text-muted px-1">
-                    Select a category so we can route it to the right developer inbox
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-bold text-text-primary font-outfit">Select Category</h3>
+                      <p className="text-xs text-text-muted">
+                        Select a category so we can route it to the right developer inbox
+                      </p>
+                    </div>
+                  </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                     {CATEGORIES.map((cat) => {
                       const Icon = cat.icon;
@@ -565,12 +1047,12 @@ export default function FeedbackReportPage({ onBack }: FeedbackReportPageProps) 
                             <div className={`p-2 rounded-xl ${cat.badgeClass}`}>
                               <Icon className="w-4 h-4" />
                             </div>
-                            <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-surface-tertiary text-text-muted border border-border-muted">
+                            <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-surface-tertiary text-text-muted border border-border-muted font-outfit">
                               {cat.tag}
                             </span>
                           </div>
                           <div>
-                            <span className="text-xs font-bold text-text-primary block">{cat.label}</span>
+                            <span className="text-xs font-bold text-text-primary block font-outfit">{cat.label}</span>
                             <span className="text-[11px] text-text-muted leading-tight mt-0.5 block">{cat.desc}</span>
                           </div>
                         </button>
@@ -582,7 +1064,7 @@ export default function FeedbackReportPage({ onBack }: FeedbackReportPageProps) 
                 {/* Bug Specific Severity */}
                 {category === "bug" && (
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-text-muted uppercase tracking-wider block">
+                    <label className="text-xs font-bold text-text-muted uppercase tracking-wider block font-outfit">
                       Severity Level
                     </label>
                     <div className="grid grid-cols-3 gap-2">
@@ -597,7 +1079,7 @@ export default function FeedbackReportPage({ onBack }: FeedbackReportPageProps) 
                               : "border-border-muted bg-surface-secondary/40 text-text-secondary text-xs"
                           }`}
                         >
-                          <div className="text-xs">{s.label}</div>
+                          <div className="text-xs font-bold">{s.label}</div>
                           <div className="text-[10px] text-text-muted opacity-80 hidden sm:block">{s.desc}</div>
                         </button>
                       ))}
@@ -615,11 +1097,7 @@ export default function FeedbackReportPage({ onBack }: FeedbackReportPageProps) 
                       type="text"
                       value={subject}
                       onChange={(e) => setSubject(e.target.value)}
-                      placeholder={
-                        category === "bug"
-                          ? "e.g. Schedule clashes not showing on Safari"
-                          : "e.g. Add dark mode toggle to Paper Scanner"
-                      }
+                      placeholder={activeCatMeta.headlinePlaceholder}
                       className={SEARCH_FIELD}
                     />
                   </div>
@@ -633,12 +1111,8 @@ export default function FeedbackReportPage({ onBack }: FeedbackReportPageProps) 
                       rows={4}
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      placeholder={
-                        category === "bug"
-                          ? "Explain what went wrong, which button you clicked, and what you expected to see..."
-                          : "Describe your idea and how it will improve your day at VIT..."
-                      }
-                      className="w-full px-4 py-3 rounded-2xl bg-surface dark:bg-surface-secondary border border-border-strong dark:border-border text-xs sm:text-sm font-medium text-text-heading placeholder:text-text-muted focus:outline-none focus:border-border-strong"
+                      placeholder={activeCatMeta.concernPlaceholder}
+                      className="w-full px-4 py-3 rounded-2xl bg-surface dark:bg-surface-secondary border border-border-strong dark:border-border text-xs sm:text-sm font-medium text-text-heading placeholder:text-text-muted focus:outline-none focus:border-border-strong leading-relaxed"
                     />
                   </div>
 
@@ -875,7 +1349,7 @@ export default function FeedbackReportPage({ onBack }: FeedbackReportPageProps) 
 
                 <div className={`${TILE_CARD} space-y-4`}>
                   <div className="border-b border-border-muted pb-3">
-                    <h3 className="text-base font-bold text-text-primary">
+                    <h3 className="text-base font-bold text-text-primary font-outfit">
                       {activeTicket.subject || `Ticket #${activeTicket.id}`}
                     </h3>
                     <p className="text-[11px] text-text-muted mt-0.5">
@@ -899,11 +1373,11 @@ export default function FeedbackReportPage({ onBack }: FeedbackReportPageProps) 
                               : "mr-auto bg-surface-secondary text-text-primary border border-border-muted rounded-bl-xs"
                           }`}
                         >
-                          <div className="text-[10px] font-bold opacity-75 mb-1">
-                            {msg.is_customer ? "You" : msg.sender?.name || "PostHog Support Team"}
+                          <div className="font-semibold mb-1 opacity-90 text-[11px]">
+                            {msg.is_customer ? "You" : msg.sender?.name || "Support Team"}
                           </div>
                           <div className="whitespace-pre-wrap leading-relaxed">{msg.content}</div>
-                          <div className="text-[9px] opacity-60 text-right mt-1">
+                          <div className="text-[10px] opacity-60 text-right mt-1.5">
                             {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                           </div>
                         </div>
@@ -911,79 +1385,101 @@ export default function FeedbackReportPage({ onBack }: FeedbackReportPageProps) 
                     )}
                   </div>
 
-                  {/* Reply form */}
-                  <form onSubmit={handleSendReply} className="flex gap-2 pt-2 border-t border-border-muted">
+                  {/* Reply Input */}
+                  <div className="pt-2 border-t border-border-muted flex gap-2">
                     <input
                       type="text"
                       value={replyMessage}
                       onChange={(e) => setReplyMessage(e.target.value)}
-                      placeholder="Reply to the developers..."
-                      className="flex-1 px-4 py-2.5 rounded-xl bg-surface dark:bg-surface-secondary border border-border-muted text-xs text-text-primary focus:outline-none"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendReply();
+                        }
+                      }}
+                      placeholder="Type a reply to the developers..."
+                      className={SEARCH_FIELD}
                     />
                     <button
-                      type="submit"
+                      type="button"
                       disabled={isSendingReply || !replyMessage.trim()}
-                      className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                      onClick={handleSendReply}
+                      className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold shrink-0 transition-transform active:scale-95 cursor-pointer shadow-xs"
                     >
                       {isSendingReply ? (
                         <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                       ) : (
                         <Send className="w-3.5 h-3.5" />
                       )}
-                      <span>Reply</span>
                     </button>
-                  </form>
+                  </div>
                 </div>
               </div>
             ) : (
-              /* Tickets List View */
+              /* Ticket List View */
               <div className="space-y-4">
-                <SectionHeader
-                  title="Developer Conversations"
-                  right={
-                    <button
-                      type="button"
-                      onClick={loadTickets}
-                      className="p-2 rounded-xl border border-border-muted hover:bg-surface-secondary text-text-muted cursor-pointer"
-                      title="Refresh tickets"
-                    >
-                      <RefreshCw className={`w-4 h-4 ${isLoadingTickets ? "animate-spin" : ""}`} />
-                    </button>
-                  }
-                />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-bold text-text-primary font-outfit">Past Support Requests</h3>
+                    <p className="text-xs text-text-muted">
+                      Support conversations from this device and your registration number
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={loadTickets}
+                    className="p-2 rounded-xl border border-border-muted hover:bg-surface-secondary text-text-muted cursor-pointer transition-colors shadow-2xs"
+                    title="Refresh tickets"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isLoadingTickets ? "animate-spin" : ""}`} />
+                  </button>
+                </div>
 
                 {isLoadingTickets ? (
-                  <div className="py-12 text-center text-xs text-text-muted">Checking PostHog tickets...</div>
-                ) : tickets.length > 0 ? (
-                  <ListShell>
+                  <div className="py-12 text-center text-xs text-text-muted">Loading your tickets from PostHog...</div>
+                ) : tickets.length === 0 ? (
+                  <div className="py-12 text-center space-y-3 bg-surface-secondary/40 rounded-3xl border border-border-muted">
+                    <MessageSquare className="w-8 h-8 text-text-muted mx-auto opacity-50" />
+                    <div className="space-y-1">
+                      <p className="text-xs font-bold text-text-primary font-outfit">No Support Tickets Yet</p>
+                      <p className="text-[11px] text-text-muted max-w-xs mx-auto">
+                        Submit a bug report or feature request in the &quot;New Report&quot; tab to start a conversation
+                        with developers.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-border-muted rounded-2xl border border-border-strong dark:border-border overflow-hidden bg-surface dark:bg-surface-secondary">
                     {tickets.map((t) => (
-                      <button
+                      <div
                         key={t.id}
-                        type="button"
                         onClick={() => openTicketThread(t)}
-                        className="w-full flex items-center justify-between py-3.5 px-4 text-left hover:bg-surface-secondary transition-colors cursor-pointer"
+                        className="p-4 hover:bg-surface-tertiary transition-colors cursor-pointer flex items-center justify-between gap-4"
                       >
-                        <div className="space-y-0.5">
+                        <div className="min-w-0 space-y-1">
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-text-primary">
+                            <span className="font-bold text-xs text-text-primary truncate font-outfit">
                               {t.subject || `Ticket #${t.id}`}
                             </span>
-                            <ToneBadge tone={t.status === "closed" ? "slate" : "emerald"}>{t.status}</ToneBadge>
+                            <ToneBadge tone={t.status === "closed" ? "slate" : "emerald"}>
+                              {t.status.toUpperCase()}
+                            </ToneBadge>
                           </div>
-                          <p className="text-[11px] text-text-muted truncate max-w-md">
-                            {t.last_message || "No recent messages"}
+                          {t.last_message && (
+                            <p className="text-xs text-text-muted truncate max-w-md">{t.last_message}</p>
+                          )}
+                          <p className="text-[10px] text-text-muted opacity-80">
+                            {new Date(t.created_at).toLocaleDateString()} at{" "}
+                            {new Date(t.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                           </p>
                         </div>
-                        <ChevronRight className="w-4 h-4 text-text-muted" />
-                      </button>
+                        <div className="shrink-0 flex items-center gap-2">
+                          <span className="text-xs font-bold text-indigo-500 hidden sm:inline">Open Thread</span>
+                          <ChevronRight className="w-4 h-4 text-text-muted" />
+                        </div>
+                      </div>
                     ))}
-                  </ListShell>
-                ) : (
-                  <EmptyPanel
-                    icon={<MessageSquare className="w-8 h-8 text-indigo-500" />}
-                    title="No tickets yet"
-                    description="Tickets you submit will sync here via the PostHog Conversations API."
-                  />
+                  </div>
                 )}
               </div>
             )}
@@ -993,64 +1489,69 @@ export default function FeedbackReportPage({ onBack }: FeedbackReportPageProps) 
         {/* ── TAB 3: POSTHOG DIAGNOSTICS & TELEMETRY ── */}
         {activeTab === "diagnostics" && (
           <div className="space-y-5">
-            <SectionHeader title="PostHog Telemetry & Integration Engine" />
-            <p className="text-xs text-text-muted px-1">
-              Live insight into PostHog instrumentation, session replays, and identity verification.
-            </p>
+            <div>
+              <h3 className="text-sm font-bold text-text-primary font-outfit">PostHog Diagnostics</h3>
+              <p className="text-xs text-text-muted">
+                Inspect device session identifiers, HMAC cryptographic verification, and PostHog ingestion health
+              </p>
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-              <StatTile
-                label="Conversations API"
-                value={isPostHogConversationsAvailable() ? "Online" : "Fallback"}
-                badge={isPostHogConversationsAvailable() ? "Direct API" : "Event Channel"}
-                tone={isPostHogConversationsAvailable() ? "emerald" : "amber"}
-              />
-              <StatTile
-                label="Reactive DOM Replay"
-                value={isRecordingLive ? "Recording" : "Idle"}
-                badge={isRecordingLive ? "Capturing" : "Opt-In"}
-                tone={isRecordingLive ? "rose" : "slate"}
-              />
-              <StatTile label="Client SDK Version" value="posthog-js" badge="v1.445+" tone="indigo" />
-              <StatTile
-                label="Distinct Identity"
-                value={isIdentityVerified ? "Verified HMAC" : userReg ? "Reg Number" : "Anonymous"}
-                badge={distinctId}
-                tone={isIdentityVerified ? "emerald" : "indigo"}
-              />
+              <div className="p-4 rounded-2xl border border-border-muted bg-surface dark:bg-surface-secondary space-y-1">
+                <span className="text-[10px] font-black uppercase text-text-muted font-outfit">Active Distinct ID</span>
+                <div className="font-mono text-xs font-bold text-text-primary truncate">{distinctId}</div>
+              </div>
+              <div className="p-4 rounded-2xl border border-border-muted bg-surface dark:bg-surface-secondary space-y-1">
+                <span className="text-[10px] font-black uppercase text-text-muted font-outfit">Session ID</span>
+                <div className="font-mono text-xs font-bold text-text-primary truncate">{sessionId}</div>
+              </div>
+              <div className="p-4 rounded-2xl border border-border-muted bg-surface dark:bg-surface-secondary space-y-1">
+                <span className="text-[10px] font-black uppercase text-text-muted font-outfit">
+                  Identity Verification
+                </span>
+                <div className="font-semibold text-xs text-text-primary flex items-center gap-1.5">
+                  <span className={`w-2 h-2 rounded-full ${isIdentityVerified ? "bg-emerald-500" : "bg-indigo-500"}`} />
+                  <span>{isIdentityVerified ? "HMAC Signed" : "Device Canonical"}</span>
+                </div>
+              </div>
+              <div className="p-4 rounded-2xl border border-border-muted bg-surface dark:bg-surface-secondary space-y-1">
+                <span className="text-[10px] font-black uppercase text-text-muted font-outfit">Session Recorder</span>
+                <div className="font-semibold text-xs text-text-primary flex items-center gap-1.5">
+                  <span
+                    className={`w-2 h-2 rounded-full ${isRecordingLive ? "bg-rose-500 animate-pulse" : "bg-zinc-400"}`}
+                  />
+                  <span>{isRecordingLive ? "Recording Active" : "On-Demand Standby"}</span>
+                </div>
+              </div>
             </div>
 
             <div className={`${TILE_CARD} space-y-4`}>
               <div className="flex items-center justify-between border-b border-border-muted pb-3">
-                <div className="flex items-center gap-2">
-                  <Terminal className="w-4 h-4 text-indigo-500" />
-                  <h4 className="text-xs font-bold text-text-primary">Active PostHog Metadata</h4>
-                </div>
-                <ToneBadge tone="indigo">shoot.amazecc.com</ToneBadge>
+                <h4 className="text-xs font-bold text-text-primary font-outfit">
+                  PostHog Telemetry & Integration Engine
+                </h4>
+                <ToneBadge tone="emerald">Active</ToneBadge>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 font-mono text-[11px]">
-                <div className="p-3 rounded-xl bg-surface-secondary/50 border border-border-muted">
-                  <span className="text-text-muted block mb-1">PostHog Distinct ID:</span>
-                  <span className="text-text-primary font-bold select-all break-all">{distinctId}</span>
+              <div className="space-y-3 text-xs text-text-muted">
+                <div className="flex items-center justify-between py-1 border-b border-border-muted/50">
+                  <span>Reverse Proxy Endpoint</span>
+                  <span className="font-mono text-[11px] text-text-primary">shoot.amazecc.com</span>
                 </div>
-                <div className="p-3 rounded-xl bg-surface-secondary/50 border border-border-muted">
-                  <span className="text-text-muted block mb-1">Current Session ID:</span>
-                  <span className="text-text-primary font-bold select-all break-all">{sessionId}</span>
+                <div className="flex items-center justify-between py-1 border-b border-border-muted/50">
+                  <span>Signed Token Identity Verification</span>
+                  <span className="font-mono text-[11px] text-text-primary">
+                    {isIdentityVerified ? "Active (HMAC-SHA256)" : "Client Mode"}
+                  </span>
                 </div>
-              </div>
-
-              {/* Identity Verification Explanation */}
-              <div className="p-4 rounded-xl bg-surface-secondary/40 border border-border-muted space-y-2">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-indigo-500" />
-                  <span className="text-xs font-bold text-text-primary">Signed Token Identity Verification</span>
+                <div className="flex items-center justify-between py-1 border-b border-border-muted/50">
+                  <span>Conversations Direct API</span>
+                  <span className="font-mono text-[11px] text-text-primary">posthog.conversations.sendMessage</span>
                 </div>
-                <p className="text-[11px] text-text-muted leading-relaxed">
-                  PostHog Support provides server-side HMAC-SHA256 signature verification. When enabled, your student
-                  identifier (<code>{distinctId}</code>) is signed with the PostHog identity secret so conversations and
-                  bug tickets persist across multiple browsers, laptops, and mobile devices without manual email links.
-                </p>
+                <div className="flex items-center justify-between py-1">
+                  <span>Current Project ID</span>
+                  <span className="font-mono text-[11px] text-text-primary">712727</span>
+                </div>
               </div>
             </div>
           </div>
