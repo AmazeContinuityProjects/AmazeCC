@@ -3,14 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@amazecontinuityprojects/amazeui";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@amazecontinuityprojects/amazeui";
-import { HelpCircle } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@amazecontinuityprojects/amazeui";
+import { HelpCircle, Bug } from "lucide-react";
 
 export default function NotFoundPage() {
   const pathname = usePathname();
@@ -31,8 +25,12 @@ export default function NotFoundPage() {
               </div>
             </div>
 
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-gray-500 font-[family-name:var(--font-outfit)]">Routing Error</p>
-            <CardTitle className="text-xl md:text-2xl font-black tracking-tight text-slate-900 dark:text-white mt-1">Page not found</CardTitle>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-gray-500 font-[family-name:var(--font-outfit)]">
+              Routing Error
+            </p>
+            <CardTitle className="text-xl md:text-2xl font-black tracking-tight text-slate-900 dark:text-white mt-1">
+              Page not found
+            </CardTitle>
             <CardDescription className="text-xs md:text-sm mt-2 text-slate-500 dark:text-gray-400 font-medium max-w-sm mx-auto leading-relaxed">
               The requested resource does not exist, has been moved, or may be temporary unavailable.
             </CardDescription>
@@ -40,16 +38,34 @@ export default function NotFoundPage() {
 
           <CardContent className="space-y-6 px-6 md:px-8 pb-8">
             <div className="rounded-2xl border border-slate-205 dark:border-neutral-900 bg-slate-50/50 dark:bg-neutral-950/20 p-4 text-xs font-semibold text-slate-700 dark:text-gray-300 leading-relaxed text-left flex justify-between items-center">
-              <span className="text-slate-455 dark:text-gray-550 font-bold uppercase tracking-wider text-[9px]">Requested path</span>
-              <span className="font-mono text-slate-500 dark:text-gray-400 truncate max-w-[65%]">{pathname || "unknown"}</span>
+              <span className="text-slate-455 dark:text-gray-550 font-bold uppercase tracking-wider text-[9px]">
+                Requested path
+              </span>
+              <span className="font-mono text-slate-500 dark:text-gray-400 truncate max-w-[65%]">
+                {pathname || "unknown"}
+              </span>
             </div>
 
-            <div className="flex justify-center gap-3">
+            <div className="flex flex-wrap justify-center gap-3">
               <Button asChild className="rounded-xl font-bold text-xs py-2 min-h-11 px-6 cursor-pointer">
                 <Link href="/">Dashboard</Link>
               </Button>
-              <Button variant="outline" onClick={() => window.history.back()} className="rounded-xl font-bold text-xs py-2 min-h-11 px-6 cursor-pointer">
+              <Button
+                variant="outline"
+                onClick={() => window.history.back()}
+                className="rounded-xl font-bold text-xs py-2 min-h-11 px-6 cursor-pointer"
+              >
                 Go back
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                className="rounded-xl font-bold text-xs py-2 min-h-11 px-5 cursor-pointer gap-1.5 border-rose-200 dark:border-rose-900/40 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20"
+              >
+                <Link href="/?tab=feedback&category=bug">
+                  <Bug className="w-4 h-4" />
+                  Report Bug
+                </Link>
               </Button>
             </div>
           </CardContent>

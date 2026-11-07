@@ -22,6 +22,7 @@ export const hostelActiveSubTabAtom = atom<string>("mess");
 export const commandPaletteOpenAtom = atom<boolean>(false);
 export const isShortcutsHelpOpenAtom = atom<boolean>(false);
 export const isFeedbackModalOpenAtom = atom<boolean>(false);
+export const feedbackModalCategoryAtom = atom<"bug" | "feature" | "experience" | "other">("experience");
 
 /**
  * On-demand Bug Reproduction session recording state.

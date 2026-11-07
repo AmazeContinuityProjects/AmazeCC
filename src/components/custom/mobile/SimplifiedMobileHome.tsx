@@ -17,6 +17,7 @@ import {
   CheckCircle2,
   Calendar as CalendarIcon,
   Search,
+  Bug,
   Zap,
   ArrowRight,
   List,
@@ -66,7 +67,8 @@ import {
   useHorizontalSwipe,
   type InsightSlide,
 } from "../shared/primitives";
-import { useAtom } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
+import { isFeedbackModalOpenAtom, feedbackModalCategoryAtom } from "@/store/uiAtoms";
 import { tasksAtom } from "@/store/dataAtoms";
 import { classTaskSummary, tasksForDay, isSameCalendarDay, isDueOnDay } from "@/lib/taskMatch";
 import {
@@ -248,6 +250,8 @@ export default function SimplifiedMobileHome({
 }: SimplifiedMobileHomeProps) {
   const [isSpinning, setIsSpinning] = useState(false);
   const [tasks] = useAtom(tasksAtom);
+  const setIsFeedbackOpen = useSetAtom(isFeedbackModalOpenAtom);
+  const setFeedbackCategory = useSetAtom(feedbackModalCategoryAtom);
   const [cachedProfile, setCachedProfile] = useState<any>(profileDataProp || null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [weekOffset, setWeekOffset] = useState(0);
@@ -270,10 +274,15 @@ export default function SimplifiedMobileHome({
   );
 
   const [reportCourses, setReportCourses] = useState<FreeRoomCourse[]>(() => {
-    if (typeof window === "undefined") return [];
-    return parseCachedCourses(
-      localStorage.getItem(`ffcs_raw_courses_${activeSemesterId}`) || localStorage.getItem("ffcs_raw_courses"),
-    );
+    if (typeof window === "undefined" || typeof window.localStorage === "undefined") return [];
+    try {
+      return parseCachedCourses(
+        window.localStorage.getItem(`ffcs_raw_courses_${activeSemesterId}`) ||
+          window.localStorage.getItem("ffcs_raw_courses"),
+      );
+    } catch {
+      return [];
+    }
   });
 
   useEffect(() => {
@@ -1278,6 +1287,19 @@ export default function SimplifiedMobileHome({
               >
                 <Search className="w-4 h-4" />
               </button>
+
+              {/* Bug Report Top-Right Button */}
+              <button
+                onClick={() => {
+                  setFeedbackCategory("bug");
+                  setIsFeedbackOpen(true);
+                }}
+                className="p-2.5 rounded-xl bg-zinc-100 hover:bg-rose-50 dark:bg-zinc-900 dark:hover:bg-rose-950/30 border border-zinc-200/80 hover:border-rose-200 dark:border-zinc-800 dark:hover:border-rose-900/50 text-zinc-700 hover:text-rose-600 dark:text-zinc-300 dark:hover:text-rose-400 transition-all active:scale-95 cursor-pointer shadow-2xs"
+                title="Report a Bug / Glitch"
+                aria-label="Report a Bug / Glitch"
+              >
+                <Bug className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+              </button>
             </div>
           </div>
 
@@ -2201,6 +2223,18 @@ export default function SimplifiedMobileHome({
               >
                 <UserSearch className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                 <span>Find Faculty Schedule</span>
+              </button>
+
+              {/* Bug Report Button below Faculty Schedule */}
+              <button
+                onClick={() => {
+                  setFeedbackCategory("bug");
+                  setIsFeedbackOpen(true);
+                }}
+                className="sm:col-span-2 w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-rose-50/80 hover:bg-rose-100/80 dark:bg-rose-950/20 dark:hover:bg-rose-900/30 border border-rose-200/70 dark:border-rose-900/40 text-xs font-bold text-rose-700 dark:text-rose-300 hover:border-rose-300 dark:hover:border-rose-800 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
+              >
+                <Bug className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                <span>Report a Bug / Glitch</span>
               </button>
             </div>
           </div>

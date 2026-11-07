@@ -70,6 +70,17 @@ export function DashboardNavigatorProvider({ children }: { children: ReactNode }
   );
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab");
+      if (tabParam) {
+        setActiveTab(tabParam);
+      }
+    } catch {}
+  }, [setActiveTab]);
+
+  useEffect(() => {
     const academicsHome = "courses-simplified";
     const academicsScreens = new Set([
       academicsHome,
