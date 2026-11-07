@@ -1,9 +1,10 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import GuestExperience from "./GuestExperience";
 import { hasStoredAppSession } from "./readBootstrapSnapshot";
+import { SIGN_IN_PARAM } from "@/lib/signInReturn";
 
 type EntryIntent = "login" | "demo" | null;
 
@@ -72,6 +73,22 @@ export default function HomeEntryController() {
     setExplicitSignedOut(false);
     setIntent("login");
   }, []);
+
+  // `/?signin=1` (sent by pages like the FFCS planner) starts the "login"
+  // entry, as if "Get Started" had been pressed: a guest gets the login form,
+  // and a student whose saved credentials stopped working gets the credential
+  // editor (see Main). Read after mount so the static guest page still
+  // prerenders, then dropped from the address bar so a refresh does not
+  // reopen it.
+  useEffect(() => {
+    try {
+      const url = new URL(window.location.href);
+      if (!url.searchParams.has(SIGN_IN_PARAM)) return;
+      url.searchParams.delete(SIGN_IN_PARAM);
+      window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+      handleGetStarted();
+    } catch {}
+  }, [handleGetStarted]);
 
   const handleTryDemo = useCallback(() => {
     setExplicitSignedOut(false);

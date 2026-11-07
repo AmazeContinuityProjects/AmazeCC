@@ -3,7 +3,10 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { LogIn } from "lucide-react";
+import { LayoutDashboard, LogIn } from "lucide-react";
+import { useAtomValue } from "jotai";
+import { isLoggedInAtom } from "@/store";
+import { prepareSignIn, SIGN_IN_PARAM } from "@/lib/signInReturn";
 import ThemeToggle from "@/components/custom/ThemeToggle";
 import { getAssetPath } from "@/lib/utils";
 import { useOverlayBackBoundary } from "@/lib/overlayStack";
@@ -24,6 +27,9 @@ export default function FFCSPageView() {
   useOverlayBackBoundary("ffcs-route");
   const [mounted, setMounted] = useState(false);
   const [plannerLayoutMode, setPlannerLayoutMode] = useState<"guided" | "modern" | "classic">("modern");
+  // The planner tab hydrates this from the stored session on mount, so the
+  // header can tell a signed-in student from a guest.
+  const isLoggedIn = useAtomValue(isLoggedInAtom);
 
   useEffect(() => {
     setMounted(true);
@@ -60,14 +66,20 @@ export default function FFCSPageView() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-2.5">
+            {/* Signed in: a way back to the app. Signed out: sign in, then return here. */}
             <Link
-              href="/"
-              title="Login to AmazeCC"
-              aria-label="Login to AmazeCC"
+              href={isLoggedIn ? "/" : `/?${SIGN_IN_PARAM}=1`}
+              onClick={isLoggedIn ? undefined : () => prepareSignIn("/ffcs/")}
+              title={isLoggedIn ? "Open AmazeCC" : "Login to AmazeCC"}
+              aria-label={isLoggedIn ? "Open AmazeCC" : "Login to AmazeCC"}
               className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors p-2 sm:px-3 sm:py-2 rounded-xl bg-slate-100 hover:bg-slate-200/80 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-slate-200/80 dark:border-zinc-800 shadow-2xs active:scale-95"
             >
-              <LogIn size={14} className="shrink-0" />
-              <span className="hidden sm:inline">Login to AmazeCC</span>
+              {isLoggedIn ? (
+                <LayoutDashboard size={14} className="shrink-0" />
+              ) : (
+                <LogIn size={14} className="shrink-0" />
+              )}
+              <span className="hidden sm:inline">{isLoggedIn ? "Open AmazeCC" : "Login to AmazeCC"}</span>
             </Link>
             {mounted && <ThemeToggle />}
           </div>
