@@ -39,6 +39,7 @@ import { dismissSyncSession, getSyncSessionSnapshot, isSyncSessionOpen } from "@
 const CredentialEditorModal = dynamic(() => import("./CredentialEditorModal"));
 const SyncModeEditor = dynamic(() => import("@/components/custom/shared/SyncModeEditor"));
 const FeedbackModal = dynamic(() => import("./feedback/FeedbackModal"));
+const BugRecordingFloatingBar = dynamic(() => import("./feedback/BugRecordingFloatingBar"));
 import { useOverlayBack } from "@/lib/overlayStack";
 import type { Ids } from "@/lib/sync-engine/types";
 import { storage } from "@/lib/storage";
@@ -450,6 +451,7 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
             customModes={customModes}
           />
           <FeedbackModal />
+          <BugRecordingFloatingBar />
           <AnimatePresence>
             {isShortcutsHelpOpen && <GlobalShortcutsModal onClose={() => setIsShortcutsHelpOpen(false)} />}
           </AnimatePresence>

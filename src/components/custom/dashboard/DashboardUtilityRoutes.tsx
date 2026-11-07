@@ -29,6 +29,7 @@ const FacultyScheduleTab = dynamic(() => import("../exams/FacultyScheduleTab"), 
 const PaperScannerPage = dynamic(() => import("../tools/scanner/PaperScannerPage"), { loading: FeatureLoading });
 const MoreTab = dynamic(() => import("../more/MoreTab"), { loading: FeatureLoading });
 const AboutTab = dynamic(() => import("../AboutTab"), { loading: FeatureLoading });
+const FeedbackReportPage = dynamic(() => import("../feedback/FeedbackReportPage"), { loading: FeatureLoading });
 
 interface DashboardUtilityRoutesProps {
   onSystemBack: () => void;
@@ -150,6 +151,11 @@ export default function DashboardUtilityRoutes({
       <DashboardRoute route="about">
         <div className="animate-fadeIn">
           <AboutTab />
+        </div>
+      </DashboardRoute>
+      <DashboardRoute route="feedback">
+        <div className="animate-fadeIn">
+          <FeedbackReportPage onBack={onSystemBack} />
         </div>
       </DashboardRoute>
     </>
