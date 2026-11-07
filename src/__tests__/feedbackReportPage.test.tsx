@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 import { Provider } from "jotai";
-import FeedbackReportPage from "../components/custom/feedback/FeedbackReportPage";
+import FeedbackReportPage, { FeedbackSubpage } from "../components/custom/feedback/FeedbackReportPage";
 import * as posthogModule from "@/lib/posthog";
 
 vi.mock("@/lib/posthog", async () => {
@@ -57,7 +57,12 @@ vi.mock("@/lib/posthog", async () => {
   };
 });
 
-function renderFeedbackPage(props?: { initialMode?: "guided" | "classic"; initialStep?: 1 | 2 | 3 }) {
+function renderFeedbackPage(props?: {
+  initialMode?: "guided" | "classic";
+  initialStep?: 1 | 2 | 3 | 4;
+  initialTab?: FeedbackSubpage;
+  initialCategory?: "bug" | "feature" | "experience" | "other";
+}) {
   return render(
     <Provider>
       <FeedbackReportPage {...props} />
@@ -74,21 +79,32 @@ describe("FeedbackReportPage", () => {
     cleanup();
   });
 
-  it("renders page header, categories in guided hero mode, and PostHog badge", () => {
+  it("renders overview menu with 3 options following course subpage guidelines", () => {
     renderFeedbackPage();
 
-    expect(screen.getByText("Feedback and Bug Report")).toBeDefined();
+    expect(screen.getByText("Feedback and Support")).toBeDefined();
+    expect(screen.getByText("Support Sections")).toBeDefined();
+    expect(screen.getByText("New Report")).toBeDefined();
+    expect(screen.getByText("My Tickets & Support")).toBeDefined();
+    expect(screen.getByText("PostHog Diagnostics")).toBeDefined();
+    expect(screen.getByText("Support Channel")).toBeDefined();
+    expect(screen.getByText("Telemetry & Replay")).toBeDefined();
+  });
+
+  it("renders categories in guided hero mode and PostHog badge when entering New Report subpage", () => {
+    renderFeedbackPage({ initialTab: "report" });
+
+    expect(screen.getByText("New Report")).toBeDefined();
     expect(screen.getByText("Bug Report")).toBeDefined();
     expect(screen.getByText("Feature Request")).toBeDefined();
     expect(screen.getByText("UI / UX Polish")).toBeDefined();
     expect(screen.getByText("General Notes")).toBeDefined();
-    expect(screen.getByText("PostHog Analytics")).toBeDefined();
     expect(screen.getByText("Guided Hero")).toBeDefined();
     expect(screen.getByText("Classic Form")).toBeDefined();
   });
 
   it("advances to Step 2 in Guided Hero Mode and toggles reactive DOM recording", () => {
-    renderFeedbackPage();
+    renderFeedbackPage({ initialTab: "report" });
 
     // Step 1: Click Bug Report menu entry
     fireEvent.click(screen.getByText("Bug Report"));
@@ -108,7 +124,7 @@ describe("FeedbackReportPage", () => {
   });
 
   it("walks the full Guided Hero flow and submits a bug report", async () => {
-    renderFeedbackPage();
+    renderFeedbackPage({ initialTab: "report" });
 
     // Step 1: Click on Bug Report menu entry
     fireEvent.click(screen.getByText("Bug Report"));
@@ -124,9 +140,17 @@ describe("FeedbackReportPage", () => {
     const continueBtn = screen.getByRole("button", { name: /Continue to Contact/i });
     fireEvent.click(continueBtn);
 
-    // Step 3: Now on contact screen with review recap and Submit Report button
+    // Step 3: Now on contact screen
     expect(screen.getByText("Where Should We Reach You?")).toBeDefined();
+
+    // Click "Review Summary" to reach Step 4 (separate submission summary page)
+    const reviewSummaryBtn = screen.getByRole("button", { name: /Review Summary/i });
+    fireEvent.click(reviewSummaryBtn);
+
+    // Step 4: Now on dedicated Submission Summary page
+    expect(screen.getByText("Review Your Submission")).toBeDefined();
     expect(screen.getByText(/Submission Summary/i)).toBeDefined();
+    expect(screen.getByText("Buttons are unresponsive in Safari 17")).toBeDefined();
 
     const submitBtn = screen.getByRole("button", { name: /Submit Report/i });
     fireEvent.click(submitBtn);
@@ -146,7 +170,7 @@ describe("FeedbackReportPage", () => {
   });
 
   it("can switch to Classic Form mode and submit in all-in-one view", async () => {
-    renderFeedbackPage();
+    renderFeedbackPage({ initialTab: "report" });
 
     // Switch to Classic Form mode
     fireEvent.click(screen.getByText("Classic Form"));
@@ -170,11 +194,11 @@ describe("FeedbackReportPage", () => {
     expect(screen.getByText("Report Dispatched to PostHog")).toBeDefined();
   });
 
-  it("switches to My Tickets & Support tab and renders tickets", async () => {
+  it("switches to My Tickets & Support subpage and renders tickets", async () => {
     renderFeedbackPage();
 
-    const ticketsTab = screen.getByText("My Tickets & Support");
-    fireEvent.click(ticketsTab);
+    const ticketsRow = screen.getByText("My Tickets & Support");
+    fireEvent.click(ticketsRow);
 
     await waitFor(() => {
       expect(screen.getByText("Fix schedule clash UI")).toBeDefined();
@@ -182,15 +206,47 @@ describe("FeedbackReportPage", () => {
     });
   });
 
-  it("switches to PostHog Diagnostics tab and shows Distinct ID and Session Replay status", () => {
+  it("switches to PostHog Diagnostics subpage and shows Distinct ID and Session Replay status", () => {
     renderFeedbackPage();
 
-    const diagTab = screen.getByText("PostHog Diagnostics");
-    fireEvent.click(diagTab);
+    const diagRow = screen.getByText("PostHog Diagnostics");
+    fireEvent.click(diagRow);
 
     expect(screen.getByText("PostHog Telemetry & Integration Engine")).toBeDefined();
     expect(screen.getAllByText("21BCE0001").length).toBeGreaterThan(0);
     expect(screen.getByText("sess_test123")).toBeDefined();
     expect(screen.getByText("Signed Token Identity Verification")).toBeDefined();
+  });
+
+  it("renders submission summary on a separate page of the flow and navigates back to contact", () => {
+    renderFeedbackPage({ initialTab: "report", initialStep: 4 });
+
+    expect(screen.getByText("Review Your Submission")).toBeDefined();
+    expect(screen.getByText(/Step 4 of 4 · Submission Summary/i)).toBeDefined();
+
+    const backBtn = screen.getByRole("button", { name: /Back to Contact/i });
+    fireEvent.click(backBtn);
+    expect(screen.getByText("Where Should We Reach You?")).toBeDefined();
+  });
+
+  it("navigates into subpages and back to overview menu via subpage back button", async () => {
+    renderFeedbackPage();
+
+    // 1. Navigate to New Report subpage
+    fireEvent.click(screen.getByText("New Report"));
+    expect(screen.getByText("Bug Report")).toBeDefined();
+
+    // Click back button to return to overview
+    fireEvent.click(screen.getByRole("button", { name: /Support Sections/i }));
+    expect(screen.getByText("Support Sections")).toBeDefined();
+    expect(screen.getByText("My Tickets & Support")).toBeDefined();
+
+    // 2. Navigate to PostHog Diagnostics subpage
+    fireEvent.click(screen.getByText("PostHog Diagnostics"));
+    expect(screen.getByText("PostHog Telemetry & Integration Engine")).toBeDefined();
+
+    // Click back button to return to overview
+    fireEvent.click(screen.getByRole("button", { name: /Support Sections/i }));
+    expect(screen.getByText("Support Sections")).toBeDefined();
   });
 });

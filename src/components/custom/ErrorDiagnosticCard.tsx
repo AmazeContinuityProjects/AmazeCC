@@ -33,10 +33,12 @@ export default function ErrorDiagnosticCard(props: ErrorDiagnosticCardProps) {
   });
   const [isSending, setIsSending] = useState(false);
   const [isSent, setIsSent] = useState(false);
+  const [submissionError, setSubmissionError] = useState("");
 
   const handleSendBugReport = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSending(true);
+    setSubmissionError("");
     try {
       const errorPayload = {
         name: props.error?.name || "Error",
@@ -59,7 +61,7 @@ export default function ErrorDiagnosticCard(props: ErrorDiagnosticCardProps) {
         .filter(Boolean)
         .join("\n\n");
 
-      await sendPostHogSupportTicket({
+      const result = await sendPostHogSupportTicket({
         category: "bug",
         message: fullMessage,
         contact: contactEmail.trim() || undefined,
@@ -70,6 +72,10 @@ export default function ErrorDiagnosticCard(props: ErrorDiagnosticCardProps) {
           source: "error_page",
         },
       });
+      if (!result.success) {
+        setSubmissionError("Could not send your report. Please try again.");
+        return;
+      }
 
       if (contactEmail.trim() && typeof window !== "undefined") {
         try {
@@ -80,6 +86,7 @@ export default function ErrorDiagnosticCard(props: ErrorDiagnosticCardProps) {
       setIsSent(true);
     } catch (err) {
       console.error("Failed to send bug report from error page", err);
+      setSubmissionError("Could not send your report. Please try again.");
     } finally {
       setIsSending(false);
     }
@@ -172,6 +179,12 @@ export default function ErrorDiagnosticCard(props: ErrorDiagnosticCardProps) {
                       className="w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 p-2.5 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-rose-500"
                     />
                   </div>
+
+                  {submissionError && (
+                    <p role="alert" className="text-xs font-medium text-red-600 dark:text-red-400">
+                      {submissionError}
+                    </p>
+                  )}
 
                   <div className="flex justify-end gap-2 pt-2">
                     <Button
