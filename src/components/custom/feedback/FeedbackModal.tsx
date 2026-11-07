@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useAtom, useSetAtom } from "jotai";
 import {
   isFeedbackModalOpenAtom,
+  feedbackModalCategoryAtom,
   isBugRecordingActiveAtom,
   bugRecordingStartedAtAtom,
   hasBugRecordingClipAtom,
@@ -86,7 +87,7 @@ export default function FeedbackModal() {
   const [isOpen, setIsOpen] = useAtom(isFeedbackModalOpenAtom);
   const { activeTab, activeSubTab, setActiveTab } = useDashboardNavigator();
 
-  const [category, setCategory] = useState<FeedbackCategory>("experience");
+  const [category, setCategory] = useAtom(feedbackModalCategoryAtom);
   const [rating, setRating] = useState<number>(5);
   const [message, setMessage] = useState("");
   const [contact, setContact] = useState("");

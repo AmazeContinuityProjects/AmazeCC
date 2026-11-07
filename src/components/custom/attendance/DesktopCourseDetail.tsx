@@ -52,7 +52,10 @@ export default function DesktopCourseDetail({
   const [notesTracker, setNotesTracker] = useState<Record<string, Record<string, boolean>>>({});
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("uniCC_notes_tracker");
+      const saved =
+        typeof window !== "undefined" && window.localStorage
+          ? window.localStorage.getItem("uniCC_notes_tracker")
+          : null;
       if (saved) setNotesTracker(JSON.parse(saved));
     } catch (e) {
       console.error(e);
