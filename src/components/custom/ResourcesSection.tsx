@@ -1,5 +1,6 @@
 "use client";
 import {
+  Bug,
   ChevronRight,
   ExternalLink,
   FileText,
@@ -15,6 +16,7 @@ import {
 import type { ReactNode } from "react";
 import { useSetAtom } from "jotai";
 import { isFeedbackModalOpenAtom } from "@/store/uiAtoms";
+import { useDashboardNavigator } from "./dashboard/DashboardNavigator";
 import quickLinks from "../../data/quickLinks.json";
 import Links from "./header/Links";
 import { ListRowText, ListShell, SectionHeader } from "./shared/primitives";
@@ -80,6 +82,7 @@ function ResourceRow({
 
 export default function ResourcesSection({ setActiveSubpage }: { setActiveSubpage: (page: Subpage) => void }) {
   const setIsFeedbackOpen = useSetAtom(isFeedbackModalOpenAtom);
+  const { setActiveTab } = useDashboardNavigator();
   const community = quickLinks.communityLinks;
 
   return (
@@ -130,6 +133,13 @@ export default function ResourcesSection({ setActiveSubpage }: { setActiveSubpag
             iconClass={TONE_ICON_TILE.rose}
             title="Share Feedback"
             desc="Send thoughts, report bugs, or request features directly"
+          />
+          <ResourceRow
+            onClick={() => setActiveTab("feedback")}
+            icon={<Bug className="w-4.5 h-4.5" />}
+            iconClass={TONE_ICON_TILE.amber}
+            title="Feedback & Bug Reports"
+            desc="Open dedicated reporting page with bug reproduction recording and ticket tracker"
           />
           <ResourceRow
             onClick={() => setActiveSubpage("changelog")}

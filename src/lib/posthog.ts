@@ -16,9 +16,51 @@ export function isPostHogConfigured(): boolean {
 }
 
 /**
+ * Ensures the PostHog client SDK is initialized with AmazeCC project tokens.
+ * By default, background session recording is explicitly DISABLED (`disable_session_recording: true`)
+ * to conserve battery and protect student privacy.
+ * Recording only captures DOM events on-demand when the user enables trigger recording.
+ */
+export function initPostHogClient(): boolean {
+  if (typeof window === "undefined") return false;
+  const token = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN;
+  const host = process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://shoot.amazecc.com";
+  if (!token) return false;
+
+  const ph = posthog as unknown as { __loaded?: boolean };
+  if (ph.__loaded) return true;
+
+  try {
+    posthog.init(token, {
+      api_host: host,
+      ui_host: "https://us.posthog.com",
+      capture_pageview: false,
+      capture_pageleave: true,
+      disable_session_recording: true,
+      autocapture: false,
+      persistence: "localStorage+cookie",
+    });
+    return true;
+  } catch (err) {
+    console.debug("[PostHog init]", err);
+    return false;
+  }
+}
+
+// Auto-initialize when running in browser
+if (typeof window !== "undefined") {
+  try {
+    initPostHogClient();
+  } catch {}
+}
+
+/**
  * Checks whether the PostHog client library has finished initializing.
  */
 export function isPostHogLoaded(): boolean {
+  if (typeof window !== "undefined" && !Boolean((posthog as unknown as { __loaded?: boolean }).__loaded)) {
+    initPostHogClient();
+  }
   return isPostHogConfigured() && Boolean((posthog as unknown as { __loaded?: boolean }).__loaded);
 }
 
@@ -789,6 +831,417 @@ export function onFeatureFlags(callback: (flags: string[]) => void): void {
   try {
     posthog.onFeatureFlags(callback);
   } catch {}
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PostHog Support & Conversations API + Dynamic Session Recording
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface PostHogConversationMessage {
+  id: string;
+  ticket_id?: string;
+  content: string;
+  created_at: string;
+  is_customer?: boolean;
+  sender?: {
+    name?: string;
+    email?: string;
+    avatar_url?: string;
+  };
+}
+
+export interface PostHogConversationTicket {
+  id: string;
+  subject?: string;
+  status: "open" | "closed" | "pending" | string;
+  created_at: string;
+  updated_at?: string;
+  unread_count?: number;
+  last_message?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface PostHogConversationsClient {
+  isAvailable: () => boolean;
+  sendMessage: (
+    message: string,
+    userTraits?: Record<string, unknown>,
+    newTicket?: boolean,
+  ) => Promise<{ ticket_id: string; message_id?: string; [key: string]: unknown }>;
+  getTickets: (options?: {
+    status?: "open" | "closed" | "resolved" | string;
+    limit?: number;
+    offset?: number;
+  }) => Promise<{ tickets: PostHogConversationTicket[]; total?: number }>;
+  getMessages: (ticketId?: string, after?: string) => Promise<{ messages: PostHogConversationMessage[] }>;
+  markAsRead: (ticketId?: string) => Promise<void>;
+  requestRestoreLink: (email: string) => Promise<{ success?: boolean; [key: string]: unknown }>;
+}
+
+/**
+ * Starts PostHog session recording dynamically (e.g. user enabled bug diagnostics).
+ * Lightly attaches to reactive DOM mutations without burdening mobile hardware.
+ */
+let recordingTriggerStartTime: number | null = null;
+
+export function startPostHogSessionRecording(overrideSampling: boolean = true): boolean {
+  initPostHogClient();
+  if (!isPostHogConfigured()) return false;
+  try {
+    recordingTriggerStartTime = Date.now();
+    const ph = posthog as unknown as {
+      startSessionRecording?: (options?: { sampling?: boolean }) => void;
+      sessionRecording?: { startRecording?: () => void; isRecording?: () => boolean };
+    };
+    if (typeof ph.startSessionRecording === "function") {
+      ph.startSessionRecording(overrideSampling ? { sampling: true } : undefined);
+      return true;
+    }
+    if (typeof ph.sessionRecording?.startRecording === "function") {
+      ph.sessionRecording.startRecording();
+      return true;
+    }
+    return false;
+  } catch (err) {
+    console.debug("[PostHog startSessionRecording]", err);
+    return false;
+  }
+}
+
+/**
+ * Stops PostHog session recording.
+ */
+export function stopPostHogSessionRecording(): void {
+  recordingTriggerStartTime = null;
+  if (!isPostHogConfigured()) return;
+  try {
+    const ph = posthog as unknown as {
+      stopSessionRecording?: () => void;
+      sessionRecording?: { stopRecording?: () => void };
+    };
+    ph.stopSessionRecording?.();
+    ph.sessionRecording?.stopRecording?.();
+  } catch (err) {
+    console.debug("[PostHog stopSessionRecording]", err);
+  }
+}
+
+/**
+ * Returns timestamp when trigger recording was started.
+ */
+export function getPostHogSessionRecordingStartTime(): number | null {
+  return recordingTriggerStartTime;
+}
+
+/**
+ * Checks whether session recording is actively running.
+ */
+export function isPostHogSessionRecordingActive(): boolean {
+  if (!isPostHogConfigured()) return false;
+  try {
+    const ph = posthog as unknown as {
+      sessionRecording?: { isRecording?: () => boolean };
+    };
+    return Boolean(ph.sessionRecording?.isRecording?.());
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Resolves the active session replay URL if recording is ongoing.
+ */
+export function getPostHogSessionReplayUrl(): string | null {
+  if (!isPostHogConfigured()) return null;
+  try {
+    const ph = posthog as unknown as {
+      get_session_replay_url?: (options?: { withTimestamp?: boolean }) => string;
+    };
+    const sdkUrl = ph.get_session_replay_url?.({ withTimestamp: true });
+    if (typeof sdkUrl === "string" && sdkUrl.trim().length > 0) {
+      return sdkUrl;
+    }
+
+    // Direct fallback using active session ID and PostHog project ID
+    const sessionId = getPostHogSessionId();
+    if (sessionId) {
+      const projectId = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_ID || process.env.POSTHOG_PROJECT_ID || "712727";
+      return "https://us.posthog.com/project/" + projectId + "/replay/" + sessionId;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Resolves the active PostHog session ID.
+ */
+export function getPostHogSessionId(): string | null {
+  if (!isPostHogConfigured()) return null;
+  try {
+    const ph = posthog as unknown as { get_session_id?: () => string };
+    return ph.get_session_id?.() || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Resolves the active PostHog distinct ID.
+ */
+export function getPostHogDistinctId(): string | null {
+  if (!isPostHogConfigured()) return null;
+  try {
+    const ph = posthog as unknown as { get_distinct_id?: () => string };
+    return ph.get_distinct_id?.() || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Safely accesses the PostHog Conversations API if enabled in project settings.
+ */
+export function getPostHogConversations(): PostHogConversationsClient | null {
+  if (!isPostHogConfigured()) return null;
+  try {
+    const ph = posthog as unknown as { conversations?: PostHogConversationsClient };
+    if (ph.conversations && typeof ph.conversations.sendMessage === "function") {
+      return ph.conversations;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Checks if the PostHog Conversations Direct API is currently available.
+ */
+export function isPostHogConversationsAvailable(): boolean {
+  const client = getPostHogConversations();
+  if (!client) return false;
+  try {
+    return typeof client.isAvailable === "function" ? client.isAvailable() : true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Sends a message/ticket via PostHog Conversations API or falls back to standard events.
+ */
+export async function sendPostHogSupportTicket(data: {
+  message: string;
+  category: string;
+  rating?: number;
+  contact?: string;
+  name?: string;
+  includeSessionRecording?: boolean;
+  metadata?: Record<string, unknown>;
+  newTicket?: boolean;
+}): Promise<{ success: boolean; ticketId?: string; fallback?: boolean }> {
+  if (!isPostHogConfigured()) return { success: false };
+
+  // 1. If session recording was requested, activate it immediately with forced sampling
+  if (data.includeSessionRecording) {
+    startPostHogSessionRecording(true);
+  }
+
+  // 2. Attach personal/contact email and name to PostHog Person so Support dashboard links replies
+  if (data.contact) {
+    try {
+      posthog.people.set({
+        email: data.contact,
+        contact_email: data.contact,
+        ...(data.metadata?.personal_email ? { personal_email: data.metadata.personal_email } : {}),
+        ...(data.metadata?.college_email ? { college_email: data.metadata.college_email } : {}),
+        ...(data.name ? { name: data.name } : {}),
+      });
+    } catch {}
+  }
+
+  const replayUrl = data.includeSessionRecording ? getPostHogSessionReplayUrl() : null;
+  const sessionId = getPostHogSessionId();
+  const canonicalId = resolveCanonicalDistinctId();
+  const currentPhId = getPostHogDistinctId();
+
+  // If canonicalId is a real registration number and PostHog currently holds an application number,
+  // alias and re-identify so PostHog permanently switches the session to the registration number.
+  if (isRegistrationNumber(canonicalId) && currentPhId && currentPhId !== canonicalId) {
+    try {
+      aliasPostHogUser(canonicalId, currentPhId);
+      identifyPostHogUser(canonicalId, {
+        registration_number: canonicalId,
+        reg_number: canonicalId,
+        application_number: currentPhId,
+      });
+    } catch {}
+  }
+
+  // Also ensure HMAC identity verification is synced if secret is available
+  try {
+    await syncPostHogIdentityVerification(canonicalId);
+  } catch {}
+
+  // Explicitly embed session recording link into the ticket markdown body so support agents see it directly in chat
+  let ticketMessage = data.message;
+  if (data.includeSessionRecording && replayUrl && !ticketMessage.includes("Session Recording")) {
+    ticketMessage = `${ticketMessage}\n\n🎥 **Session Recording**: [View Replay in PostHog](${replayUrl})`;
+  }
+
+  const client = getPostHogConversations();
+  if (client) {
+    try {
+      const response = await client.sendMessage(
+        ticketMessage,
+        {
+          name: data.name,
+          email: data.contact,
+          feedback_category: data.category,
+          feedback_rating: data.rating,
+          session_replay_url: replayUrl,
+          $session_recording_url: replayUrl,
+          session_id: sessionId,
+          $session_id: sessionId,
+          recording_opt_in: Boolean(data.includeSessionRecording),
+          distinct_id: canonicalId,
+          registration_number: canonicalId,
+          ...data.metadata,
+        },
+        data.newTicket ?? true,
+      );
+      return { success: true, ticketId: response?.ticket_id };
+    } catch (err) {
+      console.warn("[PostHog conversations.sendMessage fallback]", err);
+    }
+  }
+
+  // Fallback to standard feedback event + survey signal
+  const eventSuccess = submitPostHogFeedback({
+    category: data.category,
+    rating: data.rating,
+    message: ticketMessage,
+    contact: data.contact,
+    metadata: {
+      session_replay_url: replayUrl,
+      $session_recording_url: replayUrl,
+      session_id: sessionId,
+      $session_id: sessionId,
+      recording_opt_in: Boolean(data.includeSessionRecording),
+      ...data.metadata,
+    },
+  });
+
+  return { success: eventSuccess, fallback: true };
+}
+
+/**
+ * Requests an email recovery link from PostHog to restore conversations across devices.
+ */
+export async function requestPostHogConversationRestore(email: string): Promise<boolean> {
+  const client = getPostHogConversations();
+  if (!client || typeof client.requestRestoreLink !== "function") return false;
+  try {
+    const res = await client.requestRestoreLink(email);
+    return res?.success !== false;
+  } catch (err) {
+    console.error("[PostHog requestRestoreLink]", err);
+    return false;
+  }
+}
+
+/**
+ * Applies identity verification for cross-device conversation persistence.
+ */
+export function applyPostHogIdentityVerification(distinctId: string, identityHash: string): void {
+  if (!isPostHogConfigured() || !distinctId || !identityHash) return;
+  try {
+    const projectToken = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN || "";
+    const host = process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://shoot.amazecc.com";
+    posthog.init(projectToken, {
+      api_host: host,
+      identity_distinct_id: distinctId,
+      identity_hash: identityHash,
+    } as any);
+  } catch (err) {
+    console.error("[PostHog applyIdentityVerification]", err);
+  }
+}
+
+/**
+ * Resolves the true registration number as the canonical PostHog distinct ID,
+ * prioritizing registration numbers (e.g. 21BCE0001) over numeric application numbers (e.g. 2024001234).
+ */
+export function resolveCanonicalDistinctId(): string {
+  const reg = getActiveRegNumber();
+  if (reg && isRegistrationNumber(reg)) {
+    return reg.toUpperCase().trim();
+  }
+
+  const identity = getPostHogUserIdentifiers();
+  if (identity?.registrationNumber && isRegistrationNumber(identity.registrationNumber)) {
+    return identity.registrationNumber.toUpperCase().trim();
+  }
+
+  const current = getPostHogDistinctId();
+  if (current) return current;
+
+  if (identity?.distinctId) return identity.distinctId;
+  return "anonymous";
+}
+
+/**
+ * Computes HMAC-SHA256 hash for PostHog Identity Verification using Web Crypto API.
+ */
+export async function computePostHogIdentityHash(secret: string, distinctId: string): Promise<string> {
+  if (!secret || !distinctId || typeof window === "undefined" || !window.crypto?.subtle) {
+    return "";
+  }
+  try {
+    const enc = new TextEncoder();
+    const key = await window.crypto.subtle.importKey(
+      "raw",
+      enc.encode(secret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+    const signature = await window.crypto.subtle.sign("HMAC", key, enc.encode(distinctId));
+    return Array.from(new Uint8Array(signature))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+  } catch (err) {
+    console.error("[PostHog computeIdentityHash]", err);
+    return "";
+  }
+}
+
+/**
+ * Resolves identity verification hash securely.
+ * The raw secret must NEVER be exposed in client code (NEXT_PUBLIC_*).
+ * If a backend signing endpoint exists, it fetches the signature safely from the server;
+ * otherwise it keeps the secret secure and relies on email restoration across browsers.
+ */
+export async function syncPostHogIdentityVerification(distinctId: string): Promise<string> {
+  if (!distinctId || typeof window === "undefined") return "";
+
+  try {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
+    if (apiBase) {
+      const res = await fetch(`${apiBase}/support/identity-hash?distinct_id=${encodeURIComponent(distinctId)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.identity_hash) {
+          applyPostHogIdentityVerification(distinctId, data.identity_hash);
+          return data.identity_hash;
+        }
+      }
+    }
+  } catch {}
+
+  return "";
 }
 
 export { posthog };

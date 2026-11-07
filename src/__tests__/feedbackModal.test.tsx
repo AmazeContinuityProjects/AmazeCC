@@ -12,6 +12,11 @@ vi.mock("@/lib/posthog", async () => {
   return {
     ...actual,
     submitPostHogFeedback: vi.fn(() => true),
+    sendPostHogSupportTicket: vi.fn(async () => ({ success: true, ticketId: "ticket_123" })),
+    resolveCanonicalDistinctId: vi.fn(() => "21BCE0001"),
+    startPostHogSessionRecording: vi.fn(() => true),
+    stopPostHogSessionRecording: vi.fn(),
+    getPostHogSessionReplayUrl: vi.fn(() => "https://shoot.amazecc.com/replay/sess_123"),
     trackModalOpen: vi.fn(),
     trackModalClose: vi.fn(),
     trackModalInteraction: vi.fn(),
@@ -70,16 +75,16 @@ describe("FeedbackModal", () => {
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
-      expect(posthogModule.submitPostHogFeedback).toHaveBeenCalledWith(
+      expect(posthogModule.sendPostHogSupportTicket).toHaveBeenCalledWith(
         expect.objectContaining({
           category: "experience",
-          message: "AmazeCC is lighting fast! Love the UI.",
+          message: expect.stringContaining("AmazeCC is lighting fast! Love the UI."),
           rating: 5,
-          sentiment: "positive",
         }),
       );
     });
 
     expect(screen.getByText("Thank you for your feedback!")).toBeDefined();
+    expect(screen.getByText(/Ticket ID: #ticket_123/i)).toBeDefined();
   });
 });

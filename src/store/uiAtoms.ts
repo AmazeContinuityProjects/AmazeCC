@@ -24,6 +24,17 @@ export const isShortcutsHelpOpenAtom = atom<boolean>(false);
 export const isFeedbackModalOpenAtom = atom<boolean>(false);
 
 /**
+ * On-demand Bug Reproduction session recording state.
+ * These are purely in-memory: if the user refreshes or closes the tab,
+ * recording state naturally cancels to protect device resources and privacy.
+ */
+export const isBugRecordingActiveAtom = atom<boolean>(false);
+export const bugRecordingStartedAtAtom = atom(null as number | null);
+export const hasBugRecordingClipAtom = atom<boolean>(false);
+export const bugRecordingDurationAtom = atom<number>(0);
+export const bugRecordingOriginAtom = atom<"page" | "modal">("page");
+
+/**
  * Set by the command palette's quick-add command; consumed by TasksTab to open
  * the create sheet. `nonce` forces a re-fire when the same title is used twice.
  */

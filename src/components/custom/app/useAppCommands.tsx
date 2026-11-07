@@ -510,6 +510,16 @@ export function useAppCommands(input: AppCommandInputs) {
         },
       },
       {
+        id: "help-feedback-page",
+        label: "Feedback and Bug Report Page",
+        description: "Open dedicated PostHog support page with DOM session replay and ticket history",
+        icon: "⚡",
+        category: "Help & Feedback",
+        onSelect: () => {
+          setActiveTab("feedback");
+        },
+      },
+      {
         id: "help-bug",
         label: "Report a Bug",
         description: "Report an issue, broken button, or glitch",
