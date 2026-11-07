@@ -3,25 +3,8 @@ import { credentialManager } from "./credential-manager";
 import { registerOp, type OpCtx } from "./operation-registry";
 import { dataAtoms } from "./state-bridge";
 import { toEngineError, assertApiSuccess } from "./errors";
-import { clearPeerTimetables, writeGrants, writeIdentity, writeOwnTimetable, writePeers } from "../social/storage";
-import type { SocialSyncPayload } from "../social/types";
-import { getActiveRegNumber } from "../social/identity";
-import { activeRegNumberAtom } from "../../store/socialAtoms";
-import {
-  socialGrantsAtom,
-  socialIdentityAtom,
-  socialOwnBusyMapAtom,
-  socialOwnCoursesAtom,
-  socialPeersAtom,
-  socialSyncStateAtom,
-} from "../../store/socialAtoms";
-
-/**
- * The term the last successful social sync wrote. Module-level because the
- * cache is global to the app, and comparing against the freshly-derived
- * identity is how we notice the user switched semesters.
- */
-let cachedSemester: string | null = null;
+import { getActiveRegNumber } from "../activeIdentity";
+import { activeRegNumberAtom } from "../../store/authAtoms";
 
 /**
  * Run one request with its own start/done/error emits so the sync log shows
@@ -439,10 +422,8 @@ registerOp({
       const data = await ctx.request("student", {}, { auth: "vtop", retry: { max: 0 } });
       if (data?.profile) {
         persist("profile", data.profile);
-        // Now that the profile exists, publish the reg number it resolves to.
-        // Every social storage key is namespaced by it, and components that
-        // read it during their first render saw "" and had no reactive way to
-        // retry — leaving the social page empty until a remount.
+        // Now that the profile exists, publish the reg number it resolves to,
+        // for readers that rendered before it landed (see activeRegNumberAtom).
         ctx.bridge.setAtom(activeRegNumberAtom, getActiveRegNumber());
         return data.profile;
       }
@@ -841,123 +822,5 @@ registerOp({
       } catch {}
     }
     return res;
-  },
-});
-
-/**
- * Social timetable sharing.
- *
- * This op pushes the caller's own derived state and pulls peers plus the grant
- * secrets needed to read them. The server does all the deriving — see
- * docs/social-tt/05-server-derivation.md.
- *
- * It is registered LAST on purpose, and it NEVER throws. Both `Main.tsx`
- * background chains `await` ops sequentially inside a single `try`, so a throw
- * here would skip every op after it (chain 1 still had `buses` and `bulk` to
- * run). A social failure is a red line in the sheet, not a broken sync.
- */
-registerOp({
-  name: "social",
-  auth: "vtop",
-  meta: {
-    label: "Friends & groups",
-    description: "Pushes your timetable, pulls peers and grant secrets.",
-    category: "social",
-    cost: "medium",
-    needsSemester: true,
-  },
-  async run(ctx, args) {
-    // Demo mode hands back authorizedID "DEMO123" and no real session, so the
-    // route would 401 and put a bogus failure in the sheet. See
-    // credential-manager.ts:71-73.
-    const demoMode =
-      (args?.demoMode as boolean) ||
-      (ctx.ids.VtopUsername as string) === "demo" ||
-      (ctx.ids.VtopUsername as string) === "DEMO123";
-    if (demoMode) return null;
-
-    // This op used to fire its request with whatever happened to be in the
-    // credential manager, which is `null` after a page reload and a live set of
-    // cookies well past their useful life after sitting idle. Either way the
-    // request went out unauthenticated, the server answered with an error
-    // envelope, and `res.identity` was missing — so the op returned `null` and
-    // the social page silently showed stale data with no red line. Asking for a
-    // session first makes a login explicit, attributed to this op, and costed to
-    // one captcha solve.
-    try {
-      await credentialManager.ensureVtopSession({ demoMode });
-    } catch {
-      // Handled below: without a session the request cannot succeed, and the
-      // guard on `res.identity` keeps the op from writing anything.
-    }
-
-    const semesterId =
-      (args?.proposedSemesterId as string) || (args?.semesterId as string) || (args?.activeSem as string) || "";
-
-    try {
-      const res = (await ctx.request("social/identity/sync", semesterId ? { proposedSemesterId: semesterId } : {}, {
-        auth: "vtop",
-        retry: { max: 1 },
-      })) as SocialSyncPayload | null;
-
-      if (!res || res.success === false || !res.identity) {
-        // Previously this returned `null` with nothing recorded, so an
-        // unauthenticated or rejected request left the social page showing
-        // stale data with no red line and no way to tell it apart from "nothing
-        // changed". Surface it as a real failure instead.
-        throw toEngineError(
-          (res as { message?: string } | null)?.message ||
-            "Social sync did not return an identity — the VTOP session may have expired.",
-        );
-      }
-
-      // The term changed, so every cached peer busy map is from a different
-      // schedule. Drop them before writing the new identity.
-      if (res.identity.semesterId && cachedSemester && res.identity.semesterId !== cachedSemester) {
-        clearPeerTimetables();
-      }
-      cachedSemester = res.identity.semesterId ?? cachedSemester;
-
-      writeIdentity(res.identity);
-      // The peer list is cached too. It used to exist only inside
-      // `socialPeersAtom`, which nothing but this op writes, so a reload started
-      // with an empty list even though every per-handle timetable was still on
-      // disk — the Pairs subpage showed the tokens while the friend data stayed
-      // blank, and only a resync fixed it.
-      writePeers(res.peers ?? []);
-      writeOwnTimetable({
-        busyMap: res.busyMap ?? {},
-        courses: res.courses ?? [],
-      });
-      // The server is authoritative about which pairings exist, so this is a
-      // full replace — a locally-orphaned secret would otherwise linger and
-      // keep being sent on reads that 403.
-      writeGrants(res.grantSecrets ?? []);
-
-      ctx.bridge.setAtom(socialIdentityAtom, res.identity);
-      ctx.bridge.setAtom(socialPeersAtom, res.peers ?? []);
-      ctx.bridge.setAtom(socialGrantsAtom, res.grantSecrets ?? []);
-      ctx.bridge.setAtom(socialOwnBusyMapAtom, res.busyMap ?? {});
-      ctx.bridge.setAtom(socialOwnCoursesAtom, res.courses ?? []);
-      ctx.bridge.setAtom(socialSyncStateAtom, {
-        version: res.version ?? 0,
-        lastSyncedAt: new Date().toISOString(),
-        lastError: null,
-        syncing: false,
-      });
-
-      return res;
-    } catch (e) {
-      // Deliberately swallowed. Keep the cached copy: a stale peer list beats an
-      // empty one, and a failed social push must not read as "you have no
-      // friends".
-      ctx.bridge.setAtom(socialSyncStateAtom, {
-        version: 0,
-        lastSyncedAt: null,
-        lastError: e instanceof Error ? e.message : String(e),
-        syncing: false,
-      });
-      return null;
-    }
   },
 });

@@ -57,7 +57,7 @@ import {
   type PostHogConversationTicket,
   type PostHogConversationMessage,
 } from "@/lib/posthog";
-import { getActiveDisplayName, getActiveRegNumber } from "@/lib/social/identity";
+import { getActiveDisplayName, getActiveRegNumber } from "@/lib/activeIdentity";
 import buildInfo from "@/data/buildInfo.json";
 
 type ReportCategory = "bug" | "feature" | "experience" | "other";

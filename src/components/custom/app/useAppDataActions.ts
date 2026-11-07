@@ -226,11 +226,6 @@ export function useAppDataActions({
               username: (ids as Ids).MoodleUsername as string | undefined,
               pass: (ids as Ids).MoodlePassword as string | undefined,
             });
-            // The op itself never throws, so it cannot skip the ops below it.
-            await syncEngine.sync("social", {
-              proposedSemesterId: currSemesterID,
-              demoMode,
-            });
             await syncEngine.sync("bulk", { settings });
 
             console.log("Background sync completed successfully!");
@@ -698,24 +693,11 @@ export function useAppDataActions({
             }
 
             // Degree credit baskets / catalog (FFCS curriculum match). Its own
-            // try/catch so a failure cannot skip social or the bulk endpoints.
+            // try/catch so a failure cannot skip the bulk endpoints.
             try {
               await syncEngine.sync("curriculum");
             } catch {
               console.warn("Curriculum sync failed");
-            }
-
-            // Friends & groups. Server-derived: this pushes our own timetable
-            // and pulls peers + the grant secrets needed to read them. The op
-            // never throws, and it gets its own try/catch so a social failure
-            // cannot skip the bulk endpoints below or leave the sheet open.
-            try {
-              await syncEngine.sync("social", {
-                proposedSemesterId: activeSem,
-                demoMode,
-              });
-            } catch {
-              console.warn("Social sync failed");
             }
 
             // All other VTOP-scoped endpoints (cached for GenericApiView)

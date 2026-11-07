@@ -28,11 +28,13 @@
  */
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import {
   AlertTriangle,
   ChevronRight,
   Eye,
   Link2,
+  Search,
   Loader2,
   Trash2,
   Upload,
@@ -52,9 +54,16 @@ import {
 import type { FFCSSemesterId } from "@/lib/ffcsReports";
 import type { Friend, FriendGroup, ParsedCourse, TimetablePeriod, TimetableState } from "@/lib/ffcsTypes";
 
-type FriendsSection = "hub" | "add" | "friends" | "groups";
+// Loaded on demand: it is the only part of this page that talks to the API.
+const FFCSClassmatesSection = dynamic(() => import("./FFCSClassmatesSection"), { ssr: false });
+
+type FriendsSection = "hub" | "classmates" | "add" | "friends" | "groups";
 
 const SECTION_META: Record<Exclude<FriendsSection, "hub">, { title: string; subtitle: string }> = {
+  classmates: {
+    title: "Find classmates",
+    subtitle: "See who picked the same sections as you",
+  },
   add: {
     title: "Add a friend",
     subtitle: "Paste their share link or TT-shape code, or import an exported JSON",
@@ -70,6 +79,13 @@ const SECTION_META: Record<Exclude<FriendsSection, "hub">, { title: string; subt
 };
 
 const HUB_ROWS = [
+  {
+    id: "classmates" as const,
+    label: "Find classmates",
+    subtitle: "Who else picked your faculty and slots",
+    Icon: Search,
+    iconBg: "bg-amber-500/10 text-amber-500 border-amber-500/20",
+  },
   {
     id: "add" as const,
     label: "Add a friend",
@@ -111,6 +127,11 @@ export interface FFCSFriendsSubpageProps {
    */
   reportCourses: ParsedCourse[];
   semesterId: FFCSSemesterId;
+  /** The planner's saved timetables, offered as plans to share with "Find classmates". */
+  timetables: TimetableState[];
+  activeTimetableId: string;
+  /** Which screen to open on. The planner's "Find classmates" button opens straight into it. */
+  initialSection?: "hub" | "classmates";
   /** Reported to the tab so the planner shows its usual success toast on return. */
   onFriendAdded: (name: string) => void;
 }
@@ -125,9 +146,12 @@ export default function FFCSFriendsSubpage({
   labPeriods,
   reportCourses,
   semesterId,
+  timetables,
+  activeTimetableId,
+  initialSection = "hub",
   onFriendAdded,
 }: FFCSFriendsSubpageProps) {
-  const [section, setSection] = useState<FriendsSection>("hub");
+  const [section, setSection] = useState<FriendsSection>(initialSection);
 
   // Add-section state. The link field and the JSON importer both funnel into
   // `pendingFriendTimetables`, which opens the naming sheet — one naming step
@@ -417,6 +441,15 @@ export default function FFCSFriendsSubpage({
               ))}
             </ListShell>
           ))}
+
+        {section === "classmates" && (
+          <FFCSClassmatesSection
+            semesterId={semesterId}
+            timetables={timetables}
+            activeTimetableId={activeTimetableId}
+            reportCourses={reportCourses}
+          />
+        )}
 
         {section === "groups" && (
           <div className="space-y-6">

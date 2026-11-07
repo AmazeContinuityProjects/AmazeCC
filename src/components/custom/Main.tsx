@@ -25,7 +25,7 @@ import {
   authorizedIDAtom,
   defaultSettings,
 } from "@/store";
-import { activeRegNumberAtom } from "@/store/socialAtoms";
+import { activeRegNumberAtom } from "@/store/authAtoms";
 import IntroSong from "@/lib/introSong/IntroSong";
 import config from "../../../config.json";
 import { useTaskReminderScheduler } from "./tasks/useTaskReminderScheduler";
@@ -57,6 +57,10 @@ import { useSyncSessionBridge } from "./app/useSyncSessionBridge";
 import posthog from "posthog-js";
 import { trackScreenView, getPostHogUserIdentifiers, aliasPostHogUser } from "@/lib/posthog";
 import buildInfo from "@/data/buildInfo.json";
+import { useRouter } from "next/navigation";
+import { clearSignInReturn, peekSignInReturn, VTOP_LOGIN_EVENT } from "@/lib/signInReturn";
+import { credentialManager } from "@/lib/sync-engine/credential-manager";
+import { hasStoredVtopCredentials } from "./app/readBootstrapSnapshot";
 
 interface MainProps {
   initialIntent?: "login" | "demo";
@@ -151,6 +155,42 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
   useTaskReminderScheduler(isLoggedIn || demoMode);
 
   useSyncSessionBridge();
+
+  // "Sign in, then come back": a page like the FFCS planner sent the student
+  // here to log in. Send them back only once a VTOP login has succeeded AFTER
+  // they asked: saved credentials alone are not proof — they may be the very
+  // ones that stopped working, and returning on them just bounced the student
+  // straight back to the error. Checked on mount and on every successful login
+  // (a credential fix does not change "logged in", it was already true).
+  // Client-side navigation, so the sync still running in the background keeps
+  // going.
+  const router = useRouter();
+  useEffect(() => {
+    const returnIfFreshlySignedIn = () => {
+      if (demoMode) return;
+      const note = peekSignInReturn();
+      if (!note) return;
+      const session = credentialManager.getStoredVtop();
+      if (!session?.fetchedAt || session.fetchedAt < note.at) return;
+      clearSignInReturn();
+      router.push(note.path);
+    };
+    returnIfFreshlySignedIn();
+    window.addEventListener(VTOP_LOGIN_EVENT, returnIfFreshlySignedIn);
+    return () => window.removeEventListener(VTOP_LOGIN_EVENT, returnIfFreshlySignedIn);
+  }, [isLoggedIn, demoMode, router]);
+
+  // Sent here to sign in while saved credentials exist means those
+  // credentials are what failed (a guest gets the login form instead), so
+  // open the editor to fix them rather than showing a dashboard that cannot
+  // sync. Saving it logs in again, which completes the return trip above.
+  useEffect(() => {
+    if (initialIntent !== "login" || demoMode) return;
+    if (!peekSignInReturn()) return;
+    if (hasStoredVtopCredentials(storage.ids.get(), storage.username.get(), storage.password.get())) {
+      setCredEditorOpen(true);
+    }
+  }, [initialIntent, demoMode]);
 
   useAppAppearance(settings, theme);
 

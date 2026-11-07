@@ -74,7 +74,7 @@ import { FFCSSettingsDefaults, type FFCSSettings, type RankingPriority } from "@
 import type { FacultyRatingLookup } from "@/lib/ffcsFacultyRanking";
 import dynamic from "next/dynamic";
 import VerticalTimetableGrid from "@/components/custom/timetable/VerticalTimetableGrid";
-import { toMinutes } from "@/lib/social/schedule";
+import { toMinutes } from "@/lib/schedule";
 import { ensureLunchPeriod } from "@/lib/slots";
 import { exitNativeFullscreen, requestNativeFullscreen } from "@/lib/fullscreen";
 import { FacultyScoresForCourse, GuidedFacultyReviewStats } from "./GuidedFacultyStats";
@@ -5264,7 +5264,7 @@ export default function FFCSGuidedSelector({
       return (
         <header className="relative z-20 w-full max-w-md sm:max-w-2xl mx-auto flex items-center justify-between shrink-0 pt-1">
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-extrabold tracking-wider uppercase bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
+            <span className="text-[11px] font-extrabold tracking-wider uppercase bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm whitespace-nowrap">
               <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
               <span>FFCS Mobile Generator</span>
             </span>
@@ -5281,11 +5281,12 @@ export default function FFCSGuidedSelector({
               <button
                 type="button"
                 onClick={onSwitchToSinglePageView}
-                className="h-8 px-2.5 rounded-xl bg-zinc-900/60 border border-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-800/80 flex items-center gap-1.5 text-xs font-semibold transition-colors cursor-pointer"
+                className="h-8 px-2.5 rounded-xl bg-zinc-900/60 border border-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-800/80 flex items-center gap-1.5 whitespace-nowrap shrink-0 text-xs font-semibold transition-colors cursor-pointer"
                 title="Switch to Single Page View"
               >
                 <ArrowLeft className="w-3.5 h-3.5 text-blue-400" />
-                <span>Single Page View (Plan)</span>
+                <span aria-hidden="true">Single page</span>
+                <span className="sr-only">Single Page View (Plan)</span>
               </button>
             )}
             <button
@@ -5340,11 +5341,12 @@ export default function FFCSGuidedSelector({
             <button
               type="button"
               onClick={onSwitchToSinglePageView}
-              className="h-8 px-2.5 rounded-xl bg-zinc-900/60 border border-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-800/80 flex items-center gap-1.5 text-xs font-semibold transition-colors cursor-pointer"
+              className="h-8 px-2.5 rounded-xl bg-zinc-900/60 border border-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-800/80 flex items-center gap-1.5 whitespace-nowrap shrink-0 text-xs font-semibold transition-colors cursor-pointer"
               title="Switch to Single Page View"
             >
               <ArrowLeft className="w-3.5 h-3.5 text-blue-400" />
-              <span>Single Page View (Plan)</span>
+              <span aria-hidden="true">Single page</span>
+              <span className="sr-only">Single Page View (Plan)</span>
             </button>
           )}
           <button
@@ -5459,11 +5461,12 @@ export default function FFCSGuidedSelector({
                   <button
                     type="button"
                     onClick={onSwitchToSinglePageView}
-                    className="h-8 px-2.5 rounded-xl bg-zinc-900/60 border border-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-800/80 flex items-center gap-1.5 text-xs font-semibold transition-colors cursor-pointer"
+                    className="h-8 px-2.5 rounded-xl bg-zinc-900/60 border border-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-800/80 flex items-center gap-1.5 whitespace-nowrap shrink-0 text-xs font-semibold transition-colors cursor-pointer"
                     title="Switch to Single Page View"
                   >
                     <ArrowLeft className="w-3.5 h-3.5 text-blue-400" />
-                    <span>Single Page View (Plan)</span>
+                    <span aria-hidden="true">Single page</span>
+                    <span className="sr-only">Single Page View (Plan)</span>
                   </button>
                 )}
                 <button

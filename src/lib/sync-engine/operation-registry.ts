@@ -10,7 +10,7 @@ export interface OpCtx {
   bridge: typeof stateBridge;
 }
 
-export type SyncOpCategory = "academics" | "stay" | "campus" | "profile" | "social";
+export type SyncOpCategory = "academics" | "stay" | "campus" | "profile";
 
 export type SyncOpCost = "light" | "medium" | "heavy";
 
