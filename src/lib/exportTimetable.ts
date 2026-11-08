@@ -961,6 +961,8 @@ export function generateModernPrintableHtml(params: ModernPrintableReportParams)
             padding: 0 !important;
             background: #ffffff !important;
             color: #0f172a !important;
+            /* Paper takes one ink: the colored dossier prints monochrome. */
+            filter: grayscale(1);
           }
           .print-toolbar {
             display: none !important;
@@ -1843,7 +1845,11 @@ export function openTimetablePrintablePage(
               backdrop-filter: none;
               -webkit-backdrop-filter: none;
             }
-            body { background: ${isDarkMode ? "#0f172a" : "#ffffff"}; }
+            body {
+              background: ${isDarkMode ? "#0f172a" : "#ffffff"};
+              /* Paper takes one ink: the colored dossier prints monochrome. */
+              filter: grayscale(1);
+            }
             .overflow-x-auto {
               overflow: visible !important;
               overflow-x: visible !important;

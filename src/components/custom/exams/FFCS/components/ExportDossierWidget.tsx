@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarDays, Download, ExternalLink, FileDown, FileText, Save } from "lucide-react";
+import { CalendarDays, Download, ExternalLink, FileDown, FileText, Printer, Save } from "lucide-react";
 import { SegmentedControl } from "../../../shared/primitives";
 
 type DossierThemeChoice = "current" | "light" | "dark";
@@ -15,6 +15,7 @@ export interface ExportDossierWidgetProps {
   onExportIcal: () => void;
   onExportTimetablesJson: () => void;
   onDownloadClashReport?: () => void;
+  onDownloadPrintDossier?: () => void;
   onOpenPrintablePage?: () => void;
   onOpenDetachedPrintablePage?: () => void;
 }
@@ -27,6 +28,7 @@ export default function ExportDossierWidget({
   onExportIcal,
   onExportTimetablesJson,
   onDownloadClashReport,
+  onDownloadPrintDossier,
   onOpenPrintablePage,
   onOpenDetachedPrintablePage,
 }: ExportDossierWidgetProps) {
@@ -175,6 +177,18 @@ export default function ExportDossierWidget({
           >
             <FileText className="h-3.5 w-3.5 text-rose-500" />
             <span>Detailed report (PDF)</span>
+          </button>
+        )}
+        {onDownloadPrintDossier && (
+          <button
+            type="button"
+            onClick={onDownloadPrintDossier}
+            disabled={!canExport}
+            className="flex min-h-10 items-center justify-center gap-2 rounded-lg bg-surface-secondary/60 px-3 text-xs font-semibold text-text-heading transition-colors hover:bg-surface-secondary disabled:cursor-not-allowed disabled:opacity-50"
+            title="Download a clean black-and-white dossier PDF, laid out for paper printing"
+          >
+            <Printer className="h-3.5 w-3.5 text-text-heading" />
+            <span>Print-friendly PDF</span>
           </button>
         )}
         {onOpenPrintablePage && (

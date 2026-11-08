@@ -16,6 +16,7 @@ import {
   X,
   Settings2,
   Users,
+  ChevronRight,
   HelpCircle,
   Share2,
   Search,
@@ -109,7 +110,7 @@ import {
 import { TourProvider } from "./FFCS/features/tour/TourProvider";
 import type { TourStep } from "./FFCS/features/tour/tourSteps";
 import { useTips } from "./FFCS/features/tour/useTips";
-import { Tip } from "./FFCS/features/tour/Tip";
+import { TipDeck } from "./FFCS/features/tour/Tip";
 import Switch from "../shared/primitives/Switch";
 import { ChipTabs, SegmentedControl, IconButton, ListRowText, ListShell } from "../shared/primitives";
 
@@ -634,6 +635,22 @@ export default function FFCSTimetableTab({
   // The friends manager is a full-page subpage now (see FFCSFriendsSubpage);
   // everything it needs beyond these two arrays lives inside it.
   const [isFriendsManagerOpen, setIsFriendsManagerOpen] = useState(false);
+  // "classmates" when opened from the header's Find classmates button, so it
+  // lands on the friend finder instead of the Friends menu.
+  const [friendsStartSection, setFriendsStartSection] = useState<"hub" | "classmates">("hub");
+  // `/ffcs/?open=classmates` lands straight on the friend finder: it is where
+  // "Sign in" returns to, and a link students can pass around. Dropped from
+  // the address bar after use so a refresh behaves normally.
+  useEffect(() => {
+    try {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("open") !== "classmates") return;
+      url.searchParams.delete("open");
+      window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+      setFriendsStartSection("classmates");
+      setIsFriendsManagerOpen(true);
+    } catch {}
+  }, []);
   const [socialTargetId, setSocialTargetId] = useState<string>("");
   const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
   const [selectedDashDetails, setSelectedDashDetails] = useState<
@@ -1625,6 +1642,52 @@ export default function FFCSTimetableTab({
     }
   }, [courses, activeTimetable.name]);
 
+  /**
+   * The print-friendly dossier: a monochrome, form-style A4 PDF of the plan,
+   * compiled in-process with jsPDF and downloaded in the background — no new
+   * tab, no print dialog. The paper counterpart to the colored HTML dossier.
+   */
+  const downloadPrintDossier = useCallback(async () => {
+    if (courses.length === 0) {
+      setError("Please add at least one course before downloading the print-friendly PDF.");
+      return;
+    }
+    setIsDownloading(true);
+    setIsGeneratingPdf(true);
+    setPdfGenerationTheme("light");
+    setPdfBadgeMsg(null);
+    try {
+      const { downloadPrintDossierPdf } = await import("@/lib/formDossier");
+      await downloadPrintDossierPdf({
+        timetableName: activeTimetable.name,
+        courses,
+        theoryPeriods,
+        labPeriods,
+        days: DAYS,
+        viewMode: "horizontal",
+        masterCourses,
+        themeHtmlClass,
+      });
+      track("export_print_dossier", { courses: courses.length });
+      const success = "Print-friendly PDF downloaded successfully.";
+      setSuccessMsg(success);
+      setPdfBadgeMsg(success);
+      setTimeout(() => {
+        setSuccessMsg(null);
+        setPdfBadgeMsg(null);
+      }, 3500);
+    } catch (err) {
+      console.error("Print-friendly PDF download failed:", err);
+      const errMsg = "Failed to download the print-friendly PDF.";
+      setError(errMsg);
+      setPdfBadgeMsg(errMsg);
+      setTimeout(() => setPdfBadgeMsg(null), 3500);
+    } finally {
+      setIsDownloading(false);
+      setIsGeneratingPdf(false);
+    }
+  }, [courses, activeTimetable.name, theoryPeriods, labPeriods, masterCourses, themeHtmlClass]);
+
   const openDetachedPrintablePage = useCallback(() => {
     try {
       const viewToUse: "vertical" | "horizontal" = resolvedView === "vertical" ? "vertical" : "horizontal";
@@ -2053,7 +2116,11 @@ export default function FFCSTimetableTab({
   if (isFriendsManagerOpen) {
     return (
       <FFCSFriendsSubpage
-        onClose={() => setIsFriendsManagerOpen(false)}
+        onClose={() => {
+          setIsFriendsManagerOpen(false);
+          setFriendsStartSection("hub");
+        }}
+        initialSection={friendsStartSection}
         friends={friends}
         setFriends={setFriends}
         friendGroups={friendGroups}
@@ -2062,6 +2129,8 @@ export default function FFCSTimetableTab({
         labPeriods={labPeriods}
         reportCourses={reportCoursesForSharing}
         semesterId={semesterId}
+        timetables={timetables}
+        activeTimetableId={activeTimetableId}
         onFriendAdded={(name) => {
           setSuccessMsg(`${name}'s timetable imported successfully!`);
           setTimeout(() => setSuccessMsg(null), 3000);
@@ -2250,34 +2319,82 @@ export default function FFCSTimetableTab({
               </div>
             </div>
 
-            {/* Secondary controls row: Segmented control + report status badge */}
+            {/* Always visible, in every layout: the friend finder is the planner's
+              most-asked-for social feature, so it is not left behind a widget toggle. */}
+            <button
+              type="button"
+              onClick={() => {
+                setFriendsStartSection("classmates");
+                setIsFriendsManagerOpen(true);
+              }}
+              className="w-full flex items-center gap-3 rounded-2xl border border-amber-500/25 bg-amber-500/10 hover:bg-amber-500/15 px-4 py-3 text-left transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+            >
+              <span className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                <Users className="w-5 h-5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-bold text-text-heading">Find classmates</span>
+                <span className="block text-xs text-muted-foreground">
+                  See who picked the same faculty and slots as you
+                </span>
+              </span>
+              <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+            </button>
+
+            {/* Secondary controls (Classic & Guided). Row 1: which course list,
+              and whether it loaded — the list switch scrolls sideways on a phone
+              instead of wrapping one segment onto its own line. Row 2: the
+              planner view, and the data credit as quiet text, not another pill. */}
             {layoutMode !== "modern" && (
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <SegmentedControl
-                    value={semesterId}
-                    onChange={(value) => {
-                      void handleSemesterChange(value);
-                    }}
-                    options={FFCS_SEMESTER_REPORTS.map((report) => ({
-                      value: report.id,
-                      label: report.shortLabel,
-                      title: `Load the ${report.label} slot timetable`,
-                    }))}
-                  />
+              <div className="space-y-2 pt-1">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="min-w-0 flex-1 sm:flex-none">
+                    <SegmentedControl
+                      scroll
+                      className="!flex-nowrap w-full sm:w-auto"
+                      value={semesterId}
+                      onChange={(value) => {
+                        void handleSemesterChange(value);
+                      }}
+                      options={FFCS_SEMESTER_REPORTS.map((report) => ({
+                        value: report.id,
+                        label: report.shortLabel,
+                        title: `Load the ${report.label} slot timetable`,
+                      }))}
+                    />
+                  </div>
 
-                  {/* Data credit — required by the ported catalogue's provenance
-                  (MIT data from CodeChef VIT), and shown only while that
-                  dataset is the loaded one so the notice tracks the source. */}
-                  {FFCS_SEMESTER_REPORTS.find((report) => report.id === semesterId)?.attribution && (
-                    <span
-                      className="text-[10px] font-semibold text-muted-foreground border border-border-strong/60 bg-surface-secondary/50 rounded-full px-2.5 py-1"
-                      title="Source of the loaded course list"
-                    >
-                      {FFCS_SEMESTER_REPORTS.find((report) => report.id === semesterId)?.attribution}
-                    </span>
-                  )}
+                  <div className="shrink-0 sm:ml-auto">
+                    {isLoadingCourses ? (
+                      <span
+                        className="text-amber-600 dark:text-amber-400 text-xs font-semibold flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 shadow-2xs"
+                        title={`Loading ${activeSemester.label}`}
+                      >
+                        <span className="w-3.5 h-3.5 rounded-full border-2 border-amber-500 border-t-transparent animate-spin" />
+                        <span className="hidden sm:inline">Loading {activeSemester.shortLabel}…</span>
+                      </span>
+                    ) : masterCourses.length > 0 ? (
+                      <span
+                        className="text-emerald-600 dark:text-emerald-400 text-xs font-semibold flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 shadow-2xs whitespace-nowrap"
+                        title={`${activeSemester.label} loaded`}
+                      >
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="sm:hidden">{masterCourses.length.toLocaleString()} slots</span>
+                        <span className="hidden sm:inline">
+                          {activeSemester.shortLabel} loaded · {masterCourses.length.toLocaleString()} slots
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="text-rose-600 dark:text-rose-400 text-xs font-semibold flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/20 shadow-2xs whitespace-nowrap">
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">No course report loaded</span>
+                        <span className="sm:hidden">No report</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
 
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                   <div className="flex items-center gap-1.5">
                     <SegmentedControl
                       value={layoutMode}
@@ -2320,24 +2437,17 @@ export default function FFCSTimetableTab({
                       <Sparkles className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                </div>
 
-                <div className="flex items-center gap-2">
-                  {isLoadingCourses ? (
-                    <span className="text-amber-600 dark:text-amber-400 text-xs font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 shadow-2xs">
-                      <div className="w-3.5 h-3.5 rounded-full border-2 border-amber-500 border-t-transparent animate-spin" />
-                      Loading {activeSemester.shortLabel}...
-                    </span>
-                  ) : masterCourses.length > 0 ? (
-                    <span className="text-emerald-600 dark:text-emerald-400 text-xs font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 shadow-2xs">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                      {activeSemester.shortLabel} loaded ({masterCourses.length} slots)
-                    </span>
-                  ) : (
-                    <span className="text-rose-600 dark:text-rose-400 text-xs font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/20 shadow-2xs">
-                      <AlertTriangle className="w-3.5 h-3.5" />
-                      No course report loaded
-                    </span>
+                  {/* Data credit — required by the ported catalogue's provenance
+                  (MIT data from CodeChef VIT), and shown only while that
+                  dataset is the loaded one so the notice tracks the source. */}
+                  {activeSemester.attribution && (
+                    <p
+                      className="text-[11px] text-muted-foreground leading-snug min-w-0 basis-full sm:basis-auto sm:flex-1"
+                      title="Source of the loaded course list"
+                    >
+                      {activeSemester.attribution}
+                    </p>
                   )}
                 </div>
               </div>
@@ -2361,11 +2471,7 @@ export default function FFCSTimetableTab({
         {/* Evergreen hints, each dismissed for good. Above the fold so they are
           read where they apply rather than scrolled past inside a card. */}
         {hints.length > 0 && !(layoutMode === "guided" && isGuidedFullScreen) && (
-          <div className="space-y-2">
-            {hints.map((hint) => (
-              <Tip key={hint.id} hint={hint} onDismiss={() => dismissHint(hint.id)} />
-            ))}
-          </div>
+          <TipDeck hints={hints} onDismiss={dismissHint} />
         )}
 
         <div
@@ -2424,9 +2530,11 @@ export default function FFCSTimetableTab({
               settings={settings}
             />
           ) : layoutMode === "classic" ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            // Top-aligned, so the shorter card ends where its content does
+            // instead of stretching into an empty panel beside the taller one.
+            <div className="grid grid-cols-1 md:grid-cols-2 md:items-start gap-6">
               {/* Classic Timetable Manager */}
-              <div className="card-surface border border-border-strong rounded-3xl p-5 sm:p-6 shadow-sm relative overflow-hidden text-text-primary backdrop-blur-xs flex flex-col justify-between gap-5">
+              <div className="card-surface border border-border-strong rounded-[24px] p-5 sm:p-6 shadow-sm relative overflow-hidden text-text-primary backdrop-blur-xs flex flex-col justify-between gap-5">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h2 className="text-base font-bold text-text-heading flex items-center gap-2">
@@ -2674,13 +2782,13 @@ export default function FFCSTimetableTab({
               </div>
 
               {/* Classic Course Selector */}
-              <div className="card-surface border border-border-strong rounded-3xl p-5 sm:p-6 shadow-sm relative overflow-hidden text-text-primary backdrop-blur-xs flex flex-col justify-between gap-4">
+              <div className="card-surface border border-border-strong rounded-[24px] p-5 sm:p-6 shadow-sm relative overflow-hidden text-text-primary backdrop-blur-xs flex flex-col justify-between gap-4">
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-base font-bold text-text-heading flex items-center gap-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h2 className="text-base font-bold text-text-heading flex items-center gap-2 whitespace-nowrap">
                       <PlusCircle className="text-blue-500 w-5 h-5" /> Course Selector
                     </h2>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 whitespace-nowrap">
                       <button
                         type="button"
                         onClick={() => setIsPasteRegisteredModalOpen(true)}
@@ -2975,6 +3083,7 @@ export default function FFCSTimetableTab({
               isDownloading={isDownloading}
               onDownloadHtmlDossier={downloadDossierHtml}
               onDownloadClashReport={downloadClashReport}
+              onDownloadPrintDossier={downloadPrintDossier}
               onDownloadImage={downloadImage}
               onOpenPrintablePage={openPrintablePage}
               onOpenDetachedPrintablePage={openDetachedPrintablePage}
@@ -2989,9 +3098,12 @@ export default function FFCSTimetableTab({
               className={`w-full space-y-6 ${showVerticalTimetableBesideWidgets ? "xl:contents" : ""}`}
             >
               {layoutMode === "classic" && (
-                <div className="flex flex-wrap justify-between items-center gap-2 mb-2">
+                // One toolbar: who to score against on the left, exports on the
+                // right (stacked on phones), instead of a floating box beside
+                // two unaligned buttons.
+                <div className="card-surface border border-border-strong rounded-2xl p-3 flex flex-col lg:flex-row lg:items-center gap-3 print:hidden">
                   {/* Social Score Widget */}
-                  <div className="flex items-center gap-3 bg-surface-secondary/20 border border-border-strong p-2 rounded-xl w-full md:w-auto flex-1 max-w-md print:hidden">
+                  <div className="flex items-center gap-3 min-w-0 flex-1 lg:max-w-xl">
                     <div className="flex flex-col gap-1 w-full">
                       <div className="flex items-center justify-between">
                         <label className="text-xs font-bold text-muted-foreground flex items-center gap-1">
@@ -3037,7 +3149,7 @@ export default function FFCSTimetableTab({
                     </div>
                   </div>
 
-                  <div className="flex gap-2 shrink-0 ml-auto">
+                  <div className="flex flex-wrap gap-2 lg:shrink-0 lg:ml-auto">
                     <button
                       onClick={() => downloadDossierHtml()}
                       disabled={isDownloading || courses.length === 0}
@@ -3051,7 +3163,7 @@ export default function FFCSTimetableTab({
                       <button
                         onClick={() => downloadImage(settings.exportFormat)}
                         disabled={isDownloading || courses.length === 0}
-                        className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-text-heading px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 shadow-lg shadow-blue-500/20"
+                        className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 shadow-lg shadow-blue-500/20"
                       >
                         <Download className="w-4 h-4" />
                         {isDownloading
@@ -3124,6 +3236,13 @@ export default function FFCSTimetableTab({
                           className="w-full text-left px-4 py-2 text-text-heading hover:bg-surface-secondary transition-colors border-t border-border-strong/50"
                         >
                           Download Clash Report (PDF)
+                        </button>
+                        <button
+                          onClick={() => void downloadPrintDossier()}
+                          className="w-full text-left px-4 py-2 text-text-heading hover:bg-surface-secondary transition-colors border-t border-border-strong/50"
+                          title="Monochrome form-style dossier PDF, downloaded in the background"
+                        >
+                          Download Print-Friendly PDF (B&amp;W)
                         </button>
                         <button
                           onClick={() => openPrintablePage()}

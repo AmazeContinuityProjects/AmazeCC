@@ -1,24 +1,24 @@
 "use client";
 
 import React, { useState } from "react";
-import { 
-  HelpCircle, 
-  Info, 
-  Sparkles, 
-  BookOpen, 
-  ChevronRight, 
-  Sliders, 
-  RefreshCcw, 
-  Search, 
-  Eye, 
-  Share2, 
-  Calendar, 
-  Users, 
-  Zap, 
-  ShieldCheck, 
+import {
+  HelpCircle,
+  Info,
+  Sparkles,
+  BookOpen,
+  ChevronRight,
+  Sliders,
+  RefreshCcw,
+  Search,
+  Eye,
+  Share2,
+  Calendar,
+  Users,
+  Zap,
+  ShieldCheck,
   Clock,
   CheckCircle2,
-  ListOrdered
+  ListOrdered,
 } from "lucide-react";
 import BottomSheet from "./BottomSheet";
 import { AnimatePresence } from "framer-motion";
@@ -44,35 +44,38 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
       {
         icon: <RefreshCcw className="w-4 h-4 text-indigo-500" />,
         name: "Sync VTOP Gateway Data",
-        description: "Refreshes live attendance, class schedules, marks, hostel data, and LMS notifications directly from VTOP.",
+        description:
+          "Refreshes live attendance, class schedules, marks, hostel data, and LMS notifications directly from VTOP.",
         steps: [
           "Step 1: Tap the Sync button (Refresh icon) located at the top-right header.",
           "Step 2: If your VTOP session cookie has expired, solve the visual captcha prompt when requested.",
           "Step 3: Wait 3–5 seconds while all 8 data modules (Attendance, Timetable, Grades, Hostel, LMS, Bus, Library) update.",
-          "Step 4: Check the top banner timestamp to verify that data has successfully synced."
-        ]
+          "Step 4: Check the top banner timestamp to verify that data has successfully synced.",
+        ],
       },
       {
         icon: <Sliders className="w-4 h-4 text-purple-500" />,
         name: "Customize Dashboard Layout & Card Grid Sizes",
-        description: "Reorder cards, switch between 1-column half-width and 2-column full-width grid layouts, or hide unused widgets.",
+        description:
+          "Reorder cards, switch between 1-column half-width and 2-column full-width grid layouts, or hide unused widgets.",
         steps: [
           "Step 1: Click the Sliders icon (Customize) located next to the search bar.",
           "Step 2: Click 'Full Width' (spans 2 desktop grid columns) or 'Half Width' (spans 1 column) on any card.",
           "Step 3: Drag cards using the Grip handle or click the Up/Down arrow buttons to change vertical order.",
           "Step 4: Click the Eye icon to hide or reveal specific cards (e.g., Free Classrooms, Laundry, Bus Routes).",
-          "Step 5: Click 'Save Layout' to persist your preferences across sessions."
-        ]
+          "Step 5: Click 'Save Layout' to persist your preferences across sessions.",
+        ],
       },
       {
         icon: <Search className="w-4 h-4 text-blue-500" />,
         name: "Spotlight Global Search (⌘K / Ctrl+K)",
-        description: "Instant command palette to search courses, timetable slots, exam venues, mess menus, or settings.",
+        description:
+          "Instant command palette to search courses, timetable slots, exam venues, mess menus, or settings.",
         steps: [
           "Step 1: Press ⌘K on macOS (or Ctrl+K on Windows/Linux) or tap the Home Search Bar.",
           "Step 2: Type any course code (e.g. 'CSE3002'), venue ('SJT 402'), or keyword ('Mess', 'Exam', 'CGPA').",
-          "Step 3: Use Arrow keys to navigate search suggestions and press Enter to navigate instantly."
-        ]
+          "Step 3: Use Arrow keys to navigate search suggestions and press Enter to navigate instantly.",
+        ],
       },
       {
         icon: <Eye className="w-4 h-4 text-emerald-500" />,
@@ -83,10 +86,10 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
           "Step 2: Toggle 'Hide CGPA' to censor cumulative GPA on main pages and sidebars.",
           "Step 3: Toggle 'Grades Anonymizer Mode' to blur individual test scores and letter grades until hovered.",
           "Step 4: Toggle 'Decimal Attendance' to switch between whole numbers (84%) and precision (84.62%).",
-          "Step 5: Enable 'Dayscholar Bus Mode' if commuting via college bus routes."
-        ]
-      }
-    ]
+          "Step 5: Enable 'Dayscholar Bus Mode' if commuting via college bus routes.",
+        ],
+      },
+    ],
   },
   attendance: {
     tabName: "Attendance Tracker & Bunk Margin",
@@ -100,8 +103,8 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
           "Step 1: Open the Attendance tab.",
           "Step 2: Drag the Target Slider to your required percentage (e.g. 75% for VIT minimum, 80%, or 85%).",
           "Step 3: Inspect the emerald 'Classes to Bunk' badge or red/amber 'Classes Required' badge for each course.",
-          "Step 4: Check the total margin counter at the top to see your overall buffer."
-        ]
+          "Step 4: Check the total margin counter at the top to see your overall buffer.",
+        ],
       },
       {
         icon: <Calendar className="w-4 h-4 text-indigo-500" />,
@@ -110,8 +113,8 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
         steps: [
           "Step 1: Tap MON, TUE, WED, THU, FRI, or SAT pills at the top timeline strip.",
           "Step 2: Click any class card on the timeline to inspect room venue, slot ID, and instructor details.",
-          "Step 3: For Saturday classes, tap 'Saturday Override' and select which weekday order (e.g. 'Run as Tuesday Order') to apply."
-        ]
+          "Step 3: For Saturday classes, tap 'Saturday Override' and select which weekday order (e.g. 'Run as Tuesday Order') to apply.",
+        ],
       },
       {
         icon: <RefreshCcw className="w-4 h-4 text-blue-500" />,
@@ -120,10 +123,10 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
         steps: [
           "Step 1: Tap the 'Predict Attendance' button.",
           "Step 2: Select future dates or enter hypothetical absences for specific courses.",
-          "Step 3: View the projected overall semester percentage before taking planned leaves."
-        ]
-      }
-    ]
+          "Step 3: View the projected overall semester percentage before taking planned leaves.",
+        ],
+      },
+    ],
   },
   academics: {
     tabName: "Academics, Grades & Exam Venues",
@@ -132,12 +135,13 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
       {
         icon: <BookOpen className="w-4 h-4 text-indigo-500" />,
         name: "Curriculum Credit Audit",
-        description: "Track credit progress across Program Core (PC), Program Electives (PE), University Electives (UE), and Humanities (HSM).",
+        description:
+          "Track credit progress across Program Core (PC), Program Electives (PE), University Electives (UE), and Humanities (HSM).",
         steps: [
           "Step 1: Open Academics -> Curriculum Audit sub-tab.",
           "Step 2: View earned credits versus required graduation credits for each basket category.",
-          "Step 3: Expand any basket to inspect completed courses versus unfulfilled prerequisite subjects."
-        ]
+          "Step 3: Expand any basket to inspect completed courses versus unfulfilled prerequisite subjects.",
+        ],
       },
       {
         icon: <Calendar className="w-4 h-4 text-rose-500" />,
@@ -146,8 +150,8 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
         steps: [
           "Step 1: Tap Academics -> Exam Schedule sub-tab.",
           "Step 2: Filter by FN (Forenoon / Morning 9:00 AM) or AN (Afternoon 2:00 PM) exam session.",
-          "Step 3: Check your assigned building hall (e.g. SJT 402), reporting time, and exact seat number (#42)."
-        ]
+          "Step 3: Check your assigned building hall (e.g. SJT 402), reporting time, and exact seat number (#42).",
+        ],
       },
       {
         icon: <Sparkles className="w-4 h-4 text-amber-500" />,
@@ -156,10 +160,10 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
         steps: [
           "Step 1: Tap GPA Calculator.",
           "Step 2: Select expected letter grades (S=10, A=9, B=8, C=7, D=6, E=5, F=0) for your current semester courses.",
-          "Step 3: View your projected semester GPA and updated cumulative CGPA instantly."
-        ]
-      }
-    ]
+          "Step 3: View your projected semester GPA and updated cumulative CGPA instantly.",
+        ],
+      },
+    ],
   },
   hostel: {
     tabName: "Campus & Hostel Services",
@@ -172,8 +176,8 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
         steps: [
           "Step 1: Open Hostel -> Mess Menu sub-tab.",
           "Step 2: Select your hostel block caterer (e.g. 'Special Mess', 'Non-Veg Mess', 'DLF/PRPR').",
-          "Step 3: Tap Breakfast (7:30–9:00 AM), Lunch (11:30 AM–1:30 PM), Snacks (4:30–5:30 PM), or Dinner (7:30–9:00 PM) to view dishes."
-        ]
+          "Step 3: Tap Breakfast (7:30–9:00 AM), Lunch (11:30 AM–1:30 PM), Snacks (4:30–5:30 PM), or Dinner (7:30–9:00 PM) to view dishes.",
+        ],
       },
       {
         icon: <Clock className="w-4 h-4 text-indigo-500" />,
@@ -182,56 +186,57 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
         steps: [
           "Step 1: Tap Hostel -> Laundry sub-tab.",
           "Step 2: Select your hostel block (e.g., Q-Block, K-Block) to view operating hours.",
-          "Step 3: Check available machine slots before carrying clothes down."
-        ]
+          "Step 3: Check available machine slots before carrying clothes down.",
+        ],
       },
       {
         icon: <Share2 className="w-4 h-4 text-emerald-500" />,
         name: "Cab Share Matcher (Airport / Railway Station)",
-        description: "Find batchmates traveling at the same time to split cab fares to Chennai/Bengaluru airport or Katpadi station.",
+        description:
+          "Find batchmates traveling at the same time to split cab fares to Chennai/Bengaluru airport or Katpadi station.",
         steps: [
           "Step 1: Tap Hostel -> Cab Share sub-tab.",
           "Step 2: Click 'Post Trip' and enter your departure date, time, and destination (Airport or Railway Station).",
-          "Step 3: Match with batchmates heading to the same terminal to split taxi costs."
-        ]
-      }
-    ]
+          "Step 3: Match with batchmates heading to the same terminal to split taxi costs.",
+        ],
+      },
+    ],
   },
   social: {
-    tabName: "Social & Friend Timetables",
-    subtitle: "Step-by-step instructions for campus radar, schedule sharing, and group free slots",
+    tabName: "Share Timetable",
+    subtitle: "Send your timetable as a link, and plan with friends in the FFCS planner",
     items: [
       {
-        icon: <Zap className="w-4 h-4 text-emerald-500" />,
-        name: "Live Campus Radar (Who is Free Right Now?)",
-        description: "Scans schedule slots to alert you when friends currently have no active class.",
-        steps: [
-          "Step 1: Open Social -> '⚡ Free Right Now' sub-tab.",
-          "Step 2: View friends with active free hours during the current campus time.",
-          "Step 3: Tap any friend card to send a quick WhatsApp message for coffee or lunch."
-        ]
-      },
-      {
         icon: <Share2 className="w-4 h-4 text-indigo-500" />,
-        name: "Temporary Share Link & Apple-Pass QR Code",
-        description: "Generate 5-min or 15-min temporary expiring links or QR passes to share your schedule.",
+        name: "Share your timetable as a link",
+        description: "A link to your registered timetable that anyone can open, without signing in.",
         steps: [
-          "Step 1: Tap the Share button at the top right of Social.",
-          "Step 2: Choose link expiry duration (⚡ 5 Min, ⏱️ 15 Min, ⏳ 1 Hour, or ♾️ Permanent).",
-          "Step 3: Tap 'Copy Link' (generates a short `#s=` URL) or 'Download Pass Image' to share."
-        ]
+          "Step 1: Open Share timetable (once your timetable has synced from VTOP).",
+          "Step 2: Tap 'Share link' or 'Copy link'.",
+          "Step 3: Send it to friends. It shows your classes and nothing else, and nothing is stored on a server.",
+        ],
       },
       {
         icon: <Users className="w-4 h-4 text-purple-500" />,
-        name: "Group Common Free Timetable",
-        description: "Your week drawn as a timetable, showing who is free in every band across the team.",
+        name: "Plan with friends",
+        description: "View friends' timetables and plan around them in the FFCS planner.",
         steps: [
-          "Step 1: Tap Social -> '📊 Common Free Grid Matrix' sub-tab.",
-          "Step 2: Select a project group or select all friends.",
-          "Step 3: Read each cell for how many people are free, and tap one for the detail."
-        ]
-      }
-    ]
+          "Step 1: Open the FFCS planner -> Friends.",
+          "Step 2: Paste a friend's link (or just the code after ?q=) to add their timetable.",
+          "Step 3: Group friends to score generated timetables by how many classes you share.",
+        ],
+      },
+      {
+        icon: <Zap className="w-4 h-4 text-emerald-500" />,
+        name: "Find classmates",
+        description: "See who picked the same faculty and slots as you.",
+        steps: [
+          "Step 1: Open the FFCS planner and tap Find classmates.",
+          "Step 2: Share one of your timetables, or your registered one.",
+          "Step 3: See who's in each of your sections.",
+        ],
+      },
+    ],
   },
   events: {
     tabName: "Events, Cultural Fests & Clubs",
@@ -244,8 +249,8 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
         steps: [
           "Step 1: Open Events -> 'Registered Events'.",
           "Step 2: Tap any event to open your official QR Entry Pass.",
-          "Step 3: Present the QR code to volunteers at the auditorium/ground entrance for entry scan."
-        ]
+          "Step 3: Present the QR code to volunteers at the auditorium/ground entrance for entry scan.",
+        ],
       },
       {
         icon: <Users className="w-4 h-4 text-indigo-500" />,
@@ -254,10 +259,10 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
         steps: [
           "Step 1: Browse active event listings or filter by club category.",
           "Step 2: Tap any event card to view description, price, venue, and registration deadline.",
-          "Step 3: Tap 'Register Now' to connect to VTOP event payment gateway."
-        ]
-      }
-    ]
+          "Step 3: Tap 'Register Now' to connect to VTOP event payment gateway.",
+        ],
+      },
+    ],
   },
   settings: {
     tabName: "Settings, Privacy & Customization",
@@ -270,8 +275,8 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
         steps: [
           "Step 1: Open Settings -> Privacy section.",
           "Step 2: Enable 'Hide CGPA Everywhere' to mask cumulative grades on dashboard & sidebars.",
-          "Step 3: Enable 'Grades Anonymizer Mode' to blur individual test scores until hovered."
-        ]
+          "Step 3: Enable 'Grades Anonymizer Mode' to blur individual test scores until hovered.",
+        ],
       },
       {
         icon: <Sliders className="w-4 h-4 text-purple-500" />,
@@ -280,14 +285,15 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
         steps: [
           "Step 1: Open Settings -> Appearance.",
           "Step 2: Switch between Light, Dark, or System Sync theme.",
-          "Step 3: Select accent color palette (Indigo, Emerald, Violet, Rose, Amber)."
-        ]
-      }
-    ]
+          "Step 3: Select accent color palette (Indigo, Emerald, Violet, Rose, Amber).",
+        ],
+      },
+    ],
   },
   ffcs: {
     tabName: "FFCS Planner",
-    subtitle: "Plan conflict-free timetables: import your courses, generate options, score them with friends, and export the week you pick",
+    subtitle:
+      "Plan conflict-free timetables: import your courses, generate options, score them with friends, and export the week you pick",
     items: [
       {
         icon: <ListOrdered className="w-4 h-4 text-purple-500" />,
@@ -296,20 +302,21 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
         steps: [
           "Step 1: Open 'Target Courses' under the planner banner.",
           "Step 2: Search the report, or paste your registration sheet list, or upload a CSV/XLSX — column headings do not have to match ours.",
-          "Step 3: Lock the courses and faculty variants you have decided on; leave the rest flexible for the generator."
-        ]
+          "Step 3: Lock the courses and faculty variants you have decided on; leave the rest flexible for the generator.",
+        ],
       },
       {
         icon: <Zap className="w-4 h-4 text-amber-500" />,
         name: "Generate Conflict-Free Weeks",
-        description: "The generator streams options while it searches — filter, sort, rank, compare, and save the ones you like.",
+        description:
+          "The generator streams options while it searches — filter, sort, rank, compare, and save the ones you like.",
         steps: [
           "Step 1: Press 'Auto-Generate'.",
           "Step 2: Set preferences: session, earliest start, latest end, minimum half-days off, unique faculties.",
           "Step 3: Sort by half-days, gaps, compactness or social score — or rank by a profile such as 'Early Finish'.",
           "Step 4: Stop the search any time; partial results are kept. Select two options to compare them side by side.",
-          "Step 5: Preview an option and 'Save & Use This' (or save several at once)."
-        ]
+          "Step 5: Preview an option and 'Save & Use This' (or save several at once).",
+        ],
       },
       {
         icon: <Users className="w-4 h-4 text-pink-500" />,
@@ -318,8 +325,8 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
         steps: [
           "Step 1: Open 'Friends' and add friends with their course codes.",
           "Step 2: Pick a friend or group in the Social Score row above the grid.",
-          "Step 3: Open the Social Matrix to score every saved week at once."
-        ]
+          "Step 3: Open the Social Matrix to score every saved week at once.",
+        ],
       },
       {
         icon: <Sliders className="w-4 h-4 text-indigo-500" />,
@@ -329,8 +336,8 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
           "Step 1: Open the settings icon in the planner banner.",
           "Step 2: Set your default ranking profile, sort order, half-days floor and result cap.",
           "Step 3: Toggle usage analytics (count-only; your courses and timetables are never shared).",
-          "Step 4: Replay the guided tour from the same sheet, or dismiss these tips permanently."
-        ]
+          "Step 4: Replay the guided tour from the same sheet, or dismiss these tips permanently.",
+        ],
       },
       {
         icon: <Share2 className="w-4 h-4 text-blue-500" />,
@@ -341,11 +348,11 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
           "Step 2: 'Printable View' opens a clean copy for paper.",
           "Step 3: 'iCal Export' adds every class to Apple/Google Calendar.",
           "Step 4: The share icon (top of the planner) copies a link carrying this exact plan — opening it shows the week, ready to load into their planner.",
-          "Step 5: 'Backup' exports all planner data as JSON; 'Restore' brings it back."
-        ]
-      }
-    ]
-  }
+          "Step 5: 'Backup' exports all planner data as JSON; 'Restore' brings it back.",
+        ],
+      },
+    ],
+  },
 };
 
 export default function TabHelpFooter({ tabId }: { tabId: string }) {
@@ -370,67 +377,63 @@ export default function TabHelpFooter({ tabId }: { tabId: string }) {
 
       {/* Detailed Step-by-Step Guide Sheet */}
       <AnimatePresence>
-      {isOpen && (
-        <BottomSheet
-          onClose={() => setIsOpen(false)}
-          overlayId={`tab-help-${tabId}`}
-          maxWidth="max-w-lg"
-          title={`${guide.tabName} Guide`}
-          subtitle={guide.subtitle}
-          icon={<HelpCircle className="w-5 h-5" />}
-          accent="bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border-indigo-100 dark:border-indigo-900/30"
-          closeLabel="Close guide"
-        >
-          <div className="text-left space-y-5">
-            <div className="space-y-3.5">
-              {guide.items.map((item, idx) => (
-                <div
-                  key={idx}
-                  className="p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200/70 dark:border-zinc-800/80 space-y-2.5"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-2 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 shrink-0 shadow-2xs">
-                      {item.icon}
+        {isOpen && (
+          <BottomSheet
+            onClose={() => setIsOpen(false)}
+            overlayId={`tab-help-${tabId}`}
+            maxWidth="max-w-lg"
+            title={`${guide.tabName} Guide`}
+            subtitle={guide.subtitle}
+            icon={<HelpCircle className="w-5 h-5" />}
+            accent="bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border-indigo-100 dark:border-indigo-900/30"
+            closeLabel="Close guide"
+          >
+            <div className="text-left space-y-5">
+              <div className="space-y-3.5">
+                {guide.items.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200/70 dark:border-zinc-800/80 space-y-2.5"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 shrink-0 shadow-2xs">
+                        {item.icon}
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-zinc-900 dark:text-white font-outfit">{item.name}</h4>
+                        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">{item.description}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="text-xs font-bold text-zinc-900 dark:text-white font-outfit">
-                        {item.name}
-                      </h4>
-                      <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">
-                        {item.description}
-                      </p>
-                    </div>
+
+                    {/* Step-by-Step Breakdown */}
+                    {Array.isArray(item.steps) && item.steps.length > 0 && (
+                      <div className="p-3 rounded-xl bg-white dark:bg-zinc-900/90 border border-zinc-200/60 dark:border-zinc-800 space-y-2 text-[11px] font-medium text-zinc-700 dark:text-zinc-300">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                          <ListOrdered className="w-3 h-3" /> Step-by-Step Instructions:
+                        </span>
+                        {item.steps.map((step, sIdx) => (
+                          <div key={sIdx} className="flex items-start gap-2 pt-0.5">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                            <span className="leading-relaxed">{step}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
+                ))}
+              </div>
 
-                  {/* Step-by-Step Breakdown */}
-                  {Array.isArray(item.steps) && item.steps.length > 0 && (
-                    <div className="p-3 rounded-xl bg-white dark:bg-zinc-900/90 border border-zinc-200/60 dark:border-zinc-800 space-y-2 text-[11px] font-medium text-zinc-700 dark:text-zinc-300">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
-                        <ListOrdered className="w-3 h-3" /> Step-by-Step Instructions:
-                      </span>
-                      {item.steps.map((step, sIdx) => (
-                        <div key={sIdx} className="flex items-start gap-2 pt-0.5">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                          <span className="leading-relaxed">{step}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
+              <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl cursor-pointer transition-all shadow-xs active:scale-[0.98]"
+                >
+                  Got it, thanks!
+                </button>
+              </div>
             </div>
-
-            <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800">
-              <button
-                onClick={() => setIsOpen(false)}
-                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl cursor-pointer transition-all shadow-xs active:scale-[0.98]"
-              >
-                Got it, thanks!
-              </button>
-            </div>
-          </div>
-        </BottomSheet>
-      )}
+          </BottomSheet>
+        )}
       </AnimatePresence>
     </div>
   );

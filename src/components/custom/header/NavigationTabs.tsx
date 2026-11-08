@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import OptionPicker from "../shared/primitives/OptionPicker";
 import AppLibraryPortal from "./AppLibraryPortal";
 
@@ -83,6 +83,50 @@ type Group = {
   icon: LucideIcon;
   items: NavItem[];
 };
+
+type MobileNavItem = {
+  id: string;
+  label: string;
+  icon: ReactNode;
+  isActive: boolean;
+  onClick: () => void;
+};
+
+const MobileBottomNav = memo(function MobileBottomNav({
+  items,
+  onItemTap,
+}: {
+  items: MobileNavItem[];
+  onItemTap: (item: MobileNavItem) => void;
+}) {
+  return (
+    <div className="md:hidden fixed bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[380px] z-40 bg-white/95 dark:bg-zinc-950/95 border border-zinc-200/60 dark:border-zinc-800/80 rounded-[24px] p-1.5 shadow-[0_12px_35px_-8px_rgba(0,0,0,0.12)] dark:shadow-[0_12px_35px_-8px_rgba(0,0,0,0.55)] flex items-center justify-around mobile-bottom-nav-bar">
+      {items.map((item) => (
+        <button
+          key={item.id}
+          type="button"
+          onClick={() => onItemTap(item)}
+          aria-label={hasSectionHome(item.id) ? `${item.label} — double tap for home` : item.label}
+          title={item.label}
+          className="flex items-center justify-center flex-1 py-2 relative select-none cursor-pointer group focus:outline-none transition-transform active:scale-95 motion-reduce:transition-none"
+        >
+          {item.isActive && <div className="absolute inset-1 rounded-2xl bg-info-surface/90 dark:bg-info/10 z-0" />}
+          <div className="relative z-10 flex items-center justify-center">
+            <div
+              className={`p-1.5 transition-[color,transform] duration-200 ${
+                item.isActive
+                  ? "scale-[1.15] text-info"
+                  : "text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-600 dark:group-hover:text-zinc-300"
+              }`}
+            >
+              {item.icon}
+            </div>
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+});
 
 const navButtonBase = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/40";
 
@@ -328,7 +372,7 @@ export default function NavigationTabs({
 
   const rawNavItems = useMemo(() => {
     const pinnedTabs = settings?.pinnedNavTabs ?? [];
-    const rawItems: any[] = [
+    const rawItems: MobileNavItem[] = [
       {
         id: "home",
         icon: <Home className="h-5 w-5 stroke-[2]" />,
@@ -994,47 +1038,7 @@ export default function NavigationTabs({
             swallowing outside-taps meant to dismiss, and covering popups that
             extended into its region. A bottom nav must dim with the page, not
             hover over modals. */}
-        <div className="md:hidden fixed bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[380px] z-40 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-xl border border-zinc-200/60 dark:border-zinc-800/80 rounded-[24px] p-1.5 shadow-[0_12px_35px_-8px_rgba(0,0,0,0.12)] dark:shadow-[0_12px_35px_-8px_rgba(0,0,0,0.55)] flex items-center justify-around mobile-bottom-nav-bar">
-          {rawNavItems.map((item) => {
-            const isActive = item.isActive;
-            return (
-              <m.button
-                key={item.id}
-                onClick={() => handleNavItemTap(item)}
-                whileTap={{ scale: 0.92 }}
-                aria-label={hasSectionHome(item.id) ? `${item.label} — double tap for home` : item.label}
-                title={item.label}
-                className="flex items-center justify-center flex-1 py-2 relative select-none cursor-pointer group focus:outline-none"
-              >
-                {/* Floating pill background highlight that fades and scales in on active */}
-                {isActive && (
-                  <m.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    className="absolute inset-1 rounded-2xl bg-info-surface/90 dark:bg-info/10 z-0"
-                    transition={{ duration: 0.15, ease: "easeOut" }}
-                  />
-                )}
-
-                {/* Relative container for icon with subtle scale effect on active */}
-                <div className="relative z-10 flex items-center justify-center">
-                  <m.div
-                    animate={isActive ? { scale: 1.15 } : { scale: 1 }}
-                    transition={{ type: "tween", ease: "easeOut", duration: 0.15 }}
-                    className={`p-1.5 transition-colors duration-200 ${
-                      isActive
-                        ? "text-info"
-                        : "text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300"
-                    }`}
-                  >
-                    {item.icon}
-                  </m.div>
-                </div>
-              </m.button>
-            );
-          })}
-        </div>
+        <MobileBottomNav items={rawNavItems} onItemTap={handleNavItemTap} />
 
         <AppLibraryPortal
           open={isAppLibraryOpen}

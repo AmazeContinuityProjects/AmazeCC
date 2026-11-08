@@ -595,13 +595,6 @@ input:-webkit-autofill:focus {
     -webkit-backdrop-filter: none !important;
   }
 
-  /* GPU Hardware accelerate the mobile floating bottom navigation bar */
-  .mobile-bottom-nav-bar {
-    will-change: transform;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-  }
-
   /* GPU Hardware accelerate and smooth the overflow-y scrolling in the AppLibrary sheet drawer */
   .fixed.bottom-0.left-0.right-0.z-\[60\] div.overflow-y-auto {
     will-change: scroll-position, transform;

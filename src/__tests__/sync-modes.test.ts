@@ -44,7 +44,6 @@ const KNOWN = [
   "officialOd",
   "curriculum",
   "qcm",
-  "social",
 ];
 
 beforeEach(() => {
@@ -109,7 +108,9 @@ describe("built-in modes", () => {
     const academics = BUILT_IN_MODES.find((m) => m.id === "academics")!;
     expect(foregroundSteps(quick).map((s) => s.op)).toEqual(["attendanceMarks"]);
     expect(estimateModeCost(quick).score).toBeLessThan(estimateModeCost(full).score);
-    expect(full.steps.some((s) => s.op === "social")).toBe(true);
+    expect(full.steps.some((s) => s.op === "officialOd")).toBe(true);
+    // The friend-timetable sync was retired; no built-in mode may still run it.
+    expect(BUILT_IN_MODES.some((m) => m.steps.some((s) => s.op === "social"))).toBe(false);
     // The planner's My Curriculum match reads `storage.curriculum` — every
     // sweep broad enough to claim "everything" (and the academics sweep,
     // which is exactly where this data belongs) has to fill it, background
@@ -409,5 +410,34 @@ describe("custom mode persistence", () => {
     expect(foregroundSteps(full).every((s) => !s.background)).toBe(true);
     expect(backgroundSteps(full).length).toBeGreaterThan(0);
     expect(foregroundSteps(full).length + backgroundSteps(full).length).toBe(full.steps.length);
+  });
+});
+
+describe("retired ops in saved custom modes", () => {
+  it("keeps the rest of a saved mode that still lists the retired social step", () => {
+    localStorage.setItem(
+      CUSTOM_MODES_KEY,
+      JSON.stringify([
+        {
+          id: "my-mode",
+          label: "Mine",
+          description: "",
+          steps: [{ op: "attendanceMarks" }, { op: "social", background: true }, { op: "events", background: true }],
+        },
+      ]),
+    );
+    const modes = loadCustomModes();
+    expect(modes.map((m) => m.id)).toEqual(["my-mode"]);
+    expect(modes[0].steps.map((s) => s.op)).toEqual(["attendanceMarks", "events"]);
+  });
+
+  it("still drops a mode with a genuinely unknown op", () => {
+    localStorage.setItem(
+      CUSTOM_MODES_KEY,
+      JSON.stringify([
+        { id: "bad", label: "Bad", description: "", steps: [{ op: "attendanceMarks" }, { op: "nope" }] },
+      ]),
+    );
+    expect(loadCustomModes()).toEqual([]);
   });
 });
