@@ -69,7 +69,8 @@ function classStatsOf(totals: number[]): ClassStats {
 function officialGrade(total: number, s: ClassStats): GradedBoundary["grade"] {
   const t = Math.ceil(total - 1e-9); // "rounded-up" total
   const r = (x: number) => Math.round(x); // "rounded-off" band limits
-  const S = Math.max(r(s.mean + 1.5 * s.sd), 90); // "with a minimum of 90%"
+  // Table 5 prints "with a minimum of 90%", but that floor is suspended.
+  const S = r(s.mean + 1.5 * s.sd);
   const A = r(s.mean + 0.5 * s.sd);
   const B = r(s.mean - 0.5 * s.sd);
   const C = r(s.mean - 1.0 * s.sd);
@@ -154,7 +155,9 @@ describe("Table 5 — relative grading against the literal oracle", () => {
         expect(ladder[k].limit).toBeLessThanOrEqual(100);
         if (k > 0) expect(ladder[k].limit).toBeLessThanOrEqual(ladder[k - 1].limit);
       }
-      expect(ladder[0].limit).toBeGreaterThanOrEqual(80); // S: ≥ 90, or ≥ 80 under the rank rule
+      // Under the rank rule S is among students ≥ 80; otherwise it rides mean + 1.5σ.
+      const used = effectiveClassStats(stats)!;
+      if (Math.round(used.mean + 1.5 * used.sd) > 100) expect(ladder[0].limit).toBeGreaterThanOrEqual(80);
       expect(ladder[5].limit).toBeLessThanOrEqual(50);
       expect(ladder[6].limit).toBe(0);
     }

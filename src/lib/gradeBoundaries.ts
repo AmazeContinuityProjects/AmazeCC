@@ -14,8 +14,8 @@
  * The one ladder is defined here in a fixed order of trust:
  *
  * - **Relative grading** (a curve, per `courseSystem` + the subject's type)
- *   uses the class distribution: S at mean+1.5σ (never below 90) and each
- *   lower letter a half σ down, clamped by VIT's minimums. Needs `classStats`; without them there
+ *   uses the class distribution: S at mean+1.5σ and each lower letter a
+ *   half σ down, clamped by VIT's minimums. Needs `classStats`; without them there
  *   is nothing to curve around, and the ladder falls back to absolute — the
  *   same "No class data yet — showing default bands" the subpage renders.
  * - **Absolute grading** is the fixed percentage ladder, unchanged for every
@@ -263,10 +263,14 @@ function gammaQuantile(p: number, shape: number): number {
  *
  * - Every rung is a σ step from the class mean — S at +1.5σ, A at +0.5σ,
  *   B at −0.5σ, C at −1σ, D at −1.5σ, E at −2σ.
- * - S needs "a minimum of 90% total marks": its floor is the higher of
- *   `mean + 1.5σ` and 90. When `mean + 1.5σ` passes 100 the regulations
- *   switch S to a rank (top 5%, at least 3, of those ≥ 80) — estimated in
- *   `estimateTopShareCutoff`.
+ * - S sits at `mean + 1.5σ` itself. Table 5 prints "with a minimum of 90%
+ *   total marks", but that floor (and the fixed S ceilings with it) is
+ *   suspended in practice, so on a hard paper S can sit well below 90.
+ * - When `mean + 1.5σ` passes 100 the regulations switch S to a rank: "the
+ *   maximum of 3 or the top 5% students who have scored ≥ 80 marks in
+ *   aggregate" — estimated in `estimateTopShareCutoff`. The same rule covers
+ *   a class where nobody reaches the S boundary; that cannot be seen from a
+ *   mean and σ, so it is not modelled.
  * - The E–F line is the lower of `mean − 2σ` and 50: on a weak class the
  *   σ value is the pass mark, and on a strong class anyone above 50 that
  *   the formula would fail gets an E instead.
@@ -289,7 +293,7 @@ export function buildGradeBoundaries(
 
   const { mean, sd } = stats;
   const sRaw = Math.round(mean + 1.5 * sd);
-  const sBoundary = sRaw > 100 ? estimateTopShareCutoff(mean, sd) : Math.max(sRaw, 90);
+  const sBoundary = sRaw > 100 ? estimateTopShareCutoff(mean, sd) : sRaw;
 
   const raw: Array<[GradedBoundary["grade"], number]> = [
     ["S", sBoundary],

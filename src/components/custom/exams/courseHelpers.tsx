@@ -191,7 +191,7 @@ export function AssessmentRow({
   };
 
   // One ladder for every screen: the shared builder applies Table 5 / Table 6
-  // (S never below 90, D 55, E 50, absolute below MIN_CURVE_SAMPLE). An assessment
+  // (S at mean + 1.5σ, D 55, E 50, absolute below MIN_CURVE_SAMPLE). An assessment
   // is not graded on its own — this only shows where the mark would sit if
   // the class finished the way it scored here.
   const statsUsable = hasUsableClassStats(aStat);

@@ -61,11 +61,11 @@ describe("buildGradeBoundaries — the shifted ladder", () => {
   });
 
   it("shifts bands to mean ± σ under a curve", () => {
-    // mean 55 sd 12: mean+1.5σ = 73, but Table 5 requires "a minimum of 90%
-    // total marks" for S → 90; A → mean+0.5σ = 61; B → 49; C → 43; D → 37;
+    // mean 55 sd 12: S = round(mean+1.5σ) = 73 — the 90% floor is suspended,
+    // so S rides the σ line; A → mean+0.5σ = 61; B → 49; C → 43; D → 37;
     // E → 31.
     expect(buildGradeBoundaries(stats(55, 12), true)).toEqual([
-      { grade: "S", limit: 90 },
+      { grade: "S", limit: 73 },
       { grade: "A", limit: 61 },
       { grade: "B", limit: 49 },
       { grade: "C", limit: 43 },
@@ -75,10 +75,10 @@ describe("buildGradeBoundaries — the shifted ladder", () => {
     ]);
   });
 
-  it("never lets S drop below 90 (Table 5: 'with a minimum of 90% total marks')", () => {
-    // A brutal class (mean 30, σ 10) puts mean+1.5σ at 45; S still needs 90.
-    expect(buildGradeBoundaries(stats(30, 10), true)[0]).toEqual({ grade: "S", limit: 90 });
-    // Above the floor, S rides the σ line: mean 80 σ 8 → 92.
+  it("leaves S free of the suspended 90% floor", () => {
+    // A brutal class (mean 30, σ ≈ 10.1 pooled) puts S at round(45.2) = 45.
+    expect(buildGradeBoundaries(stats(30, 10), true)[0]).toEqual({ grade: "S", limit: 45 });
+    // A strong one: mean 80 σ 8 → 92.
     expect(buildGradeBoundaries(stats(80, 8), true)[0]).toEqual({ grade: "S", limit: 92 });
   });
 
@@ -149,7 +149,7 @@ describe("gradeAt — reading the ladder", () => {
   it("hands out S when the ceiled weightage reaches the band's σ boundary", () => {
     // An S at 93, a student at 92.2 — the ceiled weightage (93) reaches the
     // S limit, so that student is S.
-    // stats(78, 10): S = min(max(round(78 + 1.5σ = 93), 90), 100) = 93.
+    // stats(78, 10): S = round(78 + 1.5σ) = 93 (σ ≈ 10.1 pooled → 93.2).
     const curved = buildGradeBoundaries(stats(78, 10), true);
     expect(curved[0].limit).toBe(93);
     expect(gradeAt(92.2, curved)).toBe("S");
@@ -188,5 +188,7 @@ describe("estimateGrade — the predictor reads the same ladder", () => {
     // 60.5 → 61 → A, not B.
     expect(estimateGrade(79.5).letter).toBe("A");
     expect(estimateGrade(60.5, curved).letter).toBe("A");
+    // And 79.5 → 80 clears the curve's S at 73.
+    expect(estimateGrade(79.5, curved).letter).toBe("S");
   });
 });
