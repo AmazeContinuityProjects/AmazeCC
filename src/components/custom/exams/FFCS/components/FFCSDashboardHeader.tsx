@@ -136,6 +136,8 @@ export interface FFCSDashboardHeaderProps {
   onDownloadImage?: (format: "jpg" | "png", orientation?: "horizontal" | "vertical") => void;
   /** Detailed text PDF with a per-course "Clashes With" column. */
   onDownloadClashReport?: () => void;
+  /** Monochrome, form-style A4 dossier PDF built for paper printing. */
+  onDownloadPrintDossier?: () => void;
   onOpenPrintablePage?: () => void;
   onOpenDetachedPrintablePage?: () => void;
 
@@ -272,6 +274,7 @@ export default function FFCSDashboardHeader({
   onDownloadHtmlDossier,
   onDownloadImage,
   onDownloadClashReport,
+  onDownloadPrintDossier,
   onOpenPrintablePage,
   onOpenDetachedPrintablePage,
   tourStepTarget = null,
@@ -1436,6 +1439,7 @@ export default function FFCSDashboardHeader({
                   onDownloadHtmlDossier={onDownloadHtmlDossier}
                   onDownloadImage={onDownloadImage}
                   onDownloadClashReport={onDownloadClashReport}
+                  onDownloadPrintDossier={onDownloadPrintDossier}
                   onExportIcal={onExportIcal}
                   onExportTimetablesJson={onExportTimetablesJson}
                   onOpenPrintablePage={onOpenPrintablePage}

@@ -237,6 +237,35 @@ export default function FFCSDossierSubpage({
     window.print();
   };
 
+  /**
+   * The print-friendly PDF: monochrome, form-style, compiled in-process and
+   * downloaded in the background — no new tab, no print dialog.
+   */
+  const handleDownloadPrintPdf = async () => {
+    setIsGeneratingPdf(true);
+    try {
+      const { downloadPrintDossierPdf } = await import("@/lib/formDossier");
+      await downloadPrintDossierPdf({
+        timetableName: timetable.name,
+        courses,
+        theoryPeriods,
+        labPeriods,
+        days,
+        viewMode: "horizontal",
+        masterCourses,
+        totalCredits,
+      });
+      setPdfToast("Print-friendly PDF downloaded successfully.");
+      setTimeout(() => setPdfToast(null), 3500);
+    } catch (err) {
+      console.error("Failed to download print-friendly PDF:", err);
+      setPdfToast("Failed to download print-friendly PDF. Please try again.");
+      setTimeout(() => setPdfToast(null), 3500);
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
   // Base theme classes
   const themeBg = isLightMode ? "bg-slate-50 text-slate-900" : "bg-[#090d16] text-slate-100";
   const cardBg = isLightMode ? "bg-white border-slate-200 shadow-xs" : "bg-slate-900/85 border-white/10 shadow-xl";
@@ -261,6 +290,8 @@ export default function FFCSDossierSubpage({
             color: #0f172a !important;
             padding: 0 !important;
             margin: 0 !important;
+            /* Paper takes one ink: the colored dossier prints monochrome. */
+            filter: grayscale(1);
           }
           .dossier-no-print,
           nav,
@@ -426,6 +457,22 @@ export default function FFCSDossierSubpage({
                 <span>Download HTML Dossier</span>
               </>
             )}
+          </button>
+
+          {/* Background Print-Friendly PDF Download */}
+          <button
+            type="button"
+            onClick={handleDownloadPrintPdf}
+            disabled={isGeneratingPdf}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer disabled:opacity-60 active:scale-95 ${
+              isLightMode
+                ? "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300"
+                : "bg-slate-800 hover:bg-slate-700 text-slate-200 border-white/15"
+            }`}
+            title="Download a monochrome, form-style A4 dossier PDF in the background"
+          >
+            {isGeneratingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+            <span className="hidden sm:inline">{isGeneratingPdf ? "Preparing PDF..." : "Download PDF"}</span>
           </button>
 
           {/* Browser Paper Print Button */}

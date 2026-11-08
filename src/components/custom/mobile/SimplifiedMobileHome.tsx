@@ -47,7 +47,7 @@ import { summariseAttendance } from "@/lib/attendanceSummary";
 import { shouldShowGpa, shouldShowProfilePhoto } from "@/lib/settingsVisibility";
 import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
 import { getAssetPath } from "@/lib/utils";
-import { buildExamRows } from "@/lib/examSchedule";
+import { buildExamRows, classifyExamState } from "@/lib/examSchedule";
 import { dateKey } from "@/lib/calendarDay";
 import { isLabFatMarked, labFatPapersByDate, labSlotTokens, type LabFatPaper } from "@/lib/labFatWeek";
 import { cn } from "@amazecontinuityprojects/amazeui";
@@ -70,7 +70,7 @@ import {
 import { useAtom, useSetAtom } from "jotai";
 import { isFeedbackModalOpenAtom, feedbackModalCategoryAtom } from "@/store/uiAtoms";
 import { tasksAtom } from "@/store/dataAtoms";
-import { classTaskSummary, tasksForDay, isSameCalendarDay, isDueOnDay } from "@/lib/taskMatch";
+import { classTaskSummary, tasksForDay, isDueOnDay } from "@/lib/taskMatch";
 import {
   SELECTED_RING,
   TODAY_INK,
@@ -85,6 +85,7 @@ import { KIND_CONFIG } from "../tasks/TaskCard";
 import { parseCachedCourses, parseCourseRows, type FreeRoomCourse } from "@/lib/freeClassrooms";
 import { facultyGroupKey } from "../exams/FFCS/logic/facultyGroups";
 import { getSelectedFinalReportPath, getSelectedFinalSemesterId, mapToFinalSemesterId } from "@/lib/ffcsReports";
+import { useDayKey, useNow, useNowHour, useNowMinute } from "@/lib/useNow";
 
 interface SimplifiedMobileHomeProps {
   attendanceData: any;
@@ -225,6 +226,87 @@ function LabFatExamSlot({
   );
 }
 
+function TimeBasedGreeting() {
+  const hour = useNowHour();
+  if (hour < 12) return <>Good morning</>;
+  if (hour < 17) return <>Good afternoon</>;
+  return <>Good evening</>;
+}
+
+function LiveClassBadge({ time, detailed = false }: { time: string; detailed?: boolean }) {
+  const now = useNow();
+  const [, end] = String(time || "")
+    .split("-")
+    .map((value) => value.trim());
+  const minutesLeft = Math.max(0, parseAttendanceTime(end) - (now.getHours() * 60 + now.getMinutes()));
+
+  return (
+    <span
+      className={
+        detailed
+          ? "inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.8 rounded-xl bg-emerald-500 text-white shadow-xs"
+          : "inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500 text-white shrink-0 shadow-2xs"
+      }
+    >
+      <span className={detailed ? "w-1.5 h-1.5 rounded-full bg-white" : "w-1 h-1 rounded-full bg-white"} />
+      Live ({minutesLeft}m{detailed ? " left" : ""})
+    </span>
+  );
+}
+
+function LiveClassProgress({
+  time,
+  variant,
+}: {
+  time: string;
+  variant: "compact-background" | "compact-bar" | "detailed-background" | "detailed-bar";
+}) {
+  const now = useNow();
+  const [start, end] = String(time || "")
+    .split("-")
+    .map((value) => parseAttendanceTime(value.trim()));
+  const duration = Math.max(1, end - start);
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const progressPct = Math.min(100, Math.max(0, ((currentMinutes - start) / duration) * 100));
+
+  if (variant === "compact-background") {
+    return (
+      <div
+        className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-indigo-500/15 to-emerald-500/15 pointer-events-none transition-all duration-700 ease-linear"
+        style={{ width: `${progressPct}%` }}
+      />
+    );
+  }
+  if (variant === "detailed-background") {
+    return (
+      <div
+        className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-indigo-500/15 to-violet-500/20 pointer-events-none transition-all duration-700 ease-linear"
+        style={{ width: `${progressPct}%` }}
+      />
+    );
+  }
+
+  return (
+    <div
+      className={
+        variant === "compact-bar"
+          ? "w-full bg-zinc-100 dark:bg-zinc-800 h-1 rounded-full overflow-hidden"
+          : "w-full bg-zinc-100 dark:bg-zinc-800 h-1.5 rounded-full overflow-hidden mt-1"
+      }
+    >
+      <div
+        className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500 rounded-full transition-all duration-700 ease-linear"
+        style={{ width: `${progressPct}%` }}
+      />
+    </div>
+  );
+}
+
+const HomeInsightCarousel = React.memo(function HomeInsightCarousel({ slides }: { slides: readonly InsightSlide[] }) {
+  const carousel = useCarousel(slides.length);
+  return <InsightCarousel slides={slides} carousel={carousel} ariaLabel="Rotating insights" className="min-w-0" />;
+});
+
 export default function SimplifiedMobileHome({
   attendanceData,
   marksData,
@@ -253,7 +335,9 @@ export default function SimplifiedMobileHome({
   const setIsFeedbackOpen = useSetAtom(isFeedbackModalOpenAtom);
   const setFeedbackCategory = useSetAtom(feedbackModalCategoryAtom);
   const [cachedProfile, setCachedProfile] = useState<any>(profileDataProp || null);
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const currentMinute = useNowMinute();
+  const minuteNow = useMemo(() => new Date(currentMinute * 60_000), [currentMinute]);
+  const todayKey = useDayKey();
   const [weekOffset, setWeekOffset] = useState(0);
   /**
    * Which edge the visible week slid in from.
@@ -465,14 +549,6 @@ export default function SimplifiedMobileHome({
     });
   };
 
-  // Ticker to refresh progress bar every 30 seconds
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 30000);
-    return () => clearInterval(timer);
-  }, []);
-
   // Sync profile info
   useEffect(() => {
     if (profileDataProp) {
@@ -504,13 +580,6 @@ export default function SimplifiedMobileHome({
   }, [handleReloadRequest]);
 
   const { isOffline, triggerSync: handleSyncClick } = useSyncTrigger(handleRefresh);
-
-  const getGreeting = () => {
-    const hr = currentTime.getHours();
-    if (hr < 12) return "Good morning";
-    if (hr < 17) return "Good afternoon";
-    return "Good evening";
-  };
 
   const profileName = settings?.friendlyName || cachedProfile?.name || IDs?.VtopUsername || "Student";
   const profileImage = cachedProfile?.image || cachedProfile?.photo || cachedProfile?.photoBase64;
@@ -567,7 +636,8 @@ export default function SimplifiedMobileHome({
   }, [calendarData]);
 
   // Flattened exams schedule, with per-paper start/end resolved.
-  const scheduleRows = buildExamRows(ScheduleData?.Schedule || ScheduleData?.schedule);
+  const examSchedule = ScheduleData?.Schedule || ScheduleData?.schedule;
+  const scheduleRows = useMemo(() => buildExamRows(examSchedule), [examSchedule]);
 
   // Lab FAT papers, joined to the calendar's LAB FAT day marks (see
   // lib/labFatWeek). Both payloads are already fetched; this is the join that
@@ -582,16 +652,11 @@ export default function SimplifiedMobileHome({
     [scheduleRows],
   );
 
-  // Earliest paper that has NOT finished yet. Judged on the clock, not the
-  // calendar: a CAT that ended at 12:30 PM is done at 3 PM even though it is
-  // still "today", so it must not sit on this card. Recomputed every render
-  // (the insight carousel re-renders on a timer) rather than memoised on the
-  // schedule alone, so a card left open across an exam boundary stays honest.
-  const nextUpcomingExam = (() => {
-    const row = scheduleRows.find((r) => r.state !== "past");
-    if (!row) return null;
-    return { ...row.raw, examCategory: row.examType, examState: row.state };
-  })();
+  // Keep the schedule list stable while reclassifying the next exam once per minute.
+  const nextUpcomingExam = useMemo(
+    () => scheduleRows.find((row) => classifyExamState(row.date, row.endAt, minuteNow) !== "past") ?? null,
+    [scheduleRows, minuteNow],
+  );
 
   // Next upcoming moodle deadline
   const nextMoodleDeadline = useMemo(() => {
@@ -681,9 +746,9 @@ export default function SimplifiedMobileHome({
       slides.push({
         id: "exam",
         title: "Next Exam",
-        headline: nextUpcomingExam.courseCode,
-        subline: `${nextUpcomingExam.examDate} • ${nextUpcomingExam.examTime?.split("-")[0] || ""}`,
-        badge: nextUpcomingExam.examCategory || "Exam",
+        headline: nextUpcomingExam.raw.courseCode,
+        subline: `${nextUpcomingExam.raw.examDate} • ${nextUpcomingExam.raw.examTime?.split("-")[0] || ""}`,
+        badge: nextUpcomingExam.examType || "Exam",
         badgeColor: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
         onClick: () => {
           setActiveTab("attendance");
@@ -823,9 +888,6 @@ export default function SimplifiedMobileHome({
     [allStatTiles, directStatIds],
   );
 
-  const statCarousel = useCarousel(overflowSlides.length);
-  const carousel = statCarousel;
-  const carouselSlides = overflowSlides;
   const statColumnCount = directTiles.length + (overflowSlides.length > 0 ? 1 : 0);
 
   // All weekly timetable cards map
@@ -1024,7 +1086,19 @@ export default function SimplifiedMobileHome({
   // The real current date, not the day being browsed. "…today" task labels and
   // the red test tint are gated on this.
   const viewedDayDate: Date | undefined = selectedDayMeta?.fullDate;
-  const isTodayView = Boolean(viewedDayDate) && isSameCalendarDay(viewedDayDate as Date, new Date());
+  const viewedDayKey = viewedDayDate
+    ? `${viewedDayDate.getFullYear()}-${viewedDayDate.getMonth()}-${viewedDayDate.getDate()}`
+    : null;
+  const isTodayView = viewedDayKey === todayKey;
+  const todayTasks = useMemo(() => {
+    const chunked = tasksForDay(effectiveTimetableDay, tasks);
+    if (!isTodayView || !viewedDayDate) return chunked;
+    const seen = new Set(chunked.map((task) => task.id));
+    const dueOnly = tasks.filter(
+      (task) => task.status !== "done" && !seen.has(task.id) && isDueOnDay(task.dueDate, viewedDayDate),
+    );
+    return [...chunked, ...dueOnly];
+  }, [effectiveTimetableDay, tasks, isTodayView, viewedDayDate]);
 
   // Classes for the selected day (or day order override)
   const selectedDayClasses = useMemo(() => {
@@ -1116,31 +1190,23 @@ export default function SimplifiedMobileHome({
   };
 
   // Calculate live progress, state, and bunkable count for a given class card
-  const getClassProgressAndBunk = (cls: any) => {
+  const getClassProgressAndBunk = (cls: any, currentTime: Date) => {
     const { startMinutes, endMinutes } = parseClassTimeMinutes(cls.time);
-    const duration = Math.max(1, endMinutes - startMinutes);
     const isToday = selectedDay === todayDayCode && weekOffset === 0;
 
     const currentMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
 
     let status: "live" | "upcoming" | "completed" | "other-day" = "other-day";
-    let progressPct = 0;
-    let minutesLeft = 0;
     let minutesUntilStart = 0;
 
     if (isToday) {
       if (currentMinutes >= startMinutes && currentMinutes <= endMinutes) {
         status = "live";
-        const elapsed = currentMinutes - startMinutes;
-        progressPct = Math.min(100, Math.max(0, (elapsed / duration) * 100));
-        minutesLeft = endMinutes - currentMinutes;
       } else if (currentMinutes < startMinutes) {
         status = "upcoming";
-        progressPct = 0;
         minutesUntilStart = startMinutes - currentMinutes;
       } else {
         status = "completed";
-        progressPct = 100;
       }
     }
 
@@ -1183,8 +1249,6 @@ export default function SimplifiedMobileHome({
 
     return {
       status,
-      progressPct,
-      minutesLeft,
       minutesUntilStart,
       attended,
       total,
@@ -1249,7 +1313,7 @@ export default function SimplifiedMobileHome({
 
               {/* Multiline Greeting & Name Below */}
               <p className="text-xs font-semibold text-zinc-400 dark:text-zinc-500 leading-none mb-1">
-                {getGreeting()},
+                <TimeBasedGreeting />,
               </p>
               <h1 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white tracking-tight leading-tight font-outfit truncate">
                 {profileName}
@@ -1327,14 +1391,7 @@ export default function SimplifiedMobileHome({
               </div>
             ))}
 
-            {overflowSlides.length > 0 && (
-              <InsightCarousel
-                slides={overflowSlides}
-                carousel={statCarousel}
-                ariaLabel="Rotating insights"
-                className="min-w-0"
-              />
-            )}
+            {overflowSlides.length > 0 && <HomeInsightCarousel slides={overflowSlides} />}
           </div>
 
           {/* ── TIMETABLE & INTEGRATED ACADEMIC CALENDAR SECTION ── */}
@@ -1598,7 +1655,7 @@ export default function SimplifiedMobileHome({
                 {selectedDayMeta.exams.map((ex: any, idx: number) => (
                   <div
                     key={`${ex.courseCode}-${ex.classId || idx}`}
-                    className="p-5 sm:p-6 rounded-[28px] bg-gradient-to-br from-red-500/10 via-white/90 to-amber-500/10 dark:from-red-950/30 dark:via-zinc-900/90 dark:to-amber-950/20 backdrop-blur-xl border border-red-500/30 dark:border-red-800/40 shadow-lg text-left space-y-4"
+                    className="p-5 sm:p-6 rounded-[28px] bg-gradient-to-br from-red-50 via-white to-amber-50 dark:from-red-950 dark:via-zinc-900 dark:to-amber-950 border border-red-500/30 dark:border-red-800/40 shadow-lg text-left space-y-4"
                   >
                     {/* Exam Header */}
                     <div className="flex items-center justify-between gap-2">
@@ -1747,17 +1804,8 @@ export default function SimplifiedMobileHome({
                     );
                   }
                   const cls = row.cls;
-                  const {
-                    status,
-                    progressPct,
-                    minutesLeft,
-                    minutesUntilStart,
-                    attended,
-                    total,
-                    currentPct,
-                    bunkStatus,
-                    bunkText,
-                  } = getClassProgressAndBunk(cls);
+                  const { status, minutesUntilStart, attended, total, currentPct, bunkStatus, bunkText } =
+                    getClassProgressAndBunk(cls, minuteNow);
 
                   const isLive = status === "live";
                   const isCompleted = status === "completed";
@@ -1819,12 +1867,7 @@ export default function SimplifiedMobileHome({
                         } hover:scale-[1.006] active:scale-[0.99]`}
                       >
                         {/* Live Progress Background Fill Bar */}
-                        {isLive && (
-                          <div
-                            className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-indigo-500/15 to-emerald-500/15 pointer-events-none transition-all duration-700 ease-linear"
-                            style={{ width: `${progressPct}%` }}
-                          />
-                        )}
+                        {isLive && <LiveClassProgress time={cls.time} variant="compact-background" />}
 
                         <div className="relative py-3 px-4 z-10 flex items-center justify-between gap-3">
                           {/* Left: 2 Lines of info */}
@@ -1840,12 +1883,7 @@ export default function SimplifiedMobileHome({
                               >
                                 {cls.courseTitle}
                               </h3>
-                              {isLive && (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500 text-white shrink-0 shadow-2xs animate-pulse [animation-duration:2.5s]">
-                                  <span className="w-1 h-1 rounded-full bg-white animate-ping [animation-duration:2.5s]" />
-                                  Live ({minutesLeft}m)
-                                </span>
-                              )}
+                              {isLive && <LiveClassBadge time={cls.time} />}
                               {isCompleted && (
                                 <span className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800/60 px-1.5 py-0.2 rounded shrink-0">
                                   Done
@@ -1943,14 +1981,7 @@ export default function SimplifiedMobileHome({
                         </div>
 
                         {/* Progress Bar for Ongoing Class */}
-                        {isLive && (
-                          <div className="w-full bg-zinc-100 dark:bg-zinc-800 h-1 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500 rounded-full transition-all duration-700 ease-linear"
-                              style={{ width: `${progressPct}%` }}
-                            />
-                          </div>
-                        )}
+                        {isLive && <LiveClassProgress time={cls.time} variant="compact-bar" />}
                       </div>
                     );
                   }
@@ -1971,12 +2002,7 @@ export default function SimplifiedMobileHome({
                       } hover:scale-[1.008] active:scale-[0.99]`}
                     >
                       {/* Dynamic Progress Fill Bar */}
-                      {isLive && (
-                        <div
-                          className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-indigo-500/15 to-violet-500/20 pointer-events-none transition-all duration-700 ease-linear"
-                          style={{ width: `${progressPct}%` }}
-                        />
-                      )}
+                      {isLive && <LiveClassProgress time={cls.time} variant="detailed-background" />}
 
                       {/* Main Pill Content */}
                       <div className="relative p-5 z-10 flex flex-col justify-between gap-3">
@@ -1987,12 +2013,7 @@ export default function SimplifiedMobileHome({
                               {cls.slotName}
                             </span>
 
-                            {isLive && (
-                              <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.8 rounded-xl bg-emerald-500 text-white shadow-xs animate-pulse [animation-duration:2.5s]">
-                                <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping [animation-duration:2.5s]" />
-                                Live ({minutesLeft}m left)
-                              </span>
-                            )}
+                            {isLive && <LiveClassBadge time={cls.time} detailed />}
 
                             {isUpcoming && selectedDay === todayDayCode && weekOffset === 0 && (
                               <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-lg">
@@ -2108,14 +2129,7 @@ export default function SimplifiedMobileHome({
                         </div>
 
                         {/* Progress Bar for Ongoing Class */}
-                        {isLive && (
-                          <div className="w-full bg-zinc-100 dark:bg-zinc-800 h-1.5 rounded-full overflow-hidden mt-1">
-                            <div
-                              className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500 rounded-full transition-all duration-700 ease-linear"
-                              style={{ width: `${progressPct}%` }}
-                            />
-                          </div>
-                        )}
+                        {isLive && <LiveClassProgress time={cls.time} variant="detailed-bar" />}
                       </div>
                     </div>
                   );
@@ -2124,80 +2138,65 @@ export default function SimplifiedMobileHome({
             )}
 
             {/* ── TODAY'S TASKS SECTION (WHEN TASKSINLINEONHOME IS FALSE) ── */}
-            {settings?.tasksInlineOnHome === false &&
-              (() => {
-                // Chunked on this day, plus (on the real current date) tasks that are
-                // only due today — otherwise a Moodle DA is invisible in this mode.
-                const todayTasks = (() => {
-                  const chunked = tasksForDay(effectiveTimetableDay, tasks);
-                  if (!isTodayView || !viewedDayDate) return chunked;
-                  const seen = new Set(chunked.map((t) => t.id));
-                  const dueOnly = tasks.filter(
-                    (t) => t.status !== "done" && !seen.has(t.id) && isDueOnDay(t.dueDate, viewedDayDate as Date),
-                  );
-                  return [...chunked, ...dueOnly];
-                })();
-                if (todayTasks.length === 0) return null;
-                return (
-                  <div className="pt-2 space-y-2.5">
-                    <div className="flex items-center justify-between px-1">
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-indigo-500" />
-                        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
-                          Today&apos;s Tasks &amp; Schedule
-                        </h3>
-                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
-                          {todayTasks.length}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveTab("tools");
-                          setActiveToolsSubTab?.("tasks");
-                        }}
-                        className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
-                      >
-                        View All Tasks
-                      </button>
-                    </div>
-
-                    <ListShell>
-                      {todayTasks.map((t) => (
-                        <div
-                          key={t.id}
-                          onClick={() => {
-                            setActiveTab("tools");
-                            setActiveToolsSubTab?.("tasks");
-                          }}
-                          className="p-3.5 flex items-center justify-between gap-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/40 cursor-pointer transition-colors"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5 mb-1">
-                              <span
-                                className={`text-[9.5px] font-extrabold uppercase px-1.5 py-0.2 rounded border ${
-                                  (KIND_CONFIG[t.kind] || KIND_CONFIG.homework).badgeClass
-                                }`}
-                              >
-                                {(KIND_CONFIG[t.kind] || KIND_CONFIG.homework).label}
-                              </span>
-                              {t.courseCode && (
-                                <span className="text-[10px] font-bold text-zinc-600 dark:text-zinc-400">
-                                  {t.courseCode}
-                                </span>
-                              )}
-                            </div>
-                            <h4 className="text-xs font-bold text-zinc-900 dark:text-white truncate font-outfit">
-                              {t.title}
-                            </h4>
-                          </div>
-                          <ChevronRight className="w-4 h-4 text-zinc-400 shrink-0" />
-                        </div>
-                      ))}
-                    </ListShell>
+            {settings?.tasksInlineOnHome === false && todayTasks.length > 0 && (
+              <div className="pt-2 space-y-2.5">
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-indigo-500" />
+                    <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
+                      Today&apos;s Tasks &amp; Schedule
+                    </h3>
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
+                      {todayTasks.length}
+                    </span>
                   </div>
-                );
-              })()}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab("tools");
+                      setActiveToolsSubTab?.("tasks");
+                    }}
+                    className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                  >
+                    View All Tasks
+                  </button>
+                </div>
+
+                <ListShell>
+                  {todayTasks.map((t) => (
+                    <div
+                      key={t.id}
+                      onClick={() => {
+                        setActiveTab("tools");
+                        setActiveToolsSubTab?.("tasks");
+                      }}
+                      className="p-3.5 flex items-center justify-between gap-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/40 cursor-pointer transition-colors"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span
+                            className={`text-[9.5px] font-extrabold uppercase px-1.5 py-0.2 rounded border ${
+                              (KIND_CONFIG[t.kind] || KIND_CONFIG.homework).badgeClass
+                            }`}
+                          >
+                            {(KIND_CONFIG[t.kind] || KIND_CONFIG.homework).label}
+                          </span>
+                          {t.courseCode && (
+                            <span className="text-[10px] font-bold text-zinc-600 dark:text-zinc-400">
+                              {t.courseCode}
+                            </span>
+                          )}
+                        </div>
+                        <h4 className="text-xs font-bold text-zinc-900 dark:text-white truncate font-outfit">
+                          {t.title}
+                        </h4>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-zinc-400 shrink-0" />
+                    </div>
+                  ))}
+                </ListShell>
+              </div>
+            )}
 
             {/* ── TIMETABLE & QUICK TOOLS BUTTONS (PLACED CLEANLY AFTER ALL CLASSES) ── */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2">

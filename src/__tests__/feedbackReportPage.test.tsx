@@ -103,6 +103,17 @@ describe("FeedbackReportPage", () => {
     expect(screen.getByText("Classic Form")).toBeDefined();
   });
 
+  it("renders the hero submission flow in full screen with full-screen container classes and controls", () => {
+    renderFeedbackPage({ initialTab: "report", initialMode: "guided" });
+
+    const heroContainer = screen.getByTestId("guided-hero-container");
+    expect(heroContainer).toBeDefined();
+    expect(heroContainer.className).toContain("fixed inset-0 z-50 h-[100dvh] w-full");
+    expect(screen.getByTitle(/Fullscreen/i)).toBeDefined();
+    expect(screen.getByTitle(/Close/i)).toBeDefined();
+    expect(screen.getByRole("button", { name: /Classic Form/i })).toBeDefined();
+  });
+
   it("advances to Step 2 in Guided Hero Mode and toggles reactive DOM recording", () => {
     renderFeedbackPage({ initialTab: "report" });
 

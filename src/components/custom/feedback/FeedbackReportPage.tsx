@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { useAtom, useSetAtom } from "jotai";
 import {
   isBugRecordingActiveAtom,
@@ -29,6 +30,9 @@ import {
   Sparkle,
   FileText,
   Pencil,
+  Maximize2,
+  Minimize2,
+  X,
 } from "lucide-react";
 import { AnimatePresence, m } from "framer-motion";
 import {
@@ -43,6 +47,8 @@ import {
 } from "../shared/primitives";
 import { TILE_CARD, SEARCH_FIELD, LIST_ROW, TONE_ICON_TILE } from "@/lib/uiTokens";
 import { useOverlayBack } from "@/lib/overlayStack";
+import { acquireBodyScrollLock } from "@/lib/bodyScrollLock";
+import { exitNativeFullscreen, requestNativeFullscreen } from "@/lib/fullscreen";
 import {
   getPostHogConversations,
   sendPostHogSupportTicket,
@@ -151,10 +157,51 @@ export default function FeedbackReportPage({
   const [flowMode, setFlowMode] = useState<"guided" | "classic">(initialMode);
   const [guidedStep, setGuidedStep] = useState<1 | 2 | 3 | 4>(initialStep);
   const [, startTransition] = useTransition();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const [isNativeFullscreen, setIsNativeFullscreen] = useState(false);
 
   useOverlayBack("feedback-subpage", activeSubpage !== "overview", () => {
+    exitNativeFullscreen().catch(() => {});
     setActiveSubpage("overview");
   });
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    const handleFullscreenChange = () => {
+      const docWithWebkit = document as Document & {
+        webkitFullscreenElement?: Element | null;
+      };
+      setIsNativeFullscreen(Boolean(document.fullscreenElement || docWithWebkit.webkitFullscreenElement));
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
+    };
+  }, []);
+
+  const handleToggleFullScreen = async () => {
+    if (isNativeFullscreen) {
+      await exitNativeFullscreen();
+    } else {
+      await requestNativeFullscreen();
+    }
+  };
+
+  useEffect(() => {
+    if (activeSubpage === "report" && flowMode === "guided") {
+      return acquireBodyScrollLock();
+    }
+  }, [activeSubpage, flowMode]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -617,7 +664,11 @@ export default function FeedbackReportPage({
               {/* Option 1: New Report */}
               <button
                 type="button"
-                onClick={() => setActiveSubpage("report")}
+                onClick={() => {
+                  setFlowMode("guided");
+                  setActiveSubpage("report");
+                  requestNativeFullscreen().catch(() => {});
+                }}
                 className={`${LIST_ROW} cursor-pointer group`}
               >
                 <span
@@ -689,7 +740,685 @@ export default function FeedbackReportPage({
     );
   }
 
-  // ── SUBPAGE 1: NEW REPORT ──
+  // ── SUBPAGE 1: NEW REPORT (GUIDED HERO MODE - TRUE FULL SCREEN LIKE ONBOARDING) ──
+  if (activeSubpage === "report" && flowMode === "guided") {
+    const heroContent = (
+      <div
+        data-testid="guided-hero-container"
+        className="fixed inset-0 z-50 h-[100dvh] w-full bg-zinc-950 text-zinc-100 flex flex-col justify-between overflow-hidden select-none px-4 sm:px-8 pt-[calc(env(safe-area-inset-top,0px)+1rem)] pb-[calc(env(safe-area-inset-bottom,0px)+1rem)] sm:pt-[calc(env(safe-area-inset-top,0px)+1.5rem)] sm:pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)] animate-in fade-in duration-300"
+      >
+        {/* Background ambient lighting */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[550px] h-[550px] rounded-full bg-indigo-600/10 blur-[150px]" />
+          <div className="absolute -bottom-40 left-1/2 -translate-x-1/2 w-[550px] h-[550px] rounded-full bg-violet-600/10 blur-[150px]" />
+        </div>
+
+        {/* ── TOP BAR: BACK BUTTON, PROGRESS PILLS & ACTIONS ── */}
+        <header className="relative z-20 w-full max-w-2xl sm:max-w-3xl mx-auto flex items-center justify-between shrink-0 pt-1">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                exitNativeFullscreen().catch(() => {});
+                setActiveSubpage("overview");
+              }}
+              className="flex items-center gap-1.5 text-xs font-bold text-zinc-400 hover:text-white transition-colors cursor-pointer py-1.5 px-3 rounded-xl bg-zinc-900/60 border border-zinc-800 backdrop-blur-md active:scale-95"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Support Sections</span>
+            </button>
+            <span className="text-xs font-black uppercase tracking-wider text-indigo-400 font-outfit">New Report</span>
+          </div>
+
+          {/* Step Indicator Pills (matching AmazeOnboardingFlow) */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div
+                  key={i}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    i === guidedStep - 1
+                      ? "w-7 bg-indigo-500 shadow-xs shadow-indigo-500/50"
+                      : i < guidedStep - 1
+                        ? "w-2.5 bg-indigo-400/50"
+                        : "w-2 bg-zinc-800"
+                  }`}
+                />
+              ))}
+            </div>
+            <span className="text-[11px] font-bold text-zinc-400 font-outfit hidden sm:inline">
+              Step {guidedStep} of 4 ·{" "}
+              {guidedStep === 1 ? "Category" : guidedStep === 2 ? "Concern" : guidedStep === 3 ? "Contact" : "Summary"}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 bg-zinc-900/60 p-1 rounded-2xl border border-zinc-800 backdrop-blur-md">
+              <button
+                type="button"
+                onClick={() => setFlowMode("guided")}
+                className="px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 bg-indigo-600 text-white shadow-xs"
+              >
+                <Sparkle className="w-3.5 h-3.5" />
+                <span>Guided Hero</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  exitNativeFullscreen().catch(() => {});
+                  setFlowMode("classic");
+                }}
+                className="px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 text-zinc-400 hover:text-white"
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span>Classic Form</span>
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleToggleFullScreen}
+              title={isNativeFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+              className="p-2 rounded-xl bg-zinc-900/60 border border-zinc-800 text-zinc-400 hover:text-white transition-colors cursor-pointer active:scale-95"
+            >
+              {isNativeFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                exitNativeFullscreen().catch(() => {});
+                setActiveSubpage("overview");
+              }}
+              title="Close"
+              className="p-2 rounded-xl bg-zinc-900/60 border border-zinc-800 text-zinc-400 hover:text-white transition-colors cursor-pointer active:scale-95"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </header>
+
+        {/* ── MAIN CONTENT (SPACIOUS & CENTERED, NOT WRAPPED IN AN EXTRA CARD BOX) ── */}
+        <main className="relative z-20 w-full max-w-xl sm:max-w-2xl mx-auto flex-1 flex flex-col items-center justify-center my-auto min-h-0 overflow-y-auto py-3 px-1">
+          {submitSuccess ? (
+            <div className="my-auto w-full text-center space-y-4 py-4">
+              <div className="w-16 h-16 mx-auto rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20 shadow-xl">
+                <CheckCircle2 className="w-10 h-10 animate-in zoom-in-75 duration-200" />
+              </div>
+              <div className="space-y-1.5 max-w-md mx-auto">
+                <h3 className="text-xl sm:text-2xl font-black text-white font-outfit">Report Dispatched to PostHog</h3>
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  Your feedback and session metrics were securely delivered to our PostHog Support channel.
+                  {submittedTicketId && (
+                    <span className="block mt-2 font-mono font-semibold text-indigo-400 text-xs bg-indigo-500/15 py-1.5 px-3 rounded-xl border border-indigo-500/30">
+                      Ticket ID: #{submittedTicketId}
+                    </span>
+                  )}
+                </p>
+              </div>
+              <div className="pt-4 flex flex-wrap justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleResetForm}
+                  className="px-5 py-2.5 rounded-xl border border-zinc-800 hover:bg-zinc-850 text-xs font-bold text-zinc-200 transition-colors cursor-pointer"
+                >
+                  Submit Another Note
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    exitNativeFullscreen().catch(() => {});
+                    setActiveSubpage("tickets");
+                  }}
+                  className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-transform active:scale-95 cursor-pointer shadow-md"
+                >
+                  View Developer Tickets
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    exitNativeFullscreen().catch(() => {});
+                    handleResetForm();
+                    setActiveSubpage("overview");
+                  }}
+                  className="px-5 py-2.5 rounded-xl border border-zinc-800 hover:bg-zinc-850 text-xs font-bold text-zinc-200 transition-colors cursor-pointer"
+                >
+                  Back to Support Sections
+                </button>
+              </div>
+            </div>
+          ) : (
+            <AnimatePresence mode="wait">
+              {/* ── STEP 1: CATEGORY SELECTION MENU ── */}
+              {guidedStep === 1 && (
+                <m.div
+                  key="step-1"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -12 }}
+                  transition={{ duration: 0.2 }}
+                  className="my-auto w-full space-y-5 text-center"
+                >
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 font-outfit">
+                      <Sparkle className="w-3.5 h-3.5" />
+                      Guided Hero · Step 1
+                    </div>
+                    <h1 className="text-2xl sm:text-3xl font-black text-white font-outfit tracking-tight">
+                      What would you like to share?
+                    </h1>
+                    <p className="text-xs sm:text-sm text-zinc-400 font-medium max-w-sm mx-auto">
+                      Select a category below to open a focused, clean screen.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full pt-1">
+                    {CATEGORIES.map((cat) => {
+                      const Icon = cat.icon;
+                      const isSelected = category === cat.id;
+                      return (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => {
+                            setCategory(cat.id);
+                            setGuidedStep(2);
+                          }}
+                          className={`group p-4 sm:p-5 rounded-2xl border text-left transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between min-h-[120px] backdrop-blur-md ${
+                            isSelected
+                              ? "border-indigo-500 bg-indigo-500/15 ring-2 ring-indigo-500/30 shadow-lg"
+                              : "border-zinc-800/90 bg-zinc-900/60 hover:border-indigo-500/50 hover:bg-zinc-900/90 shadow-xs hover:shadow-lg hover:scale-[1.01] active:scale-[0.99]"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between w-full mb-2.5">
+                            <div className={`p-2.5 rounded-xl ${cat.badgeClass}`}>
+                              <Icon className="w-4.5 h-4.5" />
+                            </div>
+                            <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-300 border border-zinc-700/80 font-outfit">
+                              {cat.tag}
+                            </span>
+                          </div>
+                          <div>
+                            <h3 className="text-sm sm:text-base font-black text-white font-outfit">{cat.label}</h3>
+                            <p className="text-xs text-zinc-400 font-medium leading-relaxed mt-1">{cat.desc}</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </m.div>
+              )}
+
+              {/* ── STEP 2: CONCERN SCREEN ── */}
+              {guidedStep === 2 && (
+                <m.div
+                  key="step-2"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -12 }}
+                  transition={{ duration: 0.2 }}
+                  className="my-auto w-full space-y-4 sm:space-y-5"
+                >
+                  <div className="flex flex-col items-center text-center gap-2">
+                    <div
+                      className={`w-12 h-12 rounded-2xl flex items-center justify-center ${activeCatMeta.badgeClass} shadow-lg`}
+                    >
+                      <ActiveCatIcon className="w-6 h-6" />
+                    </div>
+                    <h2 className="text-2xl sm:text-3xl font-black text-white font-outfit tracking-tight">
+                      {activeCatMeta.promptTitle}
+                    </h2>
+                    <p className="text-xs sm:text-sm text-zinc-400 font-medium max-w-sm mx-auto">
+                      {activeCatMeta.promptSubtitle}
+                    </p>
+                  </div>
+
+                  <div className="w-full space-y-3.5">
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-300 mb-1.5">
+                        Headline / Topic <span className="text-zinc-500 font-normal">(Optional)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={subject}
+                        onChange={(e) => setSubject(e.target.value)}
+                        placeholder={activeCatMeta.headlinePlaceholder}
+                        className="w-full px-4 py-3 rounded-2xl bg-zinc-900/90 border border-zinc-800 text-white placeholder:text-zinc-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-300 mb-1.5">
+                        Detailed Concern <span className="text-rose-500">*</span>
+                      </label>
+                      <textarea
+                        required
+                        rows={5}
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder={activeCatMeta.concernPlaceholder}
+                        className="w-full px-4 py-3.5 rounded-2xl bg-zinc-900/90 border border-zinc-800 text-sm font-medium text-white placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-all leading-relaxed"
+                      />
+                    </div>
+
+                    {category === "bug" && (
+                      <div className="space-y-3 pt-1">
+                        <div>
+                          <label className="block text-xs font-bold text-zinc-300 mb-1.5">Severity Level</label>
+                          <div className="grid grid-cols-3 gap-2">
+                            {SEVERITIES.map((s) => (
+                              <button
+                                key={s.value}
+                                type="button"
+                                onClick={() => setSeverity(s.value)}
+                                className={`py-2 px-3 rounded-xl border text-center transition-all cursor-pointer ${
+                                  severity === s.value
+                                    ? "border-rose-500 bg-rose-500/20 text-rose-300 font-bold shadow-xs"
+                                    : "border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 text-xs"
+                                }`}
+                              >
+                                <div className="text-xs font-bold">{s.label}</div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Reactive DOM recording toggle */}
+                        <div className="p-3.5 rounded-2xl border border-indigo-500/30 bg-indigo-500/10 space-y-2">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-start gap-3">
+                              <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 shrink-0 mt-0.5">
+                                {isRecordingLive ? (
+                                  <Video className="w-4.5 h-4.5 animate-pulse text-rose-500" />
+                                ) : (
+                                  <VideoOff className="w-4.5 h-4.5" />
+                                )}
+                              </div>
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-bold text-zinc-100">
+                                    Attach Reactive DOM Session Recording
+                                  </span>
+                                  {isRecordingLive && (
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-rose-500/20 text-rose-400 border border-rose-500/30 animate-pulse">
+                                      Active
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[11px] text-zinc-400 leading-relaxed">
+                                  The session recording will automatically take place within the reactive DOM of the app
+                                  so your phone is not overwhelmed by screen casting or video encoding. You can navigate
+                                  anywhere in AmazeCC to replicate the glitch. If you reload, it cancels.
+                                </p>
+                                <p className="text-[10px] text-amber-400 font-medium">
+                                  Note: the recording may include personal data or grades rendered on screen during your
+                                  session. Passwords and sensitive inputs are masked by default.
+                                </p>
+                              </div>
+                            </div>
+                            <div className="shrink-0 pt-0.5">
+                              <Switch
+                                checked={enableSessionRecording}
+                                onCheckedChange={handleToggleRecording}
+                                label="Toggle reactive DOM session recording"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </m.div>
+              )}
+
+              {/* ── STEP 3: CONTACT DETAILS ── */}
+              {guidedStep === 3 && (
+                <m.div
+                  key="step-3"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -12 }}
+                  transition={{ duration: 0.2 }}
+                  className="my-auto w-full space-y-4 sm:space-y-5"
+                >
+                  <div className="flex flex-col items-center text-center gap-2">
+                    <div className="w-12 h-12 mx-auto rounded-2xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 flex items-center justify-center shadow-lg">
+                      <Mail className="w-6 h-6" />
+                    </div>
+                    <h2 className="text-2xl sm:text-3xl font-black text-white font-outfit tracking-tight">
+                      Where Should We Reach You?
+                    </h2>
+                    <p className="text-xs sm:text-sm text-zinc-400 font-medium max-w-sm mx-auto">
+                      Developer updates and support responses will be delivered straight to your personal inbox.
+                    </p>
+                  </div>
+
+                  <div className="w-full space-y-3.5">
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-300 mb-1.5">
+                        Personal Email Address <span className="text-zinc-500 font-normal">(Optional)</span>
+                      </label>
+                      <div className="relative">
+                        <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500" />
+                        <input
+                          type="email"
+                          value={contactEmail}
+                          onChange={(e) => handleEmailChange(e.target.value)}
+                          placeholder="your.personal.email@gmail.com"
+                          className="w-full pl-10 pr-4 py-3 rounded-2xl bg-zinc-900/90 border border-zinc-800 text-sm font-medium text-white placeholder:text-zinc-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                        />
+                      </div>
+                      <p className="text-[11px] text-zinc-400 mt-1 leading-relaxed">
+                        Developer replies from the PostHog dashboard will be delivered to this email and synced in-app.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-300 mb-1.5">Author Identifier</label>
+                      <div className="px-4 py-3 rounded-2xl bg-zinc-900/90 border border-zinc-800 text-xs font-mono text-zinc-300 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <ShieldCheck className="w-4 h-4 text-indigo-400" />
+                          <span className="font-bold text-white">{distinctId}</span>
+                        </div>
+                        <ToneBadge tone={isIdentityVerified ? "emerald" : "indigo"}>
+                          {isIdentityVerified ? "Verified HMAC" : userReg ? "Reg Number" : "Guest"}
+                        </ToneBadge>
+                      </div>
+                    </div>
+
+                    <div className="p-3.5 rounded-2xl bg-zinc-900/60 border border-zinc-800 flex items-start gap-2.5 text-xs text-zinc-400">
+                      <Info className="w-4 h-4 shrink-0 text-indigo-400 mt-0.5" />
+                      <p className="leading-relaxed">
+                        On the next screen, you can review your complete submission summary and reproduction details
+                        before sending anything to the engineering team.
+                      </p>
+                    </div>
+                  </div>
+                </m.div>
+              )}
+
+              {/* ── STEP 4: SUBMISSION SUMMARY ── */}
+              {guidedStep === 4 && (
+                <m.div
+                  key="step-4"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -12 }}
+                  transition={{ duration: 0.2 }}
+                  className="my-auto w-full space-y-4"
+                >
+                  <div className="flex flex-col items-center text-center gap-2">
+                    <div className="flex items-center justify-between w-full">
+                      <button
+                        type="button"
+                        onClick={() => setGuidedStep(3)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-zinc-800 text-xs font-bold text-zinc-400 hover:text-white hover:bg-zinc-850 transition-colors cursor-pointer"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                        <span>Back to Contact</span>
+                      </button>
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-outfit">
+                        Step 4 of 4 · Submission Summary
+                      </div>
+                    </div>
+
+                    <div className="w-12 h-12 mx-auto rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shadow-lg">
+                      <FileText className="w-6 h-6" />
+                    </div>
+                    <h2 className="text-2xl sm:text-3xl font-black text-white font-outfit tracking-tight">
+                      Review Your Submission
+                    </h2>
+                    <p className="text-xs sm:text-sm text-zinc-400 font-medium max-w-sm mx-auto">
+                      Verify your report details and telemetry before dispatching to our developers.
+                    </p>
+                  </div>
+
+                  {/* Stat Strip */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 w-full">
+                    <div className="p-3 rounded-2xl bg-zinc-900/90 border border-zinc-800 text-center shadow-xs">
+                      <div className="text-[10px] font-bold uppercase text-zinc-400 font-outfit">Category</div>
+                      <div className="text-xs font-black text-white mt-0.5 truncate">{activeCatMeta.label}</div>
+                    </div>
+                    <div className="p-3 rounded-2xl bg-zinc-900/90 border border-zinc-800 text-center shadow-xs">
+                      <div className="text-[10px] font-bold uppercase text-zinc-400 font-outfit">Severity</div>
+                      <div
+                        className={`text-xs font-black mt-0.5 ${category === "bug" ? "text-rose-400" : "text-white"}`}
+                      >
+                        {category === "bug" ? severity.toUpperCase() : "STANDARD"}
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-2xl bg-zinc-900/90 border border-zinc-800 text-center shadow-xs">
+                      <div className="text-[10px] font-bold uppercase text-zinc-400 font-outfit">DOM Replay</div>
+                      <div
+                        className={`text-xs font-black mt-0.5 ${enableSessionRecording ? "text-rose-400" : "text-zinc-500"}`}
+                      >
+                        {enableSessionRecording ? "ATTACHED" : "NONE"}
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-2xl bg-zinc-900/90 border border-zinc-800 text-center shadow-xs">
+                      <div className="text-[10px] font-bold uppercase text-zinc-400 font-outfit">Identity</div>
+                      <div className="text-xs font-black text-indigo-400 mt-0.5 truncate">
+                        {isIdentityVerified ? "VERIFIED" : userReg || "ANONYMOUS"}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Detailed Summary */}
+                  <div className="w-full bg-zinc-900/90 border border-zinc-800 shadow-xl rounded-2xl p-4 sm:p-5 divide-y divide-zinc-800 space-y-3.5">
+                    {/* Section 1: Category & Severity */}
+                    <div className="flex items-start justify-between gap-4 pb-3">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-xl ${activeCatMeta.badgeClass}`}>
+                          <ActiveCatIcon className="w-4.5 h-4.5" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-black text-white font-outfit">{activeCatMeta.label}</span>
+                            <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-300 border border-zinc-700 font-outfit">
+                              {activeCatMeta.tag}
+                            </span>
+                            {category === "bug" && (
+                              <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                                {severity}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-zinc-400 mt-0.5">{activeCatMeta.desc}</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setGuidedStep(1)}
+                        className="inline-flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 hover:underline font-bold shrink-0 cursor-pointer"
+                      >
+                        <Pencil className="w-3 h-3" />
+                        <span>Edit</span>
+                      </button>
+                    </div>
+
+                    {/* Section 2: Concern Details */}
+                    <div className="pt-3 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-black uppercase tracking-wider text-zinc-400 font-outfit">
+                          Report Concern
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setGuidedStep(2)}
+                          className="inline-flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 hover:underline font-bold cursor-pointer"
+                        >
+                          <Pencil className="w-3 h-3" />
+                          <span>Edit</span>
+                        </button>
+                      </div>
+                      {subject.trim() && <div className="text-sm font-bold text-white">{subject.trim()}</div>}
+                      <div className="p-3.5 rounded-xl bg-zinc-950/70 border border-zinc-800 text-xs sm:text-sm text-zinc-100 font-medium leading-relaxed whitespace-pre-wrap">
+                        {description}
+                      </div>
+                    </div>
+
+                    {/* Section 3: Telemetry & Recording */}
+                    <div className="pt-3 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-black uppercase tracking-wider text-zinc-400 font-outfit">
+                          Session Reproduction Telemetry
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setGuidedStep(2)}
+                          className="inline-flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 hover:underline font-bold cursor-pointer"
+                        >
+                          <Pencil className="w-3 h-3" />
+                          <span>Edit</span>
+                        </button>
+                      </div>
+                      {enableSessionRecording ? (
+                        <div className="p-3 rounded-xl border border-rose-500/25 bg-rose-500/10 flex items-center justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <div className="p-1.5 rounded-lg bg-rose-500/20 text-rose-400">
+                              <Video className="w-4 h-4 animate-pulse" />
+                            </div>
+                            <div>
+                              <div className="text-xs font-bold text-white">Reactive DOM Session Replay Attached</div>
+                              <div className="text-[11px] text-zinc-400">
+                                Safe in-DOM interaction replay will be sent with ticket
+                              </div>
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                            Active
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="p-3 rounded-xl border border-zinc-800 bg-zinc-950/50 flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-xs text-zinc-400">
+                            <VideoOff className="w-4 h-4" />
+                            <span>No session recording attached</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setGuidedStep(2)}
+                            className="text-xs text-indigo-400 hover:underline font-bold"
+                          >
+                            Attach
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Section 4: Contact & Route */}
+                    <div className="pt-3 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-black uppercase tracking-wider text-zinc-400 font-outfit">
+                          Contact & Destination
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setGuidedStep(3)}
+                          className="inline-flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 hover:underline font-bold cursor-pointer"
+                        >
+                          <Pencil className="w-3 h-3" />
+                          <span>Edit</span>
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                        <div className="p-2.5 rounded-xl bg-zinc-950/50 border border-zinc-800">
+                          <span className="text-zinc-500 block text-[10px] uppercase font-bold">Email</span>
+                          <span className="font-bold text-white truncate block mt-0.5">
+                            {contactEmail.trim() || "In-app ticket updates only"}
+                          </span>
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-zinc-950/50 border border-zinc-800">
+                          <span className="text-zinc-500 block text-[10px] uppercase font-bold">Destination</span>
+                          <span className="font-bold text-indigo-400 truncate block mt-0.5">
+                            PostHog Support Channel (#712727)
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {submitError && (
+                    <div className="p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-semibold">
+                      {submitError}
+                    </div>
+                  )}
+                </m.div>
+              )}
+            </AnimatePresence>
+          )}
+        </main>
+
+        {/* ── FOOTER: BACK & PRIMARY ACTION BUTTONS (AmazeOnboardingFlow style) ── */}
+        {!submitSuccess && (
+          <footer className="relative z-20 w-full max-w-xl sm:max-w-2xl mx-auto flex items-center justify-between gap-3 shrink-0 pt-3 border-t border-zinc-800/80">
+            {guidedStep > 1 ? (
+              <button
+                type="button"
+                onClick={() => setGuidedStep((prev) => (prev > 1 ? ((prev - 1) as any) : 1))}
+                className="flex items-center gap-1.5 text-xs font-bold text-zinc-400 hover:text-white transition-colors cursor-pointer py-3 px-4 rounded-2xl bg-zinc-900/80 border border-zinc-800 hover:bg-zinc-850 active:scale-95"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <span>Back</span>
+              </button>
+            ) : (
+              <div className="w-16" />
+            )}
+
+            {guidedStep === 1 ? (
+              <span className="text-xs text-zinc-500 font-medium">Select a category above to proceed</span>
+            ) : guidedStep === 2 ? (
+              <button
+                type="button"
+                disabled={!description.trim()}
+                onClick={() => setGuidedStep(3)}
+                className="py-3 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-black font-outfit tracking-wide shadow-xl transition-all active:scale-95 cursor-pointer flex items-center gap-2"
+              >
+                <span>Continue to Contact</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            ) : guidedStep === 3 ? (
+              <button
+                type="button"
+                disabled={!description.trim()}
+                onClick={() => setGuidedStep(4)}
+                className="py-3 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-black font-outfit tracking-wide shadow-xl transition-all active:scale-95 cursor-pointer flex items-center gap-2"
+              >
+                <span>Review Summary</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={isSubmitting || !description.trim()}
+                onClick={() => handleSubmit()}
+                className="py-3 px-8 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-black font-outfit tracking-wide shadow-xl transition-all active:scale-95 cursor-pointer flex items-center gap-2"
+              >
+                {isSubmitting ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Sending to PostHog…</span>
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    <span>Submit Report</span>
+                  </>
+                )}
+              </button>
+            )}
+          </footer>
+        )}
+      </div>
+    );
+
+    if (mounted && typeof document !== "undefined") {
+      return createPortal(heroContent, document.body);
+    }
+    return heroContent;
+  }
+
+  // ── SUBPAGE 1: NEW REPORT (CLASSIC FORM MODE) ──
   if (activeSubpage === "report") {
     return (
       <PageShell
@@ -711,12 +1440,11 @@ export default function FeedbackReportPage({
             <div className="flex items-center gap-1.5 bg-surface-secondary/70 p-1 rounded-2xl border border-border-muted">
               <button
                 type="button"
-                onClick={() => setFlowMode("guided")}
-                className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                  flowMode === "guided"
-                    ? "bg-indigo-600 text-white shadow-xs"
-                    : "text-text-muted hover:text-text-primary"
-                }`}
+                onClick={() => {
+                  setFlowMode("guided");
+                  requestNativeFullscreen().catch(() => {});
+                }}
+                className="px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 text-text-muted hover:text-text-primary"
               >
                 <Sparkle className="w-3.5 h-3.5" />
                 <span>Guided Hero</span>
@@ -724,11 +1452,7 @@ export default function FeedbackReportPage({
               <button
                 type="button"
                 onClick={() => setFlowMode("classic")}
-                className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                  flowMode === "classic"
-                    ? "bg-surface text-text-primary border border-border-muted shadow-xs"
-                    : "text-text-muted hover:text-text-primary"
-                }`}
+                className="px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 bg-surface text-text-primary border border-border-muted shadow-xs"
               >
                 <Layers className="w-3.5 h-3.5" />
                 <span>Classic Form</span>
@@ -782,638 +1506,6 @@ export default function FeedbackReportPage({
                   Back to Support Sections
                 </button>
               </div>
-            </div>
-          ) : flowMode === "guided" ? (
-            /* ── GUIDED HERO MODE (TYPEFORM STYLE) ── */
-            <div className="space-y-6">
-              {/* Step indicator bar */}
-              <div className="max-w-2xl mx-auto flex items-center justify-between px-2 text-xs font-bold text-text-muted">
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <span
-                    className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${
-                      guidedStep >= 1 ? "bg-indigo-600 text-white" : "bg-surface-secondary text-text-muted"
-                    }`}
-                  >
-                    1
-                  </span>
-                  <span className={guidedStep === 1 ? "text-indigo-600 dark:text-indigo-400 font-black" : ""}>
-                    Category
-                  </span>
-                </div>
-                <div
-                  className={`h-0.5 flex-1 mx-2 sm:mx-3 rounded-full ${guidedStep >= 2 ? "bg-indigo-600" : "bg-border-muted"}`}
-                />
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <span
-                    className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${
-                      guidedStep >= 2 ? "bg-indigo-600 text-white" : "bg-surface-secondary text-text-muted"
-                    }`}
-                  >
-                    2
-                  </span>
-                  <span className={guidedStep === 2 ? "text-indigo-600 dark:text-indigo-400 font-black" : ""}>
-                    Concern
-                  </span>
-                </div>
-                <div
-                  className={`h-0.5 flex-1 mx-2 sm:mx-3 rounded-full ${guidedStep >= 3 ? "bg-indigo-600" : "bg-border-muted"}`}
-                />
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <span
-                    className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${
-                      guidedStep >= 3 ? "bg-indigo-600 text-white" : "bg-surface-secondary text-text-muted"
-                    }`}
-                  >
-                    3
-                  </span>
-                  <span className={guidedStep === 3 ? "text-indigo-600 dark:text-indigo-400 font-black" : ""}>
-                    Contact
-                  </span>
-                </div>
-                <div
-                  className={`h-0.5 flex-1 mx-2 sm:mx-3 rounded-full ${guidedStep >= 4 ? "bg-indigo-600" : "bg-border-muted"}`}
-                />
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <span
-                    className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${
-                      guidedStep >= 4 ? "bg-indigo-600 text-white" : "bg-surface-secondary text-text-muted"
-                    }`}
-                  >
-                    4
-                  </span>
-                  <span className={guidedStep === 4 ? "text-indigo-600 dark:text-indigo-400 font-black" : ""}>
-                    Summary
-                  </span>
-                </div>
-              </div>
-
-              <AnimatePresence mode="wait">
-                {/* ── GUIDED STEP 1: CATEGORY SELECTION MENU ── */}
-                {guidedStep === 1 && (
-                  <m.div
-                    key="step-1"
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -15 }}
-                    transition={{ duration: 0.2 }}
-                    className="space-y-6 max-w-3xl mx-auto py-2"
-                  >
-                    <div className="text-center space-y-2">
-                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 font-outfit">
-                        Step 1 of 4 · Choose Category
-                      </div>
-                      <h2 className="text-2xl sm:text-3xl font-black text-text-primary font-outfit tracking-tight">
-                        What would you like to share?
-                      </h2>
-                      <p className="text-xs sm:text-sm text-text-muted font-medium max-w-md mx-auto">
-                        Select a category below to open a focused, clean screen.
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {CATEGORIES.map((cat) => {
-                        const Icon = cat.icon;
-                        const isSelected = category === cat.id;
-                        return (
-                          <button
-                            key={cat.id}
-                            type="button"
-                            onClick={() => {
-                              setCategory(cat.id);
-                              setGuidedStep(2);
-                            }}
-                            className={`group p-5 rounded-3xl border text-left transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between min-h-[140px] ${
-                              isSelected
-                                ? "border-indigo-500 bg-indigo-500/10 ring-2 ring-indigo-500/25 shadow-md"
-                                : "border-border-strong dark:border-border bg-surface dark:bg-surface-secondary hover:border-indigo-500/50 hover:bg-surface-secondary shadow-xs hover:shadow-md hover:scale-[1.01] active:scale-[0.99]"
-                            }`}
-                          >
-                            <div className="flex items-center justify-between w-full mb-3">
-                              <div className={`p-3 rounded-2xl ${cat.badgeClass}`}>
-                                <Icon className="w-5 h-5" />
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-surface-tertiary text-text-muted border border-border-muted font-outfit">
-                                  {cat.tag}
-                                </span>
-                                <div className="w-7 h-7 rounded-full bg-surface-secondary group-hover:bg-indigo-600 group-hover:text-white text-text-muted flex items-center justify-center transition-colors">
-                                  <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-                                </div>
-                              </div>
-                            </div>
-                            <div>
-                              <h3 className="text-base font-black text-text-primary font-outfit">{cat.label}</h3>
-                              <p className="text-xs text-text-muted font-medium leading-relaxed mt-1">{cat.desc}</p>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </m.div>
-                )}
-
-                {/* ── GUIDED STEP 2: CONCERN SCREEN (TYPEFORM STYLE) ── */}
-                {guidedStep === 2 && (
-                  <m.div
-                    key="step-2"
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -15 }}
-                    transition={{ duration: 0.2 }}
-                    className="max-w-2xl mx-auto space-y-6 py-2"
-                  >
-                    <div className="flex items-center justify-between">
-                      <button
-                        type="button"
-                        onClick={() => setGuidedStep(1)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-muted text-xs font-bold text-text-muted hover:text-text-primary hover:bg-surface-secondary transition-colors cursor-pointer"
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                        <span>Back to Categories</span>
-                      </button>
-                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 font-outfit">
-                        Step 2 of 4 · Your Concern
-                      </div>
-                    </div>
-
-                    <div className="text-center space-y-2">
-                      <div
-                        className={`w-12 h-12 mx-auto rounded-2xl flex items-center justify-center ${activeCatMeta.badgeClass}`}
-                      >
-                        <ActiveCatIcon className="w-6 h-6" />
-                      </div>
-                      <h2 className="text-2xl sm:text-3xl font-black text-text-primary font-outfit tracking-tight">
-                        {activeCatMeta.promptTitle}
-                      </h2>
-                      <p className="text-xs sm:text-sm text-text-muted font-medium max-w-md mx-auto">
-                        {activeCatMeta.promptSubtitle}
-                      </p>
-                    </div>
-
-                    <div
-                      className={`${TILE_CARD} space-y-5 p-6 rounded-3xl border border-border-strong dark:border-border shadow-lg`}
-                    >
-                      <div>
-                        <label className="block text-xs font-bold text-text-primary mb-1.5">
-                          Headline / Topic <span className="text-text-muted font-normal">(Optional)</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={subject}
-                          onChange={(e) => setSubject(e.target.value)}
-                          placeholder={activeCatMeta.headlinePlaceholder}
-                          className={SEARCH_FIELD}
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-bold text-text-primary mb-1.5">
-                          Detailed Concern <span className="text-rose-500">*</span>
-                        </label>
-                        <textarea
-                          required
-                          rows={5}
-                          value={description}
-                          onChange={(e) => setDescription(e.target.value)}
-                          placeholder={activeCatMeta.concernPlaceholder}
-                          className="w-full px-4 py-3.5 rounded-2xl bg-surface dark:bg-surface-secondary border border-border-strong dark:border-border text-sm font-medium text-text-heading placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all leading-relaxed"
-                        />
-                      </div>
-
-                      {category === "bug" && (
-                        <>
-                          {/* Severity selection */}
-                          <div>
-                            <label className="block text-xs font-bold text-text-primary mb-1.5">Severity Level</label>
-                            <div className="grid grid-cols-3 gap-2">
-                              {SEVERITIES.map((s) => (
-                                <button
-                                  key={s.value}
-                                  type="button"
-                                  onClick={() => setSeverity(s.value)}
-                                  className={`py-2 px-3 rounded-xl border text-center transition-all cursor-pointer ${
-                                    severity === s.value
-                                      ? "border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold shadow-xs"
-                                      : "border-border-muted bg-surface-secondary/40 text-text-secondary text-xs hover:bg-surface-secondary"
-                                  }`}
-                                >
-                                  <div className="text-xs font-bold">{s.label}</div>
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Reactive DOM recording toggle */}
-                          <div className="p-4 rounded-2xl border border-indigo-500/30 bg-indigo-500/5 space-y-3">
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex items-start gap-3">
-                                <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-500 shrink-0 mt-0.5">
-                                  {isRecordingLive ? (
-                                    <Video className="w-5 h-5 animate-pulse text-rose-500" />
-                                  ) : (
-                                    <VideoOff className="w-5 h-5" />
-                                  )}
-                                </div>
-                                <div className="space-y-1">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-xs sm:text-sm font-bold text-text-primary">
-                                      Attach Reactive DOM Session Recording
-                                    </span>
-                                    {isRecordingLive && (
-                                      <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-rose-500/10 text-rose-500 border border-rose-500/20 animate-pulse">
-                                        Recording Active
-                                      </span>
-                                    )}
-                                  </div>
-                                  <p className="text-xs text-text-muted leading-relaxed">
-                                    The session recording will automatically take place within the reactive DOM of the
-                                    app so your phone is not overwhelmed by screen casting or video encoding. You can
-                                    navigate anywhere in AmazeCC to replicate the glitch. If you reload, it cancels.
-                                  </p>
-                                  <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
-                                    Note: the recording may include personal data or grades rendered on screen during
-                                    your session. Passwords and sensitive inputs are masked by default.
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="shrink-0 pt-1">
-                                <Switch
-                                  checked={enableSessionRecording}
-                                  onCheckedChange={handleToggleRecording}
-                                  label="Toggle reactive DOM session recording"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </>
-                      )}
-                    </div>
-
-                    <div className="flex justify-end pt-2">
-                      <button
-                        type="button"
-                        disabled={!description.trim()}
-                        onClick={() => setGuidedStep(3)}
-                        className="inline-flex items-center gap-2 py-3 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-md"
-                      >
-                        <span>Continue to Contact</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </m.div>
-                )}
-
-                {/* ── GUIDED STEP 3: CONTACT DETAILS ── */}
-                {guidedStep === 3 && (
-                  <m.div
-                    key="step-3"
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -15 }}
-                    transition={{ duration: 0.2 }}
-                    className="max-w-2xl mx-auto space-y-6 py-2"
-                  >
-                    <div className="flex items-center justify-between">
-                      <button
-                        type="button"
-                        onClick={() => setGuidedStep(2)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-muted text-xs font-bold text-text-muted hover:text-text-primary hover:bg-surface-secondary transition-colors cursor-pointer"
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                        <span>Back to Concern</span>
-                      </button>
-                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 font-outfit">
-                        Step 3 of 4 · Contact Details
-                      </div>
-                    </div>
-
-                    <div className="text-center space-y-2">
-                      <div className="w-12 h-12 mx-auto rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 flex items-center justify-center">
-                        <Mail className="w-6 h-6" />
-                      </div>
-                      <h2 className="text-2xl sm:text-3xl font-black text-text-primary font-outfit tracking-tight">
-                        Where Should We Reach You?
-                      </h2>
-                      <p className="text-xs sm:text-sm text-text-muted font-medium max-w-md mx-auto">
-                        Developer updates and support responses will be delivered straight to your personal inbox.
-                      </p>
-                    </div>
-
-                    <div
-                      className={`${TILE_CARD} space-y-5 p-6 rounded-3xl border border-border-strong dark:border-border shadow-lg`}
-                    >
-                      <div>
-                        <label className="block text-xs font-bold text-text-primary mb-1.5">
-                          Personal Email Address <span className="text-text-muted font-normal">(Optional)</span>
-                        </label>
-                        <div className="relative">
-                          <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" />
-                          <input
-                            type="email"
-                            value={contactEmail}
-                            onChange={(e) => handleEmailChange(e.target.value)}
-                            placeholder="your.personal.email@gmail.com"
-                            className={`${SEARCH_FIELD} pl-10`}
-                          />
-                        </div>
-                        <p className="text-[11px] text-text-muted mt-1.5 leading-relaxed">
-                          Developer replies from the PostHog dashboard will be delivered to this email and synced
-                          in-app.
-                        </p>
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-bold text-text-primary mb-1.5">Author Identifier</label>
-                        <div className="px-4 py-3 rounded-2xl bg-surface-secondary/50 border border-border-muted text-xs font-mono text-text-muted flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <ShieldCheck className="w-4 h-4 text-indigo-500" />
-                            <span className="font-bold text-text-primary">{distinctId}</span>
-                          </div>
-                          <ToneBadge tone={isIdentityVerified ? "emerald" : "indigo"}>
-                            {isIdentityVerified ? "Verified HMAC" : userReg ? "Reg Number" : "Guest"}
-                          </ToneBadge>
-                        </div>
-                      </div>
-
-                      <div className="p-3.5 rounded-2xl bg-surface-secondary/40 border border-border-muted flex items-start gap-2.5 text-xs text-text-muted">
-                        <Info className="w-4 h-4 shrink-0 text-indigo-500 mt-0.5" />
-                        <p className="leading-relaxed">
-                          On the next screen, you can review your complete submission summary and reproduction details
-                          before sending anything to the engineering team.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-between items-center pt-2">
-                      <button
-                        type="button"
-                        onClick={() => setGuidedStep(2)}
-                        className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-border-muted text-xs font-bold text-text-muted hover:text-text-primary hover:bg-surface-secondary transition-colors cursor-pointer"
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                        <span>Back</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        disabled={!description.trim()}
-                        onClick={() => setGuidedStep(4)}
-                        className="inline-flex items-center gap-2 py-3 px-8 rounded-2xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-lg"
-                      >
-                        <span>Review Summary</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </m.div>
-                )}
-
-                {/* ── GUIDED STEP 4: SUBMISSION SUMMARY (SEPARATE PAGE OF FLOW) ── */}
-                {guidedStep === 4 && (
-                  <m.div
-                    key="step-4"
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -15 }}
-                    transition={{ duration: 0.2 }}
-                    className="max-w-2xl mx-auto space-y-6 py-2"
-                  >
-                    <div className="flex items-center justify-between">
-                      <button
-                        type="button"
-                        onClick={() => setGuidedStep(3)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-muted text-xs font-bold text-text-muted hover:text-text-primary hover:bg-surface-secondary transition-colors cursor-pointer"
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                        <span>Back to Contact</span>
-                      </button>
-                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-outfit">
-                        Step 4 of 4 · Submission Summary
-                      </div>
-                    </div>
-
-                    <div className="text-center space-y-2">
-                      <div className="w-12 h-12 mx-auto rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 flex items-center justify-center">
-                        <FileText className="w-6 h-6" />
-                      </div>
-                      <h2 className="text-2xl sm:text-3xl font-black text-text-primary font-outfit tracking-tight">
-                        Review Your Submission
-                      </h2>
-                      <p className="text-xs sm:text-sm text-text-muted font-medium max-w-md mx-auto">
-                        Take a moment to verify your report details and telemetry before dispatching to our developers.
-                      </p>
-                    </div>
-
-                    {/* Stat Strip (Modern FFCS / Generator design) */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                      <div className="p-3 rounded-2xl bg-surface dark:bg-surface-secondary border border-border-strong dark:border-border text-center shadow-xs">
-                        <div className="text-[10px] font-bold uppercase text-text-muted">Category</div>
-                        <div className="text-xs font-black text-text-primary mt-0.5 truncate">
-                          {activeCatMeta.label}
-                        </div>
-                      </div>
-                      <div className="p-3 rounded-2xl bg-surface dark:bg-surface-secondary border border-border-strong dark:border-border text-center shadow-xs">
-                        <div className="text-[10px] font-bold uppercase text-text-muted">Severity</div>
-                        <div
-                          className={`text-xs font-black mt-0.5 ${category === "bug" ? "text-rose-500" : "text-text-primary"}`}
-                        >
-                          {category === "bug" ? severity.toUpperCase() : "STANDARD"}
-                        </div>
-                      </div>
-                      <div className="p-3 rounded-2xl bg-surface dark:bg-surface-secondary border border-border-strong dark:border-border text-center shadow-xs">
-                        <div className="text-[10px] font-bold uppercase text-text-muted">DOM Replay</div>
-                        <div
-                          className={`text-xs font-black mt-0.5 ${enableSessionRecording ? "text-rose-500" : "text-text-muted"}`}
-                        >
-                          {enableSessionRecording ? "ATTACHED" : "NONE"}
-                        </div>
-                      </div>
-                      <div className="p-3 rounded-2xl bg-surface dark:bg-surface-secondary border border-border-strong dark:border-border text-center shadow-xs">
-                        <div className="text-[10px] font-bold uppercase text-text-muted">Identity</div>
-                        <div className="text-xs font-black text-indigo-500 mt-0.5 truncate">
-                          {isIdentityVerified ? "VERIFIED" : userReg || "ANONYMOUS"}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Detailed Summary Card */}
-                    <div
-                      className={`${TILE_CARD} space-y-5 p-6 rounded-3xl border border-border-strong dark:border-border shadow-lg divide-y divide-border-muted`}
-                    >
-                      {/* Section 1: Category & Severity */}
-                      <div className="flex items-start justify-between gap-4 pb-4">
-                        <div className="flex items-center gap-3">
-                          <div className={`p-2.5 rounded-2xl ${activeCatMeta.badgeClass}`}>
-                            <ActiveCatIcon className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-black text-text-primary font-outfit">
-                                {activeCatMeta.label}
-                              </span>
-                              <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-surface-secondary text-text-muted border border-border-muted font-outfit">
-                                {activeCatMeta.tag}
-                              </span>
-                              {category === "bug" && (
-                                <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-500 border border-rose-500/20">
-                                  {severity}
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-xs text-text-muted mt-0.5">{activeCatMeta.desc}</p>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setGuidedStep(1)}
-                          className="inline-flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-bold shrink-0 cursor-pointer"
-                        >
-                          <Pencil className="w-3 h-3" />
-                          <span>Edit</span>
-                        </button>
-                      </div>
-
-                      {/* Section 2: Concern Details */}
-                      <div className="pt-4 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-black uppercase tracking-wider text-text-muted font-outfit">
-                            Report Concern
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setGuidedStep(2)}
-                            className="inline-flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-bold cursor-pointer"
-                          >
-                            <Pencil className="w-3 h-3" />
-                            <span>Edit</span>
-                          </button>
-                        </div>
-                        {subject.trim() && <div className="text-sm font-bold text-text-primary">{subject.trim()}</div>}
-                        <div className="p-4 rounded-2xl bg-surface-secondary/70 border border-border-muted text-xs sm:text-sm text-text-heading font-medium leading-relaxed whitespace-pre-wrap">
-                          {description}
-                        </div>
-                      </div>
-
-                      {/* Section 3: Telemetry & Recording */}
-                      <div className="pt-4 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-black uppercase tracking-wider text-text-muted font-outfit">
-                            Session Reproduction Telemetry
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setGuidedStep(2)}
-                            className="inline-flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-bold cursor-pointer"
-                          >
-                            <Pencil className="w-3 h-3" />
-                            <span>Edit</span>
-                          </button>
-                        </div>
-                        {enableSessionRecording ? (
-                          <div className="p-3.5 rounded-2xl border border-rose-500/25 bg-rose-500/5 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="p-2 rounded-xl bg-rose-500/10 text-rose-500">
-                                <Video className="w-4 h-4 animate-pulse" />
-                              </div>
-                              <div>
-                                <div className="text-xs font-bold text-text-primary">
-                                  Reactive DOM Session Replay Attached
-                                </div>
-                                <div className="text-[11px] text-text-muted">
-                                  Safe in-DOM interaction replay will be sent with ticket
-                                </div>
-                              </div>
-                            </div>
-                            <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-500 border border-rose-500/20">
-                              Active
-                            </span>
-                          </div>
-                        ) : (
-                          <div className="p-3 rounded-2xl border border-border-muted bg-surface-secondary/30 flex items-center justify-between">
-                            <div className="flex items-center gap-2 text-xs text-text-muted">
-                              <VideoOff className="w-4 h-4" />
-                              <span>No session recording attached</span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => setGuidedStep(2)}
-                              className="text-xs text-indigo-500 hover:underline font-bold"
-                            >
-                              Attach
-                            </button>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Section 4: Contact & Route */}
-                      <div className="pt-4 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-black uppercase tracking-wider text-text-muted font-outfit">
-                            Contact & Destination
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setGuidedStep(3)}
-                            className="inline-flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-bold cursor-pointer"
-                          >
-                            <Pencil className="w-3 h-3" />
-                            <span>Edit</span>
-                          </button>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                          <div className="p-3 rounded-xl bg-surface-secondary/40 border border-border-muted">
-                            <span className="text-text-muted block text-[10px] uppercase font-bold">Email</span>
-                            <span className="font-bold text-text-primary truncate block mt-0.5">
-                              {contactEmail.trim() || "In-app ticket updates only"}
-                            </span>
-                          </div>
-                          <div className="p-3 rounded-xl bg-surface-secondary/40 border border-border-muted">
-                            <span className="text-text-muted block text-[10px] uppercase font-bold">Destination</span>
-                            <span className="font-bold text-indigo-600 dark:text-indigo-400 truncate block mt-0.5">
-                              PostHog Support Channel (#712727)
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {submitError && (
-                      <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-semibold">
-                        {submitError}
-                      </div>
-                    )}
-
-                    <div className="flex justify-between items-center pt-2">
-                      <button
-                        type="button"
-                        onClick={() => setGuidedStep(3)}
-                        className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-border-muted text-xs font-bold text-text-muted hover:text-text-primary hover:bg-surface-secondary transition-colors cursor-pointer"
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                        <span>Back</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        disabled={isSubmitting || !description.trim()}
-                        onClick={() => handleSubmit()}
-                        className="inline-flex items-center gap-2 py-3 px-8 rounded-2xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-lg"
-                      >
-                        {isSubmitting ? (
-                          <>
-                            <RefreshCw className="w-4 h-4 animate-spin" />
-                            <span>Sending to PostHog…</span>
-                          </>
-                        ) : (
-                          <>
-                            <Send className="w-4 h-4" />
-                            <span>Submit Report</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </m.div>
-                )}
-              </AnimatePresence>
             </div>
           ) : (
             /* ── CLASSIC ALL-IN-ONE FORM MODE ── */
@@ -1740,7 +1832,11 @@ export default function FeedbackReportPage({
         actions={
           <button
             type="button"
-            onClick={() => setActiveSubpage("report")}
+            onClick={() => {
+              setFlowMode("guided");
+              setActiveSubpage("report");
+              requestNativeFullscreen().catch(() => {});
+            }}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition-all active:scale-95 cursor-pointer shadow-xs"
           >
             <Send className="w-3.5 h-3.5" />

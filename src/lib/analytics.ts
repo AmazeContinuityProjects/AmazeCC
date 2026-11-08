@@ -72,6 +72,7 @@ export interface AnalyticsEventMap {
   export_printable: Record<string, never>;
   /** The structured clash report PDF was downloaded. */
   export_clash_report: { courses: number };
+  export_print_dossier: { courses: number };
   /** Smart paste parsed a selection. */
   import_pasted: { courses: number };
   /** A CSV/XLSX file parsed. `format` is the file extension. */
