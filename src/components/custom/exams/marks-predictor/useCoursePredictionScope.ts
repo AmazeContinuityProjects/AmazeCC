@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { remapCohortStats } from "@/lib/marksSync";
+import { isRelativeGrading, manualClassStats, type ClassStats } from "@/lib/gradeBoundaries";
 import {
   computeCoursePrediction,
   createPredictorAssessmentsFromVTOP,
@@ -489,6 +490,21 @@ export function useCoursePredictionScope(course: EnrolledCourseItem | null, mark
     return typeof v === "number" && Number.isFinite(v) ? v : null;
   });
 
+  // The reader's own class curve, when they have set one. Persisted with the
+  // rest of the course's what-ifs, and read through `manualClassStats` so a
+  // corrupt or out-of-range stored value simply means "no override".
+  const [classStatsOverride, setClassStatsOverrideState] = useState<{ mean: number; sd: number } | null>(() => {
+    const manual = manualClassStats(getCoursePredictorState(courseCode)?.classStatsOverride);
+    return manual ? { mean: manual.mean, sd: manual.sd } : null;
+  });
+
+  /** Set (or with null, clear) the reader's own mean and σ. Invalid values are ignored. */
+  const setClassStatsOverride = (next: { mean: number; sd: number } | null) => {
+    if (next && !manualClassStats(next)) return;
+    setClassStatsOverrideState(next);
+    saveCoursePredictorState(courseCode, { classStatsOverride: next });
+  };
+
   const persistTargetScore = (score: number) => {
     if (!Number.isFinite(score)) return;
     setTargetScore(score);
@@ -517,12 +533,22 @@ export function useCoursePredictionScope(course: EnrolledCourseItem | null, mark
   // class id, read the same way the marks subpage reads it — theory half's
   // class id first. Under a curve (`isRelativeGrading`) these mean/σ shift the
   // grade boundaries so "67% can be an A" reads identically on both screens.
-  const classStats = useMemo(() => {
+  const syncedClassStats = useMemo<ClassStats | null>(() => {
     const classNbr = course?.theoryCourse?.classNbr || course?.labCourse?.classNbr;
     if (!classNbr) return null;
     const overall = marksStats?.[classNbr]?.overall;
     return overall && Number.isFinite(overall.mean) ? overall : null;
   }, [course, marksStats]);
+
+  // The reader's own curve wins over the synced one while it is set.
+  const classStats = useMemo<ClassStats | null>(
+    () => manualClassStats(classStatsOverride) ?? syncedClassStats,
+    [classStatsOverride, syncedClassStats],
+  );
+
+  // Whether this course is graded on a curve at all — a hand-entered mean and
+  // σ only mean something where Table 5 applies.
+  const curveEligible = course ? isRelativeGrading(course.courseSystem ?? null, course.courseType) : false;
 
   const prediction = useMemo(() => {
     if (!course) return null;
@@ -562,6 +588,10 @@ export function useCoursePredictionScope(course: EnrolledCourseItem | null, mark
     prediction,
     assessmentStats,
     classStats,
+    syncedClassStats,
+    classStatsOverride,
+    setClassStatsOverride,
+    curveEligible,
     targetScore,
     persistTargetScore,
   };

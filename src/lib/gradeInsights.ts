@@ -47,7 +47,8 @@ export function gradeRange(
   relative: boolean
 ): GradeRange | null {
   const used = relative ? effectiveClassStats(classStats) : null;
-  if (!used || !Number.isFinite(pct)) return null;
+  // A hand-entered curve is a what-if, not an estimate: it has no sampling error.
+  if (!used || used.manual || !Number.isFinite(pct)) return null;
 
   const n = used.count;
   const seMean = used.sd / Math.sqrt(n);

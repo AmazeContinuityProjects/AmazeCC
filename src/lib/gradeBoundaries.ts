@@ -35,7 +35,34 @@ export type ClassStats = {
   count: number;
   mean: number;
   sd: number;
+  /**
+   * Typed in by the reader ("what if the class averages 62 with σ 11?"), not
+   * measured. A manual curve is taken exactly as given: no contributor
+   * minimum, no σ pooling, no early-estimate flag.
+   */
+  manual?: boolean;
 };
+
+/** Bounds a hand-entered curve must sit in to be used. */
+export const MANUAL_MEAN_RANGE = [0, 100] as const;
+export const MANUAL_SD_RANGE = [0.5, 50] as const;
+
+/**
+ * A reader's own mean and σ as class statistics, or null when either is out
+ * of range. σ below 0.5 would collapse every band onto the mean; above 50 the
+ * whole ladder leaves 0–100.
+ */
+export function manualClassStats(
+  override?: { mean?: unknown; sd?: unknown } | null
+): ClassStats | null {
+  if (!override) return null;
+  const mean = Number(override.mean);
+  const sd = Number(override.sd);
+  if (!Number.isFinite(mean) || !Number.isFinite(sd)) return null;
+  if (mean < MANUAL_MEAN_RANGE[0] || mean > MANUAL_MEAN_RANGE[1]) return null;
+  if (sd < MANUAL_SD_RANGE[0] || sd > MANUAL_SD_RANGE[1]) return null;
+  return { count: 0, mean, sd, manual: true };
+}
 
 /**
  * The fixed ladder: earned percentage → the band it falls in.
@@ -90,6 +117,7 @@ const PRIOR_DF = 4;
  * `((n − 1)·s² + k·σ₀²) / ((n − 1) + k)`, the standard pooled-variance form.
  */
 export function effectiveSd(classStats: ClassStats): number {
+  if (classStats.manual) return classStats.sd;
   const df = Math.max(0, classStats.count - 1);
   const s2 = Number.isFinite(classStats.sd) ? Math.max(0, classStats.sd) ** 2 : 0;
   return Math.sqrt((df * s2 + PRIOR_DF * PRIOR_SD * PRIOR_SD) / (df + PRIOR_DF));
@@ -106,6 +134,9 @@ export function effectiveSd(classStats: ClassStats): number {
 export function hasUsableClassStats(
   classStats?: ClassStats | null
 ): classStats is ClassStats {
+  if (classStats?.manual) {
+    return Number.isFinite(classStats.mean) && Number.isFinite(classStats.sd) && classStats.sd > 0;
+  }
   return (
     !!classStats &&
     Number.isFinite(classStats.count) &&
@@ -119,12 +150,17 @@ export function hasUsableClassStats(
 /** The statistics the ladder is built from, with σ stabilised; null when unusable. */
 export function effectiveClassStats(classStats?: ClassStats | null): ClassStats | null {
   if (!hasUsableClassStats(classStats)) return null;
-  return { count: classStats.count, mean: classStats.mean, sd: effectiveSd(classStats) };
+  return {
+    count: classStats.count,
+    mean: classStats.mean,
+    sd: effectiveSd(classStats),
+    ...(classStats.manual ? { manual: true } : {}),
+  };
 }
 
 /** Whether a curve rests on few enough contributors to call it an early estimate. */
 export function isEarlyEstimate(classStats?: ClassStats | null): boolean {
-  return hasUsableClassStats(classStats) && classStats.count < CONFIDENT_CURVE_SAMPLE;
+  return hasUsableClassStats(classStats) && !classStats.manual && classStats.count < CONFIDENT_CURVE_SAMPLE;
 }
 
 /**

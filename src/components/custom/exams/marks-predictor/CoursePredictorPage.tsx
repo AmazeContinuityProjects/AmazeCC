@@ -1,6 +1,7 @@
 "use client";
 
-import { effectiveClassStats, isEarlyEstimate } from "@/lib/gradeBoundaries";
+import { effectiveClassStats, isEarlyEstimate, MIN_CURVE_SAMPLE } from "@/lib/gradeBoundaries";
+import ClassCurveEditor from "./ClassCurveEditor";
 import { gradeMargin, gradeRange } from "@/lib/gradeInsights";
 import React, { useEffect, useState } from "react";
 import type { RefObject } from "react";
@@ -165,8 +166,20 @@ interface CoursePredictorPageProps {
 }
 
 function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: CoursePredictorPageProps) {
-  const { config, updateConfig, reset, prediction, assessmentStats, classStats, targetScore, persistTargetScore } =
-    useCoursePredictionScope(course, marksStats);
+  const {
+    config,
+    updateConfig,
+    reset,
+    prediction,
+    assessmentStats,
+    classStats,
+    syncedClassStats,
+    classStatsOverride,
+    setClassStatsOverride,
+    curveEligible,
+    targetScore,
+    persistTargetScore,
+  } = useCoursePredictionScope(course, marksStats);
 
   const [isRegimenEditorOpen, setIsRegimenEditorOpen] = useState(false);
   /** The assessment whose mark sheet is open, with its half's tone and
@@ -540,7 +553,9 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
         <ToneBadge tone="violet">
           {prediction.theoryCredits}T + {prediction.labCredits}L
         </ToneBadge>
-        {prediction.isCurved ? <ToneBadge tone="amber">Curved</ToneBadge> : null}
+        {prediction.isCurved ? (
+          <ToneBadge tone={classStats?.manual ? "indigo" : "amber"}>{classStats?.manual ? "Your curve" : "Curved"}</ToneBadge>
+        ) : null}
         {targetScore != null ? <ToneBadge tone="cyan">Goal {targetScore.toFixed(0)}%</ToneBadge> : null}
         {actionsEl ? null : (
           <>
@@ -724,33 +739,69 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
             icon={Gauge}
             title="Grade boundaries"
             count={ladderBands.length}
-            right={prediction.isCurved && !classStats ? <ToneBadge tone="zinc">Awaiting class data</ToneBadge> : null}
+            right={
+              classStats?.manual && prediction.isCurved ? (
+                <ToneBadge tone="indigo">Your curve</ToneBadge>
+              ) : curveEligible && !prediction.isCurved ? (
+                <ToneBadge tone="zinc">Awaiting class data</ToneBadge>
+              ) : null
+            }
           />
-          <div
-            className={`rounded-3xl border border-border-strong dark:border-border card-surface px-4 py-3.5 space-y-2.5 ${
-              prediction.isCurved && !classStats ? "opacity-60 grayscale" : ""
-            }`}
-          >
-            {/* The marks page's in-card stats line: dose · μ · σ above the bar. */}
-            {prediction.isCurved && (
-              <p className="flex items-center gap-2 text-[11px] font-medium text-text-secondary dark:text-text-muted flex-wrap">
-                <ToneDot tone={!classStats ? "zinc" : isEarlyEstimate(classStats) ? "amber" : "emerald"} />
-                {classStats ? (
-                  <span>
-                    <span className="font-bold text-text-heading">{classStats.count}</span>{" "}
-                    {classStats.count === 1 ? "peer" : "peers"}
-                    <span aria-hidden="true"> · </span>μ{" "}
-                    <span className="font-bold text-text-heading">{classStats.mean.toFixed(1)}</span>
-                    <span aria-hidden="true"> · </span>σ{" "}
-                    <span className="font-bold text-text-heading">
-                      {(effectiveClassStats(classStats)?.sd ?? classStats.sd).toFixed(1)}
+          {/* Not dimmed while awaiting class data: the curve editor lives in
+              this card and must not read as disabled. The badge says it. */}
+          <div className="rounded-[24px] border border-border-strong dark:border-border card-surface px-4 py-3.5 space-y-2.5">
+            {/* The marks page's in-card stats line: dose · μ · σ above the bar —
+                or the reader's own numbers, when they have set them. Shown on
+                every curve-eligible course, so a course still short of
+                classmates says how short, and offers the manual curve. */}
+            {curveEligible && (
+              <div className="space-y-1.5">
+                <p className="flex items-center gap-2 text-[11px] font-medium text-text-secondary dark:text-text-muted flex-wrap">
+                  <ToneDot
+                    tone={
+                      !prediction.isCurved
+                        ? "zinc"
+                        : classStats?.manual
+                          ? "indigo"
+                          : isEarlyEstimate(classStats)
+                            ? "amber"
+                            : "emerald"
+                    }
+                  />
+                  {prediction.isCurved && classStats ? (
+                    <span>
+                      {classStats.manual ? (
+                        <span className="font-bold text-text-heading">Your numbers</span>
+                      ) : (
+                        <>
+                          <span className="font-bold text-text-heading">{classStats.count}</span>{" "}
+                          {classStats.count === 1 ? "peer" : "peers"}
+                        </>
+                      )}
+                      <span aria-hidden="true"> · </span>μ{" "}
+                      <span className="font-bold text-text-heading">{classStats.mean.toFixed(1)}</span>
+                      <span aria-hidden="true"> · </span>σ{" "}
+                      <span className="font-bold text-text-heading">
+                        {(effectiveClassStats(classStats)?.sd ?? classStats.sd).toFixed(1)}
+                      </span>
+                      {isEarlyEstimate(classStats) ? <span> · early estimate</span> : null}
                     </span>
-                    {isEarlyEstimate(classStats) ? <span> · early estimate</span> : null}
-                  </span>
-                ) : (
-                  <span>No class data yet — showing default bands</span>
-                )}
-              </p>
+                  ) : syncedClassStats && syncedClassStats.count > 0 ? (
+                    <span>
+                      Only {syncedClassStats.count} {syncedClassStats.count === 1 ? "peer" : "peers"} so far — the
+                      curve needs {MIN_CURVE_SAMPLE}+, showing default bands
+                    </span>
+                  ) : (
+                    <span>No class data yet — showing default bands</span>
+                  )}
+                </p>
+                <ClassCurveEditor
+                  key={classStatsOverride ? `${classStatsOverride.mean}-${classStatsOverride.sd}` : "synced"}
+                  synced={syncedClassStats}
+                  override={classStatsOverride}
+                  onChange={setClassStatsOverride}
+                />
+              </div>
             )}
             <GradeLadderChart
               bands={ladderBands}

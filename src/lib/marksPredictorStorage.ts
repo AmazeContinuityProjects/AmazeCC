@@ -19,6 +19,12 @@ export interface StoredCourseState {
   simulations?: Record<string, number>; // assessmentId -> simulated raw mark
   targetScore?: number;
   /**
+   * The reader's own class mean and σ for this course, used in place of the
+   * synced class statistics until cleared (null). Read through
+   * `manualClassStats`, which rejects out-of-range values.
+   */
+  classStatsOverride?: { mean: number; sd: number } | null;
+  /**
    * The user's choice to hold the subject out of the SGPA/CGPA aggregation.
    * The row stays on the list (marked as ignored) but the GPA pair reads only
    * courses that are not ignored.
