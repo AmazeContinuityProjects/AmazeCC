@@ -43,13 +43,13 @@
  *
  * ## No time parsing lives here
  *
- * `fmt`/`toMinutes` come from `@/lib/social/schedule`, which handles both time
+ * `fmt`/`toMinutes` come from `@/lib/schedule`, which handles both time
  * dialects in play: `config.json`'s `"8:00-8:50"` and `campus/*.json`'s
  * `"8:00 AM"`. See that module's header for why 1-7 means PM.
  */
 
 import type { AddedCourse, GapDetail, TimetablePeriod } from "@amazecontinuityprojects/amazeui";
-import { fmt, toMinutes, dayKeyForDate } from "@/lib/social/schedule";
+import { fmt, toMinutes, dayKeyForDate } from "@/lib/schedule";
 import { courseInPeriod, hasSlot, ownSlotSpelling } from "@/lib/slots";
 
 /**

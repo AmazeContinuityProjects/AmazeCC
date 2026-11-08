@@ -21,7 +21,7 @@ import {
   resolveCanonicalDistinctId,
 } from "@/lib/posthog";
 import { useDashboardNavigator } from "../dashboard/DashboardNavigator";
-import { getActiveDisplayName } from "@/lib/social/identity";
+import { getActiveDisplayName } from "@/lib/activeIdentity";
 import buildInfo from "@/data/buildInfo.json";
 import {
   Bug,

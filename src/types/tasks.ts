@@ -1,7 +1,7 @@
 // `AttendanceDay` is `(typeof DAYS)[number]` — the `Day` type that
 // `attendanceTimetable` aliases. Importing it from the source keeps this
 // types-only module out of the attendanceTimetable → … → taskMatch cycle.
-import type { Day as AttendanceDay } from "@/lib/social/schedule";
+import type { Day as AttendanceDay } from "@/lib/schedule";
 
 export type TaskStatus = "pending" | "in_progress" | "done";
 

@@ -3,6 +3,7 @@ import { AuthError, backoff } from "./errors";
 import { storage } from "../storage";
 import { pingVtopDirectly } from "../vtopHealth";
 import type { AuthDomain, Ids, VtopCreds } from "./types";
+import { VTOP_LOGIN_EVENT } from "../signInReturn";
 
 interface FailedPair {
   username: string;
@@ -272,6 +273,8 @@ class CredentialManager {
       fetchedAt: Date.now(),
     };
     this.failedVtop = null;
+    // Announce it: pages waiting on a fresh sign-in (see `signInReturn`) listen.
+    if (typeof window !== "undefined") window.dispatchEvent(new Event(VTOP_LOGIN_EVENT));
     return this.vtop;
   }
 

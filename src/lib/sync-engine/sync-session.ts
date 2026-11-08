@@ -236,7 +236,6 @@ const OP_LABELS: Record<string, { label: string; delta: number }> = {
   buses: { label: "Bus routes", delta: 5 },
   bulk: { label: "Additional records cache", delta: 5 },
   lms: { label: "Moodle data", delta: 10 },
-  social: { label: "Friends & groups", delta: 5 },
 };
 
 /**
