@@ -272,7 +272,7 @@ export default function TargetGradeSolver({
           <p className="text-xs text-zinc-600 dark:text-zinc-300 font-medium leading-relaxed">
             {solverResult.feasibilityMessage}
           </p>
-          {!solverResult.meetsVITMinimumCutoff && !solverResult.isAlreadyAchieved && (
+          {!solverResult.meetsVITMinimumCutoff && (
             <div className={`${TILE_CARD} flex items-center gap-3`}>
               <span
                 className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.amber}`}
@@ -281,8 +281,12 @@ export default function TargetGradeSolver({
               </span>
               <p className="text-xs text-zinc-600 dark:text-zinc-300 font-medium">
                 <strong className="font-black">VIT Regulation:</strong> Even though you only need{" "}
-                {solverResult.requiredFATRawScore.toFixed(1)}/{solverResult.fatMaxMark} for {selectedTargetScore}%, a{" "}
-                <strong>minimum 40% in FAT (40/100)</strong> is required to pass.
+                {solverResult.isAlreadyAchieved ? "0" : solverResult.requiredFATRawScore.toFixed(1)}/
+                {solverResult.fatMaxMark} for {selectedTargetScore}%, a{" "}
+                <strong>
+                  minimum 40% in FAT ({(0.4 * solverResult.fatMaxMark).toFixed(1)}/{solverResult.fatMaxMark})
+                </strong>{" "}
+                is required to pass.
               </p>
             </div>
           )}

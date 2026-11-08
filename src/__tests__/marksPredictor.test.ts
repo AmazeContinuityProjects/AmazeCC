@@ -349,9 +349,9 @@ describe("Marks Predictor Calculation Engine", () => {
       expect(estimateGrade(85).letter).toBe("A");
       expect(estimateGrade(75).letter).toBe("B");
       expect(estimateGrade(65).letter).toBe("C");
-      expect(estimateGrade(55).letter).toBe("D");
-      expect(estimateGrade(45).letter).toBe("E");
-      expect(estimateGrade(35).letter).toBe("F");
+      expect(estimateGrade(57).letter).toBe("D");
+      expect(estimateGrade(52).letter).toBe("E");
+      expect(estimateGrade(45).letter).toBe("F");
     });
   });
 });

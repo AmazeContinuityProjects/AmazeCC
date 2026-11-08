@@ -126,7 +126,25 @@ export interface CoursePredictionResult {
   labStats: ComponentStats | null;
   projectStats: ComponentStats | null;
   riskLevel: "safe" | "moderate" | "critical" | "warning";
+  /**
+   * Pass conditions the letter alone does not show (FFCS Academic Regulations
+   * v5.0 §9.4, §9.6, §9.7). When one applies, `optimalGrade` / `maximisableGrade`
+   * already carry the resulting F or N; this says why.
+   */
+  passIssues: PassIssue[];
 }
+
+export type PassIssue = {
+  code:
+    | "theory-fat-below-40"
+    | "theory-fat-pace-below-40"
+    | "component-below-50"
+    | "component-pace-below-50";
+  component: "theory" | "lab" | "project";
+  /** Whether it is already decided (a recorded mark) or a projection from pace. */
+  certain: boolean;
+  message: string;
+};
 
 export interface TargetFATSolverResult {
   targetScore: number;
@@ -391,6 +409,100 @@ const GRADE_META: Record<GradedBoundary["grade"], { tone: string; description: s
   F: { tone: "red", description: "Fail (0 Grade Points)" },
 };
 
+/**
+ * Not a ladder letter: §9.6/§9.7 award "N" (not completed — re-register the
+ * component) when a lab or project component ends below 50%. Worth 0 points,
+ * as `gradeHistory.gradePoints` already scores it.
+ */
+const N_GRADE = { letter: "N", tone: "zinc", description: "Not completed — re-register the component (0 Grade Points)" };
+const F_GRADE = { letter: "F", ...GRADE_META.F };
+
+/** "fat" / "final assessment" in a title; mirrors `isFinalExamAssessment`. */
+const isFinalExamTitle = (title: string) => /fat|final assessment/i.test(String(title).trim());
+
+/**
+ * The pass conditions that override the ladder, read off the halves.
+ *
+ * - §9.4 (a): "a minimum of 40% marks in the theory FAT alone". A recorded FAT
+ *   below 40% fails the course (F) whatever the total. Before the FAT, a theory
+ *   pace below 40% projects a FAT below 40%, so the *pace* letter is F too —
+ *   the ceiling (a perfect FAT) is untouched.
+ * - §9.4 (b), §9.6, §9.7: a lab or project component needs 50% of its own
+ *   marks, or the course is "not completed" (N). When the marks already lost
+ *   make 50% unreachable, both letters are N; a pace below 50% makes the pace
+ *   letter N.
+ *
+ * When both fail, N wins: the component must be re-registered before the
+ * theory result counts at all (§9.7).
+ */
+function passConditions(
+  theory: ComponentStats | null,
+  halves: Array<ComponentStats | null>
+): { pace: "F" | "N" | null; ceiling: "F" | "N" | null; issues: PassIssue[] } {
+  const issues: PassIssue[] = [];
+  let pace: "F" | "N" | null = null;
+  let ceiling: "F" | "N" | null = null;
+  const worse = (cur: "F" | "N" | null, next: "F" | "N") => (cur === "N" ? "N" : next);
+
+  const fat = theory?.assessments.find((a) => isFinalExamTitle(a.title));
+  if (theory && fat) {
+    if (!fat.isPending && fat.scoredMark !== null) {
+      const pct = (Math.max(0, fat.scoredMark) / Math.max(0.1, fat.maxMark)) * 100;
+      if (pct < 40) {
+        pace = worse(pace, "F");
+        ceiling = worse(ceiling, "F");
+        issues.push({
+          code: "theory-fat-below-40",
+          component: "theory",
+          certain: !fat.isSimulated,
+          message: `${fat.title} is ${pct.toFixed(1)}% — the theory FAT needs 40% on its own to pass.`,
+        });
+      }
+    } else {
+      const released = theory.scoredWeight + theory.lostWeight;
+      const thPace = released > 0 ? (theory.scoredWeight / released) * 100 : null;
+      if (thPace !== null && thPace < 40) {
+        pace = worse(pace, "F");
+        issues.push({
+          code: "theory-fat-pace-below-40",
+          component: "theory",
+          certain: false,
+          message: `At your current ${thPace.toFixed(1)}% pace the FAT would land below the 40% it needs on its own.`,
+        });
+      }
+    }
+  }
+
+  for (const half of halves) {
+    if (!half || half.totalWeightConfigured <= 0) continue;
+    const w = half.totalWeightConfigured;
+    const ceilingPct = ((w - half.lostWeight) / w) * 100;
+    const released = half.scoredWeight + half.lostWeight;
+    const halfPace = released > 0 ? (half.scoredWeight / released) * 100 : null;
+    const name = half.component === "lab" ? "Lab" : "Project";
+    if (ceilingPct < 50) {
+      pace = "N";
+      ceiling = "N";
+      issues.push({
+        code: "component-below-50",
+        component: half.component,
+        certain: half.pendingWeight <= 0,
+        message: `${name} can reach at most ${ceilingPct.toFixed(1)}% — it needs 50% of its own marks, or the course is not completed (N).`,
+      });
+    } else if (halfPace !== null && halfPace < 50) {
+      pace = "N";
+      issues.push({
+        code: "component-pace-below-50",
+        component: half.component,
+        certain: false,
+        message: `${name} is at ${halfPace.toFixed(1)}% — below the 50% it needs, which would leave the course not completed (N).`,
+      });
+    }
+  }
+
+  return { pace, ceiling, issues };
+}
+
 // Estimate Letter Grade from percentage / weighted score.
 // The letter comes from the shared `gradeBoundaries` ladder: callers without
 // curves get the fixed ladder (the historic behaviour), callers holding class
@@ -503,11 +615,14 @@ export const computeCoursePrediction = ({
   const releasedWeight = currentScoredScaled + pointsLostScaled;
   const pacePct = releasedWeight > 0 ? Math.round((currentScoredScaled / releasedWeight) * 10000) / 100 : 0;
 
-  const optimalGrade = releasedWeight > 0 ? estimateGrade(pacePct, boundaries) : null;
+  const pass = passConditions(theoryStats, [labStats, projectStats]);
+  const failGrade = (letter: "F" | "N") => (letter === "N" ? N_GRADE : F_GRADE);
+  const optimalGrade =
+    releasedWeight > 0 ? (pass.pace ? failGrade(pass.pace) : estimateGrade(pacePct, boundaries)) : null;
   // Maximisable assumes every pending weight is earned in full; the permanent
   // deficit caps it. Curved courses read the ceiling against their class
   // ladder — the same one the marks subpage renders.
-  const maximisableGrade = estimateGrade(maxPossibleScaled, boundaries);
+  const maximisableGrade = pass.ceiling ? failGrade(pass.ceiling) : estimateGrade(maxPossibleScaled, boundaries);
 
   // The insights ladder's standing: the reader's own marks scaled onto 100 —
   // earned over the weight that actually carries a mark. `releasedWeight` is
@@ -548,6 +663,7 @@ export const computeCoursePrediction = ({
     boundaries,
     isCurved,
     riskLevel,
+    passIssues: pass.issues,
   };
 };
 
@@ -598,15 +714,22 @@ export const solveTargetFAT = ({
   const isAlreadyAchieved = deficitWeight <= 0;
   const isAchievable = rawScore <= fatMaxMark;
 
-  // VIT FAT Minimum Passing Criteria: Student must score at least 40% in FAT (i.e. 40/100 or 20/50 or 16/40 wt)
-  const meetsVITMinimumCutoff = rawScore >= 0.4 * fatMaxMark;
+  // FFCS Academic Regulations v5.0 §9.4 (a): "a minimum of 40% marks in the theory FAT
+  // alone". It binds even when the target is already secured on marks — a 0 in FAT is a
+  // fail, not a pass at the target. The lab FAT carries no such floor (the lab half is
+  // judged on its 50% total instead, §9.4 b), so a lab solve always meets it.
+  const fatMinimumRaw = 0.4 * fatMaxMark;
+  const meetsVITMinimumCutoff = component === "lab" || Math.max(0, rawScore) >= fatMinimumRaw;
 
   let feasibility: TargetFATSolverResult["feasibility"];
   let feasibilityMessage: string;
 
   if (isAlreadyAchieved) {
     feasibility = "secured";
-    feasibilityMessage = `Target already secured! Even with 0 in FAT, you have achieved ${targetScore}%.`;
+    feasibilityMessage =
+      component === "theory"
+        ? `Target already secured on marks — ${targetScore}% is yours with any passing FAT. You still need ${fatMinimumRaw.toFixed(1)} / ${fatMaxMark} (40%) in FAT to pass the course.`
+        : `Target already secured! Even with 0 in FAT, you have achieved ${targetScore}%.`;
   } else if (!isAchievable) {
     feasibility = "impossible";
     feasibilityMessage = `Mathematically out of reach. Max possible score is ${(100 - (targetScore - currentScoredScaled)).toFixed(1)}%.`;

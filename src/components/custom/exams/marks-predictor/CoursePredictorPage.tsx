@@ -1,5 +1,6 @@
 "use client";
 
+import { effectiveClassStats, isEarlyEstimate } from "@/lib/gradeBoundaries";
 import React, { useEffect, useState } from "react";
 import type { RefObject } from "react";
 import { createPortal } from "react-dom";
@@ -529,6 +530,24 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
         <InsightCarousel slides={carouselSlides} carousel={carousel} />
       </div>
 
+      {/* Pass conditions the letter alone cannot explain (§9.4, §9.6, §9.7):
+          when one applies, the F or N above comes from here, not the ladder. */}
+      {prediction.passIssues.length > 0 && (
+        <div className="space-y-1.5">
+          {prediction.passIssues.map((issue) => (
+            <p
+              key={issue.code}
+              className={`flex items-start gap-2 text-[11px] leading-relaxed font-medium ${
+                issue.certain ? "text-red-700 dark:text-red-400" : "text-amber-700 dark:text-amber-400"
+              }`}
+            >
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" aria-hidden="true" />
+              <span>{issue.message}</span>
+            </p>
+          ))}
+        </div>
+      )}
+
       {/* Segmented progress */}
       <div className="space-y-2.5">
         <ToneLegend
@@ -682,7 +701,7 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
             {/* The marks page's in-card stats line: dose · μ · σ above the bar. */}
             {prediction.isCurved && (
               <p className="flex items-center gap-2 text-[11px] font-medium text-text-secondary dark:text-text-muted flex-wrap">
-                <ToneDot tone={!classStats ? "zinc" : classStats.count < 30 ? "amber" : "emerald"} />
+                <ToneDot tone={!classStats ? "zinc" : isEarlyEstimate(classStats) ? "amber" : "emerald"} />
                 {classStats ? (
                   <span>
                     <span className="font-bold text-text-heading">{classStats.count}</span>{" "}
@@ -690,7 +709,10 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
                     <span aria-hidden="true"> · </span>μ{" "}
                     <span className="font-bold text-text-heading">{classStats.mean.toFixed(1)}</span>
                     <span aria-hidden="true"> · </span>σ{" "}
-                    <span className="font-bold text-text-heading">{classStats.sd.toFixed(1)}</span>
+                    <span className="font-bold text-text-heading">
+                      {(effectiveClassStats(classStats)?.sd ?? classStats.sd).toFixed(1)}
+                    </span>
+                    {isEarlyEstimate(classStats) ? <span> · early estimate</span> : null}
                   </span>
                 ) : (
                   <span>No class data yet — showing default bands</span>
