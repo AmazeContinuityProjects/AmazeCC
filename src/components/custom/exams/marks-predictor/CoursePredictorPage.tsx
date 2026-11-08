@@ -1,6 +1,7 @@
 "use client";
 
 import { effectiveClassStats, isEarlyEstimate } from "@/lib/gradeBoundaries";
+import { gradeMargin, gradeRange } from "@/lib/gradeInsights";
 import React, { useEffect, useState } from "react";
 import type { RefObject } from "react";
 import { createPortal } from "react-dom";
@@ -383,6 +384,38 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
       tone: pointsLostScaled > 0 ? "red" : "emerald",
     },
   ];
+  // How far the pace sits from the letters either side — only when the letter
+  // comes from the ladder (an F or N from a pass condition has no "next band").
+  const margin =
+    optimalGrade && prediction.passIssues.length === 0 ? gradeMargin(pacePct, prediction.boundaries) : null;
+  if (margin && (margin.next || margin.previous)) {
+    carouselSlides.splice(1, 0, {
+      id: "margin",
+      label: "Next grade",
+      value: margin.next ? `+${(margin.toNext ?? 0).toFixed(1)}` : "Top",
+      sub: [
+        margin.next ? `pace past this for ${margin.next}` : "already at S",
+        margin.previous && margin.cushion !== null
+          ? `${margin.cushion.toFixed(1)} cushion before ${margin.previous}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      tone: margin.next ? "cyan" : "emerald",
+    });
+  }
+  // A curve from a handful of classmates is a wide estimate; say how wide.
+  const range =
+    optimalGrade && prediction.passIssues.length === 0 ? gradeRange(pacePct, classStats, prediction.isCurved) : null;
+  if (range && range.best !== range.worst) {
+    carouselSlides.splice(1, 0, {
+      id: "curve-range",
+      label: "Curve range",
+      value: `${range.worst}–${range.best}`,
+      sub: `Likely ${range.likely} · ${classStats?.count ?? 0} classmates so far`,
+      tone: "amber",
+    });
+  }
   if (isEmbedded && theoryStats) {
     carouselSlides.push({
       id: "theory-half",

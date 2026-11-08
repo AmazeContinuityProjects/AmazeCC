@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Target, AlertTriangle, CheckCircle2, Sparkles, Flame, ShieldAlert } from "lucide-react";
 import { solveTargetFAT, TargetFATSolverResult, CoursePredictionResult, estimateGrade } from "@/lib/marksPredictor";
+import { fatNeededForEachGrade } from "@/lib/gradeInsights";
 import { isAssessmentPublished, isFinalExamAssessment, onlyFatRemains } from "./useCoursePredictionScope";
 import { ChipTabs, ToneBadge } from "../../shared/primitives";
 import { FIELD_INPUT, TILE_CARD, TONE_ICON_TILE } from "@/lib/uiTokens";
@@ -92,17 +93,20 @@ export default function TargetGradeSolver({
     .flatMap((list) => list ?? [])
     .filter((a) => !isFinalExamAssessment(a) && (a.scoredMark === null || a.scoredMark === undefined)).length;
 
-  const solverResult: TargetFATSolverResult = solveTargetFAT({
-    targetScore: selectedTargetScore,
+  const solveArgs = {
     currentScoredScaled: currentComponentWeighted,
     fatWeightagePercent: fatWeight,
     fatMaxMark: fatMax,
     theoryCredits,
     labCredits,
     isEmbedded: isEmbedded && !solvesLab,
-    component: solvesLab ? "lab" : "theory",
+    component: (solvesLab ? "lab" : "theory") as "lab" | "theory",
     otherComponentWeighted,
-  });
+  };
+  const solverResult: TargetFATSolverResult = solveTargetFAT({ ...solveArgs, targetScore: selectedTargetScore });
+  // Every letter at once — the presets answer one at a time; this row lets the
+  // reader see the whole ladder's FAT price without tapping through each.
+  const fatNeeds = fatNeededForEachGrade(prediction.boundaries, solveArgs);
 
   // The goal, named: at this ladder the chosen percentage lands in this band —
   // the belt between "90" and "grade B" closed.
@@ -272,6 +276,28 @@ export default function TargetGradeSolver({
           <p className="text-xs text-zinc-600 dark:text-zinc-300 font-medium leading-relaxed">
             {solverResult.feasibilityMessage}
           </p>
+          {fatNeeds.length > 0 && (
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-text-muted mb-1.5">
+                {fatExamName} needed per grade
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {fatNeeds.map((need) => (
+                  <button
+                    key={need.grade}
+                    type="button"
+                    onClick={() => handleSelectPreset(need.target)}
+                    aria-label={`${need.grade}: ${need.raw === null ? "out of reach" : `${need.raw} of ${fatMax}`}`}
+                    className="cursor-pointer"
+                  >
+                    <ToneBadge tone={need.raw === null ? "zinc" : need.secured ? "emerald" : "indigo"}>
+                      {need.grade} · {need.raw === null ? "✕" : `${need.raw}/${fatMax}`}
+                    </ToneBadge>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {!solverResult.meetsVITMinimumCutoff && (
             <div className={`${TILE_CARD} flex items-center gap-3`}>
               <span
