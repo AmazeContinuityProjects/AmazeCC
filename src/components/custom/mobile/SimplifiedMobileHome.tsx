@@ -52,6 +52,7 @@ import { isLabFatMarked, labFatPapersByDate, labSlotTokens, type LabFatPaper } f
 import { cn } from "@amazecontinuityprojects/amazeui";
 import { TILE } from "@/lib/uiTokens";
 import TimetableGrid from "../attendance/TimetableGrid";
+import WeekSlotMap from "./WeekSlotMap";
 import DesktopCourseDetail from "../attendance/DesktopCourseDetail";
 import BottomSheet from "../shared/BottomSheet";
 import { useSyncTrigger } from "../shared/useSyncTrigger";
@@ -79,6 +80,10 @@ import {
   weekStripTitle,
 } from "@/lib/weekStrip";
 import TaskBadge from "../tasks/TaskBadge";
+import HomeAttendanceList from "./HomeAttendanceList";
+import { courseColor } from "@amazecontinuityprojects/amazeui";
+import { getAttendanceTimeRange } from "@/lib/attendanceTimetable";
+import { HomeNowNext, HomeDueSoon } from "./HomeTodaySummary";
 import { KIND_CONFIG } from "../tasks/TaskCard";
 import { parseCachedCourses, parseCourseRows, type FreeRoomCourse } from "@/lib/freeClassrooms";
 import { facultyGroupKey } from "../exams/FFCS/logic/facultyGroups";
@@ -147,34 +152,34 @@ function LabFatExamSlot({
   const [open, setOpen] = useState(false);
   const panelId = `labfat-${paper.courseCode}-${paper.slot}`;
   return (
-    <div className="rounded-2xl border border-red-400/60 dark:border-red-800/60 bg-gradient-to-r from-red-500/10 via-white/90 to-amber-500/5 dark:from-red-950/40 dark:via-zinc-900/90 dark:to-amber-950/20 shadow-xs overflow-hidden">
+    <div className="rounded-md border border-danger/60 bg-danger-soft shadow-xs overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen((was) => !was)}
         aria-expanded={open}
         aria-controls={panelId}
         aria-label={`Lab FAT exam slot ${paper.slot} — ${paper.courseTitle || paper.courseCode}`}
-        className="w-full px-4 py-3 flex items-center justify-between gap-3 text-left cursor-pointer active:scale-[0.99] transition-transform"
+        className="w-full px-4 py-3 flex items-center justify-between gap-3 text-left cursor-pointer transition-transform"
       >
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-red-500 text-white shadow-xs shrink-0">
+            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-danger text-white shadow-xs shrink-0">
               Lab FAT
             </span>
-            <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-900/40 shrink-0">
+            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-danger-soft text-danger border border-danger/40 shrink-0">
               {paper.slot}
             </span>
-            <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit truncate">
+            <h3 className="text-sm font-semibold text-ink font-outfit truncate">
               {paper.courseTitle || paper.courseCode}
             </h3>
           </div>
           <div className="mt-1 flex items-center gap-3 text-[11px] text-zinc-600 dark:text-zinc-400 font-semibold min-w-0">
             <span className="inline-flex items-center gap-1 shrink-0">
-              <Clock className="w-3.5 h-3.5 text-red-500" />
+              <Clock className="w-3.5 h-3.5 text-danger" />
               {paper.examTime || time || "Time TBA"}
             </span>
             <span className="inline-flex items-center gap-1 truncate">
-              <Building className="w-3.5 h-3.5 text-red-500 shrink-0" />
+              <Building className="w-3.5 h-3.5 text-danger shrink-0" />
               {paper.venue || "Venue TBA"}
             </span>
           </div>
@@ -193,25 +198,25 @@ function LabFatExamSlot({
             transition={{ duration: 0.22, ease: "easeInOut" }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-3.5 pt-2.5 border-t border-red-200/60 dark:border-red-900/40 grid grid-cols-2 gap-x-3 gap-y-2 text-[11px]">
-              <p className="text-zinc-500 dark:text-zinc-400">
+            <div className="px-4 pb-3.5 pt-2.5 border-t border-danger/60 grid grid-cols-2 gap-x-3 gap-y-2 text-[11px]">
+              <p className="text-muted">
                 Session{" "}
-                <span className="block font-bold text-zinc-800 dark:text-zinc-200">{paper.examSession || "—"}</span>
+                <span className="block font-semibold text-zinc-800 dark:text-zinc-200">{paper.examSession || "—"}</span>
               </p>
-              <p className="text-zinc-500 dark:text-zinc-400">
+              <p className="text-muted">
                 Reporting{" "}
-                <span className="block font-bold text-zinc-800 dark:text-zinc-200">{paper.reportingTime || "—"}</span>
+                <span className="block font-semibold text-zinc-800 dark:text-zinc-200">{paper.reportingTime || "—"}</span>
               </p>
-              <p className="text-zinc-500 dark:text-zinc-400">
+              <p className="text-muted">
                 Seat{" "}
-                <span className="block font-bold text-zinc-800 dark:text-zinc-200">
+                <span className="block font-semibold text-zinc-800 dark:text-zinc-200">
                   {paper.seatNo ? `No. ${paper.seatNo}` : "—"}
                 </span>
               </p>
               <button
                 type="button"
                 onClick={onHallDetails}
-                className="self-center justify-self-end text-xs font-bold text-white bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-xl transition-all shadow-xs cursor-pointer"
+                className="self-center justify-self-end text-xs font-semibold text-white bg-danger hover:bg-danger px-3 py-1.5 rounded-md transition-all shadow-xs cursor-pointer"
               >
                 Hall Details
               </button>
@@ -647,7 +652,7 @@ export default function SimplifiedMobileHome({
         headline: `${criticalCount} Low`,
         subline: `Courses below ${targetAttendancePct}%`,
         badge: "Warning",
-        badgeColor: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
+        badgeColor: "bg-danger-soft text-danger border-danger/20",
         onClick: () => {
           setActiveTab("academics");
           setActiveSubTab("courses-simplified");
@@ -675,7 +680,7 @@ export default function SimplifiedMobileHome({
         headline: nextUpcomingExam.courseCode,
         subline: `${nextUpcomingExam.examDate} • ${nextUpcomingExam.examTime?.split("-")[0] || ""}`,
         badge: nextUpcomingExam.examCategory || "Exam",
-        badgeColor: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+        badgeColor: "bg-ok-soft text-ok border-ok/20",
         onClick: () => {
           setActiveTab("attendance");
           setActiveAttendanceSubTab("calendar");
@@ -789,6 +794,7 @@ export default function SimplifiedMobileHome({
     [insightSlides, settings?.CGPAHidden, settings?.blurGrades],
   );
 
+  // Attendance, credits, shortage alert and the rest stay as the home widgets.
   const allStatTiles = useMemo(() => [attendanceTile, ...secondaryTiles], [attendanceTile, secondaryTiles]);
 
   const hasStatOverflow = allStatTiles.length > statTileCount;
@@ -1216,46 +1222,22 @@ export default function SimplifiedMobileHome({
         <div className="w-full lg:flex-1 lg:min-w-0 space-y-6 text-left">
           {/* ── TOP APP BAR: AVATAR / ICON ABOVE GREETING & CONTROLS ── */}
           <div className="flex items-start justify-between px-1">
-            <div className="flex flex-col items-start min-w-0 text-left">
-              {/* Avatar or AmazeCC Icon Above */}
-              <div className="mb-3">
-                {shouldDisplayProfilePhoto && profileImage ? (
-                  <img
-                    loading="lazy"
-                    src={profileImage}
-                    alt=""
-                    decoding="async"
-                    className="h-10 w-10 sm:h-11 sm:w-11 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 object-cover shadow-xs"
-                  />
-                ) : (
-                  <img
-                    loading="lazy"
-                    src={getAssetPath("/logo.png")}
-                    alt="AmazeCC"
-                    decoding="async"
-                    className="h-10 w-10 sm:h-11 sm:w-11 rounded-2xl object-contain shadow-xs border border-zinc-200/60 dark:border-zinc-800/80 p-0.5 bg-white dark:bg-zinc-900"
-                  />
-                )}
-              </div>
-
-              {/* Multiline Greeting & Name Below */}
-              <p className="text-xs font-semibold text-zinc-400 dark:text-zinc-500 leading-none mb-1">
-                {getGreeting()},
-              </p>
-              <h1 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white tracking-tight leading-tight font-outfit truncate">
-                {profileName}
+            <div className="flex min-w-0 flex-1 flex-col items-stretch pr-2 text-left">
+              <h1 className="truncate text-[22px] font-semibold leading-tight tracking-tight text-ink sm:text-2xl">
+                {getGreeting()}, {(() => { const n = String(profileName || "there").split(" ")[0]; return n.charAt(0).toUpperCase() + n.slice(1).toLowerCase(); })()}
               </h1>
+              <p className="mt-1 text-[13.5px] text-muted">
+                {currentTime.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}
+              </p>
             </div>
 
             {/* Action Controls */}
-            <div className="flex items-center gap-2 pt-0.5">
+            <div className="flex shrink-0 items-center gap-1 pt-0.5">
               {/* Sync Button */}
               <button
                 onClick={handleSyncClick}
-                className={`relative hit-expand px-2.5 py-2.5 rounded-xl transition-all active:scale-95 cursor-pointer shadow-2xs flex items-center gap-1.5 text-xs font-bold ${
-                  isOffline
-                    ? "bg-amber-50 hover:bg-amber-100/80 dark:bg-amber-950/30 dark:hover:bg-amber-900/30 border border-amber-200/70 dark:border-amber-500/30 text-amber-700 dark:text-amber-400"
-                    : "bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300"
+                className={`relative hit-expand flex h-10 min-w-10 items-center justify-center gap-1.5 rounded-full px-2.5 text-[13px] font-medium transition-colors duration-[120ms] cursor-pointer ${
+                  isOffline ? "bg-warn-soft text-warn" : "text-ink-2 hover:bg-surface-2"
                 }`}
                 title={isOffline ? "You're offline — tap for details" : "Sync Data from VTOP"}
                 aria-label={isOffline ? "Offline — tap for details" : "Sync Data from VTOP"}
@@ -1266,22 +1248,46 @@ export default function SimplifiedMobileHome({
                     <span>Offline</span>
                   </>
                 ) : (
-                  <RefreshCcw className={`w-4 h-4 ${isSpinning ? "animate-spin text-indigo-500" : ""}`} />
+                  <RefreshCcw className={`h-[18px] w-[18px] ${isSpinning ? "animate-spin text-accent" : ""}`} strokeWidth={1.8} />
                 )}
               </button>
 
               {/* Spotlight Search */}
               <button
                 onClick={onOpenCommandPalette}
-                className="p-2.5 rounded-xl bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 transition-all active:scale-95 cursor-pointer shadow-2xs"
+                className="hidden h-10 w-10 place-items-center rounded-full text-ink-2 transition-colors duration-[120ms] hover:bg-surface-2 cursor-pointer sm:grid"
                 title="Search (Cmd+K)"
               >
-                <Search className="w-4 h-4" />
+                <Search className="h-[18px] w-[18px]" strokeWidth={1.8} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("profile")}
+                aria-label="Profile"
+                title="Profile"
+                className="ml-1 grid h-10 w-10 place-items-center rounded-full bg-surface-2 text-[13px] font-semibold text-ink-2 transition-colors duration-[120ms] hover:bg-line-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              >
+                {initials}
               </button>
             </div>
           </div>
 
           {/* ── STATS: DYNAMIC MULTI-TILE & CAROUSEL GRID ── */}
+          <HomeNowNext
+            classes={timetableMap[todayDayCode] || []}
+            now={currentTime}
+            onOpenCourse={handleCourseClick}
+          />
+
+          <HomeAttendanceList
+            courses={attendanceData?.attendance}
+            targetPct={targetAttendancePct}
+            onCourseClick={handleCourseClick}
+            onViewAll={() => setActiveTab("attendance")}
+          />
+
+          <HomeDueSoon tasks={tasks} now={currentTime} />
+
           <div
             ref={statsContainerRef}
             className="grid gap-3 sm:gap-4 text-left"
@@ -1298,7 +1304,7 @@ export default function SimplifiedMobileHome({
                   badge={tile.badge}
                   tone={tile.tone}
                   className={cn(
-                    tile.onClick && "transition-all hover:scale-[1.01] active:scale-[0.98] group",
+                    tile.onClick && "transition-all group",
                     tile.blur,
                   )}
                 />
@@ -1314,6 +1320,17 @@ export default function SimplifiedMobileHome({
               />
             )}
           </div>
+
+          <WeekSlotMap
+            map={timetableMap as any}
+            today={todayDayCode}
+            now={currentTime}
+            selectedDay={weekOffset === 0 ? selectedDay : undefined}
+            onSelectDay={(d) => {
+              setWeekOffset(0);
+              setSelectedDay(d as AttendanceDay);
+            }}
+          />
 
           {/* ── TIMETABLE & INTEGRATED ACADEMIC CALENDAR SECTION ── */}
           <div className="space-y-4 text-left">
@@ -1339,7 +1356,7 @@ export default function SimplifiedMobileHome({
               <div className="flex items-center gap-2 flex-wrap min-w-0">
                 <div className="flex items-center gap-1.5 min-w-0">
                   <CalendarDays className="w-4 h-4 text-indigo-500 shrink-0" />
-                  <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight truncate">
+                  <h2 className="text-sm font-semibold text-ink font-outfit tracking-tight truncate">
                     {calendarWeekHeader}
                   </h2>
                 </div>
@@ -1390,7 +1407,7 @@ export default function SimplifiedMobileHome({
                         if (weekOffset !== 0) goToWeek(0, 0 < weekOffset ? 1 : -1);
                         setSelectedDay(todayDayCode);
                       }}
-                      className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/40 ml-1 cursor-pointer"
+                      className="text-[11px] font-semibold px-2 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/40 ml-1 cursor-pointer"
                       title="Back to today"
                     >
                       Today
@@ -1438,7 +1455,7 @@ export default function SimplifiedMobileHome({
             the date for the same band. The words now live in the title and the
             sub-header below; the circle only says "there is something here".
 
-            The circles sit straight on the page — the `rounded-2xl bg-zinc-100`
+            The circles sit straight on the page — the `rounded-md bg-zinc-100`
             plate they used to be pinned to is gone, so every one of them draws
             its own fill and its own hairline (`WEEK_STRIP_TINT`). That is what
             the negative space is for: a row of discs with room around the
@@ -1469,7 +1486,7 @@ export default function SimplifiedMobileHome({
                   // this is a 900px column where a stretched circle would be a
                   // swimming pool. `justify-self` parks the capped circle in the
                   // middle of its track.
-                  className="grid grid-cols-7 gap-0.5 sm:gap-1.5"
+                  className="grid grid-cols-7 gap-1 sm:gap-2"
                 >
                   {weekDays.map((item) => {
                     const isSelected = selectedDay === item.dayCode;
@@ -1481,6 +1498,9 @@ export default function SimplifiedMobileHome({
                     // Tuesday" for attention, and the emerald ring still marks it.
                     const ink = flavour === "teaching" && item.isToday && !isSelected ? TODAY_INK : tint.ink;
                     const title = weekStripTitle(item, count);
+                    // A weekend with nothing on it recedes so the working week reads first.
+                    const isQuietDay =
+                      flavour === "teaching" && count === 0 && (item.dayCode === "SAT" || item.dayCode === "SUN");
                     const labFatNote = item.isLabFatDay ? " · Lab FAT" : "";
 
                     return (
@@ -1490,27 +1510,43 @@ export default function SimplifiedMobileHome({
                         onClick={() => setSelectedDay(item.dayCode)}
                         title={`${title}${labFatNote}`}
                         aria-label={`${title}${labFatNote}${weekStripExamNote(item.exams.length)}`}
-                        // A circle navigates, it does not toggle: `aria-current`
-                        // is the honest annotation, and the selection ring is
-                        // visual only.
                         aria-current={item.isToday ? "date" : undefined}
+                        aria-pressed={isSelected}
                         className={cn(
-                          "w-full max-w-[46px] aspect-square justify-self-center rounded-full border flex flex-col items-center justify-center gap-1 transition-all duration-150 cursor-pointer active:scale-95",
-                          tint.fill,
-                          tint.edge,
+                          "relative flex h-[58px] w-full max-w-[52px] flex-col items-center justify-center gap-1 justify-self-center rounded-sm border transition-colors duration-[120ms] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
                           isSelected
-                            ? cn(SELECTED_RING, "scale-105")
-                            : item.isToday
-                              ? TODAY_RING
-                              : "hover:bg-zinc-100 dark:hover:bg-zinc-800/60",
+                            ? SELECTED_RING
+                            : cn(tint.fill, item.isToday && flavour === "teaching" ? TODAY_RING : tint.edge, "hover:bg-surface-2"),
                         )}
                       >
-                        <span className="text-[10px] font-bold uppercase tracking-wider leading-none text-zinc-400 dark:text-zinc-500">
-                          {item.dayCode}
+                        <span
+                          className={cn(
+                            "text-[11.5px] leading-none",
+                            isSelected ? "text-background/80" : isQuietDay ? "text-muted/70" : "text-muted",
+                          )}
+                        >
+                          {item.dayCode.charAt(0) + item.dayCode.slice(1).toLowerCase()}
                         </span>
-                        <span className={cn("text-[15px] font-black font-outfit leading-none", ink)}>
+                        <span
+                          className={cn(
+                            "font-mono text-[17px] font-semibold leading-none tabular-nums",
+                            isSelected ? "text-background" : isQuietDay ? "text-muted" : ink,
+                          )}
+                        >
                           {item.dayNumber}
                         </span>
+                        {item.isToday && !isSelected && (
+                          <span aria-hidden="true" className="absolute bottom-1.5 h-1 w-1 rounded-full bg-accent" />
+                        )}
+                        {flavour !== "teaching" && (
+                          <span
+                            aria-hidden="true"
+                            className={cn(
+                              "absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full",
+                              flavour === "exam" ? "bg-warn" : flavour === "holiday" ? "bg-danger" : "bg-accent",
+                            )}
+                          />
+                        )}
                       </button>
                     );
                   })}
@@ -1521,13 +1557,13 @@ export default function SimplifiedMobileHome({
             {/* Selected Day Sub-Header */}
             <div className="flex items-center justify-between px-1 pt-1">
               <div>
-                <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
+                <h3 className="text-sm font-semibold text-ink font-outfit">
                   {getSelectedDayFormattedDate()}
                 </h3>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+                <p className="text-xs text-muted font-medium">
                   {isLabFatDay ? (
                     <span className="inline-flex items-center gap-1.5">
-                      <span className="font-extrabold text-red-600 dark:text-red-400">
+                      <span className="font-semibold text-danger">
                         Lab FAT{selectedDayLabFat.length > 1 ? ` ×${selectedDayLabFat.length}` : ""}
                       </span>
                       {stillOnCount > 0
@@ -1550,7 +1586,7 @@ export default function SimplifiedMobileHome({
                     setActiveTab("attendance");
                     setActiveAttendanceSubTab("calendar");
                   }}
-                  className="sm:hidden text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50/70 dark:bg-indigo-950/30 px-2.5 py-1 rounded-xl"
+                  className="sm:hidden text-[13px] font-medium text-accent hover:underline"
                 >
                   Calendar
                 </button>
@@ -1559,12 +1595,12 @@ export default function SimplifiedMobileHome({
 
             {/* Day Order Override Banner (Auto-detected from Academic Calendar) */}
             {selectedDayMeta?.orderInfo && !isExamDay && !isHolidayOrOff && (
-              <div className="p-3 rounded-2xl bg-indigo-50/80 dark:bg-indigo-950/30 border border-indigo-200/80 dark:border-indigo-900/40 text-xs font-bold text-indigo-700 dark:text-indigo-300 flex items-center justify-between">
+              <div className="p-3 rounded-md bg-indigo-50/80 dark:bg-indigo-950/30 border border-indigo-200/80 dark:border-indigo-900/40 text-xs font-semibold text-indigo-700 dark:text-indigo-300 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-indigo-500 shrink-0" />
                   <span>{selectedDayMeta.orderInfo} (Applied)</span>
                 </div>
-                <span className="text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-md bg-indigo-500/15 text-indigo-600 dark:text-indigo-400">
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-indigo-500/15 text-indigo-600 dark:text-indigo-400">
                   Calendar Auto
                 </span>
               </div>
@@ -1576,60 +1612,60 @@ export default function SimplifiedMobileHome({
                 {selectedDayMeta.exams.map((ex: any, idx: number) => (
                   <div
                     key={`${ex.courseCode}-${ex.classId || idx}`}
-                    className="p-5 sm:p-6 rounded-[28px] bg-gradient-to-br from-red-500/10 via-white/90 to-amber-500/10 dark:from-red-950/30 dark:via-zinc-900/90 dark:to-amber-950/20 backdrop-blur-xl border border-red-500/30 dark:border-red-800/40 shadow-lg text-left space-y-4"
+                    className="p-5 sm:p-6 rounded-lg bg-danger-soft border border-danger/30 shadow-lg text-left space-y-4"
                   >
                     {/* Exam Header */}
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-black uppercase tracking-wider px-3 py-1 rounded-xl bg-red-500 text-white shadow-xs">
+                        <span className="text-xs font-semibold px-3 py-1 rounded-md bg-danger text-white shadow-xs">
                           {ex.examCategory || "Exam Day"}
                         </span>
                         {ex.examSession && (
-                          <span className="text-xs font-extrabold text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-950/50 px-2.5 py-1 rounded-xl border border-red-200 dark:border-red-900/50">
+                          <span className="text-xs font-semibold text-danger bg-danger-soft px-2.5 py-1 rounded-md border border-danger/40">
                             Session: {ex.examSession}
                           </span>
                         )}
                       </div>
-                      <span className="text-xs font-bold text-zinc-400 dark:text-zinc-500">Slot {ex.slot || "—"}</span>
+                      <span className="text-xs font-semibold text-zinc-400 dark:text-zinc-500">Slot {ex.slot || "—"}</span>
                     </div>
 
                     {/* Course Details */}
                     <div>
-                      <h2 className="text-lg sm:text-xl font-black text-zinc-900 dark:text-white font-outfit leading-snug">
+                      <h2 className="text-lg sm:text-xl font-semibold text-ink font-outfit leading-snug">
                         {ex.courseTitle || "Course Examination"}
                       </h2>
-                      <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 mt-1">{ex.courseCode}</p>
+                      <p className="text-xs font-semibold text-muted mt-1">{ex.courseCode}</p>
                     </div>
 
                     {/* Timing, Venue & Seating Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-red-200/50 dark:border-red-900/30">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-danger/50">
                       <div className="space-y-1.5">
                         <div className="flex items-center gap-2 text-xs text-zinc-700 dark:text-zinc-300 font-semibold">
-                          <Clock className="w-4 h-4 text-red-500 shrink-0" />
+                          <Clock className="w-4 h-4 text-danger shrink-0" />
                           <span>{ex.examTime || "Morning Session"}</span>
                         </div>
                         {ex.reportingTime && (
-                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 pl-6">
+                          <p className="text-[11px] text-muted pl-6">
                             Reporting:{" "}
-                            <span className="font-bold text-zinc-800 dark:text-zinc-200">{ex.reportingTime}</span>
+                            <span className="font-semibold text-zinc-800 dark:text-zinc-200">{ex.reportingTime}</span>
                           </p>
                         )}
                       </div>
 
                       <div className="space-y-1.5">
                         <div className="flex items-center gap-2 text-xs text-zinc-700 dark:text-zinc-300 font-semibold">
-                          <Building className="w-4 h-4 text-red-500 shrink-0" />
+                          <Building className="w-4 h-4 text-danger shrink-0" />
                           <span>
                             Venue:{" "}
-                            <strong className="text-zinc-900 dark:text-white font-bold">
+                            <strong className="text-ink font-semibold">
                               {ex.venue || "Hall Assigned"}
                             </strong>
                           </span>
                         </div>
                         {(ex.seatNo || ex.seatLocation) && (
-                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 pl-6">
+                          <p className="text-[11px] text-muted pl-6">
                             Seat:{" "}
-                            <strong className="text-zinc-900 dark:text-white font-bold">No. {ex.seatNo || "—"}</strong>{" "}
+                            <strong className="text-ink font-semibold">No. {ex.seatNo || "—"}</strong>{" "}
                             ({ex.seatLocation || "Row"})
                           </p>
                         )}
@@ -1638,7 +1674,7 @@ export default function SimplifiedMobileHome({
 
                     {/* Footer Action */}
                     <div className="pt-2 flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-red-600 dark:text-red-400">
+                      <span className="text-[11px] font-semibold text-danger">
                         No regular lectures on exam day
                       </span>
                       <button
@@ -1646,7 +1682,7 @@ export default function SimplifiedMobileHome({
                           setActiveTab("academics");
                           setActiveSubTab("schedule");
                         }}
-                        className="text-xs font-bold text-white bg-red-600 hover:bg-red-700 px-3.5 py-1.5 rounded-xl transition-all shadow-xs cursor-pointer"
+                        className="text-xs font-semibold text-white bg-danger hover:bg-danger px-3.5 py-1.5 rounded-md transition-all shadow-xs cursor-pointer"
                       >
                         Hall Details
                       </button>
@@ -1668,7 +1704,7 @@ export default function SimplifiedMobileHome({
                         setActiveTab("attendance");
                         setActiveAttendanceSubTab("calendar");
                       }}
-                      className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/30 px-4 py-2 rounded-xl active:scale-95 transition-all cursor-pointer"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/30 px-4 py-2 rounded-md transition-all cursor-pointer"
                     >
                       <CalendarIcon className="w-3.5 h-3.5" /> View Academic Calendar
                     </button>
@@ -1677,37 +1713,31 @@ export default function SimplifiedMobileHome({
               />
             ) : dayRows.length === 0 ? (
               /* ── VIEWPORT STATE 3: FREE DAY (NO CLASSES SCHEDULED) ── */
-              <div className="p-8 rounded-[28px] card-surface border border-zinc-200/60 dark:border-zinc-800/80 text-center space-y-3 shadow-2xs">
-                <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center mx-auto text-indigo-500">
-                  <Coffee className="w-6 h-6" />
+              <div className="flex items-center justify-between gap-3 rounded-md border border-dashed border-line px-4 py-3.5 text-left">
+                <div className="flex min-w-0 items-center gap-3">
+                  <Coffee aria-hidden="true" className="h-5 w-5 shrink-0 text-muted" strokeWidth={1.7} />
+                  <div className="min-w-0">
+                    <h3 className="text-[14.5px] font-semibold text-ink">No classes</h3>
+                    <p className="text-[12.5px] text-muted">Nothing scheduled for this day.</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-black text-sm text-zinc-900 dark:text-white font-outfit">
-                    No classes on {selectedDay}!
-                  </h3>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 max-w-xs mx-auto">
-                    No lectures or lab sessions are scheduled for this day. Enjoy your free time or check free
-                    classrooms.
-                  </p>
-                </div>
-                <div className="flex justify-center gap-2 pt-1">
-                  <button
-                    onClick={() => {
-                      // Free Classrooms lives in Tools, so it is opened there
-                      // directly rather than through an Academics value that
-                      // Dashboard used to translate into a Tools section switch.
-                      setActiveTab("tools");
-                      setActiveToolsSubTab?.("free-class");
-                    }}
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/30 px-3.5 py-2 rounded-xl active:scale-95 transition-all cursor-pointer"
-                  >
-                    Free Classrooms <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Free Classrooms lives in Tools, so it is opened there
+                    // directly rather than through an Academics value that
+                    // Dashboard used to translate into a Tools section switch.
+                    setActiveTab("tools");
+                    setActiveToolsSubTab?.("free-class");
+                  }}
+                  className="shrink-0 text-[13px] font-medium text-accent hover:underline"
+                >
+                  Free rooms
+                </button>
               </div>
             ) : (
               /* ── VIEWPORT STATE 4: REGULAR TIMETABLE CLASSES ── */
-              <div className="space-y-3">
+              <div className="space-y-1.5">
                 {dayRows.map((row: any, index: number) => {
                   // A lab slot taken over by its Lab FAT paper renders as the
                   // collapsed exam slot, in the class's own place in the list.
@@ -1762,9 +1792,9 @@ export default function SimplifiedMobileHome({
                   // other linked-task state gets the softer amber treatment.
                   const taskBorderClass =
                     taskSummary.today.tests > 0 && taskSummary.today.sessionTotal > 0
-                      ? "border-red-400 dark:border-red-500/60 ring-1 ring-red-500/20"
+                      ? "border-danger/40 ring-1 ring-danger/20"
                       : taskSummary.total > 0
-                        ? "border-amber-400 dark:border-amber-500/60 ring-1 ring-amber-500/20"
+                        ? "border-warn/40 ring-1 ring-warn/20"
                         : "";
 
                   const isSelectedCourse = Boolean(
@@ -1781,113 +1811,114 @@ export default function SimplifiedMobileHome({
                   );
 
                   if (pillStyle === "compact") {
-                    /* ── OPTION A: COMPACT 2-LINE PILL (HIGH DENSITY WITH PERCENTAGE ON RIGHT) ── */
+                    /* ── OPTION A: CALM NOTEBOOK TIMELINE (canvas "Timetable" day view) ──
+                       Time in a mono column, the class as a block with its course
+                       rail, a red now-line, and dashed free gaps between classes. */
+                    const hm = (m: number) =>
+                      `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+                    const startMin = clsTimeRange?.start ?? 0;
+                    const endMin = clsTimeRange?.end ?? 0;
+                    const prevRow = index > 0 ? dayRows[index - 1] : null;
+                    const prevEnd =
+                      prevRow && prevRow.kind === "class"
+                        ? getAttendanceTimeRange(String(prevRow.cls?.time || "")).end
+                        : null;
+                    const gap = prevEnd != null && startMin > prevEnd ? startMin - prevEnd : 0;
+                    const nowMin = currentTime.getHours() * 60 + currentTime.getMinutes();
+                    const showNowBefore =
+                      isTodayView && !isLive && isUpcoming && (prevEnd == null || nowMin >= prevEnd) && nowMin < startMin;
+                    const pctLow = total > 0 && currentPct < targetAttendancePct;
+                    const nowLine = (
+                      <div className="grid grid-cols-[52px_minmax(0,1fr)] items-center gap-3" aria-hidden="true">
+                        <span className="font-mono text-[11.5px] font-semibold text-danger">{hm(nowMin)}</span>
+                        <span className="relative block h-[1.5px] bg-danger">
+                          <span className="absolute -left-1 -top-[3px] h-2 w-2 rounded-full bg-danger" />
+                        </span>
+                      </div>
+                    );
                     return (
-                      <div
-                        key={`${cls.courseCode}-${cls.slotName}-${index}`}
-                        onClick={() => handleCourseClick(cls.courseCode)}
-                        className={`relative overflow-hidden rounded-2xl transition-all duration-200 cursor-pointer text-left border ${taskBorderClass} ${
-                          isSelectedCourse ? "lg:ring-2 lg:ring-indigo-500/80 lg:border-indigo-500 shadow-sm" : ""
-                        } ${
-                          isLive
-                            ? "bg-white dark:bg-zinc-900 border-indigo-500 dark:border-indigo-500 shadow-md ring-1 ring-indigo-500/20"
-                            : isCompleted
-                              ? "bg-zinc-50/70 dark:bg-zinc-900/40 border-zinc-200/50 dark:border-zinc-800 opacity-75 hover:opacity-100"
-                              : "card-surface border-zinc-200/70 dark:border-zinc-800/80 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700"
-                        } hover:scale-[1.006] active:scale-[0.99]`}
-                      >
-                        {/* Live Progress Background Fill Bar */}
-                        {isLive && (
-                          <div
-                            className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-indigo-500/15 to-emerald-500/15 pointer-events-none transition-all duration-700 ease-linear"
-                            style={{ width: `${progressPct}%` }}
-                          />
+                      <div key={`${cls.courseCode}-${cls.slotName}-${index}`} className="space-y-1.5">
+                        {gap >= 60 && (
+                          <div className="grid grid-cols-[52px_minmax(0,1fr)] gap-3">
+                            <span className="pt-2 font-mono text-[12.5px] text-muted">{hm(prevEnd as number)}</span>
+                            <div className="flex items-center justify-between gap-2 rounded-sm border border-dashed border-line px-3 py-2 text-[12.5px] text-muted">
+                              <span>
+                                Free · {gap >= 60 ? `${Math.floor(gap / 60)} h${gap % 60 ? ` ${gap % 60} min` : ""}` : `${gap} min`}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={handleOpenFreeClassrooms}
+                                className="text-accent hover:underline"
+                              >
+                                Free classrooms
+                              </button>
+                            </div>
+                          </div>
                         )}
-
-                        <div className="relative py-3 px-4 z-10 flex items-center justify-between gap-3">
-                          {/* Left: 2 Lines of info */}
-                          <div className="min-w-0 flex-1">
-                            {/* Line 1: Slot + Title + Status */}
-                            <div className="flex items-center gap-2 min-w-0">
-                              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 shrink-0 border border-indigo-100 dark:border-indigo-900/30">
-                                {cls.slotName}
-                              </span>
-                              <h3
-                                className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight"
-                                title={cls.courseTitle}
-                              >
-                                {cls.courseTitle}
-                              </h3>
-                              {isLive && (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500 text-white shrink-0 shadow-2xs animate-pulse [animation-duration:2.5s]">
-                                  <span className="w-1 h-1 rounded-full bg-white animate-ping [animation-duration:2.5s]" />
-                                  Live ({minutesLeft}m)
-                                </span>
-                              )}
-                              {isCompleted && (
-                                <span className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800/60 px-1.5 py-0.2 rounded shrink-0">
-                                  Done
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Line 2: Time • Venue • Bunkable count */}
-                            <div className="flex items-center gap-2 mt-1.5 text-[11px] text-zinc-500 dark:text-zinc-400 flex-wrap">
-                              <span className="flex items-center gap-1 font-semibold text-zinc-700 dark:text-zinc-300 shrink-0">
-                                <Clock className="w-3 h-3 text-indigo-500" />
-                                {cls.time}
-                              </span>
-                              <span className="text-zinc-300 dark:text-zinc-700">•</span>
-                              <span className="flex items-center gap-1 shrink-0 font-medium text-zinc-600 dark:text-zinc-400">
-                                <MapPin className="w-3 h-3 text-zinc-400" />
-                                {cls.slotVenue || "Room Assigned"}
-                              </span>
-                              {cls.faculty && (
-                                <>
-                                  <span className="text-zinc-300 dark:text-zinc-700">•</span>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      const erp = getFacultyErp(cls);
-                                      handleOpenFacultySchedule(erp || cls.faculty);
-                                    }}
-                                    className="inline-flex items-center gap-1 font-semibold text-zinc-600 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer truncate max-w-[140px]"
-                                    title="View faculty timetable schedule"
-                                  >
-                                    <span className="truncate">{cls.faculty}</span>
-                                    {getFacultyErp(cls) && (
-                                      <span className="text-[9px] font-mono px-1 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500">
-                                        #{getFacultyErp(cls)}
+                        {showNowBefore && nowLine}
+                        <div className="grid grid-cols-[52px_minmax(0,1fr)] gap-3">
+                          <span className={cn("pt-2.5 font-mono text-[12.5px]", isLive ? "font-semibold text-ink" : "text-muted")}>
+                            {clsTimeRange ? hm(startMin) : cls.time}
+                          </span>
+                          <div
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => handleCourseClick(cls.courseCode)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                handleCourseClick(cls.courseCode);
+                              }
+                            }}
+                            className={cn(
+                              "relative overflow-hidden rounded-sm border bg-surface py-2.5 pl-3.5 pr-3 text-left transition-colors duration-[120ms] cursor-pointer hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+                              isLive ? "border-accent/60" : "border-line",
+                              isCompleted && "opacity-60 hover:opacity-100",
+                              taskBorderClass,
+                              isSelectedCourse && "lg:border-accent",
+                            )}
+                          >
+                            <span
+                              aria-hidden="true"
+                              className="absolute inset-y-0 left-0 w-[3px]"
+                              style={{ background: courseColor(String(cls.courseCode || cls.slotName || "x")) }}
+                            />
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="truncate text-[14px] font-semibold text-ink">
+                                  {cls.courseTitle || cls.courseCode}
+                                </p>
+                                <p className="truncate font-mono text-[12.5px] text-muted">
+                                  {[cls.venue, cls.slotName, clsTimeRange ? `${hm(startMin)}–${hm(endMin)}` : cls.time]
+                                    .filter(Boolean)
+                                    .map((part: string, i: number) => (
+                                      <span key={i}>
+                                        {i > 0 && <span aria-hidden="true"> · </span>}
+                                        <span>{part}</span>
                                       </span>
-                                    )}
-                                  </button>
-                                </>
-                              )}
-                              <span className="text-zinc-300 dark:text-zinc-700">•</span>
-                              <span
-                                className={`font-bold inline-flex items-center gap-1 px-1.5 py-0.2 rounded-md text-[10.5px] ${
-                                  bunkStatus === "safe"
-                                    ? "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30"
-                                    : bunkStatus === "warning"
-                                      ? "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30"
-                                      : "text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/30"
-                                }`}
-                              >
+                                    ))}
+                                </p>
+                              </div>
+                              {total > 0 && (
                                 <span
-                                  className={`w-1.5 h-1.5 rounded-full ${
-                                    bunkStatus === "safe"
-                                      ? "bg-emerald-500"
-                                      : bunkStatus === "warning"
-                                        ? "bg-amber-500"
-                                        : "bg-red-500"
-                                  }`}
-                                />
-                                {bunkText}
-                              </span>
+                                  className={cn(
+                                    "shrink-0 pt-0.5 font-mono text-[12.5px] tabular-nums",
+                                    pctLow ? "text-danger" : "text-muted",
+                                  )}
+                                  title={bunkText}
+                                >
+                                  {Math.round(currentPct)}%
+                                </span>
+                              )}
                             </div>
-
-                            {/* Line 3: Task Badge if pending */}
+                            {isLive && (
+                              <p className="mt-1.5 text-[12px] text-accent">
+                                Now · {minutesLeft} min left
+                              </p>
+                            )}
+                            {!isLive && isUpcoming && minutesUntilStart > 0 && minutesUntilStart <= 60 && (
+                              <p className="mt-1.5 text-[12px] text-muted">In {minutesUntilStart} min</p>
+                            )}
                             {showTaskBadgeInline && taskSummary.total > 0 && (
                               <div className="mt-1.5 flex items-center gap-1.5">
                                 <TaskBadge
@@ -1900,35 +1931,8 @@ export default function SimplifiedMobileHome({
                               </div>
                             )}
                           </div>
-
-                          {/* Right: Attendance Percentage & Ratio */}
-                          <div className="text-right shrink-0 flex flex-col items-end justify-center pl-2">
-                            <span
-                              className={`text-base font-black font-outfit tracking-tight leading-none ${
-                                currentPct >= targetAttendancePct + 5
-                                  ? "text-emerald-600 dark:text-emerald-400"
-                                  : currentPct >= targetAttendancePct
-                                    ? "text-amber-600 dark:text-amber-400"
-                                    : "text-red-600 dark:text-red-400"
-                              }`}
-                            >
-                              {currentPct.toFixed(0)}%
-                            </span>
-                            <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 mt-0.5">
-                              {attended}/{total}
-                            </span>
-                          </div>
                         </div>
-
-                        {/* Progress Bar for Ongoing Class */}
-                        {isLive && (
-                          <div className="w-full bg-zinc-100 dark:bg-zinc-800 h-1 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500 rounded-full transition-all duration-700 ease-linear"
-                              style={{ width: `${progressPct}%` }}
-                            />
-                          </div>
-                        )}
+                        {isLive && nowLine}
                       </div>
                     );
                   }
@@ -1938,20 +1942,20 @@ export default function SimplifiedMobileHome({
                     <div
                       key={`${cls.courseCode}-${cls.slotName}-${index}`}
                       onClick={() => handleCourseClick(cls.courseCode)}
-                      className={`relative overflow-hidden rounded-[24px] transition-all duration-300 cursor-pointer text-left border ${taskBorderClass} ${
+                      className={`relative overflow-hidden rounded-lg transition-all duration-300 cursor-pointer text-left border ${taskBorderClass} ${
                         isSelectedCourse ? "lg:ring-2 lg:ring-indigo-500/80 lg:border-indigo-500 shadow-sm" : ""
                       } ${
                         isLive
-                          ? "bg-white dark:bg-zinc-900 border-indigo-500 dark:border-indigo-500 shadow-md ring-1 ring-indigo-500/20"
+                          ? "bg-surface border-indigo-500 dark:border-indigo-500 shadow-md ring-1 ring-indigo-500/20"
                           : isCompleted
-                            ? "bg-zinc-50/70 dark:bg-zinc-900/40 border-zinc-200/50 dark:border-zinc-800 opacity-75 hover:opacity-100"
-                            : "card-surface border-zinc-200/70 dark:border-zinc-800/80 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700"
-                      } hover:scale-[1.008] active:scale-[0.99]`}
+                            ? "bg-surface-2 border-zinc-200/50 dark:border-zinc-800 opacity-75 hover:opacity-100"
+                            : "card-surface border-line shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700"
+                      }`}
                     >
                       {/* Dynamic Progress Fill Bar */}
                       {isLive && (
                         <div
-                          className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-indigo-500/15 to-violet-500/20 pointer-events-none transition-all duration-700 ease-linear"
+                          className="absolute inset-0 bg-indigo-500/10 pointer-events-none transition-all duration-700 ease-linear"
                           style={{ width: `${progressPct}%` }}
                         />
                       )}
@@ -1961,25 +1965,25 @@ export default function SimplifiedMobileHome({
                         {/* Top Row: Slot & Status Badges */}
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xs font-black tracking-wider uppercase px-2.5 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/30">
+                            <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/30">
                               {cls.slotName}
                             </span>
 
                             {isLive && (
-                              <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.8 rounded-xl bg-emerald-500 text-white shadow-xs animate-pulse [animation-duration:2.5s]">
-                                <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping [animation-duration:2.5s]" />
+                              <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-0.8 rounded-md bg-ok text-white shadow-xs animate-pulse [animation-duration:2.5s]">
+                                <span className="w-1.5 h-1.5 rounded-full bg-surface animate-ping [animation-duration:2.5s]" />
                                 Live ({minutesLeft}m left)
                               </span>
                             )}
 
                             {isUpcoming && selectedDay === todayDayCode && weekOffset === 0 && (
-                              <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-lg">
+                              <span className="text-[11px] font-semibold text-muted bg-surface-2 px-2 py-0.5 rounded-lg">
                                 {minutesUntilStart <= 60 ? `In ${minutesUntilStart} mins` : `Upcoming`}
                               </span>
                             )}
 
                             {isCompleted && (
-                              <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800/60 px-2 py-0.5 rounded-lg flex items-center gap-1">
+                              <span className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 bg-surface-2 px-2 py-0.5 rounded-lg flex items-center gap-1">
                                 <CheckCircle2 className="w-3 h-3 text-zinc-400" /> Done
                               </span>
                             )}
@@ -1987,16 +1991,16 @@ export default function SimplifiedMobileHome({
 
                           {/* Course Attendance % Badge */}
                           <div className="flex items-center gap-1.5 shrink-0">
-                            <span className="text-[11px] font-bold text-zinc-400 dark:text-zinc-500">
+                            <span className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500">
                               {attended}/{total}
                             </span>
                             <span
-                              className={`text-xs font-black px-2 py-0.5 rounded-lg font-outfit ${
+                              className={`text-xs font-semibold px-2 py-0.5 rounded-lg font-outfit ${
                                 currentPct >= targetAttendancePct + 5
-                                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                  ? "bg-ok-soft text-ok"
                                   : currentPct >= targetAttendancePct
-                                    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                                    : "bg-red-500/10 text-red-600 dark:text-red-400"
+                                    ? "bg-warn-soft text-warn"
+                                    : "bg-danger-soft text-danger"
                               }`}
                             >
                               {currentPct.toFixed(0)}%
@@ -2006,7 +2010,7 @@ export default function SimplifiedMobileHome({
 
                         {/* Middle Row: Title & Course Meta */}
                         <div>
-                          <h3 className="font-extrabold text-base text-zinc-900 dark:text-white leading-snug font-outfit">
+                          <h3 className="font-semibold text-base text-ink leading-snug font-outfit">
                             {cls.courseTitle}
                           </h3>
                           <p className="text-xs text-zinc-400 dark:text-zinc-500 font-semibold mt-1 flex items-center gap-2 flex-wrap">
@@ -2019,14 +2023,14 @@ export default function SimplifiedMobileHome({
                                 const erp = getFacultyErp(cls);
                                 handleOpenFacultySchedule(erp || cls.faculty);
                               }}
-                              className="inline-flex items-center gap-1.5 font-bold text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer group/fac"
+                              className="inline-flex items-center gap-1.5 font-semibold text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer group/fac"
                               title="View faculty timetable schedule"
                             >
                               <span className="truncate group-hover/fac:underline underline-offset-2">
                                 {cls.faculty || "Faculty Assigned"}
                               </span>
                               {getFacultyErp(cls) && (
-                                <span className="text-[10px] font-mono px-1 py-0.2 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200/50 dark:border-zinc-700/50">
+                                <span className="text-[11px] font-mono px-1 py-0.2 rounded bg-surface-2 text-muted border border-zinc-200/50 dark:border-zinc-700/50">
                                   #{getFacultyErp(cls)}
                                 </span>
                               )}
@@ -2038,13 +2042,13 @@ export default function SimplifiedMobileHome({
                         <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                           {/* Time & Venue */}
                           <div className="flex items-center gap-3.5 text-xs text-zinc-600 dark:text-zinc-300 font-medium">
-                            <span className="flex items-center gap-1.5 shrink-0 font-bold">
+                            <span className="flex items-center gap-1.5 shrink-0 font-semibold">
                               <Clock className="w-3.5 h-3.5 text-indigo-500" />
                               {cls.time}
                             </span>
                             <span className="flex items-center gap-1.5 shrink-0">
                               <MapPin className="w-3.5 h-3.5 text-zinc-400" />
-                              <span className="font-bold text-zinc-800 dark:text-zinc-200">
+                              <span className="font-semibold text-zinc-800 dark:text-zinc-200">
                                 {cls.slotVenue || "Room Assigned"}
                               </span>
                             </span>
@@ -2053,21 +2057,21 @@ export default function SimplifiedMobileHome({
                           {/* Bunkable Classes Subtext Indicator */}
                           <div className="flex items-center gap-1.5">
                             <span
-                              className={`text-xs font-bold px-2.5 py-1 rounded-xl flex items-center gap-1.5 ${
+                              className={`text-xs font-semibold px-2.5 py-1 rounded-md flex items-center gap-1.5 ${
                                 bunkStatus === "safe"
-                                  ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-900/30"
+                                  ? "bg-ok-soft text-ok border border-ok/50"
                                   : bunkStatus === "warning"
-                                    ? "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200/50 dark:border-amber-900/30"
-                                    : "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border border-red-200/50 dark:border-red-900/30"
+                                    ? "bg-warn-soft text-warn border border-warn/50"
+                                    : "bg-danger-soft text-danger border border-danger/50"
                               }`}
                             >
                               <span
                                 className={`w-1.5 h-1.5 rounded-full ${
                                   bunkStatus === "safe"
-                                    ? "bg-emerald-500"
+                                    ? "bg-ok"
                                     : bunkStatus === "warning"
-                                      ? "bg-amber-500"
-                                      : "bg-red-500"
+                                      ? "bg-warn"
+                                      : "bg-danger"
                                 }`}
                               />
                               {bunkText}
@@ -2087,9 +2091,9 @@ export default function SimplifiedMobileHome({
 
                         {/* Progress Bar for Ongoing Class */}
                         {isLive && (
-                          <div className="w-full bg-zinc-100 dark:bg-zinc-800 h-1.5 rounded-full overflow-hidden mt-1">
+                          <div className="w-full bg-surface-2 h-1.5 rounded-full overflow-hidden mt-1">
                             <div
-                              className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500 rounded-full transition-all duration-700 ease-linear"
+                              className="h-full bg-indigo-500 rounded-full transition-all duration-700 ease-linear"
                               style={{ width: `${progressPct}%` }}
                             />
                           </div>
@@ -2121,10 +2125,10 @@ export default function SimplifiedMobileHome({
                     <div className="flex items-center justify-between px-1">
                       <div className="flex items-center gap-2">
                         <Clock className="w-4 h-4 text-indigo-500" />
-                        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
+                        <h3 className="text-sm font-semibold text-ink font-outfit">
                           Today&apos;s Tasks &amp; Schedule
                         </h3>
-                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-surface-2 text-zinc-600 dark:text-zinc-300">
                           {todayTasks.length}
                         </span>
                       </div>
@@ -2134,7 +2138,7 @@ export default function SimplifiedMobileHome({
                           setActiveTab("tools");
                           setActiveToolsSubTab?.("tasks");
                         }}
-                        className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                        className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
                       >
                         View All Tasks
                       </button>
@@ -2153,19 +2157,19 @@ export default function SimplifiedMobileHome({
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-1.5 mb-1">
                               <span
-                                className={`text-[9.5px] font-extrabold uppercase px-1.5 py-0.2 rounded border ${
+                                className={`text-[9.5px] font-semibold px-1.5 py-0.2 rounded border ${
                                   (KIND_CONFIG[t.kind] || KIND_CONFIG.homework).badgeClass
                                 }`}
                               >
                                 {(KIND_CONFIG[t.kind] || KIND_CONFIG.homework).label}
                               </span>
                               {t.courseCode && (
-                                <span className="text-[10px] font-bold text-zinc-600 dark:text-zinc-400">
+                                <span className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400">
                                   {t.courseCode}
                                 </span>
                               )}
                             </div>
-                            <h4 className="text-xs font-bold text-zinc-900 dark:text-white truncate font-outfit">
+                            <h4 className="text-xs font-semibold text-ink truncate font-outfit">
                               {t.title}
                             </h4>
                           </div>
@@ -2178,31 +2182,24 @@ export default function SimplifiedMobileHome({
               })()}
 
             {/* ── TIMETABLE & QUICK TOOLS BUTTONS (PLACED CLEANLY AFTER ALL CLASSES) ── */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2">
-              <button
-                onClick={() => setShowTimetableModal(true)}
-                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-white/80 dark:bg-zinc-900/80 hover:bg-white dark:hover:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-300 dark:hover:border-indigo-800/60 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
-              >
-                <CalendarIcon className="w-4 h-4 text-indigo-500" />
-                <span>Full Weekly Timetable</span>
-              </button>
-              <button
-                onClick={handleOpenFreeClassrooms}
-                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-emerald-50/80 hover:bg-emerald-100/80 dark:bg-emerald-950/30 dark:hover:bg-emerald-900/40 border border-emerald-200/70 dark:border-emerald-800/50 text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:border-emerald-300 dark:hover:border-emerald-700 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
-              >
-                <DoorOpen className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span>Find Free Classrooms</span>
-              </button>
-              {/* Spans both columns on sm+ so it sits directly under the two-up row,
-              reading as the next item rather than a lone half-width button. */}
-              <button
-                onClick={handleOpenFacultySchedule}
-                className="sm:col-span-2 w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-indigo-50/80 hover:bg-indigo-100/80 dark:bg-indigo-950/30 dark:hover:bg-indigo-900/40 border border-indigo-200/70 dark:border-indigo-800/50 text-xs font-bold text-indigo-700 dark:text-indigo-300 hover:border-indigo-300 dark:hover:border-indigo-700 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
-              >
-                <UserSearch className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                <span>Find Faculty Schedule</span>
-              </button>
-            </div>
+            <nav aria-label="Shortcuts" className="divide-y divide-line-2 overflow-hidden rounded-md border border-line bg-surface">
+              {[
+                { label: "Full weekly timetable", Icon: CalendarIcon, onClick: () => setShowTimetableModal(true) },
+                { label: "Find a free classroom", Icon: DoorOpen, onClick: handleOpenFreeClassrooms },
+                { label: "Find a faculty's schedule", Icon: UserSearch, onClick: handleOpenFacultySchedule },
+              ].map(({ label, Icon, onClick }) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={onClick}
+                  className="flex min-h-11 w-full items-center gap-3 px-3.5 py-2.5 text-left text-[14px] text-ink transition-colors duration-[120ms] hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
+                >
+                  <Icon aria-hidden="true" className="h-[18px] w-[18px] shrink-0 text-ink-2" strokeWidth={1.8} />
+                  <span className="flex-1">{label}</span>
+                  <ChevronRight aria-hidden="true" className="h-4 w-4 shrink-0 text-muted" />
+                </button>
+              ))}
+            </nav>
           </div>
         </div>
 
@@ -2213,7 +2210,7 @@ export default function SimplifiedMobileHome({
               <button
                 type="button"
                 onClick={() => setSelectedCourseCode(null)}
-                className="absolute top-4 right-4 z-20 p-1.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-colors cursor-pointer"
+                className="absolute top-4 right-4 z-20 p-1.5 rounded-md bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-colors cursor-pointer"
                 title="Close side view"
                 aria-label="Close side view"
               >
@@ -2237,7 +2234,7 @@ export default function SimplifiedMobileHome({
                   setActiveTab("academics");
                   setActiveSubTab("course-dashboard");
                 }}
-                className="w-full bg-white dark:bg-[#080808] border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xs text-left"
+                className="w-full bg-surface border border-zinc-200/80 dark:border-zinc-800/80 rounded-md p-5 shadow-xs text-left"
               />
             </div>
           </aside>
@@ -2254,16 +2251,16 @@ export default function SimplifiedMobileHome({
             showClose={false}
           >
             <div className="flex flex-col min-h-0">
-              <div className="p-4 sm:p-5 border border-zinc-200/70 dark:border-zinc-800/80 rounded-2xl flex items-center justify-between gap-3 bg-zinc-50/80 dark:bg-zinc-900/70">
+              <div className="p-4 sm:p-5 border border-line rounded-md flex items-center justify-between gap-3 bg-surface-2">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="p-2 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/30 shrink-0">
+                  <div className="p-2 rounded-md bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/30 shrink-0">
                     <CalendarIcon className="w-5 h-5" />
                   </div>
                   <div className="min-w-0">
-                    <h2 className="text-base font-black text-zinc-900 dark:text-white font-outfit truncate">
+                    <h2 className="text-base font-semibold text-ink font-outfit truncate">
                       Full Weekly Timetable
                     </h2>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
+                    <p className="text-xs text-muted truncate">
                       Slot matrix, timeslots & classroom venues
                     </p>
                   </div>

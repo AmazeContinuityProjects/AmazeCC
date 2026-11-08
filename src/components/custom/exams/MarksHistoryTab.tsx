@@ -76,15 +76,15 @@ type Screen = (typeof SCREENS)[number];
 
 /** A bar's hue, keyed on the same grade tones the pills use. */
 const GRADE_BAR: Record<string, string> = {
-  S: "bg-amber-500",
-  A: "bg-emerald-500",
-  B: "bg-blue-500",
-  C: "bg-cyan-500",
-  D: "bg-violet-500",
-  E: "bg-red-500",
-  F: "bg-red-600",
+  S: "bg-warn",
+  A: "bg-ok",
+  B: "bg-accent",
+  C: "bg-course-1",
+  D: "bg-course-3",
+  E: "bg-danger",
+  F: "bg-danger",
   N: "bg-zinc-400",
-  P: "bg-violet-500",
+  P: "bg-course-3",
 };
 
 export default function MarksHistoryTab({
@@ -253,7 +253,7 @@ export default function MarksHistoryTab({
               <button
                 type="button"
                 onClick={onRefresh}
-                className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-black text-white transition-colors hover:bg-indigo-700"
+                className="inline-flex items-center gap-2 rounded-sm bg-accent px-4 py-2.5 text-sm font-medium text-background transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 <RefreshCcw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
                 Sync grades
@@ -270,11 +270,11 @@ export default function MarksHistoryTab({
     <div className="grid grid-cols-2 gap-3 sm:gap-4">
       <div className={cn(TILE, "min-h-32 sm:min-h-36")}>
         <div className="flex items-center justify-between gap-1">
-          <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">
+          <span className="text-[11px] sm:text-xs font-semibold text-zinc-400 dark:text-zinc-500 font-outfit truncate">
             Cumulative
           </span>
           {cumulative.creditsRequired > 0 && (
-            <span className="text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shrink-0 border bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20">
+            <span className="text-[11px] sm:text-[11px] font-semibold px-2 py-0.5 rounded-md shrink-0 border bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20">
               {cumulative.creditsEarned.toFixed(0)}/{cumulative.creditsRequired.toFixed(0)} cr
             </span>
           )}
@@ -282,8 +282,8 @@ export default function MarksHistoryTab({
         <div className="my-auto min-w-0">
           <span
             className={cn(
-              "text-3xl sm:text-4xl font-black font-outfit tracking-tight leading-none block truncate",
-              cumulative.value > 0 ? TONE_TEXT.indigo : "text-zinc-900 dark:text-white"
+              "text-3xl sm:text-4xl font-semibold font-outfit tracking-tight leading-none block truncate",
+              cumulative.value > 0 ? TONE_TEXT.indigo : "text-ink"
             )}
           >
             {cumulative.value > 0 ? cumulative.value.toFixed(2) : "—"}
@@ -378,7 +378,7 @@ export default function MarksHistoryTab({
                 onClick={() => setActiveId(r.id)}
                 className={`${LIST_ROW} cursor-pointer`}
               >
-                <span className="w-24 shrink-0 text-[11px] font-bold text-zinc-600 dark:text-zinc-300 truncate">
+                <span className="w-24 shrink-0 text-[11px] font-semibold text-zinc-600 dark:text-zinc-300 truncate">
                   {r.label}
                 </span>
                 <span className="min-w-0 flex-1">
@@ -386,7 +386,7 @@ export default function MarksHistoryTab({
                 </span>
                 <span
                   className={cn(
-                    "shrink-0 text-sm font-black font-outfit tracking-tight leading-none w-10 text-right",
+                    "shrink-0 text-sm font-semibold font-outfit tracking-tight leading-none w-10 text-right",
                     isActive ? "text-indigo-600 dark:text-indigo-400" : "text-zinc-800 dark:text-zinc-100"
                   )}
                 >
@@ -403,11 +403,11 @@ export default function MarksHistoryTab({
         onClick={() => stack.go("insights")}
         className={`${TILE_CARD} w-full flex items-center gap-3 text-left cursor-pointer hover:border-border-strong dark:hover:border-border transition-colors`}
       >
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-violet-500/20 bg-violet-500/10 text-violet-600 dark:text-violet-400">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-line-2 text-course-3 bg-surface-2">
           <BarChart3 className="h-4.5 w-4.5" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-sm font-bold text-text-heading font-outfit tracking-tight">
+          <span className="block text-sm font-semibold text-text-heading font-outfit tracking-tight">
             Grade insights
           </span>
           <span className="block text-[11px] text-text-secondary dark:text-text-muted font-medium mt-0.5 truncate">
@@ -463,10 +463,10 @@ export default function MarksHistoryTab({
                 <span className="min-w-0 flex-1">
                   <MiniBar pct={d.share} tone={GRADE_BAR[d.grade] ?? "bg-zinc-400"} />
                 </span>
-                <span className="shrink-0 text-sm font-black font-outfit text-zinc-800 dark:text-zinc-100 w-10 text-right">
+                <span className="shrink-0 text-sm font-semibold font-outfit text-zinc-800 dark:text-zinc-100 w-10 text-right">
                   {d.count}
                 </span>
-                <span className="shrink-0 text-[11px] font-bold text-zinc-400 dark:text-zinc-500 w-12 text-right">
+                <span className="shrink-0 text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 w-12 text-right">
                   {d.share.toFixed(0)}%
                 </span>
               </div>
@@ -492,9 +492,9 @@ export default function MarksHistoryTab({
                   subtitle={`${t.count} course${t.count === 1 ? "" : "s"}`}
                 />
                 <span className="w-20 shrink-0">
-                  <MiniBar pct={t.avg} tone={t.avg >= 80 ? "bg-emerald-500" : t.avg >= 65 ? "bg-amber-500" : "bg-red-500"} />
+                  <MiniBar pct={t.avg} tone={t.avg >= 80 ? "bg-ok" : t.avg >= 65 ? "bg-warn" : "bg-danger"} />
                 </span>
-                <span className="shrink-0 text-sm font-black font-outfit text-zinc-800 dark:text-zinc-100 w-12 text-right">
+                <span className="shrink-0 text-sm font-semibold font-outfit text-zinc-800 dark:text-zinc-100 w-12 text-right">
                   {t.avg.toFixed(1)}%
                 </span>
               </div>
@@ -508,13 +508,13 @@ export default function MarksHistoryTab({
         <ListShell>
           {rows.map((r) => (
             <div key={r.id} className={LIST_ROW}>
-              <span className="w-24 shrink-0 text-[11px] font-bold text-zinc-600 dark:text-zinc-300 truncate">
+              <span className="w-24 shrink-0 text-[11px] font-semibold text-zinc-600 dark:text-zinc-300 truncate">
                 {r.label}
               </span>
               <span className="min-w-0 flex-1">
-                <MiniBar pct={r.avgScore} tone={r.avgScore >= 80 ? "bg-emerald-500" : r.avgScore >= 65 ? "bg-amber-500" : "bg-red-500"} />
+                <MiniBar pct={r.avgScore} tone={r.avgScore >= 80 ? "bg-ok" : r.avgScore >= 65 ? "bg-warn" : "bg-danger"} />
               </span>
-              <span className="shrink-0 text-sm font-black font-outfit text-zinc-800 dark:text-zinc-100 w-12 text-right">
+              <span className="shrink-0 text-sm font-semibold font-outfit text-zinc-800 dark:text-zinc-100 w-12 text-right">
                 {r.scored.length > 0 ? `${r.avgScore.toFixed(1)}%` : "—"}
               </span>
             </div>
@@ -578,7 +578,7 @@ export default function MarksHistoryTab({
             <p className="px-1 flex items-start gap-2 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
               <Info className="h-3.5 w-3.5 shrink-0 mt-px" />
               Weighted by {blend.theoryCredits} and {blend.labCredits} credits, the halves come to{" "}
-              <span className="font-bold text-zinc-600 dark:text-zinc-300">
+              <span className="font-semibold text-zinc-600 dark:text-zinc-300">
                 {blend.blended.toFixed(2)}
               </span>
               , against the {blend.published} VTOP recorded.
@@ -602,7 +602,7 @@ export default function MarksHistoryTab({
                         title={a.title}
                         subtitle={`${a.weightagePercent || "-"}% weightage`}
                       />
-                      <span className="shrink-0 text-sm font-black font-outfit text-zinc-800 dark:text-zinc-100">
+                      <span className="shrink-0 text-sm font-semibold font-outfit text-zinc-800 dark:text-zinc-100">
                         {a.scoredMark || "-"}
                         <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 ml-0.5">
                           /{a.maxMark || "-"}
@@ -648,7 +648,7 @@ export default function MarksHistoryTab({
                   title={d.component}
                   subtitle={`${d.weightagePercent ?? "-"}% weightage`}
                 />
-                <span className="shrink-0 text-sm font-black font-outfit text-zinc-800 dark:text-zinc-100">
+                <span className="shrink-0 text-sm font-semibold font-outfit text-zinc-800 dark:text-zinc-100">
                   {d.scoredMark ?? "-"}
                   <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 ml-0.5">
                     /{d.maxMark ?? "-"}
@@ -663,7 +663,7 @@ export default function MarksHistoryTab({
             one VTOP recorded. Saying so beats a reader adding up the column and
             concluding the app is wrong. */}
         {weightedTotalDiffers(course) && (
-          <p className="px-1 flex items-start gap-2 text-[11px] leading-relaxed text-amber-600 dark:text-amber-400 font-medium">
+          <p className="px-1 flex items-start gap-2 text-[11px] leading-relaxed text-warn font-medium">
             <Info className="h-3.5 w-3.5 shrink-0 mt-px" />
             The weightage above sums to {weightedTotal(course.details)?.toFixed(2)}, while VTOP
             records {numOrDash(course.grandTotal)}%. The recorded total is shown here.
@@ -684,7 +684,7 @@ export default function MarksHistoryTab({
                 <span className="w-14 shrink-0">
                   <ToneBadge tone={toneForGrade(grade)}>{grade}</ToneBadge>
                 </span>
-                <span className="text-xs font-bold text-zinc-600 dark:text-zinc-300 truncate">
+                <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-300 truncate">
                   {String(rangeStr)}
                 </span>
                 {String(grade).toUpperCase() === String(course.grade ?? "").toUpperCase() && (
@@ -753,9 +753,9 @@ function numOrDash(value: unknown): string {
 
 function gpaBarTone(gpa: number): string {
   if (gpa <= 0) return "bg-zinc-300 dark:bg-zinc-700";
-  if (gpa >= 9) return "bg-emerald-500";
+  if (gpa >= 9) return "bg-ok";
   if (gpa >= 8) return "bg-indigo-500";
-  return "bg-amber-500";
+  return "bg-warn";
 }
 
 function pointsLabel(grade: string | undefined): string {
@@ -802,7 +802,7 @@ function CourseRow({ course, onOpen }: { course: GradeItem; onOpen: () => void }
   const embedded = isEmbeddedCourse(course);
   return (
     <button type="button" onClick={onOpen} className={`${LIST_ROW} cursor-pointer`}>
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-border-muted bg-surface-secondary text-zinc-500 dark:text-zinc-400">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border-muted bg-surface-secondary text-muted">
         {embedded ? (
           <Layers className="h-4.5 w-4.5" />
         ) : (
@@ -818,11 +818,11 @@ function CourseRow({ course, onOpen }: { course: GradeItem; onOpen: () => void }
         /* The published number blends both halves, so a reader comparing it to
            their own marks needs to know that before they wonder why the
            subpage has two scores in it. */
-        <span className="hidden shrink-0 rounded-full bg-indigo-100 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-indigo-700 sm:inline dark:bg-indigo-900/30 dark:text-indigo-300">
+        <span className="hidden shrink-0 rounded-full bg-indigo-100 px-2 py-0.5 text-[11px] font-semibold text-indigo-700 sm:inline dark:bg-indigo-900/30 dark:text-indigo-300">
           T+L
         </span>
       )}
-      <span className="shrink-0 text-[11px] font-bold text-zinc-500 dark:text-zinc-400 w-12 text-right">
+      <span className="shrink-0 text-[11px] font-semibold text-muted w-12 text-right">
         {numOrDash(course.grandTotal)}%
       </span>
       <ToneBadge tone={toneForGrade(course.grade)}>{course.grade || "—"}</ToneBadge>

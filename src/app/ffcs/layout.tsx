@@ -13,7 +13,7 @@ export const viewport: Viewport = {
   // the app-wide 85% mobile zoom has to be repeated here — otherwise opening
   // /ffcs alone would snap the planner back to 100%. See src/app/layout.tsx
   // for why the scale lives on the viewport instead of CSS `zoom`.
-  initialScale: 0.85,
+  initialScale: 1,
   viewportFit: "cover",
   interactiveWidget: "resizes-content",
 };

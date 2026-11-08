@@ -170,7 +170,7 @@ export interface ImportantEventName {
  *
  * `display` is load-bearing and must not be reworded: `CourseDetailSubpage` and
  * the overall predictor look milestones up by exact string against it. `short`
- * is the label for a tile or a list row, where the full uppercase name is too
+ * is the label for a tile or a list row, where the full name is too
  * long to read.
  */
 export const IMPORTANT_EVENTS: readonly ImportantEventName[] = [

@@ -247,12 +247,12 @@ export function AssessmentRow({
         {/* Capped rather than flexing: this block is what drifted away from the
             title when the row was allowed to fill a 430px card. */}
         <span className="w-20 shrink-0 text-right">
-          <span className="block text-sm font-black font-outfit tracking-tight leading-none text-text-heading">
+          <span className="block text-sm font-semibold font-outfit tracking-tight leading-none text-text-heading">
             {formatNumber(detail.scoredMark)}
-            <span className="text-[10px] font-bold text-text-muted"> / {formatNumber(detail.maxMark)}</span>
+            <span className="text-[11px] font-semibold text-text-muted"> / {formatNumber(detail.maxMark)}</span>
           </span>
           <span className="mt-1.5 block">
-            <MiniBar pct={asmPct} tone={scopeTone === "blue" ? "bg-blue-500" : "bg-emerald-500"} />
+            <MiniBar pct={asmPct} tone={scopeTone === "blue" ? "bg-accent" : "bg-ok"} />
           </span>
         </span>
 
@@ -284,7 +284,7 @@ export function AssessmentRow({
               )}
 
               <div>
-                <p className="text-text-muted text-[10px] uppercase font-bold tracking-wider mb-2">
+                <p className="text-text-muted text-[11px] font-semibold mb-2">
                   {isRelative ? "Grade placement preview" : "Absolute grade range preview"}
                 </p>
                 <div className="flex gap-2">
@@ -299,14 +299,14 @@ export function AssessmentRow({
                             : TONE_BADGE.zinc
                         }`}
                       >
-                        <span className="text-sm font-black">{b.grade}</span>
-                        <span className="text-[9px] font-bold opacity-80">{b.range}</span>
+                        <span className="text-sm font-semibold">{b.grade}</span>
+                        <span className="text-[11px] font-semibold opacity-80">{b.range}</span>
                       </span>
                     );
                   })}
                 </div>
                 {gradePlacement !== "?" && (
-                  <p className={`mt-2.5 text-[11px] font-bold ${TONE_TEXT[toneForGrade(gradePlacement)]}`}>
+                  <p className={`mt-2.5 text-[11px] font-semibold ${TONE_TEXT[toneForGrade(gradePlacement)]}`}>
                     Hypothetical placement: Grade {gradePlacement}
                   </p>
                 )}

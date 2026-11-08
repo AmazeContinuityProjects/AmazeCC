@@ -10,7 +10,7 @@ type BusFinderProps = ComponentProps<typeof BusFinderComponent>;
 function FeatureLoading() {
   return (
     <div
-      className="min-h-40 animate-pulse rounded-2xl bg-slate-100 dark:bg-zinc-900"
+      className="min-h-40 animate-pulse rounded-md bg-surface-2"
       role="status"
       aria-label="Loading page"
     />

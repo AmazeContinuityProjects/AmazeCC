@@ -1,4 +1,5 @@
 import * as React from "react";
+import Script from "next/script";
 import { ThemeProvider } from "@amazecontinuityprojects/amazeui";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import IconUpdater from "../components/custom/IconUpdater";
@@ -53,7 +54,7 @@ export const viewport: Viewport = {
   // and can never disagree — do NOT compensate by shifting breakpoints
   // manually: desktop ignores this meta tag entirely, and Tailwind bakes
   // media queries at build time, so "fixing" it would break desktop instead.
-  initialScale: 0.85,
+  initialScale: 1,
   // Pinching/zooming is left enabled on purpose: locking it (maximumScale 1 /
   // userScalable false) fails WCAG 1.4.4 and iOS ignores the lock anyway —
   // it only ever disabled zoom for Android users.
@@ -99,11 +100,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${geist.className} ${geistMono.className} ${dmSans.className}`}
+      className={`${geist.variable} ${geistMono.variable} ${dmSans.variable}`}
     >
       <head>
-        <script
+        <Script
           id="amaze-session-early-detect"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var d=localStorage.getItem("IDs"),u=localStorage.getItem("username"),m=localStorage.getItem("demoMode");var s=false;if(d){try{var p=JSON.parse(d);if(p&&p.VtopUsername&&p.VtopPassword)s=true;}catch(e){}}if(!s&&u&&localStorage.getItem("password"))s=true;if(!s&&m==="true")s=true;if(s){document.documentElement.classList.add("has-stored-session");}}catch(e){}})();`,
           }}
@@ -115,8 +117,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <BackgroundPrefetch />
         <ThemeProvider
           attribute="class"
-          defaultTheme="dark"
-          enableSystem={false}
+          defaultTheme="system"
+          enableSystem
           disableTransitionOnChange
           value={{ light: "light", dark: "dark" }}
         >

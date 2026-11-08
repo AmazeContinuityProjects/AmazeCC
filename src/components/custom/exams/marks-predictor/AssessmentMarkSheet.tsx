@@ -7,7 +7,7 @@ import { ToneBadge } from "../../shared/primitives";
 import { weightFreezeFor, type WeightFreeze } from "./useCoursePredictionScope";
 
 const FIELD =
-  "w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2.5 text-sm font-bold text-zinc-900 dark:text-white focus:outline-none focus:border-indigo-500";
+  "w-full bg-surface-2 border border-line rounded-md px-3 py-2.5 text-sm font-semibold text-ink focus:outline-none focus:border-indigo-500";
 const PCT_CHIPS = [100, 80, 50];
 
 interface SheetAssessment {
@@ -106,16 +106,16 @@ export default function AssessmentMarkSheet({
             has no way past: frozen at zero, its banner says so. */}
         {(posted || override || isFat) && (
           <div
-            className={`flex items-start gap-2.5 px-3.5 py-3 rounded-2xl border ${
-              locked ? "border-amber-500/30 bg-amber-500/10" : "border-indigo-500/30 bg-indigo-500/5"
+            className={`flex items-start gap-2.5 px-3.5 py-3 rounded-md border ${
+              locked ? "border-warn/30 bg-warn-soft" : "border-indigo-500/30 bg-indigo-500/5"
             }`}
             role="status"
           >
             <AlertTriangle
-              className={`w-4 h-4 shrink-0 mt-0.5 ${locked ? "text-amber-600 dark:text-amber-400" : "text-indigo-500"}`}
+              className={`w-4 h-4 shrink-0 mt-0.5 ${locked ? "text-warn" : "text-indigo-500"}`}
             />
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-zinc-800 dark:text-zinc-100 leading-relaxed">
+              <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-100 leading-relaxed">
                 {isFat && !posted ? (
                   <>The FAT is frozen at 0 — it can&apos;t be filled in. A mark only arrives here when VTOP posts it.</>
                 ) : locked ? (
@@ -135,7 +135,7 @@ export default function AssessmentMarkSheet({
               <button
                 type="button"
                 onClick={() => setOverride(true)}
-                className="shrink-0 px-2.5 py-1.5 rounded-lg border border-amber-500/40 bg-white dark:bg-zinc-900 text-[11px] font-black text-amber-700 dark:text-amber-400 cursor-pointer hover:bg-amber-500/10 transition-colors"
+                className="shrink-0 px-2.5 py-1.5 rounded-lg border border-warn/40 bg-surface text-[11px] font-semibold text-warn cursor-pointer hover:bg-warn-soft transition-colors"
               >
                 Edit anyway
               </button>
@@ -163,7 +163,7 @@ export default function AssessmentMarkSheet({
               aria-label={`Mark for ${asm.title}`}
               className={`${FIELD} w-24 text-center disabled:opacity-60 disabled:cursor-not-allowed`}
             />
-            <span className="text-sm font-bold text-zinc-400 shrink-0">/ {maxMark}</span>
+            <span className="text-sm font-semibold text-zinc-400 shrink-0">/ {maxMark}</span>
             <span className="flex-1" />
             <span className="flex items-center gap-1">
               {PCT_CHIPS.map((pct) => (
@@ -172,7 +172,7 @@ export default function AssessmentMarkSheet({
                   type="button"
                   disabled={locked}
                   onClick={() => onUpdateScoredMark(asm.id, Math.round((pct / 100) * maxMark * 10) / 10, true)}
-                  className="px-2.5 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:bg-indigo-500/10 text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 text-[11px] font-black transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-zinc-100 dark:disabled:hover:bg-zinc-900"
+                  className="px-2.5 py-1.5 rounded-md bg-surface-2 border border-line hover:bg-indigo-500/10 text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 text-[11px] font-semibold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-zinc-100 dark:disabled:hover:bg-zinc-900"
                 >
                   {pct}%
                 </button>
@@ -200,19 +200,19 @@ export default function AssessmentMarkSheet({
               }
               className="m3-range w-full"
             />
-            <span className="text-xs font-bold text-zinc-500 w-12 text-right shrink-0">
+            <span className="text-xs font-semibold text-zinc-500 w-12 text-right shrink-0">
               {asm.scoredMark === null ? "0%" : `${asm.percentage.toFixed(0)}%`}
             </span>
           </div>
         </div>
 
         {/* Weight impact */}
-        <div className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/60 dark:border-zinc-800/60 text-[11px] font-bold text-zinc-500 dark:text-zinc-400">
+        <div className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-md bg-surface-2 border border-zinc-200/60 dark:border-zinc-800/60 text-[11px] font-semibold text-muted">
           <span>
-            Earned <strong className="text-emerald-600 dark:text-emerald-400">{asm.scoredWeight.toFixed(1)}</strong> wt
+            Earned <strong className="text-ok">{asm.scoredWeight.toFixed(1)}</strong> wt
           </span>
           <span>
-            Lost <strong className="text-red-500">-{asm.lostWeight.toFixed(1)}</strong> wt
+            Lost <strong className="text-danger">-{asm.lostWeight.toFixed(1)}</strong> wt
           </span>
         </div>
       </div>

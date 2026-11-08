@@ -187,7 +187,7 @@ const OptionPicker = forwardRef<HTMLDivElement, OptionPickerProps>(function Opti
                   "flex flex-row items-center gap-3 px-4 py-3 transition-colors mx-1 rounded-lg w-[calc(100%-8px)] text-left cursor-pointer",
                   active
                     ? "bg-info/10 text-info font-semibold"
-                    : "text-foreground hover:bg-muted/70"
+                    : "text-foreground hover:bg-surface-2"
                 )}
               >
                 <span className={cn("text-sm flex-1", active ? "font-semibold" : "font-medium")}>
@@ -213,7 +213,7 @@ const OptionPicker = forwardRef<HTMLDivElement, OptionPickerProps>(function Opti
         className={cn(
           "flex flex-row items-center justify-between gap-2 h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm",
           "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-          disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:bg-muted/30",
+          disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:bg-surface-2/60",
           !selected && "text-muted-foreground/60"
         )}
       >
@@ -236,7 +236,7 @@ const OptionPicker = forwardRef<HTMLDivElement, OptionPickerProps>(function Opti
             />
             <div
               className={cn(
-                `fixed ${OVERLAY_Z} bg-popover border border-border rounded-xl shadow-xl overflow-hidden`,
+                `fixed ${OVERLAY_Z} bg-popover border border-border rounded-md shadow-xl overflow-hidden`,
                 "animate-in fade-in slide-in-from-top-2 duration-200",
                 "min-w-[240px] min-h-0"
               )}
@@ -267,7 +267,7 @@ const OptionPicker = forwardRef<HTMLDivElement, OptionPickerProps>(function Opti
             <div
               role="dialog"
               aria-modal="true"
-              className="relative w-full max-w-md min-h-0 bg-background rounded-2xl border border-border shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+              className="relative w-full max-w-md min-h-0 bg-background rounded-md border border-border shadow-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200"
               style={{ height: mobilePopupHeight, maxHeight: "85dvh" }}
             >
               {listContent}

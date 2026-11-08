@@ -79,10 +79,10 @@ describe("WEEK_STRIP_TINT", () => {
     // Not a typo. Red means "you lost a teaching day" everywhere else in the
     // app (`MonthGrid`'s holiday tint, the attendance shortfalls), and an exam
     // day is a normal working day that happens to be graded.
-    expect(WEEK_STRIP_TINT.exam.fill).toContain("amber");
-    expect(WEEK_STRIP_TINT.holiday.fill).toContain("red");
-    expect(WEEK_STRIP_TINT.exam.fill).not.toContain("red");
-    expect(WEEK_STRIP_TINT.holiday.fill).not.toContain("amber");
+    expect(WEEK_STRIP_TINT.exam.fill).toContain("warn");
+    expect(WEEK_STRIP_TINT.holiday.fill).toContain("danger");
+    expect(WEEK_STRIP_TINT.exam.fill).not.toContain("danger");
+    expect(WEEK_STRIP_TINT.holiday.fill).not.toContain("warn");
   });
 
   it("gives each kind its own fill, ink and edge", () => {
@@ -98,15 +98,15 @@ describe("WEEK_STRIP_TINT", () => {
     // have is a colour, or every ordinary week fills the strip with hue and the
     // three days that matter stop standing out.
     const teaching = WEEK_STRIP_TINT.teaching;
-    expect(teaching.fill).toContain("bg-white");
-    expect(teaching.ink).not.toMatch(/amber|red|indigo|emerald|sky/);
-    expect(teaching.edge).not.toMatch(/amber|red|indigo|emerald|sky/);
+    expect(teaching.fill).toContain("bg-transparent");
+    expect(teaching.ink).not.toMatch(/amber|red|indigo|emerald|sky|warn|danger|accent/);
+    expect(teaching.edge).not.toMatch(/amber|red|indigo|emerald|sky|warn|danger|accent/);
   });
 
   it("tints each edge to match its fill, so a circle reads as one object", () => {
-    expect(WEEK_STRIP_TINT.exam.edge).toContain("amber");
-    expect(WEEK_STRIP_TINT.holiday.edge).toContain("red");
-    expect(WEEK_STRIP_TINT.reordered.edge).toContain("indigo");
+    expect(WEEK_STRIP_TINT.exam.edge).toContain("warn");
+    expect(WEEK_STRIP_TINT.holiday.edge).toContain("danger");
+    expect(WEEK_STRIP_TINT.reordered.edge).toContain("accent");
   });
 });
 
@@ -142,13 +142,13 @@ describe("state rings", () => {
     // Land on the page and today is selected *and* today. If both used the
     // same ring there would be no way to see which half of "selected" is
     // showing, so selection is two rings and an extra ring's worth of weight.
-    expect(SELECTED_RING).toContain("ring-2");
-    expect(TODAY_RING).toContain("ring-1");
-    expect(SELECTED_RING).toContain("indigo");
-    expect(TODAY_RING).toContain("emerald");
+    // Selection is a solid ink tile; today is a hairline tile in accent ink.
+    expect(SELECTED_RING).toContain("bg-ink");
+    expect(TODAY_RING).toContain("border-line");
+    expect(SELECTED_RING).not.toContain("accent");
   });
 
   it("gives today emerald ink, matching its ring", () => {
-    expect(TODAY_INK).toContain("emerald");
+    expect(TODAY_INK).toContain("accent");
   });
 });

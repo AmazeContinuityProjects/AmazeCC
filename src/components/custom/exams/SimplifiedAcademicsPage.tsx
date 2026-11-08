@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { ChipTabs, EmptyPanel, PageShell, SelectField } from "../shared/primitives";
-import { SEARCH_FIELD, TILE_INTERACTIVE_ROW } from "@/lib/uiTokens";
+import { SEARCH_FIELD } from "@/lib/uiTokens";
 import { formatSemesterName } from "@/lib/formatSemesterName";
 import { loadFrozenPastSemesters } from "@/lib/pastDataSync";
+import { CourseDot } from "@amazecontinuityprojects/amazeui";
 import { BookOpen, Search, ChevronRight, GraduationCap, History, Lock, Sparkles } from "lucide-react";
 
 /** The four course-type pills above the list. Ordered, so `ChipTabs` scrolls rather than wraps. */
@@ -546,6 +547,17 @@ export default function SimplifiedAcademicsPage({
 
   const filteredCurrentCourses = useMemo(() => filterCourseList(currentCourses), [filterCourseList, currentCourses]);
 
+  const academicSummary = useMemo(() => {
+    const c = marksData?.cgpa || allGradesData?.cgpa || {};
+    const semCredits = currentCourses.reduce((acc: number, course: any) => acc + Math.max(0, Number(course.credits) || 0), 0);
+    return {
+      cgpa: Number(c?.cgpa) || 0,
+      earned: Number(c?.creditsEarned) || 0,
+      required: Number(c?.creditsRequired) || 0,
+      semCredits,
+    };
+  }, [marksData, allGradesData, currentCourses]);
+
   const handleCourseClick = (courseCode: string) => {
     const cleanCode = courseCode.replace(/\([LPT]\)$/i, "").trim();
     if (onSelectCourse) {
@@ -567,98 +579,53 @@ export default function SimplifiedAcademicsPage({
 
     const grandWeightage = calculateGrandWeightage(course, decimalValues);
 
-    // Stat styling based on performance percentage
-    let statColor = "text-zinc-400";
-    if (course.grade) {
-      statColor = "text-indigo-500 dark:text-indigo-400";
-    } else if (grandWeightage.percentage !== null) {
-      if (grandWeightage.percentage >= 80) statColor = "text-emerald-600 dark:text-emerald-400";
-      else if (grandWeightage.percentage >= 65) statColor = "text-amber-600 dark:text-amber-400";
-      else statColor = "text-red-600 dark:text-red-400";
-    }
+    const pct = grandWeightage.percentage;
+    const scoreTone = pct === null ? "text-ink" : pct >= 80 ? "text-ok" : pct >= 65 ? "text-ink" : "text-danger";
+    const slot = main?.slotName || main?.slot || "";
 
     return (
-      <div
+      <button
+        type="button"
         key={course.courseCode}
         onClick={() => handleCourseClick(course.courseCode)}
-        className={`${TILE_INTERACTIVE_ROW} hover:border-indigo-500/40 dark:hover:border-indigo-500/40 duration-200 group select-none`}
+        className="grid min-h-14 w-full grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-3 px-3.5 py-3 text-left transition-colors duration-[120ms] hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent select-none"
       >
-        {/* Left Column: Clean Icon + Course Code, Title & Subtitle */}
-        <div className="flex items-center gap-3 min-w-0 flex-1">
-          {/* Clean minimal icon */}
-          <div
-            className={`w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center shrink-0 border ${
-              isEmbedded
-                ? "bg-purple-500/10 border-purple-500/20 text-purple-600 dark:text-purple-400"
-                : course.lab
-                  ? "bg-teal-500/10 border-teal-500/20 text-teal-600 dark:text-teal-400"
-                  : "bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400"
-            }`}
-          >
-            <BookOpen className="w-5 h-5" />
-          </div>
-
-          {/* Course Details */}
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <span className="text-xs sm:text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">
-                {course.courseCode}
+        <CourseDot course={course.courseCode} />
+        <span className="min-w-0">
+          <span className="block truncate text-[14.5px] font-medium text-ink">{course.courseTitle}</span>
+          <span className="mt-0.5 block truncate text-[12px] text-muted">
+            <span className="font-mono">{course.courseCode}</span>
+            {` · ${courseTypeLabel}`}
+            {course.credits > 0 ? ` · ${course.credits} cr` : ""}
+            {slot ? <span className="font-mono">{` · ${slot}`}</span> : null}
+          </span>
+        </span>
+        <span className="text-right">
+          {course.grade ? (
+            <>
+              <span className="block font-mono text-[15px] font-semibold text-ink">{course.grade}</span>
+              <span className="block text-[11.5px] text-muted">Grade</span>
+            </>
+          ) : grandWeightage.hasAssessments ? (
+            <>
+              <span className={`block font-mono text-[15px] font-semibold tabular-nums ${scoreTone}`}>
+                {grandWeightage.maxWeight > 0
+                  ? `${grandWeightage.displayScore}/${grandWeightage.displayMax}`
+                  : grandWeightage.displayScore}
               </span>
-            </div>
-
-            {/* Course Title */}
-            <p className="text-xs text-zinc-700 dark:text-zinc-200 font-bold truncate mt-0.5 font-outfit">
-              {course.courseTitle}
-            </p>
-
-            {/* Subtitle containing course type, credits and slot */}
-            <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium truncate mt-0.5">
-              {courseTypeLabel}
-              {course.credits > 0 ? ` • ${course.credits} Credits` : ""}
-              {main?.slotName || main?.slot ? ` • ${main.slotName || main.slot}` : ""}
-            </p>
-          </div>
-        </div>
-
-        {/* Right Column: Overall Grand Weightage Points Scored & Forward Arrow */}
-        <div className="flex items-center gap-2.5 shrink-0 text-right">
-          <div>
-            {course.grade ? (
-              <div className="flex flex-col items-end">
-                <span className="text-base sm:text-lg font-black text-indigo-500 dark:text-indigo-400 font-outfit">
-                  Grade {course.grade}
-                </span>
-                <span className="text-[9px] text-zinc-400 font-medium">Final Grade</span>
-              </div>
-            ) : grandWeightage.hasAssessments ? (
-              <div className="flex flex-col items-end">
-                <span
-                  className={`text-base sm:text-lg font-black font-outfit tracking-tight leading-none ${statColor}`}
-                >
-                  {grandWeightage.maxWeight > 0
-                    ? `${grandWeightage.displayScore} / ${grandWeightage.displayMax}`
-                    : `${grandWeightage.displayScore}`}
-                </span>
-                <span className="text-[9px] font-bold text-zinc-400 mt-0.5">
-                  {grandWeightage.percentage !== null
-                    ? `${formatUpToTwoDecimals(grandWeightage.percentage, decimalValues)}% Score`
-                    : "Weightage"}
-                </span>
-              </div>
-            ) : (
-              <div className="flex flex-col items-end">
-                <span className="text-xs font-bold text-zinc-400 dark:text-zinc-500">Pending</span>
-                <span className="text-[9px] text-zinc-500">No marks yet</span>
-              </div>
-            )}
-          </div>
-
-          {/* Navigation indicator */}
-          <div className="p-1 rounded-lg text-zinc-400 group-hover:text-indigo-500 dark:group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all">
-            <ChevronRight className="w-4 h-4" />
-          </div>
-        </div>
-      </div>
+              <span className="block text-[11.5px] text-muted">
+                {pct !== null ? `${formatUpToTwoDecimals(pct, decimalValues)}% Score` : "Weightage"}
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="block text-[13px] text-muted">Pending</span>
+              <span className="block text-[11.5px] text-muted">No marks yet</span>
+            </>
+          )}
+        </span>
+        <ChevronRight aria-hidden="true" className="h-4 w-4 text-muted" />
+      </button>
     );
   };
 
@@ -711,22 +678,22 @@ export default function SimplifiedAcademicsPage({
                   {/* Semester Header Strip */}
                   <div className="flex items-center justify-between px-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs sm:text-sm font-black text-zinc-900 dark:text-white font-outfit">
+                      <span className="text-xs sm:text-sm font-semibold text-ink font-outfit">
                         {sem.semesterName}
                       </span>
-                      <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500">
+                      <span className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500">
                         ({filteredSemCourses.length} courses)
                       </span>
                     </div>
                     {sem.gpa && (
-                      <span className="text-xs font-black text-indigo-600 dark:text-indigo-400 font-outfit">
+                      <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 font-outfit">
                         GPA: {sem.gpa}
                       </span>
                     )}
                   </div>
 
                   {/* Course Pills */}
-                  <div className="space-y-2">{filteredSemCourses.map(renderCoursePill)}</div>
+                  <div className="divide-y divide-line-2 overflow-hidden rounded-md border border-line bg-surface">{filteredSemCourses.map(renderCoursePill)}</div>
                 </div>
               );
             })
@@ -739,7 +706,7 @@ export default function SimplifiedAcademicsPage({
                 setActiveSubTab ? (
                   <button
                     onClick={() => setActiveSubTab("grades")}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md bg-course-3 hover:bg-course-3 text-white text-xs font-semibold transition-colors cursor-pointer"
                   >
                     <GraduationCap className="w-4 h-4" />
                     <span>View Grade History</span>
@@ -766,6 +733,56 @@ export default function SimplifiedAcademicsPage({
           line and to scroll horizontally. In a `sm:flex-row` it claims 100% width
           and squeezes the search field instead. */}
       <div className="space-y-3">
+        {/* ── Canvas "Academics": section switch + CGPA summary ── */}
+        <div role="tablist" aria-label="Academics sections" className="grid grid-cols-3 gap-1 rounded-sm bg-surface-2 p-1">
+          {[
+            { id: "marks", label: "Marks" },
+            { id: "grades", label: "Grades" },
+            { id: "curriculum", label: "Curriculum" },
+          ].map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={t.id === "marks"}
+              onClick={() => t.id !== "marks" && setActiveSubTab?.(t.id)}
+              className={`min-h-9 rounded-[5px] text-[13.5px] transition-colors duration-[120ms] ${
+                t.id === "marks" ? "bg-surface font-medium text-ink shadow-sm" : "text-ink-2 hover:text-ink"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        {academicSummary.cgpa > 0 && (
+          <div className="overflow-hidden rounded-md border border-line bg-surface text-left">
+            <div className="px-4 pb-3 pt-3.5">
+              <p className="text-[12.5px] text-muted">CGPA</p>
+              <p className="font-mono text-[36px] font-semibold leading-tight tracking-tight tabular-nums text-ink">
+                {academicSummary.cgpa.toFixed(2)}
+              </p>
+            </div>
+            <div className="grid grid-cols-3 divide-x divide-line-2 border-t border-line-2">
+              {[
+                {
+                  label: "Credits",
+                  value:
+                    academicSummary.earned > 0
+                      ? `${academicSummary.earned} / ${academicSummary.required || "–"}`
+                      : "–",
+                },
+                { label: "Courses", value: String(currentCourses.length) },
+                { label: "This sem", value: academicSummary.semCredits > 0 ? `${academicSummary.semCredits} cr` : "–" },
+              ].map((c) => (
+                <div key={c.label} className="px-4 py-2.5">
+                  <p className="text-[11.5px] text-muted">{c.label}</p>
+                  <p className="mt-0.5 font-mono text-[15px] font-semibold tabular-nums text-ink">{c.value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Search Input */}
         <div className="relative">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
@@ -794,7 +811,9 @@ export default function SimplifiedAcademicsPage({
       {/* ── CURRENT SEMESTER COURSES PILLS LIST ── */}
       <div className="space-y-2">
         {filteredCurrentCourses.length > 0 ? (
-          filteredCurrentCourses.map(renderCoursePill)
+          <div className="divide-y divide-line-2 overflow-hidden rounded-md border border-line bg-surface">
+            {filteredCurrentCourses.map(renderCoursePill)}
+          </div>
         ) : (
           <EmptyPanel
             variant="dashed"
@@ -804,117 +823,59 @@ export default function SimplifiedAcademicsPage({
         )}
       </div>
 
-      {/* ── ACADEMIC EXPLORER NAVIGATION CARDS (CURRICULUM & GRADE HISTORY & MARKS PREDICTOR) ── */}
-      <div className="pt-3 border-t border-zinc-200/80 dark:border-zinc-800/80 space-y-2.5">
-        {/* Marks Predictor Featured Hero Card */}
-        <button
-          onClick={() => setActiveSubTab?.("marks-predictor")}
-          className="w-full p-4 rounded-[24px] border border-indigo-500/30 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 hover:from-indigo-500/15 hover:to-pink-500/15 shadow-2xs hover:shadow-xs flex items-center justify-between gap-3 group transition-all duration-200 cursor-pointer text-left"
-        >
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs sm:text-sm font-black font-outfit text-zinc-900 dark:text-white truncate flex items-center gap-2">
-                <span>Marks Predictor & Simulator</span>
-                <span className="px-1.5 py-0.2 rounded-md bg-indigo-600 text-white text-[9px] font-black uppercase">
-                  New
+      {/* ── More in Academics: one hairline nav list ── */}
+      <div role="region" aria-label="More in Academics" className="space-y-0 text-left">
+        <h2 className="px-0.5 pb-2 text-[13.5px] font-semibold text-ink">More in Academics</h2>
+        <ul className="divide-y divide-line-2 overflow-hidden rounded-md border border-line bg-surface">
+          {[
+            {
+              icon: Sparkles,
+              title: "Marks predictor",
+              sub: "What-if scores and the FAT mark you need",
+              onClick: () => setActiveSubTab?.("marks-predictor"),
+            },
+            {
+              icon: BookOpen,
+              title: "Degree curriculum",
+              sub: "Credits, baskets and distribution",
+              onClick: () => setActiveSubTab?.("curriculum"),
+            },
+            {
+              icon: GraduationCap,
+              title: "Grade history",
+              sub: "CGPA and grades by semester",
+              onClick: () => setActiveSubTab?.("grades"),
+            },
+            {
+              icon: History,
+              title: "Previous semesters",
+              sub:
+                pastSemesters.length > 0
+                  ? `Courses and grades from ${pastSemesters.length} earlier semester${pastSemesters.length === 1 ? "" : "s"}`
+                  : "Archived courses and grades",
+              onClick: () => {
+                if (pastSemesters.length > 0) setShowPastSemestersView(true);
+                else if (setActiveSubTab) setActiveSubTab("grades");
+                else setShowPastSemestersView(true);
+              },
+            },
+          ].map(({ icon: Icon, title, sub, onClick }) => (
+            <li key={title}>
+              <button
+                type="button"
+                onClick={onClick}
+                className="grid min-h-14 w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-3.5 py-3 text-left transition-colors duration-[120ms] hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
+              >
+                <Icon aria-hidden="true" className="h-[18px] w-[18px] text-ink-2" strokeWidth={1.7} />
+                <span className="min-w-0">
+                  <span className="block truncate text-[14.5px] text-ink">{title}</span>
+                  <span className="block truncate text-[12px] text-muted">{sub}</span>
                 </span>
-              </p>
-              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">
-                Simulate what-if scores, calculate points lost & solve FAT targets
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-1 text-xs font-black text-indigo-600 dark:text-indigo-400 font-outfit group-hover:translate-x-0.5 transition-transform shrink-0">
-            <span>Predictor</span>
-            <ChevronRight className="w-4 h-4" />
-          </div>
-        </button>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-          {/* Degree Curriculum Card */}
-          <button
-            onClick={() => setActiveSubTab?.("curriculum")}
-            className={`${TILE_INTERACTIVE_ROW} w-full p-4 hover:border-indigo-500/40 dark:hover:border-indigo-500/40 group duration-200`}
-          >
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-                <BookOpen className="w-5 h-5" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs sm:text-sm font-black font-outfit text-zinc-900 dark:text-white truncate">
-                  Degree Curriculum
-                </p>
-                <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">
-                  Program credits, baskets & distribution
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-1 text-xs font-black text-indigo-600 dark:text-indigo-400 font-outfit group-hover:translate-x-0.5 transition-transform shrink-0">
-              <span>Curriculum</span>
-              <ChevronRight className="w-4 h-4" />
-            </div>
-          </button>
-
-          {/* Grade History Card */}
-          <button
-            onClick={() => setActiveSubTab?.("grades")}
-            className={`${TILE_INTERACTIVE_ROW} w-full p-4 hover:border-purple-500/40 dark:hover:border-purple-500/40 group duration-200`}
-          >
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
-                <GraduationCap className="w-5 h-5" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs sm:text-sm font-black font-outfit text-zinc-900 dark:text-white truncate">
-                  Grade History
-                </p>
-                <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">Cumulative GPA & past semesters</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-1 text-xs font-black text-purple-600 dark:text-purple-400 font-outfit group-hover:translate-x-0.5 transition-transform shrink-0">
-              <span>Grades</span>
-              <ChevronRight className="w-4 h-4" />
-            </div>
-          </button>
-        </div>
-
-        {/* ── PREVIOUS SEMESTERS SEPARATE PAGE PILL (ALWAYS VISIBLE & ACCESSIBLE) ── */}
-        <button
-          onClick={() => {
-            if (pastSemesters.length > 0) {
-              setShowPastSemestersView(true);
-            } else if (setActiveSubTab) {
-              setActiveSubTab("grades");
-            } else {
-              setShowPastSemestersView(true);
-            }
-          }}
-          className={`${TILE_INTERACTIVE_ROW} w-full p-3.5 sm:p-4 hover:border-blue-500/40 dark:hover:border-blue-500/40 group duration-200`}
-        >
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-500 dark:text-blue-400 flex items-center justify-center shrink-0">
-              <History className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs sm:text-sm font-black font-outfit text-zinc-900 dark:text-white truncate">
-                Looking for previous semesters?
-              </p>
-              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">
-                {pastSemesters.length > 0
-                  ? `View archived courses and grades from ${pastSemesters.length} earlier semesters`
-                  : "View archived courses, GPA & grades from previous semesters"}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1.5 text-xs font-black text-blue-600 dark:text-blue-400 font-outfit group-hover:translate-x-0.5 transition-transform shrink-0">
-            <span>{pastSemesters.length > 0 ? "View History" : "Grade History"}</span>
-            <ChevronRight className="w-4 h-4" />
-          </div>
-        </button>
+                <ChevronRight aria-hidden="true" className="h-4 w-4 text-muted" />
+              </button>
+            </li>
+          ))}
+        </ul>
       </div>
     </PageShell>
   );

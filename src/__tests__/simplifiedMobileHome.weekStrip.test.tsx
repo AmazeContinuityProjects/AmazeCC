@@ -101,17 +101,17 @@ afterEach(() => {
 });
 
 describe("week strip", () => {
-  it("draws seven circles for the week, Monday first", () => {
+  it("draws seven day tiles for the week, Monday first", () => {
     renderHome();
     const labels = circles().map((c) => c.textContent);
     expect(labels).toEqual([
-      "MON28",
-      "TUE29",
-      "WED30",
-      "THU1",
-      "FRI2",
-      "SAT3",
-      "SUN4",
+      "Mon28",
+      "Tue29",
+      "Wed30",
+      "Thu1",
+      "Fri2",
+      "Sat3",
+      "Sun4",
     ]);
   });
 
@@ -126,28 +126,31 @@ describe("week strip", () => {
   it("tints an exam day amber and keeps the word in the title", () => {
     renderHome();
     const exam = within(strip()).getByTitle("Tue 29 Sept · Exam day");
-    expect(exam.className).toContain("bg-amber-500/10");
+    // Selected or not, an exam day keeps an amber marker: the soft fill at rest,
+    // and the status dot when the solid selection tile covers the fill.
+    expect(exam.className.includes("bg-warn-soft") || exam.querySelector("span.bg-warn") !== null).toBe(true);
+    expect(exam.querySelector("span.bg-warn")).not.toBeNull();
     // The word is not on the face of the circle, but it is not gone either —
     // and the exam count rides in the accessible name, not the title.
-    expect(exam.textContent).toBe("TUE29");
+    expect(exam.textContent).toBe("Tue29");
     expect(exam.getAttribute("aria-label")).toBe("Tue 29 Sept · Exam day, 1 exam");
   });
 
   it("tints a holiday red", () => {
     renderHome();
     for (const title of ["Thu 1 Oct · Academic holiday", "Sat 3 Oct · Academic holiday"]) {
-      expect(within(strip()).getByTitle(title).className).toContain("bg-red-500/10");
+      expect(within(strip()).getByTitle(title).className).toContain("bg-danger-soft");
     }
   });
 
   it("leaves an ordinary day untinted and unbordered by colour", () => {
     renderHome();
     const ordinary = within(strip()).getByTitle("Mon 28 Sept · No classes");
-    expect(ordinary.className).toContain("bg-white");
+    expect(ordinary.className).toContain("bg-transparent");
     expect(ordinary.className).not.toMatch(/bg-(amber|red|indigo|emerald|sky)-/);
   });
 
-  it("marks today with aria-current and an emerald ring", () => {
+  it("marks today with aria-current and an accent dot", () => {
     renderHome();
     const today = within(strip()).getByTitle("Tue 29 Sept · Exam day");
     // An exam day, so the amber tint wins the fill and the ink; the ring is
@@ -167,8 +170,10 @@ describe("week strip", () => {
 
     const friday = within(strip()).getByTitle("Fri 2 Oct · No classes");
     const today = within(strip()).getByTitle("Tue 29 Sept · Exam day");
-    expect(friday.className).toContain("ring-indigo-500");
-    expect(today.className).toContain("ring-emerald-500");
+    // Selection is a solid ink tile; today keeps its accent dot underneath.
+    expect(friday.className).toContain("bg-ink");
+    expect(today.className).not.toContain("bg-ink");
+    expect(today.querySelector("span.bg-accent")).not.toBeNull();
   });
 
   it("pages to the next week on a left swipe and back on a right swipe", async () => {
@@ -210,9 +215,7 @@ describe("week strip", () => {
 
     // Still Tuesday: selection survived the week change, and no stray click
     // moved it to some other day.
-    expect(within(strip()).getAllByRole("button")[1].className).toContain(
-      "ring-indigo-500"
-    );
+    expect(within(strip()).getAllByRole("button")[1].className).toContain("bg-ink");
   });
 
   it("opts the strip out of the dashboard's own swipe", () => {
@@ -278,7 +281,7 @@ describe("the Today chip", () => {
   const selected = () =>
     within(strip())
       .getAllByRole("button")
-      .find((c) => c.className.includes("ring-indigo-500"));
+      .find((c) => c.getAttribute("aria-pressed") === "true");
 
   const selectedTitle = () => selected()?.getAttribute("title");
 

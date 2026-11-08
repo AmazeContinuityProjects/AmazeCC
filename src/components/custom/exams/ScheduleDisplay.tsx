@@ -307,7 +307,7 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
           value={
             <>
               {upcomingRows.length}
-              <span className="text-base sm:text-lg font-extrabold text-zinc-400 dark:text-zinc-500 ml-1">
+              <span className="text-base sm:text-lg font-semibold text-zinc-400 dark:text-zinc-500 ml-1">
                 of {allRows.length}
               </span>
             </>
@@ -365,7 +365,7 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
                           className={GHOST_BUTTON}
                         >
                           <Printer className="w-3.5 h-3.5 text-indigo-400" />
-                          <span className="text-[11px] font-bold">{examType} PDF</span>
+                          <span className="text-[11px] font-semibold">{examType} PDF</span>
                         </button>
                         <button
                           type="button"
@@ -374,8 +374,8 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
                           disabled={isDownloading || isDownloadingPdf}
                           className={GHOST_BUTTON}
                         >
-                          <Download className="w-3.5 h-3.5 text-emerald-400" />
-                          <span className="text-[11px] font-bold">{examType} PNG</span>
+                          <Download className="w-3.5 h-3.5 text-ok" />
+                          <span className="text-[11px] font-semibold">{examType} PNG</span>
                         </button>
                         {isIOS && hasCalendarData ? (
                           <a
@@ -386,7 +386,7 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
                             className={GHOST_BUTTON}
                           >
                             <CalendarPlus className="w-3.5 h-3.5" />
-                            <span className="hidden sm:inline text-[11px] font-bold">Add to Calendar</span>
+                            <span className="hidden sm:inline text-[11px] font-semibold">Add to Calendar</span>
                           </a>
                         ) : null}
                       </div>
@@ -403,7 +403,7 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
                           <button
                             type="button"
                             onClick={() => setExpandedKey(isOpen && expandedKey !== EXPAND_ALL ? null : row.key)}
-                            className="w-full relative py-3.5 px-4 flex items-center justify-between gap-3 text-left cursor-pointer active:scale-[0.99] transition-transform"
+                            className="w-full relative py-3.5 px-4 flex items-center justify-between gap-3 text-left cursor-pointer transition-transform"
                           >
                             {row.state === "past" ? (
                               /* A tick reads faster than a faint dot for finished papers. */
@@ -413,15 +413,15 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
                             )}
                             <div className="min-w-0 flex-1">
                               <p
-                                className={`text-sm font-bold truncate font-outfit leading-tight ${
+                                className={`text-sm font-semibold truncate font-outfit leading-tight ${
                                   row.state === "past"
                                     ? "text-zinc-400 dark:text-zinc-500 line-through"
-                                    : "text-zinc-900 dark:text-white"
+                                    : "text-ink"
                                 }`}
                               >
                                 {subj.courseTitle || subj.courseCode}
                               </p>
-                              <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-1 truncate">
+                              <p className="text-[11px] text-muted font-medium mt-1 truncate">
                                 {subj.courseCode} · {shortDate(row.date)} · {subj.examSession || "TBA"} ·{" "}
                                 {subj.venue === "-" ? "TBA" : subj.venue}
                               </p>
@@ -460,20 +460,20 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
                                       { label: "Slot", value: subj.slot === "-" ? "TBA" : subj.slot || "TBA" },
                                     ].map((field) => (
                                       <div key={field.label} className="min-w-0">
-                                        <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                                        <p className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500">
                                           {field.label}
                                         </p>
-                                        <p className="text-[12.5px] font-bold text-zinc-800 dark:text-zinc-100 truncate mt-0.5">
+                                        <p className="text-[12.5px] font-semibold text-zinc-800 dark:text-zinc-100 truncate mt-0.5">
                                           {field.value}
                                         </p>
                                       </div>
                                     ))}
                                   </div>
                                   <div className="flex items-center justify-between gap-3 min-w-0 pt-1.5">
-                                    <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 shrink-0">
+                                    <p className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 shrink-0">
                                       Seat
                                     </p>
-                                    <p className="text-[12.5px] font-bold text-zinc-800 dark:text-zinc-100 truncate">
+                                    <p className="text-[12.5px] font-semibold text-zinc-800 dark:text-zinc-100 truncate">
                                       Loc: {seatLabel(subj) || "TBA"} · No: {subj.seatNo || "TBA"}
                                     </p>
                                   </div>
@@ -510,21 +510,21 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
         >
           <div className="p-4 space-y-4">
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block mb-2">
+              <label className="text-xs font-semibold text-zinc-400 dark:text-zinc-500 block mb-2">
                 Exam Series
               </label>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => setSelectedModalSeries(ALL_TYPES)}
-                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                  className={`p-3 rounded-md border text-left transition-all cursor-pointer ${
                     selectedModalSeries === ALL_TYPES
-                      ? "border-indigo-500 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold"
-                      : "border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 text-zinc-800 dark:text-zinc-200"
+                      ? "border-indigo-500 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold"
+                      : "border-line hover:bg-zinc-100 dark:hover:bg-zinc-800/50 text-zinc-800 dark:text-zinc-200"
                   }`}
                 >
-                  <div className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">All Series</div>
-                  <div className="text-sm font-extrabold mt-0.5">All Exams ({allRows.length})</div>
+                  <div className="text-[11px] text-zinc-400 font-semibold">All Series</div>
+                  <div className="text-sm font-semibold mt-0.5">All Exams ({allRows.length})</div>
                 </button>
                 {examTypes.map((t) => {
                   const count = allRows.filter((r) => r.examType === t).length;
@@ -534,14 +534,14 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
                       key={t}
                       type="button"
                       onClick={() => setSelectedModalSeries(t)}
-                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                      className={`p-3 rounded-md border text-left transition-all cursor-pointer ${
                         isSel
-                          ? "border-indigo-500 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold"
-                          : "border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 text-zinc-800 dark:text-zinc-200"
+                          ? "border-indigo-500 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold"
+                          : "border-line hover:bg-zinc-100 dark:hover:bg-zinc-800/50 text-zinc-800 dark:text-zinc-200"
                       }`}
                     >
-                      <div className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Series</div>
-                      <div className="text-sm font-extrabold mt-0.5">
+                      <div className="text-[11px] text-zinc-400 font-semibold">Series</div>
+                      <div className="text-sm font-semibold mt-0.5">
                         {t} ({count})
                       </div>
                     </button>
@@ -550,8 +550,8 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
               </div>
             </div>
 
-            <div className="pt-2 border-t border-zinc-200 dark:border-zinc-800">
-              <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block mb-2">
+            <div className="pt-2 border-t border-line">
+              <label className="text-xs font-semibold text-zinc-400 dark:text-zinc-500 block mb-2">
                 Download Format
               </label>
               <div className="grid grid-cols-2 gap-2">
@@ -563,7 +563,7 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
                     await handleDownloadPdf(target);
                     setShowDownloadModal(false);
                   }}
-                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow transition-colors cursor-pointer disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-sm bg-accent hover:bg-accent/90 text-background font-medium text-sm shadow transition-colors cursor-pointer disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 >
                   <Printer className="w-4 h-4" />
                   PDF (Schedule)
@@ -576,7 +576,7 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
                     await handleDownloadImage(target);
                     setShowDownloadModal(false);
                   }}
-                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 text-zinc-800 dark:text-zinc-200 font-bold text-sm transition-colors cursor-pointer disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-md border border-line hover:bg-zinc-100 dark:hover:bg-zinc-800/50 text-zinc-800 dark:text-zinc-200 font-semibold text-sm transition-colors cursor-pointer disabled:opacity-50"
                 >
                   <Download className="w-4 h-4" />
                   PNG (Image)

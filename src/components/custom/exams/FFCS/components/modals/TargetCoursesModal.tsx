@@ -121,7 +121,7 @@ export const TargetCoursesModal: React.FC<TargetCoursesModalProps> = ({
           contentClassName="flex flex-col gap-4"
           title="Target Courses"
           icon={<Lock className="w-5 h-5" />}
-          accent="bg-purple-500/10 border-purple-500/20 text-purple-500"
+          accent="bg-course-3/10 border-course-3/20 text-course-3"
           closeLabel="Close target courses"
         >
           <SegmentedControl<ImportMode | "search">
@@ -146,12 +146,12 @@ export const TargetCoursesModal: React.FC<TargetCoursesModalProps> = ({
               {courseLocks.map((lock) => (
                 <div
                   key={lock.code}
-                  className="bg-purple-500/10 border border-purple-500/30 text-purple-500 rounded-lg px-3 py-1.5 flex items-center gap-2 text-sm font-medium"
+                  className="bg-course-3/10 border border-course-3/30 text-course-3 rounded-lg px-3 py-1.5 flex items-center gap-2 text-sm font-medium"
                 >
                   <span>{lock.code}</span>
                   <button
                     onClick={() => setCourseLocks((prev) => prev.filter((p) => p.code !== lock.code))}
-                    className="hover:bg-purple-500/20 p-0.5 rounded-full transition-colors"
+                    className="hover:bg-course-3/10 p-0.5 rounded-full transition-colors"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -233,11 +233,11 @@ export const TargetCoursesModal: React.FC<TargetCoursesModalProps> = ({
           )}
           <div className="pt-3 mt-1 border-t border-border-strong bg-surface-secondary/20 flex justify-between items-center">
             <span className="text-sm font-medium text-text-heading">
-              <span className="text-purple-500 font-bold">{courseLocks.length}</span> courses selected
+              <span className="text-course-3 font-semibold">{courseLocks.length}</span> courses selected
             </span>
             <button
               onClick={onClose}
-              className="bg-foreground text-background px-6 py-2 rounded-xl text-sm font-bold shadow hover:bg-foreground/90 transition-colors"
+              className="bg-foreground text-background px-6 py-2 rounded-md text-sm font-semibold shadow hover:bg-foreground/90 transition-colors"
             >
               Done
             </button>

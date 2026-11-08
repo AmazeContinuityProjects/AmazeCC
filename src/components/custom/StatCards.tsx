@@ -21,7 +21,7 @@ export default function StatsCards({
       : 0;
 
   const cardBase =
-    "stagger-enter cursor-pointer p-5 rounded-2xl border border-zinc-200/60 dark:border-zinc-800/80 shadow-2xs hover:shadow-xs transition-all duration-300 flex-shrink-0 snap-start w-[calc(50%-8px)] md:w-auto flex flex-col items-center justify-center text-center";
+    "stagger-enter cursor-pointer p-5 rounded-md border border-line shadow-2xs hover:shadow-xs transition-all duration-300 flex-shrink-0 snap-start w-[calc(50%-8px)] md:w-auto flex flex-col items-center justify-center text-center";
 
   const cards = [
     {
@@ -50,10 +50,10 @@ export default function StatsCards({
               Mid Sem
             </span>
             <span
-              className={`text-base font-bold ${
+              className={`text-base font-semibold ${
                 feedbackStatus?.MidSem?.Curriculum && feedbackStatus?.MidSem?.Course
-                  ? "text-green-500"
-                  : "text-red-500"
+                  ? "text-ok"
+                  : "text-danger"
               }`}
             >
               {feedbackStatus?.MidSem?.Curriculum && feedbackStatus?.MidSem?.Course
@@ -67,10 +67,10 @@ export default function StatsCards({
               End Sem
             </span>
             <span
-              className={`text-base font-bold ${
+              className={`text-base font-semibold ${
                 feedbackStatus?.EndSem?.Curriculum && feedbackStatus?.EndSem?.Course
-                  ? "text-green-500"
-                  : "text-red-500"
+                  ? "text-ok"
+                  : "text-danger"
               }`}
             >
               {feedbackStatus?.EndSem?.Curriculum && feedbackStatus?.EndSem?.Course
@@ -105,14 +105,14 @@ export default function StatsCards({
         {cards.filter(c => c.show).map((card) => (
           <div
             key={card.key}
-            className={`${cardBase} bg-white  dark:bg-black dark:border dark:border-gray-800`}
+            className={`${cardBase} bg-surface  dark:bg-background dark:border dark:border-gray-800`}
             onClick={card.onClick}
           >
-            <h2 className="text-xs font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit">
+            <h2 className="text-xs font-semibold text-zinc-400 dark:text-zinc-500 font-outfit">
               {card.label}
             </h2>
             {card.customContent || (
-              <p className="text-2xl font-black text-zinc-900 dark:text-zinc-100 mt-2 select-none font-outfit">
+              <p className="text-2xl font-semibold text-ink mt-2 select-none font-outfit">
                 {Number.isNaN(card.value) ? "0" : card.value}
               </p>
             )}

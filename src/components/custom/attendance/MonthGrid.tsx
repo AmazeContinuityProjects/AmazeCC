@@ -16,7 +16,7 @@ import {
 
 /** The squircle the Theory and Lab log grids already use. */
 const CELL =
-  "relative aspect-square rounded-xl flex flex-col items-center justify-center gap-1 transition-colors duration-150 cursor-pointer";
+  "relative aspect-square rounded-md flex flex-col items-center justify-center gap-1 transition-colors duration-150 cursor-pointer";
 
 /**
  * Day-type tint.
@@ -29,9 +29,9 @@ const CELL =
  */
 const TINT: Record<CalendarDayModel["dayType"], string> = {
   instructional: "",
-  semiholiday: "bg-amber-500/10 dark:bg-amber-500/10",
+  semiholiday: "bg-warn/[0.07]",
   nonInstructional: "",
-  holiday: "bg-red-500/10 dark:bg-red-500/10",
+  holiday: "bg-danger/[0.07]",
   other: "",
 };
 
@@ -43,7 +43,7 @@ const DAY_TYPE_TEXT: Record<CalendarDayModel["dayType"], string> = {
   other: "Not in the calendar",
 };
 
-const RING = "ring-2 ring-inset ring-indigo-500 dark:ring-indigo-400";
+const RING = "ring-[1.5px] ring-inset ring-ink";
 
 /**
  * The month grid.
@@ -86,7 +86,7 @@ export default function MonthGrid({
 
   if (!month) {
     return (
-      <div className={cn("p-8 text-center text-xs font-bold text-zinc-400", className)}>
+      <div className={cn("p-8 text-center text-[13px] text-muted", className)}>
         No calendar loaded.
       </div>
     );
@@ -114,7 +114,7 @@ export default function MonthGrid({
           {WEEKDAY_SHORT.map((day) => (
             <div
               key={day}
-              className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500 py-1"
+              className="py-1 text-[11px] font-medium text-muted"
             >
               {day.slice(0, 2)}
             </div>
@@ -148,20 +148,21 @@ export default function MonthGrid({
                   CELL,
                   TINT[day.dayType],
                   isSelected && RING,
-                  isToday && !isSelected && "ring-1 ring-inset ring-zinc-400 dark:ring-zinc-600",
-                  "hover:bg-zinc-100 dark:hover:bg-zinc-800/60 active:scale-95"
+                  "transition-colors duration-[120ms] hover:bg-surface-2"
                 )}
               >
                 <span
                   className={cn(
-                    "text-xs font-black font-outfit leading-none",
-                    day.dayType === "holiday"
-                      ? "text-red-600 dark:text-red-400"
+                    "font-mono text-[13px] leading-none tabular-nums",
+                    isToday
+                      ? "font-semibold text-accent"
+                      : day.dayType === "holiday"
+                      ? "text-danger"
                       : day.dayType === "semiholiday"
-                        ? "text-amber-600 dark:text-amber-400"
+                        ? "text-warn"
                         : day.dayType === "nonInstructional"
-                          ? "text-sky-600 dark:text-sky-400"
-                          : "text-zinc-900 dark:text-white"
+                          ? "text-muted"
+                          : "text-ink"
                   )}
                 >
                   {day.date}

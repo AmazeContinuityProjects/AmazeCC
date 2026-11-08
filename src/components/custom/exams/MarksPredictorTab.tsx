@@ -360,8 +360,8 @@ export default function MarksPredictorTab({
               </p>
 
               {enrolledCourses.length === 0 ? (
-                <div className="p-6 rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700 text-center">
-                  <p className="text-sm font-bold text-zinc-500 dark:text-zinc-400">
+                <div className="p-6 rounded-md border border-dashed border-zinc-300 dark:border-zinc-700 text-center">
+                  <p className="text-sm font-semibold text-muted">
                     No courses found
                   </p>
                   <p className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1">
@@ -389,10 +389,10 @@ export default function MarksPredictorTab({
                           />
                           <span className="flex items-center gap-3 shrink-0">
                             <span className="w-20 text-right">
-                              <span className="block text-sm font-black font-outfit text-zinc-900 dark:text-white">
+                              <span className="block text-sm font-semibold font-outfit text-ink">
                                 {deficit > 0 ? `-${deficit.toFixed(1)}` : "0.0"}
                               </span>
-                              <span className="block text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                              <span className="block text-[11px] font-semibold text-zinc-400 dark:text-zinc-500">
                                 pts lost
                               </span>
                             </span>
@@ -464,9 +464,9 @@ export default function MarksPredictorTab({
             ) : (
               <div
                 key="empty"
-                className="p-6 rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700 text-center"
+                className="p-6 rounded-md border border-dashed border-zinc-300 dark:border-zinc-700 text-center"
               >
-                <p className="text-sm font-bold text-zinc-500 dark:text-zinc-400">
+                <p className="text-sm font-semibold text-muted">
                   No course selected
                 </p>
                 <button
@@ -475,7 +475,7 @@ export default function MarksPredictorTab({
                     setViewMode("list");
                     setRefreshTrigger((r) => r + 1);
                   }}
-                  className="mt-3 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
+                  className="mt-3 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
                 >
                   Back to the list
                 </button>
@@ -551,7 +551,7 @@ function ConfirmSheet({
     <BottomSheet onClose={onClose} overlayId={overlayId} maxWidth="max-w-md">
       <div className="space-y-3.5 pb-2">
         <div className="space-y-1.5">
-          <h3 className="text-base font-black text-red-600 dark:text-red-400 font-outfit tracking-tight">
+          <h3 className="text-base font-semibold text-danger font-outfit tracking-tight">
             {title}
           </h3>
           <p className="text-[11px] font-medium leading-relaxed text-text-secondary dark:text-text-muted">
@@ -565,7 +565,7 @@ function ConfirmSheet({
           <button
             type="button"
             onClick={onConfirm}
-            className="flex-1 flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-black shadow-xs cursor-pointer active:scale-95"
+            className="flex-1 flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-md bg-danger hover:bg-danger text-white text-xs font-semibold shadow-xs cursor-pointer"
           >
             {confirmIcon}
             {confirmLabel}

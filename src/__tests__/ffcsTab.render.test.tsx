@@ -661,7 +661,7 @@ describe("FFCSTimetableTab", () => {
     expect(screen.getByRole("button", { name: /Auto-Generate/ })).toBeDefined();
     expect(screen.getByRole("button", { name: /Paste VTOP/ })).toBeDefined();
     expect(screen.getByRole("button", { name: /Advanced Linker/ })).toBeDefined();
-    expect(targetCourses.firstElementChild?.className).toContain("text-purple-600");
+    expect(targetCourses.firstElementChild?.className).toContain("text-course-3");
   }, 30_000);
 
   it("opens planner settings from the planner menu", async () => {

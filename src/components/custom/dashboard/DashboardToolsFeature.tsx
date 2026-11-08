@@ -7,7 +7,7 @@ import type { ComponentProps } from "react";
 type ToolsTabProps = ComponentProps<typeof ToolsTabComponent>;
 
 function FeatureLoading() {
-  return <div className="min-h-40 animate-pulse rounded-2xl bg-slate-100 dark:bg-zinc-900" role="status" aria-label="Loading tools" />;
+  return <div className="min-h-40 animate-pulse rounded-md bg-surface-2" role="status" aria-label="Loading tools" />;
 }
 
 const ToolsTab = dynamic(() => import("../tools/ToolsTab"), { loading: FeatureLoading });

@@ -78,20 +78,20 @@ export default function UpcomingClassesList({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 text-sm font-medium bg-gray-50  dark:bg-gray-900/50 p-4 rounded-xl border border-gray-100  dark:border-gray-800">
+      <div className="flex flex-wrap items-center justify-between gap-3 text-sm font-medium bg-surface-2 p-4 rounded-md border border-gray-100  dark:border-gray-800">
         <div className="flex gap-4">
-          <span className="text-emerald-600 dark:text-emerald-400">
+          <span className="text-ok">
             Attending: <strong>{attending}</strong>
           </span>
-          <span className="text-red-500 dark:text-red-400">
+          <span className="text-danger">
             Skipping: <strong>{missed}</strong>
           </span>
         </div>
         <div
           className={`px-3 py-1 rounded-full border ${
             predictedPercent >= thresholdPct
-              ? "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800/50"
-              : "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800/50"
+              ? "bg-ok-soft text-ok border-ok/40"
+              : "bg-danger-soft text-danger border-danger/40"
           }`}
         >
           Predicted: {predictedPercent}%
@@ -113,22 +113,22 @@ export default function UpcomingClassesList({
             <div
               key={i}
               onClick={() => toggleAttendance(time)}
-              className={`flex flex-col items-center justify-center rounded-lg border p-2 text-center cursor-pointer select-none transition-all duration-150 hover:scale-[1.03] active:scale-[0.97] ${
+              className={`flex flex-col items-center justify-center rounded-lg border p-2 text-center cursor-pointer select-none transition-all duration-150 ${
                 isSkipped
-                  ? "bg-red-50/50 border-red-200 text-red-700 dark:bg-red-950/20 dark:border-red-900/40 dark:text-red-400"
+                  ? "bg-red-50/50 border-danger/40 text-danger"
                   : isIgnored
                     ? "bg-gray-100 border-gray-200 text-gray-400 dark:text-gray-500 dark:bg-gray-900 dark:border-gray-800 opacity-50"
-                    : "bg-white border-gray-200 dark:bg-black dark:border-gray-800/80 text-gray-800 dark:text-gray-300 hover:border-blue-400 dark:hover:border-blue-500"
+                    : "bg-surface border-gray-200 dark:bg-background dark:border-gray-800/80 text-gray-800 dark:text-gray-300 hover:border-accent/40"
               }`}
             >
               <span
-                className={`font-bold text-xs ${isSkipped ? "text-red-700 dark:text-red-400" : "text-gray-800 dark:text-gray-200"}`}
+                className={`font-semibold text-xs ${isSkipped ? "text-danger" : "text-gray-800 dark:text-gray-200"}`}
               >
                 {dateStr}
               </span>
               <span
-                className={`text-[9px] uppercase font-bold tracking-wider mt-0.5 opacity-60 ${
-                  isSkipped ? "text-red-500 dark:text-red-400" : "text-gray-500 dark:text-gray-400"
+                className={`text-[11px] font-semibold mt-0.5 opacity-60 ${
+                  isSkipped ? "text-danger" : "text-muted"
                 }`}
               >
                 {weekday}

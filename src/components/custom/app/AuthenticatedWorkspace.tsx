@@ -9,7 +9,7 @@ import { useDashboardScreenHistory } from "../dashboard/useDashboardScreenHistor
 import type { IntroLogin } from "../onboarding/OnboardingIntro";
 
 function WorkspaceLoading() {
-  return <div className="min-h-screen bg-slate-50 dark:bg-black" role="status" aria-label="Opening your workspace" />;
+  return <div className="min-h-screen bg-slate-50 dark:bg-background" role="status" aria-label="Opening your workspace" />;
 }
 
 const DashboardContent = dynamic(() => import("../Dashboard"), { loading: WorkspaceLoading });
@@ -64,8 +64,11 @@ export default function AuthenticatedWorkspace(props: AuthenticatedWorkspaceProp
   return (
     <>
       {demoMode && (
-        <div className="top-0 left-0 w-full bg-blue-500 text-white text-center py-2 font-medium">
-          ℹ️ You are in Demo Mode. Data shown is for demonstration purposes only.
+        <div
+          role="status"
+          className="w-full border-b border-line bg-accent-soft px-4 py-1.5 text-center text-[13px] text-accent"
+        >
+          Demo mode: this is sample data, not your VTOP account.
         </div>
       )}
       <DashboardContent

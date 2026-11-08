@@ -11,13 +11,13 @@ export default function MoodleDisplay({ moodleData, handleFetchMoodle, setMoodle
             <div className="text-xl mb-4 text-center text-gray-900  dark:text-gray-100">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
                     {/* Mobile View: Inline Center */}
-                    <h1 className="md:hidden font-bold">
+                    <h1 className="md:hidden font-semibold">
                         Moodle/LMS Data
                         <FetchButton onClick={() => handleFetchMoodle()} size="sm" icon={<RefreshCcw className="w-4 h-4" />} className="ml-2 align-middle" />
                     </h1>
                     
                     {/* Desktop View: Left Aligned Heading + Right Aligned Button */}
-                    <h1 className="hidden md:block text-2xl font-bold text-left">
+                    <h1 className="hidden md:block text-2xl font-semibold text-left">
                         Moodle/LMS Data
                     </h1>
                     <div className="hidden md:flex items-center justify-end">
@@ -64,7 +64,7 @@ export default function MoodleDisplay({ moodleData, handleFetchMoodle, setMoodle
         <div className="mt-6 p-4">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
                 {/* Mobile View: Inline Center */}
-                <h1 className="md:hidden text-xl font-bold text-center text-gray-900  dark:text-gray-100">
+                <h1 className="md:hidden text-xl font-semibold text-center text-gray-900  dark:text-gray-100">
                     Moodle Upcoming Exams / Assignments
                     <FetchButton
                         onClick={() => handleFetchMoodle()}
@@ -75,7 +75,7 @@ export default function MoodleDisplay({ moodleData, handleFetchMoodle, setMoodle
                 </h1>
                 
                 {/* Desktop View: Left Aligned Heading + Right Aligned Button */}
-                <h1 className="hidden md:block text-2xl lg:text-3xl font-bold text-left text-gray-900  dark:text-gray-100">
+                <h1 className="hidden md:block text-2xl lg:text-3xl font-semibold text-left text-gray-900  dark:text-gray-100">
                     Moodle Upcoming Exams / Assignments
                 </h1>
                 <div className="hidden md:flex items-center justify-end">
@@ -93,7 +93,7 @@ export default function MoodleDisplay({ moodleData, handleFetchMoodle, setMoodle
                     return (
                         <div
                             key={idx}
-                            className="p-4 rounded-lg shadow bg-white  dark:bg-black
+                            className="p-4 rounded-lg shadow bg-surface  dark:bg-background
                                        dark:outline dark:outline-1 dark:outline-gray-800
                                        hover:shadow-md transition cursor-pointer"
                         >
@@ -104,11 +104,11 @@ export default function MoodleDisplay({ moodleData, handleFetchMoodle, setMoodle
                                     </h2>
 
                                     {item.done ? (
-                                        <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                                        <CheckCircle className="w-5 h-5 text-ok flex-shrink-0" />
                                     ) : isOverdue ? (
-                                        <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                                        <AlertCircle className="w-5 h-5 text-danger flex-shrink-0" />
                                     ) : (
-                                        <Clock className="w-5 h-5 text-yellow-500 flex-shrink-0" />
+                                        <Clock className="w-5 h-5 text-warn flex-shrink-0" />
                                     )}
                                 </div>
 
@@ -123,10 +123,10 @@ export default function MoodleDisplay({ moodleData, handleFetchMoodle, setMoodle
                             <div className="mt-3 flex items-center justify-between">
                                 <span
                                     className={`px-3 py-1 rounded-full text-xs ${item.done
-                                        ? "bg-green-200 text-green-800"
+                                        ? "bg-ok-soft text-ok"
                                         : isOverdue
-                                            ? "bg-red-200 text-red-800"
-                                            : "bg-yellow-200 text-yellow-800"
+                                            ? "bg-danger-soft text-danger"
+                                            : "bg-warn-soft text-warn"
                                         }`}
                                 >
                                     {item.done ? "Completed" : isOverdue ? "Overdue" : "Pending"}
@@ -135,14 +135,14 @@ export default function MoodleDisplay({ moodleData, handleFetchMoodle, setMoodle
                                 {!item.hidden ? (
                                     <button
                                         onClick={() => setHiddenState(item.url, true)}
-                                        className="text-xs text-gray-500 hover:text-red-600"
+                                        className="text-xs text-gray-500 hover:text-danger"
                                     >
                                         Not yours? Hide it
                                     </button>
                                 ) : (
                                     <button
                                         onClick={() => setHiddenState(item.url, false)}
-                                        className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                                        className="inline-flex items-center gap-1 text-xs text-accent hover:text-accent"
                                     >
                                         <Undo2 size={14} />
                                         Unhide
@@ -168,7 +168,7 @@ export default function MoodleDisplay({ moodleData, handleFetchMoodle, setMoodle
             <div className="mt-6 flex items-center justify-center gap-3 text-sm text-gray-700 dark:text-gray-300">
                 <button
                     onClick={LogOutMoodle}
-                    className="w-full max-w-md px-4 py-2 rounded-lg font-medium flex items-center justify-center bg-red-600 hover:bg-red-700 text-white transition-colors"
+                    className="w-full max-w-md px-4 py-2 rounded-lg font-medium flex items-center justify-center bg-danger hover:bg-danger text-white transition-colors"
                 >
                     <LogOut className="w-4 h-4 mr-1" />
                     Log Out Moodle
@@ -208,9 +208,9 @@ export function MoodleUserPassForm({ handleFetchMoodle, IDs }) {
                         Username (Registration No.)
                     </label>
                     <input
-                        className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 
+                        className="px-4 py-2 rounded-lg border border-gray-300 bg-surface text-gray-900 
                         dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100
-                        focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                        focus:outline-none focus:ring-2 focus:ring-accent/40 transition"
                         placeholder="Enter Moodle username"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
@@ -225,9 +225,9 @@ export function MoodleUserPassForm({ handleFetchMoodle, IDs }) {
                     </label>
                     <input
                         type="password"
-                        className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 
+                        className="px-4 py-2 rounded-lg border border-gray-300 bg-surface text-gray-900 
                         dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100
-                        focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                        focus:outline-none focus:ring-2 focus:ring-accent/40 transition"
                         placeholder="Enter Moodle password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
@@ -236,8 +236,7 @@ export function MoodleUserPassForm({ handleFetchMoodle, IDs }) {
 
                 <button
                     type="submit"
-                    className="px-6 py-2 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700 
-                        dark:bg-blue-500 dark:hover:bg-blue-600
+                    className="px-6 py-2 rounded-md font-medium text-white bg-accent hover:bg-accent
                         transition-colors duration-150"
                 >
                     Continue

@@ -28,8 +28,8 @@ const MODE_OPTIONS = [
     description: "The all-in-one planner with course search, timetable controls, and the interactive weekly grid.",
     badge: "All-in-One",
     Icon: LayoutDashboard,
-    iconClass: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-    selectedClass: "bg-blue-500/5",
+    iconClass: "bg-accent-soft text-accent border-accent/20",
+    selectedClass: "bg-accent-soft",
   },
   {
     value: "classic",
@@ -37,8 +37,8 @@ const MODE_OPTIONS = [
     description: "The original two-panel dashboard with timetable management, course selection, social score, and exports.",
     badge: "Classic",
     Icon: Layers,
-    iconClass: "bg-amber-500/10 text-amber-600 border-amber-500/20",
-    selectedClass: "bg-amber-500/5",
+    iconClass: "bg-warn-soft text-warn border-warn/20",
+    selectedClass: "bg-warn-soft",
   },
 ] as const;
 
@@ -75,11 +75,11 @@ export default function FFCSLayoutModeModal({
     >
       <div className="flex items-start justify-between gap-3 border-b border-border-strong/60 pb-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 flex items-center justify-center shrink-0 shadow-xs">
+          <div className="w-10 h-10 rounded-md border border-line-2 text-indigo-500 flex items-center justify-center shrink-0 shadow-xs bg-surface-2">
             <Sparkles className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-lg font-black text-text-heading tracking-tight leading-tight">
+            <h2 className="text-lg font-semibold text-text-heading tracking-tight leading-tight">
               Choose Your Planner Experience
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
@@ -104,7 +104,7 @@ export default function FFCSLayoutModeModal({
                   isSelected ? option.selectedClass : "hover:bg-surface-secondary/60"
                 }`}
               >
-                <span className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${option.iconClass}`}>
+                <span className={`w-10 h-10 rounded-md border flex items-center justify-center shrink-0 ${option.iconClass}`}>
                   <option.Icon className="w-4 h-4" />
                 </span>
                 <ListRowText
@@ -112,14 +112,14 @@ export default function FFCSLayoutModeModal({
                   titleTag="span"
                   subtitle={option.description}
                 />
-                <span className="hidden sm:inline-flex text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-surface-secondary text-muted-foreground border border-border-strong/60 shrink-0">
+                <span className="hidden sm:inline-flex text-[11px] font-semibold px-2 py-1 rounded-full bg-surface-secondary text-muted-foreground border border-border-strong/60 shrink-0">
                   {option.badge}
                 </span>
                 <span
                   aria-hidden="true"
                   className={`w-5 h-5 rounded-full flex items-center justify-center border shrink-0 transition-colors ${
                     isSelected
-                      ? "bg-indigo-600 border-indigo-600 text-white"
+                      ? "bg-accent border-indigo-600 text-background"
                       : "border-border-strong text-transparent"
                   }`}
                 >
@@ -146,7 +146,7 @@ export default function FFCSLayoutModeModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-3.5 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:text-text-heading hover:bg-surface-secondary/80 border border-border-strong/60 transition-colors cursor-pointer"
+            className="px-3.5 py-2 rounded-md text-xs font-semibold text-muted-foreground hover:text-text-heading hover:bg-surface-secondary/80 border border-border-strong/60 transition-colors cursor-pointer"
           >
             Cancel
           </button>

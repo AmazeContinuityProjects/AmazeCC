@@ -140,10 +140,10 @@ export interface GradeBadge {
  * badge means the same thing in both. Mirrors the curriculum badge styling.
  */
 export const GRADE_BADGE_TONE_CLASSES: Record<GradeBadge["tone"], string> = {
-  red: "text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-red-500/30 bg-red-500/10 text-red-500",
+  red: "text-[11px] font-semibold px-1.5 py-0.5 rounded-md border border-danger/30 bg-danger-soft text-danger",
   amber:
-    "text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
-  blue: "text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-blue-500/30 bg-blue-500/10 text-blue-500",
+    "text-[11px] font-semibold px-1.5 py-0.5 rounded-md border border-warn/30 bg-warn-soft text-warn",
+  blue: "text-[11px] font-semibold px-1.5 py-0.5 rounded-md border border-accent/30 bg-accent-soft text-accent",
 };
 
 /**
@@ -164,9 +164,9 @@ export interface GradeLetter {
 }
 
 const LETTER_TONE: Record<GradeDisposition, string> = {
-  completed: "text-red-500",
-  improvement: "text-amber-500 dark:text-amber-400",
-  retry: "text-blue-500",
+  completed: "text-danger",
+  improvement: "text-warn",
+  retry: "text-accent",
   clear: "text-zinc-400 dark:text-zinc-500",
 };
 
@@ -178,7 +178,7 @@ export function gradeLetter(code: string, index: GradeIndex | null | undefined):
   const size = record.grade.length === 1 ? "text-2xl" : "text-base";
   return {
     text: record.grade,
-    className: `${size} font-black leading-none tracking-tight select-none ${LETTER_TONE[record.disposition]}`,
+    className: `${size} font-semibold leading-none tracking-tight select-none ${LETTER_TONE[record.disposition]}`,
     title: `Recorded grade: ${record.grade}`,
   };
 }

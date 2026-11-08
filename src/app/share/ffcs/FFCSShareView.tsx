@@ -31,7 +31,7 @@ import { useFacultyReviewSheet } from "@/components/custom/exams/FFCS/hooks/useF
  */
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={`card-surface border border-border-strong rounded-2xl p-5 ${className}`}>{children}</div>;
+  return <div className={`card-surface border border-border-strong rounded-md p-5 ${className}`}>{children}</div>;
 }
 
 export default function FFCSShareView() {
@@ -160,7 +160,7 @@ export default function FFCSShareView() {
       return (
         <main className="min-h-screen bg-surface text-text-heading flex items-center justify-center p-4">
           <Card className="max-w-md w-full text-center space-y-3">
-            <h1 className="text-lg font-bold">Opening short timetable link…</h1>
+            <h1 className="text-lg font-semibold">Opening short timetable link…</h1>
             <p className="text-sm text-muted-foreground">
               Loading the selected semester report to resolve its class IDs.
             </p>
@@ -171,8 +171,8 @@ export default function FFCSShareView() {
     return (
       <main className="min-h-screen bg-surface text-text-heading flex items-center justify-center p-4">
         <Card className="max-w-md w-full text-center space-y-3">
-          <AlertTriangle className="w-8 h-8 text-amber-500 mx-auto" />
-          <h1 className="text-lg font-bold">This link isn&rsquo;t a timetable plan</h1>
+          <AlertTriangle className="w-8 h-8 text-warn mx-auto" />
+          <h1 className="text-lg font-semibold">This link isn&rsquo;t a timetable plan</h1>
           <p className="text-sm text-muted-foreground">
             {hasReportBackedLink
               ? "The selected semester report could not resolve every class ID in this short link. Ask for a fresh link or use the full timetable link instead."
@@ -180,7 +180,7 @@ export default function FFCSShareView() {
           </p>
           <Link
             href="/"
-            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors"
+            className="inline-flex items-center gap-2 bg-accent hover:bg-accent/90 text-background text-sm font-medium px-4 py-2.5 rounded-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             <MapIcon className="w-4 h-4" /> Open the FFCS Planner
           </Link>
@@ -196,8 +196,8 @@ export default function FFCSShareView() {
       <div className="w-full p-4 md:p-8 space-y-5">
         <header className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <MapIcon className="text-blue-500 w-6 h-6" /> {timetable.name}
+            <h1 className="text-2xl font-semibold flex items-center gap-2">
+              <MapIcon className="text-accent w-6 h-6" /> {timetable.name}
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
               {timetable.courses.length} course{timetable.courses.length === 1 ? "" : "s"} · {campus} campus · shared
@@ -213,18 +213,18 @@ export default function FFCSShareView() {
               {metrics.halfDays} half-day{metrics.halfDays === 1 ? "" : "s"} off
             </span>
             <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-secondary border border-border-strong">
-              <Clock className="w-3.5 h-3.5 text-amber-500" />
+              <Clock className="w-3.5 h-3.5 text-warn" />
               {formatHours(metrics.gaps)} of gaps
             </span>
             <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-secondary border border-border-strong">
-              <Layers className="w-3.5 h-3.5 text-emerald-500" />
+              <Layers className="w-3.5 h-3.5 text-ok" />
               {timetable.courses.length} classes a week
             </span>
           </div>
         )}
 
         <Card>
-          <div className="rounded-xl overflow-hidden">
+          <div className="rounded-md overflow-hidden">
             <TimetableGrid
               courses={timetable.courses}
               customCourses={timetable.courses}
@@ -253,7 +253,7 @@ export default function FFCSShareView() {
             type="button"
             onClick={() => void downloadImage("png")}
             disabled={isDownloading}
-            className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-3 rounded-xl transition-colors cursor-pointer"
+            className="flex-1 flex items-center justify-center gap-2 bg-accent hover:bg-accent/90 disabled:opacity-50 text-background text-sm font-medium px-4 py-3 rounded-sm transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             <Download className="w-4 h-4" />
             {isDownloading ? "Preparing image…" : "Download as PNG"}
@@ -262,7 +262,7 @@ export default function FFCSShareView() {
             type="button"
             onClick={() => void downloadImage("jpg")}
             disabled={isDownloading}
-            className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-3 rounded-xl transition-colors cursor-pointer"
+            className="flex-1 flex items-center justify-center gap-2 bg-accent hover:bg-accent/90 disabled:opacity-50 text-background text-sm font-medium px-4 py-3 rounded-sm transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             <Download className="w-4 h-4" />
             {isDownloading ? "Preparing image…" : "Download as JPEG"}
@@ -270,7 +270,7 @@ export default function FFCSShareView() {
           <Link
             href="/ffcs"
             onClick={openInPlanner}
-            className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-3 rounded-xl transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 bg-ok hover:bg-ok text-white text-sm font-semibold px-4 py-3 rounded-md transition-colors"
           >
             <MapIcon className="w-4 h-4" /> Open in planner
           </Link>

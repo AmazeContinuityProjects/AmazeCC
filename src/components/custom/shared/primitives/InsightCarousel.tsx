@@ -29,9 +29,9 @@ import { useHorizontalSwipe } from "./useHorizontalSwipe";
  */
 
 const LABEL =
-  "text-[10px] sm:text-xs font-bold uppercase tracking-wider text-text-muted dark:text-text-secondary font-outfit truncate";
+  "text-[11px] sm:text-xs font-semibold text-text-muted dark:text-text-secondary font-outfit truncate";
 const BADGE =
-  "text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border shrink-0";
+  "text-[11px] sm:text-[11px] font-semibold px-2 py-0.5 rounded-md border shrink-0";
 const SUBLINE =
   "text-[10.5px] sm:text-xs text-text-secondary dark:text-text-muted font-medium truncate";
 const HEADLINE: Record<string, string> = {
@@ -132,7 +132,7 @@ export function InsightCarousel({
         TILE,
         height,
         slideClickable &&
-          "transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer",
+          "transition-all cursor-pointer",
         !slideClickable && "cursor-default",
         // Ours to pan horizontally; the page keeps its own vertical scroll.
         swipe.className,
@@ -156,7 +156,7 @@ export function InsightCarousel({
           disabled={!slideClickable}
           aria-label={ariaLabel}
           tabIndex={slideClickable ? 0 : -1}
-          className="absolute inset-0 z-0 rounded-[24px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-strong dark:focus-visible:ring-text-secondary focus-visible:ring-inset"
+          className="absolute inset-0 z-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-strong dark:focus-visible:ring-text-secondary focus-visible:ring-inset"
         />
       ) : null}
 
@@ -177,7 +177,7 @@ export function InsightCarousel({
       <div className="flex min-h-0 flex-1 items-center min-w-0 relative z-10 pointer-events-none">
         <p
           className={cn(
-            "font-black font-outfit tracking-tight truncate block",
+            "font-semibold font-outfit tracking-tight truncate block",
             HEADLINE[headlineSize],
             valueTone,
             slide.valueClassName,

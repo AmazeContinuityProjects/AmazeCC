@@ -159,6 +159,6 @@ describe("SelectField", () => {
     const trigger = screen.getByRole("button");
     const wrapper = trigger.parentElement as HTMLElement;
     expect(wrapper.className).toContain("first-child]:h-6");
-    expect(wrapper.className).toContain("first-child_span]:text-[10px]");
+    expect(wrapper.className).toContain("first-child_span]:text-[11px]");
   });
 });

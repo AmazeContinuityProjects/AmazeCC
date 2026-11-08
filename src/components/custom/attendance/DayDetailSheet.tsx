@@ -289,7 +289,7 @@ export default function DayDetailSheet({
                 note names both days, because "which timetable?" and "which day
                 is it?" are the two things that have just changed. */}
             {orderNote && (
-              <p className="px-1 text-[11px] font-semibold leading-relaxed text-amber-600 dark:text-amber-400">
+              <p className="px-1 text-[11px] font-semibold leading-relaxed text-warn">
                 {orderNote}
               </p>
             )}
@@ -316,12 +316,12 @@ export default function DayDetailSheet({
                       onClick={() => onOpenCourse?.(cls.courseCode)}
                       className={`flex w-full items-center gap-3 py-3 px-4 text-left ${
                         canOpen
-                          ? "transition-colors hover:bg-zinc-50/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500/50 dark:hover:bg-white/[0.03]"
+                          ? "transition-colors hover:bg-zinc-50/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ok/50 dark:hover:bg-white/[0.03]"
                           : "cursor-default"
                       }`}
                     >
                       <span
-                        className={cn("w-1.5 h-1.5 rounded-full shrink-0", isLab ? "bg-emerald-500" : "bg-indigo-500")}
+                        className={cn("w-1.5 h-1.5 rounded-full shrink-0", isLab ? "bg-ok" : "bg-indigo-500")}
                       />
                       <div className="min-w-0 flex-1">
                         <ListRowText
@@ -460,7 +460,7 @@ export default function DayDetailSheet({
               </GhostButton>
             ) : null}
             {overdue.length > 0 ? (
-              <span className="text-[11px] font-bold text-red-600 dark:text-red-400">{overdue.length} overdue</span>
+              <span className="text-[11px] font-semibold text-danger">{overdue.length} overdue</span>
             ) : null}
           </div>
         </section>
@@ -494,7 +494,7 @@ export default function DayDetailSheet({
               title="Get notes"
               count={missed.filter((c) => notes.hasNotes(c.courseCode, c.rawDate)).length}
               right={
-                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20">
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-danger-soft text-danger border border-danger/20">
                   {missed.length} missed
                 </span>
               }
@@ -517,8 +517,8 @@ export default function DayDetailSheet({
                       className={cn(
                         "shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer",
                         secured
-                          ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800/50 dark:text-emerald-400"
-                          : "bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-800",
+                          ? "bg-ok-soft border-ok/40 text-ok"
+                          : "bg-surface border-zinc-200 text-zinc-600 hover:bg-surface-2 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-800",
                       )}
                     >
                       {secured ? <CheckCircle2 size={14} /> : <FileText size={14} />}
@@ -537,7 +537,7 @@ export default function DayDetailSheet({
             <Download className="w-3.5 h-3.5" />
             Add to calendar
           </GhostButton>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+          <span className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500">
             {day.dateKey}
           </span>
         </div>
@@ -574,13 +574,13 @@ function EventSection({
   return (
     <section className="space-y-2.5">
       <SectionHeader icon={icon} title={title} count={events.length} />
-      {note ? <p className="px-1 -mt-1 text-[11px] font-medium text-zinc-500 dark:text-zinc-400">{note}</p> : null}
+      {note ? <p className="px-1 -mt-1 text-[11px] font-medium text-muted">{note}</p> : null}
       <ListShell>
         {events.map((event, i) => (
           <div key={`${event.kind}-${event.title}-${i}`}>
             <EventRow event={event} />
             {event.papers?.length ? (
-              <div className="border-t border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/30">
+              <div className="border-t border-zinc-100 dark:border-zinc-800/80 bg-surface-2">
                 {event.papers.map((paper, j) => (
                   <div key={`${paper.title}-${j}`} className="flex items-center gap-3 py-2.5 pl-8 pr-4">
                     <ToneDot tone="amber" />

@@ -26,7 +26,7 @@ interface BottomSheetProps {
   /** Show the floating X button. Default true. */
   showClose?: boolean;
   /**
-   * Renders the standard title card above the content: a bordered rounded-2xl
+   * Renders the standard title card above the content: a bordered rounded-md
    * block with an icon badge, a stacked title + subtitle, and the close X — the
    * block the Full Weekly Timetable sheet and the Faculty Schedule modal use.
    * Passing it also suppresses the floating X so there is exactly one close
@@ -302,7 +302,7 @@ export default function BottomSheet({
   );
 
   const surface =
-    "flex flex-col overflow-hidden bg-white dark:bg-zinc-950 border border-zinc-200/70 dark:border-zinc-800/80";
+    "flex flex-col overflow-hidden bg-surface border border-line";
 
   // Shared by both placements: bottom-anchored, so both keep the safe-area
   // inset and both slide up out of the bottom edge. The only difference is the
@@ -339,7 +339,7 @@ export default function BottomSheet({
       exit={{ y: "100%" }}
       transition={{ type: "spring", damping: 30, stiffness: 300, mass: 0.8 }}
       data-prevent-swipe="true"
-      className={`${anchoredBottom}w-[calc(100%-2rem)] ${maxWidth} ${surface} rounded-[28px] shadow-[0_-15px_40px_-15px_rgba(0,0,0,0.3)] ${className}`}
+      className={`${anchoredBottom}w-[calc(100%-2rem)] ${maxWidth} ${surface} rounded-lg shadow-[0_-15px_40px_-15px_rgba(0,0,0,0.3)] ${className}`}
       style={panelStyle}
     >
       {panelBody}
@@ -352,7 +352,7 @@ export default function BottomSheet({
       exit={{ y: "100%" }}
       transition={{ type: "spring", damping: 30, stiffness: 300, mass: 0.8 }}
       data-prevent-swipe="true"
-      className={`${anchoredBottom}w-full ${maxWidth} ${surface} rounded-t-[28px] sm:rounded-[28px] shadow-[0_-15px_40px_-15px_rgba(0,0,0,0.3)] ${className}`}
+      className={`${anchoredBottom}w-full ${maxWidth} ${surface} rounded-t-lg sm:rounded-lg shadow-[0_-15px_40px_-15px_rgba(0,0,0,0.3)] ${className}`}
       style={panelStyle}
     >
       {panelBody}
@@ -408,7 +408,7 @@ export default function BottomSheet({
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
         onClick={dismissable ? handleBackdropClick : undefined}
-        className="fixed inset-0 bg-black/45 backdrop-blur-xs"
+        className="fixed inset-0 bg-black/45"
         style={{ willChange: "opacity", zIndex: backdropZIndex }}
       />
       {panel}
@@ -421,7 +421,7 @@ export default function BottomSheet({
  * The standard title card every bottom sheet shares, rendered by `BottomSheet`
  * when a `title` is passed.
  *
- * A bordered rounded-2xl block holding three things: an optional icon badge, a
+ * A bordered rounded-md block holding three things: an optional icon badge, a
  * stacked title + subtitle, and the close X on the right — the close sits next
  * to the thing it names rather than floating in the sheet's chrome row. This is
  * the exact block the Full Weekly Timetable sheet and the Faculty Schedule
@@ -446,17 +446,17 @@ function TitleCard({
   onClose: () => void;
 }) {
   return (
-    <div className="p-4 sm:p-5 mb-4 border border-zinc-200/70 dark:border-zinc-800/80 rounded-2xl flex items-center justify-between gap-3 bg-zinc-50/80 dark:bg-zinc-900/70">
+    <div className="p-4 sm:p-5 mb-4 border border-line rounded-md flex items-center justify-between gap-3 bg-surface-2">
       <div className="flex items-center gap-3 min-w-0">
         {icon && (
-          <div className={`p-2 rounded-2xl border shrink-0 ${accent}`}>{icon}</div>
+          <div className={`p-2 rounded-md border shrink-0 ${accent}`}>{icon}</div>
         )}
         <div className="min-w-0">
-          <h2 className="text-base font-black text-zinc-900 dark:text-white truncate">
+          <h2 className="text-base font-semibold text-ink truncate">
             {title}
           </h2>
           {subtitle && (
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-snug">
+            <p className="text-xs text-muted leading-snug">
               {subtitle}
             </p>
           )}

@@ -25,7 +25,7 @@ export default function GlobalError({ error, reset }: { error: ErrorWithDigest; 
 
   return (
     <html lang="en">
-      <body className="bg-gray-100 text-foreground transition-colors duration-300  dark:bg-black">
+      <body className="bg-gray-100 text-foreground transition-colors duration-300  dark:bg-background">
         <ErrorDiagnosticCard
           title="A critical app error occurred"
           description="The app shell failed to render. Copy the full report and send it to support for root-cause analysis."

@@ -72,7 +72,7 @@ export default function TaskListView({
       title: "Overdue",
       icon: AlertCircle,
       tasks: overdue,
-      color: "text-red-500",
+      color: "text-danger",
       hideIfEmpty: true,
     },
     {
@@ -80,7 +80,7 @@ export default function TaskListView({
       title: "Due Today",
       icon: Clock,
       tasks: today,
-      color: "text-amber-500",
+      color: "text-warn",
       hideIfEmpty: false,
     },
     {
@@ -96,7 +96,7 @@ export default function TaskListView({
       title: "Upcoming",
       icon: CalendarDays,
       tasks: later,
-      color: "text-blue-500",
+      color: "text-accent",
       hideIfEmpty: false,
     },
     {
@@ -112,7 +112,7 @@ export default function TaskListView({
       title: "Completed",
       icon: CheckCircle2,
       tasks: completed,
-      color: "text-emerald-500",
+      color: "text-ok",
       hideIfEmpty: true,
     },
   ];
@@ -128,17 +128,17 @@ export default function TaskListView({
             <div className="flex items-center justify-between px-1">
               <div className="flex items-center gap-2">
                 <Icon className={`w-4 h-4 ${grp.color}`} />
-                <h3 className="font-outfit font-black text-sm text-zinc-900 dark:text-white">
+                <h3 className="font-outfit font-semibold text-sm text-ink">
                   {grp.title}
                 </h3>
-                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60">
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-surface-2 text-zinc-600 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60">
                   {grp.tasks.length}
                 </span>
               </div>
             </div>
 
             {grp.tasks.length === 0 ? (
-              <div className="py-4 px-4 rounded-2xl bg-zinc-50/60 dark:bg-zinc-900/30 border border-zinc-200/50 dark:border-zinc-800 text-xs font-medium text-zinc-400 text-center">
+              <div className="py-4 px-4 rounded-md bg-surface-2 border border-zinc-200/50 dark:border-zinc-800 text-xs font-medium text-zinc-400 text-center">
                 No tasks {grp.title.toLowerCase()}
               </div>
             ) : (

@@ -320,8 +320,8 @@ export default function ClubHubTab({
       {/* ── HERO STATS ── */}
       {loading ? (
         <div className="grid grid-cols-2 gap-3 sm:gap-4">
-          <Skeleton className="h-32 sm:h-36 rounded-[24px]" />
-          <Skeleton className="h-32 sm:h-36 rounded-[24px]" />
+          <Skeleton className="h-32 sm:h-36 rounded-lg" />
+          <Skeleton className="h-32 sm:h-36 rounded-lg" />
         </div>
       ) : error ? null : (
         <>
@@ -442,12 +442,12 @@ export default function ClubHubTab({
                       src={club.detail.logo_url}
                       alt=""
                       loading="lazy"
-                      className="w-10 h-10 rounded-2xl object-cover shrink-0 border border-zinc-200/70 dark:border-zinc-800/80"
+                      className="w-10 h-10 rounded-md object-cover shrink-0 border border-line"
                     />
                   ) : (
                     <span
                       className={cn(
-                        "w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border",
+                        "w-10 h-10 rounded-md flex items-center justify-center shrink-0 border",
                         TONE_ICON_TILE[tone] ?? TONE_ICON_TILE.sky
                       )}
                     >

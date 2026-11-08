@@ -39,19 +39,19 @@ export default function TaskBadge({
     text = "Test today";
     count = today.tests;
     colorClass =
-      "text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border-red-200/60 dark:border-red-900/30";
+      "text-danger bg-danger-soft border-danger/60";
     Icon = KIND_CONFIG.test.icon;
   } else if (today.total > 0 && today.das > 0) {
     text = compact ? "DA today" : "Digital assignment today";
     count = today.das;
     colorClass =
-      "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border-amber-200/60 dark:border-amber-900/30";
+      "text-warn bg-warn-soft border-warn/60";
     Icon = KIND_CONFIG["digital-assignment"].icon;
   } else {
     text = "Task pending";
     count = summary.total;
     colorClass =
-      "text-amber-700/90 dark:text-amber-300/90 bg-amber-50/70 dark:bg-amber-950/20 border-amber-200/50 dark:border-amber-900/25";
+      "text-warn/90 bg-amber-50/70 border-warn/50";
     Icon = Layers;
   }
 
@@ -63,7 +63,7 @@ export default function TaskBadge({
         e.stopPropagation();
         onClick?.(e);
       }}
-      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-bold border shrink-0 transition-all ${colorClass} ${className}`}
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-semibold border shrink-0 transition-all ${colorClass} ${className}`}
     >
       <Icon className="w-3 h-3 shrink-0" />
       <span className="truncate">{label}</span>

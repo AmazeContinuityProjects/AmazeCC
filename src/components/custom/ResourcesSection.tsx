@@ -51,7 +51,7 @@ function ResourceRow({
 }) {
   const inner = (
     <>
-      <span className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${iconClass}`}>
+      <span className={`w-10 h-10 rounded-md flex items-center justify-center shrink-0 border ${iconClass}`}>
         {icon}
       </span>
       <ListRowText title={title} subtitle={desc} />

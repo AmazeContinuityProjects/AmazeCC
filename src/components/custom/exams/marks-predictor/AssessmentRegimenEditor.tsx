@@ -210,13 +210,13 @@ export default function AssessmentRegimenEditor({
       )}
 
       {isEmbedded && (
-        <div className="flex flex-col gap-2 p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800/60 text-xs min-w-0">
-          <span className="font-bold text-zinc-700 dark:text-zinc-300">Credit Weighting</span>
+        <div className="flex flex-col gap-2 p-3 rounded-md bg-surface-2 border border-zinc-200/60 dark:border-zinc-800/60 text-xs min-w-0">
+          <span className="font-semibold text-zinc-700 dark:text-zinc-300">Credit Weighting</span>
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-zinc-500 font-medium text-[11px]">Theory:</span>
-            <input type="number" min="1" max="5" value={currTheoryCreds} onChange={(e) => setCurrTheoryCreds(Math.max(1, safeNumber(e.target.value, 3)))} className="w-14 px-2 py-1 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-center text-base font-bold text-zinc-900 dark:text-white" />
+            <input type="number" min="1" max="5" value={currTheoryCreds} onChange={(e) => setCurrTheoryCreds(Math.max(1, safeNumber(e.target.value, 3)))} className="w-14 px-2 py-1 rounded-lg bg-surface border border-zinc-200 dark:border-zinc-700 text-center text-base font-semibold text-ink" />
             <span className="text-zinc-500 font-medium text-[11px]">Lab:</span>
-            <input type="number" min="1" max="4" value={currLabCreds} onChange={(e) => setCurrLabCreds(Math.max(1, safeNumber(e.target.value, 1)))} className="w-14 px-2 py-1 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-center text-base font-bold text-zinc-900 dark:text-white" />
+            <input type="number" min="1" max="4" value={currLabCreds} onChange={(e) => setCurrLabCreds(Math.max(1, safeNumber(e.target.value, 1)))} className="w-14 px-2 py-1 rounded-lg bg-surface border border-zinc-200 dark:border-zinc-700 text-center text-base font-semibold text-ink" />
           </div>
         </div>
       )}
@@ -281,9 +281,9 @@ export default function AssessmentRegimenEditor({
           {currentList.map((item, idx) => {
             const freeze = weightFreezeFor(item);
             return (
-              <div key={item.id} className="flex flex-col gap-2 p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800/60 min-w-0 overflow-hidden">
+              <div key={item.id} className="flex flex-col gap-2 p-3 rounded-md bg-surface-2 border border-zinc-200/60 dark:border-zinc-800/60 min-w-0 overflow-hidden">
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-xs font-bold text-zinc-400 shrink-0">#{idx + 1}</span>
+                  <span className="text-xs font-semibold text-zinc-400 shrink-0">#{idx + 1}</span>
                   <input type="text" value={item.title} onChange={(e) => handleEditItem(item.id, "title", e.target.value)} placeholder="Assessment Name" aria-label="Assessment name" className={`${FIELD_INPUT} min-w-0`} />
                   {freeze.frozen ? (
                     <ToneBadge tone={isAssessmentPublished(item) ? "emerald" : "amber"}>
@@ -300,11 +300,11 @@ export default function AssessmentRegimenEditor({
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="flex-1 flex items-center gap-1.5 min-w-0">
-                    <span className="text-[11px] font-bold text-zinc-400 shrink-0">Max:</span>
+                    <span className="text-[11px] font-semibold text-zinc-400 shrink-0">Max:</span>
                     <input type="number" min="1" max="100" value={item.maxMark} onChange={(e) => handleEditItem(item.id, "maxMark", e.target.value)} aria-label="Maximum marks" className={`${FIELD_INPUT} min-w-0 text-center`} />
                   </div>
                   <div className="flex-1 flex items-center gap-1.5 min-w-0">
-                    <span className="text-[11px] font-bold text-zinc-400 shrink-0">Wt:</span>
+                    <span className="text-[11px] font-semibold text-zinc-400 shrink-0">Wt:</span>
                     <input
                       type="number"
                       min="1"
@@ -319,7 +319,7 @@ export default function AssessmentRegimenEditor({
                     {freeze.frozen ? (
                       <Lock className="w-3.5 h-3.5 text-zinc-400 shrink-0" aria-label="Weightage frozen" />
                     ) : null}
-                    <span className="text-xs font-bold text-zinc-400 shrink-0">%</span>
+                    <span className="text-xs font-semibold text-zinc-400 shrink-0">%</span>
                   </div>
                 </div>
               </div>
@@ -328,19 +328,19 @@ export default function AssessmentRegimenEditor({
         </div>
 
         {remaining > 0 ? (
-          <button onClick={handleAddItem} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700 hover:border-indigo-500 text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 text-xs font-black transition-all cursor-pointer">
+          <button onClick={handleAddItem} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-md border border-dashed border-zinc-300 dark:border-zinc-700 hover:border-indigo-500 text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 text-xs font-semibold transition-all cursor-pointer">
             <Plus className="w-4 h-4" />
             Add Assessment ({remaining.toFixed(1)} wt open)
           </button>
         ) : (
-          <div className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800 text-zinc-400 text-xs font-black">
+          <div className="w-full flex items-center justify-center gap-2 py-2.5 rounded-md border border-dashed border-line text-zinc-400 text-xs font-semibold">
             <Lock className="w-3.5 h-3.5" />
             No weightage left — published facts and the reserved FAT hold {frozenWeight.toFixed(1)}%
           </div>
         )}
       </div>
 
-      <div className="flex flex-col gap-3 pt-3 border-t border-zinc-200 dark:border-zinc-800">
+      <div className="flex flex-col gap-3 pt-3 border-t border-line">
         <div className="flex items-center justify-center sm:justify-start min-w-0">
           {isWeightValid ? (
             <ToneBadge tone="emerald" icon={<Check className="w-3.5 h-3.5" />}>
@@ -352,7 +352,7 @@ export default function AssessmentRegimenEditor({
             </ToneBadge>
           )}
         </div>
-        <button onClick={handleSave} className="w-full flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black shadow-xs cursor-pointer active:scale-95">
+        <button onClick={handleSave} className="w-full flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-sm bg-accent hover:bg-accent/90 text-background text-xs font-medium cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background">
           <Save className="w-4 h-4" />
           Apply Regimen
         </button>

@@ -106,22 +106,22 @@ const DEMO_FIXTURES: Record<SubTab, unknown> = {
 };
 
 const TONE_TEXT: Record<string, string> = {
-  red: "text-red-600 dark:text-red-400",
-  amber: "text-amber-600 dark:text-amber-400",
-  emerald: "text-emerald-600 dark:text-emerald-400",
+  red: "text-danger",
+  amber: "text-warn",
+  emerald: "text-ok",
   indigo: "text-indigo-600 dark:text-indigo-400",
-  blue: "text-blue-600 dark:text-blue-400",
+  blue: "text-accent",
   zinc: "text-zinc-400 dark:text-zinc-500",
 };
 
 const TONE_BADGE: Record<string, string> = {
-  red: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
-  amber: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-  emerald: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+  red: "bg-danger-soft text-danger border-danger/20",
+  amber: "bg-warn-soft text-warn border-warn/20",
+  emerald: "bg-ok-soft text-ok border-ok/20",
   indigo:
     "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border-indigo-200/50 dark:border-indigo-800/40",
-  blue: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
-  zinc: "bg-zinc-500/10 text-zinc-500 dark:text-zinc-400 border-zinc-500/20",
+  blue: "bg-accent-soft text-accent border-accent/20",
+  zinc: "bg-zinc-500/10 text-muted border-zinc-500/20",
 };
 
   // Hero cards use the OD-hours sizing (a touch shorter than the course page)
@@ -434,9 +434,9 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
 
   // ── Small render helpers ────────────────────────────────────────────────
   const renderError = (message: string) => (
-    <div className="p-5 rounded-[24px] bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 flex items-center gap-3">
+    <div className="p-5 rounded-lg bg-danger-soft border border-danger/40 text-danger flex items-center gap-3">
       <XCircle className="w-5 h-5 shrink-0" />
-      <p className="text-xs font-bold">{message}</p>
+      <p className="text-xs font-semibold">{message}</p>
     </div>
   );
 
@@ -483,20 +483,20 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
         {/* CARD 1: DUES */}
         <div className={CARD_BASE}>
           <div className="flex items-center justify-between gap-1">
-            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">
+            <span className="text-[11px] sm:text-xs font-semibold text-zinc-400 dark:text-zinc-500 font-outfit truncate">
               Fee clearance
             </span>
             {/* Badge only when there is something to act on — the headline
                 already states the status, so no second "all clear" chip. */}
             {loading.dues && !duesData ? (
               <span
-                className={`text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shrink-0 border ${TONE_BADGE.zinc}`}
+                className={`text-[11px] sm:text-[11px] font-semibold px-2 py-0.5 rounded-md shrink-0 border ${TONE_BADGE.zinc}`}
               >
                 Syncing
               </span>
             ) : hasPendingDues ? (
               <span
-                className={`text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shrink-0 border ${TONE_BADGE.red}`}
+                className={`text-[11px] sm:text-[11px] font-semibold px-2 py-0.5 rounded-md shrink-0 border ${TONE_BADGE.red}`}
               >
                 Action needed
               </span>
@@ -505,17 +505,17 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
 
           {loading.dues && !duesData ? (
             <div className="my-auto py-2">
-              <Skeleton className="h-8 w-24 rounded-xl" />
+              <Skeleton className="h-8 w-24 rounded-md" />
             </div>
           ) : error.dues && !duesData ? (
-            <p className="my-auto py-1 text-xs font-bold text-red-600 dark:text-red-400 line-clamp-3">
+            <p className="my-auto py-1 text-xs font-semibold text-danger line-clamp-3">
               {error.dues}
             </p>
           ) : (
             <div className="my-auto py-1 flex items-center gap-2.5 min-w-0">
               <div
-                className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-white ${
-                  hasPendingDues ? "bg-red-500" : "bg-emerald-500"
+                className={`w-9 h-9 rounded-md flex items-center justify-center shrink-0 text-white ${
+                  hasPendingDues ? "bg-danger" : "bg-ok"
                 }`}
               >
                 {hasPendingDues ? (
@@ -525,7 +525,7 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
                 )}
               </div>
               <span
-                className={`text-2xl sm:text-3xl font-black font-outfit tracking-tight leading-tight truncate ${TONE_TEXT[duesToneKey]}`}
+                className={`text-2xl sm:text-3xl font-semibold font-outfit tracking-tight leading-tight truncate ${TONE_TEXT[duesToneKey]}`}
               >
                 {hasPendingDues ? "Pending" : "All clear"}
               </span>
@@ -533,7 +533,7 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
           )}
 
           <div className="flex items-center justify-between gap-2">
-            <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">
+            <p className="text-[10.5px] sm:text-xs text-muted font-medium truncate">
               {hasPendingDues
                 ? "Outstanding payments pending on VTOP"
                 : duesData?.message || "No outstanding fee dues"}
@@ -544,7 +544,7 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[10px] font-black shrink-0 transition-colors active:scale-[0.98]"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-danger hover:bg-danger text-white text-[11px] font-semibold shrink-0 transition-colors"
               >
                 Pay
                 <ExternalLink className="w-3 h-3" />
@@ -571,7 +571,7 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
             ) : (
               <Receipt className="w-4 h-4 text-indigo-500" />
             )}
-            <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">
+            <h2 className="text-sm font-semibold text-ink font-outfit tracking-tight">
               {listMode === "wallet" ? "Wallet" : "Receipts"}
             </h2>
             <span className={SECTION_CHIP}>
@@ -579,7 +579,7 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
             </span>
           </div>
 
-          <div className="flex items-center gap-1 mt-2.5 p-0.5 bg-zinc-100 dark:bg-zinc-800/80 rounded-xl border border-zinc-200/60 dark:border-zinc-700/60 text-xs">
+          <div className="flex items-center gap-1 mt-2.5 p-0.5 bg-surface-2 rounded-md border border-zinc-200/60 dark:border-zinc-700/60 text-xs">
             {(
               [
                 { id: "wallet", label: "Wallet" },
@@ -590,10 +590,10 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
                 key={tab.id}
                 type="button"
                 onClick={() => setListMode(tab.id)}
-                className={`flex-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                className={`flex-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
                   listMode === tab.id
-                    ? "bg-white dark:bg-zinc-900 text-indigo-600 dark:text-indigo-400 shadow-2xs font-extrabold"
-                    : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200"
+                    ? "bg-surface text-indigo-600 dark:text-indigo-400 shadow-2xs font-semibold"
+                    : "text-muted hover:text-zinc-800 dark:hover:text-zinc-200"
                 }`}
               >
                 {tab.label}
@@ -625,22 +625,22 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
                     <div key={`${ledger}-${idx}`} className={LIST_ROW}>
                       <span
                         className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                          isDebit ? "bg-rose-500" : "bg-emerald-500"
+                          isDebit ? "bg-danger" : "bg-ok"
                         }`}
                       />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 min-w-0">
-                          <p className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight">
+                          <p className="font-semibold text-sm text-ink truncate font-outfit leading-tight">
                             {entry.particulars ||
                               (isDebit ? "Debit transaction" : "Credit deposit")}
                           </p>
                           {isRefunded && (
-                            <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md border shrink-0 bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">
+                            <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-md border shrink-0 bg-warn-soft text-warn border-warn/20">
                               Refund
                             </span>
                           )}
                         </div>
-                        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5 truncate">
+                        <p className="text-[11px] text-muted font-medium mt-0.5 truncate">
                           {[
                             entry.transactionDate,
                             entry.receiptNumber,
@@ -652,17 +652,17 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
                       </div>
                       <div className="text-right shrink-0">
                         <p
-                          className={`font-black text-sm font-outfit leading-tight ${
+                          className={`font-semibold text-sm font-outfit leading-tight ${
                             isDebit
-                              ? "text-rose-600 dark:text-rose-400"
-                              : "text-emerald-600 dark:text-emerald-400"
+                              ? "text-danger"
+                              : "text-ok"
                           }`}
                         >
                           {isDebit ? "−" : "+"}
                           {fmtAmt(String(Math.abs(amt)), symbol)}
                         </p>
                         {entry.bookBalanceAmount && (
-                          <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">
+                          <p className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-0.5">
                             Bal {fmtAmt(entry.bookBalanceAmount, symbol)}
                           </p>
                         )}
@@ -691,7 +691,7 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
                   onClick={() => openReceiptDetail(r)}
                   className={`${LIST_ROW} hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors cursor-pointer group`}
                 >
-                  <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-emerald-500" />
+                  <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-ok" />
                 <ListRowText
                   title={r.receiptNumber}
                   subtitle={[r.date, r.campusCode].filter(Boolean).join(" · ")}
@@ -699,10 +699,10 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
 
                   <div className="flex items-center gap-2 shrink-0">
                     <div className="text-right">
-                      <p className="font-black text-sm font-outfit text-zinc-900 dark:text-white leading-tight">
+                      <p className="font-semibold text-sm font-outfit text-ink leading-tight">
                         {fmtAmt(r.amount)}
                       </p>
-                      <p className="text-[9px] font-extrabold uppercase text-emerald-600 dark:text-emerald-400 mt-0.5">
+                      <p className="text-[11px] font-semibold text-ok mt-0.5">
                         Settled
                       </p>
                     </div>
@@ -743,15 +743,15 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
                 />
                 <KeyValue
                   label="Status"
-                  valueClassName="text-emerald-600 dark:text-emerald-400"
+                  valueClassName="text-ok"
                   value="Settled"
                 />
               </div>
 
               {openDetailLoading && (
                 <div className="space-y-2.5">
-                  <Skeleton className="h-20 w-full rounded-2xl" />
-                  <Skeleton className="h-20 w-full rounded-2xl" />
+                  <Skeleton className="h-20 w-full rounded-md" />
+                  <Skeleton className="h-20 w-full rounded-md" />
                 </div>
               )}
 
@@ -760,17 +760,17 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
                   {openTables.map((table, idx) => (
                     <div key={idx} className="space-y-2.5">
                       {table.caption && (
-                        <h4 className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                        <h4 className="text-[11px] font-semibold text-muted">
                           {table.caption}
                         </h4>
                       )}
                       {table.rows?.map((row, ri) => (
-                        <div key={ri} className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-950/40 border border-zinc-200/60 dark:border-zinc-800 space-y-3">
+                        <div key={ri} className="p-4 rounded-md bg-surface-2 border border-zinc-200/60 dark:border-zinc-800 space-y-3">
                           <div className="flex items-center gap-2">
-                            <div className="p-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400">
+                            <div className="p-1.5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400">
                               <FileText className="w-4 h-4" />
                             </div>
-                            <span className="text-xs font-extrabold text-zinc-900 dark:text-white font-outfit">
+                            <span className="text-xs font-semibold text-ink font-outfit">
                               Invoice particulars
                             </span>
                           </div>
@@ -778,12 +778,12 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
                             {table.headers?.map((header) => (
                               <div
                                 key={header}
-                                className="p-2.5 rounded-xl bg-white dark:bg-zinc-900/60 border border-zinc-200/50 dark:border-zinc-800"
+                                className="p-2.5 rounded-md bg-surface/60 border border-zinc-200/50 dark:border-zinc-800"
                               >
-                                <span className="text-[10px] font-bold text-zinc-400 uppercase block mb-0.5">
+                                <span className="text-[11px] font-semibold text-zinc-400 block mb-0.5">
                                   {header}
                                 </span>
-                                <span className="font-bold text-zinc-800 dark:text-zinc-200 break-words">
+                                <span className="font-semibold text-zinc-800 dark:text-zinc-200 break-words">
                                   {row?.[header] || "—"}
                                 </span>
                               </div>

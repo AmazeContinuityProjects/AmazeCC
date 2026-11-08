@@ -57,6 +57,8 @@ import {
 import CourseFacultyCard, { parseFacultyInfo } from "./CourseFacultyCard";
 import CourseWeeklySchedule from "./CourseWeeklySchedule";
 import { useFacultyReviewSheet } from "./FFCS/hooks/useFacultyReviewSheet";
+import CourseAttendanceHero from "./CourseAttendanceHero";
+import { SlotBadge } from "@amazecontinuityprojects/amazeui";
 import { buildFacultyNameGroups, loadFacultyOfferings, type FacultyNameGroup } from "./FFCS/logic/facultyGroups";
 import { storage } from "@/lib/storage";
 
@@ -1576,11 +1578,11 @@ export default function CourseDetailSubpage({
         {(faculty || venue) && (
           <div className="space-y-0.5">
             {faculty && (
-              <p title={faculty} className="text-xs font-bold text-text-heading truncate">
+              <p title={faculty} className="text-xs font-semibold text-text-heading truncate">
                 {faculty}
               </p>
             )}
-            {venue && <p className="text-[10px] text-text-muted font-medium">Venue: {venue}</p>}
+            {venue && <p className="text-[11px] text-text-muted font-medium">Venue: {venue}</p>}
           </div>
         )}
       </div>
@@ -1598,8 +1600,9 @@ export default function CourseDetailSubpage({
   // of these used to be four hand-rolled maps declared inside the component,
   // which is exactly what `TONE_TEXT` / `TONE_BADGE` in `@/lib/uiTokens` exist
   // to stop — `ATT_TONE` above is the only lookup this file owns now.
-  const scopeAccent = (badge: "Theory" | "Lab") =>
-    `w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${TONE_ICON_TILE[SCOPE_TONE[badge]]}`;
+  // Plain line icons, matching the rest of the "Course sections" list.
+  const scopeAccent = (_badge: "Theory" | "Lab") =>
+    "flex h-10 w-6 shrink-0 items-center justify-center text-ink-2 [&>svg]:h-[18px] [&>svg]:w-[18px] [&>svg]:stroke-[1.7]";
 
   const renderLogRow = (item: any, d: any, badge: "Theory" | "Lab") => (
     <button onClick={() => setInnerTab(`${badge.toLowerCase()}-log`)} className={LIST_ROW}>
@@ -1616,11 +1619,11 @@ export default function CourseDetailSubpage({
       />
       <div className="flex items-center gap-2 shrink-0">
         <span
-          className={`text-base font-black font-outfit tracking-tight leading-none ${TONE_TEXT[ATT_TONE[d.status] ?? "zinc"]}`}
+          className={`text-base font-semibold font-outfit tracking-tight leading-none ${TONE_TEXT[ATT_TONE[d.status] ?? "zinc"]}`}
         >
           {d.total > 0 ? `${Number(d.pct.toFixed(1))}%` : "—"}
         </span>
-        <ChevronRight className="w-4 h-4 text-zinc-400" />
+        <ChevronRight className="w-4 h-4 text-muted" />
       </div>
     </button>
   );
@@ -1632,10 +1635,10 @@ export default function CourseDetailSubpage({
       </div>
       <ListRowText title={`${badge} Predictor`} subtitle={d.marginSubline} />
       <div className="flex items-center gap-2 shrink-0">
-        <span className={`text-base font-black font-outfit tracking-tight leading-none ${TONE_TEXT[d.marginTone]}`}>
+        <span className={`text-base font-semibold font-outfit tracking-tight leading-none ${TONE_TEXT[d.marginTone]}`}>
           {d.upcomingTotal > 0 ? `${d.upcomingTotal}` : "—"}
         </span>
-        <ChevronRight className="w-4 h-4 text-zinc-400" />
+        <ChevronRight className="w-4 h-4 text-muted" />
       </div>
     </button>
   );
@@ -1774,9 +1777,9 @@ export default function CourseDetailSubpage({
                 return (
                   <div key={i} className={LIST_ROW}>
                     <span className="flex items-center gap-3 min-w-0 flex-1">
-                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${ATT_DOT[st] ?? "bg-amber-500"}`} />
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${ATT_DOT[st] ?? "bg-warn"}`} />
                       <span className="min-w-0">
-                        <span className="block font-bold text-sm text-text-heading truncate font-outfit leading-tight">
+                        <span className="block font-semibold text-sm text-text-heading truncate font-outfit leading-tight">
                           {h.date}
                         </span>
                         <span className={`block text-[11px] font-medium mt-0.5 ${TONE_TEXT[tone]}`}>{h.status}</span>
@@ -1822,8 +1825,8 @@ export default function CourseDetailSubpage({
               {blocks.map(({ key, label, data }) => (
                 <div key={key} className={TILE_CARD}>
                   <div className="flex items-center justify-between gap-2 mb-3">
-                    <h3 className="text-xs font-black uppercase tracking-widest text-text-heading flex items-center gap-2">
-                      <CalendarIcon size={16} className="text-blue-500 dark:text-blue-400" />
+                    <h3 className="text-xs font-semibold text-text-heading flex items-center gap-2">
+                      <CalendarIcon size={16} className="text-accent" />
                       <span>{label}</span>
                     </h3>
                     <ToneBadge tone="blue">{data.length} left</ToneBadge>
@@ -1943,22 +1946,36 @@ export default function CourseDetailSubpage({
             <div ref={courseActionsRef} className="flex items-center gap-2 pt-0.5 shrink-0" />
           ) : null}
         </div>
-        <TitleBlock
-          eyebrow={
-            <>
-              Academics &middot;{" "}
+        <div className="text-left">
+          <div className="flex flex-wrap items-center gap-2">
+            {(theoryAttItem?.slotName || labAttItem?.slotName) && (
+              <SlotBadge course={String(selectedCode || "")}>
+                {String(theoryAttItem?.slotName || labAttItem?.slotName)}
+              </SlotBadge>
+            )}
+            <span className="font-mono text-[12.5px] text-muted">{selectedCode}</span>
+            <span className="text-[12.5px] text-muted">
+              &middot;{" "}
               {selectedGroup?.semesterSubId && selectedGroup.semesterSubId !== "Current"
                 ? formatSemesterName(selectedGroup.semesterSubId)
-                : "Current Semester"}
-            </>
-          }
-          title={selectedCode}
-          subtitle={selectedGroup?.courseTitle || ""}
-        />
+                : "Current semester"}
+            </span>
+          </div>
+          <h1 className="mt-2 text-[22px] font-semibold leading-tight tracking-tight text-ink sm:text-2xl">
+            {selectedGroup?.courseTitle || selectedCode}
+          </h1>
+          {(theoryAttItem?.faculty || labAttItem?.faculty) && (
+            <p className="mt-1 text-[13.5px] text-muted">
+              {String(theoryAttItem?.faculty || labAttItem?.faculty)
+                .toLowerCase()
+                .replace(/\b\w/g, (c: string) => c.toUpperCase())}
+            </p>
+          )}
+        </div>
       </div>
 
       {error && (
-        <div className="p-4 text-sm text-red-600  dark:text-red-500 bg-red-50  dark:bg-red-900/20 rounded-2xl mb-4 flex items-center gap-2">
+        <div className="p-4 text-sm text-danger bg-danger-soft rounded-md mb-4 flex items-center gap-2">
           <XCircle className="w-4 h-4 shrink-0" /> {error}
         </div>
       )}
@@ -1967,16 +1984,17 @@ export default function CourseDetailSubpage({
       {innerTab === "overview" && (
         <div className="w-full space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
           {/* ── HERO STATS ── */}
-          <div className="grid grid-cols-2 gap-3 sm:gap-4">
-            {/* CARD 1: ATTENDANCE CAROUSEL (theory + lab rotate on their own) */}
-            <InsightCarousel
-              slides={ovAttInsightSlides}
-              carousel={ovAttCarousel}
-              height="min-h-36 sm:min-h-40"
-              ariaLabel="Attendance insights"
-            />
+          <CourseAttendanceHero
+            parts={[
+              ...(theoryAttItem ? [{ label: "Theory" as const, item: theoryAttItem }] : []),
+              ...(labAttItem ? [{ label: "Lab" as const, item: labAttItem }] : []),
+            ]}
+            targetPct={thresholdPct}
+            course={String(selectedCode || "")}
+          />
 
-            {/* CARD 2: MARKS CAROUSEL (combined + theory + lab) */}
+          <div className="grid grid-cols-1 gap-3 sm:gap-4">
+            {/* MARKS CAROUSEL (combined + theory + lab) */}
             <InsightCarousel
               slides={ovMarksInsightSlides}
               carousel={ovActiveCarousel}
@@ -2021,7 +2039,7 @@ export default function CourseDetailSubpage({
               {/* Marks */}
               <button onClick={() => ovGo("marks")} className={LIST_ROW}>
                 <span
-                  className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.indigo}`}
+                  className="flex h-10 w-6 shrink-0 items-center justify-center text-ink-2 [&>svg]:h-[18px] [&>svg]:w-[18px] [&>svg]:stroke-[1.7]"
                 >
                   <Target className="w-5 h-5" />
                 </span>
@@ -2034,35 +2052,35 @@ export default function CourseDetailSubpage({
                   }
                 />
                 <span className="flex items-center gap-2 shrink-0">
-                  <span className="text-base font-black font-outfit tracking-tight leading-none text-indigo-600 dark:text-indigo-400">
+                  <span className="text-base font-semibold font-outfit tracking-tight leading-none text-ink">
                     {isSelectedPastSemester && selectedPastGrade
                       ? `Grade ${selectedPastGrade}`
                       : `${courseStats.projected}%`}
                   </span>
-                  <ChevronRight className="w-4 h-4 text-zinc-400" />
+                  <ChevronRight className="w-4 h-4 text-muted" />
                 </span>
               </button>
               {/* Grade Predictor */}
               <button onClick={() => ovGo("grade-predictor")} className={LIST_ROW}>
                 <span
-                  className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.violet}`}
+                  className="flex h-10 w-6 shrink-0 items-center justify-center text-ink-2 [&>svg]:h-[18px] [&>svg]:w-[18px] [&>svg]:stroke-[1.7]"
                 >
                   <Sparkles className="w-5 h-5" />
                 </span>
                 <ListRowText title="Grade Predictor" subtitle="Simulate what-if scores and see what the FAT needs" />
                 <span className="flex items-center gap-2 shrink-0">
-                  <span className="text-base font-black font-outfit tracking-tight leading-none text-violet-600 dark:text-violet-400">
+                  <span className="text-base font-semibold font-outfit tracking-tight leading-none text-ink">
                     {selectedGroup?.theory?.assessments?.length || selectedGroup?.lab?.assessments?.length
                       ? `${(selectedGroup?.theory?.assessments?.length || 0) + (selectedGroup?.lab?.assessments?.length || 0)} tests`
                       : "—"}
                   </span>
-                  <ChevronRight className="w-4 h-4 text-zinc-400" />
+                  <ChevronRight className="w-4 h-4 text-muted" />
                 </span>
               </button>
               {/* Grade History */}
               <button onClick={() => ovGo("grades")} className={LIST_ROW}>
                 <span
-                  className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.emerald}`}
+                  className="flex h-10 w-6 shrink-0 items-center justify-center text-ink-2 [&>svg]:h-[18px] [&>svg]:w-[18px] [&>svg]:stroke-[1.7]"
                 >
                   <CheckCircle2 className="w-5 h-5" />
                 </span>
@@ -2071,16 +2089,16 @@ export default function CourseDetailSubpage({
                   subtitle={`${isRelative ? "Relative grading" : "Absolute grading"}${courseGradeHistory.length > 0 ? ` · ${courseGradeHistory.length} record${courseGradeHistory.length === 1 ? "" : "s"}` : ""}`}
                 />
                 <span className="flex items-center gap-2 shrink-0">
-                  <span className="text-base font-black font-outfit tracking-tight leading-none text-text-heading">
+                  <span className="text-base font-semibold font-outfit tracking-tight leading-none text-text-heading">
                     {selectedPastGrade ? `Grade ${selectedPastGrade}` : `${courseStats.projected}%`}
                   </span>
-                  <ChevronRight className="w-4 h-4 text-zinc-400" />
+                  <ChevronRight className="w-4 h-4 text-muted" />
                 </span>
               </button>
               {/* Course Plan */}
               <button onClick={() => ovGo("plan")} className={LIST_ROW}>
                 <span
-                  className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.amber}`}
+                  className="flex h-10 w-6 shrink-0 items-center justify-center text-ink-2 [&>svg]:h-[18px] [&>svg]:w-[18px] [&>svg]:stroke-[1.7]"
                 >
                   <FileText className="w-5 h-5" />
                 </span>
@@ -2089,32 +2107,32 @@ export default function CourseDetailSubpage({
                   subtitle={`${mainCourse?.faculty || "Faculty N/A"}${mainCourse?.courseType ? ` · ${isEmbedded ? "Embedded" : mainCourse.courseType}` : ""}`}
                 />
                 <span className="flex items-center gap-2 shrink-0">
-                  <span className="text-sm font-black font-outfit tracking-tight leading-none text-text-heading truncate max-w-24">
+                  <span className="text-sm font-semibold font-outfit tracking-tight leading-none text-text-heading truncate max-w-24">
                     {mainCourse?.slot || "—"}
                   </span>
-                  <ChevronRight className="w-4 h-4 text-zinc-400" />
+                  <ChevronRight className="w-4 h-4 text-muted" />
                 </span>
               </button>
               {/* QBank */}
               <button onClick={() => ovGo("qbank")} className={LIST_ROW}>
                 <span
-                  className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.violet}`}
+                  className="flex h-10 w-6 shrink-0 items-center justify-center text-ink-2 [&>svg]:h-[18px] [&>svg]:w-[18px] [&>svg]:stroke-[1.7]"
                 >
                   <Sparkles className="w-5 h-5" />
                 </span>
                 <ListRowText title="QBank" subtitle="Papers & extracted questions" />
                 <span className="flex items-center gap-2 shrink-0">
-                  <span className="text-base font-black font-outfit tracking-tight leading-none text-text-heading">
+                  <span className="text-base font-semibold font-outfit tracking-tight leading-none text-text-heading">
                     {(selectedGroup?.theory?.assessments?.length || 0) + (selectedGroup?.lab?.assessments?.length || 0)}{" "}
                     tests
                   </span>
-                  <ChevronRight className="w-4 h-4 text-zinc-400" />
+                  <ChevronRight className="w-4 h-4 text-muted" />
                 </span>
               </button>
               {/* Tasks & Homework */}
               <div className={LIST_ROW}>
                 <span
-                  className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.emerald}`}
+                  className="flex h-10 w-6 shrink-0 items-center justify-center text-ink-2 [&>svg]:h-[18px] [&>svg]:w-[18px] [&>svg]:stroke-[1.7]"
                 >
                   <CheckSquare className="w-5 h-5" />
                 </span>
@@ -2125,7 +2143,7 @@ export default function CourseDetailSubpage({
                 <button
                   type="button"
                   onClick={() => setIsTaskSheetOpen(true)}
-                  className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-surface-tertiary dark:bg-surface-secondary text-text-secondary dark:text-text-muted border border-border-muted dark:border-border hover:bg-border-muted dark:hover:bg-surface-hover transition-colors cursor-pointer"
+                  className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-semibold bg-surface-tertiary dark:bg-surface-secondary text-text-secondary dark:text-text-muted border border-border-muted dark:border-border hover:bg-border-muted dark:hover:bg-surface-hover transition-colors cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Add Task</span>
@@ -2189,12 +2207,12 @@ export default function CourseDetailSubpage({
               className={`${TILE_CARD} w-full flex items-center gap-3 text-left cursor-pointer hover:border-border-strong dark:hover:border-border transition-colors`}
             >
               <span
-                className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.violet}`}
+                className={`h-10 w-10 shrink-0 rounded-md border flex items-center justify-center ${TONE_ICON_TILE.violet}`}
               >
                 <Sparkles className="h-4.5 w-4.5" />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-bold text-text-heading font-outfit tracking-tight">
+                <span className="block text-sm font-semibold text-text-heading font-outfit tracking-tight">
                   Simulate marks &amp; regimen
                 </span>
                 <span className="block text-[11px] text-text-secondary dark:text-text-muted font-medium mt-0.5 truncate">
@@ -2253,12 +2271,12 @@ export default function CourseDetailSubpage({
           {!isRelative && (
             <div className={`${TILE_CARD} flex items-center gap-3.5`}>
               <span
-                className={`h-11 w-11 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.emerald}`}
+                className={`h-11 w-11 shrink-0 rounded-md border flex items-center justify-center ${TONE_ICON_TILE.emerald}`}
               >
                 <ShieldCheck className="h-5 w-5" />
               </span>
               <div className="min-w-0">
-                <h4 className="text-sm font-bold text-text-heading font-outfit tracking-tight">
+                <h4 className="text-sm font-semibold text-text-heading font-outfit tracking-tight">
                   Absolute grading enforced
                 </h4>
                 <p className="text-[11px] text-text-secondary dark:text-text-muted font-medium mt-0.5">
@@ -2355,12 +2373,12 @@ export default function CourseDetailSubpage({
                             <span>No class data yet — showing default bands</span>
                           ) : (
                             <span>
-                              <span className="font-bold text-text-heading">{stats.count}</span>{" "}
+                              <span className="font-semibold text-text-heading">{stats.count}</span>{" "}
                               {stats.count === 1 ? "peer" : "peers"}
                               <span aria-hidden="true"> · </span>μ{" "}
-                              <span className="font-bold text-text-heading">{formatNumber(stats.mean)}</span>
+                              <span className="font-semibold text-text-heading">{formatNumber(stats.mean)}</span>
                               <span aria-hidden="true"> · </span>σ{" "}
-                              <span className="font-bold text-text-heading">{formatNumber(stats.sd)}</span>
+                              <span className="font-semibold text-text-heading">{formatNumber(stats.sd)}</span>
                             </span>
                           )}
                         </p>
@@ -2440,7 +2458,7 @@ export default function CourseDetailSubpage({
               {/* Syllabus PDF Row */}
               <div className={`${LIST_ROW} py-3.5`}>
                 <span
-                  className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.indigo}`}
+                  className={`w-10 h-10 rounded-md border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.indigo}`}
                 >
                   <FileText className="w-5 h-5" />
                 </span>
@@ -2452,7 +2470,7 @@ export default function CourseDetailSubpage({
                   type="button"
                   onClick={handleDownloadSyllabus}
                   disabled={downloadingSyllabus}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 transition-all cursor-pointer disabled:opacity-50 shrink-0"
                   title={`Download syllabus PDF for ${selectedCode}`}
                 >
                   {downloadingSyllabus ? (
@@ -2467,7 +2485,7 @@ export default function CourseDetailSubpage({
               {/* Programme Curriculum PDF Row */}
               <div className={`${LIST_ROW} py-3.5`}>
                 <span
-                  className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.emerald}`}
+                  className={`w-10 h-10 rounded-md border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.emerald}`}
                 >
                   <FileDown className="w-5 h-5" />
                 </span>
@@ -2479,7 +2497,7 @@ export default function CourseDetailSubpage({
                   type="button"
                   onClick={handleDownloadCurriculum}
                   disabled={downloadingCurriculum}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-ok-soft hover:bg-ok-soft text-ok border border-ok/20 transition-all cursor-pointer disabled:opacity-50 shrink-0"
                   title="Download full programme curriculum PDF"
                 >
                   {downloadingCurriculum ? (
@@ -2493,14 +2511,14 @@ export default function CourseDetailSubpage({
             </ListShell>
 
             {downloadError && (
-              <div className="p-3 text-xs text-red-600 dark:text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-2">
+              <div className="p-3 text-xs text-danger bg-danger-soft border border-danger/20 rounded-md flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{downloadError}</span>
               </div>
             )}
 
             {downloadSuccess && (
-              <div className="p-3 text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center gap-2">
+              <div className="p-3 text-xs text-ok bg-ok-soft border border-ok/20 rounded-md flex items-center gap-2">
                 <Check className="w-4 h-4 shrink-0" />
                 <span>{downloadSuccess}</span>
               </div>
@@ -2586,7 +2604,7 @@ export default function CourseDetailSubpage({
                           {cp.data.tables?.map((t: any, ti: number) => (
                             <ListShell key={ti}>
                               {t.caption && (
-                                <div className="px-4 py-2.5 bg-surface-secondary/70 dark:bg-zinc-800/60 border-b border-border-muted dark:border-border text-xs font-black font-outfit uppercase tracking-wider text-text-muted">
+                                <div className="px-4 py-2.5 bg-surface-secondary/70 dark:bg-zinc-800/60 border-b border-border-muted dark:border-border text-xs font-semibold font-outfit text-text-muted">
                                   {t.caption}
                                 </div>
                               )}
@@ -2597,7 +2615,7 @@ export default function CourseDetailSubpage({
                                       {t.headers?.map((h: string, hi: number) => (
                                         <th
                                           key={hi}
-                                          className="text-left py-2.5 px-4 text-[10px] font-black text-text-muted uppercase tracking-widest whitespace-nowrap"
+                                          className="text-left py-2.5 px-4 text-[11px] font-semibold text-text-muted whitespace-nowrap"
                                         >
                                           {h}
                                         </th>
@@ -2645,12 +2663,12 @@ export default function CourseDetailSubpage({
               count={qcmTotalRows || undefined}
               right={
                 qcmLoading ? (
-                  <span className="text-xs font-bold text-indigo-500 animate-pulse">Syncing QCM…</span>
+                  <span className="text-xs font-semibold text-indigo-500 animate-pulse">Syncing QCM…</span>
                 ) : null
               }
             />
 
-            {qcmError && !qcmData && <p className="px-1 text-sm text-red-500">{qcmError}</p>}
+            {qcmError && !qcmData && <p className="px-1 text-sm text-danger">{qcmError}</p>}
 
             {qcmLoading && (!qcmData || qcmTotalRows === 0) ? (
               <ListSkeleton rows={3} />
@@ -2686,7 +2704,7 @@ export default function CourseDetailSubpage({
                           className={`${LIST_ROW} cursor-pointer py-3.5`}
                         >
                           <span
-                            className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.violet}`}
+                            className={`w-10 h-10 rounded-md border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.violet}`}
                           >
                             <MessageSquare className="w-4.5 h-4.5" />
                           </span>
@@ -2717,8 +2735,8 @@ export default function CourseDetailSubpage({
                             >
                               <div className="p-4 bg-surface-secondary/40 dark:bg-zinc-900/40 border-t border-border-muted dark:border-border/70 space-y-3">
                                 {suggestions && (
-                                  <div className="p-3 rounded-xl bg-surface dark:bg-zinc-800/60 border border-border-muted dark:border-zinc-700/60 space-y-1">
-                                    <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted block">
+                                  <div className="p-3 rounded-md bg-surface dark:bg-zinc-800/60 border border-border-muted dark:border-zinc-700/60 space-y-1">
+                                    <span className="text-[11px] font-semibold text-text-muted block">
                                       Student Suggestions & Committee Feedback
                                     </span>
                                     <p className="text-xs sm:text-sm font-medium text-text-heading leading-relaxed">
@@ -2728,8 +2746,8 @@ export default function CourseDetailSubpage({
                                 )}
 
                                 {facultyReply && (
-                                  <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-950 dark:text-emerald-200 space-y-1">
-                                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
+                                  <div className="p-3 rounded-md bg-ok-soft border border-ok/20 text-ok space-y-1">
+                                    <span className="text-[11px] font-semibold text-ok block">
                                       Faculty Response / Action Taken
                                     </span>
                                     <p className="text-xs sm:text-sm font-medium leading-relaxed">{facultyReply}</p>
@@ -2737,8 +2755,8 @@ export default function CourseDetailSubpage({
                                 )}
 
                                 {hodComments && (
-                                  <div className="p-3 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-950 dark:text-violet-200 space-y-1">
-                                    <span className="text-[10px] font-bold uppercase tracking-wider text-violet-600 dark:text-violet-400 block">
+                                  <div className="p-3 rounded-md bg-course-3/10 border border-course-3/20 text-course-3 space-y-1">
+                                    <span className="text-[11px] font-semibold text-course-3 block">
                                       HOD Remarks
                                     </span>
                                     <p className="text-xs sm:text-sm font-medium leading-relaxed">{hodComments}</p>
@@ -2815,7 +2833,7 @@ export default function CourseDetailSubpage({
                         onClick={() => setActiveHistoryTerm(gh.semester)}
                         className={`${LIST_ROW} cursor-pointer`}
                       >
-                        <span className="w-28 shrink-0 text-[11px] font-bold text-zinc-600 dark:text-zinc-300 truncate">
+                        <span className="w-28 shrink-0 text-[11px] font-semibold text-zinc-600 dark:text-zinc-300 truncate">
                           {historyTermLabel(gh.semester)}
                         </span>
                         <span className="min-w-0 flex-1">
@@ -2823,7 +2841,7 @@ export default function CourseDetailSubpage({
                         </span>
                         <span
                           className={cn(
-                            "shrink-0 text-sm font-black font-outfit tracking-tight leading-none w-16 text-right",
+                            "shrink-0 text-sm font-semibold font-outfit tracking-tight leading-none w-16 text-right",
                             isActive ? "text-indigo-600 dark:text-indigo-400" : "text-zinc-800 dark:text-zinc-100",
                           )}
                         >
@@ -2873,7 +2891,7 @@ export default function CourseDetailSubpage({
                                         : d.type || "Theory"
                                     }
                                   />
-                                  <span className="shrink-0 text-sm font-black font-outfit text-zinc-800 dark:text-zinc-100">
+                                  <span className="shrink-0 text-sm font-semibold font-outfit text-zinc-800 dark:text-zinc-100">
                                     {d.scoredMark ?? "-"}
                                     <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 ml-0.5">
                                       /{d.maxMark ?? "-"}
@@ -2894,7 +2912,7 @@ export default function CourseDetailSubpage({
                                   <span className="w-14 shrink-0">
                                     <ToneBadge tone={toneForGrade(grade)}>{grade}</ToneBadge>
                                   </span>
-                                  <span className="text-xs font-bold text-zinc-600 dark:text-zinc-300 truncate">
+                                  <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-300 truncate">
                                     {String(rangeStr)}
                                   </span>
                                   {String(grade).toUpperCase() === String(letter ?? "").toUpperCase() && (

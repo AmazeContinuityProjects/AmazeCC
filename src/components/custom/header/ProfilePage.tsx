@@ -1,4 +1,5 @@
 "use client";
+import { normalizePaletteId } from "../app/useAppAppearance";
 
 import { api } from "@/lib/sync-engine";
 import { updatePostHogPersonName } from "@/lib/posthog";
@@ -134,31 +135,31 @@ export const SECTIONS: SectionConfig[] = [
     label: "Student Profile",
     subtitle: "Personal information, mentors, residential status, and records",
     icon: User,
-    iconBg: "bg-blue-500/10 dark:bg-blue-500/20",
-    iconColor: "text-blue-600 dark:text-blue-400",
+    iconBg: "bg-surface-2",
+    iconColor: "text-accent",
   },
   {
     id: "credentials",
     label: "VTOP Credentials",
     subtitle: "Portal logins, password change, and stored session keys",
     icon: Key,
-    iconBg: "bg-amber-500/10 dark:bg-amber-500/20",
-    iconColor: "text-amber-600 dark:text-amber-400",
+    iconBg: "bg-surface-2",
+    iconColor: "text-warn",
   },
   {
     id: "preferences",
     label: "Appearance & Theme",
     subtitle: "Theme modes, color palettes, dashboard layouts, and privacy",
     icon: Palette,
-    iconBg: "bg-purple-500/10 dark:bg-purple-500/20",
-    iconColor: "text-purple-600 dark:text-purple-400",
+    iconBg: "bg-surface-2",
+    iconColor: "text-course-3",
   },
   {
     id: "academic",
     label: "Academic & Schedule",
     subtitle: "Active term semesters, target attendance, and residential status",
     icon: GraduationCap,
-    iconBg: "bg-indigo-500/10 dark:bg-indigo-500/20",
+    iconBg: "bg-surface-2",
     iconColor: "text-indigo-600 dark:text-indigo-400",
   },
   {
@@ -166,50 +167,50 @@ export const SECTIONS: SectionConfig[] = [
     label: "Data Sync & Cache",
     subtitle: "Auto-refresh intervals, low data mode, and background sync modules",
     icon: RefreshCcw,
-    iconBg: "bg-emerald-500/10 dark:bg-emerald-500/20",
-    iconColor: "text-emerald-600 dark:text-emerald-400",
+    iconBg: "bg-surface-2",
+    iconColor: "text-ok",
   },
   {
     id: "sync-modes",
     label: "Sync Modes",
     subtitle: "Quick, balanced and full sweeps plus your own custom modes",
     icon: Sliders,
-    iconBg: "bg-violet-500/10 dark:bg-violet-500/20",
-    iconColor: "text-violet-600 dark:text-violet-400",
+    iconBg: "bg-surface-2",
+    iconColor: "text-course-3",
   },
   {
     id: "navigation",
     label: "Mobile & Navigation",
     subtitle: "Pinned bottom bar tabs, compact views, and push notifications",
     icon: Grid,
-    iconBg: "bg-sky-500/10 dark:bg-sky-500/20",
-    iconColor: "text-sky-600 dark:text-sky-400",
+    iconBg: "bg-surface-2",
+    iconColor: "text-accent",
   },
   {
     id: "advanced",
     label: "Advanced & System",
     subtitle: "Local storage database, custom API endpoints, backup, and restore",
     icon: Shield,
-    iconBg: "bg-rose-500/10 dark:bg-rose-500/20",
-    iconColor: "text-rose-600 dark:text-rose-400",
+    iconBg: "bg-surface-2",
+    iconColor: "text-danger",
   },
   {
     id: "about",
     label: "About & Community",
     subtitle: "Version history, changelog, hall of fame, and useful campus links",
     icon: Info,
-    iconBg: "bg-cyan-500/10 dark:bg-cyan-500/20",
-    iconColor: "text-cyan-600 dark:text-cyan-400",
+    iconBg: "bg-surface-2",
+    iconColor: "text-course-1",
   },
 ];
 
 const COLOR_PALETTES = [
-  { id: "default", label: "Default", swatches: ["#0ea5e9", "#ffffff", "#f8fafc"] },
-  { id: "neonPink", label: "Neon Pink", swatches: ["#ff2bd6", "#ffffff", "#fff7fd"] },
-  { id: "forest", label: "Forest", swatches: ["#059669", "#ffffff", "#f7fee7"] },
-  { id: "rose", label: "Rose", swatches: ["#e11d48", "#ffffff", "#fff1f2"] },
-  { id: "amber", label: "Amber", swatches: ["#d97706", "#ffffff", "#fffbeb"] },
-  { id: "custom", label: "Custom", swatches: ["#0ea5e9", "#ffffff", "#f8fafc"] },
+  { id: "default", label: "Ink", swatches: ["#24508f", "#8fb4ea", "#f5f6f5"] },
+  { id: "forest", label: "Forest", swatches: ["#1f7a4d", "#6fcf9b", "#f5f6f5"] },
+  { id: "rust", label: "Rust", swatches: ["#b5470b", "#e9844e", "#f5f6f5"] },
+  { id: "plum", label: "Plum", swatches: ["#8b3a8f", "#cf7fd3", "#f5f6f5"] },
+  { id: "graphite", label: "Graphite", swatches: ["#46524d", "#b9c2be", "#f5f6f5"] },
+  { id: "custom", label: "Custom", swatches: ["#24508f", "#ffffff", "#f5f6f5"] },
 ];
 
 /**
@@ -388,7 +389,7 @@ export default function ProfilePage({
   // at a dark-mode user on every first paint.
   const { theme, resolvedTheme, setTheme } = useTheme();
 
-  const activePalette = settings?.colorPalette === "ocean" ? "neonPink" : settings?.colorPalette || "default";
+  const activePalette = normalizePaletteId(settings?.colorPalette);
   const customPalette = settings?.customPalette || {
     accent: "#0ea5e9",
     background: "#f8fafc",
@@ -869,7 +870,7 @@ export default function ProfilePage({
           same `showProfilePhoto` privacy switch, and the Shortcuts / Sign Out
           buttons it carried already exist on the settings hub — so removing it
           lost no action, only the repetition. */}
-      <div className="relative p-5 sm:p-6 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs bg-white dark:bg-zinc-900/80">
+      <div className="relative p-5 sm:p-6 rounded-md border border-zinc-200/80 dark:border-zinc-800 shadow-2xs bg-surface/80">
         <div className="flex flex-col sm:flex-row sm:items-center gap-4 min-w-0">
           {displayProfileImage && profileData?.image ? (
             <img
@@ -877,10 +878,10 @@ export default function ProfilePage({
               decoding="async"
               src={profileData.image}
               alt="Profile"
-              className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl object-cover shadow-sm ring-2 ring-indigo-500/20 border border-zinc-200 dark:border-zinc-800 shrink-0"
+              className="w-16 h-16 sm:w-18 sm:h-18 rounded-md object-cover shadow-sm ring-2 ring-indigo-500/20 border border-line shrink-0"
             />
           ) : (
-            <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center font-black text-2xl shadow-sm shrink-0">
+            <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-md bg-accent text-background flex items-center justify-center font-semibold text-2xl shrink-0">
               {friendlyName ? friendlyName[0].toUpperCase() : (username || "A")[0].toUpperCase()}
             </div>
           )}
@@ -892,7 +893,7 @@ export default function ProfilePage({
                   value={tempFriendlyName}
                   onChange={(e) => setTempFriendlyName(e.target.value)}
                   placeholder="Preferred name..."
-                  className="px-3 py-1.5 text-sm font-bold border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded-xl text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="px-3 py-1.5 text-sm font-semibold border border-zinc-300 dark:border-zinc-700 bg-surface rounded-md text-ink focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
@@ -907,14 +908,14 @@ export default function ProfilePage({
                     setFriendlyName(tempFriendlyName);
                     setIsEditingName(false);
                   }}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white py-1.5 h-auto rounded-xl"
+                  className="bg-accent hover:bg-accent/90 text-background py-1.5 h-auto rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 >
                   Save
                 </Button>
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white font-outfit tracking-tight truncate">
+                <h1 className="text-xl sm:text-2xl font-semibold text-ink font-outfit tracking-tight truncate">
                   {friendlyName || username || "Student"}
                 </h1>
                 <button
@@ -927,8 +928,8 @@ export default function ProfilePage({
                 </button>
               </div>
             )}
-            <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-zinc-500 dark:text-zinc-400 font-medium">
-              <span className="px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 font-mono text-[11px] font-bold text-zinc-700 dark:text-zinc-300">
+            <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-muted font-medium">
+              <span className="px-2 py-0.5 rounded-md bg-surface-2 font-mono text-[11px] font-semibold text-zinc-700 dark:text-zinc-300">
                 {username}
               </span>
               {profileData?.branch && (
@@ -947,7 +948,7 @@ export default function ProfilePage({
       {creds && (
         <>
           <div className="space-y-3">
-            <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500 px-1">
+            <h3 className="text-xs font-semibold text-zinc-400 dark:text-zinc-500 px-1">
               Academic & Identity Status
             </h3>
             <ProfileStatusCards creds={creds} refreshKey={refreshKey} onCardClick={handleCardClick} />
@@ -956,8 +957,8 @@ export default function ProfilePage({
           <AcknowledgementCards creds={creds} refreshKey={refreshKey} />
 
           {profileImages?.proctor && (
-            <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 sm:p-6 space-y-4 shadow-2xs">
-              <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
+            <div className="bg-surface/80 rounded-md border border-zinc-200/80 dark:border-zinc-800/80 p-5 sm:p-6 space-y-4 shadow-2xs">
+              <h3 className="text-sm font-semibold text-ink font-outfit">
                 Faculty Mentors & Leadership
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -975,7 +976,7 @@ export default function ProfilePage({
                 ].map((person, idx) => (
                   <div
                     key={idx}
-                    className="bg-zinc-50/80 dark:bg-zinc-950/60 p-4 sm:p-5 rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 flex items-start gap-4"
+                    className="bg-surface-2 p-4 sm:p-5 rounded-md border border-zinc-200/70 dark:border-zinc-800/70 flex items-start gap-4"
                   >
                     {person.photo ? (
                       <img
@@ -983,26 +984,26 @@ export default function ProfilePage({
                         alt={person.role}
                         loading="lazy"
                         decoding="async"
-                        className="w-14 h-14 rounded-2xl object-cover shadow-xs border border-zinc-200 dark:border-zinc-800 shrink-0"
+                        className="w-14 h-14 rounded-md object-cover shadow-xs border border-line shrink-0"
                       />
                     ) : (
-                      <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shadow-xs shrink-0">
+                      <div className="w-14 h-14 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shadow-xs shrink-0">
                         <User size={24} />
                       </div>
                     )}
                     <div className="min-w-0 flex-1">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 block mb-0.5">
+                      <span className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 block mb-0.5">
                         {person.role}
                       </span>
-                      <p className="font-extrabold text-sm text-zinc-900 dark:text-white truncate font-outfit">
+                      <p className="font-semibold text-sm text-ink truncate font-outfit">
                         {person.details.name || "N/A"}
                       </p>
                       {person.details.designation && (
-                        <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
+                        <p className="text-xs text-muted truncate mt-0.5">
                           {person.details.designation}
                         </p>
                       )}
-                      <div className="mt-3 space-y-1 text-xs text-zinc-500 dark:text-zinc-400 border-t border-zinc-200/60 dark:border-zinc-800/60 pt-2">
+                      <div className="mt-3 space-y-1 text-xs text-muted border-t border-zinc-200/60 dark:border-zinc-800/60 pt-2">
                         {Object.entries(person.details)
                           .filter(([k]) => k !== "name" && k !== "designation")
                           .map(([k, val]) => (
@@ -1024,7 +1025,7 @@ export default function ProfilePage({
       )}
 
       {/* Personal Info Grid */}
-      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 sm:p-6 space-y-6 shadow-2xs">
+      <div className="bg-surface/80 rounded-md border border-zinc-200/80 dark:border-zinc-800/80 p-5 sm:p-6 space-y-6 shadow-2xs">
         {[
           profileData?.nativeLanguage,
           profileData?.nationality,
@@ -1034,8 +1035,8 @@ export default function ProfilePage({
         ].some(Boolean) && (
           <div className="space-y-4">
             <div>
-              <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">Personal Information</h3>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              <h3 className="text-sm font-semibold text-ink font-outfit">Personal Information</h3>
+              <p className="text-xs text-muted">
                 Official profile records retrieved from university portal
               </p>
             </div>
@@ -1063,12 +1064,12 @@ export default function ProfilePage({
                 .map(([label, val]) => (
                   <div
                     key={String(label)}
-                    className="p-3.5 rounded-2xl bg-zinc-50/80 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800 space-y-1"
+                    className="p-3.5 rounded-md bg-surface-2 border border-zinc-200/60 dark:border-zinc-800 space-y-1"
                   >
-                    <p className="text-[10px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
+                    <p className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500">
                       {String(label)}
                     </p>
-                    <p className="font-extrabold text-xs sm:text-sm text-zinc-800 dark:text-zinc-200 break-words font-outfit">
+                    <p className="font-semibold text-xs sm:text-sm text-zinc-800 dark:text-zinc-200 break-words font-outfit">
                       {String(val)}
                     </p>
                   </div>
@@ -1080,15 +1081,15 @@ export default function ProfilePage({
         {(profileData?.currentAddress || profileData?.permanentAddress) && (
           <div className="space-y-4 border-t border-zinc-100 dark:border-zinc-800/80 pt-5">
             <div>
-              <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">Address Records</h3>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              <h3 className="text-sm font-semibold text-ink font-outfit">Address Records</h3>
+              <p className="text-xs text-muted">
                 Registered residential and communication addresses
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {profileData.currentAddress && (
-                <div className="bg-zinc-50/80 dark:bg-zinc-950/60 p-4 sm:p-5 rounded-2xl border border-zinc-200/60 dark:border-zinc-800/60 space-y-3">
-                  <p className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">
+                <div className="bg-surface-2 p-4 sm:p-5 rounded-md border border-zinc-200/60 dark:border-zinc-800/60 space-y-3">
+                  <p className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400">
                     Current Address
                   </p>
                   <div className="grid grid-cols-2 gap-3 text-xs">
@@ -1096,16 +1097,16 @@ export default function ProfilePage({
                       .filter(([, v]) => v)
                       .map(([k, val]) => (
                         <div key={k}>
-                          <p className="text-[10px] text-zinc-400 capitalize mb-0.5">{k}</p>
-                          <p className="font-bold text-zinc-800 dark:text-zinc-200 break-words">{String(val)}</p>
+                          <p className="text-[11px] text-zinc-400 capitalize mb-0.5">{k}</p>
+                          <p className="font-semibold text-zinc-800 dark:text-zinc-200 break-words">{String(val)}</p>
                         </div>
                       ))}
                   </div>
                 </div>
               )}
               {profileData.permanentAddress && (
-                <div className="bg-zinc-50/80 dark:bg-zinc-950/60 p-4 sm:p-5 rounded-2xl border border-zinc-200/60 dark:border-zinc-800/60 space-y-3">
-                  <p className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">
+                <div className="bg-surface-2 p-4 sm:p-5 rounded-md border border-zinc-200/60 dark:border-zinc-800/60 space-y-3">
+                  <p className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400">
                     Permanent Address
                   </p>
                   <div className="grid grid-cols-2 gap-3 text-xs">
@@ -1113,8 +1114,8 @@ export default function ProfilePage({
                       .filter(([, v]) => v)
                       .map(([k, val]) => (
                         <div key={k}>
-                          <p className="text-[10px] text-zinc-400 capitalize mb-0.5">{k}</p>
-                          <p className="font-bold text-zinc-800 dark:text-zinc-200 break-words">{String(val)}</p>
+                          <p className="text-[11px] text-zinc-400 capitalize mb-0.5">{k}</p>
+                          <p className="font-semibold text-zinc-800 dark:text-zinc-200 break-words">{String(val)}</p>
                         </div>
                       ))}
                   </div>
@@ -1159,10 +1160,10 @@ export default function ProfilePage({
           Saved on this device alone for autofill and auto-login. Nothing here ever leaves your phone.
         </p>
         <div className={TILE_CARD}>
-          <p className="text-sm font-bold text-text-heading font-outfit tracking-tight mb-3">VTOP portal</p>
+          <p className="text-sm font-semibold text-text-heading font-outfit tracking-tight mb-3">VTOP portal</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <label className="block space-y-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted block">
+              <span className="text-[11px] font-semibold text-text-muted block">
                 VTOP registration / username
               </span>
               <input
@@ -1174,7 +1175,7 @@ export default function ProfilePage({
             </label>
 
             <label className="block space-y-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted block">
+              <span className="text-[11px] font-semibold text-text-muted block">
                 VTOP password
               </span>
               <span className="relative block">
@@ -1204,7 +1205,7 @@ export default function ProfilePage({
                 alert("Credentials saved locally!");
               }}
               disabled={!changedUsername || !changedPassword}
-              className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-black text-white transition-colors hover:bg-indigo-700 disabled:opacity-50 cursor-pointer"
+              className="inline-flex items-center gap-2 rounded-sm bg-accent px-4 py-2.5 text-sm font-medium text-background transition-colors hover:bg-accent/90 disabled:opacity-50 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               <Save className="w-3.5 h-3.5" />
               Save stored credentials
@@ -1212,10 +1213,10 @@ export default function ProfilePage({
           </div>
         </div>
         <div className={TILE_CARD}>
-          <p className="text-sm font-bold text-text-heading font-outfit tracking-tight mb-3">LMS (Moodle)</p>
+          <p className="text-sm font-semibold text-text-heading font-outfit tracking-tight mb-3">LMS (Moodle)</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <label className="block space-y-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted block">LMS username</span>
+              <span className="text-[11px] font-semibold text-text-muted block">LMS username</span>
               <input
                 type="text"
                 value={lmsUsername}
@@ -1226,7 +1227,7 @@ export default function ProfilePage({
             </label>
 
             <label className="block space-y-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted block">LMS password</span>
+              <span className="text-[11px] font-semibold text-text-muted block">LMS password</span>
               <span className="relative block">
                 <input
                   type={showLmsPassword ? "text" : "password"}
@@ -1258,10 +1259,10 @@ export default function ProfilePage({
           </p>
         </div>
         <div className={TILE_CARD}>
-          <p className="text-sm font-bold text-text-heading font-outfit tracking-tight mb-3">Koha library</p>
+          <p className="text-sm font-semibold text-text-heading font-outfit tracking-tight mb-3">Koha library</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <label className="block space-y-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted block">Card number</span>
+              <span className="text-[11px] font-semibold text-text-muted block">Card number</span>
               <input
                 type="text"
                 value={kohaCard}
@@ -1271,7 +1272,7 @@ export default function ProfilePage({
               />
             </label>
             <label className="block space-y-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted block">
+              <span className="text-[11px] font-semibold text-text-muted block">
                 Library password
               </span>
               <input
@@ -1323,7 +1324,7 @@ export default function ProfilePage({
                 type="button"
                 onClick={handleRefreshCreds}
                 disabled={refreshingCreds}
-                className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-black text-white transition-colors hover:bg-indigo-700 disabled:opacity-50 cursor-pointer"
+                className="inline-flex items-center gap-2 rounded-sm bg-accent px-4 py-2.5 text-sm font-medium text-background transition-colors hover:bg-accent/90 disabled:opacity-50 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 <RefreshCcw className={`h-4 w-4 ${refreshingCreds ? "animate-spin" : ""}`} />
                 Sync portal keys
@@ -1342,11 +1343,11 @@ export default function ProfilePage({
                 <div key={idx} className={`${TILE_CARD} space-y-3`}>
                   <div className="flex items-center gap-2.5">
                     <span
-                      className={`h-9 w-9 shrink-0 rounded-xl border flex items-center justify-center ${TONE_ICON_TILE.indigo}`}
+                      className={`h-9 w-9 shrink-0 rounded-md border flex items-center justify-center ${TONE_ICON_TILE.indigo}`}
                     >
                       <User className="w-4 h-4" />
                     </span>
-                    <p className="text-sm font-bold text-text-heading truncate font-outfit tracking-tight flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-text-heading truncate font-outfit tracking-tight flex-1 min-w-0">
                       {accountName}
                     </p>
                     {userName && (
@@ -1412,12 +1413,12 @@ export default function ProfilePage({
         <div className={TILE_CARD}>
           <div className="flex items-center gap-3">
             <span
-              className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.red}`}
+              className={`h-10 w-10 shrink-0 rounded-md border flex items-center justify-center ${TONE_ICON_TILE.red}`}
             >
               <LogOut className="w-5 h-5" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold text-text-heading font-outfit tracking-tight">End this session</p>
+              <p className="text-sm font-semibold text-text-heading font-outfit tracking-tight">End this session</p>
               <p className="text-[11px] text-text-secondary dark:text-text-muted font-medium mt-0.5">
                 You can sign back in anytime with the stored logins above.
               </p>
@@ -1427,7 +1428,7 @@ export default function ProfilePage({
             <button
               type="button"
               onClick={handleLogOutRequest}
-              className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-black text-white transition-colors hover:bg-red-700 cursor-pointer"
+              className="inline-flex items-center gap-2 rounded-md bg-danger px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-danger cursor-pointer"
             >
               <LogOut className="w-3.5 h-3.5" />
               Log out now
@@ -1442,23 +1443,23 @@ export default function ProfilePage({
   const renderPreferencesContent = () => (
     <div className="space-y-6">
       {/* Theme & Layout Card */}
-      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-5 shadow-2xs">
-        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">Theme & Display Mode</h3>
+      <div className="bg-surface/80 rounded-md border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-5 shadow-2xs">
+        <h3 className="text-sm font-semibold text-ink font-outfit">Theme & Display Mode</h3>
 
         {/* Theme Mode Switcher */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-md bg-surface-2 border border-zinc-200/60 dark:border-zinc-800">
           <div>
-            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Theme Mode</p>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Theme Mode</p>
+            <p className="text-xs text-muted">
               Seamlessly switch between Light and Dark aesthetics
             </p>
           </div>
-          <div className="flex rounded-xl bg-zinc-200/70 dark:bg-zinc-800 p-1 w-full sm:w-56 shrink-0">
+          <div className="flex rounded-md bg-zinc-200/70 dark:bg-zinc-800 p-1 w-full sm:w-56 shrink-0">
             <button
               onClick={() => handleThemeChange("light")}
-              className={`flex-1 py-1.5 text-xs font-black rounded-lg transition-all cursor-pointer ${
+              className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                 theme === "light"
-                  ? "bg-white dark:bg-zinc-700 text-indigo-600 dark:text-indigo-300 shadow-xs"
+                  ? "bg-surface dark:bg-zinc-700 text-indigo-600 dark:text-indigo-300 shadow-xs"
                   : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400"
               }`}
             >
@@ -1466,7 +1467,7 @@ export default function ProfilePage({
             </button>
             <button
               onClick={() => handleThemeChange("dark")}
-              className={`flex-1 py-1.5 text-xs font-black rounded-lg transition-all cursor-pointer ${
+              className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                 theme === "dark"
                   ? "bg-zinc-900 text-indigo-400 shadow-xs"
                   : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400"
@@ -1478,10 +1479,10 @@ export default function ProfilePage({
         </div>
 
         {/* Timetable Pill Style */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-md bg-surface-2 border border-zinc-200/60 dark:border-zinc-800">
           <div>
-            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Timetable Class Density</p>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Timetable Class Density</p>
+            <p className="text-xs text-muted">
               Choose between compact 2-line cards or spacious multi-line cards
             </p>
           </div>
@@ -1497,10 +1498,10 @@ export default function ProfilePage({
         </div>
 
         {/* Timetable Grid Layout */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-md bg-surface-2 border border-zinc-200/60 dark:border-zinc-800">
           <div>
-            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Timetable Grid Layout</p>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Timetable Grid Layout</p>
+            <p className="text-xs text-muted">
               Auto uses the vertical day-by-time heatmap on phones and the full grid on larger screens
             </p>
           </div>
@@ -1517,10 +1518,10 @@ export default function ProfilePage({
         </div>
 
         {/* Vertical Grid Cell Density */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-md bg-surface-2 border border-zinc-200/60 dark:border-zinc-800">
           <div>
-            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Vertical Grid Cell Density</p>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Vertical Grid Cell Density</p>
+            <p className="text-xs text-muted">
               Compact shows the slot only and fits the whole week on screen without swiping — phones default to it until
               you pick
             </p>
@@ -1537,10 +1538,10 @@ export default function ProfilePage({
         </div>
 
         {/* Tasks Placement on Home */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-md bg-surface-2 border border-zinc-200/60 dark:border-zinc-800">
           <div>
-            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Home Tasks Placement</p>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Home Tasks Placement</p>
+            <p className="text-xs text-muted">
               Display task badges inline with timetable classes or in a dedicated section below
             </p>
           </div>
@@ -1557,14 +1558,14 @@ export default function ProfilePage({
       </div>
 
       {/* Privacy & Visibility Toggles Card */}
-      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-4 shadow-2xs">
-        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">Privacy & Visibility</h3>
+      <div className="bg-surface/80 rounded-md border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-4 shadow-2xs">
+        <h3 className="text-sm font-semibold text-ink font-outfit">Privacy & Visibility</h3>
 
         <div className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
           <div className="flex items-center justify-between py-3">
             <div>
-              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Grades Anonymizer Mode</p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Grades Anonymizer Mode</p>
+              <p className="text-xs text-muted">
                 Blur CGPA, GPA, and course grades to protect privacy in public (hover to reveal)
               </p>
             </div>
@@ -1576,8 +1577,8 @@ export default function ProfilePage({
 
           <div className="flex items-center justify-between py-3">
             <div>
-              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Show GPA on Dashboard</p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Show GPA on Dashboard</p>
+              <p className="text-xs text-muted">
                 Display cumulative CGPA score cards on the home page and sidebar
               </p>
             </div>
@@ -1586,8 +1587,8 @@ export default function ProfilePage({
 
           <div className="flex items-center justify-between py-3">
             <div>
-              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Show Profile Photo</p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Show Profile Photo</p>
+              <p className="text-xs text-muted">
                 Render student avatar in headers, navigation rails, and profile cards
               </p>
             </div>
@@ -1599,8 +1600,8 @@ export default function ProfilePage({
 
           <div className="flex items-center justify-between py-3">
             <div>
-              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Sound & Action Audio</p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Sound & Action Audio</p>
+              <p className="text-xs text-muted">
                 Play subtle audio feedback when completing tasks or toggling states
               </p>
             </div>
@@ -1613,9 +1614,9 @@ export default function ProfilePage({
       </div>
 
       {/* Color Palette Card */}
-      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-4 shadow-2xs">
-        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">Color Palette & Accent</h3>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+      <div className="bg-surface/80 rounded-md border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-4 shadow-2xs">
+        <h3 className="text-sm font-semibold text-ink font-outfit">Color Palette & Accent</h3>
+        <p className="text-xs text-muted">
           Personalize the interface accent colors and gradient accents
         </p>
 
@@ -1625,13 +1626,13 @@ export default function ProfilePage({
               key={palette.id}
               type="button"
               onClick={() => updateSetting("colorPalette", palette.id)}
-              className={`flex items-center justify-between gap-2 rounded-xl border p-3 text-left transition-all cursor-pointer ${
+              className={`flex items-center justify-between gap-2 rounded-md border p-3 text-left transition-all cursor-pointer ${
                 activePalette === palette.id
                   ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/40 ring-1 ring-indigo-500/20"
                   : "border-zinc-200/80 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
               }`}
             >
-              <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200">{palette.label}</span>
+              <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">{palette.label}</span>
               <span className="flex -space-x-1">
                 {palette.swatches.map((color) => (
                   <span
@@ -1646,7 +1647,7 @@ export default function ProfilePage({
         </div>
 
         {activePalette === "custom" && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 rounded-xl border border-zinc-200 dark:border-zinc-800 p-3.5 bg-zinc-50/60 dark:bg-zinc-950/40 mt-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 rounded-md border border-line p-3.5 bg-surface-2 mt-3">
             {[
               ["accent", "Accent Color"],
               ["background", "Background"],
@@ -1654,14 +1655,14 @@ export default function ProfilePage({
             ].map(([key, label]) => (
               <label
                 key={key}
-                className="flex items-center justify-between gap-2 text-xs font-bold text-zinc-700 dark:text-zinc-300"
+                className="flex items-center justify-between gap-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300"
               >
                 <span>{label}</span>
                 <input
                   type="color"
                   value={customPalette[key as "accent" | "background" | "surface"]}
                   onChange={(e) => updateCustomPalette(key as "accent" | "background" | "surface", e.target.value)}
-                  className="h-8 w-12 cursor-pointer rounded-lg border border-zinc-200 dark:border-zinc-800 bg-transparent p-0.5"
+                  className="h-8 w-12 cursor-pointer rounded-lg border border-line bg-transparent p-0.5"
                 />
               </label>
             ))}
@@ -1673,8 +1674,8 @@ export default function ProfilePage({
             `.card-surface` rule the surface tokens ride. */}
         <div className="flex items-center justify-between border-t border-zinc-100 dark:border-zinc-800/60 pt-4 mt-1">
           <div>
-            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Classic Zinc Glass Cards</p>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Classic Zinc Glass Cards</p>
+            <p className="text-xs text-muted">
               Off — the solid gray card interior the grade insights card uses. On — the older translucent zinc cards
               with a backdrop blur.
             </p>
@@ -1687,19 +1688,19 @@ export default function ProfilePage({
       </div>
 
       {/* App Icon Card */}
-      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-4 shadow-2xs">
-        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">Application Icon</h3>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+      <div className="bg-surface/80 rounded-md border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-4 shadow-2xs">
+        <h3 className="text-sm font-semibold text-ink font-outfit">Application Icon</h3>
+        <p className="text-xs text-muted">
           Choose which icon is displayed across header brandings
         </p>
 
         <div className="flex gap-4 pt-1">
           <button
             onClick={() => handleIconChange("default")}
-            className={`flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all cursor-pointer ${
+            className={`flex flex-col items-center gap-2 p-3 rounded-md border transition-all cursor-pointer ${
               appIcon === "default"
                 ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/40 ring-1 ring-indigo-500/20"
-                : "border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
+                : "border-line hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
             }`}
           >
             <img
@@ -1707,16 +1708,16 @@ export default function ProfilePage({
               decoding="async"
               src={getAssetPath("/logo.png")}
               alt="Default Icon"
-              className="w-12 h-12 rounded-xl shadow-xs object-cover"
+              className="w-12 h-12 rounded-md shadow-xs object-cover"
             />
-            <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">Default</span>
+            <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Default</span>
           </button>
           <button
             onClick={() => handleIconChange("fire")}
-            className={`flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all cursor-pointer ${
+            className={`flex flex-col items-center gap-2 p-3 rounded-md border transition-all cursor-pointer ${
               appIcon === "fire"
                 ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/40 ring-1 ring-indigo-500/20"
-                : "border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
+                : "border-line hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
             }`}
           >
             <img
@@ -1724,9 +1725,9 @@ export default function ProfilePage({
               decoding="async"
               src={getAssetPath("/images/icons/fire.png")}
               alt="Fire Icon"
-              className="w-12 h-12 rounded-xl shadow-xs object-cover"
+              className="w-12 h-12 rounded-md shadow-xs object-cover"
             />
-            <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">Fire</span>
+            <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Fire</span>
           </button>
         </div>
       </div>
@@ -1736,14 +1737,14 @@ export default function ProfilePage({
   // 3. Academic & Schedule Section
   const renderAcademicContent = () => (
     <div className="space-y-6">
-      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-5 shadow-2xs">
-        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">Semester & Terms</h3>
+      <div className="bg-surface/80 rounded-md border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-5 shadow-2xs">
+        <h3 className="text-sm font-semibold text-ink font-outfit">Semester & Terms</h3>
 
         {/* Active Semester Selector */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-md bg-surface-2 border border-zinc-200/60 dark:border-zinc-800">
           <div>
-            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Active Semester</p>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Active Semester</p>
+            <p className="text-xs text-muted">
               Select term to fetch attendance, marks, and timetable
             </p>
           </div>
@@ -1761,7 +1762,7 @@ export default function ProfilePage({
             <Button
               onClick={handleSaveSemester}
               disabled={!selectedSemester || selectedSemester === currSemesterID}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3.5 py-2 rounded-xl"
+              className="bg-accent hover:bg-accent/90 text-background text-xs px-3.5 py-2 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               <Save size={14} className="mr-1.5" /> Save
             </Button>
@@ -1769,10 +1770,10 @@ export default function ProfilePage({
         </div>
 
         {/* Academic Calendar Dropdown */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-md bg-surface-2 border border-zinc-200/60 dark:border-zinc-800">
           <div>
-            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Academic Calendar</p>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Academic Calendar</p>
+            <p className="text-xs text-muted">
               Default calendar scheme for exam dates and working days
             </p>
           </div>
@@ -1794,10 +1795,10 @@ export default function ProfilePage({
         </div>
 
         {/* Target Attendance Threshold */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-md bg-surface-2 border border-zinc-200/60 dark:border-zinc-800">
           <div>
-            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Target Attendance Goal</p>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Target Attendance Goal</p>
+            <p className="text-xs text-muted">
               Target threshold for safe bunk margin calculations
             </p>
           </div>
@@ -1817,8 +1818,8 @@ export default function ProfilePage({
         {/* Precision Decimal Toggle */}
         <div className="flex items-center justify-between py-1">
           <div>
-            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Use One Decimal Place</p>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Use One Decimal Place</p>
+            <p className="text-xs text-muted">
               Round attendance stats and scores to 1 decimal place instead of 2
             </p>
           </div>
@@ -1827,19 +1828,19 @@ export default function ProfilePage({
       </div>
 
       {/* Pomodoro Focus & Study Defaults */}
-      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-4 shadow-2xs">
+      <div className="bg-surface/80 rounded-md border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-4 shadow-2xs">
         <div>
-          <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
+          <h3 className="text-sm font-semibold text-ink font-outfit">
             Pomodoro Focus &amp; Study Settings
           </h3>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          <p className="text-xs text-muted">
             Customize default work interval, break lengths, and rounds for study sessions
           </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
-            <label htmlFor="pomodoro-focus" className="block text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-1">
+          <div className="p-3.5 rounded-md bg-surface-2 border border-zinc-200/60 dark:border-zinc-800">
+            <label htmlFor="pomodoro-focus" className="block text-xs font-semibold text-zinc-800 dark:text-zinc-200 mb-1">
               Focus Duration (min)
             </label>
             <input
@@ -1849,12 +1850,12 @@ export default function ProfilePage({
               max="120"
               value={settings?.taskPomodoroFocus || 25}
               onChange={(e) => updateSetting("taskPomodoroFocus", Math.max(5, Number(e.target.value)))}
-              className="w-full text-xs font-bold rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-2 text-zinc-900 dark:text-white"
+              className="w-full text-xs font-semibold rounded-lg bg-surface border border-line p-2 text-ink"
             />
           </div>
 
-          <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
-            <label htmlFor="pomodoro-break" className="block text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-1">
+          <div className="p-3.5 rounded-md bg-surface-2 border border-zinc-200/60 dark:border-zinc-800">
+            <label htmlFor="pomodoro-break" className="block text-xs font-semibold text-zinc-800 dark:text-zinc-200 mb-1">
               Break Duration (min)
             </label>
             <input
@@ -1864,12 +1865,12 @@ export default function ProfilePage({
               max="60"
               value={settings?.taskPomodoroBreak || 5}
               onChange={(e) => updateSetting("taskPomodoroBreak", Math.max(1, Number(e.target.value)))}
-              className="w-full text-xs font-bold rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-2 text-zinc-900 dark:text-white"
+              className="w-full text-xs font-semibold rounded-lg bg-surface border border-line p-2 text-ink"
             />
           </div>
 
-          <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
-            <label htmlFor="pomodoro-rounds" className="block text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-1">
+          <div className="p-3.5 rounded-md bg-surface-2 border border-zinc-200/60 dark:border-zinc-800">
+            <label htmlFor="pomodoro-rounds" className="block text-xs font-semibold text-zinc-800 dark:text-zinc-200 mb-1">
               Default Rounds
             </label>
             <input
@@ -1879,32 +1880,32 @@ export default function ProfilePage({
               max="16"
               value={settings?.taskPomodoroRounds || 4}
               onChange={(e) => updateSetting("taskPomodoroRounds", Math.max(1, Number(e.target.value)))}
-              className="w-full text-xs font-bold rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-2 text-zinc-900 dark:text-white"
+              className="w-full text-xs font-semibold rounded-lg bg-surface border border-line p-2 text-ink"
             />
           </div>
         </div>
       </div>
 
       {/* Residential & Hostel Card */}
-      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-4 shadow-2xs">
-        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">Residential Status & Mess</h3>
+      <div className="bg-surface/80 rounded-md border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-4 shadow-2xs">
+        <h3 className="text-sm font-semibold text-ink font-outfit">Residential Status & Mess</h3>
 
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-md bg-surface-2 border border-zinc-200/60 dark:border-zinc-800">
           <div>
-            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Hostel vs Day Scholar</p>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Hostel vs Day Scholar</p>
+            <p className="text-xs text-muted">
               Affects mess menu shortcuts and gate pass integrations
             </p>
           </div>
-          <div className="flex rounded-xl bg-zinc-200/70 dark:bg-zinc-800 p-1 w-full sm:w-56 shrink-0">
+          <div className="flex rounded-md bg-zinc-200/70 dark:bg-zinc-800 p-1 w-full sm:w-56 shrink-0">
             <button
               onClick={() => {
                 setResidentialStatus("hosteller");
                 setIsDayscholarWithBus(false);
               }}
-              className={`flex-1 py-1.5 text-xs font-black rounded-lg transition-all cursor-pointer ${
+              className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                 residentialStatus === "hosteller"
-                  ? "bg-white dark:bg-zinc-700 text-indigo-600 dark:text-indigo-300 shadow-xs"
+                  ? "bg-surface dark:bg-zinc-700 text-indigo-600 dark:text-indigo-300 shadow-xs"
                   : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400"
               }`}
             >
@@ -1912,9 +1913,9 @@ export default function ProfilePage({
             </button>
             <button
               onClick={() => setResidentialStatus("dayscholar")}
-              className={`flex-1 py-1.5 text-xs font-black rounded-lg transition-all cursor-pointer ${
+              className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                 residentialStatus === "dayscholar"
-                  ? "bg-white dark:bg-zinc-700 text-indigo-600 dark:text-indigo-300 shadow-xs"
+                  ? "bg-surface dark:bg-zinc-700 text-indigo-600 dark:text-indigo-300 shadow-xs"
                   : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400"
               }`}
             >
@@ -1924,14 +1925,14 @@ export default function ProfilePage({
         </div>
 
         {residentialStatus === "dayscholar" && (
-          <label className="flex items-center gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800 cursor-pointer">
+          <label className="flex items-center gap-3 p-3.5 rounded-md bg-surface-2 border border-zinc-200/60 dark:border-zinc-800 cursor-pointer">
             <input
               type="checkbox"
               checked={isDayscholarWithBus}
               onChange={(e) => setIsDayscholarWithBus(e.target.checked)}
               className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
             />
-            <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200">
+            <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
               Registered for University Transport / Bus
             </span>
           </label>
@@ -1939,8 +1940,8 @@ export default function ProfilePage({
 
         <div className="flex items-center justify-between py-1">
           <div>
-            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Smart Mess Menu Auto-Filter</p>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Smart Mess Menu Auto-Filter</p>
+            <p className="text-xs text-muted">
               Auto-select meal schedule based on current week of the month
             </p>
           </div>
@@ -1956,10 +1957,10 @@ export default function ProfilePage({
   // 4b. Sync Modes page: default picker plus the full editor inline.
   const renderSyncModesPage = () => (
     <div className="space-y-6">
-      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-5 shadow-2xs">
+      <div className="bg-surface/80 rounded-md border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-5 shadow-2xs">
         <div>
-          <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">Default Sync Mode</h3>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+          <h3 className="text-sm font-semibold text-ink font-outfit">Default Sync Mode</h3>
+          <p className="text-xs text-muted mt-0.5">
             Used by the reload button, the sync sheet and the command palette. The starred mode below is the current
             default — picking here, starring a row, or tapping a mode in the sync sheet all change it.
           </p>
@@ -1974,7 +1975,7 @@ export default function ProfilePage({
         />
       </div>
 
-      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 shadow-2xs">
+      <div className="bg-surface/80 rounded-md border border-zinc-200/80 dark:border-zinc-800/80 p-5 shadow-2xs">
         <SyncModeEditorContent
           onChanged={setCustomSyncModes}
           defaultId={settings?.defaultSyncMode || "quick"}
@@ -1987,26 +1988,26 @@ export default function ProfilePage({
   // 4. Data Sync Section
   const renderSyncContent = () => (
     <div className="space-y-6">
-      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-5 shadow-2xs">
+      <div className="bg-surface/80 rounded-md border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-5 shadow-2xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 dark:border-zinc-800/80 pb-4">
           <div>
-            <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
+            <h3 className="text-sm font-semibold text-ink font-outfit">
               Data Synchronization Policies
             </h3>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+            <p className="text-xs text-muted mt-0.5">
               Choose which modules refresh automatically to conserve data and API limits
             </p>
           </div>
           <div className="flex gap-2 shrink-0">
             <button
               onClick={() => handleToggleAllSync(true)}
-              className="px-3 py-1.5 text-xs font-extrabold rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/40 hover:bg-indigo-100 transition-colors cursor-pointer"
+              className="px-3 py-1.5 text-xs font-semibold rounded-md bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/40 hover:bg-indigo-100 transition-colors cursor-pointer"
             >
               Enable All
             </button>
             <button
               onClick={() => handleToggleAllSync(false)}
-              className="px-3 py-1.5 text-xs font-extrabold rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 transition-colors cursor-pointer"
+              className="px-3 py-1.5 text-xs font-semibold rounded-md bg-surface-2 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 transition-colors cursor-pointer"
             >
               Disable All
             </button>
@@ -2014,10 +2015,10 @@ export default function ProfilePage({
         </div>
 
         {/* Background Sync Frequency */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-md bg-surface-2 border border-zinc-200/60 dark:border-zinc-800">
           <div>
-            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Background Auto-Refresh Frequency</p>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Background Auto-Refresh Frequency</p>
+            <p className="text-xs text-muted">
               Periodic timetable and marks check in the background
             </p>
           </div>
@@ -2035,10 +2036,10 @@ export default function ProfilePage({
         </div>
 
         {/* Default Sync Mode */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-md bg-surface-2 border border-zinc-200/60 dark:border-zinc-800">
           <div>
-            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Default Sync Mode</p>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Default Sync Mode</p>
+            <p className="text-xs text-muted">
               Quick for daily checks, Balanced for routine reloads, Full for a complete sweep — or one of your custom
               modes
             </p>
@@ -2058,7 +2059,7 @@ export default function ProfilePage({
                 setCustomSyncModes(loadCustomModes());
                 setModeEditorOpen(true);
               }}
-              className="px-3 py-1.5 text-xs font-extrabold rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/40 hover:bg-indigo-100 transition-colors cursor-pointer whitespace-nowrap"
+              className="px-3 py-1.5 text-xs font-semibold rounded-md bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/40 hover:bg-indigo-100 transition-colors cursor-pointer whitespace-nowrap"
             >
               Manage
             </button>
@@ -2079,8 +2080,8 @@ export default function ProfilePage({
         <div className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
           <div className="flex items-center justify-between py-3">
             <div>
-              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Sync Profile & Hosteller Data</p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Sync Profile & Hosteller Data</p>
+              <p className="text-xs text-muted">
                 Credentials, contact numbers, and hostel room information
               </p>
             </div>
@@ -2092,8 +2093,8 @@ export default function ProfilePage({
 
           <div className="flex items-center justify-between py-3">
             <div>
-              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Sync Additional Bulk Data</p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Sync Additional Bulk Data</p>
+              <p className="text-xs text-muted">
                 Master switch for background records: EXC, minor/honour and course completions
               </p>
             </div>
@@ -2105,10 +2106,10 @@ export default function ProfilePage({
 
           <div className="flex items-center justify-between py-3">
             <div>
-              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+              <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
                 Sync Extra-Curricular (EXC) Registration
               </p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              <p className="text-xs text-muted">
                 Clubs, chapters, and co-curricular credit allocations
               </p>
             </div>
@@ -2120,8 +2121,8 @@ export default function ProfilePage({
 
           <div className="flex items-center justify-between py-3">
             <div>
-              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Sync Minor & Honour Registrations</p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Sync Minor & Honour Registrations</p>
+              <p className="text-xs text-muted">
                 Minor degrees and honour program course completions
               </p>
             </div>
@@ -2133,8 +2134,8 @@ export default function ProfilePage({
 
           <div className="flex items-center justify-between py-3">
             <div>
-              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Sync Course Completion Records</p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Sync Course Completion Records</p>
+              <p className="text-xs text-muted">
                 Completed coursework and credit eligibility records
               </p>
             </div>
@@ -2146,8 +2147,8 @@ export default function ProfilePage({
 
           <div className="flex items-center justify-between py-3">
             <div>
-              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Reload All Data on Global Refresh</p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Reload All Data on Global Refresh</p>
+              <p className="text-xs text-muted">
                 Refresh button triggers a full multi-module sweep instead of attendance only
               </p>
             </div>
@@ -2156,8 +2157,8 @@ export default function ProfilePage({
 
           <div className="flex items-center justify-between py-3">
             <div>
-              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Low Data Saver Mode</p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Low Data Saver Mode</p>
+              <p className="text-xs text-muted">
                 Disables automatic prefetching of heavy assets on metered connections
               </p>
             </div>
@@ -2174,11 +2175,11 @@ export default function ProfilePage({
   // 5. Navigation & Mobile Section
   const renderNavigationContent = () => (
     <div className="space-y-6">
-      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-5 shadow-2xs">
-        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
+      <div className="bg-surface/80 rounded-md border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-5 shadow-2xs">
+        <h3 className="text-sm font-semibold text-ink font-outfit">
           Mobile Bottom Navigation Bar
         </h3>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+        <p className="text-xs text-muted">
           Pin up to 4 custom shortcuts to your bottom navigation bar for quick access. Home is always present.
         </p>
 
@@ -2208,12 +2209,12 @@ export default function ProfilePage({
                   const next = isPinned ? current.filter((id: string) => id !== tab.id) : [...current, tab.id];
                   updateSetting("pinnedNavTabs", next);
                 }}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-semibold border transition-all cursor-pointer ${
                   isPinned
-                    ? "bg-indigo-600 border-indigo-600 text-white shadow-xs"
+                    ? "bg-accent border-indigo-600 text-background"
                     : atLimit
-                      ? "bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-400 dark:text-zinc-600 cursor-not-allowed opacity-50"
-                      : "bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-indigo-400"
+                      ? "bg-surface-2 border-line text-zinc-400 dark:text-zinc-600 cursor-not-allowed opacity-50"
+                      : "bg-surface-2 border-line text-zinc-700 dark:text-zinc-300 hover:border-indigo-400"
                 }`}
               >
                 {isPinned && <Check className="w-3.5 h-3.5" />}
@@ -2225,8 +2226,8 @@ export default function ProfilePage({
 
         <div className="flex items-center justify-between py-3 border-t border-zinc-100 dark:border-zinc-800/80">
           <div>
-            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Compact Mobile Header</p>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Compact Mobile Header</p>
+            <p className="text-xs text-muted">
               Hide bulky headers on small screens to maximize reading area
             </p>
           </div>
@@ -2235,9 +2236,9 @@ export default function ProfilePage({
       </div>
 
       {/* Push Notifications Card */}
-      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-4 shadow-2xs">
-        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">Push Notifications</h3>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+      <div className="bg-surface/80 rounded-md border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-4 shadow-2xs">
+        <h3 className="text-sm font-semibold text-ink font-outfit">Push Notifications</h3>
+        <p className="text-xs text-muted">
           Receive exam reminders, attendance alerts, and moodle deadline notifications
         </p>
         <div className="pt-2">
@@ -2253,7 +2254,7 @@ export default function ProfilePage({
   // 6. Advanced & System Section
   const renderAdvancedContent = () => (
     <div className="space-y-6">
-      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 divide-y divide-zinc-100 dark:divide-zinc-800/60 overflow-hidden shadow-2xs">
+      <div className="bg-surface/80 rounded-md border border-zinc-200/80 dark:border-zinc-800/80 divide-y divide-zinc-100 dark:divide-zinc-800/60 overflow-hidden shadow-2xs">
         {/* Local Storage — a drill-down, so it pushes a screen on the settings
             stack and inherits this page's header and back button, rather than
             opening an overlay with a second copy of both. */}
@@ -2263,12 +2264,12 @@ export default function ProfilePage({
           className="w-full flex items-center justify-between p-4 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-3.5 min-w-0 pr-4">
-            <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
+            <div className="p-2.5 rounded-md bg-accent-soft text-accent shrink-0">
               <Database size={18} />
             </div>
             <div className="min-w-0">
-              <span className="font-bold text-xs text-zinc-900 dark:text-white block">Local Storage Viewer</span>
-              <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block truncate mt-0.5">
+              <span className="font-semibold text-xs text-ink block">Local Storage Viewer</span>
+              <span className="text-[11px] text-muted block truncate mt-0.5">
                 Inspect raw client cache entries, tokens, and database keys
               </span>
             </div>
@@ -2277,14 +2278,14 @@ export default function ProfilePage({
         </button>
 
         {/* API Endpoint */}
-        <div className="p-4 space-y-3 bg-zinc-50/50 dark:bg-zinc-950/30">
+        <div className="p-4 space-y-3 bg-surface-2">
           <div className="flex items-center gap-3.5 min-w-0">
-            <div className={`p-2.5 rounded-xl border shrink-0 ${TONE_ICON_TILE.violet}`}>
+            <div className={`p-2.5 rounded-md border shrink-0 ${TONE_ICON_TILE.violet}`}>
               <Link2 size={18} />
             </div>
             <div className="min-w-0 flex-1">
-              <span className="font-bold text-xs text-zinc-900 dark:text-white block">API Endpoint</span>
-              <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block mt-0.5">
+              <span className="font-semibold text-xs text-ink block">API Endpoint</span>
+              <span className="text-[11px] text-muted block mt-0.5">
                 Switch between the production API and its mirror
               </span>
             </div>
@@ -2321,7 +2322,7 @@ export default function ProfilePage({
                 type="button"
                 onClick={saveCustomApiUrl}
                 disabled={!customApiInput.trim()}
-                className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all cursor-pointer shadow-2xs disabled:opacity-50"
+                className="px-4 py-2 text-xs font-medium text-background bg-accent hover:bg-accent/90 rounded-sm transition-colors cursor-pointer disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 Save
               </button>
@@ -2348,12 +2349,12 @@ export default function ProfilePage({
           className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-3.5 min-w-0 pr-4">
-            <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
+            <div className="p-2.5 rounded-md bg-ok-soft text-ok shrink-0">
               <Save size={18} />
             </div>
             <div className="min-w-0">
-              <span className="font-bold text-xs text-zinc-900 dark:text-white block">Backup / Export Settings</span>
-              <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block truncate mt-0.5">
+              <span className="font-semibold text-xs text-ink block">Backup / Export Settings</span>
+              <span className="text-[11px] text-muted block truncate mt-0.5">
                 Save application preferences, layout options, and custom name to file
               </span>
             </div>
@@ -2375,12 +2376,12 @@ export default function ProfilePage({
           className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-3.5 min-w-0 pr-4">
-            <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
+            <div className="p-2.5 rounded-md bg-warn-soft text-warn shrink-0">
               <ExternalLink size={18} />
             </div>
             <div className="min-w-0">
-              <span className="font-bold text-xs text-zinc-900 dark:text-white block">Restore / Import Settings</span>
-              <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block truncate mt-0.5">
+              <span className="font-semibold text-xs text-ink block">Restore / Import Settings</span>
+              <span className="text-[11px] text-muted block truncate mt-0.5">
                 Import and restore configuration from a settings backup JSON file
               </span>
             </div>
@@ -2402,14 +2403,14 @@ export default function ProfilePage({
           className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-3.5 min-w-0 pr-4">
-            <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
+            <div className="p-2.5 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
               <Keyboard size={18} />
             </div>
             <div className="min-w-0">
-              <span className="font-bold text-xs text-zinc-900 dark:text-white block">
+              <span className="font-semibold text-xs text-ink block">
                 Keyboard Shortcuts Cheat-Sheet
               </span>
-              <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block truncate mt-0.5">
+              <span className="text-[11px] text-muted block truncate mt-0.5">
                 View interactive hotkey shortcuts for quick navigation
               </span>
             </div>
@@ -2428,20 +2429,20 @@ export default function ProfilePage({
               handleResetCache();
             }
           }}
-          className="flex items-center justify-between p-4 hover:bg-red-500/5 transition-colors cursor-pointer"
+          className="flex items-center justify-between p-4 hover:bg-danger-soft transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-3.5 min-w-0 pr-4">
-            <div className="p-2.5 rounded-xl bg-red-500/10 text-red-600 shrink-0">
+            <div className="p-2.5 rounded-md bg-danger-soft text-danger shrink-0">
               <RefreshCcw size={18} />
             </div>
             <div className="min-w-0">
-              <span className="font-bold text-xs text-red-600 block">Reset Application Cache</span>
-              <span className="text-[11px] text-red-500/80 block truncate mt-0.5">
+              <span className="font-semibold text-xs text-danger block">Reset Application Cache</span>
+              <span className="text-[11px] text-danger/80 block truncate mt-0.5">
                 Clear all stored data, cached timetables, and reload fresh
               </span>
             </div>
           </div>
-          <ChevronRight size={16} className="text-red-400 shrink-0" />
+          <ChevronRight size={16} className="text-danger shrink-0" />
         </div>
 
         {/* Log Out */}
@@ -2455,20 +2456,20 @@ export default function ProfilePage({
               handleLogOutRequest();
             }
           }}
-          className="flex items-center justify-between p-4 hover:bg-red-500/5 transition-colors cursor-pointer"
+          className="flex items-center justify-between p-4 hover:bg-danger-soft transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-3.5 min-w-0 pr-4">
-            <div className="p-2.5 rounded-xl bg-red-500/10 text-red-600 shrink-0">
+            <div className="p-2.5 rounded-md bg-danger-soft text-danger shrink-0">
               <LogOut size={18} />
             </div>
             <div className="min-w-0">
-              <span className="font-bold text-xs text-red-600 block">Sign Out</span>
-              <span className="text-[11px] text-red-500/80 block truncate mt-0.5">
+              <span className="font-semibold text-xs text-danger block">Sign Out</span>
+              <span className="text-[11px] text-danger/80 block truncate mt-0.5">
                 Safely disconnect and clear active session tokens
               </span>
             </div>
           </div>
-          <ChevronRight size={16} className="text-red-400 shrink-0" />
+          <ChevronRight size={16} className="text-danger shrink-0" />
         </div>
       </div>
     </div>
@@ -2637,6 +2638,151 @@ export default function ProfilePage({
                  * it read as those controls being *part* of the list rather than
                  * beside it. Same rhythm as the rest of the page. */
                 <div className="space-y-6">
+                  {/* ── Canvas "Settings": identity, appearance and sync up front ── */}
+                  <div className="space-y-5 text-left">
+                    <button
+                      type="button"
+                      onClick={() => screens.go("profile")}
+                      className="flex w-full items-center gap-3 rounded-md border border-line bg-surface px-4 py-3 text-left transition-colors duration-[120ms] hover:bg-surface-2"
+                    >
+                      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-surface-2 text-[13px] font-semibold text-ink-2">
+                        {(friendlyName || username || "?")
+                          .split(/\s+/)
+                          .map((w: string) => w[0])
+                          .join("")
+                          .slice(0, 2)
+                          .toUpperCase()}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[15px] text-ink">{friendlyName || "Student"}</span>
+                        <span className="block truncate font-mono text-[12.5px] text-muted">
+                          {[username, semesterLabel(currSemesterID)].filter(Boolean).join(" · ")}
+                        </span>
+                      </span>
+                      <ChevronRight aria-hidden="true" className="h-4 w-4 text-muted" />
+                    </button>
+
+                    <section aria-label="Appearance">
+                      <h2 className="px-1 pb-1.5 text-[13.5px] font-semibold text-ink">Appearance</h2>
+                      <div className="rounded-md border border-line bg-surface p-4">
+                        <p className="text-[13.5px] text-ink">Theme</p>
+                        <div role="radiogroup" aria-label="Theme" className="mt-2 grid grid-cols-3 gap-1 rounded-sm bg-surface-2 p-1">
+                          {(["system", "light", "dark"] as const).map((t) => (
+                            <button
+                              key={t}
+                              type="button"
+                              role="radio"
+                              aria-checked={(theme ?? "system") === t}
+                              onClick={() => handleThemeChange(t)}
+                              className={cn(
+                                "min-h-9 rounded-[5px] text-[13.5px] capitalize transition-colors duration-[120ms]",
+                                (theme ?? "system") === t
+                                  ? "bg-surface font-medium text-ink shadow-sm"
+                                  : "text-ink-2 hover:text-ink",
+                              )}
+                            >
+                              {t}
+                            </button>
+                          ))}
+                        </div>
+                        <p className="mt-4 text-[13.5px] text-ink">
+                          Accent
+                          <span className="text-muted">
+                            {" · "}
+                            {COLOR_PALETTES.find((c) => c.id === activePalette)?.label ?? "Ink"}
+                          </span>
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-3">
+                          {COLOR_PALETTES.filter((c) => c.id !== "custom").map((c) => (
+                            <button
+                              key={c.id}
+                              type="button"
+                              aria-label={`${c.label} accent`}
+                              aria-pressed={activePalette === c.id}
+                              onClick={() => updateSetting("colorPalette", c.id)}
+                              className={cn(
+                                "h-10 w-10 rounded-full transition-shadow duration-[120ms]",
+                                activePalette === c.id
+                                  ? "ring-2 ring-ink ring-offset-2 ring-offset-surface"
+                                  : "hover:ring-2 hover:ring-line hover:ring-offset-2 hover:ring-offset-surface",
+                              )}
+                              style={{ background: resolvedTheme === "dark" ? c.swatches[1] : c.swatches[0] }}
+                            />
+                          ))}
+                        </div>
+                        <div className="mt-4 flex items-center justify-between gap-3 border-t border-line-2 pt-3">
+                          <span>
+                            <span className="block text-[13.5px] text-ink">More appearance</span>
+                            <span className="block text-[12.5px] text-muted">Custom accent, layouts and app icon</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => screens.go("preferences")}
+                            className="text-[13.5px] text-accent hover:underline"
+                          >
+                            Open
+                          </button>
+                        </div>
+                      </div>
+                    </section>
+
+                    <section aria-label="Sync">
+                      <h2 className="px-1 pb-1.5 text-[13.5px] font-semibold text-ink">Sync</h2>
+                      <div className="divide-y divide-line-2 overflow-hidden rounded-md border border-line bg-surface">
+                        <div className="flex items-center justify-between gap-3 px-4 py-3">
+                          <span className="min-w-0">
+                            <span className="block text-[14.5px] text-ink">VTOP</span>
+                            <span className="block truncate font-mono text-[12.5px] text-muted">
+                              {semesterLabel(currSemesterID) || "Current semester"}
+                            </span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => onReload?.()}
+                            className="inline-flex min-h-10 shrink-0 items-center rounded-sm border border-line bg-surface px-3.5 text-[14px] font-medium text-ink transition-colors duration-[120ms] hover:bg-surface-2"
+                          >
+                            Sync now
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between gap-3 px-4 py-3">
+                          <span className="min-w-0">
+                            <span className="block text-[14.5px] text-ink">Sync in the background</span>
+                            <span className="block text-[12.5px] text-muted">
+                              {(settings?.autoSyncInterval || "off") === "off"
+                                ? "Off · sync by hand"
+                                : `Every ${String(settings?.autoSyncInterval).replace("m", " minutes").replace("h", " hour")}`}
+                            </span>
+                          </span>
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={(settings?.autoSyncInterval || "off") !== "off"}
+                            aria-label="Sync in the background"
+                            onClick={() =>
+                              updateSetting(
+                                "autoSyncInterval",
+                                (settings?.autoSyncInterval || "off") === "off" ? "1h" : "off",
+                              )
+                            }
+                            className={cn(
+                              "relative h-6 w-10 shrink-0 rounded-full transition-colors duration-[120ms]",
+                              (settings?.autoSyncInterval || "off") !== "off" ? "bg-accent" : "bg-line",
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                "absolute top-0.5 h-5 w-5 rounded-full bg-background shadow-sm transition-[left] duration-[120ms]",
+                                (settings?.autoSyncInterval || "off") !== "off" ? "left-[18px]" : "left-0.5",
+                              )}
+                            />
+                          </button>
+                        </div>
+                      </div>
+                    </section>
+
+                    <h2 className="px-1 text-[13.5px] font-semibold text-ink">All settings</h2>
+                  </div>
+
                   {/* Search lives here, on the hub, and only here. It drives
                       `filteredSections`, which is read exclusively by the hub
                       branch — a section renders `getSectionContent` and never
@@ -2650,7 +2796,7 @@ export default function ProfilePage({
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search all settings, credentials, profile, themes, semesters..."
-                      className="w-full pl-9 pr-4 py-2 text-xs font-medium border border-zinc-200 dark:border-zinc-800 bg-white/60 dark:bg-zinc-900/60 rounded-xl text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      className="w-full pl-9 pr-4 py-2 text-xs font-medium border border-line bg-surface rounded-md text-ink placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                     />
                     {searchQuery && (
                       <button
@@ -2696,10 +2842,8 @@ export default function ProfilePage({
                                 onClick={() => screens.go(sec.id)}
                                 className={`${LIST_ROW} cursor-pointer active:bg-zinc-100/70 dark:active:bg-zinc-800/60`}
                               >
-                                <div
-                                  className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${sec.iconBg} ${sec.iconColor}`}
-                                >
-                                  <Icon className="w-5 h-5" />
+                                <div className="flex h-10 w-6 shrink-0 items-center justify-center text-ink-2">
+                                  <Icon className="h-[18px] w-[18px]" strokeWidth={1.7} />
                                 </div>
                                 <ListRowText
                                   title={sec.label}
@@ -2710,14 +2854,14 @@ export default function ProfilePage({
                                 <div className="flex items-center gap-2 shrink-0">
                                   <span
                                     className={cn(
-                                      "text-sm font-black font-outfit tracking-tight leading-none truncate max-w-24 sm:max-w-32",
+                                      "text-sm font-semibold font-outfit tracking-tight leading-none truncate max-w-24 sm:max-w-32",
                                       summary.tone === "emerald"
-                                        ? "text-emerald-600 dark:text-emerald-400"
+                                        ? "text-ok"
                                         : summary.tone === "red"
-                                          ? "text-red-600 dark:text-red-400"
+                                          ? "text-danger"
                                           : summary.tone === "amber"
-                                            ? "text-amber-600 dark:text-amber-400"
-                                            : "text-zinc-700 dark:text-zinc-200",
+                                            ? "text-warn"
+                                            : "text-ink-2",
                                     )}
                                   >
                                     {summary.value}
@@ -2744,7 +2888,7 @@ export default function ProfilePage({
                         </GhostButton>
                         <button
                           onClick={handleLogOutRequest}
-                          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200/80 dark:border-red-900/40 text-xs font-bold text-red-600 dark:text-red-400 transition-colors cursor-pointer"
+                          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-md bg-danger-soft border border-danger/80 text-xs font-semibold text-danger transition-colors cursor-pointer"
                         >
                           <LogOut size={14} />
                           <span>Sign Out of Account</span>

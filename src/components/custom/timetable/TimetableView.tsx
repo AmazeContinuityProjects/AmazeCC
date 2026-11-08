@@ -141,8 +141,8 @@ export default function TimetableView({
           className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"
         >
           <div className="min-w-0">
-            {title && <h3 className="font-outfit text-base font-black text-zinc-900 dark:text-zinc-100">{title}</h3>}
-            <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
+            {title && <h3 className="font-outfit text-base font-semibold text-ink">{title}</h3>}
+            <p className="text-[11px] font-medium text-muted">
               {mode === "auto"
                 ? isMobile
                   ? "Auto · showing the vertical view on this phone"
@@ -173,7 +173,7 @@ export default function TimetableView({
       {view === null ? (
         // Both inputs to the auto decision land after mount, so hold a stable
         // box rather than painting the wrong grid and flipping.
-        <div className="h-72 animate-pulse rounded-xl bg-zinc-100 dark:bg-zinc-900" aria-hidden="true" />
+        <div className="h-72 animate-pulse rounded-md bg-surface-2" aria-hidden="true" />
       ) : view === "vertical" ? (
         <VerticalTimetableGrid
           courses={courses}
@@ -190,7 +190,7 @@ export default function TimetableView({
       ) : (
         <div>
           {!forceView && isMobile && (
-            <div className="mb-2 flex items-center justify-center gap-1.5 rounded-lg border border-sky-500/20 bg-sky-500/10 px-3 py-1.5 text-center text-[10px] font-bold text-sky-600 dark:text-sky-400">
+            <div className="mb-2 flex items-center justify-center gap-1.5 rounded-lg border border-accent/20 bg-accent-soft px-3 py-1.5 text-center text-[11px] font-semibold text-accent">
               <span>← Swipe horizontally to view the full grid →</span>
             </div>
           )}

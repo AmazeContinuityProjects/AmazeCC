@@ -299,7 +299,7 @@ function SettingsPane({ onClose, children }: { onClose: () => void; children: Re
         transition={{ duration: 0.2 }}
         onClick={onClose}
         aria-hidden
-        className="absolute inset-0 bg-black/30 dark:bg-black/50"
+        className="absolute inset-0 bg-black/30"
       />
       <motion.aside
         role="dialog"
@@ -309,18 +309,18 @@ function SettingsPane({ onClose, children }: { onClose: () => void; children: Re
         animate={{ x: 0 }}
         exit={{ x: "100%" }}
         transition={{ type: "tween", duration: 0.25, ease: "easeOut" }}
-        className="absolute inset-y-0 right-0 w-full max-w-[440px] bg-surface border-l border-border-strong shadow-2xl flex flex-col"
+        className="absolute inset-y-0 right-0 w-full max-w-[440px] bg-surface border-l border-border-strong shadow-lg flex flex-col"
       >
         <div className="flex items-center justify-between gap-2 px-5 pt-4 pb-3 border-b border-border/40 shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             <Settings2 className="w-5 h-5 text-indigo-500 shrink-0" />
-            <h3 className="font-bold text-base text-text-heading truncate">Planner Settings</h3>
+            <h3 className="font-semibold text-base text-text-heading truncate">Planner Settings</h3>
           </div>
           <button
             type="button"
             aria-label="Close"
             onClick={onClose}
-            className="shrink-0 rounded-full p-2 text-zinc-500 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-900 cursor-pointer"
+            className="shrink-0 rounded-full p-2 text-muted transition-colors hover:bg-surface-2 cursor-pointer"
           >
             <X className="h-4 w-4" />
           </button>
@@ -898,7 +898,7 @@ export function FFCSSettingsModal({
         <button
           type="button"
           onClick={handleReset}
-          className="flex items-center gap-1.5 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-500/10 px-3 py-2 rounded-lg transition-colors shrink-0 cursor-pointer"
+          className="flex items-center gap-1.5 text-xs font-semibold text-danger hover:bg-danger-soft px-3 py-2 rounded-lg transition-colors shrink-0 cursor-pointer"
         >
           <RotateCcw className="w-3.5 h-3.5" /> Reset
         </button>
@@ -925,7 +925,7 @@ export function FFCSSettingsModal({
           >
             <div className="flex items-center gap-2 mb-1">
               <Settings2 className="w-5 h-5 text-indigo-500" />
-              <h3 className="font-bold text-base text-text-heading">Planner Settings</h3>
+              <h3 className="font-semibold text-base text-text-heading">Planner Settings</h3>
             </div>
             {body}
           </BottomSheet>

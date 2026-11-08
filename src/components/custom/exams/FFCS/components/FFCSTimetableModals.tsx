@@ -60,7 +60,7 @@ export function FFCSShortcutsModal({ isOpen, onClose }: { isOpen: boolean; onClo
           backdropZIndex={395}
           contentClassName="flex flex-col gap-3"
         >
-          <h3 className="font-bold text-base text-text-heading flex items-center gap-2">
+          <h3 className="font-semibold text-base text-text-heading flex items-center gap-2">
             <Keyboard className="w-5 h-5 text-indigo-500" /> Keyboard Shortcuts
           </h3>
           <p className="text-xs text-muted-foreground mb-2">
@@ -74,7 +74,7 @@ export function FFCSShortcutsModal({ isOpen, onClose }: { isOpen: boolean; onClo
                   {shortcut.keys.map((k, kidx) => (
                     <kbd
                       key={kidx}
-                      className="px-2 py-1 bg-surface-secondary border border-border-strong rounded-md font-mono text-[10px] font-bold text-text-heading shadow-xs"
+                      className="px-2 py-1 bg-surface-secondary border border-border-strong rounded-md font-mono text-[11px] font-semibold text-text-heading shadow-xs"
                     >
                       {k}
                     </kbd>
@@ -86,7 +86,7 @@ export function FFCSShortcutsModal({ isOpen, onClose }: { isOpen: boolean; onClo
           <div className="pt-3 border-t border-border-strong text-right">
             <button
               onClick={onClose}
-              className="px-4 py-2 bg-indigo-650 hover:bg-indigo-750 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
+              className="px-4 py-2 bg-indigo-650 hover:bg-indigo-750 text-white text-xs font-semibold rounded-md transition-colors cursor-pointer"
             >
               Got it, thanks!
             </button>

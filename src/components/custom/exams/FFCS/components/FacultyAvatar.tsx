@@ -30,20 +30,20 @@ export function VitfacReviewPill({
   const isAmber = review.wPct >= 40 && review.wPct < 70;
 
   const colorClass = isGreen
-    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
+    ? "bg-ok-soft text-ok border-ok/30 hover:bg-ok-soft"
     : isAmber
-      ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/20"
-      : "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30 hover:bg-red-500/20";
+      ? "bg-warn-soft text-warn border-warn/30 hover:bg-warn-soft"
+      : "bg-danger-soft text-danger border-danger/30 hover:bg-danger-soft";
 
   return (
     <button
       type="button"
       onClick={onClick}
       title={`vitfac rating: ${review.wPct}% W (${review.reviews} reviews). Click to view breakdown.`}
-      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[11px] font-bold transition-all cursor-pointer shrink-0 relative hit-expand touch-press active:scale-[0.97] ${colorClass} ${className}`.trim()}
+      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[11px] font-semibold transition-all cursor-pointer shrink-0 relative hit-expand touch-press ${colorClass} ${className}`.trim()}
     >
       <span>{review.wPct}% W</span>
-      <span className="text-[10px] opacity-70">({review.reviews})</span>
+      <span className="text-[11px] opacity-70">({review.reviews})</span>
     </button>
   );
 }
@@ -105,25 +105,25 @@ export function FacultyAvatar({
   const effectiveUrl = sourceUrl && !failedUrls.includes(sourceUrl) ? sourceUrl : null;
 
   const sizeClasses = {
-    xs: "w-6 h-6 rounded-md text-[10px]",
-    sm: "w-9 h-9 rounded-xl text-xs",
-    md: "w-11 h-11 rounded-2xl text-sm",
-    lg: "w-14 h-14 rounded-2xl text-base",
-    xl: "w-16 h-16 rounded-2xl text-lg",
+    xs: "w-6 h-6 rounded-md text-[11px]",
+    sm: "w-9 h-9 rounded-md text-xs",
+    md: "w-11 h-11 rounded-md text-sm",
+    lg: "w-14 h-14 rounded-md text-base",
+    xl: "w-16 h-16 rounded-md text-lg",
   }[size];
 
   const toneClasses = {
-    blue: "bg-blue-500/10 border-blue-500/20 text-blue-500",
-    amber: "bg-amber-500/10 border-amber-500/20 text-amber-500",
+    blue: "bg-accent-soft border-accent/20 text-accent",
+    amber: "bg-warn-soft border-warn/20 text-warn",
     indigo: "bg-indigo-500/10 border-indigo-500/20 text-indigo-500",
-    zinc: "bg-zinc-800/40 border-zinc-700/40 text-zinc-500",
+    zinc: "bg-surface-2 border-line text-muted",
   }[tone];
 
   const initials = getFacultyInitials(name, review?.avatar);
 
   return (
     <div
-      className={`relative shrink-0 overflow-hidden flex items-center justify-center font-bold select-none border border-border-strong/60 ${sizeClasses} ${className}`}
+      className={`relative shrink-0 overflow-hidden flex items-center justify-center font-semibold select-none border border-border-strong/60 ${sizeClasses} ${className}`}
     >
       {effectiveUrl ? (
         <img
@@ -139,7 +139,7 @@ export function FacultyAvatar({
           className="w-full h-full object-cover rounded-[inherit]"
         />
       ) : (
-        <span className={`w-full h-full flex items-center justify-center font-bold ${toneClasses}`}>{initials}</span>
+        <span className={`w-full h-full flex items-center justify-center font-semibold ${toneClasses}`}>{initials}</span>
       )}
     </div>
   );

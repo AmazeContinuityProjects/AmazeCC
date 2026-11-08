@@ -83,10 +83,10 @@ export default function ThemeToggle({ className = "", showLabel = false }: Theme
       whileHover={{ scale: 1.05 }}
       onClick={handleToggle}
       disabled={!mounted}
-      className={`relative inline-flex items-center justify-center p-2 rounded-2xl border transition-all cursor-pointer select-none group focus:outline-none ${
+      className={`relative inline-flex items-center justify-center p-2 rounded-md border transition-all cursor-pointer select-none group focus:outline-none ${
         isDark 
-          ? "bg-zinc-900/90 border-zinc-800 text-amber-300 shadow-md hover:bg-zinc-800 hover:border-amber-400/40" 
-          : "bg-white border-zinc-200 text-indigo-600 shadow-sm hover:bg-zinc-50 hover:border-indigo-300"
+          ? "bg-zinc-900/90 border-zinc-800 text-warn shadow-md hover:bg-zinc-800 hover:border-warn/40" 
+          : "bg-surface border-zinc-200 text-indigo-600 shadow-sm hover:bg-zinc-50 hover:border-indigo-300"
       } ${className}`}
       title={`Switch to ${isDark ? "Light" : "Dark"} mode`}
     >
@@ -99,14 +99,14 @@ export default function ThemeToggle({ className = "", showLabel = false }: Theme
           className="flex items-center justify-center"
         >
           {isDark ? (
-            <Sun className="h-4.5 w-4.5 stroke-[2.2] text-amber-300 drop-shadow-[0_0_6px_rgba(251,191,36,0.6)]" />
+            <Sun className="h-4.5 w-4.5 stroke-[2.2] text-warn drop-" />
           ) : (
             <Moon className="h-4.5 w-4.5 stroke-[2.2] text-indigo-600" />
           )}
         </motion.div>
 
         {showLabel && (
-          <span className="text-xs font-bold capitalize tracking-wide pr-1">
+          <span className="text-xs font-semibold capitalize tracking-wide pr-1">
             {isDark ? "Light Mode" : "Dark Mode"}
           </span>
         )}

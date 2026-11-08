@@ -18,9 +18,9 @@ export const ATT_TONE: Record<string, string> = {
 /** Attendance status -> the row's filled dot. Written out because a
  *  `bg-${tone}-500` template would never be seen by Tailwind's scanner. */
 export const ATT_DOT: Record<string, string> = {
-  present: "bg-emerald-500",
-  absent: "bg-red-500",
-  "on duty": "bg-amber-500",
+  present: "bg-ok",
+  absent: "bg-danger",
+  "on duty": "bg-warn",
 };
 /**
  * One history entry's letter, score and bar tone. Shared by the hero tiles,
@@ -54,7 +54,7 @@ export function historyTermLabel(semester: string): string {
 
 export function scoreBarTone(score: number | null): string {
   if (score == null) return "bg-zinc-300 dark:bg-zinc-700";
-  if (score >= 80) return "bg-emerald-500";
-  if (score >= 65) return "bg-amber-500";
-  return "bg-red-500";
+  if (score >= 80) return "bg-ok";
+  if (score >= 65) return "bg-warn";
+  return "bg-danger";
 }

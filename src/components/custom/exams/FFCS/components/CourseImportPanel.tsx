@@ -28,9 +28,9 @@ export type ImportMode = "paste" | "file";
 
 /** Confidence as a colour, for the preview. */
 const CONFIDENCE_STYLE: Record<"high" | "medium" | "low", string> = {
-  high: "text-emerald-500",
-  medium: "text-amber-500",
-  low: "text-red-500",
+  high: "text-ok",
+  medium: "text-warn",
+  low: "text-danger",
 };
 
 /** How many preview lines are shown before the rest are summarised. */
@@ -121,7 +121,7 @@ export function CourseImportPanel({ mode, onImport, onImportToTimetable }: Cours
               type="checkbox"
               checked={addToTimetable}
               onChange={(e) => setAddToTimetable(e.target.checked)}
-              className="rounded border-border-strong text-purple-600 focus:ring-purple-500 w-3.5 h-3.5 cursor-pointer"
+              className="rounded border-border-strong text-course-3 focus:ring-course-3/40 w-3.5 h-3.5 cursor-pointer"
             />
             <span>Also add directly to active timetable</span>
           </label>
@@ -136,7 +136,7 @@ export function CourseImportPanel({ mode, onImport, onImportToTimetable }: Cours
           type="button"
           onClick={handleImport}
           disabled={!canImport}
-          className="bg-purple-500 hover:bg-purple-600 text-white text-sm font-bold px-5 py-2 rounded-xl transition-all flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="bg-course-3 hover:bg-course-3 text-white text-sm font-semibold px-5 py-2 rounded-md transition-all flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <CheckCircle2 className="w-4 h-4" />
           Import
@@ -150,7 +150,7 @@ function PasteInput({ value, onChange }: { value: string; onChange: (next: strin
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2 text-sm font-semibold text-text-heading">
-        <ClipboardPaste className="w-4 h-4 text-purple-500" /> Paste a course list
+        <ClipboardPaste className="w-4 h-4 text-course-3" /> Paste a course list
       </div>
       <textarea
         value={value}
@@ -160,7 +160,7 @@ function PasteInput({ value, onChange }: { value: string; onChange: (next: strin
         placeholder={
           "BASTS101 Qualitative Skills F1+TF1 - Dr. Nair\nCSE1001 Introduction to Computing - A1+TA1 - Dr. Smith"
         }
-        className="w-full bg-surface border border-border-strong rounded-xl px-3 py-2.5 text-xs font-mono text-text-heading resize-y focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all custom-scrollbar"
+        className="w-full bg-surface border border-border-strong rounded-md px-3 py-2.5 text-xs font-mono text-text-heading resize-y focus:outline-none focus:border-course-3/50 focus:ring-1 focus:ring-course-3/50 transition-all custom-scrollbar"
       />
     </div>
   );
@@ -171,7 +171,7 @@ function FileDropzone({ dropzone, reading }: { dropzone: ReturnType<typeof useDr
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2 text-sm font-semibold text-text-heading">
-        <FileSpreadsheet className="w-4 h-4 text-purple-500" /> Upload a course sheet
+        <FileSpreadsheet className="w-4 h-4 text-course-3" /> Upload a course sheet
       </div>
       <div
         {...getRootProps()}
@@ -208,13 +208,13 @@ function PastePreview({ options, rowCount }: { options: ReturnType<typeof parseP
       </p>
 
       {withProblems > 0 && (
-        <div className="flex items-start gap-2 text-xs text-amber-500 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+        <div className="flex items-start gap-2 text-xs text-warn bg-warn-soft border border-warn/20 rounded-lg px-3 py-2">
           <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
           <span>Lines with problems are not imported. Fix them below and paste again.</span>
         </div>
       )}
 
-      <div className="border border-border-strong rounded-xl overflow-hidden">
+      <div className="border border-border-strong rounded-md overflow-hidden">
         <div className="max-h-56 overflow-y-auto custom-scrollbar">
           <table className="w-full text-xs">
             <thead className="sticky top-0 bg-surface-secondary/60 text-muted-foreground">
@@ -259,7 +259,7 @@ function FilePreview({ result }: { result: FileImport }) {
     <div className="flex flex-col gap-2">
       <p className="text-xs text-muted-foreground" aria-live="polite">
         {result.error ? (
-          <span className="text-red-500">{result.error}</span>
+          <span className="text-danger">{result.error}</span>
         ) : (
           <>
             <span className="text-text-heading">{result.courses.length}</span> course
@@ -270,7 +270,7 @@ function FilePreview({ result }: { result: FileImport }) {
       </p>
 
       {(result.ignoredHeaders.length > 0 || missingRequired.length > 0 || result.error) && (
-        <div className="flex flex-col gap-1 text-xs text-amber-500 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+        <div className="flex flex-col gap-1 text-xs text-warn bg-warn-soft border border-warn/20 rounded-lg px-3 py-2">
           {missingRequired.length > 0 && (
             <span className="flex items-start gap-2">
               <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
@@ -289,7 +289,7 @@ function FilePreview({ result }: { result: FileImport }) {
       )}
 
       {result.rows.length > 0 && (
-        <div className="border border-border-strong rounded-xl overflow-hidden">
+        <div className="border border-border-strong rounded-md overflow-hidden">
           <div className="max-h-56 overflow-y-auto custom-scrollbar">
             <table className="w-full text-xs">
               <thead className="sticky top-0 bg-surface-secondary/60 text-muted-foreground">

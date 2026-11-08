@@ -33,13 +33,13 @@ import { broadcastGlobalSemesterChange, mapToFinalSemesterId } from "@/lib/ffcsR
 function FeatureLoading() {
   return (
     <div
-      className="min-h-40 w-full rounded-2xl border border-slate-200/70 bg-white/70 p-5 dark:border-white/[0.08] dark:bg-zinc-950/40"
+      className="min-h-40 w-full rounded-md border border-slate-200/70 bg-white/70 p-5 dark:border-white/[0.08] dark:bg-zinc-950/40"
       role="status"
       aria-label="Loading section"
       aria-busy="true"
     >
       <div className="h-5 w-36 animate-pulse rounded-lg bg-slate-200 dark:bg-zinc-800" />
-      <div className="mt-4 h-24 animate-pulse rounded-xl bg-slate-100 dark:bg-zinc-900" />
+      <div className="mt-4 h-24 animate-pulse rounded-md bg-surface-2" />
     </div>
   );
 }
@@ -254,13 +254,13 @@ function DashboardContent({
       />
 
       <div
-        className={`dashboard-content relative bg-gray-50/50  dark:bg-black min-h-[100dvh] text-gray-900  dark:text-gray-100 transition-all duration-300 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] md:pb-0 ${settings.isSidebarCollapsed ? "md:pl-24" : "md:pl-80"} w-full overflow-x-clip`}
+        className={`dashboard-content relative bg-background min-h-[100dvh] text-gray-900  dark:text-gray-100 transition-all duration-300 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] md:pb-0 ${settings.isSidebarCollapsed ? "md:pl-24" : "md:pl-80"} w-full overflow-x-clip`}
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         {/* Ambient Background Glows */}
         <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none -z-10">
-          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-info-surface blur-[120px]" />
-          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-emerald-400/10  dark:bg-emerald-500/5 blur-[120px]" />
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-info-surface hidden" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-ok-soft hidden" />
         </div>
         <AnimatePresence>
           {GradesDisplayIsOpen && (

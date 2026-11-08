@@ -104,7 +104,7 @@ function CardSkeletonGrid({ count }: { count: number }) {
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} className={cn(TILE_CARD, "pointer-events-none")}>
-          <Skeleton className="mb-3.5 w-full h-40 rounded-2xl" />
+          <Skeleton className="mb-3.5 w-full h-40 rounded-md" />
           <Skeleton className="h-3.5 w-4/5 rounded" />
           <Skeleton className="mt-2 h-3 w-1/2 rounded" />
           <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center gap-2">
@@ -131,7 +131,7 @@ function EventCard({ event, onOpen }: { event: any; onOpen: (e: any) => void }) 
       <div className={cn(TILE_CARD, "h-full flex flex-col")}>
         {/* Posters vary wildly in shape, so the frame takes the poster's own
             height rather than cropping it to a fixed ratio. */}
-        <div className="mb-3.5 w-full overflow-hidden rounded-2xl bg-zinc-100 dark:bg-zinc-800">
+        <div className="mb-3.5 w-full overflow-hidden rounded-md bg-surface-2">
           <img
             src={eventhubImageUrl(event.eid)}
             alt=""
@@ -142,13 +142,13 @@ function EventCard({ event, onOpen }: { event: any; onOpen: (e: any) => void }) 
         </div>
 
         <h3
-          className="font-bold text-sm text-zinc-900 dark:text-white font-outfit leading-tight line-clamp-2"
+          className="font-semibold text-sm text-ink font-outfit leading-tight line-clamp-2"
           title={event.title}
         >
           {event.title}
         </h3>
 
-        <p className="mt-1.5 flex items-center gap-1.5 text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
+        <p className="mt-1.5 flex items-center gap-1.5 text-[11px] font-medium text-muted">
           <Calendar className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
           <span className="truncate">{eventDateLabel(event.date)}</span>
           {event.time ? (
@@ -167,10 +167,10 @@ function EventCard({ event, onOpen }: { event: any; onOpen: (e: any) => void }) 
         </div>
 
         <div className="mt-auto pt-3 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between gap-2">
-          <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">
+          <span className="text-[11px] font-semibold text-muted truncate">
             {priceLabel(event)}
           </span>
-          <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
+          <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 shrink-0">
             Details
             <ChevronRight className="w-3.5 h-3.5" />
           </span>
@@ -572,8 +572,8 @@ export default function EventHubTab({
       {/* ── HERO STATS ── */}
       {loading ? (
         <div className="grid grid-cols-2 gap-3 sm:gap-4">
-          <Skeleton className="h-32 sm:h-36 rounded-[24px]" />
-          <Skeleton className="h-32 sm:h-36 rounded-[24px]" />
+          <Skeleton className="h-32 sm:h-36 rounded-lg" />
+          <Skeleton className="h-32 sm:h-36 rounded-lg" />
         </div>
       ) : error ? null : (
         <>
@@ -581,7 +581,7 @@ export default function EventHubTab({
             <button
               type="button"
               onClick={() => setViewMode("registered")}
-              className="w-full text-left cursor-pointer transition-transform hover:scale-[1.01] active:scale-[0.98]"
+              className="w-full text-left cursor-pointer transition-transform"
               title="Show my registrations"
             >
               <StatTile
@@ -630,7 +630,7 @@ export default function EventHubTab({
         <div
           className={cn(
             TILE_CARD,
-            "flex items-center gap-3 text-sm font-semibold text-red-600 dark:text-red-400 border-red-500/25"
+            "flex items-center gap-3 text-sm font-semibold text-danger border-danger/25"
           )}
         >
           <CalendarOff className="w-4 h-4 shrink-0" />

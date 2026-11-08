@@ -131,7 +131,7 @@ export function TourSpotlight() {
         role="dialog"
         aria-modal="true"
         aria-label={`${tour.stepIndex + 1} of ${tour.total}. ${step.title}`}
-        className="card-surface border border-border-strong rounded-2xl shadow-2xl p-4 outline-none"
+        className="card-surface border border-border-strong rounded-md shadow-lg p-4 outline-none"
         style={
           cardTop !== null && cardLeft !== null
             ? { position: "fixed", left: cardLeft, top: cardTop, width: CARD_WIDTH }
@@ -144,10 +144,10 @@ export function TourSpotlight() {
               }
         }
       >
-        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+        <p className="text-[11px] font-semibold text-muted-foreground">
           Step {tour.stepIndex + 1} of {tour.total}
         </p>
-        <h3 className="mt-1 font-bold text-sm text-text-heading">{step.title}</h3>
+        <h3 className="mt-1 font-semibold text-sm text-text-heading">{step.title}</h3>
         <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">{step.body}</p>
 
         <div className="mt-3 flex items-center justify-between gap-2">
@@ -171,7 +171,7 @@ export function TourSpotlight() {
             <button
               type="button"
               onClick={tour.next}
-              className="flex items-center gap-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 text-xs font-medium bg-accent hover:bg-accent/90 text-background px-3 py-2 rounded-sm transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               {tour.stepIndex + 1 === tour.total ? "Finish" : "Next"}
               {tour.stepIndex + 1 !== tour.total && <ArrowRight className="w-3.5 h-3.5" />}

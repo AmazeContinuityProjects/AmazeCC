@@ -67,3 +67,5 @@ config.bat
 # agents
 .agents/
 
+
+.local/

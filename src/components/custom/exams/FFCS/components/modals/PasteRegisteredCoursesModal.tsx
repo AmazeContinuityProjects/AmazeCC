@@ -65,7 +65,7 @@ export const PasteRegisteredCoursesModal: React.FC<PasteRegisteredCoursesModalPr
           title="Paste Registered Courses"
           subtitle="Paste copied courses in any format (VTOP, CSV, TSV, Markdown table, Piped, or JSON) to load your schedule directly."
           icon={<ClipboardPaste className="w-5 h-5" />}
-          accent="bg-purple-500/10 border-purple-500/20 text-purple-500"
+          accent="bg-course-3/10 border-course-3/20 text-course-3"
           closeLabel="Close paste modal"
         >
           <div className="flex flex-col gap-3">
@@ -74,11 +74,11 @@ export const PasteRegisteredCoursesModal: React.FC<PasteRegisteredCoursesModalPr
                 htmlFor="vtop-paste-textarea"
                 className="text-xs font-semibold text-text-heading flex items-center gap-1.5"
               >
-                <BookOpen className="w-3.5 h-3.5 text-purple-500" />
+                <BookOpen className="w-3.5 h-3.5 text-course-3" />
                 <span>Paste Course Schedule / Table</span>
               </label>
               {parsedData && parsedData.addedCourses.length > 0 && (
-                <span className="text-xs font-medium text-emerald-500 flex items-center gap-1 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                <span className="text-xs font-medium text-ok flex items-center gap-1 bg-ok-soft px-2.5 py-0.5 rounded-full border border-ok/20">
                   <Sparkles className="w-3 h-3" />
                   {parsedData.addedCourses.length} offerings ({parsedData.uniqueCount} courses,{" "}
                   {parsedData.totalCredits} credits)
@@ -93,17 +93,17 @@ export const PasteRegisteredCoursesModal: React.FC<PasteRegisteredCoursesModalPr
               rows={7}
               spellCheck={false}
               placeholder={`Paste your courses here from any source...\n\nSupports:\n• VTOP Registration page copy-paste\n• Markdown or Piped tables (| Code | Title | Slot | Faculty | Room |)\n• CSV / Excel TSV data (with or without headers)\n• JSON array export`}
-              className="w-full bg-surface border border-border-strong rounded-xl p-3 text-xs font-mono text-text-heading resize-y focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all custom-scrollbar placeholder:text-muted-foreground/60"
+              className="w-full bg-surface border border-border-strong rounded-md p-3 text-xs font-mono text-text-heading resize-y focus:outline-none focus:border-course-3/50 focus:ring-1 focus:ring-course-3/50 transition-all custom-scrollbar placeholder:text-muted-foreground/60"
             />
 
             {/* Live Preview */}
             {parsedData && parsedData.addedCourses.length > 0 ? (
-              <div className="flex flex-col gap-2 bg-surface-secondary/20 border border-border-strong rounded-xl p-3">
+              <div className="flex flex-col gap-2 bg-surface-secondary/20 border border-border-strong rounded-md p-3">
                 <div className="flex items-center justify-between text-xs font-medium text-text-heading">
                   <span className="font-semibold flex items-center gap-1.5">
-                    <Layers className="w-3.5 h-3.5 text-blue-500" /> Detected Courses Preview:
+                    <Layers className="w-3.5 h-3.5 text-accent" /> Detected Courses Preview:
                   </span>
-                  <span className="text-purple-400 font-semibold text-[11px] bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">
+                  <span className="text-course-3 font-semibold text-[11px] bg-course-3/10 px-2 py-0.5 rounded border border-course-3/20">
                     {FORMAT_LABELS[parsedData.format] || "Detected format"}
                   </span>
                 </div>
@@ -113,14 +113,14 @@ export const PasteRegisteredCoursesModal: React.FC<PasteRegisteredCoursesModalPr
                     <div key={idx} className="py-1.5 flex items-center justify-between text-xs gap-2">
                       <div className="flex items-center gap-2 min-w-0">
                         <span
-                          className={`px-2 py-0.5 rounded text-[11px] font-bold text-white shrink-0 ${c.color || "bg-blue-600"}`}
+                          className={`px-2 py-0.5 rounded text-[11px] font-semibold text-white shrink-0 ${c.color || "bg-accent"}`}
                         >
                           {c.code}
                         </span>
                         <span className="truncate text-text-heading font-medium" title={c.title}>
                           {c.title}
                         </span>
-                        <span className="text-[10px] uppercase font-bold text-muted-foreground bg-surface-secondary px-1.5 py-0.5 rounded shrink-0">
+                        <span className="text-[11px] font-semibold text-muted-foreground bg-surface-secondary px-1.5 py-0.5 rounded shrink-0">
                           {c.type}
                         </span>
                       </div>
@@ -137,7 +137,7 @@ export const PasteRegisteredCoursesModal: React.FC<PasteRegisteredCoursesModalPr
                 </div>
               </div>
             ) : text.trim() ? (
-              <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-500 text-xs flex items-center gap-2">
+              <div className="p-3 bg-warn-soft border border-warn/20 rounded-md text-warn text-xs flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
                 <span>Could not detect any valid course codes or slots. Please check the pasted text.</span>
               </div>
@@ -150,7 +150,7 @@ export const PasteRegisteredCoursesModal: React.FC<PasteRegisteredCoursesModalPr
                   type="checkbox"
                   checked={replaceExisting}
                   onChange={(e) => setReplaceExisting(e.target.checked)}
-                  className="rounded border-border-strong text-purple-600 focus:ring-purple-500 w-4 h-4 cursor-pointer"
+                  className="rounded border-border-strong text-course-3 focus:ring-course-3/40 w-4 h-4 cursor-pointer"
                 />
                 <span>Replace courses in current timetable</span>
               </label>
@@ -167,7 +167,7 @@ export const PasteRegisteredCoursesModal: React.FC<PasteRegisteredCoursesModalPr
                   type="button"
                   onClick={handleApply}
                   disabled={!canApply}
-                  className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                  className="bg-course-3 hover:bg-course-3 text-white text-xs font-semibold px-4 py-2 rounded-md transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   Load into Timetable

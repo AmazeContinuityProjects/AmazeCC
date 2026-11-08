@@ -67,16 +67,16 @@ export function GeneratorTargetCoursesWidget({
   return (
     <section
       aria-label="Autogenerator target courses"
-      className="w-full min-w-0 overflow-hidden rounded-2xl border border-indigo-500/20 bg-surface shadow-sm"
+      className="w-full min-w-0 overflow-hidden rounded-md border border-indigo-500/20 bg-surface shadow-sm"
     >
-      <header className="hidden border-b border-border-strong/60 bg-indigo-500/[0.035] px-4 py-4 sm:px-5 lg:block">
+      <header className="hidden border-b border-border-strong/60 bg-accent/4 px-4 py-4 sm:px-5 lg:block">
         <SectionHeader
           icon={Target}
           title="Target courses"
           count={targets.length}
           className="mb-2"
           right={
-            <span className="rounded-full border border-indigo-500/20 bg-indigo-500/10 px-2 py-1 text-[10px] font-semibold text-indigo-600 dark:text-indigo-300">
+            <span className="rounded-full border border-indigo-500/20 bg-indigo-500/10 px-2 py-1 text-[11px] font-semibold text-indigo-600 dark:text-indigo-300">
               Current semester
             </span>
           }
@@ -92,14 +92,14 @@ export function GeneratorTargetCoursesWidget({
             {targets.map((target) => (
               <div
                 key={target.code}
-                className="flex items-center gap-2 rounded-lg border border-purple-500/30 bg-purple-500/10 px-3 py-1.5 text-sm font-medium text-purple-500"
+                className="flex items-center gap-2 rounded-lg border border-course-3/30 bg-course-3/10 px-3 py-1.5 text-sm font-medium text-course-3"
               >
                 <span>{target.code}</span>
                 <button
                   type="button"
                   aria-label={`Remove ${target.code} from generator targets`}
                   onClick={() => onSelectionChange({ code: target.code, title: target.title }, null)}
-                  className="rounded-full p-0.5 transition-colors hover:bg-purple-500/20"
+                  className="rounded-full p-0.5 transition-colors hover:bg-course-3/10"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -119,16 +119,16 @@ export function GeneratorTargetCoursesWidget({
         {isLoadingReport ? (
           <div
             role="status"
-            className="rounded-xl border border-border-strong bg-surface-secondary/20 p-8 text-center text-sm text-muted-foreground"
+            className="rounded-md border border-border-strong bg-surface-secondary/20 p-8 text-center text-sm text-muted-foreground"
           >
             Loading the current semester report…
           </div>
         ) : catalog.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border-strong bg-surface-secondary/20 p-8 text-center text-sm text-muted-foreground">
+          <div className="rounded-md border border-dashed border-border-strong bg-surface-secondary/20 p-8 text-center text-sm text-muted-foreground">
             No courses are available in the current semester report.
           </div>
         ) : filteredCatalog.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border-strong bg-surface-secondary/20 p-8 text-center text-sm text-muted-foreground">
+          <div className="rounded-md border border-dashed border-border-strong bg-surface-secondary/20 p-8 text-center text-sm text-muted-foreground">
             No courses found matching “{query}”.
           </div>
         ) : (

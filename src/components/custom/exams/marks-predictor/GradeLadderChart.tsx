@@ -15,27 +15,27 @@ import { toneForGrade } from "@/lib/gradeHistory";
  * about where a band starts again.
  */
 const GRADE_BAR: Record<string, string> = {
-  S: "bg-amber-500",
-  A: "bg-emerald-500",
-  B: "bg-blue-500",
-  C: "bg-cyan-500",
-  D: "bg-violet-500",
-  E: "bg-red-500",
-  F: "bg-red-600",
+  S: "bg-warn",
+  A: "bg-ok",
+  B: "bg-accent",
+  C: "bg-course-1",
+  D: "bg-course-3",
+  E: "bg-danger",
+  F: "bg-danger",
   N: "bg-zinc-400",
-  P: "bg-violet-500",
+  P: "bg-course-3",
 };
 
 const GRADE_TINT: Record<string, string> = {
-  S: "bg-amber-500/15",
-  A: "bg-emerald-500/15",
-  B: "bg-blue-500/15",
-  C: "bg-cyan-500/15",
-  D: "bg-violet-500/15",
-  E: "bg-red-500/15",
-  F: "bg-red-500/10",
+  S: "bg-warn-soft",
+  A: "bg-ok-soft",
+  B: "bg-accent-soft",
+  C: "bg-course-1/10",
+  D: "bg-course-3/10",
+  E: "bg-danger-soft",
+  F: "bg-danger-soft",
   N: "bg-zinc-500/10",
-  P: "bg-violet-500/15",
+  P: "bg-course-3/10",
 };
 
 export interface LadderBand {
@@ -74,7 +74,7 @@ export default function GradeLadderChart({
               GRADE_TINT[b.grade] ?? "bg-zinc-500/10"
             } ${standingGrade === b.grade && !dimmed ? "ring-2 ring-inset ring-indigo-500" : ""}`}
           >
-            <span className={`text-[11px] font-black font-outfit ${TONE_TEXT[toneForGrade(b.grade)]}`}>
+            <span className={`text-[11px] font-semibold font-outfit ${TONE_TEXT[toneForGrade(b.grade)]}`}>
               {b.grade}
             </span>
           </div>
@@ -83,7 +83,7 @@ export default function GradeLadderChart({
 
       <div className="mt-2.5 flex flex-wrap gap-x-3.5 gap-y-1">
         {bands.map((b) => (
-          <span key={b.grade} className="inline-flex items-center gap-1.5 text-[10px] font-bold text-text-muted">
+          <span key={b.grade} className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-text-muted">
             <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${GRADE_BAR[b.grade] ?? "bg-zinc-400"}`} />
             {b.grade} {b.range}
           </span>
@@ -91,7 +91,7 @@ export default function GradeLadderChart({
       </div>
 
       {standingGrade && currentPct != null && !dimmed ? (
-        <p className="mt-2.5 text-[11px] font-bold text-text-heading">
+        <p className="mt-2.5 text-[11px] font-semibold text-text-heading">
           On {currentPct.toFixed(1)}% of the ladder — inside the{" "}
           <span className={TONE_TEXT[toneForGrade(standingGrade)]}>{standingGrade}</span> band.
         </p>

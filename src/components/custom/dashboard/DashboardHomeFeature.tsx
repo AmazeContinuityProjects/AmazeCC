@@ -16,7 +16,7 @@ interface DashboardHomeFeatureProps extends SimplifiedHomeProps {
 function HomeLoading() {
   return (
     <div
-      className="min-h-40 animate-pulse rounded-2xl border border-slate-200/70 bg-white/70 dark:border-white/[0.08] dark:bg-zinc-950/40"
+      className="min-h-40 animate-pulse rounded-md border border-slate-200/70 bg-white/70 dark:border-white/[0.08] dark:bg-zinc-950/40"
       role="status"
       aria-label="Loading home"
     />

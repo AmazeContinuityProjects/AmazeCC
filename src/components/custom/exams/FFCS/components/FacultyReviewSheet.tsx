@@ -142,7 +142,7 @@ export default function FacultyReviewSheet({
             tone="amber"
           />
           <div className="min-w-0">
-            <h3 className="font-bold text-lg text-text-heading leading-tight truncate">{prof?.name || facultyName}</h3>
+            <h3 className="font-semibold text-lg text-text-heading leading-tight truncate">{prof?.name || facultyName}</h3>
             <p className="text-xs text-muted-foreground mt-0.5 truncate">
               {prof?.designation ? `${prof.designation} · ` : ""}
               {prof?.dept || (employeeId ? `ERP: ${employeeId}` : "Faculty")}
@@ -154,7 +154,7 @@ export default function FacultyReviewSheet({
           href={profileUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border-strong bg-surface hover:bg-surface-secondary text-text-heading text-xs font-semibold transition-colors shrink-0"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border-strong bg-surface hover:bg-surface-secondary text-text-heading text-xs font-semibold transition-colors shrink-0"
         >
           <span>vitfac</span>
           <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
@@ -163,11 +163,11 @@ export default function FacultyReviewSheet({
 
       {loading && !prof ? (
         <div className="py-12 flex flex-col items-center justify-center gap-2 text-muted-foreground">
-          <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
+          <Loader2 className="w-6 h-6 animate-spin text-warn" />
           <span className="text-xs">Loading faculty reviews…</span>
         </div>
       ) : !prof || reviewsCount === 0 ? (
-        <div className="py-8 text-center bg-surface-secondary/20 rounded-2xl border border-dashed border-border-strong p-6">
+        <div className="py-8 text-center bg-surface-secondary/20 rounded-md border border-dashed border-border-strong p-6">
           <GraduationCap className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-50" />
           <p className="text-sm font-semibold text-text-heading">No reviews yet on vitfac</p>
           <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
@@ -177,7 +177,7 @@ export default function FacultyReviewSheet({
             href={profileUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-amber-500 font-bold hover:underline mt-4"
+            className="inline-flex items-center gap-1 text-xs text-warn font-semibold hover:underline mt-4"
           >
             Be the first to review on vitfac <ExternalLink className="w-3 h-3" />
           </a>
@@ -187,10 +187,10 @@ export default function FacultyReviewSheet({
           {/* Subject Filter Bar (matching vitfac subject toggle) */}
           {availableCourses.length > 0 && (
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+              <div className="flex items-center justify-between text-[11px] font-semibold text-muted-foreground">
                 <span>Filter by Course</span>
                 {selectedCourseStat && (
-                  <span className="text-amber-500 font-semibold lowercase">
+                  <span className="text-warn font-semibold lowercase">
                     showing {selectedCourseStat.code} stats
                   </span>
                 )}
@@ -201,7 +201,7 @@ export default function FacultyReviewSheet({
                   onClick={() => setActiveCourseFilter("global")}
                   className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
                     activeCourseFilter === "global"
-                      ? "bg-amber-500 text-white font-bold shadow-xs"
+                      ? "bg-warn text-white font-semibold shadow-xs"
                       : "bg-surface-secondary text-muted-foreground hover:text-text-heading border border-border-strong/70"
                   }`}
                 >
@@ -214,7 +214,7 @@ export default function FacultyReviewSheet({
                     onClick={() => setActiveCourseFilter(c.code)}
                     className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
                       activeCourseFilter.toUpperCase() === c.code.toUpperCase()
-                        ? "bg-amber-500 text-white font-bold shadow-xs"
+                        ? "bg-warn text-white font-semibold shadow-xs"
                         : "bg-surface-secondary text-muted-foreground hover:text-text-heading border border-border-strong/70"
                     }`}
                   >
@@ -226,9 +226,9 @@ export default function FacultyReviewSheet({
           )}
 
           {/* Win / Loss Rating Hero */}
-          <div className="bg-surface rounded-2xl border border-border-strong p-4 shadow-xs space-y-3">
+          <div className="bg-surface rounded-md border border-border-strong p-4 shadow-xs space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Community Rating</span>
+              <span className="text-xs font-semibold text-muted-foreground">Community Rating</span>
               <span className="text-xs font-medium text-muted-foreground">
                 {reviewsCount} {reviewsCount === 1 ? "student review" : "student reviews"}
               </span>
@@ -243,68 +243,68 @@ export default function FacultyReviewSheet({
                 >
                   {wPct}%
                 </span>
-                <span className="text-sm font-bold text-text-heading">Win Rate</span>
+                <span className="text-sm font-semibold text-text-heading">Win Rate</span>
               </div>
-              <div className="flex items-center gap-3 text-xs font-bold">
-                <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+              <div className="flex items-center gap-3 text-xs font-semibold">
+                <span className="text-ok flex items-center gap-1">
                   <ThumbsUp className="w-3.5 h-3.5" /> {wCount} W
                 </span>
-                <span className="text-red-500 flex items-center gap-1">
+                <span className="text-danger flex items-center gap-1">
                   <ThumbsDown className="w-3.5 h-3.5" /> {lCount} L
                 </span>
               </div>
             </div>
 
             {/* Progress split bar */}
-            <div className="w-full h-2.5 rounded-full bg-red-500/20 overflow-hidden flex">
-              <div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${wPct}%` }} />
+            <div className="w-full h-2.5 rounded-full bg-danger-soft overflow-hidden flex">
+              <div className="h-full bg-ok transition-all duration-500" style={{ width: `${wPct}%` }} />
             </div>
           </div>
 
           {/* 3 Metric Gauges */}
           <div className="grid grid-cols-3 gap-2.5">
-            <div className="bg-surface rounded-xl border border-border-strong p-3 text-center">
-              <BookOpen className="w-4 h-4 mx-auto mb-1 text-blue-500" />
-              <div className="text-base font-black text-text-heading">
+            <div className="bg-surface rounded-md border border-border-strong p-3 text-center">
+              <BookOpen className="w-4 h-4 mx-auto mb-1 text-accent" />
+              <div className="text-base font-semibold text-text-heading">
                 {lecture ? lecture.toFixed(1) : "—"}
-                <span className="text-[10px] font-normal text-muted-foreground">/5</span>
+                <span className="text-[11px] font-normal text-muted-foreground">/5</span>
               </div>
-              <div className="text-[10px] font-bold text-muted-foreground uppercase mt-0.5">Lecture</div>
+              <div className="text-[11px] font-semibold text-muted-foreground mt-0.5">Lecture</div>
             </div>
 
-            <div className="bg-surface rounded-xl border border-border-strong p-3 text-center">
-              <FileText className="w-4 h-4 mx-auto mb-1 text-purple-500" />
-              <div className="text-base font-black text-text-heading">
+            <div className="bg-surface rounded-md border border-border-strong p-3 text-center">
+              <FileText className="w-4 h-4 mx-auto mb-1 text-course-3" />
+              <div className="text-base font-semibold text-text-heading">
                 {da ? da.toFixed(1) : "—"}
-                <span className="text-[10px] font-normal text-muted-foreground">/5</span>
+                <span className="text-[11px] font-normal text-muted-foreground">/5</span>
               </div>
-              <div className="text-[10px] font-bold text-muted-foreground uppercase mt-0.5">DA Marks</div>
+              <div className="text-[11px] font-semibold text-muted-foreground mt-0.5">DA Marks</div>
             </div>
 
-            <div className="bg-surface rounded-xl border border-border-strong p-3 text-center">
-              <Smile className="w-4 h-4 mx-auto mb-1 text-amber-500" />
-              <div className="text-base font-black text-text-heading">
+            <div className="bg-surface rounded-md border border-border-strong p-3 text-center">
+              <Smile className="w-4 h-4 mx-auto mb-1 text-warn" />
+              <div className="text-base font-semibold text-text-heading">
                 {vibe ? vibe.toFixed(1) : "—"}
-                <span className="text-[10px] font-normal text-muted-foreground">/5</span>
+                <span className="text-[11px] font-normal text-muted-foreground">/5</span>
               </div>
-              <div className="text-[10px] font-bold text-muted-foreground uppercase mt-0.5">Vibe</div>
+              <div className="text-[11px] font-semibold text-muted-foreground mt-0.5">Vibe</div>
             </div>
           </div>
 
           {/* Green Flags */}
           {greenLore.length > 0 && (
             <div className="space-y-1.5">
-              <div className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+              <div className="text-xs font-semibold text-ok flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5" /> Green Flags
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {greenLore.map((item, idx) => (
                   <span
                     key={idx}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs font-medium"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-ok-soft border border-ok/20 text-ok text-xs font-medium"
                   >
                     <span>{item.text}</span>
-                    <span className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-1 rounded text-[10px] font-bold">
+                    <span className="bg-ok-soft text-ok px-1 rounded text-[11px] font-semibold">
                       +{item.count}
                     </span>
                   </span>
@@ -316,17 +316,17 @@ export default function FacultyReviewSheet({
           {/* Red Flags */}
           {redLore.length > 0 && (
             <div className="space-y-1.5">
-              <div className="text-xs font-bold uppercase tracking-wider text-red-500 flex items-center gap-1.5">
+              <div className="text-xs font-semibold text-danger flex items-center gap-1.5">
                 <AlertTriangle className="w-3.5 h-3.5" /> Red Flags
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {redLore.map((item, idx) => (
                   <span
                     key={idx}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-500/10 border border-red-500/20 text-red-700 dark:text-red-300 text-xs font-medium"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-danger-soft border border-danger/20 text-danger text-xs font-medium"
                   >
                     <span>{item.text}</span>
-                    <span className="bg-red-500/20 text-red-500 px-1 rounded text-[10px] font-bold">+{item.count}</span>
+                    <span className="bg-danger-soft text-danger px-1 rounded text-[11px] font-semibold">+{item.count}</span>
                   </span>
                 ))}
               </div>
@@ -336,14 +336,14 @@ export default function FacultyReviewSheet({
           {/* Courses Taught */}
           {prof.courses && prof.courses.length > 0 && (
             <div className="space-y-1.5 pt-2 border-t border-border-strong/40">
-              <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Known Courses</div>
+              <div className="text-[11px] font-semibold text-muted-foreground">Known Courses</div>
               <div className="flex flex-wrap gap-1">
                 {prof.courses.map((c) => (
                   <span
                     key={c}
                     className={`px-2 py-0.5 rounded text-[11px] font-mono font-medium border ${
                       courseCode && c.toUpperCase().includes(courseCode.toUpperCase())
-                        ? "bg-amber-500/20 border-amber-500/40 text-amber-500 font-bold"
+                        ? "bg-warn-soft border-warn/40 text-warn font-semibold"
                         : "bg-surface-secondary/40 border-border-strong text-muted-foreground"
                     }`}
                   >
@@ -362,19 +362,19 @@ export default function FacultyReviewSheet({
           href={profileUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-xs font-bold transition-all shadow-xs"
+          className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-md bg-ok-soft hover:bg-ok-soft text-ok border border-ok/30 text-xs font-semibold transition-all shadow-xs"
         >
           <ExternalLink className="w-3.5 h-3.5" />
           <span>Leave a Review for this Faculty on vitfac.pages.dev</span>
         </a>
-        <div className="text-[10px] text-muted-foreground/70 text-center leading-relaxed">
+        <div className="text-[11px] text-muted-foreground/70 text-center leading-relaxed">
           <p>
             Disclaimer: Ratings and reviews are sourced from a third-party platform (
             <a
               href="https://vitfac.pages.dev"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-emerald-600 dark:text-emerald-400 hover:underline font-semibold"
+              className="text-ok hover:underline font-semibold"
             >
               vitfac.pages.dev
             </a>

@@ -173,7 +173,7 @@ export default function CourseWeeklySchedule({
         count={totalClassesCount || undefined}
         right={
           todayClassesCount > 0 ? (
-            <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">
+            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md border bg-ok-soft text-ok border-ok/20">
               {todayClassesCount} today
             </span>
           ) : undefined
@@ -195,12 +195,12 @@ export default function CourseWeeklySchedule({
               <div key={dayKey} className="space-y-2">
                 <div className="flex items-center justify-between px-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold uppercase tracking-wider text-text-muted font-outfit">
+                    <span className="text-xs font-semibold text-text-muted font-outfit">
                       {full}
                     </span>
                     {isToday && (
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-extrabold uppercase bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[11px] font-semibold bg-ok-soft text-ok border border-ok/20">
+                        <span className="w-1.5 h-1.5 rounded-full bg-ok animate-pulse" />
                         Today
                       </span>
                     )}
@@ -231,7 +231,7 @@ export default function CourseWeeklySchedule({
                       <div key={`${dayKey}-${cls.slotName}-${idx}`} className={`${LIST_ROW} py-3`}>
                         {/* Leading Icon Tile */}
                         <span
-                          className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${
+                          className={`w-10 h-10 rounded-md border flex items-center justify-center shrink-0 ${
                             isLive
                               ? TONE_ICON_TILE.emerald
                               : isToday
@@ -247,7 +247,7 @@ export default function CourseWeeklySchedule({
                           titleTag="span"
                           title={
                             <span className="flex items-center gap-2">
-                              <span className="font-outfit font-black text-text-heading">{cls.time}</span>
+                              <span className="font-outfit font-semibold text-text-heading">{cls.time}</span>
                               <ToneBadge tone={isLab ? "emerald" : "blue"}>
                                 {cls.courseType || (isLab ? "Lab" : "Theory")}
                               </ToneBadge>
@@ -268,8 +268,8 @@ export default function CourseWeeklySchedule({
                         {/* Right Side Badges */}
                         <div className="flex items-center gap-2 shrink-0">
                           {isLive ? (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-extrabold uppercase bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[11px] font-semibold bg-ok-soft text-ok border border-ok/20">
+                              <span className="w-1.5 h-1.5 rounded-full bg-ok animate-pulse" />
                               Live
                             </span>
                           ) : null}

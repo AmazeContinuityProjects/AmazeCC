@@ -72,7 +72,7 @@ export function SwitchTrack({
       } ${TRACK[size]} ${checked ? TRACK_ON : TRACK_OFF} ${className}`.trim()}
     >
       <span
-        className={`absolute top-0.5 left-0.5 rounded-full bg-white shadow-sm ring-0 transition-transform duration-200 ${
+        className={`absolute top-0.5 left-0.5 rounded-full bg-surface shadow-sm ring-0 transition-transform duration-200 ${
           THUMB[size]
         } ${checked ? THUMB_ON[size] : "translate-x-0"}`}
       />
@@ -102,7 +102,7 @@ export default function Switch({
     >
       <span
         aria-hidden
-        className={`absolute top-0.5 left-0.5 rounded-full bg-white shadow-sm ring-0 transition-transform duration-200 ${
+        className={`absolute top-0.5 left-0.5 rounded-full bg-surface shadow-sm ring-0 transition-transform duration-200 ${
           THUMB[size]
         } ${checked ? THUMB_ON[size] : "translate-x-0"}`}
       />

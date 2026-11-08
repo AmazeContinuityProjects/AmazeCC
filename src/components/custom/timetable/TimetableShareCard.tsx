@@ -20,7 +20,7 @@ import { GHOST_BUTTON, LIST_ROW, LIST_SHELL, TILE_CARD, TONE_ICON_TILE } from "@
 import { ListRowText } from "../shared/primitives";
 
 const PRIMARY_BUTTON =
-  "inline-flex items-center justify-center gap-2 rounded-2xl bg-indigo-500 hover:bg-indigo-600 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold px-5 py-3 text-sm shadow-lg shadow-indigo-500/20 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+  "inline-flex items-center justify-center gap-2 rounded-sm bg-accent hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed text-background font-medium px-5 py-3 text-sm transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
 
 export default function TimetableShareCard({
   attendanceData,
@@ -60,7 +60,7 @@ export default function TimetableShareCard({
 
   return (
     <div className="space-y-5 max-w-3xl">
-      <div className="flex items-start gap-3 rounded-2xl border border-indigo-500/20 bg-indigo-500/5 px-4 py-3">
+      <div className="flex items-start gap-3 rounded-md border border-indigo-500/20 bg-indigo-500/5 px-4 py-3">
         <Info className="w-4 h-4 text-indigo-500 shrink-0 mt-0.5" />
         <p className="text-xs text-text-secondary dark:text-text-muted leading-relaxed">
           Friend timetables are now shared as links. There&apos;s nothing to pair or sync: send your link, and open
@@ -71,12 +71,12 @@ export default function TimetableShareCard({
       <section className={`${TILE_CARD} space-y-4`}>
         <div className="flex items-start gap-3">
           <span
-            className={`w-11 h-11 rounded-2xl border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.indigo}`}
+            className={`w-11 h-11 rounded-md border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.indigo}`}
           >
             <CalendarRange className="w-5 h-5" />
           </span>
           <div className="min-w-0">
-            <h3 className="text-base sm:text-lg font-black font-outfit tracking-tight text-text-heading">
+            <h3 className="text-base sm:text-lg font-semibold font-outfit tracking-tight text-text-heading">
               Share your timetable
             </h3>
             <p className="text-sm text-muted-foreground">
@@ -87,12 +87,12 @@ export default function TimetableShareCard({
         </div>
 
         {isDemo ? (
-          <p className="text-sm text-muted-foreground rounded-2xl bg-surface-secondary/60 px-4 py-3">
+          <p className="text-sm text-muted-foreground rounded-md bg-surface-secondary/60 px-4 py-3">
             The demo account has no real timetable to share. Sign in with your own account to get your link.
           </p>
         ) : link ? (
           <>
-            <div className="rounded-2xl border border-border-strong dark:border-border bg-surface px-3 py-2.5 text-xs font-mono text-text-secondary dark:text-text-muted break-all select-all">
+            <div className="rounded-md border border-border-strong dark:border-border bg-surface px-3 py-2.5 text-xs font-mono text-text-secondary dark:text-text-muted break-all select-all">
               {link.url}
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
@@ -105,7 +105,7 @@ export default function TimetableShareCard({
                 type="button"
                 className={
                   canNativeShare
-                    ? `${GHOST_BUTTON} justify-center py-3 text-sm font-bold`
+                    ? `${GHOST_BUTTON} justify-center py-3 text-sm font-semibold`
                     : `${PRIMARY_BUTTON} sm:flex-1`
                 }
                 onClick={() => void copy()}
@@ -117,7 +117,7 @@ export default function TimetableShareCard({
                 href={link.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`${GHOST_BUTTON} justify-center py-3 text-sm font-bold`}
+                className={`${GHOST_BUTTON} justify-center py-3 text-sm font-semibold`}
               >
                 <ExternalLink className="w-4 h-4" /> Preview
               </a>
@@ -128,18 +128,18 @@ export default function TimetableShareCard({
             </p>
           </>
         ) : (
-          <p className="text-sm text-muted-foreground rounded-2xl bg-surface-secondary/60 px-4 py-3">
+          <p className="text-sm text-muted-foreground rounded-md bg-surface-secondary/60 px-4 py-3">
             Your link appears once your timetable has synced from VTOP. Sync, then come back here.
           </p>
         )}
       </section>
 
       <section className="space-y-2">
-        <h3 className="px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Plan with friends</h3>
+        <h3 className="px-1 text-[11px] font-semibold text-muted-foreground">Plan with friends</h3>
         <div className={LIST_SHELL}>
           <Link href={FFCS_PLANNER_PATH} className={LIST_ROW}>
             <span
-              className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.violet}`}
+              className={`w-10 h-10 rounded-md border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.violet}`}
             >
               <Users className="w-4 h-4" />
             </span>
@@ -152,7 +152,7 @@ export default function TimetableShareCard({
           </Link>
           <Link href={`${FFCS_PLANNER_PATH}?open=classmates`} className={LIST_ROW}>
             <span
-              className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.amber}`}
+              className={`w-10 h-10 rounded-md border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.amber}`}
             >
               <UsersRound className="w-4 h-4" />
             </span>

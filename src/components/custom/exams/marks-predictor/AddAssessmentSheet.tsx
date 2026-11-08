@@ -6,7 +6,7 @@ import BottomSheet from "../../shared/BottomSheet";
 import { ToneBadge } from "../../shared/primitives";
 
 const FIELD =
-  "w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2.5 text-sm font-bold text-zinc-900 dark:text-white focus:outline-none focus:border-indigo-500";
+  "w-full bg-surface-2 border border-line rounded-md px-3 py-2.5 text-sm font-semibold text-ink focus:outline-none focus:border-indigo-500";
 
 /**
  * The add-an-assessment sheet.
@@ -72,7 +72,7 @@ export default function AddAssessmentSheet({
         {/* Fields */}
         <div className="space-y-3">
           <div className="space-y-1.5">
-            <label htmlFor="add-title" className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+            <label htmlFor="add-title" className="text-[11px] font-semibold text-zinc-400">
               Name
             </label>
             <input
@@ -86,7 +86,7 @@ export default function AddAssessmentSheet({
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="add-max" className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+            <label htmlFor="add-max" className="text-[11px] font-semibold text-zinc-400">
               Maximum marks
             </label>
             <input
@@ -102,7 +102,7 @@ export default function AddAssessmentSheet({
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="add-weight" className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+            <label htmlFor="add-weight" className="text-[11px] font-semibold text-zinc-400">
               Weightage (% of component)
             </label>
             <input
@@ -117,7 +117,7 @@ export default function AddAssessmentSheet({
               className={`${FIELD} w-28`}
             />
             {!weightValid && weight !== "" ? (
-              <p className="text-[11px] font-bold text-red-500">
+              <p className="text-[11px] font-semibold text-danger">
                 Only {remaining.toFixed(1)} wt is still open in {componentLabel.toLowerCase()}.
               </p>
             ) : null}
@@ -138,9 +138,9 @@ export default function AddAssessmentSheet({
             });
             onClose();
           }}
-          className={`w-full flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black active:scale-95 transition-all ${
+          className={`w-full flex items-center justify-center gap-2 px-5 py-2.5 rounded-md text-xs font-semibold transition-all ${
             valid
-              ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs cursor-pointer"
+              ? "bg-accent hover:bg-accent/90 text-background cursor-pointer"
               : "bg-zinc-200 dark:bg-zinc-800 text-zinc-400 cursor-not-allowed"
           }`}
         >

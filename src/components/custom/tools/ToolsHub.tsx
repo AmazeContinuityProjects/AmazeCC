@@ -34,7 +34,7 @@ export default function ToolsHub({ setActiveToolsSubTab }: ToolsHubProps) {
       category: "academic",
       icon: CheckSquare,
       iconColor:
-        "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/20 border-emerald-500/20",
+        "text-ok bg-ok-soft border-ok/20",
     },
     {
       id: "attendance-predictor",
@@ -43,7 +43,7 @@ export default function ToolsHub({ setActiveToolsSubTab }: ToolsHubProps) {
       subtitle: "Simulate attendance percentages and safe bunk margins",
       category: "academic",
       icon: CalendarCheck,
-      iconColor: "text-blue-600 dark:text-blue-400 bg-blue-500/10 dark:bg-blue-500/20 border-blue-500/20",
+      iconColor: "text-accent bg-accent-soft border-accent/20",
     },
     {
       id: "qbank",
@@ -51,7 +51,7 @@ export default function ToolsHub({ setActiveToolsSubTab }: ToolsHubProps) {
       subtitle: "Previous years CAT & FAT question papers",
       category: "academic",
       icon: Database,
-      iconColor: "text-rose-600 dark:text-rose-400 bg-rose-500/10 dark:bg-rose-500/20 border-rose-500/20",
+      iconColor: "text-danger bg-danger-soft border-danger/20",
     },
     {
       id: "faculty-info",
@@ -75,7 +75,7 @@ export default function ToolsHub({ setActiveToolsSubTab }: ToolsHubProps) {
       subtitle: "Send your timetable as a link; plan with friends",
       category: "social",
       icon: Users,
-      iconColor: "text-purple-600 dark:text-purple-400 bg-purple-500/10 dark:bg-purple-500/20 border-purple-500/20",
+      iconColor: "text-course-3 bg-course-3/10 border-course-3/20",
     },
     {
       id: "cabshare",
@@ -84,7 +84,7 @@ export default function ToolsHub({ setActiveToolsSubTab }: ToolsHubProps) {
       category: "campus",
       icon: Car,
       iconColor:
-        "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/20 border-emerald-500/20",
+        "text-ok bg-ok-soft border-ok/20",
     },
     {
       id: "free-class",
@@ -92,7 +92,7 @@ export default function ToolsHub({ setActiveToolsSubTab }: ToolsHubProps) {
       subtitle: "Find empty classrooms & quiet study spots",
       category: "campus",
       icon: DoorOpen,
-      iconColor: "text-teal-600 dark:text-teal-400 bg-teal-500/10 dark:bg-teal-500/20 border-teal-500/20",
+      iconColor: "text-course-1 bg-course-1/10 border-course-1/20",
     },
     {
       id: "ffcs",
@@ -117,14 +117,14 @@ export default function ToolsHub({ setActiveToolsSubTab }: ToolsHubProps) {
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-md border border-line-2 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 bg-surface-2">
             <Layers className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white font-outfit tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-semibold text-ink font-outfit tracking-tight">
               Tools & Utilities
             </h1>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+            <p className="text-xs text-muted font-medium">
               Essential campus utilities, exam archives, and academic tools
             </p>
           </div>
@@ -138,7 +138,7 @@ export default function ToolsHub({ setActiveToolsSubTab }: ToolsHubProps) {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search tools..."
-            className="w-full pl-9 pr-4 py-2 rounded-2xl bg-surface dark:bg-surface-secondary border border-zinc-200/80 dark:border-zinc-800 text-xs sm:text-sm font-bold text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs"
+            className="w-full pl-9 pr-4 py-2 rounded-md bg-surface dark:bg-surface-secondary border border-zinc-200/80 dark:border-zinc-800 text-xs sm:text-sm font-semibold text-ink placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs"
           />
         </div>
       </div>
@@ -156,10 +156,10 @@ export default function ToolsHub({ setActiveToolsSubTab }: ToolsHubProps) {
             <button
               key={cat.id}
               onClick={() => setCategoryFilter(cat.id)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-black whitespace-nowrap transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                 isActive
-                  ? "bg-indigo-600 text-white shadow-xs"
-                  : "bg-white/80 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+                  ? "bg-accent text-background"
+                  : "bg-surface border border-zinc-200/80 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
               }`}
             >
               {cat.label}
@@ -176,19 +176,19 @@ export default function ToolsHub({ setActiveToolsSubTab }: ToolsHubProps) {
             <button
               key={tool.id}
               onClick={() => (tool.id === "ffcs" ? navigateToFFCSPlanner() : setActiveToolsSubTab(tool.id))}
-              className="group relative flex items-center justify-between p-3.5 sm:p-4 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 card-surface hover:border-indigo-500/40 dark:hover:border-indigo-500/40 transition-all duration-150 cursor-pointer shadow-2xs hover:shadow-sm active:scale-[0.99] text-left"
+              className="group relative flex items-center justify-between p-3.5 sm:p-4 rounded-md border border-zinc-200/80 dark:border-zinc-800 card-surface hover:border-indigo-500/40 dark:hover:border-indigo-500/40 transition-all duration-150 cursor-pointer shadow-2xs hover:shadow-sm text-left"
             >
               <div className="flex items-center gap-3.5 min-w-0 flex-1 pr-2">
                 <div
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${tool.iconColor} group-hover:scale-105 transition-transform duration-150`}
+                  className={`w-10 h-10 rounded-md flex items-center justify-center shrink-0 border ${tool.iconColor} transition-transform duration-150`}
                 >
                   <Icon className="w-5 h-5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h3 className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white font-outfit tracking-tight truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                  <h3 className="text-xs sm:text-sm font-semibold text-ink font-outfit tracking-tight truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                     {tool.title}
                   </h3>
-                  <p className="text-[11px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate mt-0.5">
+                  <p className="text-[11px] sm:text-xs text-muted font-medium truncate mt-0.5">
                     {tool.subtitle}
                   </p>
                 </div>
@@ -200,9 +200,9 @@ export default function ToolsHub({ setActiveToolsSubTab }: ToolsHubProps) {
       </div>
 
       {filteredTools.length === 0 && (
-        <div className="p-12 rounded-[24px] border border-dashed border-zinc-300 dark:border-zinc-800 text-center space-y-2">
+        <div className="p-12 rounded-lg border border-dashed border-zinc-300 dark:border-zinc-800 text-center space-y-2">
           <Search className="w-8 h-8 text-zinc-400 mx-auto" />
-          <p className="text-sm font-bold text-zinc-700 dark:text-zinc-300">
+          <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
             No tools found matching &quot;{searchTerm}&quot;
           </p>
           <p className="text-xs text-zinc-400">Try adjusting your search query or category filter.</p>

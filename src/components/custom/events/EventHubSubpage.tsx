@@ -38,15 +38,15 @@ interface EventHubSubpageProps {
 
 /** Primary / secondary action surfaces, in the app's zinc + indigo dialect. */
 const ACTION_PRIMARY =
-  "inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-xs active:scale-[0.98] transition-all cursor-pointer disabled:bg-indigo-400 disabled:cursor-not-allowed whitespace-nowrap";
+  "inline-flex items-center justify-center gap-2 px-5 py-3 rounded-sm bg-accent hover:bg-accent/90 text-background font-medium text-sm transition-colors cursor-pointer disabled: disabled:cursor-not-allowed whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 const ACTION_TONE: Record<string, string> = {
   amber:
-    "inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/25 font-bold text-sm active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap",
+    "inline-flex items-center justify-center gap-2 px-5 py-3 rounded-md bg-warn-soft text-warn border border-warn/25 font-semibold text-sm transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap",
   emerald:
-    "inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 font-bold text-sm whitespace-nowrap cursor-not-allowed",
+    "inline-flex items-center justify-center gap-2 px-5 py-3 rounded-md bg-ok-soft text-ok border border-ok/25 font-semibold text-sm whitespace-nowrap cursor-not-allowed",
   violet:
-    "inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-violet-500/10 text-violet-700 dark:text-violet-300 border border-violet-500/25 font-bold text-sm active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap",
-  zinc: "inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 font-bold text-sm active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap",
+    "inline-flex items-center justify-center gap-2 px-4 py-3 rounded-md bg-course-3/10 text-course-3 border border-course-3/25 font-semibold text-sm transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap",
+  zinc: "inline-flex items-center justify-center gap-2 px-4 py-3 rounded-md bg-surface-2 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 font-semibold text-sm transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap",
 };
 /** Event Hub publishes a timing field under one of these names. */
 const TIME_KEYS = ["time", "timing", "slot", "schedule", "duration"];
@@ -373,8 +373,8 @@ export default function EventHubSubpage({
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="text-sm font-black text-zinc-900 dark:text-white font-outfit">Ready to join?</h3>
-          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
+          <h3 className="text-sm font-semibold text-ink font-outfit">Ready to join?</h3>
+          <p className="text-[11px] text-muted font-medium mt-0.5">
             Registration and payments are handled securely on the official portal.
           </p>
         </div>
@@ -476,7 +476,7 @@ export default function EventHubSubpage({
         <div className={cn(TILE_CARD, "p-0 overflow-hidden")}>
           {/* The poster is shown at its own aspect ratio — cropped fest art
               loses the date and the fee, which are the two things on it. */}
-          <div className="w-full bg-zinc-100 dark:bg-zinc-800">
+          <div className="w-full bg-surface-2">
             <img
               src={eventhubImageUrl(selectedEvent.eid)}
               alt={selectedEvent.title}
@@ -495,7 +495,7 @@ export default function EventHubSubpage({
         </div>
       ) : previewError ? (
         <div className="space-y-6">
-          <div className={cn(TILE_CARD, "p-5 text-sm font-semibold text-red-600 dark:text-red-400 border-red-500/25")}>
+          <div className={cn(TILE_CARD, "p-5 text-sm font-semibold text-danger border-danger/25")}>
             <p>{previewError}</p>
             {!selectedEvent.isPastEvent && (
               <p className="text-[11px] mt-2 font-medium opacity-80">
@@ -514,16 +514,16 @@ export default function EventHubSubpage({
                 club ? (
                   <div
                     key={key}
-                    className="p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800"
+                    className="p-3 rounded-md bg-surface-2 border border-zinc-200/60 dark:border-zinc-800"
                   >
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1 mb-1.5">
+                    <span className="text-[11px] font-semibold text-zinc-400 flex items-center gap-1 mb-1.5">
                       <Icon className="w-3 h-3" />
                       Organized by
                     </span>
                     <button
                       type="button"
                       onClick={() => setSelectedClub(club)}
-                      className="inline-flex items-center gap-1.5 max-w-full text-left text-[11px] font-extrabold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/40 px-2.5 py-1.5 rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-950/60 transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-1.5 max-w-full text-left text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/40 px-2.5 py-1.5 rounded-md hover:bg-indigo-100 dark:hover:bg-indigo-950/60 transition-colors cursor-pointer"
                     >
                       <Award className="w-3.5 h-3.5 shrink-0" />
                       <span title={club.club_name} className="truncate">{club.club_name}</span>
@@ -586,7 +586,7 @@ export default function EventHubSubpage({
 
           {/* ── ABOUT ── */}
           <div className={cn(TILE_CARD, "space-y-2.5")}>
-            <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">
+            <h2 className="text-sm font-semibold text-ink font-outfit tracking-tight">
               About this event
             </h2>
             <p className="text-[13px] text-zinc-600 dark:text-zinc-300 leading-relaxed whitespace-pre-wrap">
@@ -630,23 +630,23 @@ export default function EventHubSubpage({
             closeLabel="Close secure access steps"
           >
             <div className="space-y-4 pt-1">
-              <div className="bg-indigo-50 dark:bg-indigo-950/20 p-4 rounded-2xl border border-indigo-100 dark:border-indigo-900/30">
-                <h4 className="font-bold text-indigo-900 dark:text-indigo-300 mb-1 text-sm">Step 1: Authenticate</h4>
+              <div className="bg-indigo-50 dark:bg-indigo-950/20 p-4 rounded-md border border-indigo-100 dark:border-indigo-900/30">
+                <h4 className="font-semibold text-indigo-900 dark:text-indigo-300 mb-1 text-sm">Step 1: Authenticate</h4>
                 <p className="text-xs text-indigo-700 dark:text-indigo-400 mb-3">Log in to the portal. <strong>Click 'Done' or 'X' in the top bar immediately when the dashboard appears.</strong></p>
 
                 <form action="https://eventhubcc.vit.ac.in/EventHub/mainDashboard" method="POST" target="_blank">
                   <input type="hidden" name="username" value={IDs?.VtopUsername} />
                   <input type="hidden" name="password" value={IDs?.VtopPassword} />
                   <input type="hidden" name="validateVitian" value="1" />
-                  <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm py-3">
+                  <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-background py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background">
                     Login to Event Hub
                   </Button>
                 </form>
               </div>
 
-              <div className="bg-zinc-50 dark:bg-zinc-900/60 p-4 rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70">
-                <h4 className="font-bold text-zinc-900 dark:text-white mb-1 text-sm">Step 2: Open Details</h4>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-3">After completing Step 1, click here to proceed.</p>
+              <div className="bg-surface-2 p-4 rounded-md border border-zinc-200/70 dark:border-zinc-800/70">
+                <h4 className="font-semibold text-ink mb-1 text-sm">Step 2: Open Details</h4>
+                <p className="text-xs text-muted mb-3">After completing Step 1, click here to proceed.</p>
                 <Button
                   onClick={() => window.open(pwaUrl || "", "_blank")}
                   variant="outline"

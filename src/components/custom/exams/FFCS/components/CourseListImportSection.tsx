@@ -80,13 +80,13 @@ export function CourseListImportSection({ onImport }: CourseListImportSectionPro
       <button
         type="button"
         onClick={downloadSample}
-        className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border-strong/70 bg-surface hover:bg-surface-secondary text-xs font-bold text-text-heading transition-colors cursor-pointer"
+        className="w-full flex items-center gap-2 px-3 py-2.5 rounded-md border border-border-strong/70 bg-surface hover:bg-surface-secondary text-xs font-semibold text-text-heading transition-colors cursor-pointer"
       >
-        <Download className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+        <Download className="w-3.5 h-3.5 text-course-1" />
         Download sample CSV ({SAMPLE_COURSE_LIST_FILENAME})
       </button>
 
-      <label className="border-2 border-dashed rounded-xl px-4 py-4 text-center cursor-pointer transition-colors border-border-strong hover:border-teal-500/50 focus-within:border-teal-500/50">
+      <label className="border-2 border-dashed rounded-md px-4 py-4 text-center cursor-pointer transition-colors border-border-strong hover:border-course-1/50 focus-within:border-course-1/50">
         <input
           type="file"
           accept=".csv,.tsv,.txt,.xlsx"
@@ -109,7 +109,7 @@ export function CourseListImportSection({ onImport }: CourseListImportSectionPro
       </label>
 
       {importedCount !== null && (
-        <p className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-2" aria-live="polite">
+        <p className="text-xs text-ok flex items-center gap-2" aria-live="polite">
           <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
           Imported {importedCount} course{importedCount === 1 ? "" : "s"}. Same codes were replaced; the rest of your
           list is untouched.
@@ -139,7 +139,7 @@ function FieldLegend() {
               title={required ? "Required — a row without it is dropped" : "Optional — safe to leave out"}
               className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[10px] font-bold ${
                 required
-                  ? "bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/30"
+                  ? "bg-course-1/10 text-course-1 border-course-1/30"
                   : "bg-surface-secondary text-muted-foreground border-border-strong/50"
               }`}
             >
@@ -165,7 +165,7 @@ function ImportPreview({ result, onImport }: { result: FileImport; onImport: () 
     <div className="flex flex-col gap-2">
       <p className="text-xs text-muted-foreground" aria-live="polite">
         {result.error ? (
-          <span className="text-red-500">{result.error}</span>
+          <span className="text-danger">{result.error}</span>
         ) : (
           <>
             <span className="text-text-heading">{result.courses.length}</span> course
@@ -176,7 +176,7 @@ function ImportPreview({ result, onImport }: { result: FileImport; onImport: () 
       </p>
 
       {(result.ignoredHeaders.length > 0 || missingRequired.length > 0) && (
-        <div className="flex flex-col gap-1 text-xs text-amber-500 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+        <div className="flex flex-col gap-1 text-xs text-warn bg-warn-soft border border-warn/20 rounded-lg px-3 py-2">
           {missingRequired.length > 0 && (
             <span className="flex items-start gap-2">
               <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
@@ -195,7 +195,7 @@ function ImportPreview({ result, onImport }: { result: FileImport; onImport: () 
       )}
 
       {result.rows.length > 0 && (
-        <div className="border border-border-strong rounded-xl overflow-hidden">
+        <div className="border border-border-strong rounded-md overflow-hidden">
           <div className="max-h-40 overflow-y-auto custom-scrollbar">
             <table className="w-full text-xs">
               <thead className="sticky top-0 bg-surface-secondary/60 text-muted-foreground">
@@ -236,7 +236,7 @@ function ImportPreview({ result, onImport }: { result: FileImport; onImport: () 
         type="button"
         onClick={onImport}
         disabled={result.courses.length === 0}
-        className="self-end bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+        className="self-end bg-course-1 hover:bg-course-1 text-white text-xs font-semibold px-4 py-2 rounded-md transition-all flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
       >
         <CheckCircle2 className="w-3.5 h-3.5" />
         Import {result.courses.length} course{result.courses.length === 1 ? "" : "s"}

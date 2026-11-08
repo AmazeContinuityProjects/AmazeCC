@@ -33,7 +33,7 @@ import remarkGfm from "remark-gfm";
  * column of empty space.
  */
 const MARKDOWN =
-  "prose prose-sm prose-zinc dark:prose-invert max-w-none text-zinc-700 dark:text-zinc-300 prose-headings:font-outfit prose-p:leading-relaxed prose-a:text-indigo-600 hover:prose-a:text-indigo-500 dark:prose-a:text-indigo-400 prose-img:rounded-xl [&>p:first-child]:mt-0 [&>p:last-child]:mb-0";
+  "prose prose-sm prose-zinc dark:prose-invert max-w-none text-zinc-700 dark:text-zinc-300 prose-headings:font-outfit prose-p:leading-relaxed prose-a:text-indigo-600 hover:prose-a:text-indigo-500 dark:prose-a:text-indigo-400 prose-img:rounded-md [&>p:first-child]:mt-0 [&>p:last-child]:mb-0";
 
 export default function CommunityFeed({
   IDs,
@@ -196,8 +196,8 @@ export default function CommunityFeed({
       {loading ? (
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3 sm:gap-4">
-            <Skeleton className="h-32 sm:h-36 rounded-[24px]" />
-            <Skeleton className="h-32 sm:h-36 rounded-[24px]" />
+            <Skeleton className="h-32 sm:h-36 rounded-lg" />
+            <Skeleton className="h-32 sm:h-36 rounded-lg" />
           </div>
           <ListSkeleton rows={3} />
         </div>
@@ -255,10 +255,10 @@ export default function CommunityFeed({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <h3 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight leading-tight truncate">
+                      <h3 className="text-sm font-semibold text-ink font-outfit tracking-tight leading-tight truncate">
                         Club {post.club_id}
                       </h3>
-                      <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
+                      <p className="text-[11px] text-muted font-medium mt-0.5">
                         {new Date(post.created_at).toLocaleDateString("en-US", {
                           weekday: "short",
                           month: "short",
@@ -283,13 +283,13 @@ export default function CommunityFeed({
                           href={url}
                           target="_blank"
                           rel="noreferrer"
-                          className="block h-36 rounded-2xl overflow-hidden border border-zinc-200/70 dark:border-zinc-800/80 group"
+                          className="block h-36 rounded-md overflow-hidden border border-line group"
                         >
                           <img
                             src={url}
                             alt="Attached"
                             loading="lazy"
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            className="w-full h-full object-cover transition-transform duration-300"
                           />
                         </a>
                       ))}
@@ -297,10 +297,10 @@ export default function CommunityFeed({
                   )}
 
                   {eventDetails && (
-                    <div className="rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/25 border border-indigo-200/60 dark:border-indigo-900/40 p-4 flex flex-col sm:flex-row gap-4 items-center">
+                    <div className="rounded-md bg-indigo-50/70 dark:bg-indigo-950/25 border border-indigo-200/60 dark:border-indigo-900/40 p-4 flex flex-col sm:flex-row gap-4 items-center">
                       <div className="flex-1 w-full min-w-0">
                         <span className={cn(TONE_BADGE.indigo, "mb-2 inline-block")}>Featured Event</span>
-                        <h4 className="text-base font-black text-zinc-900 dark:text-white font-outfit leading-snug">
+                        <h4 className="text-base font-semibold text-ink font-outfit leading-snug">
                           {eventDetails.title}
                         </h4>
                         <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-2 text-[11px] text-zinc-600 dark:text-zinc-300 font-medium">
@@ -332,7 +332,7 @@ export default function CommunityFeed({
                           sessionStorage.setItem("pendingEventOpen", eventDetails.title);
                           setActiveTab("events");
                         }}
-                        className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs active:scale-[0.98] transition-all cursor-pointer"
+                        className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-sm bg-accent hover:bg-accent/90 text-background font-medium text-xs transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                       >
                         <Building className="w-3.5 h-3.5" />
                         View in Event Hub
@@ -348,7 +348,7 @@ export default function CommunityFeed({
                           href={link.url}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-1.5 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/30 px-3 py-1.5 rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-950/60 transition-colors"
+                          className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/30 px-3 py-1.5 rounded-md hover:bg-indigo-100 dark:hover:bg-indigo-950/60 transition-colors"
                         >
                           {link.title}
                           <ExternalLink className="w-3.5 h-3.5" />
@@ -363,10 +363,10 @@ export default function CommunityFeed({
                       onClick={() => handlePromote(post.id)}
                       disabled={actionLoading === post.id}
                       className={cn(
-                        "inline-flex items-center gap-2 px-3.5 py-2 rounded-2xl text-xs font-bold transition-colors cursor-pointer disabled:opacity-50",
+                        "inline-flex items-center gap-2 px-3.5 py-2 rounded-md text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50",
                         post.has_promoted
                           ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20"
-                          : "bg-zinc-100 dark:bg-zinc-800/80 text-zinc-500 dark:text-zinc-400 border border-zinc-200/70 dark:border-zinc-800/80 hover:bg-zinc-200 dark:hover:bg-zinc-800"
+                          : "bg-surface-2 text-muted border border-line hover:bg-zinc-200 dark:hover:bg-zinc-800"
                       )}
                     >
                       <ArrowUp className={cn("w-4 h-4", post.has_promoted && "fill-current")} />

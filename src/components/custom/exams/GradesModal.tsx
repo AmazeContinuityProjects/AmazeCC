@@ -144,9 +144,9 @@ function GradesDisplay({ allGradesData, data, handleFetchGrades, marksData, atte
 
   return (
     <div>
-      <Card className="bg-white  dark:bg-black border-0">
+      <Card className="bg-surface  dark:bg-background border-0">
         <CardHeader>
-            <CardTitle className="text-lg font-bold text-gray-900  dark:text-gray-100">Grade Distribution <FetchButton onClick={handleFetchGrades} icon={<RefreshCcw className="w-4 h-4" />} className="mt-2" /></CardTitle>
+            <CardTitle className="text-lg font-semibold text-gray-900  dark:text-gray-100">Grade Distribution <FetchButton onClick={handleFetchGrades} icon={<RefreshCcw className="w-4 h-4" />} className="mt-2" /></CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-4 md:grid-cols-8 gap-2 text-center text-sm">
           {(() => {
@@ -167,7 +167,7 @@ function GradesDisplay({ allGradesData, data, handleFetchGrades, marksData, atte
             return Object.entries(rawGradeCounts).map(([grade, count]) => (
               <div
                 key={grade}
-                className="p-2 rounded-lg bg-gray-100  dark:bg-gray-800 text-gray-900  dark:text-gray-100 font-bold"
+                className="p-2 rounded-lg bg-surface-2 text-gray-900  dark:text-gray-100 font-semibold"
               >
                 <p>{grade}</p>
                 <p className="text-gray-600  dark:text-gray-300 font-medium">{count}</p>
@@ -177,7 +177,7 @@ function GradesDisplay({ allGradesData, data, handleFetchGrades, marksData, atte
         </CardContent>
       </Card>
 
-      <Card className="bg-white  dark:bg-black border-0">
+      <Card className="bg-surface  dark:bg-background border-0">
         <CardContent className="space-y-6">
           {totalCredits && (() => {
             let earned = parseFloat(totalCredits.creditsEarned);
@@ -204,18 +204,18 @@ function GradesDisplay({ allGradesData, data, handleFetchGrades, marksData, atte
 
             return (
               <div className="space-y-4 border-b-2 pb-6">
-                <p className="text-lg font-bold">
+                <p className="text-lg font-semibold">
                   Total Credits
                 </p>
                 <div className="relative h-3 rounded-full overflow-hidden bg-gray-300 dark:bg-gray-700">
                   {!isComplete && (
                     <div
-                      className="absolute left-0 top-0 h-full bg-yellow-400/60"
+                      className="absolute left-0 top-0 h-full bg-warn/60"
                       style={{ width: `${progressWithOngoing}%` }}
                     />
                   )}
                   <div
-                    className={`absolute left-0 top-0 h-full ${isComplete ? "bg-green-500" : "bg-blue-500 dark:bg-blue-600"
+                    className={`absolute left-0 top-0 h-full ${isComplete ? "bg-ok" : "bg-accent"
                       }`}
                     style={{ width: `${progressEarned}%` }}
                   />
@@ -256,12 +256,12 @@ function GradesDisplay({ allGradesData, data, handleFetchGrades, marksData, atte
                       <div className="relative h-2 rounded-full overflow-hidden bg-gray-300 dark:bg-gray-700">
                         {!isComplete && (
                           <div
-                            className="absolute left-0 top-0 h-full bg-yellow-400/60"
+                            className="absolute left-0 top-0 h-full bg-warn/60"
                             style={{ width: `${progressWithOngoing}%` }}
                           />
                         )}
                         <div
-                          className={`absolute left-0 top-0 h-full ${isComplete ? "bg-green-500" : "bg-blue-500 dark:bg-blue-600"
+                          className={`absolute left-0 top-0 h-full ${isComplete ? "bg-ok" : "bg-accent"
                             }`}
                           style={{ width: `${progressEarned}%` }}
                         />
@@ -307,12 +307,12 @@ function GradesDisplay({ allGradesData, data, handleFetchGrades, marksData, atte
                     <div className="relative h-2 rounded-full overflow-hidden bg-gray-300 dark:bg-gray-700">
                       {!isComplete && (
                         <div
-                          className="absolute left-0 top-0 h-full bg-yellow-400/60"
+                          className="absolute left-0 top-0 h-full bg-warn/60"
                           style={{ width: `${progressWithOngoing}%` }}
                         />
                       )}
                       <div
-                        className={`absolute left-0 top-0 h-full ${isComplete ? "bg-green-500" : "bg-blue-500 dark:bg-blue-600"
+                        className={`absolute left-0 top-0 h-full ${isComplete ? "bg-ok" : "bg-accent"
                           }`}
                         style={{ width: `${progressEarned}%` }}
                       />

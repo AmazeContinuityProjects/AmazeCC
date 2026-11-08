@@ -59,7 +59,7 @@ export default function AddCustomCourseModal({
       <div className="space-y-5">
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="text-xs font-black uppercase tracking-wider text-zinc-400">
+            <label className="text-xs font-semibold text-zinc-400">
               Course Code
             </label>
             <input
@@ -68,12 +68,12 @@ export default function AddCustomCourseModal({
               placeholder="e.g. BCSE302L"
               value={courseCode}
               onChange={(e) => setCourseCode(e.target.value)}
-              className={`${FIELD_INPUT} mt-1 uppercase placeholder:normal-case`}
+              className={`${FIELD_INPUT} mt-1 placeholder:normal-case`}
             />
           </div>
 
           <div>
-            <label className="text-xs font-black uppercase tracking-wider text-zinc-400">
+            <label className="text-xs font-semibold text-zinc-400">
               Course Title
             </label>
             <input
@@ -86,7 +86,7 @@ export default function AddCustomCourseModal({
           </div>
 
           <div>
-            <label className="text-xs font-black uppercase tracking-wider text-zinc-400">
+            <label className="text-xs font-semibold text-zinc-400">
               Course Structure
             </label>
                 <SelectField
@@ -107,9 +107,9 @@ export default function AddCustomCourseModal({
           </div>
 
           {courseType === "Embedded Theory" && (
-            <div className="grid grid-cols-2 gap-3 p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/60 dark:border-zinc-700/60">
+            <div className="grid grid-cols-2 gap-3 p-3 rounded-md bg-surface-2 border border-zinc-200/60 dark:border-zinc-700/60">
               <div>
-                <label className="text-[11px] font-bold text-zinc-400">Theory Credits</label>
+                <label className="text-[11px] font-semibold text-zinc-400">Theory Credits</label>
                 <input
                   type="number"
                   min="1"
@@ -120,7 +120,7 @@ export default function AddCustomCourseModal({
                 />
               </div>
               <div>
-                <label className="text-[11px] font-bold text-zinc-400">Lab Credits</label>
+                <label className="text-[11px] font-semibold text-zinc-400">Lab Credits</label>
                 <input
                   type="number"
                   min="1"
@@ -139,7 +139,7 @@ export default function AddCustomCourseModal({
             </GhostButton>
             <button
               type="submit"
-              className="px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black transition-all shadow-xs cursor-pointer active:scale-95"
+              className="px-5 py-3 rounded-sm bg-accent hover:bg-accent/90 text-background text-xs font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               Add Subject
             </button>

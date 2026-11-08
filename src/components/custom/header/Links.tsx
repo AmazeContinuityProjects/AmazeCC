@@ -36,7 +36,7 @@ export default function Links() {
         return (
           <div key={link.url} className={LIST_ROW}>
             <span
-              className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${TONE_ICON_TILE.sky}`}
+              className={`w-10 h-10 rounded-md flex items-center justify-center shrink-0 border ${TONE_ICON_TILE.sky}`}
             >
               <Globe className="w-4.5 h-4.5" />
             </span>
@@ -51,7 +51,7 @@ export default function Links() {
               rel="noopener noreferrer"
               title={`Open ${link.url}`}
               aria-label={`Open ${link.label}`}
-              className="shrink-0 text-zinc-400 hover:text-sky-600 dark:hover:text-sky-400 transition-colors"
+              className="shrink-0 text-zinc-400 hover:text-accent transition-colors"
             >
               <ExternalLink className="w-4 h-4" />
             </a>
@@ -62,7 +62,7 @@ export default function Links() {
               title={`Copy ${link.url}`}
             >
               {copied ? (
-                <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <Check className="w-3.5 h-3.5 text-ok" />
               ) : (
                 <Copy className="w-3.5 h-3.5" />
               )}

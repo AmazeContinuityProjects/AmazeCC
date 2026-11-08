@@ -94,11 +94,11 @@ export default function FFCSGeneratorRunSummaryModal({
     >
       <div className="flex items-start justify-between gap-3 border-b border-border-strong/60 pb-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 flex items-center justify-center shrink-0 shadow-xs">
+          <div className="w-10 h-10 rounded-md border border-line-2 text-indigo-500 flex items-center justify-center shrink-0 shadow-xs bg-surface-2">
             <Wand2 className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-lg font-black text-text-heading tracking-tight leading-tight">
+            <h2 className="text-lg font-semibold text-text-heading tracking-tight leading-tight">
               Ready to search?
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
@@ -112,8 +112,8 @@ export default function FFCSGeneratorRunSummaryModal({
       <div
         className={`rounded-xl border px-3.5 py-3 flex items-start gap-2.5 ${
           courses.length > 0
-            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-            : "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+            ? "border-ok/30 bg-ok-soft text-ok"
+            : "border-warn/30 bg-warn-soft text-warn"
         }`}
       >
         {courses.length > 0 ? (
@@ -122,7 +122,7 @@ export default function FFCSGeneratorRunSummaryModal({
           <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
         )}
         <div className="min-w-0">
-          <p className="text-sm font-bold">
+          <p className="text-sm font-semibold">
             {courses.length > 0 ? "Ready to search" : "Choose courses first"}
           </p>
           <p className="text-xs mt-0.5 opacity-80">
@@ -137,16 +137,16 @@ export default function FFCSGeneratorRunSummaryModal({
       <section aria-label="Selected courses" className="space-y-2">
         <div className="flex items-center gap-1.5 px-1">
           <Target className="w-3.5 h-3.5 text-muted-foreground" />
-          <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+          <h3 className="text-[11px] font-semibold text-muted-foreground">
             Selected courses
           </h3>
-          <span className="text-[10px] font-bold text-muted-foreground/70">({courses.length})</span>
+          <span className="text-[11px] font-semibold text-muted-foreground/70">({courses.length})</span>
         </div>
         {courses.length > 0 ? (
           <ListShell>
             {courses.map((course) => (
               <div key={course.code} className="w-full flex items-center gap-3 px-3 py-2.5">
-                <span className="w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/20 text-[10px] font-bold">
+                <span className="w-8 h-8 rounded-md border flex items-center justify-center shrink-0 text-warn border-line-2 text-[11px] font-semibold bg-surface-2">
                   {course.code.slice(0, 2)}
                 </span>
                 <ListRowText
@@ -173,7 +173,7 @@ export default function FFCSGeneratorRunSummaryModal({
       <section aria-label="Search profile" className="space-y-2">
         <div className="flex items-center gap-1.5 px-1">
           <SlidersHorizontal className="w-3.5 h-3.5 text-muted-foreground" />
-          <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+          <h3 className="text-[11px] font-semibold text-muted-foreground">
             Search profile
           </h3>
         </div>
@@ -199,7 +199,7 @@ export default function FFCSGeneratorRunSummaryModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-3.5 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:text-text-heading hover:bg-surface-secondary/80 border border-border-strong/60 transition-colors cursor-pointer"
+            className="px-3.5 py-2 rounded-md text-xs font-semibold text-muted-foreground hover:text-text-heading hover:bg-surface-secondary/80 border border-border-strong/60 transition-colors cursor-pointer"
           >
             Cancel
           </button>
@@ -207,7 +207,7 @@ export default function FFCSGeneratorRunSummaryModal({
             type="button"
             onClick={handleConfirm}
             disabled={!canRun}
-            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-xs font-black font-outfit text-white shadow-md shadow-indigo-600/20 transition-all hover:bg-indigo-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-sm bg-accent px-4 text-xs font-medium font-outfit text-background transition-colors hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             {isGenerating ? (
               <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />

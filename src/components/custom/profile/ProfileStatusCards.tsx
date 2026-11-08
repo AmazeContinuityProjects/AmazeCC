@@ -138,10 +138,10 @@ export default function ProfileStatusCards({
         {[1, 2, 3, 4, 5, 6].map((i) => (
           <div
             key={i}
-            className="p-4 sm:p-5 rounded-[24px] border border-zinc-200/80 dark:border-zinc-800/80 card-surface shadow-2xs space-y-3"
+            className="p-4 sm:p-5 rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 card-surface shadow-2xs space-y-3"
           >
             <div className="flex items-center gap-3">
-              <Skeleton className="w-10 h-10 rounded-2xl" />
+              <Skeleton className="w-10 h-10 rounded-md" />
               <div className="space-y-1.5 flex-1">
                 <Skeleton className="h-3 w-20 rounded" />
                 <Skeleton className="h-4 w-28 rounded" />
@@ -160,11 +160,11 @@ export default function ProfileStatusCards({
       label: "EPT Schedule",
       subtitle: "English Proficiency Test",
       value: hasEpt ? `${eptCount} Scheduled Exam${eptCount > 1 ? "s" : ""}` : "No Active Exams",
-      color: hasEpt ? "text-blue-600 dark:text-blue-400" : "text-zinc-500 dark:text-zinc-400",
+      color: hasEpt ? "text-accent" : "text-muted",
       badgeColor: hasEpt
-        ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20"
-        : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 border-zinc-200 dark:border-zinc-700",
-      iconBg: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+        ? "bg-accent-soft text-accent border-accent/20"
+        : "bg-surface-2 text-zinc-500 border-zinc-200 dark:border-zinc-700",
+      iconBg: "bg-surface-2",
     },
     {
       id: "reg",
@@ -172,11 +172,11 @@ export default function ProfileStatusCards({
       label: "Course Registration",
       subtitle: "Course selection schedule",
       value: hasReg ? "Schedule Active" : "Not Scheduled",
-      color: hasReg ? "text-emerald-600 dark:text-emerald-400" : "text-zinc-500 dark:text-zinc-400",
+      color: hasReg ? "text-ok" : "text-muted",
       badgeColor: hasReg
-        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-        : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 border-zinc-200 dark:border-zinc-700",
-      iconBg: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+        ? "bg-ok-soft text-ok border-ok/20"
+        : "bg-surface-2 text-zinc-500 border-zinc-200 dark:border-zinc-700",
+      iconBg: "bg-surface-2",
     },
     {
       id: "bank",
@@ -184,11 +184,11 @@ export default function ProfileStatusCards({
       label: "Bank Details",
       subtitle: "Fee refund & direct deposit",
       value: hasBank ? "Verified & On File" : "Action Required",
-      color: hasBank ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400",
+      color: hasBank ? "text-ok" : "text-warn",
       badgeColor: hasBank
-        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-        : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-      iconBg: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+        ? "bg-ok-soft text-ok border-ok/20"
+        : "bg-warn-soft text-warn border-warn/20",
+      iconBg: "bg-surface-2",
     },
     {
       id: "day",
@@ -196,11 +196,11 @@ export default function ProfileStatusCards({
       label: "Dayboarder Info",
       subtitle: "Non-hosteller campus status",
       value: hasDay ? "Profile Verified" : "Not Provided",
-      color: hasDay ? "text-indigo-600 dark:text-indigo-400" : "text-amber-600 dark:text-amber-400",
+      color: hasDay ? "text-indigo-600 dark:text-indigo-400" : "text-warn",
       badgeColor: hasDay
         ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20"
-        : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-      iconBg: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
+        : "bg-warn-soft text-warn border-warn/20",
+      iconBg: "bg-surface-2",
     },
     {
       id: "apaar",
@@ -208,11 +208,11 @@ export default function ProfileStatusCards({
       label: "APAAR / ABC ID",
       subtitle: "Academic Bank of Credits",
       value: hasApaar ? "Linked to Portal" : "Not Linked",
-      color: hasApaar ? "text-purple-600 dark:text-purple-400" : "text-zinc-500 dark:text-zinc-400",
+      color: hasApaar ? "text-course-3" : "text-muted",
       badgeColor: hasApaar
-        ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20"
-        : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 border-zinc-200 dark:border-zinc-700",
-      iconBg: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
+        ? "bg-course-3/10 text-course-3 border-course-3/20"
+        : "bg-surface-2 text-zinc-500 border-zinc-200 dark:border-zinc-700",
+      iconBg: "bg-surface-2",
     },
     rank
       ? {
@@ -221,9 +221,9 @@ export default function ProfileStatusCards({
           label: "VITEEE Entrance Rank",
           subtitle: "Merit examination rank",
           value: `AIR ${rank}`,
-          color: "text-amber-600 dark:text-amber-400",
-          badgeColor: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-          iconBg: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+          color: "text-warn",
+          badgeColor: "bg-warn-soft text-warn border-warn/20",
+          iconBg: "bg-surface-2",
         }
       : null,
   ].filter(Boolean);
@@ -240,28 +240,28 @@ export default function ProfileStatusCards({
             type="button"
             disabled={!isClickable}
             onClick={() => isClickable && onCardClick(card.id)}
-            className={`p-4 sm:p-5 rounded-[24px] border border-zinc-200/80 dark:border-zinc-800/80 card-surface shadow-2xs transition-all duration-200 flex items-center justify-between gap-3.5 group select-none text-left w-full ${
+            className={`p-4 sm:p-5 rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 card-surface shadow-2xs transition-all duration-200 flex items-center justify-between gap-3.5 group select-none text-left w-full ${
               isClickable
-                ? "hover:bg-white dark:hover:bg-zinc-900 hover:shadow-md hover:border-indigo-500/40 dark:hover:border-indigo-500/40 cursor-pointer"
+                ? "hover:bg-surface dark:hover:bg-zinc-900 hover:shadow-md hover:border-indigo-500/40 dark:hover:border-indigo-500/40 cursor-pointer"
                 : "cursor-default"
             }`}
           >
             <div className="flex items-center gap-3.5 min-w-0">
               <div
-                className={`w-11 h-11 rounded-2xl ${card.iconBg} flex items-center justify-center shrink-0 border`}
+                className={`w-11 h-11 rounded-md ${card.iconBg} flex items-center justify-center shrink-0 border`}
               >
                 <Icon className="w-5 h-5" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-black font-outfit text-zinc-900 dark:text-white truncate">
+                <p className="text-xs font-semibold font-outfit text-ink truncate">
                   {card.label}
                 </p>
-                <p className="text-[10px] text-zinc-400 dark:text-zinc-500 truncate mt-0.5">
+                <p className="text-[11px] text-zinc-400 dark:text-zinc-500 truncate mt-0.5">
                   {card.subtitle}
                 </p>
                 <div className="mt-2">
                   <span
-                    className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-extrabold border ${card.badgeColor}`}
+                    className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold border ${card.badgeColor}`}
                   >
                     {card.value}
                   </span>

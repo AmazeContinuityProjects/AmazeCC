@@ -6,7 +6,7 @@ import { RefreshCcw } from "lucide-react";
 import type { Creds } from "../exams/courseHelpers";
 
 function FeatureLoading() {
-  return <div className="min-h-40 animate-pulse rounded-2xl bg-slate-100 dark:bg-zinc-900" role="status" aria-label="Loading hostel" />;
+  return <div className="min-h-40 animate-pulse rounded-md bg-surface-2" role="status" aria-label="Loading hostel" />;
 }
 
 const MessDisplay = dynamic(() => import("../hostel/MessDisplay"), { loading: FeatureLoading });
@@ -46,7 +46,7 @@ export default function DashboardHostelFeature({
       {activeSubTab === "counselling" && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Hostel Counselling</h2>
+            <h2 className="text-xl font-semibold text-ink">Hostel Counselling</h2>
             <button
               onClick={() => setCounsellingRefreshKey(key => key + 1)}
               className="p-2.5 rounded-full bg-info-surface text-info hover:bg-info-surface transition-colors"

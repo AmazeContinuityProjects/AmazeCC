@@ -159,7 +159,7 @@ export default function FacultyPriorityModal({
         {ordered.map((name, index) => (
           <li
             key={name}
-            className="flex items-center gap-2.5 p-2.5 rounded-xl border border-border-strong bg-surface-secondary/50"
+            className="flex items-center gap-2.5 p-2.5 rounded-md border border-border-strong bg-surface-secondary/50"
           >
             <span
               className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black shrink-0 border ${
@@ -172,7 +172,7 @@ export default function FacultyPriorityModal({
               {index + 1}
             </span>
             <span className="flex-1 min-w-0 text-sm text-text-heading font-semibold truncate">{name}</span>
-            <span className="text-[10px] font-bold text-muted-foreground bg-surface-secondary border border-border-strong/60 px-1.5 py-0.5 rounded-md shrink-0 whitespace-nowrap">
+            <span className="text-[11px] font-semibold text-muted-foreground bg-surface-secondary border border-border-strong/60 px-1.5 py-0.5 rounded-md shrink-0 whitespace-nowrap">
               {countOf(name)} offering{countOf(name) === 1 ? "" : "s"}
             </span>
             <span className="flex items-center shrink-0">
@@ -198,7 +198,7 @@ export default function FacultyPriorityModal({
                 type="button"
                 onClick={() => remove(name)}
                 aria-label={`Remove ${name} from the ranking`}
-                className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-danger hover:bg-danger-soft transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -206,7 +206,7 @@ export default function FacultyPriorityModal({
           </li>
         ))}
         {ordered.length === 0 && (
-          <li className="p-3 rounded-xl border border-dashed border-border-strong text-xs text-muted-foreground text-center">
+          <li className="p-3 rounded-md border border-dashed border-border-strong text-xs text-muted-foreground text-center">
             No faculties listed. Add them below to set a preference.
           </li>
         )}
@@ -218,7 +218,7 @@ export default function FacultyPriorityModal({
             value={pending}
             onChange={(event) => setPending(event.target.value)}
             aria-label="Add a faculty to the ranking"
-            className="flex-1 min-w-0 h-10 px-3 rounded-xl bg-surface-secondary border border-border-strong text-sm text-text-heading focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+            className="flex-1 min-w-0 h-10 px-3 rounded-md bg-surface-secondary border border-border-strong text-sm text-text-heading focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
           >
             <option value="">Add a faculty…</option>
             {remaining.map((option) => (
@@ -231,7 +231,7 @@ export default function FacultyPriorityModal({
             type="button"
             onClick={add}
             disabled={!pending}
-            className="h-10 px-3.5 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-sm font-bold flex items-center gap-1.5 disabled:opacity-40 hover:bg-indigo-500/25 transition-colors shrink-0"
+            className="h-10 px-3.5 rounded-md bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-sm font-semibold flex items-center gap-1.5 disabled:opacity-40 hover:bg-indigo-500/25 transition-colors shrink-0"
           >
             <Plus className="w-4 h-4" /> Add
           </button>
@@ -242,14 +242,14 @@ export default function FacultyPriorityModal({
         <button
           type="button"
           onClick={onClose}
-          className="px-4 h-10 rounded-xl text-sm font-semibold text-muted-foreground hover:bg-surface-secondary transition-colors"
+          className="px-4 h-10 rounded-md text-sm font-semibold text-muted-foreground hover:bg-surface-secondary transition-colors"
         >
           Cancel
         </button>
         <button
           type="button"
           onClick={handleSave}
-          className="px-4 h-10 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold transition-colors"
+          className="px-4 h-10 rounded-sm bg-accent hover:bg-accent/90 text-background text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           Save order
         </button>

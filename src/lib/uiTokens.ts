@@ -35,7 +35,7 @@
  * the border-step override in `globals.css`.
  */
 const TILE_SURFACE =
-  "rounded-[24px] card-surface border border-border-strong dark:border-border shadow-xs";
+  "rounded-md bg-surface border border-line";
 
 export const TILE = `${TILE_SURFACE} p-4 sm:p-5 flex flex-col justify-between text-left relative overflow-hidden`;
 
@@ -46,10 +46,10 @@ export const TILE = `${TILE_SURFACE} p-4 sm:p-5 flex flex-col justify-between te
  * Simplified Mobile Home. Extracted because the social landing has eleven
  * interactive tiles and a missed suffix reads as a dead surface.
  */
-export const TILE_INTERACTIVE = `${TILE} transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer`;
+export const TILE_INTERACTIVE = `${TILE} transition-colors duration-[120ms] hover:bg-surface-2 cursor-pointer`;
 
 /** The interaction affordance, separated so it can pair with any surface. */
-const TILE_AFFORDANCE = "transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer";
+const TILE_AFFORDANCE = "transition-colors duration-[120ms] hover:bg-surface-2 cursor-pointer";
 
 /**
  * An interactive surface whose children sit in a ROW.
@@ -77,21 +77,21 @@ export const TILE_CARD = `${TILE_SURFACE} p-4 sm:p-5 overflow-hidden`;
 
 /** The boxed search input, shared by the Libraries catalog and Social people search. */
 export const SEARCH_FIELD =
-  "w-full px-4 py-2.5 rounded-2xl bg-surface dark:bg-surface-secondary border border-border-strong dark:border-border text-sm font-bold text-text-heading dark:text-text-heading placeholder:text-text-muted placeholder:font-medium focus:outline-none focus:border-border-strong";
+  "w-full min-h-11 px-3 py-2 rounded-sm bg-surface border border-line text-[15px] text-ink placeholder:text-muted focus:outline-none focus:border-accent focus:ring-3 focus:ring-accent-soft";
 
 export const LIST_SHELL =
-  "overflow-hidden rounded-2xl card-surface border border-border-strong dark:border-border shadow-xs divide-y divide-border-muted dark:divide-border/70";
+  "overflow-hidden rounded-md bg-surface border border-line divide-y divide-line-2";
 
 export const LIST_ROW =
-  "w-full flex items-center gap-3 py-3 px-4 text-left transition-colors hover:bg-surface-secondary dark:hover:bg-surface-hover/40";
+  "w-full flex items-center gap-3 py-3 px-4 min-h-11 text-left transition-colors duration-[120ms] hover:bg-surface-2";
 
 export const CHIP =
-  "text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-surface-tertiary dark:bg-surface-secondary text-text-secondary dark:text-text-muted border border-border-muted dark:border-border";
+  "text-[11.5px] font-medium px-2 py-0.5 rounded-sm bg-surface-2 text-ink-2";
 
 export const SECTION_CHIP = CHIP;
 
 export const ICON_BUTTON =
-  "p-2.5 rounded-xl bg-surface-tertiary hover:bg-border-muted dark:bg-surface dark:hover:bg-surface-hover border border-border-muted dark:border-border text-text-primary dark:text-text-primary transition-all active:scale-95 cursor-pointer shadow-2xs shrink-0";
+  "grid h-11 w-11 shrink-0 place-items-center rounded-sm text-ink-2 transition-colors duration-[120ms] hover:bg-surface-2 cursor-pointer";
 
 /**
  * Active/inactive segmented-control segments.
@@ -101,9 +101,9 @@ export const ICON_BUTTON =
  * for the cascade to arbitrate. (The dark surface is `--surface`, which is what
  * all nine segmented controls in the app already use.)
  */
-export const SEG_ACTIVE = "bg-white dark:bg-surface shadow-2xs font-extrabold";
+export const SEG_ACTIVE = "bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.08)] font-semibold";
 export const SEG_IDLE =
-  "text-text-secondary dark:text-text-muted hover:text-text-heading dark:hover:text-text-heading";
+  "text-ink-2 hover:text-ink";
 
 /**
  * Pill tone recipes: `bg-<c>-500/10 border-<c>-500/20 text-<c>-600 dark:text-<c>-400`
@@ -116,49 +116,46 @@ export const SEG_IDLE =
  * the surface tokens.
  */
 export const TONE_BADGE: Record<string, string> = {
-  red: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
-  amber: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-  emerald: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-  blue: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
-  indigo:
-    "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border-indigo-200/50 dark:border-indigo-800/40",
-  sky: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20",
-  violet: "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20",
-  cyan: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20",
-  zinc:
-    "bg-surface-secondary text-text-secondary dark:text-text-muted border-border-muted",
+  red: "bg-danger-soft text-danger border-danger/20",
+  amber: "bg-warn-soft text-warn border-warn/20",
+  emerald: "bg-ok-soft text-ok border-ok/20",
+  blue: "bg-accent-soft text-accent border-accent/20",
+  indigo: "bg-accent-soft text-accent border-accent/20",
+  sky: "bg-accent-soft text-accent border-accent/20",
+  violet: "bg-course-3/10 text-course-3 border-course-3/20",
+  cyan: "bg-course-1/10 text-course-1 border-course-1/20",
+  zinc: "bg-surface-2 text-ink-2 border-line-2",
 };
 
 export const TONE_TEXT: Record<string, string> = {
-  red: "text-red-600 dark:text-red-400",
-  amber: "text-amber-600 dark:text-amber-400",
-  emerald: "text-emerald-600 dark:text-emerald-400",
-  blue: "text-blue-600 dark:text-blue-400",
-  indigo: "text-indigo-600 dark:text-indigo-400",
-  sky: "text-sky-600 dark:text-sky-400",
-  violet: "text-violet-600 dark:text-violet-400",
-  cyan: "text-cyan-600 dark:text-cyan-400",
-  zinc: "text-text-secondary dark:text-text-muted",
+  red: "text-danger",
+  amber: "text-warn",
+  emerald: "text-ok",
+  blue: "text-accent",
+  indigo: "text-accent",
+  sky: "text-accent",
+  violet: "text-course-3",
+  cyan: "text-course-1",
+  zinc: "text-ink-2",
 };
 
 export const TONE_ICON_TILE: Record<string, string> = {
-  sky: "bg-sky-500/10 border-sky-500/20 text-sky-600 dark:text-sky-400",
-  emerald: "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400",
-  amber: "bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400",
-  violet: "bg-violet-500/10 border-violet-500/20 text-violet-600 dark:text-violet-400",
-  red: "bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400",
-  indigo: "bg-indigo-500/10 border-indigo-500/20 text-indigo-600 dark:text-indigo-400",
-  // Neutral well, for an icon that identifies a destination rather than a state
-  // (a repository, a brand mark). `TONE_BADGE.zinc` reads the surface tokens;
-  // this one stays a fixed step so it still reads as a tile on both surfaces.
-  zinc: "bg-zinc-500/10 border-zinc-500/20 text-zinc-600 dark:text-zinc-300",
+  // Calm Notebook: no tinted wells. Every well is the same quiet neutral;
+  // the glyph carries the tone, so status still reads at a glance.
+  sky: "bg-surface-2 border-line-2 text-accent",
+  emerald: "bg-surface-2 border-line-2 text-ok",
+  amber: "bg-surface-2 border-line-2 text-warn",
+  violet: "bg-surface-2 border-line-2 text-course-3",
+  red: "bg-surface-2 border-line-2 text-danger",
+  indigo: "bg-surface-2 border-line-2 text-accent",
+  zinc: "bg-surface-2 border-line-2 text-ink-2",
 };
 
 export const EMPTY_STATE =
-  "p-8 rounded-[28px] border border-dashed border-border-strong dark:border-border text-center";
+  "p-8 rounded-md border border-dashed border-line text-center";
 
 export const FIELD_INPUT =
-  "w-full px-4 py-2.5 rounded-2xl bg-surface dark:bg-surface-secondary border border-border-strong dark:border-border text-sm font-bold text-text-heading dark:text-text-heading placeholder:text-text-muted placeholder:font-medium focus:outline-none focus:border-border-strong";
+  "w-full min-h-11 px-3 py-2 rounded-sm bg-surface border border-line text-[15px] text-ink placeholder:text-muted focus:outline-none focus:border-accent focus:ring-3 focus:ring-accent-soft";
 
 /**
  * Size and surface for the `OptionPicker` trigger (shared/primitives).
@@ -177,13 +174,10 @@ export const FIELD_INPUT =
  * cannot override anyway. `SelectField` takes a `size` prop for both.
  */
 export const OPTION_PICKER_TRIGGER =
-  "[&>button:first-child]:rounded-xl [&>button:first-child]:border-border-strong " +
-  "dark:[&>button:first-child]:border-border [&>button:first-child]:bg-surface-secondary " +
-  "dark:[&>button:first-child]:bg-background/50 [&>button:first-child]:font-bold " +
-  "[&>button:first-child]:shadow-2xs [&>button:first-child]:focus-visible:ring-2 " +
-  "[&>button:first-child]:focus-visible:ring-indigo-500 " +
-  "[&>button:first-child_span]:font-bold [&>button:first-child_span]:text-text-heading " +
-  "dark:[&>button:first-child_span]:text-text-heading";
+  "[&>button:first-child]:rounded-sm [&>button:first-child]:border-line " +
+  "[&>button:first-child]:bg-surface [&>button:first-child]:font-medium " +
+  "[&>button:first-child]:focus-visible:ring-2 [&>button:first-child]:focus-visible:ring-accent " +
+  "[&>button:first-child_span]:font-medium [&>button:first-child_span]:text-ink";
 
 /**
  * Trigger height, and the size of the label inside it.
@@ -193,7 +187,7 @@ export const OPTION_PICKER_TRIGGER =
  */
 const OPTION_PICKER_SIZE: Record<string, string> = {
   // Inline controls that sit in a header strip or a chip row.
-  xs: "[&>button:first-child]:h-6 [&>button:first-child]:px-2 [&>button:first-child_span]:text-[10px]",
+  xs: "[&>button:first-child]:h-6 [&>button:first-child]:px-2 [&>button:first-child_span]:text-[11px]",
   sm: "[&>button:first-child]:h-7 [&>button:first-child]:px-2.5 [&>button:first-child_span]:text-xs",
   // Compact fields: the old `py-1.5` selects.
   md: "[&>button:first-child]:h-8 [&>button:first-child]:px-3 [&>button:first-child_span]:text-xs",
@@ -201,11 +195,11 @@ const OPTION_PICKER_SIZE: Record<string, string> = {
   // The default: what the native `<select>`'s `py-3` used to give.
   xl: "[&>button:first-child]:h-10 [&>button:first-child]:px-3 [&>button:first-child_span]:text-sm",
   // A bare text link in a header — height has to collapse to the line box.
-  auto: "[&>button:first-child]:h-auto [&>button:first-child]:p-0 [&>button:first-child_span]:text-[10px]",
+  auto: "[&>button:first-child]:h-auto [&>button:first-child]:p-0 [&>button:first-child_span]:text-[11px]",
 };
 
 export const optionPickerSize = (size: string): string => OPTION_PICKER_SIZE[size] ?? OPTION_PICKER_SIZE.xl;
 
 /** Small ghost action used for secondary row/page actions (Libraries, dues). */
 export const GHOST_BUTTON =
-  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-tertiary dark:bg-surface-secondary text-text-secondary dark:text-text-muted hover:bg-border-muted dark:hover:bg-surface-hover transition-colors cursor-pointer shrink-0";
+  "inline-flex min-h-11 items-center gap-1.5 px-3 py-1.5 rounded-sm text-ink-2 hover:bg-surface-2 transition-colors duration-[120ms] cursor-pointer shrink-0";

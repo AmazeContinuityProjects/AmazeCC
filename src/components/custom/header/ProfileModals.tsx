@@ -85,18 +85,18 @@ export function RegistrationModalContent({ creds, onClose }: { creds: any; onClo
     onClose();
   };
 
-  if (loading) return <Skeleton className="h-20 w-full rounded-xl" />;
+  if (loading) return <Skeleton className="h-20 w-full rounded-md" />;
 
   if (error || !hasData) {
     return (
       <div className="flex flex-col items-center text-center py-4 space-y-3">
-        <div className="p-3 rounded-full bg-amber-50 dark:bg-amber-900/30">
-          <Clock className="w-8 h-8 text-amber-500" />
+        <div className="p-3 rounded-full bg-warn-soft">
+          <Clock className="w-8 h-8 text-warn" />
         </div>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">No registration schedule available</p>
+        <p className="text-sm text-muted">No registration schedule available</p>
         <button
           onClick={onClose}
-          className="px-4 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
+          className="px-4 py-2 rounded-md bg-surface-2 text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
         >
           Close
         </button>
@@ -106,12 +106,12 @@ export function RegistrationModalContent({ creds, onClose }: { creds: any; onClo
 
   return (
     <div className="flex flex-col items-center text-center py-4 space-y-4">
-      <div className="p-4 rounded-full bg-blue-50 dark:bg-blue-900/30">
-        <Clock className="w-10 h-10 text-blue-600 dark:text-blue-400" />
+      <div className="p-4 rounded-full bg-accent-soft">
+        <Clock className="w-10 h-10 text-accent" />
       </div>
       <div>
-        <p className="text-lg font-bold text-zinc-900 dark:text-zinc-100 font-outfit">Registration Scheduled</p>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+        <p className="text-lg font-semibold text-ink font-outfit">Registration Scheduled</p>
+        <p className="text-sm text-muted mt-1">
           {date && <span>Date: {date}</span>}
           {date && time && <span>{" • "}</span>}
           {time && <span>Time: {time}</span>}
@@ -120,7 +120,7 @@ export function RegistrationModalContent({ creds, onClose }: { creds: any; onClo
       </div>
       <button
         onClick={handleMarkRead}
-        className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors cursor-pointer"
+        className="px-5 py-2.5 rounded-sm bg-accent hover:bg-accent/90 text-background text-sm font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
         Mark as Read
       </button>
@@ -144,20 +144,20 @@ export function BankDayStatusModal({ endpoint, title, creds }: { endpoint: strin
       .finally(() => setLoading(false));
   }, [creds, endpoint]);
 
-  if (loading) return <Skeleton className="h-24 w-full rounded-2xl" />;
+  if (loading) return <Skeleton className="h-24 w-full rounded-md" />;
 
   const hasContent = data?.tables?.length > 0 || (data?.keyValuePairs && Object.keys(data.keyValuePairs).length > 0);
 
   return (
-    <div className="flex items-center gap-4 p-4 rounded-xl">
+    <div className="flex items-center gap-4 p-4 rounded-md">
       {hasContent ? (
         <>
-          <div className="p-3 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">
+          <div className="p-3 rounded-full bg-ok-soft text-ok">
             <CheckCircle className="w-8 h-8" />
           </div>
           <div>
-            <p className="font-semibold text-emerald-700 dark:text-emerald-300 text-lg">{title} Filled</p>
-            <p className="text-sm text-emerald-600/70 dark:text-emerald-400/70">
+            <p className="font-semibold text-ok text-lg">{title} Filled</p>
+            <p className="text-sm text-ok/70">
               Your {title.toLowerCase()} has been submitted successfully
             </p>
           </div>
@@ -169,7 +169,7 @@ export function BankDayStatusModal({ endpoint, title, creds }: { endpoint: strin
           </div>
           <div>
             <p className="font-semibold text-zinc-700 dark:text-zinc-300 text-lg">{title} Not Filled</p>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">No {title.toLowerCase()} found in the system</p>
+            <p className="text-sm text-muted">No {title.toLowerCase()} found in the system</p>
           </div>
         </>
       )}

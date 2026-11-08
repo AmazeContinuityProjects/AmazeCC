@@ -89,11 +89,11 @@ export default function BugRecordingFloatingBar() {
       aria-live="polite"
       className="fixed top-3 left-1/2 -translate-x-1/2 z-[100] animate-in slide-in-from-top-4 duration-300 pointer-events-auto select-none"
     >
-      <div className="flex items-center gap-2.5 sm:gap-3 px-3.5 py-1.5 sm:py-2 rounded-full bg-zinc-950/95 text-white dark:bg-zinc-900/95 backdrop-blur-md border border-rose-500/40 shadow-xl shadow-rose-950/30">
-        <span className="flex items-center gap-1.5 font-mono text-xs font-bold text-rose-400 shrink-0">
+      <div className="flex items-center gap-2.5 sm:gap-3 px-3.5 py-1.5 sm:py-2 rounded-full bg-zinc-950/95 text-white dark:bg-zinc-900/95 border border-danger/40 shadow-xl">
+        <span className="flex items-center gap-1.5 font-mono text-xs font-semibold text-danger shrink-0">
           <span className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500" />
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-danger opacity-75" />
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-danger" />
           </span>
           <span>REC {formatElapsed(elapsed)}</span>
         </span>
@@ -106,7 +106,7 @@ export default function BugRecordingFloatingBar() {
           <button
             type="button"
             onClick={handleFinishAndReview}
-            className="flex items-center gap-1 px-3 py-1 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-transform active:scale-95 cursor-pointer shadow-xs"
+            className="flex items-center gap-1 px-3 py-1 rounded-full bg-accent hover:bg-accent/90 text-background text-xs font-medium transition-transform cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
             <span>Finish & Review</span>

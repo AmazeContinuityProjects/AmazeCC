@@ -31,27 +31,27 @@ export default function PdfGenerationBadge({
   const strokeOffset = strokeCircumference * 0.28; // ~72% fill for the rotating spinner ring
 
   const borderLeftColor = isError
-    ? "border-l-rose-500"
+    ? "border-l-danger/40"
     : isSuccess
-    ? "border-l-emerald-500"
+    ? "border-l-ok/40"
     : "border-l-indigo-600";
 
   return (
     <div
       role="status"
       aria-live="polite"
-      className={`fixed bottom-[calc(env(safe-area-inset-bottom,0px)+5.5rem)] sm:bottom-[calc(env(safe-area-inset-bottom,0px)+6rem)] right-4 left-4 sm:left-auto max-w-[calc(100%-2rem)] sm:max-w-[310px] z-50 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-white/10 shadow-2xl rounded-2xl p-3 pr-2.5 flex items-center gap-3 select-none font-sans border-l-[4px] ${borderLeftColor} animate-in fade-in slide-in-from-bottom-3 duration-200`}
+      className={`fixed bottom-[calc(env(safe-area-inset-bottom,0px)+5.5rem)] sm:bottom-[calc(env(safe-area-inset-bottom,0px)+6rem)] right-4 left-4 sm:left-auto max-w-[calc(100%-2rem)] sm:max-w-[310px] z-50 bg-surface border border-line shadow-lg rounded-md p-3 pr-2.5 flex items-center gap-3 select-none font-sans border-l-[4px] ${borderLeftColor} animate-in fade-in slide-in-from-bottom-3 duration-200`}
     >
       <div className="flex items-center gap-3 w-full">
         {/* Circular Progress / Rotating Spinner SVG (Sync Engine Collapsed Badge style) */}
         <div className="relative flex items-center justify-center shrink-0 w-8 h-8">
           {isSuccess ? (
-            <div className="w-8 h-8 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center animate-in zoom-in-75 duration-200">
-              <Check className="w-4 h-4 text-emerald-500 dark:text-emerald-400 stroke-[3]" />
+            <div className="w-8 h-8 rounded-full border border-line-2 flex items-center justify-center animate-in zoom-in-75 duration-200 bg-surface-2">
+              <Check className="w-4 h-4 text-ok stroke-[3]" />
             </div>
           ) : isError ? (
-            <div className="w-8 h-8 rounded-full bg-rose-500/15 border border-rose-500/30 flex items-center justify-center">
-              <AlertCircle className="w-4 h-4 text-rose-500 dark:text-rose-400" />
+            <div className="w-8 h-8 rounded-full border border-line-2 flex items-center justify-center bg-surface-2">
+              <AlertCircle className="w-4 h-4 text-danger" />
             </div>
           ) : (
             <>
@@ -84,7 +84,7 @@ export default function PdfGenerationBadge({
         {/* Pinned Info Labels */}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <h4 className="text-[11px] font-extrabold text-slate-800 dark:text-white leading-none font-outfit truncate">
+            <h4 className="text-[11px] font-semibold text-ink leading-none font-outfit truncate">
               {isSuccess
                 ? "Dossier Downloaded"
                 : isError
@@ -94,14 +94,14 @@ export default function PdfGenerationBadge({
             <span
               className={`text-[10px] font-black uppercase px-1.5 py-0.2 rounded border shrink-0 ${
                 theme === "light"
-                  ? "bg-amber-500/10 text-amber-600 border-amber-500/25"
+                  ? "bg-warn-soft text-warn border-warn/25"
                   : "bg-indigo-500/10 text-indigo-400 border-indigo-500/25"
               }`}
             >
               {theme === "light" ? "Light" : "Dark"}
             </span>
           </div>
-          <p className="text-[9px] text-slate-500 dark:text-slate-400 font-semibold truncate mt-1 leading-tight max-w-[155px]">
+          <p className="text-[11px] text-muted font-semibold truncate mt-1 leading-tight max-w-[155px]">
             {isSuccess
               ? successMessage || `${timetableName} downloaded`
               : isError
@@ -115,7 +115,7 @@ export default function PdfGenerationBadge({
           <button
             type="button"
             onClick={onDismiss}
-            className="p-1.5 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors cursor-pointer shrink-0 relative hit-expand touch-press"
+            className="p-1.5 rounded-md text-muted hover:text-ink-2 hover:bg-surface-2 transition-colors cursor-pointer shrink-0 relative hit-expand touch-press"
             title="Dismiss notification"
           >
             <X size={13} />

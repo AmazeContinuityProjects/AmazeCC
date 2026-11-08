@@ -131,7 +131,7 @@ export function SegmentedControl<T extends string>({
 
   return (
     <div
-      className={`${container} p-0.5 bg-surface-tertiary dark:bg-surface-secondary rounded-xl border border-border-muted dark:border-border text-xs${overflow} ${className}`.trim()}
+      className={`${container} p-0.5 bg-surface-tertiary dark:bg-surface-secondary rounded-md border border-border-muted dark:border-border text-xs${overflow} ${className}`.trim()}
     >
       {options.map((opt) => (
         <button
@@ -144,7 +144,7 @@ export function SegmentedControl<T extends string>({
           // cn/twMerge so the accent colour reliably overrides the segment's
           // idle colour instead of leaving both to the cascade.
           className={cn(
-            "rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap",
+            "rounded-lg font-semibold transition-all cursor-pointer whitespace-nowrap",
             grow ? "flex-1 px-2.5 py-1.5 text-[11px]" : "px-2.5 py-1 text-xs",
             opt.icon && "flex items-center justify-center gap-1",
             value === opt.value ? SEG_ACTIVE : SEG_IDLE,
@@ -184,7 +184,7 @@ export function ChipTabs<T extends string>({
   size?: "sm" | "md";
   className?: string;
 }) {
-  const sizing = size === "sm" ? "text-[10px] px-2.5 py-1" : "text-[11px] px-3 py-1.5";
+  const sizing = size === "sm" ? "text-[11px] px-2.5 py-1" : "text-[11px] px-3 py-1.5";
 
   return (
     <div
@@ -202,10 +202,10 @@ export function ChipTabs<T extends string>({
             title={opt.title}
             onClick={() => onChange(opt.value)}
             className={cn(
-              "shrink-0 whitespace-nowrap rounded-xl font-black transition-all cursor-pointer",
+              "shrink-0 whitespace-nowrap rounded-md font-semibold transition-all cursor-pointer",
               sizing,
               active
-                ? "bg-indigo-600 text-white shadow-xs"
+                ? "bg-accent text-background"
                 : "bg-surface-tertiary dark:bg-surface-secondary text-text-secondary dark:text-text-muted hover:text-text-heading dark:hover:text-text-heading"
             )}
           >
@@ -251,7 +251,7 @@ export function RadioGroup<T extends string>({
             key={opt.value}
             title={opt.title}
             className={cn(
-              "flex items-start gap-3 p-3 rounded-2xl border transition-all cursor-pointer select-none text-left",
+              "flex items-start gap-3 p-3 rounded-md border transition-all cursor-pointer select-none text-left",
               isSelected
                 ? "bg-indigo-50/70 dark:bg-indigo-950/30 border-indigo-500/40 dark:border-indigo-500/30 shadow-2xs"
                 : "bg-surface dark:bg-surface-secondary border-border-muted dark:border-border hover:bg-surface-secondary dark:hover:bg-surface-hover/60"
@@ -270,12 +270,12 @@ export function RadioGroup<T extends string>({
                 "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all",
                 isSelected
                   ? "border-indigo-600 dark:border-indigo-400 bg-indigo-600 dark:border-indigo-400"
-                  : "border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900"
+                  : "border-zinc-300 dark:border-zinc-600 bg-surface"
               )}
               aria-hidden="true"
             >
               {isSelected ? (
-                <span className="h-1.5 w-1.5 rounded-full bg-white dark:bg-zinc-950" />
+                <span className="h-1.5 w-1.5 rounded-full bg-surface" />
               ) : null}
             </span>
             <div className="flex-1 min-w-0">
@@ -283,7 +283,7 @@ export function RadioGroup<T extends string>({
                 {opt.icon ? <span className="shrink-0">{opt.icon}</span> : null}
                 <span
                   className={cn(
-                    "text-xs sm:text-sm font-bold tracking-tight block truncate",
+                    "text-xs sm:text-sm font-semibold tracking-tight block truncate",
                     isSelected
                       ? "text-indigo-950 dark:text-indigo-100"
                       : "text-text-heading"

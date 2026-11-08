@@ -28,7 +28,7 @@
     "*.{js,jsx,mjs,cjs,ts,tsx,css,md,json}": "prettier --write"
   },
   "dependencies": {
-    "@amazecontinuityprojects/amazeui": "^1.6.1",
+    "@amazecontinuityprojects/amazeui": "file:.local/amazeui-2.0.0.tgz",
     "@next/third-parties": "16.4.3",
     "@opentelemetry/api": "^1.10.0",
     "@opentelemetry/api-logs": "^0.223.0",

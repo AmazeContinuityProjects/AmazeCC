@@ -28,7 +28,7 @@ function renderTable(table: PatronTable, idx: number) {
   return (
     <div key={idx} className="space-y-2">
       {table.caption && (
-        <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 px-1">
+        <p className="text-[11px] font-semibold text-zinc-400 px-1">
           {table.caption}
         </p>
       )}
@@ -41,12 +41,12 @@ function renderTable(table: PatronTable, idx: number) {
                 className={`min-w-0 flex-1 ${ci === 0 ? "shrink-0 basis-1/4" : ""}`}
               >
                 {ci === 0 ? (
-                  <span className="text-xs font-bold text-zinc-900 dark:text-white font-outfit truncate block">
+                  <span className="text-xs font-semibold text-ink font-outfit truncate block">
                     {String(cell ?? "—")}
                   </span>
                 ) : (
                   <>
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 block">
+                    <span className="text-[11px] font-semibold text-zinc-400 block">
                       {headers[ci] || ""}
                     </span>
                     <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-200 truncate block">
@@ -174,12 +174,12 @@ export default function DuesView({ creds, isDemo, refreshKey, onTotals }: DuesVi
   if (error && !data) {
     return (
       <div className={EMPTY_STATE}>
-        <TriangleAlert className="w-7 h-7 text-red-400 mx-auto" />
-        <p className="text-xs font-bold text-zinc-700 dark:text-zinc-300 mt-2">{error}</p>
+        <TriangleAlert className="w-7 h-7 text-danger mx-auto" />
+        <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 mt-2">{error}</p>
         <button
           type="button"
           onClick={() => void load()}
-          className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
+          className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-surface-2 text-[11px] font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
         >
           <RefreshCcw className="w-3 h-3" />
           Try again
@@ -193,8 +193,8 @@ export default function DuesView({ creds, isDemo, refreshKey, onTotals }: DuesVi
   if (!hasContent) {
     return (
       <div className={EMPTY_STATE}>
-        <CheckCircle2 className="w-7 h-7 text-emerald-500 mx-auto" />
-        <p className="text-xs font-bold text-zinc-700 dark:text-zinc-300 mt-2">No dues</p>
+        <CheckCircle2 className="w-7 h-7 text-ok mx-auto" />
+        <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 mt-2">No dues</p>
         <p className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1">
           Nothing outstanding on your library account.
         </p>
@@ -206,10 +206,10 @@ export default function DuesView({ creds, isDemo, refreshKey, onTotals }: DuesVi
     <div className="space-y-4">
       {(warning || errorMsg) && (
         <div
-          className={`p-3 rounded-2xl border text-xs font-bold flex items-start gap-2 ${
+          className={`p-3 rounded-md border text-xs font-semibold flex items-start gap-2 ${
             errorMsg
-              ? "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400"
-              : "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/40 text-amber-700 dark:text-amber-300"
+              ? "bg-danger-soft border-danger/40 text-danger"
+              : "bg-warn-soft border-warn/40 text-warn"
           }`}
         >
           <AlertTriangle className="w-4 h-4 shrink-0 mt-px" />
@@ -223,14 +223,14 @@ export default function DuesView({ creds, isDemo, refreshKey, onTotals }: DuesVi
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2">
               <Receipt className="w-4 h-4 text-indigo-500" />
-              <h3 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">
+              <h3 className="text-sm font-semibold text-ink font-outfit tracking-tight">
                 Overdue books
               </h3>
               <span className={SECTION_CHIP}>{books.length}</span>
             </div>
             {overdue > 0 && (
               <span
-                className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border ${TONE_BADGE.red}`}
+                className={`text-[11px] font-semibold px-2 py-0.5 rounded-md border ${TONE_BADGE.red}`}
               >
                 {overdue} overdue
               </span>
@@ -244,23 +244,23 @@ export default function DuesView({ creds, isDemo, refreshKey, onTotals }: DuesVi
                 <div key={`${b.isbn || b.title}-${i}`} className={LIST_ROW}>
                   <span
                     className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                      days > 0 ? "bg-red-500" : "bg-emerald-500"
+                      days > 0 ? "bg-danger" : "bg-ok"
                     }`}
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold text-zinc-900 dark:text-white truncate font-outfit leading-tight">
+                    <p className="text-sm font-semibold text-ink truncate font-outfit leading-tight">
                       {b.title || "Untitled"}
                     </p>
-                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5 truncate">
+                    <p className="text-[11px] text-muted font-medium mt-0.5 truncate">
                       {[b.author, b.isbn].filter(Boolean).join(" · ")}
                     </p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-sm font-black font-outfit text-zinc-900 dark:text-white leading-tight">
+                    <p className="text-sm font-semibold font-outfit text-ink leading-tight">
                       ₹{num(b.dueAmount).toLocaleString("en-IN")}
                     </p>
                     {days > 0 && (
-                      <p className="text-[10px] font-bold text-red-600 dark:text-red-400">
+                      <p className="text-[11px] font-semibold text-danger">
                         {days}d late
                       </p>
                     )}
@@ -283,7 +283,7 @@ export default function DuesView({ creds, isDemo, refreshKey, onTotals }: DuesVi
           } catch {}
           void refreshDues();
         }}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-surface-2 text-[11px] font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
       >
         {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCcw className="w-3 h-3" />}
         Refresh dues

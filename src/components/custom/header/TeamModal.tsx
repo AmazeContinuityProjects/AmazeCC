@@ -90,7 +90,7 @@ export default function TeamModal({ handleClose }: { handleClose: () => void }) 
                       />
                     ) : (
                       <span
-                        className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border text-sm font-black font-outfit ${TONE_ICON_TILE.indigo}`}
+                        className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border text-sm font-semibold font-outfit ${TONE_ICON_TILE.indigo}`}
                         aria-hidden
                       >
                         {member.name.charAt(0).toUpperCase()}

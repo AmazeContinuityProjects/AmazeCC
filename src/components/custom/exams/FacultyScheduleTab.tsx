@@ -446,9 +446,9 @@ export default function FacultyScheduleTab({
         />
         <span className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-bold text-text-heading truncate">{group.canonical}</span>
+            <span className="text-sm font-semibold text-text-heading truncate">{group.canonical}</span>
             {empId && (
-              <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 shrink-0">
+              <span className="text-[11px] font-mono font-semibold px-1.5 py-0.5 rounded bg-surface-2 text-zinc-600 dark:text-zinc-400 shrink-0">
                 #{empId}
               </span>
             )}
@@ -507,7 +507,7 @@ export default function FacultyScheduleTab({
                 <button
                   type="button"
                   onClick={() => setSearch("")}
-                  className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-black text-white transition-colors hover:bg-indigo-700"
+                  className="inline-flex items-center gap-2 rounded-sm bg-accent px-4 py-2.5 text-sm font-medium text-background transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 >
                   Clear search
                 </button>
@@ -534,10 +534,10 @@ export default function FacultyScheduleTab({
                wondering where their own professors went. Name the two ways in:
                a synced timetable/semester, or an FFCS draft (the latter only
                when the planner's picks are being counted at all). */
-            <div className="rounded-2xl border border-dashed border-border-muted p-4 text-[11px] leading-relaxed font-medium text-text-secondary dark:text-text-muted">
+            <div className="rounded-md border border-dashed border-border-muted p-4 text-[11px] leading-relaxed font-medium text-text-secondary dark:text-text-muted">
               Once your timetable and marks are synced
               {openedFromHome ? "" : " — or you add courses in the FFCS planner"} — the faculties teaching{" "}
-              <span className="font-bold text-text-heading">your</span> courses will be listed here first.
+              <span className="font-semibold text-text-heading">your</span> courses will be listed here first.
             </div>
           )}
 

@@ -143,8 +143,8 @@ export default function VerticalTimetableGrid({
       if (cell.kind === "course" && cell.course) {
         return (
           <div className="flex flex-col items-center justify-center w-full min-w-0 leading-none px-0.5">
-            <span className="font-black text-[10px] leading-tight truncate w-full text-center">{cell.course.code}</span>
-            <span className="font-mono text-[9px] opacity-90 font-bold leading-tight truncate">
+            <span className="font-semibold text-[11px] leading-tight truncate w-full text-center">{cell.course.code}</span>
+            <span className="font-mono text-[11px] opacity-90 font-semibold leading-tight truncate">
               {cell.slots.join("+")}
             </span>
           </div>
@@ -176,11 +176,11 @@ export default function VerticalTimetableGrid({
                     }
                   }}
                   className={cn(
-                    "font-mono font-black tracking-tight rounded px-1 transition-all inline-block",
-                    cell.slots.length === 1 ? "text-[10px]" : "text-[9px]",
-                    onToggleBlockSlot && "cursor-pointer active:scale-90 hover:ring-1 hover:ring-zinc-400",
+                    "font-mono font-semibold tracking-tight rounded px-1 transition-all inline-block",
+                    cell.slots.length === 1 ? "text-[11px]" : "text-[11px]",
+                    onToggleBlockSlot && "cursor-pointer hover:ring-1 hover:ring-zinc-400",
                     isSlotBlocked
-                      ? "text-rose-300 line-through bg-rose-500/20 border border-rose-500/30"
+                      ? "text-danger line-through bg-danger-soft border border-danger/30"
                       : isTheory
                         ? "text-zinc-200 dark:text-zinc-100 hover:bg-zinc-800/60"
                         : "text-zinc-400 dark:text-zinc-400 hover:bg-zinc-800/60",
@@ -192,7 +192,7 @@ export default function VerticalTimetableGrid({
               );
             })
           ) : (
-            <span className="text-[8px] opacity-40 font-mono">—</span>
+            <span className="text-[11px] opacity-40 font-mono">—</span>
           )}
         </div>
       );
@@ -212,7 +212,7 @@ export default function VerticalTimetableGrid({
             {cell.slots.map((slot, i) => (
               <span
                 key={`${slot}-${i}`}
-                className={cn("text-[10px] leading-[1.15]", i === 0 ? "font-black" : "font-bold opacity-75")}
+                className={cn("text-[11px] leading-[1.15]", i === 0 ? "font-semibold" : "font-semibold opacity-75")}
               >
                 {i === 0 ? slot : `+${slot}`}
               </span>
@@ -223,8 +223,8 @@ export default function VerticalTimetableGrid({
             <span
               className={cn(
                 "leading-tight",
-                compact ? "w-full truncate text-[10px]" : "break-all text-[11px]",
-                cell.kind === "course" ? "font-black" : "font-bold",
+                compact ? "w-full truncate text-[11px]" : "break-all text-[11px]",
+                cell.kind === "course" ? "font-semibold" : "font-semibold",
                 cell.kind === "empty" && "opacity-60",
               )}
             >
@@ -233,13 +233,13 @@ export default function VerticalTimetableGrid({
           )
         )}
         {!compact && cell.kind === "course" && cell.course && (
-          <span className="w-full truncate text-center text-[9px] font-semibold leading-tight">{cell.course.code}</span>
+          <span className="w-full truncate text-center text-[11px] font-semibold leading-tight">{cell.course.code}</span>
         )}
         {!compact && cell.blocked && (
-          <span className="text-[9px] font-black uppercase leading-tight tracking-wider">Blocked</span>
+          <span className="text-[11px] font-semibold leading-tight">Blocked</span>
         )}
         {!compact && !cell.blocked && cell.partiallyBlocked && (
-          <span className="text-[9px] font-bold uppercase leading-tight tracking-wider opacity-80">Partly blocked</span>
+          <span className="text-[11px] font-semibold leading-tight opacity-80">Partly blocked</span>
         )}
       </>
     );
@@ -262,17 +262,17 @@ export default function VerticalTimetableGrid({
       onClick: () => handleTap(cell),
       tileClassName: cn(
         cell.kind === "blocked" &&
-          "border-red-500/40 bg-[repeating-linear-gradient(45deg,transparent,transparent_2px,rgba(239,68,68,0.3)_2px,rgba(239,68,68,0.3)_4px)] bg-red-950/40 text-red-200 shadow-inner",
+          "border-danger/40 bg-[repeating-linear-gradient(45deg,transparent,transparent_2px,rgba(239,68,68,0.3)_2px,rgba(239,68,68,0.3)_4px)] bg-danger-soft text-danger shadow-inner",
         cell.kind !== "blocked" &&
           cell.partiallyBlocked &&
-          "border-amber-500/40 bg-[repeating-linear-gradient(45deg,transparent,transparent_2px,rgba(245,158,11,0.15)_2px,rgba(245,158,11,0.15)_4px)] bg-amber-950/20 text-amber-200 shadow-inner",
-        cell.kind === "course" && cell.course && cn(cell.course.color, "shadow-md text-gray-900 dark:text-gray-100"),
+          "border-warn/40 bg-[repeating-linear-gradient(45deg,transparent,transparent_2px,rgba(245,158,11,0.15)_2px,rgba(245,158,11,0.15)_4px)] bg-warn-soft text-warn shadow-inner",
+        cell.kind === "course" && cell.course && cn(cell.course.color, "shadow-md text-ink"),
         cell.kind === "gap" &&
-          "animate-pulse border-yellow-500/60 bg-yellow-500/20 text-yellow-600 dark:text-yellow-200",
+          "animate-pulse border-warn/60 bg-warn-soft text-warn",
         cell.kind === "empty" &&
           cn(
             "border-dashed border-zinc-300/90 bg-zinc-100/50 text-zinc-400 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-600",
-            isToday && "border-amber-400/70 bg-amber-50/60 dark:border-amber-500/40 dark:bg-amber-500/10",
+            isToday && "border-warn/70 bg-amber-50/60",
           ),
       ),
     };
@@ -284,8 +284,8 @@ export default function VerticalTimetableGrid({
 
       <div
         className={cn(
-          "flex flex-wrap items-center gap-x-3 gap-y-1 px-1 font-medium text-zinc-500 dark:text-zinc-400",
-          compact ? "gap-x-2.5 text-[9px]" : "text-[10px]",
+          "flex flex-wrap items-center gap-x-3 gap-y-1 px-1 font-medium text-muted",
+          compact ? "gap-x-2.5 text-[11px]" : "text-[11px]",
         )}
       >
         <span className="flex items-center gap-1.5">
@@ -297,12 +297,12 @@ export default function VerticalTimetableGrid({
           class
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-[3px] border-2 border-red-500/40 bg-red-500/30" />
+          <span className="h-2.5 w-2.5 rounded-[3px] border-2 border-danger/40 bg-danger/30" />
           blocked
         </span>
         {today && grid.days.some((d) => d.id.toLowerCase() === today) && (
           <span className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-[3px] border-2 border-amber-400 bg-amber-50 dark:border-amber-500/40 dark:bg-amber-500/10" />
+            <span className="h-2.5 w-2.5 rounded-[3px] border-2 border-warn/40 bg-warn-soft" />
             today
           </span>
         )}

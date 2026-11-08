@@ -69,14 +69,14 @@ const normalizeDistributionType = (raw?: string) => {
 };
 
 const GRADE_COLORS: Record<string, string> = {
-  S: "text-amber-500 border-amber-500/20 bg-amber-500/10",
-  A: "text-emerald-500 border-emerald-500/20 bg-emerald-500/10",
-  B: "text-blue-500 border-blue-500/20 bg-blue-500/10",
-  C: "text-cyan-500 border-cyan-500/20 bg-cyan-500/10",
-  D: "text-orange-500 border-orange-500/20 bg-orange-500/10",
-  E: "text-red-400 border-red-400/20 bg-red-400/10",
-  F: "text-red-600 border-red-600/20 bg-red-600/10",
-  P: "text-violet-500 border-violet-500/20 bg-violet-500/10",
+  S: "text-warn border-warn/20 bg-warn-soft",
+  A: "text-ok border-ok/20 bg-ok-soft",
+  B: "text-accent border-accent/20 bg-accent-soft",
+  C: "text-course-1 border-course-1/20 bg-course-1/10",
+  D: "text-course-2 border-course-2/20 bg-course-2/10",
+  E: "text-danger border-danger/20 bg-danger-soft",
+  F: "text-danger border-danger/20 bg-danger-soft",
+  P: "text-course-3 border-course-3/20 bg-course-3/10",
   N: "text-gray-400 border-gray-400/20 bg-gray-400/10",
 };
 
@@ -205,7 +205,7 @@ const VIEW_META: ViewMeta[] = [
     title: "Course Catalog",
     desc: "Every course in the programme with syllabus downloads",
     icon: Search,
-    iconClass: "bg-sky-500/10 border-sky-500/20 text-sky-600 dark:text-sky-400",
+    iconClass: "bg-accent-soft border-accent/20 text-accent",
   },
   {
     id: "completed",
@@ -213,7 +213,7 @@ const VIEW_META: ViewMeta[] = [
     title: "Completed Courses",
     desc: "Cleared courses grouped by distribution type",
     icon: CheckCircle2,
-    iconClass: "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400",
+    iconClass: "bg-ok-soft border-ok/20 text-ok",
   },
   {
     id: "planner",
@@ -221,7 +221,7 @@ const VIEW_META: ViewMeta[] = [
     title: "CGPA Predictor",
     desc: "Set expected grades and see the SGPA and CGPA they produce",
     icon: Calculator,
-    iconClass: "bg-violet-500/10 border-violet-500/20 text-violet-600 dark:text-violet-400",
+    iconClass: "bg-course-3/10 border-course-3/20 text-course-3",
   },
 ];
 
@@ -717,8 +717,8 @@ export default function CurriculumPage({
       headline: String(inProgressCount),
       subline: "courses being taken",
       badge: "Ongoing",
-      badgeClass: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20",
-      tone: "text-amber-600 dark:text-amber-400",
+      badgeClass: "bg-warn-soft text-warn border border-warn/20",
+      tone: "text-warn",
       onClick: () => {
         setStatusFilter("in_progress");
         setScreen("catalog");
@@ -730,8 +730,8 @@ export default function CurriculumPage({
       headline: String(completedCount),
       subline: "courses completed",
       badge: "Cleared",
-      badgeClass: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20",
-      tone: "text-emerald-600 dark:text-emerald-400",
+      badgeClass: "bg-ok-soft text-ok border border-ok/20",
+      tone: "text-ok",
       onClick: () => setScreen("completed"),
     });
     list.push({
@@ -773,20 +773,20 @@ export default function CurriculumPage({
   const StatusPill = ({ status }: { status: CourseStatus }) => {
     if (status === "completed") {
       return (
-        <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+        <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-ok-soft text-ok border border-ok/20">
           Done
         </span>
       );
     }
     if (status === "in_progress") {
       return (
-        <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+        <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-warn-soft text-warn border border-warn/20">
           Ongoing
         </span>
       );
     }
     return (
-      <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md bg-zinc-500/10 text-zinc-500 dark:text-zinc-400 border border-zinc-500/20">
+      <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-zinc-500/10 text-muted border border-zinc-500/20">
         Left
       </span>
     );
@@ -835,30 +835,30 @@ export default function CurriculumPage({
                 >
                   <span
                     className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                      pct >= 100 ? "bg-emerald-500" : pct > 0 ? "bg-indigo-500" : "bg-zinc-300 dark:bg-zinc-700"
+                      pct >= 100 ? "bg-ok" : pct > 0 ? "bg-indigo-500" : "bg-zinc-300 dark:bg-zinc-700"
                     }`}
                   />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 min-w-0">
                       {cat.code && (
-                        <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-800/40 shrink-0">
+                        <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-800/40 shrink-0">
                           {cat.code}
                         </span>
                       )}
-                      <p className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight">
+                      <p className="font-semibold text-sm text-ink truncate font-outfit leading-tight">
                         {cat.title}
                       </p>
                       {ongoing > 0 && (
-                        <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shrink-0">
+                        <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-warn-soft text-warn border border-warn/20 shrink-0">
                           {ongoing.toFixed(0)} cr live
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
+                    <p className="text-[11px] text-muted font-medium mt-0.5">
                       {earned.toFixed(1)} earned · {required.toFixed(1)} required
                     </p>
                     <div className="mt-1.5 max-w-[160px]">
-                      <MiniBar pct={pct} tone={pct >= 100 ? "bg-emerald-500" : "bg-indigo-500"} />
+                      <MiniBar pct={pct} tone={pct >= 100 ? "bg-ok" : "bg-indigo-500"} />
                     </div>
                   </div>
                   {baskets.length > 0 && (
@@ -875,7 +875,7 @@ export default function CurriculumPage({
                       animate={{ height: "auto", opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.22, ease: "easeOut" }}
-                      className="overflow-hidden bg-zinc-50/60 dark:bg-zinc-950/30"
+                      className="overflow-hidden bg-surface-2"
                     >
                       {baskets.map((b, bi) => {
                         const bKey = `basket:${key}:${b.title}:${bi}`;
@@ -892,10 +892,10 @@ export default function CurriculumPage({
                                   bOpen ? "rotate-90" : ""
                                 }`}
                               />
-                              <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300 truncate flex-1">
+                              <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 truncate flex-1">
                                 {b.title}
                               </span>
-                              <span className="text-[10px] font-bold text-zinc-400 shrink-0">{b.credits} cr</span>
+                              <span className="text-[11px] font-semibold text-zinc-400 shrink-0">{b.credits} cr</span>
                             </button>
 
                             <AnimatePresence initial={false}>
@@ -909,14 +909,14 @@ export default function CurriculumPage({
                                 >
                                   {(b.items || []).map((item) => (
                                     <div key={item.code} className="flex items-center gap-2 py-2 pl-14 pr-4">
-                                      <span className="text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
+                                      <span className="text-[11px] font-mono font-semibold text-indigo-600 dark:text-indigo-400 shrink-0">
                                         {item.code}
                                       </span>
                                       <span className="text-[11px] text-zinc-600 dark:text-zinc-300 truncate flex-1">
                                         {item.name}
                                       </span>
                                       <StatusPill status={statusOf(item.code)} />
-                                      <span className="text-[10px] font-bold text-zinc-400 w-8 text-right shrink-0">
+                                      <span className="text-[11px] font-semibold text-zinc-400 w-8 text-right shrink-0">
                                         {num(item.credits)} cr
                                       </span>
                                       <SyllabusButton code={item.code} />
@@ -948,17 +948,17 @@ export default function CurriculumPage({
               return (
                 <div key={cat.basketTitle} className={LIST_ROW}>
                   <span
-                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${pct >= 100 ? "bg-emerald-500" : "bg-violet-500"}`}
+                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${pct >= 100 ? "bg-ok" : "bg-course-3"}`}
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight">
+                    <p className="font-semibold text-sm text-ink truncate font-outfit leading-tight">
                       {cat.basketTitle}
                     </p>
-                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
+                    <p className="text-[11px] text-muted font-medium mt-0.5">
                       {earned.toFixed(1)} earned · {required.toFixed(1)} required
                     </p>
                   </div>
-                  <span className="text-sm font-black font-outfit text-zinc-900 dark:text-white shrink-0">
+                  <span className="text-sm font-semibold font-outfit text-ink shrink-0">
                     {Math.round(pct)}%
                   </span>
                 </div>
@@ -1026,7 +1026,7 @@ export default function CurriculumPage({
                 setSearchQuery("");
                 setStatusFilter("all");
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-surface-2 text-[11px] font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
             >
               <RefreshCcw className="w-3 h-3" />
               Reset filters
@@ -1039,15 +1039,15 @@ export default function CurriculumPage({
           {catalogMatches.map((c) => (
             <div key={`${c.category}-${c.code}`} className={LIST_ROW}>
               <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-zinc-300 dark:bg-zinc-700" />
-              <span className="text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
+              <span className="text-[11px] font-mono font-semibold text-indigo-600 dark:text-indigo-400 shrink-0">
                 {c.code}
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-zinc-900 dark:text-white truncate">{c.name}</p>
-                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5 truncate">{c.category}</p>
+                <p className="text-xs font-semibold text-ink truncate">{c.name}</p>
+                <p className="text-[11px] text-muted font-medium mt-0.5 truncate">{c.category}</p>
               </div>
               <StatusPill status={c.status} />
-              <span className="text-[10px] font-bold text-zinc-400 w-8 text-right shrink-0">{c.credits} cr</span>
+              <span className="text-[11px] font-semibold text-zinc-400 w-8 text-right shrink-0">{c.credits} cr</span>
               <SyllabusButton code={c.code} />
             </div>
           ))}
@@ -1067,7 +1067,7 @@ export default function CurriculumPage({
                   className={`${LIST_ROW} cursor-pointer`}
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
-                  <p className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight flex-1">
+                  <p className="font-semibold text-sm text-ink truncate font-outfit leading-tight flex-1">
                     {category}
                   </p>
                   <span className={CHIP}>
@@ -1089,12 +1089,12 @@ export default function CurriculumPage({
                       {courses.map((c) => (
                         <div key={c.code} className={LIST_ROW}>
                           <span className="w-1.5 shrink-0" />
-                          <span className="text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
+                          <span className="text-[11px] font-mono font-semibold text-indigo-600 dark:text-indigo-400 shrink-0">
                             {c.code}
                           </span>
                           <span className="text-xs text-zinc-700 dark:text-zinc-300 truncate flex-1">{c.name}</span>
                           <StatusPill status={c.status} />
-                          <span className="text-[10px] font-bold text-zinc-400 w-8 text-right shrink-0">
+                          <span className="text-[11px] font-semibold text-zinc-400 w-8 text-right shrink-0">
                             {c.credits} cr
                           </span>
                           <SyllabusButton code={c.code} />
@@ -1131,8 +1131,8 @@ export default function CurriculumPage({
                   onClick={() => toggleIn(setOpenGroups, key)}
                   className={`${LIST_ROW} cursor-pointer`}
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                  <p className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight flex-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-ok shrink-0" />
+                  <p className="font-semibold text-sm text-ink truncate font-outfit leading-tight flex-1">
                     {type}
                   </p>
                   <span className={CHIP}>
@@ -1155,13 +1155,13 @@ export default function CurriculumPage({
                         <div key={`${c.basketTitle}-${i}`} className={LIST_ROW}>
                           <span className="w-1.5 shrink-0" />
                           <div className="min-w-0 flex-1">
-                            <p className="text-xs font-bold text-zinc-900 dark:text-white truncate">{c.basketTitle}</p>
-                            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
+                            <p className="text-xs font-semibold text-ink truncate">{c.basketTitle}</p>
+                            <p className="text-[11px] text-muted font-medium mt-0.5">
                               {num(c.creditsEarned).toFixed(1)} credits earned
                             </p>
                           </div>
                           <span
-                            className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border shrink-0 ${
+                            className={`text-[11px] font-semibold px-2 py-0.5 rounded-md border shrink-0 ${
                               GRADE_COLORS[c.grade] || GRADE_COLORS.N
                             } ${isCgpaBlurred ? "blur-[5px] select-none" : ""}`}
                           >
@@ -1277,10 +1277,10 @@ export default function CurriculumPage({
 
   const sgpaGap = predictedSgpa - requiredSgpa;
   const verdict = !targetReachable
-    ? { tone: "red", surface: "bg-red-600", badge: "Unreachable" }
+    ? { tone: "red", surface: "bg-danger", badge: "Unreachable" }
     : sgpaGap >= 0
-      ? { tone: "emerald", surface: "bg-emerald-600", badge: "On track" }
-      : { tone: "amber", surface: "bg-amber-600", badge: "Short" };
+      ? { tone: "emerald", surface: "bg-ok", badge: "On track" }
+      : { tone: "amber", surface: "bg-warn", badge: "Short" };
 
   const blurGrades = isCgpaBlurred ? "blur-[5px] select-none" : "";
 
@@ -1294,8 +1294,8 @@ export default function CurriculumPage({
       <div className={LIST_SHELL}>
         <div className="px-4 py-3.5 space-y-2.5">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-black text-zinc-700 dark:text-zinc-300">Target graduation CGPA</span>
-            <span className={`text-sm font-black text-indigo-600 dark:text-indigo-400 font-outfit ${blurGrades}`}>
+            <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Target graduation CGPA</span>
+            <span className={`text-sm font-semibold text-indigo-600 dark:text-indigo-400 font-outfit ${blurGrades}`}>
               {targetCgpa.toFixed(2)}
             </span>
           </div>
@@ -1309,7 +1309,7 @@ export default function CurriculumPage({
             aria-label="Target graduation CGPA"
             className="w-full accent-indigo-500 cursor-pointer"
           />
-          <div className="flex justify-between text-[10px] font-bold text-zinc-400">
+          <div className="flex justify-between text-[11px] font-semibold text-zinc-400">
             <span>5.00</span>
             <span>7.50</span>
             <span>8.50</span>
@@ -1318,14 +1318,14 @@ export default function CurriculumPage({
           </div>
         </div>
         <div className="px-4 py-3 flex items-center justify-between">
-          <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400">Credits this term</span>
-          <span className="text-sm font-black font-outfit text-amber-600 dark:text-amber-400">
+          <span className="text-[11px] font-semibold text-muted">Credits this term</span>
+          <span className="text-sm font-semibold font-outfit text-warn">
             {semCredits.toFixed(1)}
           </span>
         </div>
         <div className="px-4 py-3 flex items-center justify-between">
-          <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400">Credits still open after it</span>
-          <span className="text-sm font-black font-outfit text-amber-600 dark:text-amber-400">
+          <span className="text-[11px] font-semibold text-muted">Credits still open after it</span>
+          <span className="text-sm font-semibold font-outfit text-warn">
             {creditsAfterTerm.toFixed(1)}
           </span>
         </div>
@@ -1399,7 +1399,7 @@ export default function CurriculumPage({
               return (
                 <div key={c.code} className={LIST_ROW}>
                   <ListRowText title={c.code} subtitle={c.title} titleTooltip={c.title} />
-                  <span className="shrink-0 text-[11px] font-bold text-zinc-500 dark:text-zinc-400 w-12 text-right">
+                  <span className="shrink-0 text-[11px] font-semibold text-muted w-12 text-right">
                     {c.credits.toFixed(1)} cr
                   </span>
                   <ToneBadge tone={GRADE_TONE[grade] ?? "zinc"}>{grade}</ToneBadge>
@@ -1411,7 +1411,7 @@ export default function CurriculumPage({
                       onChange={(g) => setExpectedGrades((prev) => ({ ...prev, [c.code]: g }))}
                     />
                   </label>
-                  <span className={`shrink-0 w-8 text-right text-[11px] font-black font-outfit ${blurGrades}`}>
+                  <span className={`shrink-0 w-8 text-right text-[11px] font-semibold font-outfit ${blurGrades}`}>
                     {points}
                   </span>
                 </div>
@@ -1423,8 +1423,8 @@ export default function CurriculumPage({
 
       {/* 4 · Verdict. Solid, because this is the one block on the page that has
           to be read before anything else — the tiles can be scanned, this cannot. */}
-      <div className={`p-5 rounded-[24px] ${verdict.surface} text-white relative overflow-hidden`}>
-        <p className="text-[10px] font-black uppercase tracking-widest text-white/70">
+      <div className={`p-5 rounded-lg ${verdict.surface} text-white relative overflow-hidden`}>
+        <p className="text-[11px] font-semibold text-white/70">
           {targetReachable
             ? sgpaGap >= 0
               ? "You clear the target this term"
@@ -1469,7 +1469,7 @@ export default function CurriculumPage({
         <button
           type="button"
           onClick={() => setActiveSubTab("marks-predictor")}
-          className="mt-4 w-full py-2.5 px-4 rounded-2xl bg-white text-zinc-900 font-black text-xs hover:bg-white/90 transition-colors cursor-pointer flex items-center justify-center gap-2"
+          className="mt-4 w-full py-2.5 px-4 rounded-md bg-surface text-zinc-900 font-semibold text-xs hover:bg-white/90 transition-colors cursor-pointer flex items-center justify-center gap-2"
         >
           Open Marks Predictor
           <ArrowUpRight className="w-4 h-4" />
@@ -1521,7 +1521,7 @@ export default function CurriculumPage({
                 <button
                   type="button"
                   onClick={() => void onSync()}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-sm bg-accent hover:bg-accent/90 text-background text-xs font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 >
                   <RefreshCcw className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin" : ""}`} />
                   Load grades &amp; curriculum
@@ -1552,16 +1552,16 @@ export default function CurriculumPage({
         <button
           type="button"
           onClick={() => setScreen("overview")}
-          className={`${TILE} h-32 sm:h-36 transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer`}
+          className={`${TILE} h-32 sm:h-36 transition-all cursor-pointer`}
         >
           <div className="flex items-center justify-between gap-1">
-            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">
+            <span className="text-[11px] sm:text-xs font-semibold text-zinc-400 dark:text-zinc-500 font-outfit truncate">
               Credits
             </span>
             <span
-              className={`text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shrink-0 border ${
+              className={`text-[11px] sm:text-[11px] font-semibold px-2 py-0.5 rounded-md shrink-0 border ${
                 earnedPct >= 100
-                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                  ? "bg-ok-soft text-ok border-ok/20"
                   : "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border-indigo-200/50 dark:border-indigo-800/40"
               }`}
             >
@@ -1569,13 +1569,13 @@ export default function CurriculumPage({
             </span>
           </div>
           <div className="my-auto min-w-0">
-            <span className="text-3xl sm:text-4xl font-black font-outfit tracking-tight leading-none block text-zinc-900 dark:text-white truncate">
+            <span className="text-3xl sm:text-4xl font-semibold font-outfit tracking-tight leading-none block text-ink truncate">
               {totalEarned.toFixed(1)}
             </span>
           </div>
           {/* Same footer geometry as the carousel card so both cards align */}
           <div className="flex items-center justify-between gap-2">
-            <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">
+            <p className="text-[10.5px] sm:text-xs text-muted font-medium truncate">
               of {totalRequired.toFixed(1)} credits
             </p>
             <ChevronRight className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
@@ -1596,17 +1596,17 @@ export default function CurriculumPage({
           );
           return (
             <>
-              <div className="flex h-1.5 rounded-full overflow-hidden bg-zinc-100 dark:bg-zinc-800">
-                <div className="bg-emerald-500 h-full" style={{ width: `${earnedWidth}%` }} />
-                <div className="bg-amber-500 h-full" style={{ width: `${ongoingWidth}%` }} />
+              <div className="flex h-1.5 rounded-full overflow-hidden bg-surface-2">
+                <div className="bg-ok h-full" style={{ width: `${earnedWidth}%` }} />
+                <div className="bg-warn h-full" style={{ width: `${ongoingWidth}%` }} />
               </div>
-              <div className="flex items-center justify-between text-[10px] font-bold text-zinc-400">
+              <div className="flex items-center justify-between text-[11px] font-semibold text-zinc-400">
                 <span className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-ok" />
                   {totalEarned.toFixed(1)} earned
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-warn" />
                   {totalOngoing.toFixed(1)} ongoing
                 </span>
                 <span className="font-mono">
@@ -1636,7 +1636,7 @@ export default function CurriculumPage({
             return (
               <button key={v.id} type="button" onClick={() => setScreen(v.id)} className={`${LIST_ROW} cursor-pointer`}>
                 <div
-                  className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${v.iconClass}`}
+                  className={`w-10 h-10 rounded-md flex items-center justify-center shrink-0 border ${v.iconClass}`}
                 >
                   <Icon className="w-4.5 h-4.5" />
                 </div>

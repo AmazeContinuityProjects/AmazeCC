@@ -58,7 +58,7 @@ export default function BookCover({
     setFailed(false);
   }, [src]);
 
-  const frameClass = `${className} shrink-0 overflow-hidden bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center`;
+  const frameClass = `${className} shrink-0 overflow-hidden bg-surface-2 flex items-center justify-center`;
 
   if (!src || failed) {
     return (

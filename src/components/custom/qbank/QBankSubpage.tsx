@@ -212,7 +212,7 @@ export default function QBankSubpage({
         </div>
 
         {globalCoursesLoading && (
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">Loading community courses…</p>
+          <p className="text-xs text-muted">Loading community courses…</p>
         )}
 
         <SectionHeader title="Courses" count={filteredCourses.length} />
@@ -239,8 +239,8 @@ export default function QBankSubpage({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-sm font-black text-zinc-900 dark:text-white">{c.code}</p>
-                      <p className="mt-1 line-clamp-2 text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                      <p className="text-sm font-semibold text-ink">{c.code}</p>
+                      <p className="mt-1 line-clamp-2 text-sm font-medium text-muted">
                         {c.title}
                       </p>
                     </div>
@@ -285,7 +285,7 @@ export default function QBankSubpage({
       />
 
       {error && (
-        <div className="p-4 rounded-2xl border border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300 flex items-start gap-3">
+        <div className="p-4 rounded-md border border-danger/20 bg-danger-soft text-danger flex items-start gap-3">
           <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
           <div className="min-w-0">
             <h3 className="font-semibold text-sm">Failed to load QBank data</h3>
@@ -293,7 +293,7 @@ export default function QBankSubpage({
             <button
               type="button"
               onClick={() => selectedCourse && void handleSelectCourse(selectedCourse)}
-              className="mt-3 text-xs font-bold flex items-center gap-1 hover:underline cursor-pointer"
+              className="mt-3 text-xs font-semibold flex items-center gap-1 hover:underline cursor-pointer"
             >
               <RefreshCcw className="w-3 h-3" /> Retry
             </button>
@@ -321,17 +321,17 @@ export default function QBankSubpage({
                   href={p.file_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`${TILE_CARD} p-4 hover:border-sky-500/30 transition-colors`}
+                  className={`${TILE_CARD} p-4 hover:border-accent/30 transition-colors`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-sky-500/10 border border-sky-500/20 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
+                    <div className="w-10 h-10 rounded-md border border-line-2 text-accent flex items-center justify-center shrink-0 bg-surface-2">
                       <FileText className="w-5 h-5" />
                     </div>
                     <div className="min-w-0">
-                      <h4 className="font-bold text-sm text-zinc-900 dark:text-white truncate">
+                      <h4 className="font-semibold text-sm text-ink truncate">
                         {p.title}
                       </h4>
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      <p className="text-xs text-muted">
                         {p.source_type} • {p.exam_semester} {p.exam_year}
                       </p>
                     </div>

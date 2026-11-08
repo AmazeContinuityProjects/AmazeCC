@@ -25,7 +25,7 @@ export default function Button({
 
   return (
     <BaseButton
-      className={cn("font-semibold rounded-xl", className)}
+      className={cn("font-semibold rounded-md", className)}
       variant={variant as any}
       size={mappedSize as any}
       disabled={disabled || loading}

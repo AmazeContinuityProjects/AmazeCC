@@ -9,7 +9,7 @@ import { ListSkeleton } from "../../shared/primitives";
 import { FIELD_INPUT, TILE_CARD, TONE_ICON_TILE } from "@/lib/uiTokens";
 
 const FIELD_LABEL =
-  "block text-[10px] font-black uppercase tracking-wider text-text-muted";
+  "block text-[11px] font-semibold text-text-muted";
 
 /** Label + icon-led control, the one wrapper the date/time/seats/tolerance share. */
 // Descendant (not `> child`) selectors: `SelectField` renders its own wrapper
@@ -139,11 +139,11 @@ export default function CreateTrip({ cabShareUser, onTripCreated }: { cabShareUs
   return (
     <div className={TILE_CARD}>
       <div className="flex items-center gap-3">
-        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${TONE_ICON_TILE.emerald}`}>
+        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md ${TONE_ICON_TILE.emerald}`}>
           <MapPin className="h-5 w-5" />
         </span>
         <div className="min-w-0">
-          <h2 className="text-base font-black text-text-heading font-outfit tracking-tight">Post a ride</h2>
+          <h2 className="text-base font-semibold text-text-heading font-outfit tracking-tight">Post a ride</h2>
           <p className="text-[11px] text-text-secondary dark:text-text-muted font-medium leading-relaxed mt-0.5">
             Add your route and timing so others can request to share the cab.
           </p>
@@ -157,7 +157,7 @@ export default function CreateTrip({ cabShareUser, onTripCreated }: { cabShareUs
       ) : (
         <form onSubmit={handleSubmit} className="mt-5 grid gap-4 lg:grid-cols-2">
           {error && (
-            <div className="flex items-center gap-2 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm font-semibold text-red-600 dark:text-red-400 lg:col-span-2">
+            <div className="flex items-center gap-2 rounded-md border border-danger/20 bg-danger-soft p-4 text-sm font-semibold text-danger lg:col-span-2">
               <AlertCircle className="h-4 w-4 shrink-0" />
               {error}
             </div>
@@ -233,7 +233,7 @@ export default function CreateTrip({ cabShareUser, onTripCreated }: { cabShareUs
               {(["mixed", "boys", "girls"] as const).map(opt => (
                 <label
                   key={opt}
-                  className={`flex cursor-pointer items-center justify-center rounded-2xl border px-4 py-3 text-sm font-black capitalize transition-colors ${
+                  className={`flex cursor-pointer items-center justify-center rounded-md border px-4 py-3 text-sm font-semibold capitalize transition-colors ${
                     gender === opt
                       ? "border-indigo-500 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
                       : "border-border-strong text-text-secondary dark:text-text-muted hover:bg-surface-secondary dark:hover:bg-surface-hover"
@@ -269,7 +269,7 @@ export default function CreateTrip({ cabShareUser, onTripCreated }: { cabShareUs
           <button
             type="submit"
             disabled={submitting}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-black text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-70 lg:col-span-2"
+            className="flex w-full items-center justify-center gap-2 rounded-sm bg-accent px-4 py-3 text-sm font-medium text-background transition-colors hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-70 lg:col-span-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <><CheckCircle2 className="w-5 h-5" /> Post Ride</>}
           </button>

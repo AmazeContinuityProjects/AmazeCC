@@ -2,6 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import SimplifiedMobileHome from "../components/custom/mobile/SimplifiedMobileHome";
 
+// The home screen names each course twice: in the attendance list and on its
+// timetable card. These tests are about the timetable card, which comes last.
+const timetableCard = (title: string) => {
+  const all = screen.getAllByText(title);
+  return all[all.length - 1];
+};
+
+
 const TODAY = new Date(2026, 8, 29, 10, 0, 0); // Tuesday, 10am local
 
 const course1 = {
@@ -91,7 +99,7 @@ describe("SimplifiedMobileHome Desktop Layout & Course Pane", () => {
     render(<SimplifiedMobileHome {...defaultProps()} />);
 
     // Click on course1
-    const course1Card = screen.getByText("Problem Solving and Programming");
+    const course1Card = timetableCard("Problem Solving and Programming");
     fireEvent.click(course1Card);
 
     // Desktop pane is now shown
@@ -109,12 +117,12 @@ describe("SimplifiedMobileHome Desktop Layout & Course Pane", () => {
     render(<SimplifiedMobileHome {...defaultProps()} />);
 
     // First click course1
-    fireEvent.click(screen.getByText("Problem Solving and Programming"));
+    fireEvent.click(timetableCard("Problem Solving and Programming"));
     const aside = document.querySelector("aside")!;
     expect(within(aside).getByText("Prof. Ada")).toBeDefined();
 
     // Now click course2
-    fireEvent.click(screen.getByText("Data Structures and Algorithms"));
+    fireEvent.click(timetableCard("Data Structures and Algorithms"));
     expect(within(aside).getByText("Prof. Alan")).toBeDefined();
     expect(within(aside).getByText("SJT 202")).toBeDefined();
   });
@@ -123,7 +131,7 @@ describe("SimplifiedMobileHome Desktop Layout & Course Pane", () => {
     render(<SimplifiedMobileHome {...defaultProps()} />);
 
     // Open pane by clicking course1
-    fireEvent.click(screen.getByText("Problem Solving and Programming"));
+    fireEvent.click(timetableCard("Problem Solving and Programming"));
     expect(document.querySelector("aside")).not.toBeNull();
 
     // Click close button
@@ -139,7 +147,7 @@ describe("SimplifiedMobileHome Desktop Layout & Course Pane", () => {
     const setActiveSubTab = vi.fn();
     render(<SimplifiedMobileHome {...defaultProps({ setActiveTab, setActiveSubTab })} />);
 
-    const course1Card = screen.getByText("Problem Solving and Programming");
+    const course1Card = timetableCard("Problem Solving and Programming");
 
     // First click selects course1 and displays pane
     fireEvent.click(course1Card);
@@ -157,7 +165,7 @@ describe("SimplifiedMobileHome Desktop Layout & Course Pane", () => {
     const setActiveSubTab = vi.fn();
     render(<SimplifiedMobileHome {...defaultProps({ setActiveTab, setActiveSubTab })} />);
 
-    const course1Card = screen.getByText("Problem Solving and Programming");
+    const course1Card = timetableCard("Problem Solving and Programming");
     fireEvent.click(course1Card);
 
     // Immediately navigates on mobile without opening side pane
@@ -169,10 +177,9 @@ describe("SimplifiedMobileHome Desktop Layout & Course Pane", () => {
   it("renders stat cards and dynamic insight carousel", () => {
     render(<SimplifiedMobileHome {...defaultProps()} />);
 
-    // Pinned Attendance StatTile is present
-    expect(screen.getByText("Attendance")).toBeDefined();
-    // 92% is rendered
-    expect(screen.getByText("92%")).toBeDefined();
+    // Attendance leads as a per-course list (the grid no longer repeats it).
+    expect(screen.getByRole("region", { name: "Attendance" })).toBeDefined();
+    expect(screen.getAllByText("92%").length).toBeGreaterThanOrEqual(1);
     // CGPA slide in carousel
     expect(screen.getByText("9.15")).toBeDefined();
   });

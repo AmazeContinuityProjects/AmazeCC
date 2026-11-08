@@ -53,23 +53,23 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
     }, [activeMonth, historyList]);
 
     if (safeCalendars.length === 0 || !monthData) {
-        return <div className="p-8 text-center text-gray-500 dark:text-gray-400">No calendar data available for this semester.</div>;
+        return <div className="p-8 text-center text-muted">No calendar data available for this semester.</div>;
     }
 
     // Compact mode: edge-to-edge squircle date grid. Dates carry their own
     // coloured circle + mild neon tint — no status words, no per-day actions.
     const statusTint = (status: string | undefined) => {
         if (isODTracker) {
-            if (status === "valid od") return { bg: "bg-emerald-500/15 dark:bg-emerald-500/15", dot: "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)]" };
-            if (status === "wasted od") return { bg: "bg-red-500/15 dark:bg-red-500/15", dot: "bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)]" };
-            if (status === "partial wasted od") return { bg: "bg-amber-500/15 dark:bg-amber-500/15", dot: "bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.8)]" };
+            if (status === "valid od") return { bg: "bg-ok-soft", dot: "bg-ok" };
+            if (status === "wasted od") return { bg: "bg-danger-soft", dot: "bg-danger" };
+            if (status === "partial wasted od") return { bg: "bg-warn-soft", dot: "bg-warn" };
             return { bg: "", dot: "" };
         }
-        if (status === "present") return { bg: "bg-emerald-500/15 dark:bg-emerald-500/15", dot: "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)]" };
-        if (status === "absent") return { bg: "bg-red-500/15 dark:bg-red-500/15", dot: "bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)]" };
-        if (status === "on duty" || status === "partial od") return { bg: "bg-amber-500/15 dark:bg-amber-500/15", dot: "bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.8)]" };
-        if (status && status.includes("half-day")) return { bg: "bg-orange-500/15 dark:bg-orange-500/15", dot: "bg-orange-500 shadow-[0_0_6px_rgba(249,115,22,0.8)]" };
-        if (status === "partially absent") return { bg: "bg-rose-500/15 dark:bg-rose-500/15", dot: "bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.8)]" };
+        if (status === "present") return { bg: "bg-ok-soft", dot: "bg-ok" };
+        if (status === "absent") return { bg: "bg-danger-soft", dot: "bg-danger" };
+        if (status === "on duty" || status === "partial od") return { bg: "bg-warn-soft", dot: "bg-warn" };
+        if (status && status.includes("half-day")) return { bg: "bg-course-2/10", dot: "bg-course-2" };
+        if (status === "partially absent") return { bg: "bg-danger-soft", dot: "bg-danger" };
         return { bg: "", dot: "" };
     };
 
@@ -82,9 +82,9 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
                         <button
                             key={idx}
                             onClick={() => setActiveIdx(idx)}
-                            className={`px-3 py-1.5 rounded-xl text-[11px] font-black whitespace-nowrap transition-all cursor-pointer shrink-0 ${idx === activeIdx
-                                ? "bg-indigo-600 text-white shadow-xs"
-                                : "bg-zinc-100 dark:bg-zinc-800/80 text-zinc-500 dark:text-zinc-400"
+                            className={`px-3 py-1.5 rounded-md text-[11px] font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0 ${idx === activeIdx
+                                ? "bg-accent text-background"
+                                : "bg-surface-2 text-muted"
                                 }`}
                         >
                             {cal.month}
@@ -106,7 +106,7 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
                             {weekdays.map((day) => (
                                 <div
                                     key={day}
-                                    className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500 py-1"
+                                    className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 py-1"
                                 >
                                     {day.slice(0, 2)}
                                 </div>
@@ -123,9 +123,9 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
                                 return (
                                     <div
                                         key={date}
-                                        className={`aspect-square rounded-xl flex flex-col items-center justify-center gap-1 transition-all ${tint.bg}`}
+                                        className={`aspect-square rounded-md flex flex-col items-center justify-center gap-1 transition-all ${tint.bg}`}
                                     >
-                                        <span className={`text-xs font-black font-outfit leading-none ${dataObj ? "text-zinc-900 dark:text-white" : "text-zinc-400 dark:text-zinc-600"}`}>
+                                        <span className={`text-xs font-semibold font-outfit leading-none ${dataObj ? "text-ink" : "text-zinc-400 dark:text-zinc-600"}`}>
                                             {date}
                                         </span>
                                         {tint.dot ? (
@@ -154,17 +154,17 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
                                 {selectedOverallDate.missedClasses.map((c, idx) => {
                                     const isSecured = notesTracker[c.courseCode]?.[selectedOverallDate.date] === true;
                                     return (
-                                        <div key={idx} className="flex items-center justify-between gap-4 bg-gray-50  dark:bg-gray-900/50 p-3 rounded-xl border border-gray-100  dark:border-gray-800">
+                                        <div key={idx} className="flex items-center justify-between gap-4 bg-surface-2 p-3 rounded-md border border-gray-100  dark:border-gray-800">
                                             <div>
-                                                <p className="text-sm font-bold text-gray-900  dark:text-gray-200">{c.courseTitle}</p>
-                                                <p className="text-xs text-gray-500 uppercase tracking-wider">{c.courseCode} • {c.status}</p>
+                                                <p className="text-sm font-semibold text-gray-900  dark:text-gray-200">{c.courseTitle}</p>
+                                                <p className="text-xs text-gray-500">{c.courseCode} • {c.status}</p>
                                             </div>
                                             <button
                                                 onClick={(e) => toggleIndividualNote(selectedOverallDate.date, c.courseCode, e)}
                                                 className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all shrink-0 ${
                                                     isSecured
-                                                        ? "bg-emerald-100 text-emerald-700   dark:bg-emerald-900/30 dark:text-emerald-400"
-                                                        : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50    dark:bg-gray-900 dark:border-gray-800 dark:text-gray-300 dark:hover:bg-gray-800"
+                                                        ? "bg-ok-soft text-ok"
+                                                        : "bg-surface border border-gray-200 text-gray-600 hover:bg-surface-2 dark:border-gray-800 dark:text-gray-300 dark:hover:bg-gray-800"
                                                 }`}
                                             >
                                                 {isSecured ? <CheckCircle2 size={14} /> : <FileText size={14} />}
@@ -190,8 +190,8 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
                         key={idx}
                         onClick={() => setActiveIdx(idx)}
                         className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${idx === activeIdx
-                            ? "bg-blue-600 text-white shadow-sm"
-                            : "bg-gray-100  dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700"
+                            ? "bg-accent text-background"
+                            : "bg-surface-2 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700"
                             }`}
                     >
                         {cal.month}
@@ -200,7 +200,7 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
             </div>
 
             {/* Calendar Grid */}
-            <div className="w-full overflow-hidden rounded-xl border border-gray-200  dark:border-gray-800 bg-white  dark:bg-black shadow-sm">
+            <div className="w-full overflow-hidden rounded-md border border-gray-200  dark:border-gray-800 bg-surface  dark:bg-background shadow-sm">
                 <AnimatePresence mode="wait">
                     <m.div
                         key={activeIdx}
@@ -214,7 +214,7 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
                             {weekdays.map((day) => (
                                 <div
                                     key={day}
-                                    className="font-bold py-2 border-b border-gray-100  dark:border-gray-800 text-[10px] tracking-wider uppercase text-gray-500 dark:text-gray-400 bg-gray-55/50  dark:bg-gray-900/40"
+                                    className="font-semibold py-2 border-b border-gray-100  dark:border-gray-800 text-[11px] text-muted bg-gray-55/50  dark:bg-gray-900/40"
                                 >
                                     {day}
                                 </div>
@@ -235,31 +235,31 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
 
                                 if (isODTracker) {
                                     if (status === "valid od") {
-                                        bgClass = "bg-emerald-50/50  dark:bg-emerald-500/10";
-                                        dotColor = "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]";
+                                        bgClass = "bg-emerald-50/50";
+                                        dotColor = "bg-ok";
                                     } else if (status === "wasted od") {
-                                        bgClass = "bg-red-50/50  dark:bg-red-500/10";
-                                        dotColor = "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]";
+                                        bgClass = "bg-red-50/50";
+                                        dotColor = "bg-danger";
                                     } else if (status === "partial wasted od") {
-                                        bgClass = "bg-amber-50/50  dark:bg-amber-500/10";
-                                        dotColor = "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]";
+                                        bgClass = "bg-amber-50/50";
+                                        dotColor = "bg-warn";
                                     }
                                 } else {
                                     if (status === "present") {
-                                        bgClass = "bg-emerald-50/50  dark:bg-emerald-500/10";
-                                        dotColor = "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]";
+                                        bgClass = "bg-emerald-50/50";
+                                        dotColor = "bg-ok";
                                     } else if (status === "absent") {
-                                        bgClass = "bg-red-50/50  dark:bg-red-500/10";
-                                        dotColor = "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]";
+                                        bgClass = "bg-red-50/50";
+                                        dotColor = "bg-danger";
                                     } else if (status === "on duty" || status === "partial od") {
-                                        bgClass = "bg-yellow-50/50  dark:bg-amber-500/10";
-                                        dotColor = "bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.6)]";
+                                        bgClass = "bg-yellow-50/50";
+                                        dotColor = "bg-warn";
                                     } else if (status && status.includes("half-day")) {
-                                        bgClass = "bg-orange-50/50  dark:bg-orange-500/10";
-                                        dotColor = "bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]";
+                                        bgClass = "bg-orange-50/50";
+                                        dotColor = "bg-course-2";
                                     } else if (status === "partially absent") {
-                                        bgClass = "bg-rose-50/50  dark:bg-rose-500/10";
-                                        dotColor = "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]";
+                                        bgClass = "bg-rose-50/50";
+                                        dotColor = "bg-danger";
                                     }
                                 }
 
@@ -292,17 +292,17 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
                                         </div>
                                         {status && (
                                             <div className="mt-auto text-left flex flex-col gap-1.5">
-                                                <span className={`text-[10px] font-bold uppercase tracking-wider ${
+                                                <span className={`text-[11px] font-semibold ${
                                                     isODTracker ? (
-                                                        status === "valid od" ? "text-emerald-600  dark:text-emerald-400" :
-                                                        status === "wasted od" ? "text-red-600  dark:text-red-400" :
-                                                        "text-amber-600  dark:text-amber-400"
+                                                        status === "valid od" ? "text-ok" :
+                                                        status === "wasted od" ? "text-danger" :
+                                                        "text-warn"
                                                     ) : (
-                                                        status === "present" ? "text-emerald-600  dark:text-emerald-400" :
-                                                        status === "absent" ? "text-red-600  dark:text-red-400" :
-                                                        status.includes("half-day") ? "text-orange-600  dark:text-orange-400" :
-                                                        status.includes("partially absent") ? "text-rose-600  dark:text-rose-400" :
-                                                        "text-yellow-600  dark:text-yellow-400"
+                                                        status === "present" ? "text-ok" :
+                                                        status === "absent" ? "text-danger" :
+                                                        status.includes("half-day") ? "text-course-2" :
+                                                        status.includes("partially absent") ? "text-danger" :
+                                                        "text-warn"
                                                     )
                                                 }`}>
                                                     {status}
@@ -315,10 +315,10 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
                                                             if (isOverall) toggleNotes(exactDateStr, entry.missedClasses, e);
                                                             else toggleNotes(exactDateStr);
                                                         }}
-                                                        className={`relative hit-expand flex items-center justify-center gap-1 p-1 sm:px-2 sm:py-1 rounded-md border text-[9px] sm:text-[10px] font-semibold transition-all shrink-0 mt-auto ${
+                                                        className={`relative hit-expand flex items-center justify-center gap-1 p-1 sm:px-2 sm:py-1 rounded-md border text-[11px] sm:text-[11px] font-semibold transition-all shrink-0 mt-auto ${
                                                             hasNotes
-                                                                ? "bg-emerald-50 border border-emerald-200 text-emerald-700    dark:bg-emerald-900/20 dark:border-emerald-800/50 dark:text-emerald-400"
-                                                                : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50    dark:bg-gray-900 dark:border-gray-800 dark:text-gray-300 dark:hover:bg-gray-800"
+                                                                ? "bg-ok-soft border border-ok/40 text-ok"
+                                                                : "bg-surface border border-gray-200 text-gray-600 hover:bg-surface-2 dark:border-gray-800 dark:text-gray-300 dark:hover:bg-gray-800"
                                                         }`}
                                                     >
                                                         {hasNotes ? <CheckCircle2 size={12} /> : <FileText size={12} />}
@@ -349,17 +349,17 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
                                 {selectedOverallDate.missedClasses.map((c, idx) => {
                                     const isSecured = notesTracker[c.courseCode]?.[selectedOverallDate.date] === true;
                                     return (
-                                        <div key={idx} className="flex items-center justify-between gap-4 bg-gray-50  dark:bg-gray-900/50 p-3 rounded-xl border border-gray-100  dark:border-gray-800">
+                                        <div key={idx} className="flex items-center justify-between gap-4 bg-surface-2 p-3 rounded-md border border-gray-100  dark:border-gray-800">
                                             <div>
-                                                <p className="text-sm font-bold text-gray-900  dark:text-gray-200">{c.courseTitle}</p>
-                                                <p className="text-xs text-gray-500 uppercase tracking-wider">{c.courseCode} • {c.status}</p>
+                                                <p className="text-sm font-semibold text-gray-900  dark:text-gray-200">{c.courseTitle}</p>
+                                                <p className="text-xs text-gray-500">{c.courseCode} • {c.status}</p>
                                             </div>
                                             <button
                                                 onClick={(e) => toggleIndividualNote(selectedOverallDate.date, c.courseCode, e)}
                                                 className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all shrink-0 ${
                                                     isSecured
-                                                        ? "bg-emerald-100 text-emerald-700   dark:bg-emerald-900/30 dark:text-emerald-400"
-                                                        : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50    dark:bg-gray-900 dark:border-gray-800 dark:text-gray-300 dark:hover:bg-gray-800"
+                                                        ? "bg-ok-soft text-ok"
+                                                        : "bg-surface border border-gray-200 text-gray-600 hover:bg-surface-2 dark:border-gray-800 dark:text-gray-300 dark:hover:bg-gray-800"
                                                 }`}
                                             >
                                                 {isSecured ? <CheckCircle2 size={14} /> : <FileText size={14} />}

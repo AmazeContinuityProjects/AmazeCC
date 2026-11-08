@@ -38,7 +38,7 @@ import remarkGfm from "remark-gfm";
  * that rendering in the house palette rather than the default gray one.
  */
 const MARKDOWN =
-  "prose prose-sm prose-zinc dark:prose-invert max-w-none text-zinc-700 dark:text-zinc-300 prose-headings:font-outfit prose-p:leading-relaxed prose-a:text-indigo-600 hover:prose-a:text-indigo-500 dark:prose-a:text-indigo-400 prose-img:rounded-xl";
+  "prose prose-sm prose-zinc dark:prose-invert max-w-none text-zinc-700 dark:text-zinc-300 prose-headings:font-outfit prose-p:leading-relaxed prose-a:text-indigo-600 hover:prose-a:text-indigo-500 dark:prose-a:text-indigo-400 prose-img:rounded-md";
 
 interface ClubDetailsModalProps {
   club: any;
@@ -108,7 +108,7 @@ export default function ClubDetailsModal({ club, isOpen, onClose }: ClubDetailsM
                 alt={`${club.club_name} logo`}
                 loading="lazy"
                 decoding="async"
-                className="w-9 h-9 rounded-xl object-cover"
+                className="w-9 h-9 rounded-md object-cover"
               />
             ) : (
               <User className="w-5 h-5" />
@@ -164,20 +164,20 @@ export default function ClubDetailsModal({ club, isOpen, onClose }: ClubDetailsM
                   {landingPage.showcase_projects.map((proj: any, i: number) => (
                     <div key={i} className={cn(TILE_CARD, "group")}>
                       {proj.image_url && (
-                        <div className="-mx-4 -mt-4 sm:-mx-5 sm:-mt-5 mb-4 h-32 overflow-hidden rounded-t-[20px] bg-zinc-100 dark:bg-zinc-800">
+                        <div className="-mx-4 -mt-4 sm:-mx-5 sm:-mt-5 mb-4 h-32 overflow-hidden rounded-t-lg bg-surface-2">
                           <img
                             src={proj.image_url}
                             alt={proj.title}
                             loading="lazy"
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            className="w-full h-full object-cover transition-transform duration-300"
                           />
                         </div>
                       )}
-                      <h4 className="text-sm font-bold text-zinc-900 dark:text-white font-outfit leading-tight">
+                      <h4 className="text-sm font-semibold text-ink font-outfit leading-tight">
                         {proj.title}
                       </h4>
                       {proj.description && (
-                        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-1 leading-snug">
+                        <p className="text-[11px] text-muted font-medium mt-1 leading-snug">
                           {proj.description}
                         </p>
                       )}
@@ -186,7 +186,7 @@ export default function ClubDetailsModal({ club, isOpen, onClose }: ClubDetailsM
                           href={proj.link}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-1 mt-3 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
+                          className="inline-flex items-center gap-1 mt-3 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
                         >
                           View Project
                         </a>
@@ -205,17 +205,17 @@ export default function ClubDetailsModal({ club, isOpen, onClose }: ClubDetailsM
                   {landingPage.popular_events.map((ev: any, i: number) => (
                     <div key={i} className={cn(TILE_CARD, "flex items-center gap-3.5")}>
                       <div
-                        className="w-12 h-12 rounded-2xl shrink-0 flex items-center justify-center text-white font-black text-sm font-outfit"
+                        className="w-12 h-12 rounded-md shrink-0 flex items-center justify-center text-white font-semibold text-sm font-outfit"
                         style={{ backgroundColor: accent || undefined }}
                       >
                         {ev.year?.slice(-2) || "—"}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h4 className="text-sm font-bold text-zinc-900 dark:text-white font-outfit leading-tight">
+                        <h4 className="text-sm font-semibold text-ink font-outfit leading-tight">
                           {ev.name}
                         </h4>
                         {ev.description && (
-                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5 leading-snug line-clamp-2">
+                          <p className="text-[11px] text-muted font-medium mt-0.5 leading-snug line-clamp-2">
                             {ev.description}
                           </p>
                         )}
@@ -248,19 +248,19 @@ export default function ClubDetailsModal({ club, isOpen, onClose }: ClubDetailsM
                       target="_blank"
                       rel="noreferrer"
                       className={cn(
-                        "flex items-center gap-3 p-3 rounded-2xl border bg-white/80 dark:bg-zinc-900/70 hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors cursor-pointer",
-                        "border-zinc-200/70 dark:border-zinc-800/80"
+                        "flex items-center gap-3 p-3 rounded-md border bg-surface hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors cursor-pointer",
+                        "border-line"
                       )}
                     >
                       <span
                         className={cn(
-                          "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border",
+                          "w-9 h-9 rounded-md flex items-center justify-center shrink-0 border",
                           TONE_ICON_TILE[tone] ?? TONE_ICON_TILE.sky
                         )}
                       >
                         <Icon className="w-4 h-4" />
                       </span>
-                      <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300 truncate">
+                      <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 truncate">
                         {label}
                       </span>
                     </a>
@@ -275,20 +275,20 @@ export default function ClubDetailsModal({ club, isOpen, onClose }: ClubDetailsM
                 <div className="flex items-center gap-3 min-w-0">
                   <span
                     className={cn(
-                      "w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border",
+                      "w-10 h-10 rounded-md flex items-center justify-center shrink-0 border",
                       TONE_ICON_TILE.indigo
                     )}
                   >
                     <User className="w-4.5 h-4.5" />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                    <p className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500">
                       Point of Contact
                     </p>
-                    <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100 font-outfit truncate">
+                    <p className="text-sm font-semibold text-ink font-outfit truncate">
                       {pocName}
                       {club.poc_designation && (
-                        <span className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 font-normal">
+                        <span className="text-[11px] font-semibold text-muted font-normal">
                           {" "}
                           ({club.poc_designation})
                         </span>
@@ -305,7 +305,7 @@ export default function ClubDetailsModal({ club, isOpen, onClose }: ClubDetailsM
                         title="Call"
                         aria-label={`Call ${pocName}`}
                         className={cn(
-                          "w-10 h-10 rounded-2xl flex items-center justify-center border transition-colors",
+                          "w-10 h-10 rounded-md flex items-center justify-center border transition-colors",
                           TONE_ICON_TILE.sky
                         )}
                       >
@@ -318,7 +318,7 @@ export default function ClubDetailsModal({ club, isOpen, onClose }: ClubDetailsM
                         title="Message on WhatsApp"
                         aria-label={`Message ${pocName} on WhatsApp`}
                         className={cn(
-                          "w-10 h-10 rounded-2xl flex items-center justify-center border transition-colors",
+                          "w-10 h-10 rounded-md flex items-center justify-center border transition-colors",
                           TONE_ICON_TILE.emerald
                         )}
                       >
@@ -332,7 +332,7 @@ export default function ClubDetailsModal({ club, isOpen, onClose }: ClubDetailsM
                       title="Email"
                       aria-label={`Email ${pocName}`}
                       className={cn(
-                        "w-10 h-10 rounded-2xl flex items-center justify-center border transition-colors",
+                        "w-10 h-10 rounded-md flex items-center justify-center border transition-colors",
                         TONE_ICON_TILE.violet
                       )}
                     >

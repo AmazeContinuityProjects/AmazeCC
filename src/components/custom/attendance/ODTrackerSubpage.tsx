@@ -261,8 +261,8 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, onBack, 
             headline: `${validODsCount} hrs`,
             subline: "Counted from your timetable",
             badge: "Valid",
-            badgeColor: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-            headlineColor: "text-emerald-600 dark:text-emerald-400",
+            badgeColor: "bg-ok-soft text-ok border-ok/20",
+            headlineColor: "text-ok",
         });
 
         slides.push({
@@ -271,8 +271,8 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, onBack, 
             headline: `${wastedODsCount} hrs`,
             subline: "OD credited while you were present",
             badge: "Wasted",
-            badgeColor: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
-            headlineColor: "text-red-500 dark:text-red-400",
+            badgeColor: "bg-danger-soft text-danger border-danger/20",
+            headlineColor: "text-danger",
         });
 
         slides.push({
@@ -320,16 +320,16 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, onBack, 
             {/* ── HERO STATS ── */}
             <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 <div className={cn(TILE, "min-h-32 sm:min-h-36")}>
-                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit">
+                    <span className="text-[11px] sm:text-xs font-semibold text-zinc-400 dark:text-zinc-500 font-outfit">
                         Total OD
                     </span>
                     <div className="my-auto">
-                        <span className="text-3xl sm:text-4xl font-black font-outfit tracking-tight leading-none block text-emerald-600 dark:text-emerald-400">
+                        <span className="text-3xl sm:text-4xl font-semibold font-outfit tracking-tight leading-none block text-ok">
                             {totalODHours}
-                            <span className="text-base sm:text-lg font-extrabold text-zinc-400 dark:text-zinc-500 ml-1">hrs</span>
+                            <span className="text-base sm:text-lg font-semibold text-zinc-400 dark:text-zinc-500 ml-1">hrs</span>
                         </span>
                     </div>
-                    <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">
+                    <p className="text-[10.5px] sm:text-xs text-muted font-medium truncate">
                         Across {masterODHistory.length} {masterODHistory.length === 1 ? "day" : "days"} on duty
                     </p>
                 </div>
@@ -392,7 +392,7 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, onBack, 
                                         onClick={() => setExpandedKey(isExpanded ? null : key)}
                                         className={`${LIST_ROW} cursor-pointer`}
                                     >
-                                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-border-muted bg-surface-secondary text-zinc-500 dark:text-zinc-400">
+                                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border-muted bg-surface-secondary text-muted">
                                             <Calendar className="h-4.5 w-4.5" />
                                         </span>
                                         <ListRowText
@@ -400,22 +400,22 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, onBack, 
                                             subtitle={`${d.courses.length} ${d.courses.length === 1 ? "session" : "sessions"}${d.daySpan ? ` · ${d.daySpan}` : ""}${d.officialWhy && d.officialWhy.length > 0 ? ` · ${d.officialWhy[0].reason}` : ""}`}
                                         />
                                         <span
-                                            className={`shrink-0 text-sm font-black font-outfit tracking-tight leading-none w-12 text-right ${
+                                            className={`shrink-0 text-sm font-semibold font-outfit tracking-tight leading-none w-12 text-right ${
                                                 status === "valid"
-                                                    ? "text-emerald-600 dark:text-emerald-400"
+                                                    ? "text-ok"
                                                     : status === "partial"
-                                                    ? "text-amber-600 dark:text-amber-400"
-                                                    : "text-red-500 dark:text-red-400"
+                                                    ? "text-warn"
+                                                    : "text-danger"
                                             }`}
                                         >
                                             {d.totalHours}h
                                         </span>
                                         {status !== "valid" && (
                                             <span
-                                                className={`shrink-0 text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md border ${
+                                                className={`shrink-0 text-[11px] font-semibold px-1.5 py-0.5 rounded-md border ${
                                                     status === "partial"
-                                                        ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
-                                                        : "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20"
+                                                        ? "bg-warn-soft text-warn border-warn/20"
+                                                        : "bg-danger-soft text-danger border-danger/20"
                                                 }`}
                                             >
                                                 {status === "partial" ? "Partial" : "Wasted"}
@@ -441,7 +441,7 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, onBack, 
                                                                 <p key={oi} className="text-[11px] text-indigo-700 dark:text-indigo-300 leading-snug flex items-start gap-1.5 font-medium">
                                                                     <FileText size={12} className="mt-0.5 shrink-0 text-indigo-400" />
                                                                     <span>
-                                                                        <span className="font-bold">{o.reason}</span>
+                                                                        <span className="font-semibold">{o.reason}</span>
                                                                         {o.remarks ? ` — ${o.remarks}` : ""}
                                                                     </span>
                                                                 </p>
@@ -458,11 +458,11 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, onBack, 
                                                                 <div key={bi} className="space-y-1.5">
                                                                     {showBlockHeader && (
                                                                         <div className="flex items-center justify-between gap-2 pt-1">
-                                                                            <span className="flex items-center gap-1.5 text-[11px] font-bold text-indigo-600 dark:text-indigo-400">
+                                                                            <span className="flex items-center gap-1.5 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400">
                                                                                 <Clock size={12} className="shrink-0" />
                                                                                 {formatRange(block.startMin as number, block.endMin as number)}
                                                                             </span>
-                                                                            <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                                                                            <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
                                                                                 {block.hours} {block.hours === 1 ? "hr" : "hrs"}
                                                                             </span>
                                                                         </div>
@@ -474,25 +474,25 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, onBack, 
                                                                                     {c.title}
                                                                                 </p>
                                                                                 {c.timeString ? (
-                                                                                    <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400 shrink-0">
+                                                                                    <span className="text-[11px] px-1.5 py-0.5 rounded-md font-semibold bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400 shrink-0">
                                                                                         {c.timeString}
                                                                                     </span>
                                                                                 ) : (
-                                                                                    <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-zinc-100/60 text-zinc-400 dark:bg-zinc-800/60 dark:text-zinc-500 shrink-0">
+                                                                                    <span className="text-[11px] px-1.5 py-0.5 rounded-md font-semibold bg-zinc-100/60 text-zinc-400 dark:bg-zinc-800/60 dark:text-zinc-500 shrink-0">
                                                                                         Time N/A
                                                                                     </span>
                                                                                 )}
                                                                             </div>
-                                                                            <span className="text-[10.5px] text-zinc-400 dark:text-zinc-500 font-bold uppercase tracking-wider shrink-0">
+                                                                            <span className="text-[10.5px] text-zinc-400 dark:text-zinc-500 font-semibold shrink-0">
                                                                                 {c.type} · {c.hours}h
                                                                             </span>
                                                                             {c.isWasted && (
-                                                                                    <span className="shrink-0 text-[10px] font-bold bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                                                                    <span className="shrink-0 text-[11px] font-semibold bg-danger-soft text-danger border border-danger/20 px-2 py-0.5 rounded-md flex items-center gap-1">
                                                                                         <ShieldAlert size={11} /> Wasted
                                                                                     </span>
                                                                             )}
                                                                             {c.isRecovered && (
-                                                                                <span className="shrink-0 text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                                                                <span className="shrink-0 text-[11px] font-semibold bg-ok-soft text-ok border border-ok/20 px-2 py-0.5 rounded-md flex items-center gap-1">
                                                                                     <CheckCircle2 size={11} /> Recovered
                                                                                 </span>
                                                                             )}

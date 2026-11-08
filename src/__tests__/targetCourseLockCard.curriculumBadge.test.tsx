@@ -28,7 +28,7 @@ describe("TargetCourseLockCard curriculum badge", () => {
 
     const badge = screen.getByText("Programme Core Courses");
     expect(badge.getAttribute("title")).toBe("In your curriculum — counts toward Programme Core Courses");
-    expect(badge.className).toContain("text-emerald-500");
+    expect(badge.className).toContain("text-ok");
   });
 
   it("wears the open-elective look for a shared-start candidate", () => {
@@ -45,9 +45,9 @@ describe("TargetCourseLockCard curriculum badge", () => {
 
     const badge = screen.getByText("NC Open Elective");
     expect(badge.getAttribute("title")).toContain("Not in your curriculum");
-    expect(badge.className).toContain("text-amber-600");
+    expect(badge.className).toContain("text-warn");
     // The candidate must never borrow the curriculum colour.
-    expect(badge.className).not.toContain("text-emerald-500");
+    expect(badge.className).not.toContain("text-ok");
   });
 
   it("defaults to the curriculum look when a host only passes the category", () => {
@@ -88,7 +88,7 @@ describe("TargetCourseLockCard grade rule", () => {
 
     const chip = screen.getByText("Retake · F");
     expect(chip.getAttribute("title")).toBe("Your recorded grade is F");
-    expect(chip.className).toContain("text-blue-500");
+    expect(chip.className).toContain("text-accent");
     // Allowed to select: the checkbox stays live.
     expect((screen.getByRole("checkbox") as HTMLInputElement).disabled).toBe(false);
   });
@@ -104,7 +104,7 @@ describe("TargetCourseLockCard grade rule", () => {
       />,
     );
 
-    expect(screen.getByText("Grade improvement").className).toContain("border-amber-500/30");
+    expect(screen.getByText("Grade improvement").className).toContain("border-warn/30");
     expect((screen.getByRole("checkbox") as HTMLInputElement).disabled).toBe(false);
   });
 
@@ -121,7 +121,7 @@ describe("TargetCourseLockCard grade rule", () => {
     );
 
     const chip = screen.getByText("Completed · S");
-    expect(chip.className).toContain("text-red-500");
+    expect(chip.className).toContain("text-danger");
     const checkbox = screen.getByRole("checkbox") as HTMLInputElement;
     expect(checkbox.disabled).toBe(true);
     // A click on a disabled checkbox fires nothing — no selection may leak.
@@ -158,14 +158,14 @@ describe("TargetCourseLockCard grade letter", () => {
         offerings={[]}
         selection={undefined}
         onSelectionChange={() => {}}
-        letter={{ text: "B", className: "text-2xl font-black text-amber-500", title: "Recorded grade: B" }}
+        letter={{ text: "B", className: "text-2xl font-black text-warn", title: "Recorded grade: B" }}
       />,
     );
 
     const letter = screen.getByText("B");
     expect(letter.getAttribute("title")).toBe("Recorded grade: B");
     expect(letter.className).toContain("text-2xl");
-    expect(letter.className).toContain("text-amber-500");
+    expect(letter.className).toContain("text-warn");
   });
 
   it("renders no empty span when the host passes no letter", () => {

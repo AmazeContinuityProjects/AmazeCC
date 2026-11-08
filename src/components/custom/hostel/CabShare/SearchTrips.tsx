@@ -11,7 +11,7 @@ import { EmptyPanel, ListRowText, ListSkeleton, SectionHeader, ToneBadge } from 
 import { FIELD_INPUT, TILE_CARD, TONE_ICON_TILE } from "@/lib/uiTokens";
 
 const FIELD_LABEL =
-  "block text-[10px] font-black uppercase tracking-wider text-text-muted mb-1";
+  "block text-[11px] font-semibold text-text-muted mb-1";
 
 export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
   const [hubs, setHubs] = useState<any[]>([]);
@@ -174,11 +174,11 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
     <div className="space-y-6">
       <div className={TILE_CARD}>
         <div className="flex items-center gap-3">
-          <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${TONE_ICON_TILE.indigo}`}>
+          <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md ${TONE_ICON_TILE.indigo}`}>
             <Route className="h-5 w-5" />
           </span>
           <div className="min-w-0">
-            <h2 className="text-base font-black text-text-heading font-outfit tracking-tight">Find a matching ride</h2>
+            <h2 className="text-base font-semibold text-text-heading font-outfit tracking-tight">Find a matching ride</h2>
             <p className="text-[11px] text-text-secondary dark:text-text-muted font-medium mt-0.5">
               Search by hub and date, then request to join a posted ride.
             </p>
@@ -227,7 +227,7 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
             <button
               type="submit"
               disabled={loading}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-4 text-sm font-black text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-70"
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-sm bg-accent px-4 text-sm font-medium text-background transition-colors hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Search className="w-4 h-4" /> Search</>}
             </button>
@@ -237,10 +237,10 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
 
       {message && (
         <div
-          className={`flex items-center gap-3 rounded-2xl border p-4 text-sm font-semibold ${
+          className={`flex items-center gap-3 rounded-md border p-4 text-sm font-semibold ${
             message.type === "success"
-              ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-              : "border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-400"
+              ? "border-ok/20 bg-ok-soft text-ok"
+              : "border-danger/20 bg-danger-soft text-danger"
           }`}
         >
           <AlertCircle className="h-5 w-5 shrink-0" />
@@ -260,7 +260,7 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
               <button
                 type="button"
                 onClick={handleAlertMe}
-                className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-black text-white transition-colors hover:bg-indigo-700"
+                className="inline-flex items-center gap-2 rounded-sm bg-accent px-4 py-2.5 text-sm font-medium text-background transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 <Bell className="w-4 h-4" /> Alert Me
               </button>
@@ -287,7 +287,7 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
               <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div className="min-w-0 space-y-3">
                   <div className="flex items-center gap-3">
-                    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${TONE_ICON_TILE.emerald}`}>
+                    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md ${TONE_ICON_TILE.emerald}`}>
                       <MapPin className="h-5 w-5" />
                     </span>
                     <ListRowText
@@ -317,7 +317,7 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
                 <button
                   type="button"
                   onClick={() => handleJoinRequest(trip.trip_id)}
-                  className="flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-black text-white transition-colors hover:bg-emerald-700"
+                  className="flex shrink-0 items-center justify-center gap-2 rounded-md bg-ok px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-ok"
                 >
                   <Send className="w-4 h-4" /> Request Join
                 </button>
@@ -331,17 +331,17 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
       {showPendingModal && (
         <BottomSheet onClose={() => setShowPendingModal(false)} overlayId="cabshare-pending" maxWidth="max-w-sm">
           <div className="flex flex-col items-center text-center py-2">
-            <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
+            <span className="flex h-16 w-16 items-center justify-center rounded-md bg-warn-soft border border-warn/20 text-warn">
               <Clock3 className="h-8 w-8" />
             </span>
-            <h3 className="mt-5 text-xl font-black text-text-heading font-outfit">Request Pending</h3>
+            <h3 className="mt-5 text-xl font-semibold text-text-heading font-outfit">Request Pending</h3>
             <p className="mt-2 text-sm font-medium leading-relaxed text-text-secondary dark:text-text-muted">
               The host will see your request and respond soon. You can check the status in My Trips.
             </p>
             <button
               type="button"
               onClick={() => setShowPendingModal(false)}
-              className="mt-6 w-full rounded-2xl bg-zinc-900 px-4 py-3 text-sm font-black text-white transition-colors hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200 cursor-pointer active:scale-[0.98]"
+              className="mt-6 w-full rounded-md bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 dark:bg-surface dark:text-zinc-900 dark:hover:bg-zinc-200 cursor-pointer"
             >
               Got it
             </button>

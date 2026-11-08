@@ -42,7 +42,7 @@ export interface CourseCatalogFiltersProps {
   curriculumSyncing?: boolean;
 }
 
-const CHIP_BASE = "text-[10px] font-bold px-2 py-1 rounded-full border transition-colors cursor-pointer";
+const CHIP_BASE = "text-[11px] font-semibold px-2 py-1 rounded-full border transition-colors cursor-pointer";
 
 const chipClass = (active: boolean, activeClass: string): string =>
   active
@@ -105,7 +105,7 @@ export function CourseCatalogFilters({
           <button
             type="button"
             onClick={() => onSlotsChange([])}
-            className="text-[10px] font-bold text-indigo-500 hover:underline cursor-pointer"
+            className="text-[11px] font-semibold text-indigo-500 hover:underline cursor-pointer"
           >
             Clear slots
           </button>
@@ -116,7 +116,7 @@ export function CourseCatalogFilters({
             type="button"
             onClick={onSyncCurriculum}
             disabled={curriculumSyncing}
-            className="ml-auto flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 disabled:opacity-60 cursor-pointer disabled:cursor-wait"
+            className="ml-auto flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border border-ok/40 bg-ok-soft text-ok disabled:opacity-60 cursor-pointer disabled:cursor-wait"
           >
             <RefreshCw className={`w-3 h-3 ${curriculumSyncing ? "animate-spin" : ""}`} />
             {curriculumSyncing ? "Syncing…" : "Sync curriculum"}
@@ -125,7 +125,7 @@ export function CourseCatalogFilters({
 
         {curriculum && (
           <label className="ml-auto flex items-center gap-2 cursor-pointer select-none">
-            <GraduationCap className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+            <GraduationCap className="w-3.5 h-3.5 text-ok shrink-0" />
             <span className="text-[11px] font-semibold text-muted-foreground">My Curriculum</span>
             <Switch
               checked={curriculumOnly}
@@ -138,18 +138,18 @@ export function CourseCatalogFilters({
       </div>
 
       {slotsOpen && (
-        <div className="max-h-40 overflow-y-auto custom-scrollbar rounded-xl border border-border-strong bg-surface-secondary/40 p-2.5 flex flex-col gap-2">
+        <div className="max-h-40 overflow-y-auto custom-scrollbar rounded-md border border-border-strong bg-surface-secondary/40 p-2.5 flex flex-col gap-2">
           {hasSlotChips ? (
             <>
               {chips.theory.length > 0 && (
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Theory</span>
+                  <span className="text-[11px] font-semibold text-muted-foreground">Theory</span>
                   <div className="flex flex-wrap gap-1.5">{chips.theory.map(slotChip)}</div>
                 </div>
               )}
               {chips.lab.length > 0 && (
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Lab</span>
+                  <span className="text-[11px] font-semibold text-muted-foreground">Lab</span>
                   <div className="flex flex-wrap gap-1.5">{chips.lab.map(slotChip)}</div>
                 </div>
               )}
@@ -161,8 +161,8 @@ export function CourseCatalogFilters({
       )}
 
       {curriculum && curriculumOnly && curriculum.categories.length > 0 && (
-        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] p-2.5 flex flex-wrap items-center gap-1.5">
-          <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mr-1">
+        <div className="rounded-md border border-ok/20 bg-ok/6 p-2.5 flex flex-wrap items-center gap-1.5">
+          <span className="text-[11px] font-semibold text-ok mr-1">
             Category
           </span>
           <button
@@ -171,7 +171,7 @@ export function CourseCatalogFilters({
             onClick={() => onCategoriesChange([])}
             className={chipClass(
               categories.length === 0,
-              "bg-emerald-500/15 border-emerald-500/40 text-emerald-600 dark:text-emerald-400",
+              "bg-ok-soft border-ok/40 text-ok",
             )}
           >
             All
@@ -185,7 +185,7 @@ export function CourseCatalogFilters({
               title={`Only ${name} courses`}
               className={chipClass(
                 categories.includes(name),
-                "bg-emerald-500/15 border-emerald-500/40 text-emerald-600 dark:text-emerald-400",
+                "bg-ok-soft border-ok/40 text-ok",
               )}
             >
               {name}

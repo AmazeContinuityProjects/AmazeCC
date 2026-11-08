@@ -72,8 +72,8 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-zinc-950 px-5 text-zinc-100 select-none animate-in fade-in duration-300 sm:px-8">
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 left-1/2 h-[550px] w-[550px] -translate-x-1/2 rounded-full bg-indigo-600/10 blur-[150px]" />
-        <div className="absolute -bottom-40 left-1/2 h-[550px] w-[550px] -translate-x-1/2 rounded-full bg-violet-600/10 blur-[150px]" />
+        <div className="absolute -top-40 left-1/2 h-[550px] w-[550px] -translate-x-1/2 rounded-full bg-indigo-600/10 hidden" />
+        <div className="absolute -bottom-40 left-1/2 h-[550px] w-[550px] -translate-x-1/2 rounded-full bg-course-3/10 hidden" />
       </div>
       <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-y-auto pt-[calc(env(safe-area-inset-top,0px)+1.25rem)] pb-[calc(env(safe-area-inset-bottom,0px)+1.25rem)] sm:pt-[calc(env(safe-area-inset-top,0px)+1.75rem)] sm:pb-[calc(env(safe-area-inset-bottom,0px)+1.75rem)]">
         {children}
@@ -92,24 +92,24 @@ function Brand() {
         width={28}
         height={28}
         decoding="async"
-        className="h-7 w-7 rounded-xl border border-zinc-800 bg-zinc-900 p-0.5 object-contain"
+        className="h-7 w-7 rounded-md border border-zinc-800 bg-zinc-900 p-0.5 object-contain"
       />
-      <span className="text-xs font-black uppercase tracking-[0.2em] text-zinc-500 font-outfit">AmazeCC</span>
+      <span className="text-xs font-semibold tracking-[0.2em] text-zinc-500 font-outfit">AmazeCC</span>
     </div>
   );
 }
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 font-outfit">{children}</label>
+    <label className="text-[11px] font-semibold text-zinc-400 font-outfit">{children}</label>
   );
 }
 
 const inputClass =
-  "w-full rounded-xl border border-zinc-800 bg-zinc-950/60 px-4 py-2.5 text-sm font-bold text-white transition-all placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500";
+  "w-full rounded-md border border-zinc-800 bg-zinc-950/60 px-4 py-2.5 text-sm font-semibold text-white transition-all placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500";
 
 const ctaClass =
-  "flex w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-5 py-3.5 font-black text-sm text-white shadow-xl shadow-indigo-600/20 transition-all hover:bg-indigo-500 active:scale-[0.98] cursor-pointer font-outfit tracking-wide";
+  "flex w-full items-center justify-center gap-2 rounded-sm bg-accent px-5 py-3.5 font-medium text-sm text-background transition-colors hover:bg-accent/90 cursor-pointer font-outfit tracking-wide focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 export default function OnboardingIntro({ initialPhase, login, onDone }: OnboardingIntroProps) {
   const [phase, setPhase] = useState<IntroPhase>(initialPhase);
@@ -217,12 +217,12 @@ export default function OnboardingIntro({ initialPhase, login, onDone }: Onboard
             {/* Pitch (design language of the hero pages) */}
             <div className="space-y-4 text-left">
               <Brand />
-              <p className="inline-flex w-fit items-center gap-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-indigo-400 font-outfit">
+              <p className="inline-flex w-fit items-center gap-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-indigo-400 font-outfit">
                 <Sparkles size={11} /> Step one of onboarding
               </p>
-              <h1 className="text-3xl font-black leading-[1.05] tracking-tight text-white font-outfit sm:text-4xl">
+              <h1 className="text-3xl font-semibold leading-[1.05] tracking-tight text-white font-outfit sm:text-4xl">
                 Bring your VIT life
-                <span className="block bg-gradient-to-r from-indigo-400 via-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
+                <span className="block text-accent">
                   into one place.
                 </span>
               </h1>
@@ -230,7 +230,7 @@ export default function OnboardingIntro({ initialPhase, login, onDone }: Onboard
                 Sign in with your VTOP credentials and we will pull attendance, grades, your timetable and campus
                 services straight from the source.
               </p>
-              <ul className="flex flex-wrap gap-2 text-[10px] font-bold text-zinc-400">
+              <ul className="flex flex-wrap gap-2 text-[11px] font-semibold text-zinc-400">
                 {[
                   { icon: Lock, text: "Stays in this browser" },
                   { icon: Shield, text: "Verified with VTOP" },
@@ -248,17 +248,17 @@ export default function OnboardingIntro({ initialPhase, login, onDone }: Onboard
             </div>
 
             {/* Sign-in card */}
-            <div className="rounded-[28px] border border-zinc-800/80 bg-zinc-900/80 p-5 shadow-2xl backdrop-blur-xl sm:p-6">
+            <div className="rounded-lg border border-zinc-800/80 bg-zinc-900/80 p-5 shadow-lg sm:p-6">
               <form onSubmit={submit} className="space-y-4 text-left">
                 <div className="space-y-1 border-b border-zinc-800 pb-3">
-                  <h2 className="text-sm font-black uppercase tracking-wider text-white font-outfit">
+                  <h2 className="text-sm font-semibold text-white font-outfit">
                     Sign in to VTOP
                   </h2>
                   <p className="text-[11px] text-zinc-500">Just your user ID and password.</p>
                 </div>
 
-                <div className="flex items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-950/60 px-3 py-2.5">
-                  <div className="flex items-center gap-2 text-[11px] font-bold text-zinc-400">
+                <div className="flex items-center justify-between gap-3 rounded-md border border-zinc-800 bg-zinc-950/60 px-3 py-2.5">
+                  <div className="flex items-center gap-2 text-[11px] font-semibold text-zinc-400">
                     <Server size={13} className="text-zinc-500" />
                     Target server
                   </div>
@@ -279,8 +279,8 @@ export default function OnboardingIntro({ initialPhase, login, onDone }: Onboard
                 </div>
 
                 {uniccTarget === "unicc" && (
-                  <p className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-[10px] leading-relaxed text-amber-400">
-                    Your VTOP password is sent to <span className="font-bold">api.uni-cc.site</span>, a third-party
+                  <p className="rounded-lg border border-warn/20 bg-warn-soft px-3 py-2 text-[11px] leading-relaxed text-warn">
+                    Your VTOP password is sent to <span className="font-semibold">api.uni-cc.site</span>, a third-party
                     service, to sign you in. Everything else still comes from AmazeCC.
                   </p>
                 )}
@@ -288,7 +288,7 @@ export default function OnboardingIntro({ initialPhase, login, onDone }: Onboard
                 <div className="space-y-1.5">
                   <FieldLabel>VTOP user ID</FieldLabel>
                   <input
-                    className={`${inputClass} uppercase`}
+                    className={`${inputClass}`}
                     value={login.username}
                     onChange={(e) => login.setUsername(e.target.value)}
                     placeholder="E.g., VITUSER12345"
@@ -338,9 +338,9 @@ export default function OnboardingIntro({ initialPhase, login, onDone }: Onboard
                   {!submitting && <ArrowRight size={15} />}
                 </button>
 
-                <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[10px] text-zinc-500">
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[11px] text-zinc-500">
                   <span>Credentials never leave this browser.</span>
-                  <a href="/ffcs/" className="font-bold text-indigo-400 transition-colors hover:text-indigo-300">
+                  <a href="/ffcs/" className="font-semibold text-indigo-400 transition-colors hover:text-indigo-300">
                     Skip — open FFCS Planner
                   </a>
                 </div>
@@ -386,7 +386,7 @@ function SignInRejection({
     return (
       <div
         role="alert"
-        className="flex items-start gap-2 rounded-xl border border-rose-500/25 bg-rose-500/10 px-3 py-2.5 text-[11px] font-semibold text-rose-400"
+        className="flex items-start gap-2 rounded-md border border-danger/25 bg-danger-soft px-3 py-2.5 text-[11px] font-semibold text-danger"
       >
         <AlertCircle size={14} className="mt-0.5 shrink-0" />
         <span className="min-w-0 break-words">{message}</span>
@@ -397,11 +397,11 @@ function SignInRejection({
   const badCredentials = authFailure === "bad-credentials";
 
   return (
-    <div role="alert" className="space-y-3 rounded-xl border border-amber-500/25 bg-amber-500/10 p-3.5 text-left">
+    <div role="alert" className="space-y-3 rounded-md border border-warn/25 bg-warn-soft p-3.5 text-left">
       <div className="flex items-start gap-2">
-        <KeyRound size={14} className="mt-0.5 shrink-0 text-amber-400" />
+        <KeyRound size={14} className="mt-0.5 shrink-0 text-warn" />
         <div className="min-w-0 space-y-1">
-          <p className="text-[10px] font-black uppercase tracking-wider text-amber-400">
+          <p className="text-[11px] font-semibold text-warn">
             {badCredentials ? "Check your password" : "Sign-in rejected"}
           </p>
           <p className="text-[11px] font-semibold leading-relaxed text-zinc-300">
@@ -413,12 +413,12 @@ function SignInRejection({
             ) : (
               <>
                 VTOP refused the sign-in (a captcha, a rate limit or a lock-out). A new password here won&apos;t clear
-                it — please log in to <span className="font-black text-amber-400">vtopcc.vit.ac.in</span> and change
+                it — please log in to <span className="font-semibold text-warn">vtopcc.vit.ac.in</span> and change
                 your password there.
               </>
             )}
           </p>
-          <p className="break-words text-[10px] font-semibold text-zinc-500">{message}</p>
+          <p className="break-words text-[11px] font-semibold text-zinc-500">{message}</p>
         </div>
       </div>
 
@@ -426,7 +426,7 @@ function SignInRejection({
         <button
           type="button"
           onClick={onChangePassword}
-          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-[10px] font-black uppercase tracking-wider text-white shadow-md shadow-indigo-500/20 transition-colors hover:bg-indigo-500 active:scale-[0.985]"
+          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-sm bg-accent px-4 py-3 text-[11px] font-medium text-background transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           <KeyRound size={11} />
           <span>Change Password</span>
@@ -437,10 +437,10 @@ function SignInRejection({
         href="https://vtopcc.vit.ac.in"
         target="_blank"
         rel="noreferrer"
-        className={`flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-amber-500/25 px-4 py-3 text-[10px] font-black uppercase tracking-wider transition-colors active:scale-[0.985] ${
+        className={`flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-warn/25 px-4 py-3 text-[11px] font-semibold transition-colors ${
           badCredentials
-            ? "bg-amber-500/10 text-amber-300 hover:bg-amber-500/20"
-            : "bg-amber-500 text-white shadow-md shadow-amber-500/25 hover:bg-amber-600"
+            ? "bg-warn-soft text-warn hover:bg-warn-soft"
+            : "bg-warn text-white shadow-md hover:bg-warn"
         }`}
       >
         <ExternalLink size={11} />
@@ -504,15 +504,15 @@ function SyncFace({ progress, lines, title }: { progress: number; lines: SyncLog
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-4xl font-black text-white tabular-nums font-outfit">{pct}%</span>
-          <span className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-zinc-500 font-outfit">
+          <span className="text-4xl font-semibold text-white tabular-nums font-outfit">{pct}%</span>
+          <span className="mt-1 text-[11px] font-semibold tracking-[0.18em] text-zinc-500 font-outfit">
             {title || "Full Sync"}
           </span>
         </div>
       </div>
 
       <div className="space-y-1.5">
-        <h2 className="text-xl font-black tracking-tight text-white font-outfit sm:text-2xl">
+        <h2 className="text-xl font-semibold tracking-tight text-white font-outfit sm:text-2xl">
           Preparing your workspace
         </h2>
         <p className="text-xs text-zinc-400">
@@ -523,7 +523,7 @@ function SyncFace({ progress, lines, title }: { progress: number; lines: SyncLog
       <div className="w-full max-w-md space-y-3">
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-900">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-[width] duration-500 ease-out"
+            className="h-full rounded-full bg-indigo-500 transition-[width] duration-500 ease-out"
             style={{ width: `${pct}%` }}
           />
         </div>
@@ -545,8 +545,8 @@ function SyncFace({ progress, lines, title }: { progress: number; lines: SyncLog
 }
 
 function LineIcon({ status }: { status: SyncLogLine["status"] }) {
-  if (status === "success") return <Check size={12} className="mt-0.5 shrink-0 text-emerald-400" />;
-  if (status === "error") return <X size={12} className="mt-0.5 shrink-0 text-rose-400" />;
+  if (status === "success") return <Check size={12} className="mt-0.5 shrink-0 text-ok" />;
+  if (status === "error") return <X size={12} className="mt-0.5 shrink-0 text-danger" />;
   return <Loader2 size={12} className="mt-0.5 shrink-0 animate-spin text-indigo-400" />;
 }
 
@@ -555,29 +555,28 @@ function WelcomeFace({ onDone }: { onDone: () => void }) {
   return (
     <div className="flex animate-in fade-in zoom-in-95 duration-300 flex-col items-center justify-center gap-6 text-center">
       <div className="relative">
-        <span aria-hidden="true" className="absolute inset-0 animate-ping rounded-full bg-indigo-500/20 blur-xl" />
         <div className="relative flex h-24 w-24 items-center justify-center rounded-full border border-indigo-500/30 bg-indigo-500/10">
           <CheckCircle2 className="h-12 w-12 text-indigo-400" strokeWidth={1.75} />
         </div>
       </div>
 
       <div className="space-y-2">
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 font-outfit">
+        <p className="text-[11px] font-semibold tracking-[0.2em] text-indigo-400 font-outfit">
           Sign-in complete
         </p>
-        <h2 className="text-3xl font-black tracking-tight text-white font-outfit sm:text-4xl">Welcome to AmazeCC</h2>
+        <h2 className="text-3xl font-semibold tracking-tight text-white font-outfit sm:text-4xl">Welcome to AmazeCC</h2>
         <p className="mx-auto max-w-md text-sm leading-relaxed text-zinc-400">
           Your records are on this device. Now a few quick choices and your workspace is ready.
         </p>
       </div>
 
-      <ul className="flex flex-wrap justify-center gap-2 text-[10px] font-bold text-zinc-300">
+      <ul className="flex flex-wrap justify-center gap-2 text-[11px] font-semibold text-zinc-300">
         {["Attendance & marks", "Grades & timetable", "Campus services"].map((label) => (
           <li
             key={label}
             className="flex items-center gap-1.5 rounded-full border border-zinc-800 bg-zinc-900/70 px-3 py-1.5"
           >
-            <Check size={11} className="text-emerald-400" />
+            <Check size={11} className="text-ok" />
             {label}
           </li>
         ))}
@@ -586,7 +585,7 @@ function WelcomeFace({ onDone }: { onDone: () => void }) {
       <button
         type="button"
         onClick={onDone}
-        className="flex w-full max-w-xs items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-5 py-3.5 font-black text-sm text-white shadow-xl shadow-indigo-600/20 transition-all hover:bg-indigo-500 active:scale-[0.98] cursor-pointer font-outfit tracking-wide"
+        className="flex w-full max-w-xs items-center justify-center gap-2 rounded-sm bg-accent px-5 py-3.5 font-medium text-sm text-background transition-colors hover:bg-accent/90 cursor-pointer font-outfit tracking-wide focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
         Let&apos;s set up my workspace
         <ArrowRight size={15} />

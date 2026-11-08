@@ -49,7 +49,7 @@ const CATEGORIES: {
     label: "Experience",
     icon: Sparkles,
     desc: "Speed, design, UI feel",
-    badgeClass: "text-amber-500 bg-amber-500/10 border-amber-500/20",
+    badgeClass: "text-warn bg-warn-soft border-warn/20",
   },
   {
     id: "feature",
@@ -63,14 +63,14 @@ const CATEGORIES: {
     label: "Report Bug",
     icon: Bug,
     desc: "Glitch or broken button",
-    badgeClass: "text-rose-500 bg-rose-500/10 border-rose-500/20",
+    badgeClass: "text-danger bg-danger-soft border-danger/20",
   },
   {
     id: "other",
     label: "Other",
     icon: MessageSquare,
     desc: "General thoughts",
-    badgeClass: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
+    badgeClass: "text-ok bg-ok-soft border-ok/20",
   },
 ];
 
@@ -275,15 +275,15 @@ export default function FeedbackModal() {
       <div className="p-4 sm:p-5">
         {isSubmitted ? (
           <div className="py-8 text-center space-y-4">
-            <div className="w-14 h-14 mx-auto rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+            <div className="w-14 h-14 mx-auto rounded-full bg-ok-soft text-ok flex items-center justify-center">
               <CheckCircle2 className="w-8 h-8 animate-in zoom-in-75 duration-200" />
             </div>
             <div className="space-y-1">
-              <h3 className="text-base font-bold text-text-primary">Thank you for your feedback!</h3>
+              <h3 className="text-base font-semibold text-text-primary">Thank you for your feedback!</h3>
               <p className="text-xs text-text-muted max-w-xs mx-auto leading-relaxed">
                 Your report has been logged into PostHog.
                 {ticketId && (
-                  <span className="block mt-1 font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                  <span className="block mt-1 font-mono font-semibold text-indigo-600 dark:text-indigo-400">
                     Ticket ID: #{ticketId}
                   </span>
                 )}
@@ -292,7 +292,7 @@ export default function FeedbackModal() {
             <button
               type="button"
               onClick={handleClose}
-              className="mt-2 w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition-transform active:scale-[0.98] cursor-pointer"
+              className="mt-2 w-full py-2.5 rounded-sm bg-accent hover:bg-accent/90 text-background font-medium text-xs transition-transform cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               Done
             </button>
@@ -301,7 +301,7 @@ export default function FeedbackModal() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Category selection */}
             <div>
-              <label className="block text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-2">
+              <label className="block text-[11px] font-semibold text-text-muted mb-2">
                 What are you sharing?
               </label>
               <div className="grid grid-cols-2 gap-2">
@@ -313,7 +313,7 @@ export default function FeedbackModal() {
                       key={cat.id}
                       type="button"
                       onClick={() => setCategory(cat.id)}
-                      className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                      className={`flex items-start gap-2.5 p-2.5 rounded-md border text-left transition-all cursor-pointer ${
                         isSelected
                           ? "border-indigo-500/60 bg-indigo-500/5 ring-1 ring-indigo-500/30"
                           : "border-border-muted bg-surface-secondary/50 hover:bg-surface-secondary"
@@ -324,7 +324,7 @@ export default function FeedbackModal() {
                       </div>
                       <div className="min-w-0">
                         <span className="block text-xs font-semibold text-text-primary leading-tight">{cat.label}</span>
-                        <span className="block text-[10px] text-text-muted truncate mt-0.5">{cat.desc}</span>
+                        <span className="block text-[11px] text-text-muted truncate mt-0.5">{cat.desc}</span>
                       </div>
                     </button>
                   );
@@ -334,10 +334,10 @@ export default function FeedbackModal() {
 
             {/* Rating */}
             <div>
-              <label className="block text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-2">
+              <label className="block text-[11px] font-semibold text-text-muted mb-2">
                 How is your experience?
               </label>
-              <div className="flex items-center justify-between gap-1.5 p-1.5 rounded-xl bg-surface-secondary/70 border border-border-muted">
+              <div className="flex items-center justify-between gap-1.5 p-1.5 rounded-md bg-surface-secondary/70 border border-border-muted">
                 {RATINGS.map((r) => {
                   const isSelected = rating === r.value;
                   return (
@@ -362,7 +362,7 @@ export default function FeedbackModal() {
 
             {/* Message Area */}
             <div>
-              <label className="block text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">
+              <label className="block text-[11px] font-semibold text-text-muted mb-1.5">
                 Your message
               </label>
               <textarea
@@ -377,13 +377,13 @@ export default function FeedbackModal() {
                       ? "Describe your idea and how it would help you..."
                       : "Tell us what you love or what could be better..."
                 }
-                className="w-full rounded-xl border border-border-muted bg-surface-secondary/60 p-3 text-xs text-text-primary placeholder:text-text-muted focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none transition-colors"
+                className="w-full rounded-md border border-border-muted bg-surface-secondary/60 p-3 text-xs text-text-primary placeholder:text-text-muted focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none transition-colors"
               />
             </div>
 
             {/* Contact Info (Optional) */}
             <div>
-              <label className="block text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">
+              <label className="block text-[11px] font-semibold text-text-muted mb-1.5">
                 Personal Email <span className="font-normal opacity-70">(Optional, for developer replies)</span>
               </label>
               <input
@@ -391,22 +391,22 @@ export default function FeedbackModal() {
                 value={contact}
                 onChange={(e) => setContact(e.target.value)}
                 placeholder="your.personal@gmail.com"
-                className="w-full rounded-xl border border-border-muted bg-surface-secondary/60 px-3 py-2 text-xs text-text-primary placeholder:text-text-muted focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-colors"
+                className="w-full rounded-md border border-border-muted bg-surface-secondary/60 px-3 py-2 text-xs text-text-primary placeholder:text-text-muted focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-colors"
               />
             </div>
 
             {/* ── SESSION REPRODUCTION RECORDING SECTION ── */}
             {hasClip ? (
-              <div className="p-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 flex items-center justify-between gap-2">
+              <div className="p-3 rounded-md border border-ok/30 bg-ok-soft flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 shrink-0">
+                  <div className="p-2 rounded-md bg-ok-soft text-ok shrink-0">
                     <CheckCircle2 className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
-                    <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300 block truncate">
+                    <span className="text-xs font-semibold text-ok block truncate">
                       Reproduction Clip Attached ({clipDuration}s)
                     </span>
-                    <span className="text-[10px] text-text-muted block">
+                    <span className="text-[11px] text-text-muted block">
                       Virtual DOM replay ready to submit with ticket
                     </span>
                   </div>
@@ -422,24 +422,24 @@ export default function FeedbackModal() {
                   <button
                     type="button"
                     onClick={handleDiscardClip}
-                    className="px-2.5 py-1 rounded-lg border border-rose-500/20 text-[11px] font-semibold text-rose-500 hover:bg-rose-500/10 cursor-pointer"
+                    className="px-2.5 py-1 rounded-lg border border-danger/20 text-[11px] font-semibold text-danger hover:bg-danger-soft cursor-pointer"
                   >
                     Discard
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="p-3.5 rounded-2xl border border-rose-500/25 bg-rose-500/5 space-y-2.5">
+              <div className="p-3.5 rounded-md border border-danger/25 bg-danger-soft space-y-2.5">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className="p-1.5 rounded-lg bg-rose-500/10 text-rose-500 shrink-0">
+                    <div className="p-1.5 rounded-lg bg-danger-soft text-danger shrink-0">
                       <Video className="w-4 h-4" />
                     </div>
                     <div>
-                      <span className="text-xs font-bold text-text-primary block leading-tight">
+                      <span className="text-xs font-semibold text-text-primary block leading-tight">
                         Record Bug Reproduction
                       </span>
-                      <span className="text-[10px] text-text-muted block mt-0.5">
+                      <span className="text-[11px] text-text-muted block mt-0.5">
                         Records live virtual DOM while you navigate AmazeCC
                       </span>
                     </div>
@@ -449,13 +449,13 @@ export default function FeedbackModal() {
                 <button
                   type="button"
                   onClick={handleStartReplicating}
-                  className="w-full py-2.5 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-[0.98] text-white text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs shadow-rose-950/20"
+                  className="w-full py-2.5 px-3 rounded-md bg-danger hover:bg-danger text-white text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
                 >
-                  <span className="w-2.5 h-2.5 rounded-full bg-white animate-pulse" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-surface animate-pulse" />
                   <span>Start Recording &amp; Replicate Glitch</span>
                 </button>
 
-                <p className="text-[10px] text-text-muted leading-relaxed">
+                <p className="text-[11px] text-text-muted leading-relaxed">
                   Tapping record closes this modal and pins a floating indicator to the top of your screen. Replicate
                   the issue anywhere in the app, then tap <strong>&quot;Finish &amp; Review&quot;</strong> to return
                   with the clip attached. If you reload, it cancels automatically.
@@ -464,7 +464,7 @@ export default function FeedbackModal() {
             )}
 
             {/* Diagnostic note */}
-            <div className="flex items-center gap-1.5 text-[10px] text-text-muted">
+            <div className="flex items-center gap-1.5 text-[11px] text-text-muted">
               <span>
                 Diagnostics: App #{buildInfo.commitHash} · Screen: {activeTab}
               </span>
@@ -474,7 +474,7 @@ export default function FeedbackModal() {
             <button
               type="submit"
               disabled={isSubmitting || !message.trim()}
-              className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold text-xs flex items-center justify-center gap-2 transition-transform active:scale-[0.98] cursor-pointer"
+              className="w-full py-2.5 rounded-sm bg-accent hover:bg-accent/90 disabled:opacity-50 text-background font-medium text-xs flex items-center justify-center gap-2 transition-transform cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               <Send className="w-3.5 h-3.5" />
               <span>{isSubmitting ? "Sending..." : "Submit to PostHog"}</span>

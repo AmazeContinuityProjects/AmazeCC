@@ -48,7 +48,7 @@ export default function FFCSResultsFilterBar({
   const cut = visibleCount < totalCount;
 
   return (
-    <div className="flex flex-col gap-2.5 p-3 rounded-2xl border border-border-strong bg-surface-secondary/40 print:hidden">
+    <div className="flex flex-col gap-2.5 p-3 rounded-md border border-border-strong bg-surface-secondary/40 print:hidden">
       <div className="flex flex-wrap items-center gap-2">
         <ChipTabs
           size="sm"
@@ -63,7 +63,7 @@ export default function FFCSResultsFilterBar({
           title="Only plans whose courses share one building"
           className={`flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full border transition-colors cursor-pointer ${
             filters.sameBuilding
-              ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-500"
+              ? "bg-ok-soft border-ok/30 text-ok"
               : "bg-surface border-border-strong text-muted-foreground hover:text-text-heading"
           }`}
         >
@@ -105,7 +105,7 @@ export default function FFCSResultsFilterBar({
         </label>
       </div>
       <div className="flex items-center justify-between gap-2 text-[11px] font-semibold">
-        <span className={cut ? "text-amber-500" : "text-muted-foreground"} aria-live="polite">
+        <span className={cut ? "text-warn" : "text-muted-foreground"} aria-live="polite">
           {cut
             ? `${visibleCount.toLocaleString()} of ${totalCount.toLocaleString()} plans match`
             : `${totalCount.toLocaleString()} plan${totalCount === 1 ? "" : "s"}`}
@@ -114,7 +114,7 @@ export default function FFCSResultsFilterBar({
           <button
             type="button"
             onClick={() => onChange({ ...DEFAULT_RESULT_FILTERS })}
-            className="text-indigo-400 hover:text-indigo-300 font-bold transition-colors cursor-pointer"
+            className="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors cursor-pointer"
           >
             Clear filters
           </button>

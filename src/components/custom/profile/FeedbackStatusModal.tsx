@@ -90,12 +90,12 @@ export default function FeedbackStatusModal({ isOpen, onClose, loginToVTOP }: Pr
         {loading && (
           <div className="space-y-3">
             <Skeleton className="h-8 w-48 rounded-lg" />
-            <Skeleton className="h-24 w-full rounded-2xl" />
-            <Skeleton className="h-24 w-full rounded-2xl" />
+            <Skeleton className="h-24 w-full rounded-md" />
+            <Skeleton className="h-24 w-full rounded-md" />
           </div>
         )}
         {error && (
-          <div className="flex items-center gap-3 p-4 text-red-600  dark:text-red-500">
+          <div className="flex items-center gap-3 p-4 text-danger">
             <XCircle className="w-5 h-5 shrink-0" />
             <p className="text-sm font-medium">{error}</p>
           </div>
@@ -131,7 +131,7 @@ export default function FeedbackStatusModal({ isOpen, onClose, loginToVTOP }: Pr
                         const midGiven = (row.midSemester || "").toLowerCase().includes("given");
                         const teeGiven = (row.teeSemester || "").toLowerCase().includes("given");
                         return (
-                          <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-white/50  dark:bg-gray-800/50 border border-gray-100  dark:border-gray-700">
+                          <div key={i} className="flex items-center justify-between p-3 rounded-md bg-white/50  dark:bg-gray-800/50 border border-gray-100  dark:border-gray-700">
                             <div className="flex items-center gap-3 min-w-0 flex-1">
                               <BookOpen className="w-4 h-4 text-gray-400 shrink-0" />
                               <p className="text-sm font-medium text-gray-800  dark:text-gray-200 truncate">{row.feedbackType || "N/A"}</p>

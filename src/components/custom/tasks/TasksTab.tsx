@@ -55,27 +55,27 @@ interface TasksTabProps {
 
 // Tone tokens mirror the course pages (CourseDetailSubpage STATUS_/TONE_ maps)
 const TONE_TEXT: Record<string, string> = {
-  red: "text-red-600 dark:text-red-400",
-  amber: "text-amber-600 dark:text-amber-400",
-  emerald: "text-emerald-600 dark:text-emerald-400",
+  red: "text-danger",
+  amber: "text-warn",
+  emerald: "text-ok",
   indigo: "text-indigo-600 dark:text-indigo-400",
   zinc: "text-zinc-400 dark:text-zinc-500",
 };
 
 const TONE_BADGE: Record<string, string> = {
-  red: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
-  amber: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-  emerald: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+  red: "bg-danger-soft text-danger border-danger/20",
+  amber: "bg-warn-soft text-warn border-warn/20",
+  emerald: "bg-ok-soft text-ok border-ok/20",
   indigo:
     "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border-indigo-200/50 dark:border-indigo-800/40",
-  zinc: "bg-zinc-500/10 text-zinc-500 dark:text-zinc-400 border-zinc-500/20",
+  zinc: "bg-zinc-500/10 text-muted border-zinc-500/20",
 };
 
 const CARD_BASE = `${TILE} min-h-36 sm:min-h-40`;
 
-const SEG_ACTIVE = "bg-indigo-600 text-white shadow-xs";
+const SEG_ACTIVE = "bg-accent text-background";
 const SEG_IDLE =
-  "bg-white/80 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white";
+  "bg-surface border border-zinc-200/80 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white";
 
 const VIEW_META: Record<TasksViewMode, { label: string; icon: React.ElementType; section: string }> = {
   kanban: { label: "Kanban", icon: Columns, section: "Board" },
@@ -287,7 +287,7 @@ export default function TasksTab({ initialView = "kanban", initialCourseCode, on
         <button
           type="button"
           onClick={() => setIsMoodleModalOpen(true)}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/20 text-xs font-black transition-all cursor-pointer shadow-2xs active:scale-[0.98]"
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md bg-warn-soft hover:bg-warn-soft text-warn border border-warn/20 text-xs font-semibold transition-all cursor-pointer shadow-2xs"
         >
           <Download className="w-3.5 h-3.5" />
           <span>Import LMS</span>
@@ -295,7 +295,7 @@ export default function TasksTab({ initialView = "kanban", initialCourseCode, on
         <button
           type="button"
           onClick={handleOpenNewTask}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black transition-colors cursor-pointer active:scale-[0.98]"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-sm bg-accent hover:bg-accent/90 text-background text-xs font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           <Plus className="w-3.5 h-3.5" />
           <span>New Task</span>
@@ -307,11 +307,11 @@ export default function TasksTab({ initialView = "kanban", initialCourseCode, on
         {/* CARD 1: OPEN TASKS */}
         <div className={CARD_BASE}>
           <div className="flex items-center justify-between gap-1">
-            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">
+            <span className="text-[11px] sm:text-xs font-semibold text-zinc-400 dark:text-zinc-500 font-outfit truncate">
               Open tasks
             </span>
             <span
-              className={`text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shrink-0 border ${
+              className={`text-[11px] sm:text-[11px] font-semibold px-2 py-0.5 rounded-md shrink-0 border ${
                 TONE_BADGE[overdueTasks.length > 0 ? "red" : "emerald"]
               }`}
             >
@@ -320,12 +320,12 @@ export default function TasksTab({ initialView = "kanban", initialCourseCode, on
           </div>
           <div className="my-auto py-1">
             <span
-              className={`text-3xl sm:text-4xl font-black font-outfit tracking-tight leading-none block ${TONE_TEXT[openTone]}`}
+              className={`text-3xl sm:text-4xl font-semibold font-outfit tracking-tight leading-none block ${TONE_TEXT[openTone]}`}
             >
               {openTasks.length}
             </span>
           </div>
-          <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">
+          <p className="text-[10.5px] sm:text-xs text-muted font-medium truncate">
             {dueThisWeek} due this week · {doneCount} done
           </p>
         </div>
@@ -342,7 +342,7 @@ export default function TasksTab({ initialView = "kanban", initialCourseCode, on
 
       {/* ── VIEW SEGMENTS + COURSE FILTER ── */}
       <div className="space-y-3">
-        <div className="flex flex-wrap items-center gap-1.5 bg-zinc-100/80 dark:bg-zinc-900/60 p-1.5 rounded-2xl border border-zinc-200/50 dark:border-zinc-800 w-fit">
+        <div className="flex flex-wrap items-center gap-1.5 bg-surface-2 p-1.5 rounded-md border border-zinc-200/50 dark:border-zinc-800 w-fit">
           {(Object.keys(VIEW_META) as TasksViewMode[]).map((mode) => {
             const Icon = VIEW_META[mode].icon;
             const isActive = viewMode === mode;
@@ -351,7 +351,7 @@ export default function TasksTab({ initialView = "kanban", initialCourseCode, on
                 key={mode}
                 type="button"
                 onClick={() => setViewMode(mode)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black whitespace-nowrap transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                   isActive ? SEG_ACTIVE : SEG_IDLE
                 }`}
               >
@@ -371,7 +371,7 @@ export default function TasksTab({ initialView = "kanban", initialCourseCode, on
                   key={f.id}
                   type="button"
                   onClick={() => setSelectedCourseFilter(f.id)}
-                  className={`px-3 py-2 rounded-xl text-xs font-black whitespace-nowrap transition-all cursor-pointer ${
+                  className={`px-3 py-2 rounded-md text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                     isActive ? SEG_ACTIVE : SEG_IDLE
                   }`}
                 >
@@ -396,10 +396,10 @@ export default function TasksTab({ initialView = "kanban", initialCourseCode, on
             ) : (
               <Timer className="w-4 h-4 text-indigo-500" />
             )}
-            <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">
+            <h2 className="text-sm font-semibold text-ink font-outfit tracking-tight">
               {VIEW_META[viewMode].section}
             </h2>
-            <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60">
+            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-surface-2 text-muted border border-zinc-200/60 dark:border-zinc-700/60">
               {filteredTasks.length}
             </span>
           </div>
@@ -408,7 +408,7 @@ export default function TasksTab({ initialView = "kanban", initialCourseCode, on
           <div className="flex items-center gap-2">
             {overdueTasks.length > 0 && (
               <span
-                className={`inline-flex items-center gap-1 text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border ${TONE_BADGE.red}`}
+                className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md border ${TONE_BADGE.red}`}
               >
                 <AlertCircle className="w-3 h-3" />
                 {overdueTasks.length} overdue
@@ -416,7 +416,7 @@ export default function TasksTab({ initialView = "kanban", initialCourseCode, on
             )}
             {todayTasks > 0 && (
               <span
-                className={`inline-flex items-center gap-1 text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border ${TONE_BADGE.indigo}`}
+                className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md border ${TONE_BADGE.indigo}`}
               >
                 <Clock className="w-3 h-3" />
                 {todayTasks} today
@@ -424,7 +424,7 @@ export default function TasksTab({ initialView = "kanban", initialCourseCode, on
             )}
             {doneCount > 0 && (
               <span
-                className={`hidden sm:inline-flex items-center gap-1 text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border ${TONE_BADGE.emerald}`}
+                className={`hidden sm:inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md border ${TONE_BADGE.emerald}`}
               >
                 <CheckCircle2 className="w-3 h-3" />
                 {doneCount} done

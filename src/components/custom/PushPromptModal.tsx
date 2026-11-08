@@ -96,7 +96,7 @@ const DEFAULT_VAPID_PUBLIC_KEY =
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 30, scale: 0.92 }}
                     transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                    className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+14rem)] md:bottom-6 right-4 left-4 md:left-auto md:w-[350px] bg-white/95 dark:bg-black/95 backdrop-blur-md border border-gray-250 dark:border-gray-850 rounded-2xl p-5 shadow-2xl z-[120] pointer-events-auto"
+                    className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+14rem)] md:bottom-6 right-4 left-4 md:left-auto md:w-[350px] bg-white/95 dark:bg-black/95 border border-gray-250 dark:border-gray-850 rounded-md p-5 shadow-lg z-[120] pointer-events-auto"
                 >
                     <button 
                         onClick={handleClose}
@@ -107,11 +107,11 @@ const DEFAULT_VAPID_PUBLIC_KEY =
                     </button>
                     
                     <div className="flex gap-3.5 mt-1">
-                        <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center text-accent shrink-0 bg-surface-2">
                             <Bell size={20} />
                         </div>
                         <div className="min-w-0 flex-1">
-                            <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-1">
+                            <h3 className="text-sm font-semibold text-ink mb-1">
                                 Never Miss a Class!
                             </h3>
                             <p className="text-xs text-gray-600 dark:text-gray-400 leading-normal">
@@ -123,13 +123,13 @@ const DEFAULT_VAPID_PUBLIC_KEY =
                     <div className="flex items-center gap-2 mt-4">
                         <button 
                             onClick={handleEnable}
-                            className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+                            className="flex-1 py-2 bg-accent hover:bg-accent/90 text-background text-xs font-medium rounded-sm transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                         >
                             Enable Alerts
                         </button>
                         <button 
                             onClick={handleClose}
-                            className="flex-1 py-2 border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                            className="flex-1 py-2 border border-line text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 text-xs font-semibold rounded-md transition-colors cursor-pointer"
                         >
                             Maybe Later
                         </button>

@@ -92,7 +92,7 @@ export default function HallOfFameModal({ handleClose }: { handleClose: () => vo
                         {credits.map((credit) => (
                             <div key={credit.repo} className={LIST_ROW}>
                                 <span
-                                    className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${TONE_ICON_TILE.zinc}`}
+                                    className={`w-10 h-10 rounded-md flex items-center justify-center shrink-0 border ${TONE_ICON_TILE.zinc}`}
                                 >
                                     <Github className="w-4.5 h-4.5" />
                                 </span>
@@ -114,8 +114,8 @@ export default function HallOfFameModal({ handleClose }: { handleClose: () => vo
                 </div>
 
                 <div className={`${TILE_CARD} flex items-center justify-center gap-2 text-xs font-semibold text-text-secondary dark:text-text-muted`}>
-                    Curated with <Star className="w-3.5 h-3.5 text-amber-500 shrink-0" /> by{" "}
-                    <span className="font-black text-text-heading">SugeethJSA</span>
+                    Curated with <Star className="w-3.5 h-3.5 text-warn shrink-0" /> by{" "}
+                    <span className="font-semibold text-text-heading">SugeethJSA</span>
                 </div>
             </div>
         </PageShell>

@@ -5,7 +5,7 @@
   --font-sans:
     var(--font-geist), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
-  --font-outfit: var(--font-dm-sans), sans-serif;
+  --font-outfit: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
   --font-mono:
     var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
     monospace;
@@ -156,39 +156,7 @@
   --color-purple-650: var(--color-purple-600);
 }
 
-/*
- * The border steps, pushed a full step darker.
- *
- * amazeui ships `--border-muted` at oklch 0.93 and `--border-strong` at 0.84 in
- * light. On a `--surface` of pure white sitting on a `--background` of oklch
- * 0.982, a 1px line at those values is invisible — so every tile, list shell,
- * chip and input collapses into one undifferentiated wash, which is the flat,
- * greyed-out look this reverts.
- *
- * Both are darkened here rather than at each call site, because
- * `--neutral-200` / `--neutral-300` alias `--border-muted` / `--border-strong`:
- * the `border-zinc-200` / `border-zinc-300` classes written across the ~95 zinc
- * files strengthen with the same two declarations, and stay palette-following.
- *
- * Only the two border tokens move. In dark, `--neutral-200`/`--neutral-300` also
- * carry `dark:text-zinc-200` / `dark:text-zinc-300` (they alias
- * `--text-secondary`), so their dark values are deliberately left alone and only
- * these tokens' alphas rise — a border can get more visible without a line of
- * text getting dimmer.
- *
- * `Main.tsx` writes its own `--border-muted`/`--border-strong` onto
- * `documentElement` for a non-default accent palette, so its literals are raised
- * to match; otherwise switching palette would silently undo this.
- */
-:root {
-  --border-muted: oklch(0.88 0.008 247);
-  --border-strong: oklch(0.78 0.011 247);
-}
-
-.dark {
-  --border-muted: oklch(0.98 0.004 247 / 0.22);
-  --border-strong: oklch(0.98 0.004 247 / 0.36);
-}
+/* Border steps come from AmazeUI 2.0 (`--line`, `--line-2`); no local override. */
 
 @layer base {
   * {
@@ -203,71 +171,24 @@
   h4,
   h5,
   h6 {
-    font-family: var(--font-dm-sans), var(--font-outfit), sans-serif;
+    font-family: var(--font-sans);
+    letter-spacing: -0.015em;
   }
 }
 
 /* ── Design System Utilities ── */
-
-[data-color-palette]:not([data-color-palette="default"]) [class*="border-sky-"],
-[data-color-palette]:not([data-color-palette="default"]) [class*="border-blue-"],
-[data-color-palette]:not([data-color-palette="default"]) [class*="border-indigo-"] {
-  border-color: color-mix(in oklab, var(--theme-accent) 42%, transparent) !important;
-}
-
-[data-color-palette]:not([data-color-palette="default"]) [class*="ring-sky-"],
-[data-color-palette]:not([data-color-palette="default"]) [class*="ring-blue-"],
-[data-color-palette]:not([data-color-palette="default"]) [class*="ring-indigo-"],
-[data-color-palette]:not([data-color-palette="default"]) [class*="focus:ring-sky-"],
-[data-color-palette]:not([data-color-palette="default"]) [class*="focus:ring-blue-"],
-[data-color-palette]:not([data-color-palette="default"]) [class*="focus-visible:ring-sky-"] {
-  --tw-ring-color: color-mix(in oklab, var(--theme-accent) 42%, transparent) !important;
-}
-
-[data-color-palette]:not([data-color-palette="default"]) [class~="bg-sky-400"],
-[data-color-palette]:not([data-color-palette="default"]) [class~="bg-sky-500"],
-[data-color-palette]:not([data-color-palette="default"]) [class~="bg-sky-600"],
-[data-color-palette]:not([data-color-palette="default"]) [class~="bg-blue-400"],
-[data-color-palette]:not([data-color-palette="default"]) [class~="bg-blue-500"],
-[data-color-palette]:not([data-color-palette="default"]) [class~="bg-blue-600"],
-[data-color-palette]:not([data-color-palette="default"]) [class~="bg-indigo-500"],
-[data-color-palette]:not([data-color-palette="default"]) [class~="bg-indigo-600"],
-[data-color-palette]:not([data-color-palette="default"]) [class~="hover:bg-sky-600"]:hover,
-[data-color-palette]:not([data-color-palette="default"]) [class~="hover:bg-blue-600"]:hover,
-[data-color-palette]:not([data-color-palette="default"]) [class~="hover:bg-indigo-600"]:hover {
-  background-color: var(--theme-accent) !important;
-  color: white !important;
-}
-
-[data-color-palette]:not([data-color-palette="default"]) [class*="from-sky-"],
-[data-color-palette]:not([data-color-palette="default"]) [class*="from-blue-"],
-[data-color-palette]:not([data-color-palette="default"]) [class*="from-indigo-"] {
-  --tw-gradient-from: var(--theme-accent) var(--tw-gradient-from-position) !important;
-  --tw-gradient-stops: var(
-    --tw-gradient-via-stops,
-    var(--tw-gradient-position),
-    var(--tw-gradient-from) var(--tw-gradient-from-position),
-    var(--tw-gradient-to) var(--tw-gradient-to-position)
-  ) !important;
-}
-
-[data-color-palette]:not([data-color-palette="default"]) [class*="to-sky-"],
-[data-color-palette]:not([data-color-palette="default"]) [class*="to-blue-"],
-[data-color-palette]:not([data-color-palette="default"]) [class*="to-indigo-"] {
-  --tw-gradient-to: color-mix(in oklab, var(--theme-accent) 74%, #111827) var(--tw-gradient-to-position) !important;
-}
+/* Accent palettes: AmazeUI 2.0 maps indigo-* to the selected accent; no selector overrides needed. */
 
 .solid-card {
   background: var(--surface);
   border: 1px solid var(--border-muted);
-  border-radius: 1rem;
-  box-shadow: 0 1px 2px color-mix(in oklab, var(--text-heading) 8%, transparent);
+  border-radius: 10px;
   color: var(--text-primary);
 }
 
 .error-banner {
   padding: 1rem;
-  border-radius: 1rem;
+  border-radius: 10px;
   background: var(--danger-surface);
   color: var(--danger-foreground);
   font-size: 0.875rem;
@@ -280,7 +201,7 @@
 
 .success-banner {
   padding: 1rem;
-  border-radius: 1rem;
+  border-radius: 10px;
   background: var(--success-surface);
   color: var(--success-foreground);
   font-size: 0.875rem;
@@ -293,7 +214,7 @@
 
 .warning-banner {
   padding: 1rem;
-  border-radius: 1rem;
+  border-radius: 10px;
   background: var(--warning-surface);
   color: var(--warning-foreground);
   font-size: 0.875rem;
@@ -540,7 +461,7 @@ input:-webkit-autofill:focus {
 .surface-card {
   background-color: var(--surface);
   border: 1px solid var(--border-muted);
-  border-radius: 1rem;
+  border-radius: 10px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   transition:
     transform 0.15s ease,
@@ -548,40 +469,11 @@ input:-webkit-autofill:focus {
     border-color 0.15s ease;
 }
 
-.surface-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
+/* .surface-card hover: no shadow lift in Calm Notebook */
 
-/*
- * The card interior the surface tokens paint — the grade-insights card's gray
- * on the course predictor (the surface at full strength, `--surface-secondary`
- * in dark), or the classic translucent zinc glass the tiles shipped with,
- * chosen by the "Card look" setting in the profile page.
- *
- * `Main.tsx` writes `data-card-surface` (`"gray"` by default, `"zinc"` for the
- * classic look) onto `documentElement`; absence reads as the gray. The class
- * carries only the interior, so a riding call site keeps supplying its own
- * radius, border and shadow, and colour-tinted cards that paint their own
- * background never touch it. The zinc glass follows the cfg values the
- * glassy era used: `--surface` at 80% over the light page, 70% in dark, with
- * Tailwind's `backdrop-blur-xl` depth.
- */
+/* Cards are the solid `--surface` in both modes (Calm Notebook). The old glass option is retired. */
 .card-surface {
   background-color: var(--surface);
-}
-
-.dark .card-surface {
-  background-color: var(--surface-secondary);
-}
-
-[data-card-surface="zinc"] .card-surface {
-  background-color: color-mix(in oklab, var(--surface) 80%, transparent);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-}
-
-.dark[data-card-surface="zinc"] .card-surface {
-  background-color: color-mix(in oklab, var(--surface) 70%, transparent);
 }
 
 /* Optimize AppLibrary sheet overlay performance on mobile by disabling heavy backdrop-blur */

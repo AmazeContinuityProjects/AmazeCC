@@ -193,7 +193,7 @@ export default function TimetableVtop({ attendance }: { attendance?: any[] }) {
       {/* Top Header */}
       <div className="flex flex-col justify-between gap-3 border-b border-gray-150 pb-3 sm:flex-row sm:items-center dark:border-gray-800">
         <div>
-          <h2 className="font-outfit text-lg font-black text-gray-900 dark:text-gray-100">Class Schedule</h2>
+          <h2 className="font-outfit text-lg font-semibold text-ink">Class Schedule</h2>
           <p className="text-[11px] text-gray-400 dark:text-gray-500">
             View course slots, venues, and export the full grid.
           </p>
@@ -203,7 +203,7 @@ export default function TimetableVtop({ attendance }: { attendance?: any[] }) {
           <button
             onClick={handleDownloadImage}
             disabled={isDownloading}
-            className="cursor-pointer rounded-lg bg-emerald-600 p-2 text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+            className="cursor-pointer rounded-lg bg-ok p-2 text-white transition-colors hover:bg-ok disabled:opacity-50"
             title="Download PNG"
           >
             <Download className="h-4 w-4" />
@@ -211,7 +211,7 @@ export default function TimetableVtop({ attendance }: { attendance?: any[] }) {
           <button
             onClick={handlePrint}
             disabled={isDownloading}
-            className="cursor-pointer rounded-lg bg-indigo-600 p-2 text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
+            className="cursor-pointer rounded-lg bg-accent p-2 text-background transition-colors hover:bg-accent/90 disabled:opacity-50"
             title="Print / PDF"
           >
             <Printer className="h-4 w-4" />
@@ -236,7 +236,7 @@ export default function TimetableVtop({ attendance }: { attendance?: any[] }) {
             under it, the table above, so this reads on a phone without the
             sideways scroll the old fixed-width table forced. */}
         {uniqueAddedCourses.length > 0 && (
-          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800/80 dark:bg-[#03070e]">
+          <div className="overflow-hidden rounded-md border border-gray-200 bg-surface shadow-sm dark:border-gray-800/80">
             <div className="p-4">
               <SelectedCoursesList courses={uniqueAddedCourses} title="Course Reference" />
             </div>

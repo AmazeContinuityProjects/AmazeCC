@@ -75,7 +75,7 @@ export const MONTH_DISPLAY: readonly string[] = [
   "December",
 ];
 
-/** Course code pattern: 3-5 uppercase letters + 3 digits + optional suffix */
+/** Course code pattern: 3-5 letters + 3 digits + optional suffix */
 const COURSE_CODE_REGEX = /\b([A-Z]{3,5}[0-9]{3}[A-Z0-9]{0,3})\b/;
 
 export interface InferSemesterOptions {

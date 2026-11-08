@@ -11,8 +11,8 @@ import type { FFCSHint } from "./useTips";
  */
 export function Tip({ hint, onDismiss }: { hint: FFCSHint; onDismiss: () => void }) {
   return (
-    <div className="card-surface border border-border-strong rounded-xl px-3 py-2.5 flex items-start gap-2.5">
-      <Lightbulb className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+    <div className="card-surface border border-border-strong rounded-md px-3 py-2.5 flex items-start gap-2.5">
+      <Lightbulb className="w-4 h-4 text-warn shrink-0 mt-0.5" />
       <p className="text-xs text-muted-foreground leading-relaxed flex-1">{hint.text}</p>
       <button
         type="button"
@@ -42,20 +42,20 @@ export function TipDeck({ hints, onDismiss }: { hints: readonly FFCSHint[]; onDi
   const many = hints.length > 1;
   const step = (delta: number) => setIndex((at + delta + hints.length) % hints.length);
   const navButton =
-    "p-1.5 rounded-lg text-muted-foreground hover:text-text-heading hover:bg-surface-secondary/60 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500";
+    "p-1.5 rounded-lg text-muted-foreground hover:text-text-heading hover:bg-surface-secondary/60 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-warn/40";
 
   return (
     <div
       role="region"
       aria-label="Planner tips"
-      className="card-surface border border-border-strong rounded-2xl pl-3 pr-1.5 py-2 flex items-center gap-2.5"
+      className="card-surface border border-border-strong rounded-md pl-3 pr-1.5 py-2 flex items-center gap-2.5"
     >
-      <span className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
-        <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
+      <span className="w-7 h-7 rounded-lg border border-line-2 flex items-center justify-center shrink-0 bg-surface-2">
+        <Lightbulb className="w-3.5 h-3.5 text-warn" />
       </span>
       <p className="text-xs text-muted-foreground leading-relaxed flex-1 min-w-0" aria-live="polite">
         {many ? (
-          <span className="font-bold text-text-secondary dark:text-text-muted mr-1.5">
+          <span className="font-semibold text-text-secondary dark:text-text-muted mr-1.5">
             Tip {at + 1}/{hints.length}
           </span>
         ) : null}

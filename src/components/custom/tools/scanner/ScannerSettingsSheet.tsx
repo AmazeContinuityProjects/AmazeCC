@@ -29,7 +29,7 @@ const CLEANUP_OPTIONS: readonly { value: CleanupMode; label: string; title: stri
 ];
 
 const INPUT =
-  "w-full px-3 py-2 rounded-lg border border-border-muted dark:border-border bg-surface dark:bg-surface-secondary text-sm font-bold text-text-heading placeholder:text-text-muted placeholder:font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150";
+  "w-full px-3 py-2 rounded-lg border border-border-muted dark:border-border bg-surface dark:bg-surface-secondary text-sm font-semibold text-text-heading placeholder:text-text-muted placeholder:font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150";
 
 interface ScannerSettingsSheetProps {
   onClose: () => void;
@@ -62,9 +62,9 @@ export default function ScannerSettingsSheet({ onClose }: ScannerSettingsSheetPr
             }
             badge={
               settings.ocrEngine === "tesseract" ? (
-                <Cpu className="h-3.5 w-3.5 text-emerald-500" aria-hidden />
+                <Cpu className="h-3.5 w-3.5 text-ok" aria-hidden />
               ) : (
-                <Cloud className="h-3.5 w-3.5 text-sky-500" aria-hidden />
+                <Cloud className="h-3.5 w-3.5 text-accent" aria-hidden />
               )
             }
             control={
@@ -137,16 +137,16 @@ export default function ScannerSettingsSheet({ onClose }: ScannerSettingsSheetPr
           )}
         </ListShell>
 
-        <div className="flex items-start gap-2.5 rounded-2xl border border-border-muted dark:border-border bg-surface-secondary dark:bg-surface/60 px-4 py-3">
+        <div className="flex items-start gap-2.5 rounded-md border border-border-muted dark:border-border bg-surface-secondary dark:bg-surface/60 px-4 py-3">
           <UploadCloud className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500" aria-hidden />
           <p className="text-left text-[11px] font-medium text-text-secondary dark:text-text-muted">
-            <span className="font-extrabold text-text-heading">Local-first.</span> Every scan is written to this
+            <span className="font-semibold text-text-heading">Local-first.</span> Every scan is written to this
             device&apos;s storage before anything touches the network, and an upload failure never loses it.
           </p>
         </div>
 
         {cloudKeyNeeded && !settings.ocrApiKey && (
-          <p className="flex items-center gap-2 px-1 text-[11px] font-bold text-amber-600 dark:text-amber-400">
+          <p className="flex items-center gap-2 px-1 text-[11px] font-semibold text-warn">
             <KeyRound className="h-3.5 w-3.5 shrink-0" aria-hidden />
             No API key set — cloud OCR will report itself unavailable until one is.
           </p>
@@ -166,7 +166,7 @@ function SwitchTrackLike({ checked }: { checked: boolean }) {
       }`}
     >
       <span
-        className={`absolute top-1 left-1 block h-6 w-6 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+        className={`absolute top-1 left-1 block h-6 w-6 rounded-full bg-surface shadow-sm transition-transform duration-200 ${
           checked ? "translate-x-6" : ""
         }`}
       />

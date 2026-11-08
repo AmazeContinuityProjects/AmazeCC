@@ -143,10 +143,10 @@ describe("gradeBadge", () => {
   it("ships one shared set of tone classes for every host", () => {
     // The two picker hosts must style a badge identically: one record, so a
     // colour can never mean "blocked" in one sheet and "warning" in another.
-    expect(GRADE_BADGE_TONE_CLASSES.red).toContain("text-red-500");
-    expect(GRADE_BADGE_TONE_CLASSES.amber).toContain("border-amber-500/30");
-    expect(GRADE_BADGE_TONE_CLASSES.amber).toContain("text-amber-600");
-    expect(GRADE_BADGE_TONE_CLASSES.blue).toContain("text-blue-500");
+    expect(GRADE_BADGE_TONE_CLASSES.red).toContain("text-danger");
+    expect(GRADE_BADGE_TONE_CLASSES.amber).toContain("border-warn/30");
+    expect(GRADE_BADGE_TONE_CLASSES.amber).toContain("text-warn");
+    expect(GRADE_BADGE_TONE_CLASSES.blue).toContain("text-accent");
   });
 });
 
@@ -166,7 +166,7 @@ describe("gradeLetter", () => {
     const s = gradeLetter("BCSE101", index)!;
     expect(s.text).toBe("S");
     expect(s.className).toContain("text-2xl");
-    expect(s.className).toContain("text-red-500");
+    expect(s.className).toContain("text-danger");
 
     // `NX2` is three characters: same weight, one step smaller so a two-line
     // row never happens, and the retake blue matching its badge.
@@ -174,10 +174,10 @@ describe("gradeLetter", () => {
     expect(nx2.text).toBe("NX2");
     expect(nx2.className).toContain("text-base");
     expect(nx2.className).not.toContain("text-2xl");
-    expect(nx2.className).toContain("text-blue-500");
+    expect(nx2.className).toContain("text-accent");
 
     const b = gradeLetter("BCSE102", index)!;
-    expect(b.className).toContain("text-amber");
+    expect(b.className).toContain("text-warn");
   });
 
   it("still shows a grade no rule applies to — in neutral", () => {

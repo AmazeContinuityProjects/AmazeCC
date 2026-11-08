@@ -53,14 +53,14 @@ export default function TaskWeekView({
     <div className="space-y-4 text-left">
       {/* Overlap warnings banner */}
       {overlaps.length > 0 && (
-        <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-xs font-semibold flex items-center justify-between gap-3">
+        <div className="p-3.5 rounded-md bg-warn-soft border border-warn/20 text-warn text-xs font-semibold flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 shrink-0 text-amber-500" />
+            <AlertTriangle className="w-4 h-4 shrink-0 text-warn" />
             <span>
               {overlaps.length} schedule conflict{overlaps.length === 1 ? "" : "s"} detected across tasks.
             </span>
           </div>
-          <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-500/20 px-2 py-0.5 rounded-md">
+          <span className="text-[11px] font-semibold bg-warn-soft px-2 py-0.5 rounded-md">
             Overlapping chunks
           </span>
         </div>
@@ -74,14 +74,14 @@ export default function TaskWeekView({
           return (
             <div
               key={day}
-              className="flex flex-col rounded-2xl bg-zinc-50/70 dark:bg-zinc-900/40 border border-zinc-200/70 dark:border-zinc-800/70 p-3 min-h-[220px]"
+              className="flex flex-col rounded-md bg-surface-2 border border-zinc-200/70 dark:border-zinc-800/70 p-3 min-h-[220px]"
             >
               {/* Day Column Header */}
               <div className="flex items-center justify-between pb-2 border-b border-zinc-200/60 dark:border-zinc-800/60 mb-2">
-                <span className="text-xs font-black uppercase tracking-wider text-zinc-800 dark:text-zinc-200 font-outfit">
+                <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 font-outfit">
                   {day}
                 </span>
-                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-white dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200/50 dark:border-zinc-700/50">
+                <span className="text-[11px] font-semibold px-1.5 py-0.2 rounded-full bg-surface dark:bg-zinc-800 text-muted border border-zinc-200/50 dark:border-zinc-700/50">
                   {items.length}
                 </span>
               </div>
@@ -93,7 +93,7 @@ export default function TaskWeekView({
                     <button
                       type="button"
                       onClick={() => onNewTask(day)}
-                      className="text-[11px] font-bold text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer"
+                      className="text-[11px] font-semibold text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer"
                     >
                       + Schedule
                     </button>
@@ -111,34 +111,34 @@ export default function TaskWeekView({
                       <div
                         key={`${task.id}-${idx}`}
                         onClick={() => onEdit(task)}
-                        className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99] bg-white dark:bg-zinc-800 shadow-2xs ${
+                        className={`p-2.5 rounded-md border text-left cursor-pointer transition-all bg-surface dark:bg-zinc-800 shadow-2xs ${
                           hasConflict
-                            ? "border-amber-500/50 ring-1 ring-amber-500/20"
+                            ? "border-warn/50 ring-1 ring-warn/20"
                             : "border-zinc-200/80 dark:border-zinc-700"
                         }`}
                       >
-                        <div className="flex items-center justify-between text-[10px] font-bold text-zinc-500 dark:text-zinc-400 mb-1">
+                        <div className="flex items-center justify-between text-[11px] font-semibold text-muted mb-1">
                           <span className="flex items-center gap-1 font-semibold">
                             <Clock className="w-2.5 h-2.5 text-indigo-500" />
                             {chunk.start} – {chunk.end}
                           </span>
                           {hasConflict && (
-                            <span className="text-amber-500 font-black">!</span>
+                            <span className="text-warn font-semibold">!</span>
                           )}
                         </div>
 
-                        <h5 className="text-xs font-bold text-zinc-900 dark:text-white truncate font-outfit">
+                        <h5 className="text-xs font-semibold text-ink truncate font-outfit">
                           {task.title}
                         </h5>
 
                         <div className="flex items-center gap-1 mt-1.5">
                           <span
-                            className={`text-[10px] font-extrabold uppercase px-1.5 py-0.2 rounded border ${meta.badgeClass}`}
+                            className={`text-[11px] font-semibold px-1.5 py-0.2 rounded border ${meta.badgeClass}`}
                           >
                             {meta.label}
                           </span>
                           {task.courseCode && (
-                            <span className="text-[9px] font-bold text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-1 py-0.2 rounded truncate">
+                            <span className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400 bg-surface-2 px-1 py-0.2 rounded truncate">
                               {task.courseCode}
                             </span>
                           )}

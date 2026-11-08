@@ -437,11 +437,11 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
         <div className="flex items-center justify-between gap-2 min-w-0 px-1">
           <div className="flex items-center gap-2 min-w-0">
             <span className={`w-2.5 h-2.5 rounded-full ${dotClass} shrink-0`} />
-            <h4 className="text-xs font-black text-text-heading dark:text-white font-outfit uppercase tracking-wider truncate">
+            <h4 className="text-xs font-semibold text-text-heading dark:text-white font-outfit truncate">
               {label} ({rows.length})
             </h4>
           </div>
-          <div className="text-[10px] font-bold text-text-secondary shrink-0">
+          <div className="text-[11px] font-semibold text-text-secondary shrink-0">
             <strong className="text-text-heading dark:text-zinc-200">{stats.scoredWeight.toFixed(1)}</strong>
             {" / "}
             {stats.totalWeightConfigured} wt
@@ -472,14 +472,14 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
               title={`Add an assessment — ${remaining} weightage points still open`}
               className="w-full flex items-center gap-3 py-3 px-4 text-left cursor-pointer min-w-0 group"
             >
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-dashed border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-dashed border-line-2 text-warn bg-surface-2">
                 <Plus className="h-4.5 w-4.5" />
               </span>
               <ListRowText
                 title="Add assessment"
                 titleTooltip="Add an assessment"
                 subtitle={
-                  <span className="text-amber-600 dark:text-amber-400 font-semibold">
+                  <span className="text-warn font-semibold">
                     {remaining} weightage points not yet released on VTOP, so grade prediction is limited
                   </span>
                 }
@@ -538,18 +538,18 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
             { tone: "red", label: `Lost ${lostPercent.toFixed(1)}%` },
           ]}
         />
-        <div className="h-3 w-full rounded-xl bg-surface-tertiary dark:bg-surface-secondary overflow-hidden flex">
+        <div className="h-3 w-full rounded-md bg-surface-tertiary dark:bg-surface-secondary overflow-hidden flex">
           <div
             style={{ width: `${scoredPercent}%` }}
             className="h-full bg-indigo-600 dark:bg-indigo-500 transition-all duration-300"
           />
           <div
             style={{ width: `${pendingPercent}%` }}
-            className="h-full bg-sky-400 dark:bg-sky-500 transition-all duration-300"
+            className="h-full bg-accent transition-all duration-300"
           />
           <div
             style={{ width: `${lostPercent}%` }}
-            className="h-full bg-red-500 dark:bg-red-600 transition-all duration-300"
+            className="h-full bg-danger transition-all duration-300"
           />
         </div>
       </div>
@@ -600,7 +600,7 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
             type="button"
             onClick={() => setShowSimulate((v) => !v)}
             aria-expanded={showSimulate}
-            className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-surface dark:bg-surface-secondary text-zinc-600 dark:text-zinc-300 text-[11px] font-black border border-border-strong cursor-pointer shadow-3xs whitespace-nowrap transition-colors hover:text-text-heading"
+            className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-surface dark:bg-surface-secondary text-zinc-600 dark:text-zinc-300 text-[11px] font-semibold border border-border-strong cursor-pointer shadow-3xs whitespace-nowrap transition-colors hover:text-text-heading"
           >
             Simulate…
             <ChevronDown className={`w-3 h-3 transition-transform ${showSimulate ? "rotate-180" : ""}`} />
@@ -609,17 +609,17 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
             [
               {
                 pct: 100,
-                tone: "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 border-emerald-500/20",
+                tone: "text-ok hover:bg-ok-soft border-ok/20",
               },
               { pct: 90, tone: "text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 border-indigo-500/20" },
-              { pct: 80, tone: "text-cyan-600 dark:text-cyan-400 hover:bg-cyan-500/10 border-cyan-500/20" },
-              { pct: 50, tone: "text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 border-amber-500/20" },
+              { pct: 80, tone: "text-course-1 hover:bg-course-1/10 border-course-1/20" },
+              { pct: 50, tone: "text-warn hover:bg-warn-soft border-warn/20" },
             ].map(({ pct, tone }) => (
               <button
                 key={pct}
                 type="button"
                 onClick={() => handleBatchSimulate(pct)}
-                className={`shrink-0 px-2.5 py-1.5 rounded-xl bg-surface dark:bg-surface-secondary ${tone} text-[11px] font-black border cursor-pointer shadow-3xs whitespace-nowrap transition-colors hover:text-current`}
+                className={`shrink-0 px-2.5 py-1.5 rounded-md bg-surface dark:bg-surface-secondary ${tone} text-[11px] font-semibold border cursor-pointer shadow-3xs whitespace-nowrap transition-colors hover:text-current`}
               >
                 All {pct}%
               </button>
@@ -628,7 +628,7 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
           {renderHalf("blue", "Theory", "theory", theoryStats, "bg-indigo-500", theoryRemaining)}
-          {renderHalf("emerald", "Lab", "lab", labStats, "bg-emerald-500", labRemaining)}
+          {renderHalf("emerald", "Lab", "lab", labStats, "bg-ok", labRemaining)}
         </div>
       </div>
 
@@ -651,14 +651,14 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
       <div className="space-y-3" data-tour-id="predictor-ladder">
         <SectionHeader icon={Gauge} title="Grade insights" right={<ToneBadge tone="blue">Beta</ToneBadge>} />
         {!prediction.isCurved && (
-          <div className="rounded-3xl border border-border-strong dark:border-border card-surface flex items-center gap-3.5 px-4 py-3.5">
+          <div className="rounded-lg border border-border-strong dark:border-border card-surface flex items-center gap-3.5 px-4 py-3.5">
             <span
-              className={`h-11 w-11 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.emerald}`}
+              className={`h-11 w-11 shrink-0 rounded-md border flex items-center justify-center ${TONE_ICON_TILE.emerald}`}
             >
               <ShieldCheck className="h-5 w-5" />
             </span>
             <div className="min-w-0">
-              <h4 className="text-sm font-bold text-text-heading font-outfit tracking-tight">
+              <h4 className="text-sm font-semibold text-text-heading font-outfit tracking-tight">
                 Absolute grading enforced
               </h4>
               <p className="text-[11px] text-text-secondary dark:text-text-muted font-medium mt-0.5">
@@ -675,7 +675,7 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
             right={prediction.isCurved && !classStats ? <ToneBadge tone="zinc">Awaiting class data</ToneBadge> : null}
           />
           <div
-            className={`rounded-3xl border border-border-strong dark:border-border card-surface px-4 py-3.5 space-y-2.5 ${
+            className={`rounded-lg border border-border-strong dark:border-border card-surface px-4 py-3.5 space-y-2.5 ${
               prediction.isCurved && !classStats ? "opacity-60 grayscale" : ""
             }`}
           >
@@ -685,12 +685,12 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
                 <ToneDot tone={!classStats ? "zinc" : classStats.count < 30 ? "amber" : "emerald"} />
                 {classStats ? (
                   <span>
-                    <span className="font-bold text-text-heading">{classStats.count}</span>{" "}
+                    <span className="font-semibold text-text-heading">{classStats.count}</span>{" "}
                     {classStats.count === 1 ? "peer" : "peers"}
                     <span aria-hidden="true"> · </span>μ{" "}
-                    <span className="font-bold text-text-heading">{classStats.mean.toFixed(1)}</span>
+                    <span className="font-semibold text-text-heading">{classStats.mean.toFixed(1)}</span>
                     <span aria-hidden="true"> · </span>σ{" "}
-                    <span className="font-bold text-text-heading">{classStats.sd.toFixed(1)}</span>
+                    <span className="font-semibold text-text-heading">{classStats.sd.toFixed(1)}</span>
                   </span>
                 ) : (
                   <span>No class data yet — showing default bands</span>
@@ -723,10 +723,10 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
             {/* Req: the honesty line — every number in this box is an
                 estimate the reader typed, not a result the university
                 posted. */}
-            <p className="flex items-start gap-2 text-[11px] leading-relaxed font-medium text-amber-700 dark:text-amber-400">
+            <p className="flex items-start gap-2 text-[11px] leading-relaxed font-medium text-warn">
               <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" aria-hidden="true" />
               <span>
-                <strong className="font-black">Just a prediction.</strong> These grades come from marks you entered —
+                <strong className="font-semibold">Just a prediction.</strong> These grades come from marks you entered —
                 estimates within the grade boundaries, not a result. Your actual grade can land outside these numbers.
               </span>
             </p>

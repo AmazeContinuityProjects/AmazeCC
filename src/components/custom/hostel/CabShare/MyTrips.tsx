@@ -118,10 +118,10 @@ export default function MyTrips({
     <div className="grid gap-6 xl:grid-cols-2">
       {message && (
         <div
-          className={`flex items-center gap-2 rounded-2xl border p-4 text-sm font-semibold xl:col-span-2 ${
+          className={`flex items-center gap-2 rounded-md border p-4 text-sm font-semibold xl:col-span-2 ${
             message.type === "success"
-              ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-              : "border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-400"
+              ? "border-ok/20 bg-ok-soft text-ok"
+              : "border-danger/20 bg-danger-soft text-danger"
           }`}
         >
           {message.text}
@@ -151,7 +151,7 @@ export default function MyTrips({
               return (
                 <article key={trip.trip_id} className={TILE_CARD}>
                   <div className="flex items-start gap-3">
-                    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${TONE_ICON_TILE.sky}`}>
+                    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md ${TONE_ICON_TILE.sky}`}>
                       <MapPin className="h-5 w-5" />
                     </span>
                     <ListRowText
@@ -191,11 +191,11 @@ export default function MyTrips({
                               right={
                                 req.status === "pending" ? (
                                   <>
-                                    <IconButton title="Accept request" onClick={() => handleMatchAction(req.match_id, "accept")} className="hover:bg-emerald-500/10">
-                                      <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                                    <IconButton title="Accept request" onClick={() => handleMatchAction(req.match_id, "accept")} className="hover:bg-ok-soft">
+                                      <Check className="h-4 w-4 text-ok" />
                                     </IconButton>
-                                    <IconButton title="Reject request" onClick={() => handleMatchAction(req.match_id, "reject")} className="hover:bg-red-500/10">
-                                      <X className="h-4 w-4 text-red-600 dark:text-red-400" />
+                                    <IconButton title="Reject request" onClick={() => handleMatchAction(req.match_id, "reject")} className="hover:bg-danger-soft">
+                                      <X className="h-4 w-4 text-danger" />
                                     </IconButton>
                                   </>
                                 ) : (
@@ -207,7 +207,7 @@ export default function MyTrips({
                         ))}
                       </ListShell>
                     ) : (
-                      <p className="rounded-2xl border border-dashed border-border-strong px-4 py-3 text-xs font-semibold text-text-muted">
+                      <p className="rounded-md border border-dashed border-border-strong px-4 py-3 text-xs font-semibold text-text-muted">
                         No requests yet.
                       </p>
                     )}
@@ -240,7 +240,7 @@ export default function MyTrips({
               return (
                 <article key={trip.trip_id} className={TILE_CARD}>
                   <div className="flex items-start gap-3">
-                    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${TONE_ICON_TILE.emerald}`}>
+                    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md ${TONE_ICON_TILE.emerald}`}>
                       <MapPin className="h-5 w-5" />
                     </span>
                     <ListRowText
@@ -255,7 +255,7 @@ export default function MyTrips({
                     Host: <strong className="text-text-heading">{trip.owner_name}</strong>
                   </p>
                   {trip.match_status === "accepted" && (
-                    <p className="mt-1 flex items-center gap-1 text-sm font-black text-emerald-600 dark:text-emerald-400">
+                    <p className="mt-1 flex items-center gap-1 text-sm font-semibold text-ok">
                       <Phone className="h-4 w-4" /> {trip.owner_phone}
                     </p>
                   )}

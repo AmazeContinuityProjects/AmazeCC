@@ -27,10 +27,10 @@ describe("DesktopCourseDetail / DesktopCourseDetailPane", () => {
     const { container } = render(<DesktopCourseDetail />);
     const className = (container.firstChild as HTMLElement)?.className || "";
     expect(className).toContain("hidden md:block");
-    expect(className).toContain("bg-white");
-    expect(className).toContain("dark:bg-[#080808]");
+    expect(className).toContain("bg-surface");
+    expect(className).toContain("");
     expect(className).toContain("border border-gray-200");
-    expect(className).toContain("rounded-2xl p-6 shadow-sm sticky top-4");
+    expect(className).toContain("rounded-md p-6 shadow-sm sticky top-4");
     expect(screen.getByText("Select a class on the timeline to view details.")).toBeDefined();
   });
 

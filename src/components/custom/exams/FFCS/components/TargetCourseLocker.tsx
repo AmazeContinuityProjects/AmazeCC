@@ -188,7 +188,7 @@ export const TargetCourseLocker: React.FC<TargetCourseLockerProps> = ({
 
   const groupToggle = (
     <div className="flex flex-wrap items-center gap-1.5">
-      <span className="text-[10px] font-bold text-text-heading/70 uppercase">Group by</span>
+      <span className="text-[11px] font-semibold text-text-heading/70">Group by</span>
       {(
         [
           { id: "faculty", label: "Faculty" },
@@ -206,7 +206,7 @@ export const TargetCourseLocker: React.FC<TargetCourseLockerProps> = ({
           }}
           className={`px-2 py-1 rounded text-xs font-bold transition-colors ${
             offeringGroupBy === opt.id
-              ? "bg-amber-500 text-white shadow-sm"
+              ? "bg-warn text-white shadow-sm"
               : "bg-surface-secondary hover:bg-surface-secondary/80 text-text-heading/70"
           }`}
         >
@@ -221,7 +221,7 @@ export const TargetCourseLocker: React.FC<TargetCourseLockerProps> = ({
       <div className="flex flex-wrap items-start justify-between gap-3">
         {availableSeries.length > 0 && (
           <div className="min-w-0">
-            <div className="text-[10px] font-bold text-text-heading/70 mb-1.5 uppercase">Quick Select Series</div>
+            <div className="text-[11px] font-semibold text-text-heading/70 mb-1.5">Quick Select Series</div>
             <div className="flex flex-wrap gap-1.5">
               {availableSeries.map((series) => {
                 const seriesOfferings = uniqueOfferings.filter((o) => {
@@ -254,7 +254,7 @@ export const TargetCourseLocker: React.FC<TargetCourseLockerProps> = ({
                     }}
                     className={`px-2 py-1 rounded text-xs font-bold transition-colors ${
                       allSelected
-                        ? "bg-amber-500 text-white shadow-sm"
+                        ? "bg-warn text-white shadow-sm"
                         : "bg-surface-secondary hover:bg-surface-secondary/80 text-text-heading/70"
                     }`}
                   >
@@ -283,7 +283,7 @@ export const TargetCourseLocker: React.FC<TargetCourseLockerProps> = ({
         {offeringGroupBy === "faculty" && (
           <>
             {catalogReady && rankedFacs.some((r) => r.rank.wPct >= 0) && (
-              <div className="flex items-center gap-1.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+              <div className="flex items-center gap-1.5 text-[11px] font-semibold text-warn">
                 <Award className="w-3 h-3 shrink-0" />
                 Ranked by vitfac reviews
               </div>
@@ -296,7 +296,7 @@ export const TargetCourseLocker: React.FC<TargetCourseLockerProps> = ({
                       <span
                         className={`shrink-0 min-w-5 h-5 px-1 rounded-full text-[10px] font-black flex items-center justify-center ${
                           rankNumber.get(fac) === 1
-                            ? "bg-amber-500 text-white"
+                            ? "bg-warn text-white"
                             : "bg-surface-secondary text-muted-foreground border border-border-strong"
                         }`}
                         title={`Rank #${rankNumber.get(fac)} by overall W%`}
@@ -336,7 +336,7 @@ export const TargetCourseLocker: React.FC<TargetCourseLockerProps> = ({
         {offeringGroupBy === "slot" && (
           <>
             {catalogReady && rankedFacs.some((r) => r.rank.wPct >= 0) && (
-              <div className="flex items-center gap-1.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+              <div className="flex items-center gap-1.5 text-[11px] font-semibold text-warn">
                 <Award className="w-3 h-3 shrink-0" />
                 Faculties ranked by vitfac reviews within each slot
               </div>
@@ -345,13 +345,13 @@ export const TargetCourseLocker: React.FC<TargetCourseLockerProps> = ({
               <section key={theory} aria-label={`Faculty teaching ${theory}`} className="space-y-1.5">
                 <div className="text-xs font-semibold text-text-heading/90 pb-1 border-b border-border-strong/50 flex items-center justify-between gap-2">
                   <span className="flex items-center gap-1.5 min-w-0">
-                    <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0">
+                    <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-warn-soft text-warn shrink-0">
                       <Hash className="w-3 h-3" />
                     </span>
                     <span className="truncate">{theory}</span>
-                    <span className="text-[10px] font-medium text-muted-foreground">theory</span>
+                    <span className="text-[11px] font-medium text-muted-foreground">theory</span>
                   </span>
-                  <span className="text-[10px] font-semibold text-muted-foreground shrink-0">
+                  <span className="text-[11px] font-semibold text-muted-foreground shrink-0">
                     {new Set(offeringsByTheorySlot[theory].map((o) => o.faculty)).size} fac
                   </span>
                 </div>
@@ -376,7 +376,7 @@ export const TargetCourseLocker: React.FC<TargetCourseLockerProps> = ({
         )}
       </div>
       {selection.offerings && selection.offerings.length > 0 && (
-        <div className="text-xs text-amber-500 mt-2 font-medium">
+        <div className="text-xs text-warn mt-2 font-medium">
           Filtering by {selection.offerings.length} selected offering{selection.offerings.length === 1 ? "" : "s"}
         </div>
       )}
@@ -421,11 +421,11 @@ const OfferingRow: React.FC<{
 
   const tile =
     leading === "slot" ? (
-      <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/20 text-[11px] font-bold">
+      <span className="w-10 h-10 rounded-md border flex items-center justify-center shrink-0 text-warn border-line-2 text-[11px] font-semibold bg-surface-2">
         {theorySlotOf(offering.slot)}
       </span>
     ) : (
-      <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-surface-secondary/70 dark:bg-surface-secondary/40 border-border-strong overflow-hidden">
+      <span className="w-10 h-10 rounded-md border flex items-center justify-center shrink-0 bg-surface-secondary/70 dark:bg-surface-secondary/40 border-border-strong overflow-hidden">
         <FacultyAvatar employeeId={offering.employeeId} name={offering.faculty} size="sm" tone="amber" />
       </span>
     );
@@ -476,14 +476,14 @@ const OfferingRow: React.FC<{
         />
       )}
       {isOffChecked ? (
-        <span className="w-5 h-5 rounded bg-amber-500 text-white flex items-center justify-center shrink-0">
+        <span className="w-5 h-5 rounded bg-warn text-white flex items-center justify-center shrink-0">
           <Check className="w-3.5 h-3.5" strokeWidth={3} />
         </span>
       ) : typeof rank === "number" ? (
         <span
           className={`inline-flex items-center gap-0.5 text-[10px] font-black px-1.5 py-0.5 rounded shrink-0 ${
             rank === 1
-              ? "bg-amber-500 text-white"
+              ? "bg-warn text-white"
               : "bg-surface-secondary/70 border border-border-strong/70 text-muted-foreground"
           }`}
           title={`Rank #${rank} of rated faculty by overall W%`}
@@ -492,7 +492,7 @@ const OfferingRow: React.FC<{
           <span>{rank}</span>
         </span>
       ) : (
-        <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-surface-secondary/70 border border-border-strong/70 text-muted-foreground shrink-0">
+        <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded bg-surface-secondary/70 border border-border-strong/70 text-muted-foreground shrink-0">
           <Users className="w-2.5 h-2.5 text-muted-foreground/60 shrink-0" />
           <span>{altCount}</span>
         </span>

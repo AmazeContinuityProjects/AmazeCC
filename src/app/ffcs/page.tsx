@@ -11,7 +11,7 @@ export default function FFCSPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-slate-50 dark:bg-[#03060F] flex items-center justify-center text-sm text-slate-500">
+        <div className="min-h-screen bg-background flex items-center justify-center text-sm text-muted">
           Loading FFCS Planner…
         </div>
       }

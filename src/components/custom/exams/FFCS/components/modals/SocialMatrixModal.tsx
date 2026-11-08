@@ -78,11 +78,11 @@ export function SocialMatrixModal({
           contentClassName="space-y-6"
           title="Social Score Breakdown"
           icon={<Users className="w-5 h-5" />}
-          accent="bg-pink-500/10 border-pink-500/20 text-pink-500"
+          accent="bg-course-7/10 border-course-7/20 text-course-7"
           closeLabel="Close social breakdown"
         >
           <div>
-            <h4 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-2">How it works</h4>
+            <h4 className="text-sm font-semibold text-muted-foreground mb-2">How it works</h4>
             <p className="text-sm text-text-heading/80 leading-relaxed max-w-3xl">
               The Social Score is a percentage indicating how well your timetable aligns with your friends' timetables.
               It awards points for <strong className="text-text-heading">Shared Classes</strong> (+3 per slot),
@@ -93,7 +93,7 @@ export function SocialMatrixModal({
           </div>
 
           {friends.length === 0 ? (
-            <div className="text-center py-12 border border-dashed border-border-strong rounded-xl">
+            <div className="text-center py-12 border border-dashed border-border-strong rounded-md">
               <Users className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
               <p className="text-muted-foreground font-medium">You have no friends imported.</p>
               <p className="text-sm text-muted-foreground/80 mt-1">
@@ -101,7 +101,7 @@ export function SocialMatrixModal({
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-xl border border-border-strong custom-scrollbar">
+            <div className="overflow-x-auto rounded-md border border-border-strong custom-scrollbar">
               <table className="w-full text-sm text-center border-collapse">
                 <thead className="bg-surface-secondary/50 border-b border-border-strong">
                   <tr>
@@ -141,7 +141,7 @@ export function SocialMatrixModal({
                       <td className="py-3 px-4 text-left font-medium border-r border-border-strong whitespace-nowrap sticky left-0 bg-surface/95 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                         {mt.name || (mt.id === activeTimetableId ? "Active Timetable" : `Option ${rIdx + 1}`)}
                         {mt.id === activeTimetableId && (
-                          <span className="ml-2 text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">
+                          <span className="ml-2 text-[11px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-semibold">
                             Active
                           </span>
                         )}
@@ -156,17 +156,17 @@ export function SocialMatrixModal({
                           let colorClass = "text-muted-foreground";
                           let bgClass = "";
                           if (pct >= 80) {
-                            colorClass = "text-emerald-700 dark:text-emerald-400 font-bold";
-                            bgClass = "bg-emerald-500/10";
+                            colorClass = "text-ok font-semibold";
+                            bgClass = "bg-ok-soft";
                           } else if (pct >= 60) {
-                            colorClass = "text-yellow-700 dark:text-yellow-400 font-bold";
-                            bgClass = "bg-yellow-500/10";
+                            colorClass = "text-warn font-semibold";
+                            bgClass = "bg-warn-soft";
                           } else if (pct >= 40) {
-                            colorClass = "text-orange-700 dark:text-orange-400 font-medium";
-                            bgClass = "bg-orange-500/10";
+                            colorClass = "text-course-2 font-medium";
+                            bgClass = "bg-course-2/10";
                           } else if (pct > 0) {
-                            colorClass = "text-red-700 dark:text-red-400";
-                            bgClass = "bg-red-500/10";
+                            colorClass = "text-danger";
+                            bgClass = "bg-danger-soft";
                           }
 
                           return (
@@ -177,16 +177,16 @@ export function SocialMatrixModal({
                               <span className={colorClass}>{pct}%</span>
                               {/* Tooltip for breakdown */}
                               <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-foreground text-background text-xs p-3 rounded-lg shadow-xl pointer-events-none z-50">
-                                <div className="font-bold border-b border-background/20 pb-2 mb-2 text-center uppercase tracking-wider text-[10px]">
+                                <div className="font-semibold border-b border-background/20 pb-2 mb-2 text-center text-[11px]">
                                   Score Breakdown
                                 </div>
                                 <div className="flex justify-between items-center mb-1">
                                   <span className="text-background/80">Actual Score:</span>
-                                  <span className="font-bold">{score.actualScore} pts</span>
+                                  <span className="font-semibold">{score.actualScore} pts</span>
                                 </div>
                                 <div className="flex justify-between items-center">
                                   <span className="text-background/80">Max Potential:</span>
-                                  <span className="font-bold">{score.maxScore} pts</span>
+                                  <span className="font-semibold">{score.maxScore} pts</span>
                                 </div>
                                 <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-foreground"></div>
                               </div>

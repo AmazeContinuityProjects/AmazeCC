@@ -71,7 +71,7 @@ function TreeNode({ item, depth = 0, creds }: { item: CircularItem; depth?: numb
       <div className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50/50 dark:hover:bg-slate-800/30 dark:hover:bg-gray-800/30 transition-colors group" style={{ paddingLeft: `${16 + depth * 20}px` }}>
         <File className="w-3.5 h-3.5 shrink-0 text-gray-400" />
         <p className="text-sm text-gray-700  dark:text-gray-300 flex-1 min-w-0">{item.title}</p>
-        <button onClick={() => downloadCircular(item.id!, item.title!)} className="p-1.5 rounded-lg relative hit-expand opacity-0 group-hover:opacity-100 [@media(any-hover:none)]:opacity-100 hover:bg-gray-100 dark:hover:bg-slate-700 dark:hover:bg-gray-800 text-gray-400 hover:text-blue-500 transition-all" title="Download">
+        <button onClick={() => downloadCircular(item.id!, item.title!)} className="p-1.5 rounded-lg relative hit-expand opacity-0 group-hover:opacity-100 [@media(any-hover:none)]:opacity-100 hover:bg-gray-100 dark:hover:bg-slate-700 dark:hover:bg-gray-800 text-gray-400 hover:text-accent transition-all" title="Download">
           <Download className="w-3.5 h-3.5" />
         </button>
       </div>
@@ -82,7 +82,7 @@ function TreeNode({ item, depth = 0, creds }: { item: CircularItem; depth?: numb
     <div>
       <button onClick={() => setOpen(!open)} className="w-full flex items-center gap-3 px-5 py-3 hover:bg-gray-50/50 dark:hover:bg-slate-800/30 dark:hover:bg-gray-800/30 transition-colors text-left" style={{ paddingLeft: `${16 + depth * 20}px` }}>
         {open ? <ChevronDown className="w-3.5 h-3.5 shrink-0 text-gray-400" /> : <ChevronRight className="w-3.5 h-3.5 shrink-0 text-gray-400" />}
-        <FolderOpen className="w-3.5 h-3.5 shrink-0 text-amber-500" />
+        <FolderOpen className="w-3.5 h-3.5 shrink-0 text-warn" />
         <span className="text-sm font-medium text-gray-800  dark:text-gray-200">{item.name}</span>
       </button>
       {open && hasChildren && (
@@ -105,20 +105,20 @@ function NewCircularsModal({ circulars, onClose }: { circulars: CircularItem[]; 
       title="New Circulars"
       subtitle={`${circulars.length} new circular${circulars.length !== 1 ? "s" : ""} published`}
       icon={<Bell className="w-5 h-5" />}
-      accent="bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400"
+      accent="bg-accent-soft border-accent/20 text-accent"
       closeLabel="Close circulars"
     >
       <div className="flex flex-col min-h-0 space-y-4">
         <div className="space-y-2">
           {circulars.map((c, i) => (
-            <div key={i} className="flex items-center gap-3 p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/60 dark:border-zinc-800/60">
-              <FileText className="w-4 h-4 shrink-0 text-blue-500" />
+            <div key={i} className="flex items-center gap-3 p-3.5 rounded-md bg-surface-2 border border-zinc-200/60 dark:border-zinc-800/60">
+              <FileText className="w-4 h-4 shrink-0 text-accent" />
               <span className="text-[13px] font-semibold text-zinc-700 dark:text-zinc-300">{c.title}</span>
             </div>
           ))}
         </div>
         <div className="flex justify-end pt-1">
-          <button onClick={onClose} className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-black transition-all cursor-pointer active:scale-95">
+          <button onClick={onClose} className="px-6 py-3 rounded-sm bg-accent hover:bg-accent/90 text-background text-xs font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background">
             Got it
           </button>
         </div>
@@ -232,16 +232,16 @@ export default function CircularsTab({ loginToVTOP, onBack, setActiveTab }: Circ
       <SubpageLayout title="Circulars" onBack={leave}>
         {error ? (
           <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-            <AlertTriangle className="h-9 w-9 text-amber-500" />
+            <AlertTriangle className="h-9 w-9 text-warn" />
             <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
               Could not load circulars
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 max-w-xs">{error}</p>
+            <p className="text-xs text-muted max-w-xs">{error}</p>
             <button
               onClick={() => {
                 void refreshCirculars();
               }}
-              className="mt-1 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-extrabold uppercase tracking-wider transition-colors cursor-pointer"
+              className="mt-1 px-4 py-2 rounded-sm bg-accent hover:bg-accent/90 text-background text-xs font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               Try again
             </button>
@@ -249,7 +249,7 @@ export default function CircularsTab({ loginToVTOP, onBack, setActiveTab }: Circ
         ) : (
           <div className="space-y-3">
             <Skeleton className="h-8 w-48 rounded-lg" />
-            <Skeleton className="h-64 w-full rounded-2xl" />
+            <Skeleton className="h-64 w-full rounded-md" />
           </div>
         )}
       </SubpageLayout>
@@ -263,7 +263,7 @@ export default function CircularsTab({ loginToVTOP, onBack, setActiveTab }: Circ
       title="Circulars"
       onBack={leave}
       action={
-        <button onClick={() => { void refreshCirculars(); }} className="p-2.5 rounded-full bg-blue-50  dark:bg-slate-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-slate-700 transition-colors" title="Reload">
+        <button onClick={() => { void refreshCirculars(); }} className="p-2.5 rounded-full bg-accent-soft  dark:bg-slate-800 text-accent hover:bg-accent-soft dark:hover:bg-slate-700 transition-colors" title="Reload">
           <RefreshCcw className="w-5 h-5" />
         </button>
       }
@@ -275,7 +275,7 @@ export default function CircularsTab({ loginToVTOP, onBack, setActiveTab }: Circ
       </AnimatePresence>
 
       {error && (
-        <div className="p-4 text-sm text-red-600  dark:text-red-500 bg-red-50  dark:bg-red-900/20 rounded-2xl mb-4">{error}</div>
+        <div className="p-4 text-sm text-danger bg-danger-soft rounded-md mb-4">{error}</div>
       )}
       {circulars.length === 0 && !error && (
         <div className="flex flex-col items-center justify-center py-16 text-gray-400  dark:text-gray-500">

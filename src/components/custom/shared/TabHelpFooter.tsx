@@ -54,7 +54,7 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
         ],
       },
       {
-        icon: <Sliders className="w-4 h-4 text-purple-500" />,
+        icon: <Sliders className="w-4 h-4 text-course-3" />,
         name: "Customize Dashboard Layout & Card Grid Sizes",
         description:
           "Reorder cards, switch between 1-column half-width and 2-column full-width grid layouts, or hide unused widgets.",
@@ -67,7 +67,7 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
         ],
       },
       {
-        icon: <Search className="w-4 h-4 text-blue-500" />,
+        icon: <Search className="w-4 h-4 text-accent" />,
         name: "Spotlight Global Search (⌘K / Ctrl+K)",
         description:
           "Instant command palette to search courses, timetable slots, exam venues, mess menus, or settings.",
@@ -78,7 +78,7 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
         ],
       },
       {
-        icon: <Eye className="w-4 h-4 text-emerald-500" />,
+        icon: <Eye className="w-4 h-4 text-ok" />,
         name: "Quick Settings & Privacy Switches",
         description: "Instant toggles for Grade Anonymizer, Hide CGPA, Decimal Attendance, Bus Mode, and Mess Filters.",
         steps: [
@@ -96,7 +96,7 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
     subtitle: "Step-by-step instructions for target sliders, safety margins, timetable days, and class simulators",
     items: [
       {
-        icon: <Sliders className="w-4 h-4 text-emerald-500" />,
+        icon: <Sliders className="w-4 h-4 text-ok" />,
         name: "Target Attendance Percentage Slider",
         description: "Calculates exact classes required or safe to skip based on your custom target threshold.",
         steps: [
@@ -117,7 +117,7 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
         ],
       },
       {
-        icon: <RefreshCcw className="w-4 h-4 text-blue-500" />,
+        icon: <RefreshCcw className="w-4 h-4 text-accent" />,
         name: "Overall Attendance Predictor & Simulator",
         description: "Simulate future attendance percentages by testing hypothetical skips or upcoming holiday dates.",
         steps: [
@@ -144,7 +144,7 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
         ],
       },
       {
-        icon: <Calendar className="w-4 h-4 text-rose-500" />,
+        icon: <Calendar className="w-4 h-4 text-danger" />,
         name: "CAT & FAT Exam Schedule & Seat Venues",
         description: "View exam dates, FN/AN time slots, building hall numbers, and assigned seat numbers.",
         steps: [
@@ -154,7 +154,7 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
         ],
       },
       {
-        icon: <Sparkles className="w-4 h-4 text-amber-500" />,
+        icon: <Sparkles className="w-4 h-4 text-warn" />,
         name: "GPA Simulator & What-If Projection",
         description: "Project future semester GPA and cumulative CGPA by entering expected letter grades.",
         steps: [
@@ -170,7 +170,7 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
     subtitle: "Step-by-step instructions for mess menus, laundry status, cab sharing, and bus routes",
     items: [
       {
-        icon: <Calendar className="w-4 h-4 text-amber-500" />,
+        icon: <Calendar className="w-4 h-4 text-warn" />,
         name: "Weekly Mess Menu Caterer Filter",
         description: "View breakfast, lunch, snacks, and dinner for special, veg, non-veg, and north/south caterers.",
         steps: [
@@ -190,7 +190,7 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
         ],
       },
       {
-        icon: <Share2 className="w-4 h-4 text-emerald-500" />,
+        icon: <Share2 className="w-4 h-4 text-ok" />,
         name: "Cab Share Matcher (Airport / Railway Station)",
         description:
           "Find batchmates traveling at the same time to split cab fares to Chennai/Bengaluru airport or Katpadi station.",
@@ -217,7 +217,7 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
         ],
       },
       {
-        icon: <Users className="w-4 h-4 text-purple-500" />,
+        icon: <Users className="w-4 h-4 text-course-3" />,
         name: "Plan with friends",
         description: "View friends' timetables and plan around them in the FFCS planner.",
         steps: [
@@ -227,7 +227,7 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
         ],
       },
       {
-        icon: <Zap className="w-4 h-4 text-emerald-500" />,
+        icon: <Zap className="w-4 h-4 text-ok" />,
         name: "Find classmates",
         description: "See who picked the same faculty and slots as you.",
         steps: [
@@ -243,7 +243,7 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
     subtitle: "Step-by-step instructions for QR entry tickets, fest passes, and club drives",
     items: [
       {
-        icon: <Sparkles className="w-4 h-4 text-rose-500" />,
+        icon: <Sparkles className="w-4 h-4 text-danger" />,
         name: "Registered QR Entry Tickets",
         description: "Access official entry passes and QR tickets for registered campus workshops and concerts.",
         steps: [
@@ -279,7 +279,7 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
         ],
       },
       {
-        icon: <Sliders className="w-4 h-4 text-purple-500" />,
+        icon: <Sliders className="w-4 h-4 text-course-3" />,
         name: "Appearance, Light/Dark Mode & Custom Color Themes",
         description: "Personalize app accent colors, light/dark themes, and quick navbar shortcuts.",
         steps: [
@@ -296,7 +296,7 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
       "Plan conflict-free timetables: import your courses, generate options, score them with friends, and export the week you pick",
     items: [
       {
-        icon: <ListOrdered className="w-4 h-4 text-purple-500" />,
+        icon: <ListOrdered className="w-4 h-4 text-course-3" />,
         name: "Add Target Courses",
         description: "Choose the courses (and faculty) you plan to register, from the loaded course report.",
         steps: [
@@ -306,7 +306,7 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
         ],
       },
       {
-        icon: <Zap className="w-4 h-4 text-amber-500" />,
+        icon: <Zap className="w-4 h-4 text-warn" />,
         name: "Generate Conflict-Free Weeks",
         description:
           "The generator streams options while it searches — filter, sort, rank, compare, and save the ones you like.",
@@ -319,7 +319,7 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
         ],
       },
       {
-        icon: <Users className="w-4 h-4 text-pink-500" />,
+        icon: <Users className="w-4 h-4 text-course-7" />,
         name: "Friends & Social Score",
         description: "See how many classes you would actually share with each friend, per timetable.",
         steps: [
@@ -340,7 +340,7 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
         ],
       },
       {
-        icon: <Share2 className="w-4 h-4 text-blue-500" />,
+        icon: <Share2 className="w-4 h-4 text-accent" />,
         name: "Export Your Timetable",
         description: "Take the saved week out as an image, a calendar entry, or a printable page.",
         steps: [
@@ -368,7 +368,7 @@ export default function TabHelpFooter({ tabId }: { tabId: string }) {
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800/90 border border-zinc-200/80 dark:border-zinc-700/80 text-[11px] font-bold text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all cursor-pointer shadow-2xs active:scale-95"
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-2 border border-zinc-200/80 dark:border-zinc-700/80 text-[11px] font-semibold text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all cursor-pointer shadow-2xs"
         title={`Open detailed step-by-step guide for ${guide.tabName}`}
       >
         <HelpCircle className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
@@ -393,27 +393,27 @@ export default function TabHelpFooter({ tabId }: { tabId: string }) {
                 {guide.items.map((item, idx) => (
                   <div
                     key={idx}
-                    className="p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200/70 dark:border-zinc-800/80 space-y-2.5"
+                    className="p-3.5 rounded-md bg-surface-2 border border-line space-y-2.5"
                   >
                     <div className="flex items-center gap-2.5">
-                      <div className="p-2 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 shrink-0 shadow-2xs">
+                      <div className="p-2 rounded-md bg-surface border border-zinc-200/60 dark:border-zinc-800 shrink-0 shadow-2xs">
                         {item.icon}
                       </div>
                       <div>
-                        <h4 className="text-xs font-bold text-zinc-900 dark:text-white font-outfit">{item.name}</h4>
-                        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">{item.description}</p>
+                        <h4 className="text-xs font-semibold text-ink font-outfit">{item.name}</h4>
+                        <p className="text-[11px] text-muted font-medium">{item.description}</p>
                       </div>
                     </div>
 
                     {/* Step-by-Step Breakdown */}
                     {Array.isArray(item.steps) && item.steps.length > 0 && (
-                      <div className="p-3 rounded-xl bg-white dark:bg-zinc-900/90 border border-zinc-200/60 dark:border-zinc-800 space-y-2 text-[11px] font-medium text-zinc-700 dark:text-zinc-300">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                      <div className="p-3 rounded-md bg-surface/90 border border-zinc-200/60 dark:border-zinc-800 space-y-2 text-[11px] font-medium text-zinc-700 dark:text-zinc-300">
+                        <span className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
                           <ListOrdered className="w-3 h-3" /> Step-by-Step Instructions:
                         </span>
                         {item.steps.map((step, sIdx) => (
                           <div key={sIdx} className="flex items-start gap-2 pt-0.5">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                            <CheckCircle2 className="w-3.5 h-3.5 text-ok shrink-0 mt-0.5" />
                             <span className="leading-relaxed">{step}</span>
                           </div>
                         ))}
@@ -426,7 +426,7 @@ export default function TabHelpFooter({ tabId }: { tabId: string }) {
               <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800">
                 <button
                   onClick={() => setIsOpen(false)}
-                  className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl cursor-pointer transition-all shadow-xs active:scale-[0.98]"
+                  className="w-full py-3 bg-accent hover:bg-accent/90 text-background font-medium text-xs rounded-sm cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 >
                   Got it, thanks!
                 </button>

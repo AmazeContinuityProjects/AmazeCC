@@ -61,7 +61,7 @@ export default function PwaInstallCard() {
   };
 
   return (
-    <div className="relative bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-3 shadow-2xs">
+    <div className="relative bg-surface/80 rounded-md border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-3 shadow-2xs">
       <button
         onClick={dismiss}
         aria-label="Dismiss install offer"
@@ -70,10 +70,10 @@ export default function PwaInstallCard() {
         <X className="h-4 w-4" />
       </button>
 
-      <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit pr-8">
+      <h3 className="text-sm font-semibold text-ink font-outfit pr-8">
         Install AmazeCC
       </h3>
-      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+      <p className="text-xs text-muted">
         Add AmazeCC to your home screen for the full-screen app: offline support,
         push notifications, and no browser chrome around it.
       </p>
@@ -84,7 +84,7 @@ export default function PwaInstallCard() {
             const ok = await promptInstall();
             if (ok) setAccepted(true);
           }}
-          className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
+          className="inline-flex items-center gap-2 bg-accent hover:bg-accent/90 text-background text-sm font-medium px-4 py-2.5 rounded-sm transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           <Download className="w-4 h-4" /> Install app
         </button>

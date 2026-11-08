@@ -385,7 +385,7 @@ export default function PaperScannerPage({ onBack }: PaperScannerPageProps) {
           <Button
             variant="secondary"
             onClick={() => systemInputRef.current?.click()}
-            icon={<Smartphone className="h-4 w-4 text-emerald-500" />}
+            icon={<Smartphone className="h-4 w-4 text-ok" />}
           >
             System Camera
           </Button>
@@ -424,14 +424,14 @@ export default function PaperScannerPage({ onBack }: PaperScannerPageProps) {
 
       {/* ── Flow-level errors and post-run warnings ── */}
       {flowError && mode.name !== "processing" && (
-        <div className="flex items-start gap-3 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400" aria-hidden />
-          <p className="min-w-0 flex-1 text-left text-[11px] font-bold text-red-700 dark:text-red-300">{flowError}</p>
+        <div className="flex items-start gap-3 rounded-md border border-danger/30 bg-danger-soft px-4 py-3">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-danger" aria-hidden />
+          <p className="min-w-0 flex-1 text-left text-[11px] font-semibold text-danger">{flowError}</p>
           <button
             type="button"
             onClick={() => setFlowError(null)}
             aria-label="Dismiss error"
-            className="shrink-0 rounded-lg p-1 text-red-500 transition-colors duration-150 hover:bg-red-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+            className="shrink-0 rounded-lg p-1 text-danger transition-colors duration-150 hover:bg-danger-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/40"
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -439,11 +439,11 @@ export default function PaperScannerPage({ onBack }: PaperScannerPageProps) {
       )}
 
       {warnings.length > 0 && mode.name === "library" && (
-        <div className="flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
+        <div className="flex items-start gap-3 rounded-md border border-warn/30 bg-warn-soft px-4 py-3">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warn" aria-hidden />
           <div className="min-w-0 flex-1 space-y-1 text-left">
             {warnings.map((w, i) => (
-              <p key={i} className="text-[11px] font-bold text-amber-700 dark:text-amber-300">
+              <p key={i} className="text-[11px] font-semibold text-warn">
                 {WARNING_TEXT[w.kind]}
               </p>
             ))}
@@ -452,7 +452,7 @@ export default function PaperScannerPage({ onBack }: PaperScannerPageProps) {
             type="button"
             onClick={() => setWarnings([])}
             aria-label="Dismiss warnings"
-            className="shrink-0 rounded-lg p-1 text-amber-600 transition-colors duration-150 hover:bg-amber-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+            className="shrink-0 rounded-lg p-1 text-warn transition-colors duration-150 hover:bg-warn-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-warn/40"
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -501,13 +501,13 @@ export default function PaperScannerPage({ onBack }: PaperScannerPageProps) {
 
       {/* ── Processing ── */}
       {mode.name === "processing" && (
-        <div className="flex flex-col items-center gap-4 rounded-[24px] border border-border-strong dark:border-border card-surface px-6 py-8 text-center shadow-xs">
+        <div className="flex flex-col items-center gap-4 rounded-lg border border-border-strong dark:border-border card-surface px-6 py-8 text-center shadow-xs">
           <span
             className="h-10 w-10 animate-spin rounded-full border-[3px] border-indigo-500 border-t-transparent"
             aria-hidden
           />
           <div className="space-y-1">
-            <p className="text-sm font-black text-text-heading font-outfit">{STAGE_LABEL[stage]}</p>
+            <p className="text-sm font-semibold text-text-heading font-outfit">{STAGE_LABEL[stage]}</p>
             <p className="text-[11px] font-medium text-text-secondary dark:text-text-muted">
               {progress && progress.total > progress.done
                 ? `${progress.done} of ${progress.total} — ${STAGE_SUB[stage]}`
@@ -553,9 +553,9 @@ export default function PaperScannerPage({ onBack }: PaperScannerPageProps) {
                     key={tab.id}
                     type="button"
                     onClick={() => setSelectedFilter(tab.id)}
-                    className={`shrink-0 px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                    className={`shrink-0 px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                       active
-                        ? "bg-indigo-600 text-white shadow-xs"
+                        ? "bg-accent text-background"
                         : "bg-surface-secondary dark:bg-surface-secondary/60 text-text-secondary dark:text-text-muted hover:text-text-primary hover:bg-surface-tertiary"
                     }`}
                   >
@@ -569,14 +569,14 @@ export default function PaperScannerPage({ onBack }: PaperScannerPageProps) {
           {loading ? (
             <ListSkeleton rows={3} leading="dot" trailing titleWidth="w-1/3" subtitleWidth="w-1/4" />
           ) : listError ? (
-            <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-left text-[11px] font-bold text-red-700 dark:text-red-300">
+            <div className="rounded-md border border-danger/30 bg-danger-soft px-4 py-3 text-left text-[11px] font-semibold text-danger">
               {listError}
             </div>
           ) : metas && metas.length === 0 ? (
             <EmptyPanel
               variant="dashed"
               icon={
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-500">
+                <span className="flex h-12 w-12 items-center justify-center rounded-md text-indigo-500 bg-surface-2">
                   <ScanLine className="h-6 w-6" aria-hidden />
                 </span>
               }
@@ -603,7 +603,7 @@ export default function PaperScannerPage({ onBack }: PaperScannerPageProps) {
                     onClick={() => void openScan(meta.id)}
                     className={`${LIST_ROW} group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500`}
                   >
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border-muted dark:border-border bg-surface-secondary dark:bg-surface-secondary/60 text-text-secondary dark:text-text-muted">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border-muted dark:border-border bg-surface-secondary dark:bg-surface-secondary/60 text-text-secondary dark:text-text-muted">
                       <FileText className="h-4 w-4" aria-hidden />
                     </span>
                     <ListRowText
@@ -643,7 +643,7 @@ export default function PaperScannerPage({ onBack }: PaperScannerPageProps) {
         <BottomSheet overlayId="scanner-add-page-sheet" onClose={() => setShowAddSheet(false)}>
           <div className="space-y-4 p-2 text-left">
             <div>
-              <h3 className="text-base font-black text-text-heading font-outfit">Add Document Page</h3>
+              <h3 className="text-base font-semibold text-text-heading font-outfit">Add Document Page</h3>
               <p className="text-xs text-text-secondary dark:text-text-muted mt-0.5">
                 Choose how you would like to capture or import the next page
               </p>
@@ -656,25 +656,25 @@ export default function PaperScannerPage({ onBack }: PaperScannerPageProps) {
                   setShowAddSheet(false);
                   enterCamera();
                 }}
-                className="flex items-center gap-3.5 p-3.5 rounded-2xl border border-border-muted dark:border-border hover:bg-surface-secondary dark:hover:bg-surface-secondary/60 transition-all cursor-pointer text-left group active:scale-[0.99]"
+                className="flex items-center gap-3.5 p-3.5 rounded-md border border-border-muted dark:border-border hover:bg-surface-secondary dark:hover:bg-surface-secondary/60 transition-all cursor-pointer text-left group"
               >
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 group-hover:scale-105 transition-transform">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-indigo-600 dark:text-indigo-400 transition-transform bg-surface-2">
                   <Camera className="h-5 w-5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-text-primary">Live In-App Scanner</p>
+                  <p className="text-sm font-semibold text-text-primary">Live In-App Scanner</p>
                   <p className="text-xs text-text-secondary dark:text-text-muted">
                     Interactive full-screen viewfinder with A4 guide &amp; auto-edge detect
                   </p>
                 </div>
               </button>
 
-              <label className="flex items-center gap-3.5 p-3.5 rounded-2xl border border-border-muted dark:border-border hover:bg-surface-secondary dark:hover:bg-surface-secondary/60 transition-all cursor-pointer text-left group active:scale-[0.99]">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 group-hover:scale-105 transition-transform">
+              <label className="flex items-center gap-3.5 p-3.5 rounded-md border border-border-muted dark:border-border hover:bg-surface-secondary dark:hover:bg-surface-secondary/60 transition-all cursor-pointer text-left group">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-ok transition-transform bg-surface-2">
                   <Smartphone className="h-5 w-5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-text-primary">System Camera / Scanner</p>
+                  <p className="text-sm font-semibold text-text-primary">System Camera / Scanner</p>
                   <p className="text-xs text-text-secondary dark:text-text-muted">
                     Invoke device native camera with hardware lens &amp; HDR
                   </p>
@@ -688,12 +688,12 @@ export default function PaperScannerPage({ onBack }: PaperScannerPageProps) {
                 />
               </label>
 
-              <label className="flex items-center gap-3.5 p-3.5 rounded-2xl border border-border-muted dark:border-border hover:bg-surface-secondary dark:hover:bg-surface-secondary/60 transition-all cursor-pointer text-left group active:scale-[0.99]">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-sky-500/15 text-sky-600 dark:text-sky-400 group-hover:scale-105 transition-transform">
+              <label className="flex items-center gap-3.5 p-3.5 rounded-md border border-border-muted dark:border-border hover:bg-surface-secondary dark:hover:bg-surface-secondary/60 transition-all cursor-pointer text-left group">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-accent transition-transform bg-surface-2">
                   <ImageUp className="h-5 w-5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-text-primary">Photo Gallery / Files</p>
+                  <p className="text-sm font-semibold text-text-primary">Photo Gallery / Files</p>
                   <p className="text-xs text-text-secondary dark:text-text-muted">
                     Pick one or multiple existing photos from this device
                   </p>

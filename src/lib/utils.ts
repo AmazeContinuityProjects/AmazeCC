@@ -40,22 +40,22 @@ export function getBatchColorClass(batch: string): string {
     return "bg-indigo-500/10 text-indigo-400 border-indigo-500/20";
   }
   if (b.includes("SMEC") || b.includes("MECH") || b.includes("BMH")) {
-    return "bg-amber-500/10 text-amber-400 border-amber-500/20";
+    return "bg-warn-soft text-warn border-warn/20";
   }
   if (b.includes("SENSE") || b.includes("ECE")) {
-    return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+    return "bg-ok-soft text-ok border-ok/20";
   }
   if (b.includes("SELECT") || b.includes("EEE")) {
-    return "bg-yellow-500/10 text-yellow-400 border-yellow-500/20";
+    return "bg-warn-soft text-warn border-warn/20";
   }
   if (b.includes("SJT") || b.includes("VITS")) {
-    return "bg-pink-500/10 text-pink-400 border-pink-500/20";
+    return "bg-course-7/10 text-course-7 border-course-7/20";
   }
   if (b.includes("LAW") || b.includes("SSL")) {
-    return "bg-red-500/10 text-red-400 border-red-500/20";
+    return "bg-danger-soft text-danger border-danger/20";
   }
   if (b.includes("SASC") || b.includes("SCIENCE")) {
-    return "bg-teal-500/10 text-teal-400 border-teal-500/20";
+    return "bg-course-1/10 text-course-1 border-course-1/20";
   }
   
   let hash = 0;
@@ -63,12 +63,12 @@ export function getBatchColorClass(batch: string): string {
     hash = b.charCodeAt(i) + ((hash << 5) - hash);
   }
   const colors = [
-    "bg-blue-500/10 text-blue-400 border-blue-500/20",
-    "bg-purple-500/10 text-purple-400 border-purple-500/20",
-    "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
-    "bg-rose-500/10 text-rose-400 border-rose-500/20",
-    "bg-orange-500/10 text-orange-400 border-orange-500/20",
-    "bg-lime-500/10 text-lime-400 border-lime-500/20"
+    "bg-accent-soft text-accent border-accent/20",
+    "bg-course-3/10 text-course-3 border-course-3/20",
+    "bg-course-1/10 text-course-1 border-course-1/20",
+    "bg-danger-soft text-danger border-danger/20",
+    "bg-course-2/10 text-course-2 border-course-2/20",
+    "bg-course-6/10 text-course-6 border-course-6/20"
   ];
   return colors[Math.abs(hash) % colors.length];
 }

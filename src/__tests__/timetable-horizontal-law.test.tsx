@@ -36,7 +36,7 @@ function course(id: string, slots: string[]): AddedCourse {
     venue: "AB5-405",
     credits: "3",
     type: "",
-    color: "bg-blue-600",
+    color: "bg-accent",
   };
 }
 
@@ -130,8 +130,8 @@ describe("a law course in the horizontal grid", () => {
   it("renders light mode compatible classes on ModernHorizontalTimetableGrid", () => {
     const { container } = renderGrid();
     const root = container.firstElementChild as HTMLElement;
-    expect(root.className).toContain("bg-white");
-    expect(root.className).toContain("dark:bg-[#0c1222]");
+    expect(root.className).toContain("bg-surface");
+    expect(root.className).toContain("");
     expect(root.className).toContain("border-slate-200");
     expect(root.className).toContain("dark:border-white/10");
   });

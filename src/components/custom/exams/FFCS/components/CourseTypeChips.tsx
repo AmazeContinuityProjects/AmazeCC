@@ -24,7 +24,7 @@ export function CourseTypeChips({ typesInput, size = "md", compactText = false }
   }
 
   const padding = size === "sm" ? "px-1.5" : "px-2";
-  const textSize = size === "sm" && !compactText ? "text-[9px]" : "text-[10px]";
+  const textSize = size === "sm" && !compactText ? "text-[11px]" : "text-[11px]";
 
   return (
     <span className="flex flex-wrap gap-1">
@@ -35,7 +35,7 @@ export function CourseTypeChips({ typesInput, size = "md", compactText = false }
           <span
             key={type}
             title={displayName}
-            className={`inline-flex items-center font-bold rounded-md border ${padding} py-0.5 ${textSize} ${color.bg} ${color.text} ${color.border}`}
+            className={`inline-flex items-center font-semibold rounded-md border ${padding} py-0.5 ${textSize} ${color.bg} ${color.text} ${color.border}`}
           >
             {displayName}
           </span>

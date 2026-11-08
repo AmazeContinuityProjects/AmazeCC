@@ -146,32 +146,32 @@ function StorageRowBlock({
           className="p-2 bg-transparent dark:bg-transparent border-transparent shadow-none hover:bg-zinc-100 dark:hover:bg-zinc-800"
         >
           {copied ? (
-            <Check className="w-3.5 h-3.5 text-emerald-500" />
+            <Check className="w-3.5 h-3.5 text-ok" />
           ) : (
-            <Copy className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
+            <Copy className="w-3.5 h-3.5 text-muted" />
           )}
         </IconButton>
         <IconButton
           onClick={() => onDelete(row.key)}
           title={`Delete ${row.key}`}
-          className="p-2 bg-transparent dark:bg-transparent border-transparent shadow-none hover:bg-red-500/10 dark:hover:bg-red-500/10"
+          className="p-2 bg-transparent dark:bg-transparent border-transparent shadow-none hover:bg-danger-soft"
         >
-          <Trash2 className="w-3.5 h-3.5 text-red-500 dark:text-red-400" />
+          <Trash2 className="w-3.5 h-3.5 text-danger" />
         </IconButton>
       </div>
 
       {open && (
         <div className="px-4 pb-3 -mt-1">
-          <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/60 overflow-hidden">
+          <div className="rounded-md border border-line bg-surface-2 overflow-hidden">
             {row.sensitive && (
-              <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-zinc-200 dark:border-zinc-800">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+              <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-line">
+                <span className="text-[11px] font-semibold text-warn">
                   Sensitive value
                 </span>
                 <button
                   type="button"
                   onClick={() => setRevealed((v) => !v)}
-                  className="inline-flex items-center gap-1 text-[11px] font-bold text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white cursor-pointer"
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white cursor-pointer"
                 >
                   {revealed ? (
                     <>
@@ -300,7 +300,7 @@ export default function LocalStorageSubpage() {
               onClick={load}
               title="Re-read local storage"
               aria-label="Re-read local storage"
-              className="p-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 transition-all active:scale-95 cursor-pointer shrink-0"
+              className="p-2 rounded-md bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 transition-all cursor-pointer shrink-0"
             >
               <RefreshCcw className="w-4 h-4" />
             </button>
@@ -313,23 +313,23 @@ export default function LocalStorageSubpage() {
           neither is answerable by scrolling rows. */}
       {rows.length > 0 && (
         <div className="grid grid-cols-2 gap-3">
-          <div className="p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+          <div className="p-3 rounded-md bg-surface-2 border border-zinc-200/60 dark:border-zinc-800">
+            <p className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500">
               Total size
             </p>
-            <p className="font-extrabold text-zinc-900 dark:text-white mt-0.5 tabular-nums">
+            <p className="font-semibold text-ink mt-0.5 tabular-nums">
               {formatBytes(totalBytes)}
             </p>
           </div>
-          <div className="p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+          <div className="p-3 rounded-md bg-surface-2 border border-zinc-200/60 dark:border-zinc-800">
+            <p className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500">
               Sensitive
             </p>
             <p
-              className={`font-extrabold mt-0.5 tabular-nums ${
+              className={`font-semibold mt-0.5 tabular-nums ${
                 sensitiveCount > 0
-                  ? "text-amber-600 dark:text-amber-400"
-                  : "text-zinc-900 dark:text-white"
+                  ? "text-warn"
+                  : "text-ink"
               }`}
             >
               {sensitiveCount} of {rows.length}
@@ -362,7 +362,7 @@ export default function LocalStorageSubpage() {
       )}
 
       {sensitiveCount > 0 && rows.length > 0 && (
-        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 px-1">
+        <p className="text-[11px] text-muted px-1">
           {sensitiveCount} {sensitiveCount === 1 ? "key is" : "keys are"} hidden until
           revealed.
         </p>

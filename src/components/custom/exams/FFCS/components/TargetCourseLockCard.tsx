@@ -61,10 +61,10 @@ export function TargetCourseLockCard({
     ? "border-border-strong/50 bg-surface-secondary/20 opacity-60"
     : tone === "neutral"
       ? isSelected
-        ? "border-zinc-500/50 bg-zinc-500/[0.08] shadow-sm dark:border-zinc-400/40 dark:bg-zinc-400/[0.08]"
-        : "border-zinc-200/80 bg-zinc-500/[0.025] hover:border-zinc-300 hover:bg-zinc-500/[0.06] dark:border-zinc-800 dark:bg-zinc-500/[0.04] dark:hover:border-zinc-700 dark:hover:bg-zinc-500/[0.08]"
+        ? "border-line bg-line shadow-sm"
+        : "border-line bg-line hover:border-line hover:bg-line"
       : isSelected
-        ? "border-purple-500/50 bg-surface-secondary/30 shadow-sm"
+        ? "border-course-3/50 bg-surface-secondary/30 shadow-sm"
         : "border-transparent bg-transparent hover:border-border-strong hover:bg-surface-secondary/50";
   const uniqueSlots = Array.from(new Set(offerings.flatMap((offering) => splitSlots(offering.SLOT)))).sort();
 
@@ -116,11 +116,11 @@ export function TargetCourseLockCard({
   });
 
   return (
-    <div className={`w-full min-w-0 flex flex-col gap-2 rounded-xl border p-3 transition-colors ${cardToneClass}`}>
+    <div className={`w-full min-w-0 flex flex-col gap-2 rounded-md border p-3 transition-colors ${cardToneClass}`}>
       <label className={`flex items-start gap-3 ${disabled ? "cursor-not-allowed" : "cursor-pointer"}`}>
         <input
           type="checkbox"
-          className="mt-1 rounded bg-surface border-border-strong text-purple-500 focus:ring-purple-500/30 disabled:opacity-50"
+          className="mt-1 rounded bg-surface border-border-strong text-course-3 focus:ring-course-3/30 disabled:opacity-50"
           checked={isSelected}
           disabled={disabled}
           onChange={(event) => {
@@ -139,7 +139,7 @@ export function TargetCourseLockCard({
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
             <span className="flex min-w-0 flex-col gap-1">
-              <span className="font-bold text-base text-text-heading">{course.code}</span>
+              <span className="font-semibold text-base text-text-heading">{course.code}</span>
               <span className="flex flex-wrap items-center gap-1">
                 {renderCourseTypeChips(course.types ?? [], "sm")}
                 {grade && (
@@ -156,8 +156,8 @@ export function TargetCourseLockCard({
                     }
                     className={`rounded-md border px-1.5 py-0.5 text-[10px] font-bold ${
                       curriculumListed
-                        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
-                        : "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                        ? "border-ok/30 bg-ok-soft text-ok"
+                        : "border-warn/30 bg-warn-soft text-warn"
                     }`}
                   >
                     {category}
@@ -170,7 +170,7 @@ export function TargetCourseLockCard({
                 {course.batches?.map((batch) => (
                   <span
                     key={batch}
-                    className={`rounded-md border px-2 py-0.5 text-xs font-bold ${getBatchColorClass(batch)}`}
+                    className={`rounded-md border px-2 py-0.5 text-xs font-semibold ${getBatchColorClass(batch)}`}
                   >
                     {batch}
                   </span>
@@ -189,12 +189,12 @@ export function TargetCourseLockCard({
 
       {isSelected && uniqueSlots.length > 1 && selection && (
         <div className="mt-2 space-y-2 pl-8">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+          <div className="text-[11px] font-semibold text-muted-foreground">
             Filter Slots (Optional)
           </div>
           {clusters.length > 0 && (
             <div className="space-y-1">
-              <div className="text-[10px] font-bold uppercase text-text-heading/70">Quick Select Slot Bundles</div>
+              <div className="text-[11px] font-semibold text-text-heading/70">Quick Select Slot Bundles</div>
               <div className="flex flex-wrap gap-1.5">
                 {clusters.map(([cluster, value]) => {
                   const selected =
@@ -209,11 +209,11 @@ export function TargetCourseLockCard({
                         event.stopPropagation();
                         toggleSlots(value.slots);
                       }}
-                      className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold transition-colors ${selected ? "bg-purple-500 text-white shadow-sm ring-1 ring-purple-300" : "bg-surface-secondary text-text-heading/70 hover:bg-surface-secondary/80"}`}
+                      className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors ${selected ? "bg-course-3 text-white shadow-sm ring-1 ring-course-3/40" : "bg-surface-secondary text-text-heading/70 hover:bg-surface-secondary/80"}`}
                       title={`Toggle ${cluster} bundle (${value.slots.join(", ")})`}
                     >
                       <span>{label}</span>
-                      <span className="text-[10px] font-normal opacity-80">({value.slots.join(", ")})</span>
+                      <span className="text-[11px] font-normal opacity-80">({value.slots.join(", ")})</span>
                     </button>
                   );
                 })}
@@ -230,7 +230,7 @@ export function TargetCourseLockCard({
                         event.stopPropagation();
                         toggleSlots(letterSlots);
                       }}
-                      className={`rounded px-2 py-1 text-xs font-bold transition-colors ${selected ? "bg-indigo-600 text-white shadow-sm" : "bg-surface-secondary/60 text-muted-foreground hover:bg-surface-secondary"}`}
+                      className={`rounded px-2 py-1 text-xs font-semibold transition-colors ${selected ? "bg-accent text-background" : "bg-surface-secondary/60 text-muted-foreground hover:bg-surface-secondary"}`}
                       title={`Toggle all ${letter} series (${letterSlots.join(", ")})`}
                     >
                       All {letter} Series
@@ -253,11 +253,11 @@ export function TargetCourseLockCard({
               return (
                 <label
                   key={slot}
-                  className={`flex cursor-pointer items-center gap-2 rounded-md border p-1.5 px-3 transition-colors ${checked ? "border-purple-500/30 bg-purple-500/10 text-purple-600" : "border-border-strong/50 text-muted-foreground hover:bg-surface-secondary/50"}`}
+                  className={`flex cursor-pointer items-center gap-2 rounded-md border p-1.5 px-3 transition-colors ${checked ? "border-course-3/30 bg-course-3/10 text-course-3" : "border-border-strong/50 text-muted-foreground hover:bg-surface-secondary/50"}`}
                 >
                   <input
                     type="checkbox"
-                    className="h-3.5 w-3.5 rounded border-border-strong text-purple-500 focus:ring-purple-500/30"
+                    className="h-3.5 w-3.5 rounded border-border-strong text-course-3 focus:ring-course-3/30"
                     checked={checked}
                     onChange={(event) => {
                       const nextSlots = event.target.checked
@@ -266,9 +266,9 @@ export function TargetCourseLockCard({
                       onSelectionChange({ ...selection, allowedSlots: nextSlots });
                     }}
                   />
-                  <span className="text-xs font-bold">{slot}</span>
+                  <span className="text-xs font-semibold">{slot}</span>
                   <span
-                    className="inline-flex shrink-0 items-center gap-1 rounded border border-border-strong/70 bg-surface-secondary/70 px-1 py-0.2 text-[10px] font-semibold text-muted-foreground"
+                    className="inline-flex shrink-0 items-center gap-1 rounded border border-border-strong/70 bg-surface-secondary/70 px-1 py-0.2 text-[11px] font-semibold text-muted-foreground"
                     title={`${facultyCount} ${facultyCount === 1 ? "faculty" : "faculties"} teaching this slot`}
                   >
                     <Users className="h-2.5 w-2.5 shrink-0 text-muted-foreground/60" />

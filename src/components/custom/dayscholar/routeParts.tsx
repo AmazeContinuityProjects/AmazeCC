@@ -24,7 +24,7 @@ export function RouteIdentity({
   return (
     <div className="flex items-center gap-3 min-w-0">
       <span
-        className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border font-black text-sm font-outfit ${TONE_ICON_TILE[routeTone(route.type)]}`}
+        className={`w-11 h-11 rounded-md flex items-center justify-center shrink-0 border font-semibold text-sm font-outfit ${TONE_ICON_TILE[routeTone(route.type)]}`}
       >
         {route.id}
       </span>
@@ -83,7 +83,7 @@ export function RouteContacts({ route }: { route: BusRoute }) {
       {people.map((p) => (
         <div key={p.fallback} className={LIST_ROW}>
           <span
-            className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${TONE_ICON_TILE[p.tone]}`}
+            className={`w-10 h-10 rounded-md flex items-center justify-center shrink-0 border ${TONE_ICON_TILE[p.tone]}`}
           >
             {p.icon}
           </span>
@@ -92,7 +92,7 @@ export function RouteContacts({ route }: { route: BusRoute }) {
             <a
               href={`tel:${p.phone}`}
               aria-label={`Call ${p.name || p.fallback}`}
-              className={`shrink-0 inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-black transition-colors ${TONE_ICON_TILE[p.tone]}`}
+              className={`shrink-0 inline-flex items-center gap-1.5 rounded-md border px-3 py-2 text-xs font-semibold transition-colors ${TONE_ICON_TILE[p.tone]}`}
             >
               <Phone className="h-3 w-3" />
               Call
@@ -132,12 +132,12 @@ export function StopsTimeline({
         const isLast = i === shown.length - 1 && !hasMore;
         return (
           <div key={`${stop.stopOrder}-${stop.stopName}`} className="flex items-start gap-3 py-2.5 px-4">
-            <span className="shrink-0 w-11 text-right text-[10px] font-black font-outfit text-text-heading pt-0.5">
+            <span className="shrink-0 w-11 text-right text-[11px] font-semibold font-outfit text-text-heading pt-0.5">
               {stop.pickupTime || "—"}
             </span>
             <span className="flex flex-col items-center shrink-0 self-stretch">
               <span
-                className={`mt-1 w-2 h-2 rounded-full shrink-0 ${isFirst ? "bg-emerald-500" : "bg-zinc-300 dark:bg-zinc-700"}`}
+                className={`mt-1 w-2 h-2 rounded-full shrink-0 ${isFirst ? "bg-ok" : "bg-zinc-300 dark:bg-zinc-700"}`}
               />
               {!isLast && <span className="w-px flex-1 my-0.5 bg-border-muted" />}
             </span>
@@ -160,10 +160,10 @@ export function PlacementZones({ placements }: { placements: BusPlacement[] }) {
       {placements.map((p, i) => (
         <div key={`${p.zone}-${i}`} className={LIST_ROW}>
           <span className="shrink-0 w-16 text-center">
-            <span className="block text-base font-black font-outfit text-text-heading leading-none">
+            <span className="block text-base font-semibold font-outfit text-text-heading leading-none">
               {p.dispersalTime}
             </span>
-            <span className="text-[9px] font-bold uppercase tracking-wider text-text-muted">
+            <span className="text-[11px] font-semibold text-text-muted">
               dispersal
             </span>
           </span>

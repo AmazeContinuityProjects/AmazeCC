@@ -15,7 +15,7 @@ type EntryIntent = "login" | "demo" | null;
  */
 export const OpeningScreen = () => (
   <div
-    className="flex min-h-screen items-center justify-center gap-3 bg-slate-50 text-slate-600 dark:bg-[#03060f] dark:text-slate-300"
+    className="flex min-h-screen items-center justify-center gap-3 bg-slate-50 text-slate-600 dark:text-slate-300"
     role="status"
     aria-label="Opening your workspace"
   >
@@ -104,7 +104,7 @@ export default function HomeEntryController() {
   return (
     <>
       <div
-        className="opening-screen-fallback hidden min-h-screen items-center justify-center gap-3 bg-slate-50 text-slate-600 dark:bg-[#03060f] dark:text-slate-300"
+        className="opening-screen-fallback hidden min-h-screen items-center justify-center gap-3 bg-slate-50 text-slate-600 dark:text-slate-300"
         role="status"
         aria-label="Opening your workspace"
       >

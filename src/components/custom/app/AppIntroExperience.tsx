@@ -22,7 +22,7 @@ import {
 function FeatureLoading() {
   return (
     <div
-      className="min-h-[60vh] animate-pulse bg-slate-50 dark:bg-zinc-950"
+      className="min-h-[60vh] animate-pulse bg-surface-2"
       role="status"
       aria-label="Loading introduction"
     />

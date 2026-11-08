@@ -66,7 +66,7 @@ export function isPostHogLoaded(): boolean {
 
 /**
  * Test whether an identifier matches the standard VIT registration number format (e.g. 25BLC1081, 21BCE0001).
- * Typically: 2 digits (admission year) + 2-5 uppercase letters (branch/school) + 3-5 digits (sequence).
+ * Typically: 2 digits (admission year) + 2-5 letters (branch/school) + 3-5 digits (sequence).
  * Purely numeric IDs (e.g. 20626703, 2025001264) are application/enrollment numbers, not registration numbers.
  */
 export function isRegistrationNumber(value: unknown): value is string {

@@ -31,13 +31,13 @@ export function ToneBadge({
 }) {
   const sizing =
     size === "sm"
-      ? "text-[9px] px-1.5 py-0.5"
+      ? "text-[11px] px-1.5 py-0.5"
       : size === "lg"
-        ? "text-xs px-3 py-2 rounded-xl"
-        : "text-[9px] sm:text-[10px] px-2 py-0.5";
+        ? "text-xs px-3 py-2 rounded-md"
+        : "text-[11px] sm:text-[11px] px-2 py-0.5";
   return (
     <span
-      className={`${sizing} inline-flex items-center gap-1.5 font-extrabold uppercase rounded-md border shrink-0 ${
+      className={`${sizing} inline-flex items-center gap-1.5 font-semibold rounded-md border shrink-0 ${
         TONE_BADGE[tone] ?? TONE_BADGE.zinc
       } ${className}`.trim()}
     >
@@ -58,13 +58,13 @@ export function ToneDot({
   className?: string;
 }) {
   const dots: Record<string, string> = {
-    emerald: "bg-emerald-500",
-    amber: "bg-amber-500",
-    sky: "bg-sky-500",
-    violet: "bg-violet-500",
+    emerald: "bg-ok",
+    amber: "bg-warn",
+    sky: "bg-accent",
+    violet: "bg-course-3",
     indigo: "bg-indigo-500",
-    red: "bg-red-500",
-    cyan: "bg-cyan-500",
+    red: "bg-danger",
+    cyan: "bg-course-1",
     zinc: "bg-text-secondary",
   };
   const box = size === "sm" ? "w-1.5 h-1.5" : "w-2 h-2";
@@ -75,7 +75,7 @@ export function ToneDot({
  * Tone dot + label, in one pill.
  *
  * This is `ToneBadge` with a leading dot, and it exists because the same
- * `inline-flex gap-1.5 rounded-full border uppercase` string with six different
+ * `inline-flex gap-1.5 rounded-full border` string with six different
  * hand-written tone class lists was pasted into every event row of the old
  * calendar. The tone map is already the single source of colour
  * (`TONE_BADGE`); this just adds the dot and the dot's colour so a caller
@@ -92,10 +92,10 @@ export function DotPill({
   size?: "sm" | "md";
   className?: string;
 }) {
-  const sizing = size === "sm" ? "text-[9px] px-1.5 py-0.5" : "text-[10px] sm:text-[11px] px-2 py-0.5";
+  const sizing = size === "sm" ? "text-[11px] px-1.5 py-0.5" : "text-[11px] sm:text-[11px] px-2 py-0.5";
   return (
     <span
-      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border font-bold uppercase tracking-wide whitespace-nowrap ${
+      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border font-semibold tracking-wide whitespace-nowrap ${
         TONE_BADGE[tone] ?? TONE_BADGE.zinc
       } ${sizing} ${className}`.trim()}
     >
@@ -121,7 +121,7 @@ export function ToneLegend({
   if (!items.length) return null;
   return (
     <div
-      className={`flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[11px] font-bold text-text-secondary dark:text-text-muted ${className}`.trim()}
+      className={`flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[11px] font-semibold text-text-secondary dark:text-text-muted ${className}`.trim()}
     >
       {items.map((item) => (
         <span key={item.label as string} className="inline-flex items-center gap-1.5">
@@ -217,7 +217,7 @@ export function EmptyPanel({
     return (
       <div className={`${EMPTY_STATE} ${className}`.trim()}>
         {icon}
-        <p className="text-xs font-bold text-text-secondary dark:text-text-muted mt-2">{title}</p>
+        <p className="text-xs font-semibold text-text-secondary dark:text-text-muted mt-2">{title}</p>
         {description ? (
           <p className="text-[11px] text-text-muted dark:text-text-secondary mt-1">{description}</p>
         ) : null}
@@ -227,22 +227,22 @@ export function EmptyPanel({
   }
 
   const iconTones: Record<string, string> = {
-    emerald: "bg-emerald-500/10 text-emerald-500",
-    amber: "bg-amber-500/10 text-amber-500",
-    red: "bg-red-500/10 text-red-500",
+    emerald: "bg-ok-soft text-ok",
+    amber: "bg-warn-soft text-warn",
+    red: "bg-danger-soft text-danger",
     indigo: "bg-indigo-500/10 text-indigo-500",
-    violet: "bg-violet-500/10 text-violet-500",
-    sky: "bg-sky-500/10 text-sky-500",
+    violet: "bg-course-3/10 text-course-3",
+    sky: "bg-accent-soft text-accent",
     zinc: "bg-surface-secondary text-text-secondary",
   };
 
   return (
     <div
-      className={`p-10 rounded-[32px] card-surface border border-border-strong dark:border-border text-center space-y-4 shadow-2xs ${className}`.trim()}
+      className={`p-10 rounded-lg card-surface border border-border-strong dark:border-border text-center space-y-4 shadow-2xs ${className}`.trim()}
     >
       {icon ? (
         <div
-          className={`w-14 h-14 rounded-2xl flex items-center justify-center mx-auto ${
+          className={`w-14 h-14 rounded-md flex items-center justify-center mx-auto ${
             iconTones[tone] ?? iconTones.indigo
           }`}
         >
@@ -250,7 +250,7 @@ export function EmptyPanel({
         </div>
       ) : null}
       <div>
-        <h3 className="font-black text-base text-text-heading font-outfit">{title}</h3>
+        <h3 className="font-semibold text-base text-text-heading font-outfit">{title}</h3>
         {description ? (
           <p className="text-xs text-text-secondary dark:text-text-muted mt-1 max-w-sm mx-auto font-medium">
             {description}

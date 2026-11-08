@@ -101,27 +101,25 @@ export interface WeekStripTint {
  */
 export const WEEK_STRIP_TINT: Record<WeekStripFlavour, WeekStripTint> = {
   exam: {
-    fill: "bg-amber-500/10 dark:bg-amber-500/10",
-    ink: "text-amber-600 dark:text-amber-400",
-    edge: "border-amber-200 dark:border-amber-900/60",
+    fill: "bg-warn-soft",
+    ink: "text-warn",
+    edge: "border-warn/30",
   },
   holiday: {
-    fill: "bg-red-500/10 dark:bg-red-500/10",
-    ink: "text-red-600 dark:text-red-400",
-    edge: "border-red-200 dark:border-red-900/60",
+    fill: "bg-danger-soft",
+    ink: "text-danger",
+    edge: "border-danger/30",
   },
   reordered: {
-    fill: "bg-indigo-500/10 dark:bg-indigo-500/10",
-    ink: "text-indigo-600 dark:text-indigo-300",
-    edge: "border-indigo-200 dark:border-indigo-900/60",
+    fill: "bg-accent-soft",
+    ink: "text-accent",
+    edge: "border-accent/30",
   },
-  // No hue. A teaching day is the default state and must recede — it is a
-  // white disc with a hairline, and it is the one circle in a normal week that
-  // you can look straight past.
+  // No hue and no edge: a teaching day is the default and recedes.
   teaching: {
-    fill: "bg-white dark:bg-zinc-900",
-    ink: "text-zinc-800 dark:text-zinc-200",
-    edge: "border-zinc-200 dark:border-zinc-800",
+    fill: "bg-transparent",
+    ink: "text-ink",
+    edge: "border-transparent",
   },
 };
 
@@ -132,16 +130,16 @@ export const WEEK_STRIP_LABEL: Record<Exclude<WeekStripFlavour, "teaching">, str
 };
 
 /**
- * Today, not selected: a thin emerald ring plus green ink.
+ * Today, not selected: accent ink, a hairline tile and a dot under the date.
  *
  * Two signals, not one, because a ring is the same shape as the selection ring
  * and the two are frequently on the same circle — land on the page and today is
  * both.
  */
-export const TODAY_RING = "ring-1 ring-inset ring-emerald-500 dark:ring-emerald-400";
-export const TODAY_INK = "text-emerald-600 dark:text-emerald-400";
-/** Selection outranks today: indigo two rings deep, and the circle grows. */
-export const SELECTED_RING = "ring-2 ring-inset ring-indigo-500 dark:ring-indigo-400";
+export const TODAY_RING = "border-line";
+export const TODAY_INK = "text-accent";
+/** Selection outranks every tint: a solid ink tile with background-coloured text. */
+export const SELECTED_RING = "border-ink bg-ink text-background";
 
 /** `en-GB` because the month grid's tooltips already say "Sept", not "Sep". */
 function formatWhen(date: Date): string {

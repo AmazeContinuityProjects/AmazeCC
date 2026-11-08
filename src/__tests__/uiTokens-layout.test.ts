@@ -39,7 +39,7 @@ describe("surface tokens", () => {
     it("TILE_INTERACTIVE_ROW carries the same affordance as TILE_INTERACTIVE", () => {
         // The point of TILE_INTERACTIVE was that a missed suffix reads as a dead
         // surface. The row variant must not quietly drop it.
-        for (const part of ["transition-all", "hover:scale-[1.01]", "active:scale-[0.98]", "cursor-pointer"]) {
+        for (const part of ["transition-colors", "hover:bg-surface-2", "cursor-pointer"]) {
             expect(TILE_INTERACTIVE).toContain(part);
             expect(TILE_INTERACTIVE_ROW).toContain(part);
         }
@@ -49,20 +49,13 @@ describe("surface tokens", () => {
         // Same colour and border, so a row tile and a column tile are the same
         // card rather than two different cards that happen to look similar.
         //
-        // The border step is `border-border-strong`, not `border-border-muted`:
-        // on a near-white surface the muted step is not readable as an edge, and a
-        // card without a visible edge has no shape. See the border-step override
-        // in `globals.css` for why both steps were darkened.
-        //
-        // The interior rides the `.card-surface` class (globals.css), which the
-        // "Card look" setting flips between the grade-insights gray and the
-        // classic zinc glass — the token string itself must carry no bg
-        // utilities so the preference stays single-sourced.
-        for (const part of ["card-surface", "border-border-strong", "rounded-[24px]"]) {
+        // Calm Notebook: every tile is the solid surface with a 1 px line and
+        // the 10 px card radius. No glass, no translucent fill.
+        for (const part of ["bg-surface", "border-line", "rounded-md"]) {
             expect(TILE_INTERACTIVE_ROW).toContain(part);
             expect(TILE).toContain(part);
         }
-        for (const part of ["bg-surface", "bg-surface/80", "backdrop-blur-xl"]) {
+        for (const part of ["bg-surface/80", "backdrop-blur-xl", "card-surface"]) {
             expect(TILE_INTERACTIVE_ROW).not.toContain(part);
             expect(TILE).not.toContain(part);
         }

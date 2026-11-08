@@ -13,23 +13,23 @@ export default function PrivacyPolicyPage() {
   }, []);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen w-full px-4 py-24 bg-slate-50/60 dark:bg-[#03060F] transition-colors duration-300 relative overflow-hidden text-slate-800 dark:text-gray-200 font-sans">
+    <div className="flex flex-col items-center justify-center min-h-screen w-full px-4 py-24 bg-slate-50/60 transition-colors duration-300 relative overflow-hidden text-slate-800 dark:text-gray-200 font-sans">
       {/* Ambient Background Glows */}
       <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none -z-10">
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-500/10 dark:bg-indigo-500/5 blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-purple-500/10 dark:bg-purple-500/5 blur-[120px]" />
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-500/10 dark:bg-indigo-500/5 hidden" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-course-3/10 hidden" />
       </div>
 
       {/* Sticky Header Navigation */}
       <nav
-        className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-[#03060F]/80 backdrop-blur-xl border-b border-slate-200/80 dark:border-white/[0.08] transition-all"
+        className="fixed top-0 left-0 right-0 z-50 bg-white/80 border-b border-slate-200/80 dark:border-white/[0.08] transition-all"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="max-w-3xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Link
               href="/"
-              className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors py-1.5 px-3 rounded-xl bg-slate-100 dark:bg-neutral-900/60 border border-slate-200/60 dark:border-white/[0.06]"
+              className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors py-1.5 px-3 rounded-md bg-surface-2 border border-slate-200/60 dark:border-white/[0.06]"
             >
               <ArrowLeft size={14} />
               <span>Back to Login</span>
@@ -37,17 +37,17 @@ export default function PrivacyPolicyPage() {
           </div>
 
           {/* Switcher Tab between Privacy & Terms */}
-          <div className="flex items-center gap-1 p-1 bg-slate-200/60 dark:bg-neutral-900/80 rounded-2xl border border-slate-200/60 dark:border-white/[0.06]">
+          <div className="flex items-center gap-1 p-1 bg-slate-200/60 dark:bg-neutral-900/80 rounded-md border border-slate-200/60 dark:border-white/[0.06]">
             <Link
               href="/privacy"
-              className="px-3 py-1 rounded-xl text-xs font-extrabold bg-white dark:bg-neutral-800 text-indigo-600 dark:text-white shadow-xs flex items-center gap-1.5 transition-all"
+              className="px-3 py-1 rounded-md text-xs font-semibold bg-surface dark:bg-neutral-800 text-indigo-600 dark:text-white shadow-xs flex items-center gap-1.5 transition-all"
             >
               <ShieldCheck size={13} />
               <span>Privacy Policy</span>
             </Link>
             <Link
               href="/terms"
-              className="px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1.5 transition-all"
+              className="px-3 py-1 rounded-md text-xs font-semibold text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1.5 transition-all"
             >
               <FileText size={13} />
               <span>Terms of Service</span>
@@ -60,9 +60,9 @@ export default function PrivacyPolicyPage() {
 
       <div className="w-full max-w-2xl space-y-6 relative z-10 pt-10">
         {/* Content Card */}
-        <div className="card-surface border border-border-strong dark:border-border rounded-[24px] p-8 shadow-xl space-y-6 text-slate-700 dark:text-gray-300">
+        <div className="card-surface border border-border-strong dark:border-border rounded-lg p-8 shadow-xl space-y-6 text-slate-700 dark:text-gray-300">
           <div className="border-b border-slate-100 dark:border-white/[0.08] pb-4">
-            <h1 className="text-3xl font-black text-slate-900 dark:text-white leading-tight font-[family-name:var(--font-outfit)]">
+            <h1 className="text-3xl font-semibold text-slate-900 dark:text-white leading-tight font-[family-name:var(--font-outfit)]">
               Privacy Policy
             </h1>
             <p className="text-xs text-slate-500 dark:text-gray-400 mt-1 font-medium">Last updated: 11 Nov, 2025</p>
@@ -74,7 +74,7 @@ export default function PrivacyPolicyPage() {
             </p>
 
             <section className="space-y-2">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Data Storage</h2>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Data Storage</h2>
               <p>
                 All data fetched from <strong>VTOP</strong> (including your academic data, credentials, or related
                 content) is stored <strong>locally on your device</strong>. No information from VTOP is ever uploaded,
@@ -84,7 +84,7 @@ export default function PrivacyPolicyPage() {
             </section>
 
             <section className="space-y-2">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Grade Prediction & Statistics</h2>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Grade Prediction & Statistics</h2>
               <p>
                 To calculate global class statistics (mean and standard deviation) for the Grade Prediction feature,
                 your academic marks are temporarily sent to our server via an encrypted connection. The server strictly
@@ -95,7 +95,7 @@ export default function PrivacyPolicyPage() {
             </section>
 
             <section className="space-y-2">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Cookies & Analytics</h2>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Cookies & Analytics</h2>
               <p>
                 <strong>AmazeCC</strong> uses <strong>Posthog via shoot.amazecc.com</strong> and{" "}
                 <strong>Google Analytics</strong> to gather <em>anonymous, aggregate data</em> such as page visits,
@@ -118,7 +118,7 @@ export default function PrivacyPolicyPage() {
             </section>
 
             <section className="space-y-2">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Notifications</h2>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Notifications</h2>
               <p>
                 The app may send push notifications if you opt in. You can disable push notifications at any time
                 through your browser settings. There are no background processes that track or monitor user behavior.
@@ -126,7 +126,7 @@ export default function PrivacyPolicyPage() {
             </section>
 
             <section className="space-y-2">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Local Storage</h2>track users, create
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Local Storage</h2>track users, create
               profiles,
               <p>
                 Settings, preferences, and any cached data are stored using your browser’s local storage mechanism. This
@@ -135,7 +135,7 @@ export default function PrivacyPolicyPage() {
             </section>
 
             <section className="space-y-2">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Open Source</h2>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Open Source</h2>
               <p>
                 <strong>AmazeCC</strong> is an <strong>open-source project</strong> created for learning and
                 experimentation purposes. The source code is publicly available, and anyone is welcome to explore,
@@ -148,7 +148,7 @@ export default function PrivacyPolicyPage() {
             </section>
 
             <section className="space-y-2">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Contact</h2>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Contact</h2>
               <p>
                 For any concerns or questions about this Privacy Policy, you can reach out to the developer at{" "}
                 <strong>sugeeth2007@gmail.com</strong>.

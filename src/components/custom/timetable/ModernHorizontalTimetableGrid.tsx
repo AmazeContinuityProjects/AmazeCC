@@ -48,16 +48,16 @@ export default function ModernHorizontalTimetableGrid({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-slate-200/80 dark:border-white/10 bg-white dark:bg-[#0c1222] shadow-xl dark:shadow-2xl backdrop-blur-xl overflow-hidden mb-6 transition-colors",
+        "rounded-md border border-slate-200/80 dark:border-white/10 bg-surface shadow-xl dark:shadow-lg overflow-hidden mb-6 transition-colors",
         className,
       )}
     >
       {/* Header bar */}
       {(title || showLegend) && (
-        <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-slate-50/90 dark:bg-slate-900/70 border-b border-slate-200/80 dark:border-white/10">
+        <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-surface-2 border-b border-slate-200/80 dark:border-white/10">
           {title ? (
-            <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
+            <h3 className="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-accent animate-pulse" />
               {title}
             </h3>
           ) : (
@@ -67,11 +67,11 @@ export default function ModernHorizontalTimetableGrid({
           {showLegend && (
             <div className="flex flex-wrap items-center gap-4 text-xs font-semibold">
               <div className="flex items-center gap-2">
-                <div className="w-3.5 h-3.5 rounded bg-blue-500/15 dark:bg-blue-500/20 border border-blue-500/40 dark:border-blue-500/50" />
+                <div className="w-3.5 h-3.5 rounded bg-accent-soft border border-accent/40" />
                 <span className="text-slate-700 dark:text-slate-300">Theory (Top)</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-3.5 h-3.5 rounded bg-purple-500/15 dark:bg-purple-500/20 border border-purple-500/40 dark:border-purple-500/50 border-dashed" />
+                <div className="w-3.5 h-3.5 rounded bg-course-3/10 border border-course-3/40 border-dashed" />
                 <span className="text-slate-700 dark:text-slate-300">Lab (Bottom)</span>
               </div>
               {onToggleBlockSlot && (
@@ -89,8 +89,8 @@ export default function ModernHorizontalTimetableGrid({
         <table className="w-full text-left border-collapse min-w-[1000px]">
           {/* Table Header */}
           <thead>
-            <tr className="bg-slate-100/90 dark:bg-slate-900/90 border-b border-slate-200/80 dark:border-white/10">
-              <th className="p-3 border-r border-slate-200/80 dark:border-white/10 text-xs font-black text-slate-700 dark:text-slate-300 w-20 text-center sticky left-0 z-30 bg-slate-100 dark:bg-slate-900 shadow-[2px_0_10px_rgba(0,0,0,0.06)] dark:shadow-[2px_0_10px_rgba(0,0,0,0.5)]">
+            <tr className="bg-surface-2 border-b border-slate-200/80 dark:border-white/10">
+              <th className="p-3 border-r border-slate-200/80 dark:border-white/10 text-xs font-semibold text-slate-700 dark:text-slate-300 w-20 text-center sticky left-0 z-30 bg-surface-2 shadow-[2px_0_10px_rgba(0,0,0,0.06)] dark:shadow-[2px_0_10px_rgba(0,0,0,0.5)]">
                 DAY
               </th>
               {Array.from({ length: numPeriods }).map((_, pIdx) => {
@@ -99,14 +99,14 @@ export default function ModernHorizontalTimetableGrid({
                   return (
                     <th
                       key={pIdx}
-                      className="p-1 border-x border-amber-500/30 border-b border-amber-500/20 text-center bg-amber-500/10 dark:bg-amber-500/20 w-10 min-w-[36px] max-w-[42px] select-none align-middle"
+                      className="p-1 border-x border-warn/30 border-b border-warn/20 text-center bg-warn-soft w-10 min-w-[36px] max-w-[42px] select-none align-middle"
                       title="Lunch Break: 1:20 PM - 2:00 PM"
                     >
                       <div className="flex flex-col items-center justify-center leading-tight py-1 select-none">
-                        <span className="text-[9.5px] font-black text-amber-600 dark:text-amber-400 tracking-wider">
+                        <span className="text-[9.5px] font-semibold text-warn">
                           LUNCH
                         </span>
-                        <span className="text-[9px] font-bold text-amber-700/80 dark:text-amber-300/80 mt-0.5">
+                        <span className="text-[11px] font-semibold text-warn/80 mt-0.5">
                           1:20-2:00
                         </span>
                       </div>
@@ -119,11 +119,11 @@ export default function ModernHorizontalTimetableGrid({
                 return (
                   <th
                     key={pIdx}
-                    className="p-2 border-r border-slate-200/80 dark:border-white/10 text-center text-xs font-bold text-sky-600 dark:text-sky-400 bg-slate-50/90 dark:bg-slate-900/80 min-w-[102px]"
+                    className="p-2 border-r border-slate-200/80 dark:border-white/10 text-center text-xs font-semibold text-accent bg-surface-2 min-w-[102px]"
                   >
                     <div className="flex flex-col items-center">
                       <span className="tracking-wide">P{pNum}</span>
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium tracking-normal mt-0.5">
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium tracking-normal mt-0.5">
                         {tp?.start || ""}
                       </span>
                     </div>
@@ -141,7 +141,7 @@ export default function ModernHorizontalTimetableGrid({
                 className="border-b border-border-muted/80 dark:border-border-muted/50 hover:bg-slate-50/80 dark:hover:bg-slate-800/20 transition-colors group"
               >
                 {/* Sticky Day Column */}
-                <td className="p-3 border-r border-slate-200/80 dark:border-white/10 text-center font-black text-xs text-slate-800 dark:text-white bg-slate-100/95 dark:bg-slate-900/95 sticky left-0 z-20 shadow-[2px_0_10px_rgba(0,0,0,0.06)] dark:shadow-[2px_0_10px_rgba(0,0,0,0.5)] uppercase tracking-wider select-none">
+                <td className="p-3 border-r border-slate-200/80 dark:border-white/10 text-center font-semibold text-xs text-slate-800 dark:text-white bg-surface-2 sticky left-0 z-20 shadow-[2px_0_10px_rgba(0,0,0,0.06)] dark:shadow-[2px_0_10px_rgba(0,0,0,0.5)] select-none">
                   {day.name.slice(0, 3).toUpperCase()}
                 </td>
 
@@ -156,30 +156,30 @@ export default function ModernHorizontalTimetableGrid({
                         <td
                           key={pIdx}
                           rowSpan={days.length}
-                          className="border-x border-amber-500/30 bg-amber-500/10 dark:bg-amber-500/15 text-center w-10 min-w-[36px] max-w-[42px] align-middle select-none p-1"
+                          className="border-x border-warn/30 bg-warn-soft text-center w-10 min-w-[36px] max-w-[42px] align-middle select-none p-1"
                         >
                           <div className="h-full w-full flex flex-col items-center justify-center py-6 select-none">
-                            <span className="text-[12px] font-black text-amber-600 dark:text-amber-400 leading-tight tracking-widest drop-shadow-xs">
+                            <span className="text-[12px] font-semibold text-warn leading-tight drop-shadow-xs">
                               L
                             </span>
-                            <span className="text-[12px] font-black text-amber-600 dark:text-amber-400 leading-tight tracking-widest drop-shadow-xs">
+                            <span className="text-[12px] font-semibold text-warn leading-tight drop-shadow-xs">
                               U
                             </span>
-                            <span className="text-[12px] font-black text-amber-600 dark:text-amber-400 leading-tight tracking-widest drop-shadow-xs">
+                            <span className="text-[12px] font-semibold text-warn leading-tight drop-shadow-xs">
                               N
                             </span>
-                            <span className="text-[12px] font-black text-amber-600 dark:text-amber-400 leading-tight tracking-widest drop-shadow-xs">
+                            <span className="text-[12px] font-semibold text-warn leading-tight drop-shadow-xs">
                               C
                             </span>
-                            <span className="text-[12px] font-black text-amber-600 dark:text-amber-400 leading-tight tracking-widest drop-shadow-xs">
+                            <span className="text-[12px] font-semibold text-warn leading-tight drop-shadow-xs">
                               H
                             </span>
-                            <div className="w-4 h-[1px] bg-amber-500/30 dark:bg-amber-500/40 my-2" />
-                            <span className="text-[9px] font-black text-amber-700 dark:text-amber-300 leading-tight">
+                            <div className="w-4 h-[1px] bg-warn/30 my-2" />
+                            <span className="text-[11px] font-semibold text-warn leading-tight">
                               1:20
                             </span>
-                            <span className="text-[7px] text-amber-600/70 dark:text-amber-400/70 leading-tight">-</span>
-                            <span className="text-[9px] font-black text-amber-700 dark:text-amber-300 leading-tight">
+                            <span className="text-[7px] text-warn/70 leading-tight">-</span>
+                            <span className="text-[11px] font-semibold text-warn leading-tight">
                               2:00
                             </span>
                           </div>
@@ -196,7 +196,7 @@ export default function ModernHorizontalTimetableGrid({
                     return (
                       <td
                         key={pIdx}
-                        className="border-r border-slate-200/80 dark:border-white/10 bg-slate-50/40 dark:bg-slate-950/40 p-1 min-w-[102px] h-[84px]"
+                        className="border-r border-slate-200/80 dark:border-white/10 bg-surface-2 p-1 min-w-[102px] h-[84px]"
                       />
                     );
                   }
@@ -250,14 +250,14 @@ export default function ModernHorizontalTimetableGrid({
                           onClick={() => onToggleBlockSlot?.(slotName)}
                           title={`Blocked slot (${slotName}). Click to unblock.`}
                           className={cn(
-                            "h-[38px] p-1 rounded-md flex flex-col items-center justify-center relative transition-all duration-200 border border-red-500/30 dark:border-red-500/40",
+                            "h-[38px] p-1 rounded-md flex flex-col items-center justify-center relative transition-all duration-200 border border-danger/30",
                             "bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,rgba(239,68,68,0.12)_3px,rgba(239,68,68,0.12)_6px)] dark:bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,rgba(239,68,68,0.25)_3px,rgba(239,68,68,0.25)_6px)]",
-                            "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 shadow-inner",
-                            onToggleBlockSlot && "cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/40",
+                            "bg-danger-soft text-danger shadow-inner",
+                            onToggleBlockSlot && "cursor-pointer hover:bg-danger-soft",
                           )}
                         >
-                          <span className="text-[10px] font-black tracking-wide">Blocked</span>
-                          <span className="text-[9px] font-semibold opacity-75">{slotName}</span>
+                          <span className="text-[11px] font-semibold tracking-wide">Blocked</span>
+                          <span className="text-[11px] font-semibold opacity-75">{slotName}</span>
                         </div>
                       );
                     }
@@ -279,23 +279,23 @@ export default function ModernHorizontalTimetableGrid({
                           }}
                         >
                           <div className="flex items-center justify-between gap-1 leading-none">
-                            <span className="text-[10px] font-extrabold text-slate-900 dark:text-white tracking-tight leading-none drop-shadow-xs">
+                            <span className="text-[11px] font-semibold text-slate-900 dark:text-white tracking-tight leading-none drop-shadow-xs">
                               {course.code}
                             </span>
-                            <span className="text-[9px] font-bold text-slate-700 dark:text-slate-300 bg-white/70 dark:bg-black/40 border border-slate-300/40 dark:border-white/5 px-1 py-0.5 rounded leading-none">
+                            <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 bg-white/70 dark:bg-black/40 border border-slate-300/40 dark:border-white/5 px-1 py-0.5 rounded leading-none">
                               {slotName}
                             </span>
                           </div>
 
-                          <div className="text-[9px] font-semibold text-slate-600 dark:text-slate-400 truncate leading-none mt-0.5">
+                          <div className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 truncate leading-none mt-0.5">
                             {course.venue || "TBA"}
                           </div>
 
                           {/* Hover tooltip */}
-                          <div className="absolute opacity-0 group-hover/tile:opacity-100 transition-opacity duration-200 bottom-full left-1/2 -translate-x-1/2 mb-1.5 w-max max-w-[220px] bg-slate-900 dark:bg-slate-950 text-white text-xs rounded-xl p-2.5 shadow-2xl z-50 pointer-events-none border border-slate-700 dark:border-white/20 text-center">
-                            <p className="font-bold text-slate-100">{course.title}</p>
+                          <div className="absolute opacity-0 group-hover/tile:opacity-100 transition-opacity duration-200 bottom-full left-1/2 -translate-x-1/2 mb-1.5 w-max max-w-[220px] bg-slate-900 dark:bg-slate-950 text-white text-xs rounded-md p-2.5 shadow-lg z-50 pointer-events-none border border-slate-700 dark:border-white/20 text-center">
+                            <p className="font-semibold text-slate-100">{course.title}</p>
                             <p className="text-slate-400 text-[11px] mt-0.5">{course.faculty}</p>
-                            <div className="flex items-center justify-center gap-1.5 mt-1 text-[10px] text-blue-400 font-semibold">
+                            <div className="flex items-center justify-center gap-1.5 mt-1 text-[11px] text-accent font-semibold">
                               <span>Slot: {slotName}</span>
                               <span>•</span>
                               <span>Venue: {course.venue || "TBA"}</span>
@@ -311,7 +311,7 @@ export default function ModernHorizontalTimetableGrid({
                         <div
                           onClick={() => onToggleBlockSlot?.(slotName)}
                           className={cn(
-                            "h-[38px] p-1 rounded-md flex items-center justify-center border border-yellow-500/40 bg-yellow-500/10 text-yellow-700 dark:text-yellow-300 animate-pulse text-[10px] font-bold",
+                            "h-[38px] p-1 rounded-md flex items-center justify-center border border-warn/40 bg-warn-soft text-warn animate-pulse text-[11px] font-semibold",
                             onToggleBlockSlot && "cursor-pointer",
                           )}
                         >
@@ -326,11 +326,11 @@ export default function ModernHorizontalTimetableGrid({
                         title={onToggleBlockSlot ? `Slot ${slotName}. Click to rule out.` : `Slot ${slotName}`}
                         className={cn(
                           "h-[38px] p-1 rounded-md flex items-center justify-center border border-dashed border-slate-300/80 dark:border-white/5 transition-all duration-200",
-                          "text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-500/40 hover:bg-blue-500/5",
+                          "text-slate-400 dark:text-slate-500 hover:text-accent hover:border-accent/40 hover:bg-accent-soft",
                           onToggleBlockSlot && "cursor-pointer",
                         )}
                       >
-                        <span className="text-[10px] font-semibold tracking-wider">{slotName}</span>
+                        <span className="text-[11px] font-semibold">{slotName}</span>
                       </div>
                     );
                   };
@@ -338,7 +338,7 @@ export default function ModernHorizontalTimetableGrid({
                   return (
                     <td
                       key={pIdx}
-                      className="border-r border-slate-200/80 dark:border-white/10 p-1 min-w-[102px] h-[84px] align-top bg-white/40 dark:bg-slate-950/20"
+                      className="border-r border-slate-200/80 dark:border-white/10 p-1 min-w-[102px] h-[84px] align-top bg-surface"
                     >
                       <div className="flex flex-col gap-1 h-full">
                         {renderSlotHalf(theorySlot, tCourse, isTBlocked, isTInGap, false)}

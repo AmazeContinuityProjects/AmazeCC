@@ -59,8 +59,9 @@ describe("SyncNotification Redesign", () => {
     // Bottom Red Neon Cancel Button
     const cancelBtn = screen.getByRole("button", { name: /cancel sync/i });
     expect(cancelBtn).toBeDefined();
-    expect(cancelBtn.className).toContain("border-rose-500");
-    expect(cancelBtn.className).toContain("shadow-");
+    expect(cancelBtn.className).toContain("border-danger/");
+    // Calm Notebook: the cancel button is flat; no coloured glow.
+    expect(cancelBtn.className).not.toContain("shadow-[0_0");
     fireEvent.click(cancelBtn);
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
@@ -71,7 +72,7 @@ describe("SyncNotification Redesign", () => {
     const minimizeBtn = screen.getByTitle(/run in background/i);
     expect(minimizeBtn).toBeDefined();
     expect(minimizeBtn.className).toContain("p-2");
-    expect(minimizeBtn.className).toContain("rounded-xl");
+    expect(minimizeBtn.className).toContain("rounded-md");
   });
 
   it("toggles the diagnostics console log drawer", () => {

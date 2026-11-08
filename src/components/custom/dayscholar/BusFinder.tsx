@@ -154,7 +154,7 @@ const BusFinder = ({
                     <button
                       type="button"
                       onClick={() => setSearchQuery("")}
-                      className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-black text-white transition-colors hover:bg-indigo-700"
+                      className="inline-flex items-center gap-2 rounded-sm bg-accent px-4 py-2.5 text-sm font-medium text-background transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                     >
                       Clear search
                     </button>
@@ -171,7 +171,7 @@ const BusFinder = ({
                     className={`${LIST_ROW} cursor-pointer`}
                   >
                     <span
-                      className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border font-black text-sm font-outfit ${TONE_ICON_TILE[routeTone(bus.type)]}`}
+                      className={`w-10 h-10 rounded-md flex items-center justify-center shrink-0 border font-semibold text-sm font-outfit ${TONE_ICON_TILE[routeTone(bus.type)]}`}
                     >
                       {bus.id}
                     </span>
@@ -220,7 +220,7 @@ function BusDetailSheet({ bus, onClose }: { bus: BusRoute; onClose: () => void }
           ) : null}
         </span>
       }
-      icon={<span className="text-sm font-black font-outfit">{bus.id}</span>}
+      icon={<span className="text-sm font-semibold font-outfit">{bus.id}</span>}
       accent={TONE_ICON_TILE[routeTone(bus.type)]}
       closeLabel="Close route"
     >
@@ -259,7 +259,7 @@ function BusDetailSheet({ bus, onClose }: { bus: BusRoute; onClose: () => void }
             href={bus.whatsappGroup}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 w-full py-3 text-sm font-black bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-2xl border border-emerald-500/20 transition-colors"
+            className="flex items-center justify-center gap-2 w-full py-3 text-sm font-semibold bg-ok-soft hover:bg-ok-soft text-ok rounded-md border border-ok/20 transition-colors"
           >
             <MessageCircle className="h-4 w-4" />
             Join WhatsApp Group

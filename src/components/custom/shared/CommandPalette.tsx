@@ -18,61 +18,61 @@ function renderCommandIcon(icon: React.ReactNode | string) {
 
   switch (icon.trim()) {
     case "👤": return <User size={15} className="text-indigo-500" />;
-    case "📋": return <ClipboardList size={15} className="text-blue-500" />;
-    case "📚": return <BookOpen size={15} className="text-emerald-500" />;
-    case "💳": return <CreditCard size={15} className="text-amber-500" />;
-    case "🚕": return <Car size={15} className="text-amber-500" />;
+    case "📋": return <ClipboardList size={15} className="text-accent" />;
+    case "📚": return <BookOpen size={15} className="text-ok" />;
+    case "💳": return <CreditCard size={15} className="text-warn" />;
+    case "🚕": return <Car size={15} className="text-warn" />;
     case "📖": return <BookOpen size={15} className="text-indigo-500" />;
-    case "🏠": return <Home size={15} className="text-violet-500" />;
+    case "🏠": return <Home size={15} className="text-course-3" />;
     case "🚏":
     case "🚍":
-    case "🚌": return <Bus size={15} className="text-sky-500" />;
+    case "🚌": return <Bus size={15} className="text-accent" />;
     case "➕": return <Plus size={15} className="text-zinc-400" />;
-    case "📊": return <BarChart3 size={15} className="text-emerald-500" />;
+    case "📊": return <BarChart3 size={15} className="text-ok" />;
     case "📅":
-    case "🗓️": return <Calendar size={15} className="text-blue-500" />;
-    case "📜": return <FileText size={15} className="text-amber-500" />;
-    case "🎓": return <GraduationCap size={15} className="text-purple-500" />;
-    case "📈": return <TrendingUp size={15} className="text-emerald-500" />;
-    case "📘": return <BookOpen size={15} className="text-blue-500" />;
-    case "📢": return <Volume2 size={15} className="text-rose-500" />;
-    case "👨‍🏫": return <Users size={15} className="text-teal-500" />;
+    case "🗓️": return <Calendar size={15} className="text-accent" />;
+    case "📜": return <FileText size={15} className="text-warn" />;
+    case "🎓": return <GraduationCap size={15} className="text-course-3" />;
+    case "📈": return <TrendingUp size={15} className="text-ok" />;
+    case "📘": return <BookOpen size={15} className="text-accent" />;
+    case "📢": return <Volume2 size={15} className="text-danger" />;
+    case "👨‍🏫": return <Users size={15} className="text-course-1" />;
     case "🏫": return <School size={15} className="text-indigo-500" />;
-    case "🔄": return <RotateCcw size={15} className="text-blue-500" />;
+    case "🔄": return <RotateCcw size={15} className="text-accent" />;
     case "⚙️": return <Settings size={15} className="text-zinc-500" />;
-    case "💻": return <Code size={15} className="text-violet-500" />;
-    case "⭐": return <Star size={15} className="text-amber-400 fill-amber-400" />;
-    case "🍽️": return <Utensils size={15} className="text-orange-500" />;
-    case "👕": return <Shirt size={15} className="text-sky-500" />;
+    case "💻": return <Code size={15} className="text-course-3" />;
+    case "⭐": return <Star size={15} className="text-warn fill-warn" />;
+    case "🍽️": return <Utensils size={15} className="text-course-2" />;
+    case "👕": return <Shirt size={15} className="text-accent" />;
     case "✈️": return <Plane size={15} className="text-indigo-500" />;
-    case "🤝": return <Handshake size={15} className="text-emerald-500" />;
+    case "🤝": return <Handshake size={15} className="text-ok" />;
     case "📄": return <FileText size={15} className="text-zinc-400" />;
-    case "❓": return <HelpCircle size={15} className="text-amber-500" />;
-    case "👥": return <Users size={15} className="text-blue-500" />;
-    case "🎉": return <PartyPopper size={15} className="text-pink-500" />;
-    case "🏛️": return <Landmark size={15} className="text-amber-600" />;
-    case "⏰": return <Clock size={15} className="text-amber-500" />;
-    case "🔮": return <Sparkles size={15} className="text-purple-500" />;
+    case "❓": return <HelpCircle size={15} className="text-warn" />;
+    case "👥": return <Users size={15} className="text-accent" />;
+    case "🎉": return <PartyPopper size={15} className="text-course-7" />;
+    case "🏛️": return <Landmark size={15} className="text-warn" />;
+    case "⏰": return <Clock size={15} className="text-warn" />;
+    case "🔮": return <Sparkles size={15} className="text-course-3" />;
     case "💬": return <MessageSquare size={15} className="text-indigo-500" />;
-    case "📝": return <FileText size={15} className="text-blue-500" />;
-    case "🔢": return <BarChart3 size={15} className="text-emerald-500" />;
+    case "📝": return <FileText size={15} className="text-accent" />;
+    case "🔢": return <BarChart3 size={15} className="text-ok" />;
     case "🙈":
     case "🕵️": return <User size={15} className="text-zinc-400" />;
-    case "☀️": return <Sun size={15} className="text-amber-500" />;
+    case "☀️": return <Sun size={15} className="text-warn" />;
     case "🌙": return <Moon size={15} className="text-indigo-400" />;
-    case "📏": return <BarChart3 size={15} className="text-blue-500" />;
+    case "📏": return <BarChart3 size={15} className="text-accent" />;
     case "🚶": return <Users size={15} className="text-zinc-500" />;
-    case "🟡": return <AlertTriangle size={15} className="text-amber-500" />;
+    case "🟡": return <AlertTriangle size={15} className="text-warn" />;
     case "🔴":
-    case "⚠️": return <AlertTriangle size={15} className="text-red-500" />;
-    case "🎪": return <PartyPopper size={15} className="text-pink-500" />;
-    case "✅": return <CheckCircle2 size={15} className="text-emerald-500" />;
+    case "⚠️": return <AlertTriangle size={15} className="text-danger" />;
+    case "🎪": return <PartyPopper size={15} className="text-course-7" />;
+    case "✅": return <CheckCircle2 size={15} className="text-ok" />;
     case "☐": return <CheckCircle2 size={15} className="text-zinc-400" />;
     default:
       if (/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/u.test(icon)) {
         return <Sparkles size={15} className="text-indigo-500" />;
       }
-      return <span className="text-xs font-bold text-zinc-500">{icon}</span>;
+      return <span className="text-xs font-semibold text-zinc-500">{icon}</span>;
   }
 }
 
@@ -267,7 +267,7 @@ export function CommandPalette({ isOpen, onClose, commands, demoMode = false }: 
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-start justify-center pt-14 sm:pt-20 px-4 bg-black/60 backdrop-blur-md transition-opacity">
+      <div className="fixed inset-0 z-50 flex items-start justify-center pt-14 sm:pt-20 px-4 bg-black/60 transition-opacity">
         {/* Backdrop Click */}
         <div className="fixed inset-0" onClick={onClose} />
 
@@ -277,7 +277,7 @@ export function CommandPalette({ isOpen, onClose, commands, demoMode = false }: 
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.96, y: -10 }}
           transition={{ duration: 0.12, ease: "easeOut" }}
-          className="relative w-full max-w-2xl bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden z-10 flex flex-col max-h-[80vh]"
+          className="relative w-full max-w-2xl bg-surface border border-zinc-200/80 dark:border-zinc-800 rounded-md shadow-lg overflow-hidden z-10 flex flex-col max-h-[80vh]"
           onKeyDown={handleKeyDown}
         >
           {/* Subpage View */}
@@ -285,7 +285,7 @@ export function CommandPalette({ isOpen, onClose, commands, demoMode = false }: 
             <div className="p-4 relative">
               <button
                 onClick={() => setActiveSubpage(null)}
-                className="mb-3 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
+                className="mb-3 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
               >
                 ← Back to Spotlight Search
               </button>
@@ -302,10 +302,10 @@ export function CommandPalette({ isOpen, onClose, commands, demoMode = false }: 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Type a command or search (e.g. 'Attendance', 'Grades', 'Mess', 'Koha')..."
-                  className="w-full bg-transparent text-sm font-medium text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none"
+                  className="w-full bg-transparent text-sm font-medium text-ink placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none"
                 />
                 {kohaLoading && (
-                  <span className="text-[10px] font-bold text-amber-500 animate-pulse shrink-0">
+                  <span className="text-[11px] font-semibold text-warn animate-pulse shrink-0">
                     Searching Koha...
                   </span>
                 )}
@@ -344,9 +344,9 @@ export function CommandPalette({ isOpen, onClose, commands, demoMode = false }: 
                             }
                           }}
                           onMouseEnter={() => setSelectedIndex(idx)}
-                          className={`flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-all ${
+                          className={`flex items-center justify-between px-3 py-2.5 rounded-md cursor-pointer transition-all ${
                             isSelected
-                              ? "bg-indigo-600 text-white shadow-sm"
+                              ? "bg-accent text-background"
                               : "hover:bg-zinc-100 dark:hover:bg-zinc-800/70 text-zinc-700 dark:text-zinc-200"
                           }`}
                         >
@@ -355,17 +355,17 @@ export function CommandPalette({ isOpen, onClose, commands, demoMode = false }: 
                               <span className={`shrink-0 flex items-center justify-center w-7 h-7 rounded-lg border transition-all ${
                                 isSelected
                                   ? "bg-white/20 border-white/30 text-white"
-                                  : "bg-zinc-100/80 dark:bg-zinc-800/80 border-zinc-200/60 dark:border-zinc-700/60"
+                                  : "bg-surface-2 border-zinc-200/60 dark:border-zinc-700/60"
                               }`}>
                                 {renderCommandIcon(cmd.icon)}
                               </span>
                             )}
                             <div className="min-w-0">
-                              <p className={`text-xs font-bold truncate ${isSelected ? "text-white" : "text-zinc-900 dark:text-white"}`}>
+                              <p className={`text-xs font-semibold truncate ${isSelected ? "text-white" : "text-ink"}`}>
                                 {cmd.label}
                               </p>
                               {cmd.description && (
-                                <p className={`text-[11px] truncate mt-0.5 ${isSelected ? "text-indigo-100" : "text-zinc-500 dark:text-zinc-400"}`}>
+                                <p className={`text-[11px] truncate mt-0.5 ${isSelected ? "text-indigo-100" : "text-muted"}`}>
                                   {cmd.description}
                                 </p>
                               )}
@@ -375,10 +375,10 @@ export function CommandPalette({ isOpen, onClose, commands, demoMode = false }: 
                           <div className="flex items-center gap-2 shrink-0 ml-2">
                             {cmd.category && (
                               <span
-                                className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md ${
+                                className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-md ${
                                   isSelected
                                     ? "bg-white/20 text-white"
-                                    : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400"
+                                    : "bg-surface-2 text-muted"
                                 }`}
                               >
                                 {cmd.category}
@@ -394,8 +394,8 @@ export function CommandPalette({ isOpen, onClose, commands, demoMode = false }: 
 
                 {/* Right Detail Preview Pane */}
                 {selectedCommand?.detail && (
-                  <div className="hidden md:block w-72 p-4 bg-zinc-50/50 dark:bg-zinc-950/40 overflow-y-auto shrink-0 border-l border-zinc-100 dark:border-zinc-800/60">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-3">
+                  <div className="hidden md:block w-72 p-4 bg-surface-2 overflow-y-auto shrink-0 border-l border-zinc-100 dark:border-zinc-800/60">
+                    <p className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 mb-3">
                       Command Details
                     </p>
                     {selectedCommand.detail}
@@ -404,19 +404,19 @@ export function CommandPalette({ isOpen, onClose, commands, demoMode = false }: 
               </div>
 
               {/* Bottom Footer Shortcuts Bar */}
-              <div className="flex items-center justify-between px-4 py-2 bg-zinc-50/80 dark:bg-zinc-900/80 border-t border-zinc-200/60 dark:border-zinc-800 text-[10px] font-medium text-zinc-500 dark:text-zinc-400 shrink-0">
+              <div className="flex items-center justify-between px-4 py-2 bg-surface-2 border-t border-zinc-200/60 dark:border-zinc-800 text-[11px] font-medium text-muted shrink-0">
                 <div className="flex items-center gap-3">
                   <span className="flex items-center gap-1">
-                    <kbd className="px-1.5 py-0.5 rounded bg-zinc-200/80 dark:bg-zinc-800 font-mono text-[9px]">↑↓</kbd> Navigate
+                    <kbd className="px-1.5 py-0.5 rounded bg-zinc-200/80 dark:bg-zinc-800 font-mono text-[11px]">↑↓</kbd> Navigate
                   </span>
                   <span className="flex items-center gap-1">
-                    <kbd className="px-1.5 py-0.5 rounded bg-zinc-200/80 dark:bg-zinc-800 font-mono text-[9px]">↵</kbd> Select
+                    <kbd className="px-1.5 py-0.5 rounded bg-zinc-200/80 dark:bg-zinc-800 font-mono text-[11px]">↵</kbd> Select
                   </span>
                   <span className="flex items-center gap-1">
-                    <kbd className="px-1.5 py-0.5 rounded bg-zinc-200/80 dark:bg-zinc-800 font-mono text-[9px]">ESC</kbd> Close
+                    <kbd className="px-1.5 py-0.5 rounded bg-zinc-200/80 dark:bg-zinc-800 font-mono text-[11px]">ESC</kbd> Close
                   </span>
                 </div>
-                <span className="flex items-center gap-1 font-bold text-indigo-600 dark:text-indigo-400">
+                <span className="flex items-center gap-1 font-semibold text-indigo-600 dark:text-indigo-400">
                   <Sparkles size={11} /> Spotlight Search
                 </span>
               </div>

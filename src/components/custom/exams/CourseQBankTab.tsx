@@ -115,12 +115,12 @@ export default function CourseQBankTab({ courseCode, username }: { courseCode: s
       
       {/* Tab Navigation & Upload Button */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <div className="flex bg-gray-100 dark:bg-black rounded-lg p-1 w-full sm:w-max">
+        <div className="flex bg-gray-100 dark:bg-background rounded-lg p-1 w-full sm:w-max">
           <button
             onClick={() => setDetailTab("papers")}
             className={`flex-1 sm:flex-none px-5 py-2 text-sm font-semibold rounded-md transition-all ${
               detailTab === "papers"
-                ? "bg-white text-blue-600 dark:bg-slate-800 dark:text-blue-400 shadow-sm"
+                ? "bg-surface text-accent dark:bg-slate-800 shadow-sm"
                 : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
             }`}
           >
@@ -130,7 +130,7 @@ export default function CourseQBankTab({ courseCode, username }: { courseCode: s
             onClick={() => setDetailTab("questions")}
             className={`flex-1 sm:flex-none px-5 py-2 text-sm font-semibold rounded-md transition-all ${
               detailTab === "questions"
-                ? "bg-white text-blue-600 dark:bg-slate-800 dark:text-blue-400 shadow-sm"
+                ? "bg-surface text-accent dark:bg-slate-800 shadow-sm"
                 : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
             }`}
           >
@@ -139,7 +139,7 @@ export default function CourseQBankTab({ courseCode, username }: { courseCode: s
         </div>
 
         {error && (
-          <div className="mb-6 p-4 rounded-xl border border-red-200 bg-red-50 text-red-700 flex items-start gap-3 w-full">
+          <div className="mb-6 p-4 rounded-md border border-danger/40 bg-danger-soft text-danger flex items-start gap-3 w-full">
             <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
             <div>
               <h3 className="font-semibold text-sm">Failed to load QBank data</h3>
@@ -151,7 +151,7 @@ export default function CourseQBankTab({ courseCode, username }: { courseCode: s
         {!showUploadForm && detailTab === "papers" && (
           <button
             onClick={() => setShowUploadForm(true)}
-            className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm w-full sm:w-auto"
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-accent hover:bg-accent/90 text-background text-sm font-medium rounded-sm transition-colors w-full sm:w-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             <UploadCloud className="w-4 h-4" /> Share a Paper
           </button>
@@ -160,28 +160,28 @@ export default function CourseQBankTab({ courseCode, username }: { courseCode: s
 
       {/* Inline Upload Form (Frictionless) */}
       {showUploadForm && (
-        <div className="mb-8 p-5 bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-800/50 rounded-2xl shadow-sm relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+        <div className="mb-8 p-5 bg-surface border border-accent/40 rounded-md shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-1 h-full bg-accent"></div>
           
           {uploadSuccess ? (
             <div className="py-6 text-center animate-in fade-in zoom-in duration-300">
-              <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 text-green-500 rounded-full flex items-center justify-center mx-auto mb-3">
+              <div className="w-12 h-12 text-ok rounded-full flex items-center justify-center mx-auto mb-3 bg-surface-2">
                 <UploadCloud className="w-6 h-6" />
               </div>
-              <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">Thanks for contributing!</h3>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">Your paper has been queued for admin review.</p>
+              <h3 className="text-base font-semibold text-ink mb-1">Thanks for contributing!</h3>
+              <p className="text-muted text-sm">Your paper has been queued for admin review.</p>
             </div>
           ) : (
             <form onSubmit={handleUpload} className="space-y-4">
               <div className="flex justify-between items-center mb-2">
-                <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  <UploadCloud className="w-4 h-4 text-blue-500" /> Share a Past Paper
+                <h3 className="font-semibold text-ink flex items-center gap-2">
+                  <UploadCloud className="w-4 h-4 text-accent" /> Share a Past Paper
                 </h3>
                 <button type="button" onClick={() => setShowUploadForm(false)} className="text-xs text-gray-400 hover:text-gray-600 font-semibold">Cancel</button>
               </div>
 
               {uploadError && (
-                <div className="mb-4 p-3 rounded-lg bg-red-50 text-red-700 text-sm border border-red-200 flex items-start gap-2">
+                <div className="mb-4 p-3 rounded-lg bg-danger-soft text-danger text-sm border border-danger/40 flex items-start gap-2">
                   <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
                   <span>{uploadError}</span>
                 </div>
@@ -195,7 +195,7 @@ export default function CourseQBankTab({ courseCode, username }: { courseCode: s
                     value={fileUrl}
                     onChange={(e) => setFileUrl(e.target.value)}
                     placeholder="Link to PDF (GDrive, Dropbox, etc)"
-                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-800 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-800 rounded-lg bg-background text-ink focus:outline-none focus:ring-2 focus:ring-accent/40"
                   />
                   <input
                     type="text"
@@ -203,7 +203,7 @@ export default function CourseQBankTab({ courseCode, username }: { courseCode: s
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="e.g. Winter Semester 2023 Paper"
-                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-800 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-800 rounded-lg bg-background text-ink focus:outline-none focus:ring-2 focus:ring-accent/40"
                   />
                 </div>
                 <div>
@@ -233,7 +233,7 @@ export default function CourseQBankTab({ courseCode, username }: { courseCode: s
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="Document Title (e.g. Winter 2024 CAT 1)"
-                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-800 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-800 rounded-lg bg-background text-ink focus:outline-none focus:ring-2 focus:ring-accent/40"
                   />
                 </div>
                 <FetchButton
@@ -256,7 +256,7 @@ export default function CourseQBankTab({ courseCode, username }: { courseCode: s
             icon={<FileText className="w-12 h-12" />}
             title="No papers yet"
             action={
-              <button onClick={() => setShowUploadForm(true)} className="text-blue-500 hover:underline text-sm font-semibold">
+              <button onClick={() => setShowUploadForm(true)} className="text-accent hover:underline text-sm font-semibold">
                 Be the first to share one!
               </button>
             }
@@ -269,27 +269,27 @@ export default function CourseQBankTab({ courseCode, username }: { courseCode: s
                 href={p.file_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group relative flex flex-col p-5 card-surface border border-border-strong dark:border-border rounded-[24px] hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden"
+                className="group relative flex flex-col p-5 card-surface border border-border-strong dark:border-border rounded-lg hover:shadow-lg transition-all duration-300 overflow-hidden"
               >
-                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-2xl rounded-full -mr-16 -mt-16 pointer-events-none group-hover:bg-blue-500/20 transition-colors" />
+                <div className="absolute top-0 right-0 w-32 h-32 bg-accent-soft hidden rounded-full -mr-16 -mt-16 pointer-events-none group-hover:bg-accent-soft transition-colors" />
                 <div className="flex items-start gap-4 mb-4 relative z-10">
-                  <div className="p-3 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-2xl shadow-inner group-hover:scale-110 transition-transform duration-300">
+                  <div className="p-3 bg-accent-soft text-accent rounded-md shadow-inner transition-transform duration-300">
                     <FileText className="w-6 h-6" />
                   </div>
                   <div className="min-w-0 flex-1 pt-1">
-                    <h4 className="font-bold text-sm text-gray-900 dark:text-gray-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                    <h4 className="font-semibold text-sm text-ink truncate group-hover:text-accent transition-colors">
                       {p.title}
                     </h4>
-                    <p className="text-[11px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 mt-1">
+                    <p className="text-[11px] font-semibold text-muted mt-1">
                       {p.source_type}
                     </p>
                   </div>
                 </div>
                 <div className="mt-auto flex items-center justify-between border-t border-gray-100/50 dark:border-gray-800/50 pt-4 relative z-10">
-                  <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                  <span className="text-[11px] font-semibold text-gray-400 dark:text-gray-500">
                     {p.exam_semester} {p.exam_year}
                   </span>
-                  <span className="text-[11px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 group-hover:translate-x-1 transition-transform">
+                  <span className="text-[11px] font-semibold text-accent group-hover:translate-x-1 transition-transform">
                     View PDF →
                   </span>
                 </div>

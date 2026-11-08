@@ -28,7 +28,7 @@ export function SectionHeader({
     <div className={`flex items-center justify-between gap-2 px-1 ${className}`.trim()}>
       <div className="flex items-center gap-2 min-w-0">
         {leading ?? (Icon ? <Icon className="w-4 h-4 text-indigo-500 shrink-0" /> : null)}
-        <h2 className="text-sm font-black text-text-heading font-outfit tracking-tight truncate">
+        <h2 className="text-sm font-semibold text-text-heading font-outfit tracking-tight truncate">
           {title}
         </h2>
         {typeof count === "number" ? (
@@ -83,18 +83,18 @@ export function StatTile({
   // toned-down grey, so an uncoloured tile does not look disabled.
   const valueTone =
     !tone || tone === "neutral" || tone === "default"
-      ? "text-zinc-900 dark:text-white"
-      : TONE_TEXT[tone] ?? "text-zinc-900 dark:text-white";
+      ? "text-ink"
+      : TONE_TEXT[tone] ?? "text-ink";
 
   return (
     <div className={`${TILE} ${height} ${className}`.trim()}>
       <div className="flex items-center justify-between gap-1">
-        <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">
+        <span className="truncate text-[12.5px] font-medium text-muted">
           {label}
         </span>
         {badge ? (
           <span
-            className={`text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border shrink-0 ${
+            className={`shrink-0 rounded-full border-transparent px-2 py-0.5 text-[11.5px] font-medium ${
               TONE_BADGE[tone] ?? TONE_BADGE.zinc
             }`}
           >
@@ -107,7 +107,7 @@ export function StatTile({
 
       <div className="my-auto min-w-0">
         <p
-          className={`text-2xl sm:text-3xl font-black font-outfit tracking-tight leading-tight truncate block ${valueTone}`}
+          className={`block truncate text-[28px] font-semibold leading-tight tracking-[-0.02em] tabular-nums sm:text-[30px] ${valueTone}`}
         >
           {value}
         </p>
@@ -115,7 +115,7 @@ export function StatTile({
 
       {sub ? (
         <div className="flex items-center justify-between gap-2 min-w-0">
-          <div className="text-[10.5px] sm:text-xs text-text-secondary dark:text-text-muted font-medium truncate">
+          <div className="truncate text-[12.5px] text-muted">
             {sub}
           </div>
         </div>
@@ -136,7 +136,7 @@ export function ListShell({
 }
 
 const ROW_TITLE =
-  "font-bold text-sm text-text-heading truncate font-outfit leading-tight";
+  "font-semibold text-sm text-text-heading truncate font-outfit leading-tight";
 const ROW_SUBTITLE_BASE =
   "text-[11px] text-text-secondary dark:text-text-muted font-medium mt-0.5";
 const ROW_SUBTITLE = `${ROW_SUBTITLE_BASE} truncate`;
@@ -222,7 +222,7 @@ export function MiniBar({
 /**
  * Small label-over-value cell for a 2-up facts grid.
  *
- * The label is uppercase micro-type and the value is bold ink, which is the
+ * The label is micro-type and the value is bold ink, which is the
  * convention wherever a page shows "Label / Value" in a grid.
  */
 export function KeyValue({
@@ -239,12 +239,12 @@ export function KeyValue({
 }) {
   return (
     <div
-      className={`p-3 rounded-2xl bg-surface-secondary dark:bg-background/50 border border-border-muted dark:border-border ${className}`.trim()}
+      className={`p-3 rounded-md bg-surface-secondary dark:bg-background/50 border border-border-muted dark:border-border ${className}`.trim()}
     >
-      <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted block mb-0.5">
+      <span className="text-[11px] font-semibold text-text-muted block mb-0.5">
         {label}
       </span>
-      <span className={`font-extrabold text-text-heading ${valueClassName}`.trim()}>
+      <span className={`font-semibold text-text-heading ${valueClassName}`.trim()}>
         {value}
       </span>
     </div>

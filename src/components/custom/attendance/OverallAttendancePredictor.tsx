@@ -535,7 +535,7 @@ export default function OverallAttendancePredictor({
         <StatTile
           height="h-32 sm:h-36"
           label="Projected Avg"
-          icon={<Sparkles className="w-4 h-4 text-sky-500" />}
+          icon={<Sparkles className="w-4 h-4 text-accent" />}
           tone={overallStats.predictedPct >= targetThreshold ? "emerald" : "red"}
           value={`${formatPct(overallStats.predictedPct, decimalValues)}%`}
           sub={`Now ${formatPct(overallStats.currentPct, decimalValues)}%`}
@@ -587,7 +587,7 @@ export default function OverallAttendancePredictor({
               <>
                 {opt.label}
                 {opt.date ? (
-                  <span className="ml-1.5 opacity-80 text-[10px] font-normal">
+                  <span className="ml-1.5 opacity-80 text-[11px] font-normal">
                     ({opt.date.toLocaleDateString("en-US", { month: "short", day: "numeric" })})
                   </span>
                 ) : null}
@@ -623,8 +623,8 @@ export default function OverallAttendancePredictor({
         {/* Calendar Header & Month Switcher */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-border-muted dark:border-border">
           <div>
-            <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-blue-500" />
+            <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-accent" />
               <span>Interactive Day Simulator ({currentMonth})</span>
             </h3>
             <p className="text-xs text-gray-500 dark:text-zinc-400 font-medium mt-0.5">
@@ -639,17 +639,17 @@ export default function OverallAttendancePredictor({
               <button
                 disabled={monthIdx === 0}
                 onClick={() => setMonthIdx((i) => Math.max(0, i - 1))}
-                className="p-1.5 rounded-xl bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
+                className="p-1.5 rounded-md bg-surface-2 text-gray-700 dark:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <span className="text-xs font-black text-gray-800 dark:text-gray-200 min-w-[100px] text-center font-outfit">
+              <span className="text-xs font-semibold text-gray-800 dark:text-gray-200 min-w-[100px] text-center font-outfit">
                 {currentMonth}
               </span>
               <button
                 disabled={monthIdx >= monthsAvailable.length - 1}
                 onClick={() => setMonthIdx((i) => Math.min(monthsAvailable.length - 1, i + 1))}
-                className="p-1.5 rounded-xl bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
+                className="p-1.5 rounded-md bg-surface-2 text-gray-700 dark:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -659,7 +659,7 @@ export default function OverallAttendancePredictor({
 
         {/* Working Days Grid for the selected month */}
         {visibleMonthDays.length === 0 ? (
-          <div className="text-center py-8 text-xs font-bold text-gray-400 dark:text-zinc-500">
+          <div className="text-center py-8 text-xs font-semibold text-gray-400 dark:text-zinc-500">
             No working days scheduled in {currentMonth} for the selected milestone.
           </div>
         ) : (
@@ -685,28 +685,28 @@ export default function OverallAttendancePredictor({
                   key={time || i}
                   onClick={() => toggleDayState(d.date)}
                   aria-pressed={state === 1}
-                  className={`group relative flex flex-col items-center justify-between p-2.5 rounded-2xl border text-center transition-all duration-200 cursor-pointer select-none active:scale-95 ${
+                  className={`group relative flex flex-col items-center justify-between p-2.5 rounded-md border text-center transition-all duration-200 cursor-pointer select-none ${
                     state === 1
-                      ? "bg-rose-500 text-white border-rose-600 shadow-sm scale-[1.02]"
+                      ? "bg-danger text-white border-danger/40 shadow-sm scale-[1.02]"
                       : state === 2
-                        ? "bg-gray-200/80 dark:bg-zinc-800/80 text-gray-500 dark:text-gray-400 border-dashed border-gray-300 dark:border-zinc-700 opacity-60"
+                        ? "bg-gray-200/80 dark:bg-zinc-800/80 text-muted border-dashed border-gray-300 dark:border-zinc-700 opacity-60"
                         : isToday
-                          ? "bg-blue-600 text-white border-blue-700 shadow-sm"
-                          : "bg-white dark:bg-zinc-950 text-gray-800 dark:text-zinc-100 border-gray-200/80 dark:border-zinc-800/90 hover:border-blue-400 dark:hover:border-blue-500 shadow-2xs"
+                          ? "bg-accent text-background border-accent/40"
+                          : "bg-surface text-gray-800 dark:text-zinc-100 border-gray-200/80 dark:border-zinc-800/90 hover:border-accent/40 shadow-2xs"
                   }`}
                 >
-                  <span className="text-[10px] font-black uppercase tracking-wider opacity-80">{shortWeekday}</span>
-                  <span className="text-base sm:text-lg font-black my-0.5">{dateNumber}</span>
+                  <span className="text-[11px] font-semibold opacity-80">{shortWeekday}</span>
+                  <span className="text-base sm:text-lg font-semibold my-0.5">{dateNumber}</span>
                   <div className="flex items-center gap-1">
                     <span
-                      className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${
+                      className={`text-[11px] font-semibold px-1.5 py-0.2 rounded ${
                         state === 1
-                          ? "bg-rose-600 text-white"
+                          ? "bg-danger text-white"
                           : state === 2
                             ? "bg-gray-300 dark:bg-zinc-700 text-gray-600 dark:text-zinc-300"
                             : isToday
-                              ? "bg-blue-700 text-white"
-                              : "bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-zinc-400"
+                              ? "bg-accent text-background"
+                              : "bg-surface-2 text-gray-600 dark:text-zinc-400"
                       }`}
                     >
                       {state === 1 ? "Absent" : state === 2 ? "Off" : `${classCount} cl`}
@@ -719,13 +719,13 @@ export default function OverallAttendancePredictor({
         )}
 
         {/* Legend Bar */}
-        <div className="flex flex-wrap items-center justify-center gap-4 pt-2 text-[11px] font-bold text-gray-600 dark:text-gray-400">
+        <div className="flex flex-wrap items-center justify-center gap-4 pt-2 text-[11px] font-semibold text-gray-600 dark:text-gray-400">
           <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded bg-blue-600" />
+            <div className="w-3 h-3 rounded bg-accent" />
             <span>Present / Attending</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded bg-rose-500" />
+            <div className="w-3 h-3 rounded bg-danger" />
             <span>Absent / Bunked</span>
           </div>
           <div className="flex items-center gap-1.5">
@@ -747,7 +747,7 @@ export default function OverallAttendancePredictor({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search courses by code, title, or faculty..."
-              className={`${SEARCH_FIELD} pl-9 pr-4 text-xs sm:text-sm shadow-2xs focus:ring-2 focus:ring-sky-500`}
+              className={`${SEARCH_FIELD} pl-9 pr-4 text-xs sm:text-sm shadow-2xs focus:ring-2 focus:ring-accent/40`}
             />
           </div>
 
@@ -792,7 +792,7 @@ export default function OverallAttendancePredictor({
               const skips = skipSetFor(courseSkips, course.courseCode);
 
               return (
-                <div key={course.courseCode} className={expanded ? "bg-zinc-50/60 dark:bg-zinc-800/25" : ""}>
+                <div key={course.courseCode} className={expanded ? "bg-surface-2" : ""}>
                   {/* The menu item itself, mirroring "Course sections" in the
                       course subpage overview: tile, title, value, chevron. */}
                   <button
@@ -803,26 +803,26 @@ export default function OverallAttendancePredictor({
                     className="w-full py-3 px-4 flex items-center gap-3 text-left cursor-pointer transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/40 active:bg-zinc-100/70 dark:active:bg-zinc-800/60"
                   >
                     <div
-                      className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${
+                      className={`w-10 h-10 rounded-md flex items-center justify-center shrink-0 border ${
                         course.locked
-                          ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 border-zinc-200/60 dark:border-zinc-700/60"
+                          ? "bg-surface-2 text-zinc-400 dark:text-zinc-500 border-zinc-200/60 dark:border-zinc-700/60"
                           : isSafe
-                            ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                            ? "bg-ok-soft border-ok/20 text-ok"
                             : isClose
-                              ? "bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400"
-                              : "bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400"
+                              ? "bg-warn-soft border-warn/20 text-warn"
+                              : "bg-danger-soft border-danger/20 text-danger"
                       }`}
                     >
                       {course.isLab ? <FlaskConical className="w-5 h-5" /> : <BookOpen className="w-5 h-5" />}
                     </div>
 
                     <div className="min-w-0 flex-1">
-                      <h3 className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight flex items-center gap-1.5">
-                        <span className="font-mono text-[11px] uppercase text-zinc-500 dark:text-zinc-400">
+                      <h3 className="font-semibold text-sm text-ink truncate font-outfit leading-tight flex items-center gap-1.5">
+                        <span className="font-mono text-[11px] text-muted">
                           {course.courseCode}
                         </span>
                         {course.skippedCount > 0 && (
-                          <span className="shrink-0 rounded-full bg-amber-500/15 px-1.5 py-px text-[9px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                          <span className="shrink-0 rounded-full bg-warn-soft px-1.5 py-px text-[11px] font-semibold text-warn">
                             {course.skippedCount} skip{course.skippedCount === 1 ? "" : "s"}
                           </span>
                         )}
@@ -833,7 +833,7 @@ export default function OverallAttendancePredictor({
                           />
                         )}
                       </h3>
-                      <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5 truncate">
+                      <p className="text-[11px] text-muted font-medium mt-0.5 truncate">
                         {course.slotName ? `${course.slotName} · ` : ""}
                         {course.meetingDays?.join(", ") || "No timetable"} · now{" "}
                         {formatPct(course.currentPct, decimalValues)}%
@@ -842,12 +842,12 @@ export default function OverallAttendancePredictor({
 
                     <div className="flex items-center gap-2 shrink-0">
                       <span
-                        className={`text-base font-black font-outfit tracking-tight leading-none ${
+                        className={`text-base font-semibold font-outfit tracking-tight leading-none ${
                           course.locked
                             ? "text-zinc-400 dark:text-zinc-500"
                             : isSafe
-                              ? "text-emerald-600 dark:text-emerald-400"
-                              : "text-rose-600 dark:text-rose-400"
+                              ? "text-ok"
+                              : "text-danger"
                         }`}
                       >
                         {formatPct(course.predictedPct, decimalValues)}%
@@ -862,7 +862,7 @@ export default function OverallAttendancePredictor({
                   {expanded && (
                     <div className="px-4 pb-4 -mt-1">
                       {course.locked ? (
-                        <p className="flex items-start gap-2 rounded-xl bg-zinc-100/70 dark:bg-zinc-800/50 p-3 text-[11px] leading-relaxed text-zinc-500 dark:text-zinc-400 font-medium">
+                        <p className="flex items-start gap-2 rounded-md bg-surface-2 p-3 text-[11px] leading-relaxed text-muted font-medium">
                           <Snowflake className="h-3.5 w-3.5 shrink-0 mt-px" />
                           <span>
                             Attendance is frozen
@@ -878,7 +878,7 @@ export default function OverallAttendancePredictor({
                         />
                       ) : (
                         <>
-                          <p className="px-1 pb-2 text-[11px] leading-relaxed text-zinc-500 dark:text-zinc-400 font-medium">
+                          <p className="px-1 pb-2 text-[11px] leading-relaxed text-muted font-medium">
                             {course.isLab
                               ? "A lab session counts as two hours, so skipping one costs two classes."
                               : "Skipped dates count as absent for this subject only — nothing else on the timetable moves."}
@@ -896,21 +896,21 @@ export default function OverallAttendancePredictor({
                                   className="w-full py-2 px-3 flex items-center gap-3 text-left cursor-pointer transition-colors hover:bg-zinc-100/70 dark:hover:bg-zinc-800/60 active:bg-zinc-200/70 dark:active:bg-zinc-800"
                                 >
                                   <span
-                                    className={`flex h-9 w-9 shrink-0 flex-col items-center justify-center rounded-xl border ${
+                                    className={`flex h-9 w-9 shrink-0 flex-col items-center justify-center rounded-md border ${
                                       skipped
-                                        ? "border-amber-500/40 bg-amber-500 text-white"
+                                        ? "border-warn/40 bg-warn text-white"
                                         : "border-border-muted bg-surface-secondary"
                                     }`}
                                   >
-                                    <span className="text-[9px] font-black uppercase leading-none opacity-80">
+                                    <span className="text-[11px] font-semibold leading-none opacity-80">
                                       {date.toLocaleDateString("en-GB", { weekday: "short" })}
                                     </span>
-                                    <span className="text-sm font-black font-outfit leading-tight">
+                                    <span className="text-sm font-semibold font-outfit leading-tight">
                                       {date.getDate()}
                                     </span>
                                   </span>
                                   <span className="min-w-0 flex-1">
-                                    <span className="block truncate text-sm font-bold text-text-heading dark:text-text-heading">
+                                    <span className="block truncate text-sm font-semibold text-text-heading dark:text-text-heading">
                                       {date.toLocaleDateString("en-GB", { day: "numeric", month: "long" })}
                                     </span>
                                     <span className="block text-[11px] font-medium text-text-muted dark:text-text-muted">
@@ -920,9 +920,9 @@ export default function OverallAttendancePredictor({
                                     </span>
                                   </span>
                                   <span
-                                    className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${
+                                    className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
                                       skipped
-                                        ? "bg-amber-500/20 text-amber-600 dark:text-amber-400"
+                                        ? "bg-warn-soft text-warn"
                                         : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
                                     }`}
                                   >
@@ -961,37 +961,37 @@ export default function OverallAttendancePredictor({
       </div>
 
       {/* ── SMART ATTENDANCE ADVISOR & EXAM LOCK RULES ── */}
-      <div className={`${TILE_CARD} p-5 space-y-3 border-sky-500/20`}>
+      <div className={`${TILE_CARD} p-5 space-y-3 border-accent/20`}>
         <div className="flex items-center gap-2">
-          <Zap className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-          <h4 className="text-xs font-black uppercase tracking-wider text-blue-900 dark:text-blue-200 font-outfit">
+          <Zap className="w-4 h-4 text-accent" />
+          <h4 className="text-xs font-semibold text-accent font-outfit">
             Smart Attendance Insights & Exam Guidelines
           </h4>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-blue-800/90 dark:text-blue-300 font-medium">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-accent/90 font-medium">
           <div className="flex items-start gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0" />
+            <div className="w-1.5 h-1.5 rounded-full bg-accent mt-1.5 shrink-0" />
             <p>
               <strong>Exam Freeze Rule:</strong> Attendance freezes three days before CAT I and CAT II, so classes from
               that day onward are no longer counted.
             </p>
           </div>
           <div className="flex items-start gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0" />
+            <div className="w-1.5 h-1.5 rounded-full bg-accent mt-1.5 shrink-0" />
             <p>
               <strong>Lab Session Weight:</strong> Each scheduled lab session accounts for 2 continuous hours, meaning 1
               lab absence is equal to 2 missed classes.
             </p>
           </div>
           <div className="flex items-start gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0" />
+            <div className="w-1.5 h-1.5 rounded-full bg-accent mt-1.5 shrink-0" />
             <p>
               <strong>Target Safety:</strong> Keeping attendance at or above {targetThreshold}% ensures full eligibility
               for CAT and FAT examinations.
             </p>
           </div>
           <div className="flex items-start gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-sky-500 mt-1.5 shrink-0" />
+            <div className="w-1.5 h-1.5 rounded-full bg-accent mt-1.5 shrink-0" />
             <p>
               <strong>Real-Time Simulation:</strong> Whole-day toggles and per-subject skipped dates simulate your
               projected percentages instantly without modifying actual portal records.
