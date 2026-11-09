@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Download, RotateCw, ShieldCheck } from "lucide-react";
+import { Download, RotateCw, ShieldCheck, FileText, FileJson2, Code2, FileArchive } from "lucide-react";
+import PageShell from "@/components/custom/shared/primitives/PageShell";
+import { ListShell, SectionHeader } from "@/components/custom/shared/primitives/Surfaces";
+import SettingRow from "@/components/custom/shared/primitives/SettingRow";
+import Switch from "@/components/custom/shared/primitives/Switch";
 import { getAssetPath } from "@/lib/utils";
 import { downloadStudentReportPdf } from "@/lib/studentReportPdf";
 import { computeCoursePrediction } from "@/lib/marksPredictor";
@@ -337,14 +341,16 @@ function Section({
   children,
   className = "",
   id,
+  segment,
 }: {
   title: string;
   children: React.ReactNode;
   className?: string;
   id?: string;
+  segment?: string;
 }) {
   return (
-    <section id={id} className={`report-section ${className}`.trim()}>
+    <section id={id} data-report-segment={segment} className={`report-section ${className}`.trim()}>
       <h2>{title}</h2>
       {children}
     </section>
@@ -471,10 +477,47 @@ export default function StudentReportPage() {
     Record<string, { review: any; profile: FacultyDirectoryProfile | null; bundle: VitfacProfileBundle | null }>
   >({});
   const [mode, setMode] = useState<"color" | "greyscale">("greyscale");
-  const [includeFinance, setIncludeFinance] = useState(false);
-  const [includeServices, setIncludeServices] = useState(false);
+  const segmentOptions = [
+    ["overview", "Academic performance overview", "Summary, comparisons, and academic calendar"],
+    ["curriculum", "Curriculum and credit progress", "Course baskets and degree requirements"],
+    ["attendance", "Current semester attendance", "Subject summary and datewise register"],
+    ["od", "On Duty records", "OD usage comparison and official records"],
+    ["exams", "Current semester exam schedule", "CAT and FAT schedules"],
+    ["subjects", "Current semester subject dossiers", "Assessments, predictions, and faculty details"],
+    ["history", "Archived academic records", "Previous semesters and complete grade history"],
+    ["events", "Registered events", "Event registrations and payment status"],
+    ["finance", "Financial records", "Dues, receipts, and wallet information"],
+    ["services", "Other student services", "Transport, library, and Moodle details"],
+  ] as const;
+  type SegmentKey = (typeof segmentOptions)[number][0];
+  const [segments, setSegments] = useState<Record<SegmentKey, boolean>>({
+    overview: true,
+    curriculum: true,
+    attendance: true,
+    od: true,
+    exams: true,
+    subjects: true,
+    history: true,
+    events: true,
+    finance: true,
+    services: true,
+  });
   const [isDownloading, setIsDownloading] = useState(false);
   const [exportError, setExportError] = useState("");
+  const reportMarkup = () => {
+    const root = document.querySelector("#student-report-preview-source #student-report");
+    const article = root?.querySelector("article");
+    if (!root || !article) return null;
+    const exportArticle = article.cloneNode(true) as HTMLElement;
+    exportArticle.querySelectorAll<HTMLElement>("[data-report-segment]").forEach((node) => {
+      const key = node.dataset.reportSegment as SegmentKey | undefined;
+      if (key && !segments[key]) node.remove();
+    });
+    const styles = Array.from(root.querySelectorAll("style"))
+      .map((style) => style.textContent || "")
+      .join("\n");
+    return { styles, article: exportArticle };
+  };
   const [enginePredictions, setEnginePredictions] = useState<Record<string, any>>({});
   const [engineClassStats, setEngineClassStats] = useState<Record<string, any>>({});
   useEffect(() => setData(collectReportData()), []);
@@ -616,17 +659,12 @@ export default function StudentReportPage() {
 
   const refresh = () => setData(collectReportData());
   const downloadPdf = async () => {
-    const root = document.getElementById("student-report");
-    if (!root) return;
-    const exportRoot = root.cloneNode(true) as HTMLElement;
-    exportRoot.querySelector(".report-controls")?.remove();
+    const markup = reportMarkup();
+    if (!markup) return;
     setIsDownloading(true);
     setExportError("");
     try {
-      const styles = Array.from(root.querySelectorAll("style"))
-        .map((style) => style.textContent || "")
-        .join("\n");
-      const html = `<div class="report-capture"><style>${styles}.report-capture{width:820px;background:#fff}.mb-4{margin-bottom:1rem}.mb-3{margin-bottom:.75rem}.mb-1{margin-bottom:.25rem}.font-bold{font-weight:700}.text-xs{font-size:12px}.text-center{text-align:center}.whitespace-pre-wrap{white-space:pre-wrap}.break-words{overflow-wrap:anywhere}.grid{display:grid}.place-items-center{place-items:center}</style>${exportRoot.outerHTML}</div>`;
+      const html = `<div class="report-capture"><style>${markup.styles}.report-capture{width:820px;background:#fff}.mb-4{margin-bottom:1rem}.mb-3{margin-bottom:.75rem}.mb-1{margin-bottom:.25rem}.font-bold{font-weight:700}.text-xs{font-size:12px}.text-center{text-align:center}.whitespace-pre-wrap{white-space:pre-wrap}.break-words{overflow-wrap:anywhere}.grid{display:grid}.place-items-center{place-items:center}</style><main id="student-report" class="student-report ${mode}">${markup.article.outerHTML}</main></div>`;
       await downloadStudentReportPdf(
         html,
         `AmazeCC-Student-Report-${new Date().toISOString().slice(0, 10)}.pdf`,
@@ -638,6 +676,18 @@ export default function StudentReportPage() {
     } finally {
       setIsDownloading(false);
     }
+  };
+  const downloadHtml = () => {
+    const markup = reportMarkup();
+    if (!markup) return;
+    const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AmazeCC Student Academic Report</title><style>${markup.styles}.mb-4{margin-bottom:1rem}.mb-3{margin-bottom:.75rem}.mb-1{margin-bottom:.25rem}.font-bold{font-weight:700}.text-xs{font-size:12px}.text-center{text-align:center}.whitespace-pre-wrap{white-space:pre-wrap}.break-words{overflow-wrap:anywhere}.grid{display:grid}.place-items-center{place-items:center}</style></head><body><main id="student-report" class="student-report ${mode}">${markup.article.outerHTML}</main></body></html>`;
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `AmazeCC-Student-Report-${new Date().toISOString().slice(0, 10)}.html`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
   const downloadJson = () => {
     if (!snapshot) return;
@@ -653,36 +703,46 @@ export default function StudentReportPage() {
       currentSemester: {
         semesterId: snapshot.attendance?.semesterId || null,
         summary: { cgpa: snapshot.marks?.cgpa, gpa: snapshot.grades?.gpa || snapshot.grades?.sgpa, attendance: totals },
-        attendance: attendanceCourses,
-        assessments: marksCourses,
-        subjects: subjects.map(({ odDates, officialOdDates, ...subject }) => ({
-          ...subject,
-          odDates: [...odDates],
-          officialOdDates: [...officialOdDates],
-          facultyProfile: facultyProfiles[subject.faculty.id || subject.faculty.name]?.profile || null,
-          facultyReviews:
-            facultyProfiles[subject.faculty.id || subject.faculty.name]?.bundle ||
-            facultyProfiles[subject.faculty.id || subject.faculty.name]?.review ||
-            null,
-        })),
-        schedule: snapshot.schedule?.Schedule || {},
-        odUsage: snapshot.wastedODsTracker,
+        ...(segments.attendance ? { attendance: attendanceCourses } : {}),
+        ...(segments.subjects ? { assessments: marksCourses } : {}),
+        ...(segments.subjects
+          ? {
+              subjects: subjects.map(({ odDates, officialOdDates, ...subject }) => ({
+                ...subject,
+                odDates: [...odDates],
+                officialOdDates: [...officialOdDates],
+                facultyProfile: facultyProfiles[subject.faculty.id || subject.faculty.name]?.profile || null,
+                facultyReviews:
+                  facultyProfiles[subject.faculty.id || subject.faculty.name]?.bundle ||
+                  facultyProfiles[subject.faculty.id || subject.faculty.name]?.review ||
+                  null,
+              })),
+            }
+          : {}),
+        ...(segments.exams ? { schedule: snapshot.schedule?.Schedule || {} } : {}),
+        ...(segments.od ? { odUsage: snapshot.wastedODsTracker } : {}),
       },
-      history: { semesters: gradeMap, attendance: snapshot.attendanceHistory },
-      curriculum: snapshot.allGrades?.curriculum || snapshot.grades?.curriculum || snapshot.curriculum,
-      academicCalendar: snapshot.calendar,
-      officialOdRecords: snapshot.officialOd,
-      ...(includeFinance
+      ...(segments.history ? { history: { semesters: gradeMap, attendance: snapshot.attendanceHistory } } : {}),
+      ...(segments.curriculum
+        ? { curriculum: snapshot.allGrades?.curriculum || snapshot.grades?.curriculum || snapshot.curriculum }
+        : {}),
+      ...(segments.overview ? { academicCalendar: snapshot.calendar } : {}),
+      ...(segments.od ? { officialOdRecords: snapshot.officialOd } : {}),
+      ...(segments.finance
         ? { finance: { payments: snapshot.payments, receipts: snapshot.receipts, wallet: snapshot.wallet } }
         : {}),
-      ...(includeServices
+      ...(segments.services || segments.events
         ? {
             services: {
-              hostel: snapshot.hostel,
-              transport: snapshot.transport,
-              library: snapshot.library,
-              moodle: snapshot.moodle,
-              events: snapshot.events,
+              ...(segments.services
+                ? {
+                    hostel: snapshot.hostel,
+                    transport: snapshot.transport,
+                    library: snapshot.library,
+                    moodle: snapshot.moodle,
+                  }
+                : {}),
+              ...(segments.events ? { events: snapshot.events } : {}),
             },
           }
         : {}),
@@ -697,8 +757,139 @@ export default function StudentReportPage() {
   };
 
   return (
-    <main id="student-report" className={`student-report ${mode}`}>
-      <style>{`
+    <div className="min-h-screen px-4 pb-12">
+      <PageShell
+        eyebrow="Academics · Reports"
+        title="Student academic report"
+        subtitle="Choose an export format, then tailor the report sections to include. Your report data stays on this device."
+        selectable
+      >
+        <section className="space-y-3">
+          <SectionHeader icon={Download} title="Download report" />
+          <ListShell className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border-muted">
+            <button
+              type="button"
+              onClick={downloadPdf}
+              disabled={isDownloading || !snapshot}
+              className="flex min-h-28 flex-col items-start justify-between gap-3 p-4 text-left transition-colors hover:bg-surface-secondary/70 disabled:opacity-50"
+            >
+              <span className="flex items-center gap-2 font-bold text-text-heading">
+                <FileText className="h-4 w-4 text-indigo-500" />
+                PDF
+              </span>
+              <span className="text-xs text-text-secondary">
+                {isDownloading ? "Preparing PDF…" : "Print-ready academic report"}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={downloadJson}
+              disabled={!snapshot}
+              className="flex min-h-28 flex-col items-start justify-between gap-3 p-4 text-left transition-colors hover:bg-surface-secondary/70 disabled:opacity-50"
+            >
+              <span className="flex items-center gap-2 font-bold text-text-heading">
+                <FileJson2 className="h-4 w-4 text-indigo-500" />
+                JSON
+              </span>
+              <span className="text-xs text-text-secondary">Structured data for custom report design</span>
+            </button>
+            <button
+              type="button"
+              onClick={downloadHtml}
+              disabled={!snapshot}
+              className="flex min-h-28 flex-col items-start justify-between gap-3 p-4 text-left transition-colors hover:bg-surface-secondary/70 disabled:opacity-50"
+            >
+              <span className="flex items-center gap-2 font-bold text-text-heading">
+                <Code2 className="h-4 w-4 text-indigo-500" />
+                HTML
+              </span>
+              <span className="text-xs text-text-secondary">Download the formatted report shown in the export</span>
+            </button>
+          </ListShell>
+        </section>
+
+        <section className="space-y-3">
+          <SectionHeader
+            icon={FileArchive}
+            title="Customize report contents"
+            right={
+              <button
+                type="button"
+                className="text-xs font-bold text-indigo-600"
+                onClick={() =>
+                  setSegments(
+                    Object.fromEntries(segmentOptions.map(([key]) => [key, true])) as Record<SegmentKey, boolean>,
+                  )
+                }
+              >
+                Select all
+              </button>
+            }
+          />
+          <ListShell className="divide-y divide-border-muted">
+            {segmentOptions.map(([key, title, description]) => (
+              <SettingRow
+                key={key}
+                title={title}
+                description={description}
+                control={
+                  <Switch
+                    checked={segments[key]}
+                    onCheckedChange={(checked) => setSegments((current) => ({ ...current, [key]: checked }))}
+                    size="md"
+                    label={title}
+                  />
+                }
+              />
+            ))}
+          </ListShell>
+          <div className="flex flex-wrap items-center justify-between gap-3 px-1">
+            <label className="flex items-center gap-2 text-xs text-text-secondary">
+              PDF color{" "}
+              <select
+                className="rounded-lg border border-border-muted bg-surface px-3 py-2 text-text-heading"
+                value={mode}
+                onChange={(event) => setMode(event.target.value as "color" | "greyscale")}
+              >
+                <option value="greyscale">Greyscale</option>
+                <option value="color">Color</option>
+              </select>
+            </label>
+            <button
+              type="button"
+              onClick={refresh}
+              className="inline-flex items-center gap-2 rounded-lg border border-border-muted bg-surface px-3 py-2 text-xs font-bold text-text-heading hover:bg-surface-secondary"
+            >
+              <RotateCw size={14} />
+              Refresh data
+            </button>
+            <span className="inline-flex items-center gap-1 text-xs text-text-secondary">
+              <ShieldCheck size={14} />
+              Generated on this device
+            </span>
+          </div>
+          {exportError && (
+            <p role="alert" className="text-sm text-red-700">
+              {exportError}
+            </p>
+          )}
+        </section>
+      </PageShell>
+
+      <div
+        id="student-report-preview-source"
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          left: "-100000px",
+          top: 0,
+          width: "1120px",
+          visibility: "hidden",
+          pointerEvents: "none",
+        }}
+      >
+        <main id="student-report" className={`student-report ${mode}`}>
+          <style>{`
         .student-report{--ink:#172033;--muted:#596579;--line:#cbd2dc;--band:#eaf0f7;--paper:#fff;--accent:#173b67;color:var(--ink);background:var(--paper);font:14px/1.45 Arial,Helvetica,sans-serif;padding:clamp(16px,3vw,36px);max-width:1120px;margin:0 auto}
         .student-report.greyscale{--ink:#171717;--muted:#555;--line:#bdbdbd;--band:#ededed;--accent:#222}
         .student-report.color{--ink:#172033;--muted:#596579;--line:#cbd2dc;--band:#eaf0f7;--accent:#173b67}
@@ -722,1334 +913,1376 @@ export default function StudentReportPage() {
         @media(prefers-reduced-motion:reduce){.report-cover:before,.report-cover:after{animation:none}}
         @media print{.report-cover:before,.report-cover:after{animation:none}}
       `}</style>
-      <div className="report-controls" aria-label="Report export options">
-        <label>
-          PDF style{" "}
-          <select value={mode} onChange={(event) => setMode(event.target.value as "color" | "greyscale")}>
-            <option value="greyscale">Greyscale</option>
-            <option value="color">Color</option>
-          </select>
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={includeFinance}
-            onChange={(event) => setIncludeFinance(event.target.checked)}
-          />{" "}
-          Include financial records
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={includeServices}
-            onChange={(event) => setIncludeServices(event.target.checked)}
-          />{" "}
-          Include student services
-        </label>
-        <button type="button" onClick={refresh}>
-          <RotateCw size={16} /> Refresh data
-        </button>
-        <button type="button" onClick={downloadPdf} disabled={isDownloading || !snapshot}>
-          <Download size={16} /> {isDownloading ? "Generating PDF…" : "Download PDF"}
-        </button>
-        <button type="button" onClick={downloadJson} disabled={!snapshot}>
-          <Download size={16} /> Download JSON
-        </button>
-        <span className="text-xs text-muted-foreground">
-          <ShieldCheck size={14} className="inline" /> Generated on this device
-        </span>
-        {exportError && (
-          <span role="alert" className="text-xs text-red-700">
-            {exportError}
-          </span>
-        )}
-      </div>
 
-      {snapshot && (
-        <article>
-          <header className="report-cover">
-            <img className="report-logo" src={getAssetPath("/logo.png")} alt="AmazeCC" />
-            <div className="report-cover-copy">
-              <p className="report-cover-eyebrow">AmazeCC · Academic portfolio</p>
-              <h1>Student Academic Report</h1>
-              <p className="report-cover-student">
-                <strong>{text(studentName)}</strong>
-                {regNo ? ` · ${text(regNo)}` : ""}
-              </p>
-              <p>
-                {text(
-                  snapshot.profile?.branch || snapshot.profile?.program || snapshot.profile?.programme,
-                  "Academic profile not synced",
-                )}
-                {snapshot.profile?.campus ? ` · ${snapshot.profile.campus}` : ""}
-              </p>
-              <div className="report-cover-chips">
-                <span>Academic summary</span>
-                <span>Current semester</span>
-                <span>Historic record</span>
-              </div>
-              <p>
-                Generated {snapshot.collectedAt.toLocaleString("en-IN")}
-                {snapshot.attendance?.semesterId ? ` · ${snapshot.attendance.semesterId}` : ""}
-              </p>
-            </div>
-            {profilePhoto ? (
-              <img
-                className="report-photo"
-                src={
-                  profilePhoto.startsWith("data:") || profilePhoto.startsWith("http")
-                    ? profilePhoto
-                    : `data:image/jpeg;base64,${profilePhoto}`
-                }
-                alt="Student profile"
-              />
-            ) : (
-              <div className="report-photo report-cover-photo-placeholder">
-                Photo
-                <br />
-                not synced
-              </div>
-            )}
-          </header>
-          <nav className="report-index" aria-label="Report contents">
-            <h2>Inside your report</h2>
-            <ol className="report-index-list">
-              <li>
-                <a href="#academic-summary">Academic performance overview</a>
-              </li>
-              <li>
-                <a href="#curriculum-cover">Curriculum and credit progress</a>
-              </li>
-              <li>
-                <a href="#current-record">Current academic records</a>
-                <ol>
-                  <li>
-                    <a href="#current-attendance">Attendance</a>
-                  </li>
-                  <li>
-                    <a href="#exam-schedule">Exam schedule</a>
-                  </li>
-                  <li>
-                    <a href="#od-records">OD records and comparisons</a>
-                  </li>
-                  {subjects.map((subject) => (
-                    <li key={subject.code}>
-                      <a href={`#subject-${subject.code}`}>
-                        {subject.code} · {subject.title}
-                      </a>
-                    </li>
-                  ))}
-                  {attendanceMonths.map((month) => (
-                    <li key={month.label}>
-                      <a href={`#attendance-${month.label.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`}>
-                        {month.label} attendance calendar
-                      </a>
-                    </li>
-                  ))}
-                </ol>
-              </li>
-              <li>
-                <a href="#historic-record">Archived semester records</a>
-                <ol>
-                  {semesterEntries.map(([semester]) => (
-                    <li key={semester}>
-                      <a href={`#history-${semester}`}>{semester} grade record</a>
-                    </li>
-                  ))}
-                  <li>
-                    <a href="#complete-grade-history">Complete grade history</a>
-                  </li>
-                </ol>
-              </li>
-              {(includeServices || includeFinance) && (
-                <>
-                  {includeServices && (
-                    <li>
-                      <a href="#registered-events-cover">Registered events</a>
-                    </li>
-                  )}
-                  <li>
-                    <a href="#student-services-cover">Other student services</a>
-                  </li>
-                </>
-              )}
-            </ol>
-          </nav>
-          <p className="report-notice">
-            Student generated informational report from data currently available in AmazeCC. This is not an official
-            institutional transcript or certificate. Missing source details are not inferred.
-          </p>
-
-          <Section id="academic-summary" title="Academic summary">
-            <div className="report-summary">
-              <div>
-                <strong>{text(snapshot.marks?.cgpa?.cgpa || snapshot.marks?.cgpa || snapshot.profile?.cgpa)}</strong>
-                <span>CGPA</span>
-              </div>
-              <div>
-                <strong>{text(snapshot.grades?.gpa || snapshot.grades?.sgpa)}</strong>
-                <span>Current term GPA</span>
-              </div>
-              <div>
-                <strong>
-                  {percentage}
-                  {percentage !== "—" ? "%" : ""}
-                </strong>
-                <span>Current attendance</span>
-              </div>
-              <div>
-                <strong>
-                  {totals.attended}/{totals.total || "—"}
-                </strong>
-                <span>Classes attended</span>
-              </div>
-              <div>
-                <strong>{totalPresentDays}</strong>
-                <span>Days with no recorded absence</span>
-              </div>
-              <div>
-                <strong>{Math.max(0, totals.total - totals.attended)}</strong>
-                <span>Classes missed*</span>
-              </div>
-              <div>
-                <strong>{text(snapshot.marks?.cgpa?.creditsEarned)}</strong>
-                <span>Credits earned</span>
-              </div>
-            </div>
-            <h3 className="report-overview-subheading">Semester performance by course</h3>
-            {semesterEntries.length ? (
-              <div className="report-summary report-semester-cards">
-                {semesterEntries.map(([semester, result]: [string, any]) => (
-                  <div key={semester}>
-                    <strong>{text(result?.gpa)}</strong>
-                    <span>
-                      {semester} · {Array.isArray(result?.grades) ? result.grades.length : 0} courses
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <Empty>Semester performance history is not synced.</Empty>
-            )}
-            <p className="report-empty">
-              *Derived from current semester aggregate counts. Daily absence details are listed only where VTOP provides
-              datewise records.
-            </p>
-            <div id="academic-calendar" className="report-overview-calendar">
-              <h3 className="report-overview-subheading">Academic calendar events</h3>
-              {calendarMonths.length ? (
-                calendarMonths.map((month) => {
-                  const daysInMonth = new Date(month.year, month.monthIndex + 1, 0).getDate();
-                  return (
-                    <div className="report-calendar-month" key={month.label}>
-                      <h3>{month.label}</h3>
-                      <div className="report-calendar">
-                        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-                          <div className="report-calendar-weekday" key={day}>
-                            {day}
-                          </div>
-                        ))}
-                        {Array.from({ length: month.offset }, (_, index) => (
-                          <div className="report-calendar-day empty" key={`blank-${index}`} />
-                        ))}
-                        {Array.from({ length: daysInMonth }, (_, index) => {
-                          const number = index + 1;
-                          const events = month.days.get(number) || [];
-                          return (
-                            <div className="report-calendar-day" key={number}>
-                              <strong>{number}</strong>
-                              {events.map((event: any, eventIndex: number) => (
-                                <span key={eventIndex}>{text(event.text || event.category)}</span>
-                              ))}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <Empty />
-              )}
-            </div>
-          </Section>
-
-          <Section title="Performance and attendance comparisons">
-            <p>
-              Charts compare the current cached semester records. Session counts and calendar days are separate
-              measures.
-            </p>
-            <PieChart
-              title="Current semester class sessions"
-              slices={[
-                { label: "Present", value: totals.attended, color: "#26836d" },
-                { label: "Missed", value: Math.max(0, totals.total - totals.attended), color: "#c55454" },
-              ]}
-            />
-            <PieChart
-              title="Recorded days: no absences vs days with absence"
-              slices={[
-                {
-                  label: "No recorded absences",
-                  value: attendanceMonths.reduce((n, month) => n + month.presentDays, 0),
-                  color: "#26836d",
-                },
-                {
-                  label: "Days with absence",
-                  value: attendanceMonths.reduce((n, month) => n + month.absentDays, 0),
-                  color: "#c55454",
-                },
-              ]}
-            />
-            <ComparisonChart
-              title="Attendance rate by subject"
-              items={subjects
-                .filter((subject) => subject.attendancePct != null)
-                .map((subject) => ({ label: subject.code, value: subject.attendancePct }))}
-              unit="Attendance percent"
-            />
-            <ComparisonChart
-              title="On Duty hours claimed by subject"
-              items={subjects
-                .filter((subject) => subject.odHours > 0)
-                .map((subject) => ({ label: subject.code, value: subject.odHours }))}
-              unit="OD hours"
-            />
-            <ComparisonChart
-              title="Semester GPA history"
-              items={[...semesterEntries]
-                .reverse()
-                .map(([semester, result]: [string, any]) => ({ label: semester, value: Number(result?.gpa) || 0 }))}
-              unit="GPA"
-            />
-          </Section>
-
-          <div
-            id="curriculum-cover"
-            className="report-divider report-curriculum-divider"
-            aria-label="Curriculum and credit progress"
-          >
-            <span>AMAZECC · DEGREE MAP</span>
-            <h2>Curriculum and credit progress</h2>
-            <p>Course baskets, programme requirements, and progress through the degree</p>
-          </div>
-          <Section id="curriculum" title="Curriculum and credit progress" className="report-curriculum-section">
-            {Array.isArray(snapshot.allGrades?.curriculum || snapshot.grades?.curriculum) &&
-            (snapshot.allGrades?.curriculum || snapshot.grades?.curriculum).length ? (
-              <Table headers={["Basket / distribution", "Credits required", "Credits earned", "Progress"]}>
-                {(snapshot.allGrades?.curriculum || snapshot.grades?.curriculum).map((item: any, index: number) => (
-                  <tr key={index}>
-                    <td>{text(item.basketTitle || item.distributionType || item.title)}</td>
-                    <td>{text(item.creditsRequired)}</td>
-                    <td>{text(item.creditsEarned)}</td>
-                    <td>
-                      {Number(item.creditsRequired) > 0
-                        ? `${((Number(item.creditsEarned || 0) / Number(item.creditsRequired)) * 100).toFixed(1)}%`
-                        : "—"}
-                    </td>
-                  </tr>
-                ))}
-              </Table>
-            ) : Array.isArray(snapshot.curriculum?.details) ? (
-              <div className="report-curriculum-groups">
-                {snapshot.curriculum.details.map((category: any, categoryIndex: number) => (
-                  <section
-                    className="report-curriculum-category"
-                    key={`${category.code || category.name}-${categoryIndex}`}
-                  >
-                    <h3>{text(category.name || category.code, "Curriculum category")}</h3>
-                    <div className="report-basket-index" aria-label="Baskets in this category">
-                      {(category.baskets || []).map((basket: any, basketIndex: number) => (
-                        <span key={`${basket.title}-${basketIndex}`}>{text(basket.title, "Course basket")}</span>
-                      ))}
-                    </div>
-                    {(category.baskets || []).map((basket: any, basketIndex: number) => (
-                      <div className="report-curriculum-basket" key={`${basket.title}-${basketIndex}`}>
-                        <h4>{text(basket.title, "Course basket")}</h4>
-                        <Table headers={["Course code", "Course", "Credits", "Type"]}>
-                          {(basket.items || []).map((item: any, itemIndex: number) => (
-                            <tr key={`${item.code}-${itemIndex}`}>
-                              <td>{text(item.code)}</td>
-                              <td>{text(item.name)}</td>
-                              <td>{text(item.credits)}</td>
-                              <td>{text(item.type)}</td>
-                            </tr>
-                          ))}
-                        </Table>
-                      </div>
-                    ))}
-                  </section>
-                ))}
-              </div>
-            ) : (
-              <Empty />
-            )}
-          </Section>
-
-          <div
-            id="current-record"
-            className="report-divider report-current-divider"
-            aria-label="Current semester academic record"
-          >
-            <span>AMAZECC · STUDENT RECORD</span>
-            <h2>Current semester academic record</h2>
-            <p>Attendance, assessments, course details, and grade predictions for the active semester</p>
-          </div>
-          <Section title="Datewise attendance register">
-            <h3 id="current-attendance">Current semester attendance by subject</h3>
-            {attendanceCourses.length ? (
-              <Table headers={["Course", "Type", "Faculty", "Slot / venue", "Attended", "Total", "Attendance"]}>
-                {attendanceCourses.map((course: any, index: number) => (
-                  <tr key={`${course.courseCode}-${index}`}>
-                    <td>
-                      <strong>{text(course.courseCode)}</strong>
-                      <br />
-                      {text(course.courseTitle)}
-                    </td>
-                    <td>{text(course.courseType || course.category)}</td>
-                    <td>{text(course.faculty)}</td>
-                    <td>
-                      {text(course.slotName)}
-                      {course.slotVenue ? ` / ${course.slotVenue}` : ""}
-                    </td>
-                    <td>{text(course.attendedClasses)}</td>
-                    <td>{text(course.totalClasses)}</td>
-                    <td>{text(course.attendancePercentage)}%</td>
-                  </tr>
-                ))}
-              </Table>
-            ) : (
-              <Empty />
-            )}
-            {attendanceMonths.length ? (
-              attendanceMonths.map((month) => {
-                const daily = new Map<string, { present: number; absent: number; od: number }>();
-                month.rows.forEach((row: any) => {
-                  const counts = daily.get(row.dateText) || { present: 0, absent: 0, od: 0 };
-                  const status = row.status.toLowerCase();
-                  if (status.includes("present")) counts.present++;
-                  else if (status.includes("absent")) counts.absent++;
-                  else if (status.includes("duty") || status === "od") counts.od++;
-                  daily.set(row.dateText, counts);
-                });
-                const chartData = [...daily.entries()].map(([label, counts]) => ({
-                  label: label.slice(0, 6),
-                  ...counts,
-                }));
-                const calendarDate = month.rows.find((row: any) => row.date)?.date as Date | undefined;
-                const calendarDays = new Map<number, { present: number; absent: number; od: number }>();
-                daily.forEach((counts, label) => {
-                  const parsed = parseReportDate(label);
-                  if (parsed) calendarDays.set(parsed.getDate(), counts);
-                });
-                const peak = Math.max(1, ...chartData.map((item) => Math.max(item.present, item.absent)));
-                return (
-                  <div
-                    className="report-month"
-                    id={`attendance-${month.label.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`}
-                    key={month.label}
-                  >
-                    <h3>{month.label}</h3>
-                    {calendarDate && (
-                      <div
-                        className="report-calendar report-attendance-calendar"
-                        aria-label={`${month.label} attendance calendar`}
-                      >
-                        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-                          <div className="report-calendar-weekday" key={day}>
-                            {day}
-                          </div>
-                        ))}
-                        {Array.from({ length: calendarDate.getDay() }, (_, i) => (
-                          <div className="report-calendar-day empty" key={`gap-${i}`} />
-                        ))}
-                        {Array.from(
-                          { length: new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 0).getDate() },
-                          (_, i) => {
-                            const day = i + 1;
-                            const c = calendarDays.get(day);
-                            const tint = !c ? "" : c.absent ? "has-absence" : c.od ? "on-duty" : "all-present";
-                            return (
-                              <div className={`report-calendar-day attendance-day ${tint}`} key={day}>
-                                <strong>{day}</strong>
-                                {c && (
-                                  <span>
-                                    {c.present} present{c.absent ? ` · ${c.absent} absent` : ""}
-                                    {c.od ? ` · ${c.od} OD` : ""}
-                                  </span>
-                                )}
-                              </div>
-                            );
-                          },
-                        )}
-                      </div>
+          {snapshot && (
+            <article>
+              <header className="report-cover">
+                <img className="report-logo" src={getAssetPath("/logo.png")} alt="AmazeCC" />
+                <div className="report-cover-copy">
+                  <p className="report-cover-eyebrow">AmazeCC · Academic portfolio</p>
+                  <h1>Student Academic Report</h1>
+                  <p className="report-cover-student">
+                    <strong>{text(studentName)}</strong>
+                    {regNo ? ` · ${text(regNo)}` : ""}
+                  </p>
+                  <p>
+                    {text(
+                      snapshot.profile?.branch || snapshot.profile?.program || snapshot.profile?.programme,
+                      "Academic profile not synced",
                     )}
-                    <div className="report-summary">
-                      <div>
-                        <strong>{month.days}</strong>
-                        <span>Days recorded</span>
-                      </div>
-                      <div>
-                        <strong>{month.presentDays}</strong>
-                        <span>Days without absence</span>
-                      </div>
-                      <div>
-                        <strong>{month.presentSessions}</strong>
-                        <span>Present sessions</span>
-                      </div>
-                      <div>
-                        <strong>{month.absentSessions}</strong>
-                        <span>Absent sessions</span>
-                      </div>
-                      <div>
-                        <strong>{month.odSessions}</strong>
-                        <span>OD sessions</span>
-                      </div>
-                    </div>
-                    <div
-                      className="report-chart"
-                      data-report-chart="attendance"
-                      data-chart-title={`${month.label} daily attendance`}
-                    >
-                      <h4>Daily attendance sessions</h4>
-                      <div className="report-bars">
-                        {chartData.map((item, index) => (
-                          <div
-                            className="report-bar-item"
-                            data-label={item.label}
-                            data-value={item.present}
-                            data-absent={item.absent}
-                            data-peak={peak}
-                            key={`${item.label}-${index}`}
-                          >
-                            <div className="report-bar-pair">
-                              <i
-                                className="report-bar"
-                                style={{ height: `${Math.max(2, (item.present / peak) * 80)}px` }}
-                              />
-                              <i
-                                className="report-bar absent"
-                                style={{ height: `${Math.max(2, (item.absent / peak) * 80)}px` }}
-                              />
-                            </div>
-                            <small>{item.label}</small>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="report-chart-legend">
-                        <span>
-                          <i /> Present
-                        </span>
-                        <span>
-                          <i className="absent-key" /> Absent
-                        </span>
-                      </div>
-                    </div>
-                    <Table headers={["Date", "Course", "Class", "Status"]}>
-                      {month.rows.map((row: any) => (
-                        <tr key={`${row.course.courseCode}-${row.dateText}-${row.index}`}>
-                          <td>{row.dateText}</td>
-                          <td>
-                            {text(row.course.courseCode)} · {text(row.course.courseTitle)}
-                          </td>
-                          <td>{text(row.course.courseType || row.course.category)}</td>
-                          <td>{row.status}</td>
-                        </tr>
-                      ))}
-                    </Table>
+                    {snapshot.profile?.campus ? ` · ${snapshot.profile.campus}` : ""}
+                  </p>
+                  <div className="report-cover-chips">
+                    <span>Academic summary</span>
+                    <span>Current semester</span>
+                    <span>Historic record</span>
                   </div>
-                );
-              })
-            ) : (
-              <Empty>VTOP has not supplied datewise attendance details in the cached data.</Empty>
-            )}
-          </Section>
+                  <p>
+                    Generated {snapshot.collectedAt.toLocaleString("en-IN")}
+                    {snapshot.attendance?.semesterId ? ` · ${snapshot.attendance.semesterId}` : ""}
+                  </p>
+                </div>
+                {profilePhoto ? (
+                  <img
+                    className="report-photo"
+                    src={
+                      profilePhoto.startsWith("data:") || profilePhoto.startsWith("http")
+                        ? profilePhoto
+                        : `data:image/jpeg;base64,${profilePhoto}`
+                    }
+                    alt="Student profile"
+                  />
+                ) : (
+                  <div className="report-photo report-cover-photo-placeholder">
+                    Photo
+                    <br />
+                    not synced
+                  </div>
+                )}
+              </header>
+              <nav className="report-index" aria-label="Report contents">
+                <h2>Inside your report</h2>
+                <ol className="report-index-list">
+                  <li>
+                    <a href="#academic-summary">Academic performance overview</a>
+                  </li>
+                  <li>
+                    <a href="#curriculum-cover">Curriculum and credit progress</a>
+                  </li>
+                  <li>
+                    <a href="#current-record">Current academic records</a>
+                    <ol>
+                      <li>
+                        <a href="#current-attendance">Attendance</a>
+                      </li>
+                      <li>
+                        <a href="#exam-schedule">Exam schedule</a>
+                      </li>
+                      <li>
+                        <a href="#od-records">OD records and comparisons</a>
+                      </li>
+                      {subjects.map((subject) => (
+                        <li key={subject.code}>
+                          <a href={`#subject-${subject.code}`}>
+                            {subject.code} · {subject.title}
+                          </a>
+                        </li>
+                      ))}
+                      {attendanceMonths.map((month) => (
+                        <li key={month.label}>
+                          <a href={`#attendance-${month.label.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`}>
+                            {month.label} attendance calendar
+                          </a>
+                        </li>
+                      ))}
+                    </ol>
+                  </li>
+                  <li>
+                    <a href="#historic-record">Archived semester records</a>
+                    <ol>
+                      {semesterEntries.map(([semester]) => (
+                        <li key={semester}>
+                          <a href={`#history-${semester}`}>{semester} grade record</a>
+                        </li>
+                      ))}
+                      <li>
+                        <a href="#complete-grade-history">Complete grade history</a>
+                      </li>
+                    </ol>
+                  </li>
+                  {(segments.services || segments.finance || segments.events) && (
+                    <>
+                      {segments.events && (
+                        <li>
+                          <a href="#registered-events-cover">Registered events</a>
+                        </li>
+                      )}
+                      <li>
+                        <a href="#student-services-cover">Other student services</a>
+                      </li>
+                    </>
+                  )}
+                </ol>
+              </nav>
+              <p className="report-notice">
+                Student generated informational report from data currently available in AmazeCC. This is not an official
+                institutional transcript or certificate. Missing source details are not inferred.
+              </p>
 
-          <Section id="od-records" title="OD usage and official coverage" className="report-page-start">
-            {subjects.some((subject) => subject.odHours > 0) ? (
-              <>
+              <Section id="academic-summary" title="Academic summary" segment="overview">
                 <div className="report-summary">
                   <div>
-                    <strong>{subjects.reduce((n, subject) => n + subject.odHours, 0)}</strong>
-                    <span>OD hours claimed*</span>
+                    <strong>
+                      {text(snapshot.marks?.cgpa?.cgpa || snapshot.marks?.cgpa || snapshot.profile?.cgpa)}
+                    </strong>
+                    <span>CGPA</span>
                   </div>
                   <div>
-                    <strong>{subjects.reduce((n, subject) => n + subject.odValidHours, 0)}</strong>
-                    <span>Valid / recovered hours</span>
+                    <strong>{text(snapshot.grades?.gpa || snapshot.grades?.sgpa)}</strong>
+                    <span>Current term GPA</span>
                   </div>
                   <div>
-                    <strong>{subjects.reduce((n, subject) => n + subject.odWastedHours, 0)}</strong>
-                    <span>Wasted hours</span>
+                    <strong>
+                      {percentage}
+                      {percentage !== "—" ? "%" : ""}
+                    </strong>
+                    <span>Current attendance</span>
                   </div>
                   <div>
-                    <strong>{subjects.reduce((n, subject) => n + subject.odDates.size, 0)}</strong>
-                    <span>Course OD dates</span>
+                    <strong>
+                      {totals.attended}/{totals.total || "—"}
+                    </strong>
+                    <span>Classes attended</span>
+                  </div>
+                  <div>
+                    <strong>{totalPresentDays}</strong>
+                    <span>Days with no recorded absence</span>
+                  </div>
+                  <div>
+                    <strong>{Math.max(0, totals.total - totals.attended)}</strong>
+                    <span>Classes missed*</span>
+                  </div>
+                  <div>
+                    <strong>{text(snapshot.marks?.cgpa?.creditsEarned)}</strong>
+                    <span>Credits earned</span>
                   </div>
                 </div>
-                <PieChart
-                  title="OD claim status: valid/recovered vs wasted"
-                  slices={[
-                    {
-                      label: "Valid / recovered",
-                      value: subjects.reduce((n, subject) => n + subject.odValidHours, 0),
-                      color: "#26836d",
-                    },
-                    {
-                      label: "Wasted",
-                      value: subjects.reduce((n, subject) => n + subject.odWastedHours, 0),
-                      color: "#c55454",
-                    },
-                  ]}
-                />
-                <Table
-                  headers={["Subject", "OD hours claimed*", "Valid / recovered", "Wasted", "Official OD date match"]}
-                >
-                  {subjects
-                    .filter((subject) => subject.odHours > 0)
-                    .map((subject) => (
-                      <tr key={subject.code}>
-                        <td>
-                          {subject.code} · {subject.title}
-                        </td>
-                        <td>{subject.odHours}</td>
-                        <td>{subject.odValidHours}</td>
-                        <td>{subject.odWastedHours}</td>
-                        <td>
-                          {subject.odDates.size
-                            ? `${subject.officialOdDates.size}/${subject.odDates.size} days (${((subject.officialOdDates.size / subject.odDates.size) * 100).toFixed(1)}%)`
-                            : "—"}
-                        </td>
-                      </tr>
-                    ))}
-                </Table>
-                <p className="report-empty">
-                  *Hours use AmazeCC OD Tracker's convention: theory session = 1 hour, lab session = 2 hours. The source
-                  does not publish a total OD allowance, so this shows valid/wasted share and official date matches
-                  rather than a quota-consumed percentage. Official records are matched by date, not by course.
-                </p>
-              </>
-            ) : (
-              <Empty>No datewise On Duty entries are available to calculate OD usage.</Empty>
-            )}
-            <h3>Official OD records</h3>
-            {snapshot.officialOd.length ? (
-              <Table headers={["Date", "Type", "Reason", "Basis", "Time", "Remarks"]}>
-                {snapshot.officialOd.map((item: any, index: number) => (
-                  <tr key={index}>
-                    <td>{dateLabel(item.date)}</td>
-                    <td>{text(item.type)}</td>
-                    <td>{text(item.reason)}</td>
-                    <td>{text(item.basis)}</td>
-                    <td>{text(item.time)}</td>
-                    <td>{text(item.remarks)}</td>
-                  </tr>
-                ))}
-              </Table>
-            ) : (
-              <Empty>No official OD records are available.</Empty>
-            )}
-          </Section>
-
-          <Section id="exam-schedule" title="Current semester examination schedule" className="report-page-start">
-            {snapshot.schedule?.Schedule && Object.keys(snapshot.schedule.Schedule).length ? (
-              Object.entries(snapshot.schedule.Schedule).map(([type, exams]: [string, any]) => (
-                <div key={type} className="mb-3">
-                  <h3 className="font-bold mb-1">{type}</h3>
-                  <Table headers={["Course", "Date", "Session", "Time", "Venue", "Seat"]}>
-                    {(Array.isArray(exams) ? exams : []).map((exam: any, index: number) => (
-                      <tr key={index}>
-                        <td>
-                          {text(exam.courseCode)} · {text(exam.courseTitle)}
-                        </td>
-                        <td>{dateLabel(exam.examDate)}</td>
-                        <td>{text(exam.examSession)}</td>
-                        <td>{text(exam.examTime || exam.reportingTime)}</td>
-                        <td>{text(exam.venue || exam.examVenue)}</td>
-                        <td>{text(exam.seatLocation || exam.seatNo)}</td>
-                      </tr>
-                    ))}
-                  </Table>
-                </div>
-              ))
-            ) : (
-              <Empty />
-            )}
-          </Section>
-
-          <div id="subject-dossiers-cover" className="report-divider" aria-label="Current semester subject dossiers">
-            <span>AMAZECC · STUDENT RECORD</span>
-            <h2>Current semester subject dossiers</h2>
-            <p>Course attendance, assessment performance, grade predictions, faculty, and On Duty details</p>
-          </div>
-          <Section title="Current semester subject dossiers">
-            <p>
-              Each dossier combines current semester attendance, marks, course metadata, default AmazeCC grade
-              predictions, and available faculty review information.
-            </p>
-            {subjects.map((subject) => {
-              const faculty = facultyProfiles[subject.faculty.id || subject.faculty.name];
-              const review = faculty?.bundle?.prof || faculty?.review;
-              const directory = faculty?.profile;
-              const facultyName = review?.name || directory?.name || subject.faculty.name || subject.faculty.raw;
-              const department = review?.dept || directory?.dept || subject.faculty.raw.split(/\s+-\s+/).slice(-1)[0];
-              const facultyPhoto = normalizedPhoto(
-                directory?.imageUrl || directory?.image || review?.image_url || review?.image || review?.avatar,
-              );
-              const assessments = subject.marks.flatMap((course: any) =>
-                (course.assessments || []).map((assessment: any) => ({
-                  ...assessment,
-                  component: course.courseType,
-                  classNbr: course.classNbr,
-                })),
-              );
-              const marked = assessments.filter(
-                (assessment: any) => Number.isFinite(Number(assessment.scoredMark)) && Number(assessment.maxMark) > 0,
-              );
-              const assessmentPeak = Math.max(
-                1,
-                ...marked.map((assessment: any) => (Number(assessment.scoredMark) / Number(assessment.maxMark)) * 100),
-              );
-              const currentGrade = semesterEntries
-                .flatMap(([, result]: [string, any]) => result?.grades || [])
-                .find((grade: any) => baseCourseCode(grade.courseCode) === subject.code);
-              const attendanceRows = subject.attendance;
-              const credits = attendanceRows.reduce(
-                (sum: number, course: any) => sum + (Number(course.credits) || 0),
-                0,
-              );
-              const assessmentAverage = marked.length
-                ? marked.reduce(
-                    (sum: number, assessment: any) =>
-                      sum + (Number(assessment.scoredMark) / Number(assessment.maxMark)) * 100,
-                    0,
-                  ) / marked.length
-                : null;
-              return (
-                <div className="report-subject" id={`subject-${subject.code}`} key={subject.code}>
-                  <h3>
-                    {subject.code} · {subject.title}
-                  </h3>
-                  <div className="report-summary">
-                    <div>
-                      <strong>{subject.attendancePct == null ? "—" : `${subject.attendancePct.toFixed(1)}%`}</strong>
-                      <span>Attendance</span>
-                    </div>
-                    <div>
-                      <strong>
-                        {subject.attended}/{subject.total || "—"}
-                      </strong>
-                      <span>Present sessions</span>
-                    </div>
-                    <div>
-                      <strong>{subject.odHours}</strong>
-                      <span>OD hours claimed</span>
-                    </div>
-                    {currentGrade?.grade != null && currentGrade.grade !== "" && (
-                      <div>
-                        <strong>{text(currentGrade.grade)}</strong>
-                        <span>Published grade</span>
-                      </div>
-                    )}
-                    {currentGrade?.grandTotal != null && currentGrade.grandTotal !== "" && (
-                      <div>
-                        <strong>{text(currentGrade.grandTotal)}</strong>
-                        <span>Published total</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="report-summary report-subject-highlights" aria-label="Additional subject statistics">
-                    <div>
-                      <strong>{Math.max(0, subject.total - subject.attended)}</strong>
-                      <span>Missed sessions</span>
-                    </div>
-                    <div>
-                      <strong>{credits || "—"}</strong>
-                      <span>Registered credits</span>
-                    </div>
-                    <div>
-                      <strong>{marked.length || "—"}</strong>
-                      <span>Assessments with marks</span>
-                    </div>
-                    <div>
-                      <strong>{assessmentAverage == null ? "—" : `${assessmentAverage.toFixed(1)}%`}</strong>
-                      <span>Average assessment score</span>
-                    </div>
-                  </div>
-                  <h4>Attendance comparison</h4>
-                  <PieChart
-                    title={`${subject.code}: present vs missed sessions`}
-                    slices={[
-                      { label: "Present", value: subject.attended, color: "#26836d" },
-                      { label: "Missed", value: Math.max(0, subject.total - subject.attended), color: "#c55454" },
-                    ]}
-                  />
-                  <h4>Course and class particulars</h4>
-                  <Table
-                    headers={[
-                      "Course type",
-                      "Credits",
-                      "Class ID",
-                      "Faculty ID",
-                      "Faculty",
-                      "Department",
-                      "Slot",
-                      "Venue",
-                    ]}
-                  >
-                    {attendanceRows.map((course: any, index: number) => (
-                      <tr key={`${course.courseType}-${index}`}>
-                        <td>{text(course.courseType)}</td>
-                        <td>{text(course.credits)}</td>
-                        <td>
-                          {text(
-                            course.classId ||
-                              subject.marks.find((c: any) => c.courseType === course.courseType)?.classNbr,
-                          )}
-                        </td>
-                        <td>{text(review?.employeeId || subject.faculty.id)}</td>
-                        <td>{text(facultyName)}</td>
-                        <td>{text(department)}</td>
-                        <td>{text(course.slotName)}</td>
-                        <td>{text(course.slotVenue)}</td>
-                      </tr>
-                    ))}
-                  </Table>
-                  {subject.prediction && (
-                    <>
-                      <h4>AmazeCC default grade prediction</h4>
-                      <div className="report-summary">
-                        <div>
-                          <strong>{text(subject.prediction.optimalGrade?.letter, "Pending")}</strong>
-                          <span>At current pace</span>
-                        </div>
-                        <div>
-                          <strong>{text(subject.prediction.maximisableGrade?.letter)}</strong>
-                          <span>Best reachable grade</span>
-                        </div>
-                        <div>
-                          <strong>{subject.prediction.currentStandingPct.toFixed(1)}%</strong>
-                          <span>Current scored standing</span>
-                        </div>
-                        <div>
-                          <strong>{subject.prediction.maxPossibleScaled.toFixed(1)}%</strong>
-                          <span>Maximum possible score</span>
-                        </div>
-                        <div>
-                          <strong>{subject.classStats ? `${subject.classStats.mean.toFixed(1)}%` : "—"}</strong>
-                          <span>
-                            Class average{subject.classStats ? ` · n=${subject.classStats.count}` : " unavailable"}
-                          </span>
-                        </div>
-                      </div>
-                      <p className="report-empty">
-                        Uses the grade prediction page engine, current class average when available, and the saved
-                        assessment setup and simulated marks.{" "}
-                        {subject.prediction.optimalGrade?.description ||
-                          "No marked assessments yet; current-pace grade is not available."}
-                      </p>
-                    </>
-                  )}
-                  <h4>Assessment score distribution</h4>
-                  {marked.length ? (
-                    <div
-                      className="report-chart"
-                      data-report-chart="histogram"
-                      data-chart-title={`${subject.code} assessment scores`}
-                    >
-                      <h4>Assessment marks as percentage of maximum</h4>
-                      <div className="report-bars">
-                        {marked.map((assessment: any, index: number) => {
-                          const pct = (Number(assessment.scoredMark) / Number(assessment.maxMark)) * 100;
-                          return (
-                            <div
-                              className="report-bar-item"
-                              data-label={String(assessment.title || `Assessment ${index + 1}`).slice(0, 9)}
-                              data-value={pct}
-                              data-absent="0"
-                              data-peak={assessmentPeak}
-                              key={`${assessment.title}-${index}`}
-                            >
-                              <div className="report-bar-pair">
-                                <i
-                                  className="report-bar"
-                                  style={{ height: `${Math.max(3, (pct / assessmentPeak) * 80)}px` }}
-                                />
-                              </div>
-                              <small>{String(assessment.title || `Assessment ${index + 1}`).slice(0, 9)}</small>
-                            </div>
-                          );
-                        })}
-                      </div>
-                      <div className="report-chart-legend">
+                <h3 className="report-overview-subheading">Semester performance by course</h3>
+                {semesterEntries.length ? (
+                  <div className="report-summary report-semester-cards">
+                    {semesterEntries.map(([semester, result]: [string, any]) => (
+                      <div key={semester}>
+                        <strong>{text(result?.gpa)}</strong>
                         <span>
-                          <i /> Score percent of maximum
+                          {semester} · {Array.isArray(result?.grades) ? result.grades.length : 0} courses
                         </span>
                       </div>
-                    </div>
-                  ) : (
-                    <Empty>No marked assessments are available for a score histogram.</Empty>
-                  )}
-                  <Table
-                    headers={["Component", "Assessment", "Status", "Score", "Maximum", "Weightage", "Weighted score"]}
-                  >
-                    {assessments.map((assessment: any, index: number) => (
-                      <tr key={`${assessment.component}-${assessment.title}-${index}`}>
-                        <td>{text(assessment.component)}</td>
-                        <td>{text(assessment.title)}</td>
-                        <td>{text(assessment.status)}</td>
-                        <td>{text(assessment.scoredMark)}</td>
-                        <td>{text(assessment.maxMark)}</td>
-                        <td>{text(assessment.weightagePercent)}%</td>
-                        <td>{text(assessment.weightageMark)}</td>
-                      </tr>
                     ))}
-                  </Table>
-                  <h4>OD claim status</h4>
-                  {subject.odHours > 0 ? (
-                    <>
-                      <PieChart
-                        title={`${subject.code}: valid/recovered vs wasted OD hours`}
-                        slices={[
-                          { label: "Valid / recovered", value: subject.odValidHours, color: "#26836d" },
-                          { label: "Wasted", value: subject.odWastedHours, color: "#c55454" },
-                        ]}
-                      />
-                      <p className="report-empty">
-                        Official OD application date matched:{" "}
-                        {subject.odDates.size
-                          ? `${subject.officialOdDates.size} of ${subject.odDates.size} dates`
-                          : "No OD dates"}
-                        . This date match does not establish subject-level approval.
-                      </p>
-                    </>
-                  ) : (
-                    <p className="report-empty">No OD claims recorded for this subject.</p>
-                  )}
-                  <h4>Faculty review and public details</h4>
-                  {review || directory ? (
-                    <>
-                      <div className="report-faculty-card">
-                        {facultyPhoto ? (
-                          <img src={facultyPhoto} alt={`${facultyName} faculty portrait`} />
-                        ) : (
-                          <div className="report-faculty-placeholder" aria-hidden="true">
-                            {facultyName
-                              .split(/\s+/)
-                              .slice(0, 2)
-                              .map((part: string) => part[0])
-                              .join("")
-                              .toUpperCase()}
-                          </div>
-                        )}
-                        <div className="report-faculty-card-copy">
-                          <strong>{text(facultyName)}</strong>
-                          <span>{text(review?.designation || directory?.designation, "Faculty")}</span>
-                          <span>
-                            {text(department)} · ID{" "}
-                            {text(review?.employeeId || directory?.employeeId || subject.faculty.id)}
-                          </span>
-                        </div>
-                        <div className="report-faculty-card-stat">
-                          <strong>
-                            {text(review?.wPct ?? directory?.wPct, "—")}
-                            {review?.wPct != null || directory?.wPct != null ? "%" : ""}
-                          </strong>
-                          <span>recommendation</span>
-                        </div>
-                      </div>
-                      <div className="report-summary">
-                        <div>
-                          <strong>{text(review?.reviews ?? directory?.reviews, "0")}</strong>
-                          <span>Review count</span>
-                        </div>
-                        <div>
-                          <strong>{text(review?.metrics?.lecture ?? directory?.metrics?.lecture, "—")}</strong>
-                          <span>Lecture / explanation rating</span>
-                        </div>
-                        <div>
-                          <strong>{text(review?.metrics?.da ?? directory?.metrics?.da, "—")}</strong>
-                          <span>DA rating</span>
-                        </div>
-                        <div>
-                          <strong>{text(review?.metrics?.vibe ?? directory?.metrics?.vibe, "—")}</strong>
-                          <span>Class vibe</span>
-                        </div>
-                      </div>
-                      <Table headers={["Faculty information", "Details"]}>
-                        {[
-                          ["Employee / faculty ID", review?.employeeId || directory?.employeeId || subject.faculty.id],
-                          ["Designation", review?.designation || directory?.designation],
-                          ["Department / school", department],
-                          ["Email", review?.email || directory?.email],
-                          ["Intercom", review?.intercom || directory?.intercom],
-                          ["Research areas", (review?.researchArea || directory?.researchArea || []).join("; ")],
-                          [
-                            "Specialization",
-                            (review?.areasOfSpecialization || directory?.areasOfSpecialization || []).join("; "),
-                          ],
-                          ["Education", null],
-                          ["Awards", (directory?.awards || review?.awards || []).join("; ")],
-                          ["Scopus h-index", directory?.hIndexScopus ?? review?.hIndexScopus],
-                          ["i10-index", directory?.i10Index ?? review?.i10Index],
-                        ]
-                          .filter(([, value]) => value !== undefined && value !== null && value !== "")
-                          .map(([label, value]) => (
-                            <tr key={String(label)}>
-                              <td>{String(label)}</td>
-                              <td>{text(value)}</td>
-                            </tr>
-                          ))}
-                      </Table>
-                      {Array.isArray(directory?.education || review?.education) &&
-                        (directory?.education || review?.education).length > 0 && (
-                          <div className="report-education-list" aria-label="Faculty education">
-                            {(directory?.education || review?.education).map((entry: any, entryIndex: number) => {
-                              const values = typeof entry === "string" ? { degree: entry } : entry;
-                              const degree =
-                                values.degree || values.qualification || values.title || values.program || "Education";
-                              const year = [
-                                values.startYear || values.fromYear,
-                                values.endYear || values.year || values.toYear,
-                              ]
-                                .filter(Boolean)
-                                .join("–");
-                              const field = values.field || values.specialization || values.discipline || values.major;
-                              const institution =
-                                values.institution || values.university || values.institute || values.school;
+                  </div>
+                ) : (
+                  <Empty>Semester performance history is not synced.</Empty>
+                )}
+                <p className="report-empty">
+                  *Derived from current semester aggregate counts. Daily absence details are listed only where VTOP
+                  provides datewise records.
+                </p>
+                <div id="academic-calendar" className="report-overview-calendar">
+                  <h3 className="report-overview-subheading">Academic calendar events</h3>
+                  {calendarMonths.length ? (
+                    calendarMonths.map((month) => {
+                      const daysInMonth = new Date(month.year, month.monthIndex + 1, 0).getDate();
+                      return (
+                        <div className="report-calendar-month" key={month.label}>
+                          <h3>{month.label}</h3>
+                          <div className="report-calendar">
+                            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+                              <div className="report-calendar-weekday" key={day}>
+                                {day}
+                              </div>
+                            ))}
+                            {Array.from({ length: month.offset }, (_, index) => (
+                              <div className="report-calendar-day empty" key={`blank-${index}`} />
+                            ))}
+                            {Array.from({ length: daysInMonth }, (_, index) => {
+                              const number = index + 1;
+                              const events = month.days.get(number) || [];
                               return (
-                                <div className="report-education-card" key={entryIndex}>
-                                  <strong>{text(degree)}</strong>
-                                  {year && <span className="report-education-year">{text(year)}</span>}
-                                  {field && <span>{text(field)}</span>}
-                                  {institution && <span>{text(institution)}</span>}
+                                <div className="report-calendar-day" key={number}>
+                                  <strong>{number}</strong>
+                                  {events.map((event: any, eventIndex: number) => (
+                                    <span key={eventIndex}>{text(event.text || event.category)}</span>
+                                  ))}
                                 </div>
                               );
                             })}
                           </div>
-                        )}
-                      {Array.isArray(review?.lore?.green) && review.lore.green.length > 0 && (
-                        <div className="report-theme-group positive">
-                          <strong>Common positive review themes</strong>
-                          <div className="report-theme-list">
-                            {review.lore.green.map((x: any, index: number) => (
-                              <span className="report-theme-pill" key={`${x.text}-${index}`}>
-                                {x.text} <b>{x.count}</b>
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {Array.isArray(review?.lore?.red) && review.lore.red.length > 0 && (
-                        <div className="report-theme-group critical">
-                          <strong>Common critical review themes</strong>
-                          <div className="report-theme-list">
-                            {review.lore.red.map((x: any, index: number) => (
-                              <span className="report-theme-pill" key={`${x.text}-${index}`}>
-                                {x.text} <b>{x.count}</b>
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      <p className="report-empty">
-                        Faculty review data is community supplied by VITFAC and may not represent the full class.
-                        Ratings are not institutional evaluations.
-                      </p>
-                    </>
-                  ) : (
-                    <Empty>Faculty review/profile details are unavailable or the VITFAC integration is disabled.</Empty>
-                  )}
-                </div>
-              );
-            })}
-          </Section>
-
-          <div id="historic-record" className="report-divider" aria-label="Historical academic report">
-            <span>AMAZECC · STUDENT RECORD</span>
-            <h2>Historical academic report</h2>
-            <p>Previously recorded semesters and archived academic results</p>
-          </div>
-
-          {snapshot.attendanceHistory.length > 0 && (
-            <Section title="Archived semester attendance summaries">
-              {snapshot.attendanceHistory.map(({ semesterId, data: archived }) => (
-                <div key={semesterId} className="mb-3">
-                  <h3 className="font-bold mb-1">{semesterId}</h3>
-                  {Array.isArray(archived.attendance) ? (
-                    <Table headers={["Course", "Type", "Attended", "Total", "Attendance", "Date detail"]}>
-                      {archived.attendance.map((course: any, index: number) => (
-                        <tr key={`${course.courseCode}-${index}`}>
-                          <td>
-                            {text(course.courseCode)} · {text(course.courseTitle)}
-                          </td>
-                          <td>{text(course.courseType)}</td>
-                          <td>{text(course.attendedClasses)}</td>
-                          <td>{text(course.totalClasses)}</td>
-                          <td>{text(course.attendancePercentage)}%</td>
-                          <td>{Array.isArray(course.viewLink) ? course.viewLink.length : "Not supplied"}</td>
-                        </tr>
-                      ))}
-                    </Table>
-                  ) : (
-                    <Empty />
-                  )}
-                </div>
-              ))}
-            </Section>
-          )}
-
-          <Section id="complete-grade-history" title="Complete grade history" className="report-grade-history-section">
-            {semesterEntries.length ? (
-              semesterEntries.map(([semester, result]: [string, any]) => (
-                <div key={semester} id={`history-${semester}`} className="mb-4">
-                  <h3 className="font-bold mb-1">
-                    {semester} · GPA {text(result?.gpa)}
-                  </h3>
-                  {Array.isArray(result?.grades) && result.grades.length ? (
-                    result.grades.map((grade: any, index: number) => {
-                      const code = String(grade.courseCode || "")
-                        .replace(/\s*\([TL]\)$/i, "")
-                        .toUpperCase();
-                      const courseMeta = (snapshot.marks?.courses || []).find(
-                        (c: any) =>
-                          String(c.courseCode || "")
-                            .replace(/\s*\([TL]\)$/i, "")
-                            .toUpperCase() === code,
-                      );
-                      return (
-                        <div className="mb-3 report-course" key={`${grade.courseCode}-${index}`}>
-                          <h4 className="font-bold">
-                            {text(grade.courseCode)} · {text(grade.courseTitle)}
-                          </h4>
-                          <div className="report-grade-cards">
-                            <div>
-                              <strong>{text(grade.courseType)}</strong>
-                              <span>Type</span>
-                            </div>
-                            {(grade.credits ?? courseMeta?.credits) != null && (
-                              <div>
-                                <strong>{text(grade.credits ?? courseMeta?.credits)}</strong>
-                                <span>Credits</span>
-                              </div>
-                            )}
-                            {grade.grandTotal != null && grade.grandTotal !== "" && (
-                              <div>
-                                <strong>{text(grade.grandTotal)}</strong>
-                                <span>Grand total</span>
-                              </div>
-                            )}
-                            {grade.grade != null && grade.grade !== "" && (
-                              <div>
-                                <strong>{text(grade.grade)}</strong>
-                                <span>Grade</span>
-                              </div>
-                            )}
-                          </div>
-                          {Array.isArray(grade.details) && grade.details.length ? (
-                            <Table headers={["Assessment / component", "Status", "Score", "Maximum"]}>
-                              {grade.details.map((detail: any, detailIndex: number) => (
-                                <tr key={`${grade.courseCode}-${detailIndex}`}>
-                                  <td>{text(detail.component)}</td>
-                                  <td>{text(detail.status)}</td>
-                                  <td>{text(detail.scoredMark)}</td>
-                                  <td>{text(detail.maxMark)}</td>
-                                </tr>
-                              ))}
-                            </Table>
-                          ) : (
-                            <Empty>No assessment details supplied for this course.</Empty>
-                          )}
                         </div>
                       );
                     })
                   ) : (
-                    <Empty>No course grades are published for this semester.</Empty>
+                    <Empty />
                   )}
                 </div>
-              ))
-            ) : (
-              <Empty>Complete semester grade history is not synced.</Empty>
-            )}
-          </Section>
+              </Section>
 
-          {(includeServices || includeFinance) && (
-            <>
-              {includeServices && snapshot.events.length > 0 && (
-                <div id="registered-events-cover" className="report-divider">
-                  <span>AMAZECC · STUDENT SERVICES</span>
-                  <h2>Registered events</h2>
-                  <p>Event registrations, attendance dates, and payment status</p>
-                </div>
-              )}
-              {includeServices && snapshot.events.length > 0 && (
-                <Section id="registered-events" title="Registered events">
-                  <div className="report-summary">
-                    <div>
-                      <strong>{snapshot.events.length}</strong>
-                      <span>Registrations</span>
-                    </div>
-                    <div>
-                      <strong>
-                        {
-                          new Set(
-                            snapshot.events
-                              .map((event: any) => parseReportDate(event.date)?.toISOString().slice(0, 10))
-                              .filter(Boolean),
-                          ).size
-                        }
-                      </strong>
-                      <span>Event days</span>
-                    </div>
-                  </div>
-                  <ComparisonChart
-                    title="Event registrations by month"
-                    items={eventAnalytics(snapshot.events).map((month) => ({ label: month.label, value: month.count }))}
-                    unit="Registrations"
-                  />
-                  <ComparisonChart
-                    title="Distinct event days by month"
-                    items={eventAnalytics(snapshot.events).map((month) => ({ label: month.label, value: month.days }))}
-                    unit="Days"
-                  />
-                  <PieChart
-                    title="Registered events by payment state"
-                    slices={Object.entries(
-                      snapshot.events.reduce((counts: Record<string, number>, event: any) => {
-                        const state = String(event.paymentStatus || "Unknown");
-                        counts[state] = (counts[state] || 0) + 1;
-                        return counts;
-                      }, {}),
-                    ).map(([label, value], index) => ({
-                      label,
-                      value: Number(value),
-                      color: ["#26836d", "#d59b32", "#6d83a3", "#c55454", "#8056a3"][index % 5],
-                    }))}
-                  />
-                  <Table headers={["Event", "Date", "Time", "Venue", "Payment status"]}>
-                    {snapshot.events.map((item: any, i: number) => (
-                      <tr key={i}>
-                        <td>{text(item.name)}</td>
-                        <td>{dateLabel(item.date)}</td>
-                        <td>{text(item.time)}</td>
-                        <td>{text(item.venue)}</td>
-                        <td>{text(item.paymentStatus)}</td>
+              <Section title="Performance and attendance comparisons" segment="overview">
+                <p>
+                  Charts compare the current cached semester records. Session counts and calendar days are separate
+                  measures.
+                </p>
+                <PieChart
+                  title="Current semester class sessions"
+                  slices={[
+                    { label: "Present", value: totals.attended, color: "#26836d" },
+                    { label: "Missed", value: Math.max(0, totals.total - totals.attended), color: "#c55454" },
+                  ]}
+                />
+                <PieChart
+                  title="Recorded days: no absences vs days with absence"
+                  slices={[
+                    {
+                      label: "No recorded absences",
+                      value: attendanceMonths.reduce((n, month) => n + month.presentDays, 0),
+                      color: "#26836d",
+                    },
+                    {
+                      label: "Days with absence",
+                      value: attendanceMonths.reduce((n, month) => n + month.absentDays, 0),
+                      color: "#c55454",
+                    },
+                  ]}
+                />
+                <ComparisonChart
+                  title="Attendance rate by subject"
+                  items={subjects
+                    .filter((subject) => subject.attendancePct != null)
+                    .map((subject) => ({ label: subject.code, value: subject.attendancePct }))}
+                  unit="Attendance percent"
+                />
+                <ComparisonChart
+                  title="On Duty hours claimed by subject"
+                  items={subjects
+                    .filter((subject) => subject.odHours > 0)
+                    .map((subject) => ({ label: subject.code, value: subject.odHours }))}
+                  unit="OD hours"
+                />
+                <ComparisonChart
+                  title="Semester GPA history"
+                  items={[...semesterEntries]
+                    .reverse()
+                    .map(([semester, result]: [string, any]) => ({ label: semester, value: Number(result?.gpa) || 0 }))}
+                  unit="GPA"
+                />
+              </Section>
+
+              <div
+                id="curriculum-cover"
+                className="report-divider report-curriculum-divider"
+                data-report-segment="curriculum"
+                aria-label="Curriculum and credit progress"
+              >
+                <span>AMAZECC · DEGREE MAP</span>
+                <h2>Curriculum and credit progress</h2>
+                <p>Course baskets, programme requirements, and progress through the degree</p>
+              </div>
+              <Section
+                id="curriculum"
+                title="Curriculum and credit progress"
+                className="report-curriculum-section"
+                segment="curriculum"
+              >
+                {Array.isArray(snapshot.allGrades?.curriculum || snapshot.grades?.curriculum) &&
+                (snapshot.allGrades?.curriculum || snapshot.grades?.curriculum).length ? (
+                  <Table headers={["Basket / distribution", "Credits required", "Credits earned", "Progress"]}>
+                    {(snapshot.allGrades?.curriculum || snapshot.grades?.curriculum).map((item: any, index: number) => (
+                      <tr key={index}>
+                        <td>{text(item.basketTitle || item.distributionType || item.title)}</td>
+                        <td>{text(item.creditsRequired)}</td>
+                        <td>{text(item.creditsEarned)}</td>
+                        <td>
+                          {Number(item.creditsRequired) > 0
+                            ? `${((Number(item.creditsEarned || 0) / Number(item.creditsRequired)) * 100).toFixed(1)}%`
+                            : "—"}
+                        </td>
                       </tr>
                     ))}
                   </Table>
+                ) : Array.isArray(snapshot.curriculum?.details) ? (
+                  <div className="report-curriculum-groups">
+                    {snapshot.curriculum.details.map((category: any, categoryIndex: number) => (
+                      <section
+                        className="report-curriculum-category"
+                        key={`${category.code || category.name}-${categoryIndex}`}
+                      >
+                        <h3>{text(category.name || category.code, "Curriculum category")}</h3>
+                        <div className="report-basket-index" aria-label="Baskets in this category">
+                          {(category.baskets || []).map((basket: any, basketIndex: number) => (
+                            <span key={`${basket.title}-${basketIndex}`}>{text(basket.title, "Course basket")}</span>
+                          ))}
+                        </div>
+                        {(category.baskets || []).map((basket: any, basketIndex: number) => (
+                          <div className="report-curriculum-basket" key={`${basket.title}-${basketIndex}`}>
+                            <h4>{text(basket.title, "Course basket")}</h4>
+                            <Table headers={["Course code", "Course", "Credits", "Type"]}>
+                              {(basket.items || []).map((item: any, itemIndex: number) => (
+                                <tr key={`${item.code}-${itemIndex}`}>
+                                  <td>{text(item.code)}</td>
+                                  <td>{text(item.name)}</td>
+                                  <td>{text(item.credits)}</td>
+                                  <td>{text(item.type)}</td>
+                                </tr>
+                              ))}
+                            </Table>
+                          </div>
+                        ))}
+                      </section>
+                    ))}
+                  </div>
+                ) : (
+                  <Empty />
+                )}
+              </Section>
+
+              <div
+                id="current-record"
+                className="report-divider report-current-divider"
+                data-report-segment="attendance"
+                aria-label="Current semester academic record"
+              >
+                <span>AMAZECC · STUDENT RECORD</span>
+                <h2>Current semester academic record</h2>
+                <p>Attendance, assessments, course details, and grade predictions for the active semester</p>
+              </div>
+              <Section title="Datewise attendance register" segment="attendance">
+                <h3 id="current-attendance">Current semester attendance by subject</h3>
+                {attendanceCourses.length ? (
+                  <Table headers={["Course", "Type", "Faculty", "Slot / venue", "Attended", "Total", "Attendance"]}>
+                    {attendanceCourses.map((course: any, index: number) => (
+                      <tr key={`${course.courseCode}-${index}`}>
+                        <td>
+                          <strong>{text(course.courseCode)}</strong>
+                          <br />
+                          {text(course.courseTitle)}
+                        </td>
+                        <td>{text(course.courseType || course.category)}</td>
+                        <td>{text(course.faculty)}</td>
+                        <td>
+                          {text(course.slotName)}
+                          {course.slotVenue ? ` / ${course.slotVenue}` : ""}
+                        </td>
+                        <td>{text(course.attendedClasses)}</td>
+                        <td>{text(course.totalClasses)}</td>
+                        <td>{text(course.attendancePercentage)}%</td>
+                      </tr>
+                    ))}
+                  </Table>
+                ) : (
+                  <Empty />
+                )}
+                {attendanceMonths.length ? (
+                  attendanceMonths.map((month) => {
+                    const daily = new Map<string, { present: number; absent: number; od: number }>();
+                    month.rows.forEach((row: any) => {
+                      const counts = daily.get(row.dateText) || { present: 0, absent: 0, od: 0 };
+                      const status = row.status.toLowerCase();
+                      if (status.includes("present")) counts.present++;
+                      else if (status.includes("absent")) counts.absent++;
+                      else if (status.includes("duty") || status === "od") counts.od++;
+                      daily.set(row.dateText, counts);
+                    });
+                    const chartData = [...daily.entries()].map(([label, counts]) => ({
+                      label: label.slice(0, 6),
+                      ...counts,
+                    }));
+                    const calendarDate = month.rows.find((row: any) => row.date)?.date as Date | undefined;
+                    const calendarDays = new Map<number, { present: number; absent: number; od: number }>();
+                    daily.forEach((counts, label) => {
+                      const parsed = parseReportDate(label);
+                      if (parsed) calendarDays.set(parsed.getDate(), counts);
+                    });
+                    const peak = Math.max(1, ...chartData.map((item) => Math.max(item.present, item.absent)));
+                    return (
+                      <div
+                        className="report-month"
+                        id={`attendance-${month.label.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`}
+                        key={month.label}
+                      >
+                        <h3>{month.label}</h3>
+                        {calendarDate && (
+                          <div
+                            className="report-calendar report-attendance-calendar"
+                            aria-label={`${month.label} attendance calendar`}
+                          >
+                            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+                              <div className="report-calendar-weekday" key={day}>
+                                {day}
+                              </div>
+                            ))}
+                            {Array.from({ length: calendarDate.getDay() }, (_, i) => (
+                              <div className="report-calendar-day empty" key={`gap-${i}`} />
+                            ))}
+                            {Array.from(
+                              {
+                                length: new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 0).getDate(),
+                              },
+                              (_, i) => {
+                                const day = i + 1;
+                                const c = calendarDays.get(day);
+                                const tint = !c ? "" : c.absent ? "has-absence" : c.od ? "on-duty" : "all-present";
+                                return (
+                                  <div className={`report-calendar-day attendance-day ${tint}`} key={day}>
+                                    <strong>{day}</strong>
+                                    {c && (
+                                      <span>
+                                        {c.present} present{c.absent ? ` · ${c.absent} absent` : ""}
+                                        {c.od ? ` · ${c.od} OD` : ""}
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              },
+                            )}
+                          </div>
+                        )}
+                        <div className="report-summary">
+                          <div>
+                            <strong>{month.days}</strong>
+                            <span>Days recorded</span>
+                          </div>
+                          <div>
+                            <strong>{month.presentDays}</strong>
+                            <span>Days without absence</span>
+                          </div>
+                          <div>
+                            <strong>{month.presentSessions}</strong>
+                            <span>Present sessions</span>
+                          </div>
+                          <div>
+                            <strong>{month.absentSessions}</strong>
+                            <span>Absent sessions</span>
+                          </div>
+                          <div>
+                            <strong>{month.odSessions}</strong>
+                            <span>OD sessions</span>
+                          </div>
+                        </div>
+                        <div
+                          className="report-chart"
+                          data-report-chart="attendance"
+                          data-chart-title={`${month.label} daily attendance`}
+                        >
+                          <h4>Daily attendance sessions</h4>
+                          <div className="report-bars">
+                            {chartData.map((item, index) => (
+                              <div
+                                className="report-bar-item"
+                                data-label={item.label}
+                                data-value={item.present}
+                                data-absent={item.absent}
+                                data-peak={peak}
+                                key={`${item.label}-${index}`}
+                              >
+                                <div className="report-bar-pair">
+                                  <i
+                                    className="report-bar"
+                                    style={{ height: `${Math.max(2, (item.present / peak) * 80)}px` }}
+                                  />
+                                  <i
+                                    className="report-bar absent"
+                                    style={{ height: `${Math.max(2, (item.absent / peak) * 80)}px` }}
+                                  />
+                                </div>
+                                <small>{item.label}</small>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="report-chart-legend">
+                            <span>
+                              <i /> Present
+                            </span>
+                            <span>
+                              <i className="absent-key" /> Absent
+                            </span>
+                          </div>
+                        </div>
+                        <Table headers={["Date", "Course", "Class", "Status"]}>
+                          {month.rows.map((row: any) => (
+                            <tr key={`${row.course.courseCode}-${row.dateText}-${row.index}`}>
+                              <td>{row.dateText}</td>
+                              <td>
+                                {text(row.course.courseCode)} · {text(row.course.courseTitle)}
+                              </td>
+                              <td>{text(row.course.courseType || row.course.category)}</td>
+                              <td>{row.status}</td>
+                            </tr>
+                          ))}
+                        </Table>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <Empty>VTOP has not supplied datewise attendance details in the cached data.</Empty>
+                )}
+              </Section>
+
+              <Section
+                id="od-records"
+                title="OD usage and official coverage"
+                className="report-page-start"
+                segment="od"
+              >
+                {subjects.some((subject) => subject.odHours > 0) ? (
+                  <>
+                    <div className="report-summary">
+                      <div>
+                        <strong>{subjects.reduce((n, subject) => n + subject.odHours, 0)}</strong>
+                        <span>OD hours claimed*</span>
+                      </div>
+                      <div>
+                        <strong>{subjects.reduce((n, subject) => n + subject.odValidHours, 0)}</strong>
+                        <span>Valid / recovered hours</span>
+                      </div>
+                      <div>
+                        <strong>{subjects.reduce((n, subject) => n + subject.odWastedHours, 0)}</strong>
+                        <span>Wasted hours</span>
+                      </div>
+                      <div>
+                        <strong>{subjects.reduce((n, subject) => n + subject.odDates.size, 0)}</strong>
+                        <span>Course OD dates</span>
+                      </div>
+                    </div>
+                    <PieChart
+                      title="OD claim status: valid/recovered vs wasted"
+                      slices={[
+                        {
+                          label: "Valid / recovered",
+                          value: subjects.reduce((n, subject) => n + subject.odValidHours, 0),
+                          color: "#26836d",
+                        },
+                        {
+                          label: "Wasted",
+                          value: subjects.reduce((n, subject) => n + subject.odWastedHours, 0),
+                          color: "#c55454",
+                        },
+                      ]}
+                    />
+                    <Table
+                      headers={[
+                        "Subject",
+                        "OD hours claimed*",
+                        "Valid / recovered",
+                        "Wasted",
+                        "Official OD date match",
+                      ]}
+                    >
+                      {subjects
+                        .filter((subject) => subject.odHours > 0)
+                        .map((subject) => (
+                          <tr key={subject.code}>
+                            <td>
+                              {subject.code} · {subject.title}
+                            </td>
+                            <td>{subject.odHours}</td>
+                            <td>{subject.odValidHours}</td>
+                            <td>{subject.odWastedHours}</td>
+                            <td>
+                              {subject.odDates.size
+                                ? `${subject.officialOdDates.size}/${subject.odDates.size} days (${((subject.officialOdDates.size / subject.odDates.size) * 100).toFixed(1)}%)`
+                                : "—"}
+                            </td>
+                          </tr>
+                        ))}
+                    </Table>
+                    <p className="report-empty">
+                      *Hours use AmazeCC OD Tracker's convention: theory session = 1 hour, lab session = 2 hours. The
+                      source does not publish a total OD allowance, so this shows valid/wasted share and official date
+                      matches rather than a quota-consumed percentage. Official records are matched by date, not by
+                      course.
+                    </p>
+                  </>
+                ) : (
+                  <Empty>No datewise On Duty entries are available to calculate OD usage.</Empty>
+                )}
+                <h3>Official OD records</h3>
+                {snapshot.officialOd.length ? (
+                  <Table headers={["Date", "Type", "Reason", "Basis", "Time", "Remarks"]}>
+                    {snapshot.officialOd.map((item: any, index: number) => (
+                      <tr key={index}>
+                        <td>{dateLabel(item.date)}</td>
+                        <td>{text(item.type)}</td>
+                        <td>{text(item.reason)}</td>
+                        <td>{text(item.basis)}</td>
+                        <td>{text(item.time)}</td>
+                        <td>{text(item.remarks)}</td>
+                      </tr>
+                    ))}
+                  </Table>
+                ) : (
+                  <Empty>No official OD records are available.</Empty>
+                )}
+              </Section>
+
+              <Section
+                id="exam-schedule"
+                title="Current semester examination schedule"
+                className="report-page-start"
+                segment="exams"
+              >
+                {snapshot.schedule?.Schedule && Object.keys(snapshot.schedule.Schedule).length ? (
+                  Object.entries(snapshot.schedule.Schedule).map(([type, exams]: [string, any]) => (
+                    <div key={type} className="mb-3">
+                      <h3 className="font-bold mb-1">{type}</h3>
+                      <Table headers={["Course", "Date", "Session", "Time", "Venue", "Seat"]}>
+                        {(Array.isArray(exams) ? exams : []).map((exam: any, index: number) => (
+                          <tr key={index}>
+                            <td>
+                              {text(exam.courseCode)} · {text(exam.courseTitle)}
+                            </td>
+                            <td>{dateLabel(exam.examDate)}</td>
+                            <td>{text(exam.examSession)}</td>
+                            <td>{text(exam.examTime || exam.reportingTime)}</td>
+                            <td>{text(exam.venue || exam.examVenue)}</td>
+                            <td>{text(exam.seatLocation || exam.seatNo)}</td>
+                          </tr>
+                        ))}
+                      </Table>
+                    </div>
+                  ))
+                ) : (
+                  <Empty />
+                )}
+              </Section>
+
+              <div
+                id="subject-dossiers-cover"
+                data-report-segment="subjects"
+                className="report-divider"
+                aria-label="Current semester subject dossiers"
+              >
+                <span>AMAZECC · STUDENT RECORD</span>
+                <h2>Current semester subject dossiers</h2>
+                <p>Course attendance, assessment performance, grade predictions, faculty, and On Duty details</p>
+              </div>
+              <Section title="Current semester subject dossiers" segment="subjects">
+                <p>
+                  Each dossier combines current semester attendance, marks, course metadata, default AmazeCC grade
+                  predictions, and available faculty review information.
+                </p>
+                {subjects.map((subject) => {
+                  const faculty = facultyProfiles[subject.faculty.id || subject.faculty.name];
+                  const review = faculty?.bundle?.prof || faculty?.review;
+                  const directory = faculty?.profile;
+                  const facultyName = review?.name || directory?.name || subject.faculty.name || subject.faculty.raw;
+                  const department =
+                    review?.dept || directory?.dept || subject.faculty.raw.split(/\s+-\s+/).slice(-1)[0];
+                  const facultyPhoto = normalizedPhoto(
+                    directory?.imageUrl || directory?.image || review?.image_url || review?.image || review?.avatar,
+                  );
+                  const assessments = subject.marks.flatMap((course: any) =>
+                    (course.assessments || []).map((assessment: any) => ({
+                      ...assessment,
+                      component: course.courseType,
+                      classNbr: course.classNbr,
+                    })),
+                  );
+                  const marked = assessments.filter(
+                    (assessment: any) =>
+                      Number.isFinite(Number(assessment.scoredMark)) && Number(assessment.maxMark) > 0,
+                  );
+                  const assessmentPeak = Math.max(
+                    1,
+                    ...marked.map(
+                      (assessment: any) => (Number(assessment.scoredMark) / Number(assessment.maxMark)) * 100,
+                    ),
+                  );
+                  const currentGrade = semesterEntries
+                    .flatMap(([, result]: [string, any]) => result?.grades || [])
+                    .find((grade: any) => baseCourseCode(grade.courseCode) === subject.code);
+                  const attendanceRows = subject.attendance;
+                  const credits = attendanceRows.reduce(
+                    (sum: number, course: any) => sum + (Number(course.credits) || 0),
+                    0,
+                  );
+                  const assessmentAverage = marked.length
+                    ? marked.reduce(
+                        (sum: number, assessment: any) =>
+                          sum + (Number(assessment.scoredMark) / Number(assessment.maxMark)) * 100,
+                        0,
+                      ) / marked.length
+                    : null;
+                  return (
+                    <div className="report-subject" id={`subject-${subject.code}`} key={subject.code}>
+                      <h3>
+                        {subject.code} · {subject.title}
+                      </h3>
+                      <div className="report-summary">
+                        <div>
+                          <strong>
+                            {subject.attendancePct == null ? "—" : `${subject.attendancePct.toFixed(1)}%`}
+                          </strong>
+                          <span>Attendance</span>
+                        </div>
+                        <div>
+                          <strong>
+                            {subject.attended}/{subject.total || "—"}
+                          </strong>
+                          <span>Present sessions</span>
+                        </div>
+                        <div>
+                          <strong>{subject.odHours}</strong>
+                          <span>OD hours claimed</span>
+                        </div>
+                        {currentGrade?.grade != null && currentGrade.grade !== "" && (
+                          <div>
+                            <strong>{text(currentGrade.grade)}</strong>
+                            <span>Published grade</span>
+                          </div>
+                        )}
+                        {currentGrade?.grandTotal != null && currentGrade.grandTotal !== "" && (
+                          <div>
+                            <strong>{text(currentGrade.grandTotal)}</strong>
+                            <span>Published total</span>
+                          </div>
+                        )}
+                      </div>
+                      <div
+                        className="report-summary report-subject-highlights"
+                        aria-label="Additional subject statistics"
+                      >
+                        <div>
+                          <strong>{Math.max(0, subject.total - subject.attended)}</strong>
+                          <span>Missed sessions</span>
+                        </div>
+                        <div>
+                          <strong>{credits || "—"}</strong>
+                          <span>Registered credits</span>
+                        </div>
+                        <div>
+                          <strong>{marked.length || "—"}</strong>
+                          <span>Assessments with marks</span>
+                        </div>
+                        <div>
+                          <strong>{assessmentAverage == null ? "—" : `${assessmentAverage.toFixed(1)}%`}</strong>
+                          <span>Average assessment score</span>
+                        </div>
+                      </div>
+                      <h4>Attendance comparison</h4>
+                      <PieChart
+                        title={`${subject.code}: present vs missed sessions`}
+                        slices={[
+                          { label: "Present", value: subject.attended, color: "#26836d" },
+                          { label: "Missed", value: Math.max(0, subject.total - subject.attended), color: "#c55454" },
+                        ]}
+                      />
+                      <h4>Course and class particulars</h4>
+                      <Table
+                        headers={[
+                          "Course type",
+                          "Credits",
+                          "Class ID",
+                          "Faculty ID",
+                          "Faculty",
+                          "Department",
+                          "Slot",
+                          "Venue",
+                        ]}
+                      >
+                        {attendanceRows.map((course: any, index: number) => (
+                          <tr key={`${course.courseType}-${index}`}>
+                            <td>{text(course.courseType)}</td>
+                            <td>{text(course.credits)}</td>
+                            <td>
+                              {text(
+                                course.classId ||
+                                  subject.marks.find((c: any) => c.courseType === course.courseType)?.classNbr,
+                              )}
+                            </td>
+                            <td>{text(review?.employeeId || subject.faculty.id)}</td>
+                            <td>{text(facultyName)}</td>
+                            <td>{text(department)}</td>
+                            <td>{text(course.slotName)}</td>
+                            <td>{text(course.slotVenue)}</td>
+                          </tr>
+                        ))}
+                      </Table>
+                      {subject.prediction && (
+                        <>
+                          <h4>AmazeCC default grade prediction</h4>
+                          <div className="report-summary">
+                            <div>
+                              <strong>{text(subject.prediction.optimalGrade?.letter, "Pending")}</strong>
+                              <span>At current pace</span>
+                            </div>
+                            <div>
+                              <strong>{text(subject.prediction.maximisableGrade?.letter)}</strong>
+                              <span>Best reachable grade</span>
+                            </div>
+                            <div>
+                              <strong>{subject.prediction.currentStandingPct.toFixed(1)}%</strong>
+                              <span>Current scored standing</span>
+                            </div>
+                            <div>
+                              <strong>{subject.prediction.maxPossibleScaled.toFixed(1)}%</strong>
+                              <span>Maximum possible score</span>
+                            </div>
+                            <div>
+                              <strong>{subject.classStats ? `${subject.classStats.mean.toFixed(1)}%` : "—"}</strong>
+                              <span>
+                                Class average{subject.classStats ? ` · n=${subject.classStats.count}` : " unavailable"}
+                              </span>
+                            </div>
+                          </div>
+                          <p className="report-empty">
+                            Uses the grade prediction page engine, current class average when available, and the saved
+                            assessment setup and simulated marks.{" "}
+                            {subject.prediction.optimalGrade?.description ||
+                              "No marked assessments yet; current-pace grade is not available."}
+                          </p>
+                        </>
+                      )}
+                      <h4>Assessment score distribution</h4>
+                      {marked.length ? (
+                        <div
+                          className="report-chart"
+                          data-report-chart="histogram"
+                          data-chart-title={`${subject.code} assessment scores`}
+                        >
+                          <h4>Assessment marks as percentage of maximum</h4>
+                          <div className="report-bars">
+                            {marked.map((assessment: any, index: number) => {
+                              const pct = (Number(assessment.scoredMark) / Number(assessment.maxMark)) * 100;
+                              return (
+                                <div
+                                  className="report-bar-item"
+                                  data-label={String(assessment.title || `Assessment ${index + 1}`).slice(0, 9)}
+                                  data-value={pct}
+                                  data-absent="0"
+                                  data-peak={assessmentPeak}
+                                  key={`${assessment.title}-${index}`}
+                                >
+                                  <div className="report-bar-pair">
+                                    <i
+                                      className="report-bar"
+                                      style={{ height: `${Math.max(3, (pct / assessmentPeak) * 80)}px` }}
+                                    />
+                                  </div>
+                                  <small>{String(assessment.title || `Assessment ${index + 1}`).slice(0, 9)}</small>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <div className="report-chart-legend">
+                            <span>
+                              <i /> Score percent of maximum
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <Empty>No marked assessments are available for a score histogram.</Empty>
+                      )}
+                      <Table
+                        headers={[
+                          "Component",
+                          "Assessment",
+                          "Status",
+                          "Score",
+                          "Maximum",
+                          "Weightage",
+                          "Weighted score",
+                        ]}
+                      >
+                        {assessments.map((assessment: any, index: number) => (
+                          <tr key={`${assessment.component}-${assessment.title}-${index}`}>
+                            <td>{text(assessment.component)}</td>
+                            <td>{text(assessment.title)}</td>
+                            <td>{text(assessment.status)}</td>
+                            <td>{text(assessment.scoredMark)}</td>
+                            <td>{text(assessment.maxMark)}</td>
+                            <td>{text(assessment.weightagePercent)}%</td>
+                            <td>{text(assessment.weightageMark)}</td>
+                          </tr>
+                        ))}
+                      </Table>
+                      <h4>OD claim status</h4>
+                      {subject.odHours > 0 ? (
+                        <>
+                          <PieChart
+                            title={`${subject.code}: valid/recovered vs wasted OD hours`}
+                            slices={[
+                              { label: "Valid / recovered", value: subject.odValidHours, color: "#26836d" },
+                              { label: "Wasted", value: subject.odWastedHours, color: "#c55454" },
+                            ]}
+                          />
+                          <p className="report-empty">
+                            Official OD application date matched:{" "}
+                            {subject.odDates.size
+                              ? `${subject.officialOdDates.size} of ${subject.odDates.size} dates`
+                              : "No OD dates"}
+                            . This date match does not establish subject-level approval.
+                          </p>
+                        </>
+                      ) : (
+                        <p className="report-empty">No OD claims recorded for this subject.</p>
+                      )}
+                      <h4>Faculty review and public details</h4>
+                      {review || directory ? (
+                        <>
+                          <div className="report-faculty-card">
+                            {facultyPhoto ? (
+                              <img src={facultyPhoto} alt={`${facultyName} faculty portrait`} />
+                            ) : (
+                              <div className="report-faculty-placeholder" aria-hidden="true">
+                                {facultyName
+                                  .split(/\s+/)
+                                  .slice(0, 2)
+                                  .map((part: string) => part[0])
+                                  .join("")
+                                  .toUpperCase()}
+                              </div>
+                            )}
+                            <div className="report-faculty-card-copy">
+                              <strong>{text(facultyName)}</strong>
+                              <span>{text(review?.designation || directory?.designation, "Faculty")}</span>
+                              <span>
+                                {text(department)} · ID{" "}
+                                {text(review?.employeeId || directory?.employeeId || subject.faculty.id)}
+                              </span>
+                            </div>
+                            <div className="report-faculty-card-stat">
+                              <strong>
+                                {text(review?.wPct ?? directory?.wPct, "—")}
+                                {review?.wPct != null || directory?.wPct != null ? "%" : ""}
+                              </strong>
+                              <span>recommendation</span>
+                            </div>
+                          </div>
+                          <div className="report-summary">
+                            <div>
+                              <strong>{text(review?.reviews ?? directory?.reviews, "0")}</strong>
+                              <span>Review count</span>
+                            </div>
+                            <div>
+                              <strong>{text(review?.metrics?.lecture ?? directory?.metrics?.lecture, "—")}</strong>
+                              <span>Lecture / explanation rating</span>
+                            </div>
+                            <div>
+                              <strong>{text(review?.metrics?.da ?? directory?.metrics?.da, "—")}</strong>
+                              <span>DA rating</span>
+                            </div>
+                            <div>
+                              <strong>{text(review?.metrics?.vibe ?? directory?.metrics?.vibe, "—")}</strong>
+                              <span>Class vibe</span>
+                            </div>
+                          </div>
+                          <Table headers={["Faculty information", "Details"]}>
+                            {[
+                              [
+                                "Employee / faculty ID",
+                                review?.employeeId || directory?.employeeId || subject.faculty.id,
+                              ],
+                              ["Designation", review?.designation || directory?.designation],
+                              ["Department / school", department],
+                              ["Email", review?.email || directory?.email],
+                              ["Intercom", review?.intercom || directory?.intercom],
+                              ["Research areas", (review?.researchArea || directory?.researchArea || []).join("; ")],
+                              [
+                                "Specialization",
+                                (review?.areasOfSpecialization || directory?.areasOfSpecialization || []).join("; "),
+                              ],
+                              ["Education", null],
+                              ["Awards", (directory?.awards || review?.awards || []).join("; ")],
+                              ["Scopus h-index", directory?.hIndexScopus ?? review?.hIndexScopus],
+                              ["i10-index", directory?.i10Index ?? review?.i10Index],
+                            ]
+                              .filter(([, value]) => value !== undefined && value !== null && value !== "")
+                              .map(([label, value]) => (
+                                <tr key={String(label)}>
+                                  <td>{String(label)}</td>
+                                  <td>{text(value)}</td>
+                                </tr>
+                              ))}
+                          </Table>
+                          {Array.isArray(directory?.education || review?.education) &&
+                            (directory?.education || review?.education).length > 0 && (
+                              <div className="report-education-list" aria-label="Faculty education">
+                                {(directory?.education || review?.education).map((entry: any, entryIndex: number) => {
+                                  const values = typeof entry === "string" ? { degree: entry } : entry;
+                                  const degree =
+                                    values.degree ||
+                                    values.qualification ||
+                                    values.title ||
+                                    values.program ||
+                                    "Education";
+                                  const year = [
+                                    values.startYear || values.fromYear,
+                                    values.endYear || values.year || values.toYear,
+                                  ]
+                                    .filter(Boolean)
+                                    .join("–");
+                                  const field =
+                                    values.field || values.specialization || values.discipline || values.major;
+                                  const institution =
+                                    values.institution || values.university || values.institute || values.school;
+                                  return (
+                                    <div className="report-education-card" key={entryIndex}>
+                                      <strong>{text(degree)}</strong>
+                                      {year && <span className="report-education-year">{text(year)}</span>}
+                                      {field && <span>{text(field)}</span>}
+                                      {institution && <span>{text(institution)}</span>}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          {Array.isArray(review?.lore?.green) && review.lore.green.length > 0 && (
+                            <div className="report-theme-group positive">
+                              <strong>Common positive review themes</strong>
+                              <div className="report-theme-list">
+                                {review.lore.green.map((x: any, index: number) => (
+                                  <span className="report-theme-pill" key={`${x.text}-${index}`}>
+                                    {x.text} <b>{x.count}</b>
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {Array.isArray(review?.lore?.red) && review.lore.red.length > 0 && (
+                            <div className="report-theme-group critical">
+                              <strong>Common critical review themes</strong>
+                              <div className="report-theme-list">
+                                {review.lore.red.map((x: any, index: number) => (
+                                  <span className="report-theme-pill" key={`${x.text}-${index}`}>
+                                    {x.text} <b>{x.count}</b>
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          <p className="report-empty">
+                            Faculty review data is community supplied by VITFAC and may not represent the full class.
+                            Ratings are not institutional evaluations.
+                          </p>
+                        </>
+                      ) : (
+                        <Empty>
+                          Faculty review/profile details are unavailable or the VITFAC integration is disabled.
+                        </Empty>
+                      )}
+                    </div>
+                  );
+                })}
+              </Section>
+
+              <div
+                id="historic-record"
+                data-report-segment="history"
+                className="report-divider"
+                aria-label="Historical academic report"
+              >
+                <span>AMAZECC · STUDENT RECORD</span>
+                <h2>Historical academic report</h2>
+                <p>Previously recorded semesters and archived academic results</p>
+              </div>
+
+              {snapshot.attendanceHistory.length > 0 && (
+                <Section title="Archived semester attendance summaries" segment="history">
+                  {snapshot.attendanceHistory.map(({ semesterId, data: archived }) => (
+                    <div key={semesterId} className="mb-3">
+                      <h3 className="font-bold mb-1">{semesterId}</h3>
+                      {Array.isArray(archived.attendance) ? (
+                        <Table headers={["Course", "Type", "Attended", "Total", "Attendance", "Date detail"]}>
+                          {archived.attendance.map((course: any, index: number) => (
+                            <tr key={`${course.courseCode}-${index}`}>
+                              <td>
+                                {text(course.courseCode)} · {text(course.courseTitle)}
+                              </td>
+                              <td>{text(course.courseType)}</td>
+                              <td>{text(course.attendedClasses)}</td>
+                              <td>{text(course.totalClasses)}</td>
+                              <td>{text(course.attendancePercentage)}%</td>
+                              <td>{Array.isArray(course.viewLink) ? course.viewLink.length : "Not supplied"}</td>
+                            </tr>
+                          ))}
+                        </Table>
+                      ) : (
+                        <Empty />
+                      )}
+                    </div>
+                  ))}
                 </Section>
               )}
-              <div id="student-services-cover" className="report-divider">
-                <span>AMAZECC · STUDENT SERVICES</span>
-                <h2>Other student services</h2>
-                <p>Transport, library, learning platform, and financial records</p>
-              </div>
-              <Section id="student-services" title="Other student services (sensitive)">
-                {includeFinance && (
-                  <>
-                    <h3>Financial record</h3>
-                    <p>
-                      Dues:{" "}
-                      {snapshot.payments?.hasDues === false
-                        ? "No dues reported"
-                        : snapshot.payments?.hasDues === true
-                          ? "Dues reported"
-                          : text(snapshot.payments?.message || snapshot.payments?.status)}
-                    </p>
-                    {Array.isArray(snapshot.receipts?.receipts) && (
-                      <Table headers={["Receipt", "Date", "Amount", "Campus"]}>
-                        {snapshot.receipts.receipts.map((item: any, i: number) => (
-                          <tr key={i}>
-                            <td>{text(item.receiptNumber)}</td>
-                            <td>{text(item.date)}</td>
-                            <td>{text(item.amount)}</td>
-                            <td>{text(item.campusCode)}</td>
-                          </tr>
-                        ))}
-                      </Table>
-                    )}
-                    {Array.isArray(snapshot.wallet?.ledgerINR) && (
-                      <Table headers={["Date", "Receipt", "Type", "Amount", "Refund", "Balance", "Refund date"]}>
-                        {snapshot.wallet.ledgerINR.map((item: any, i: number) => (
-                          <tr key={i}>
-                            <td>{text(item.transactionDate)}</td>
-                            <td>{text(item.receiptNumber)}</td>
-                            <td>{text(item.transactionType)}</td>
-                            <td>{text(item.amount)}</td>
-                            <td>{text(item.refundAmount)}</td>
-                            <td>{text(item.bookBalanceAmount)}</td>
-                            <td>{text(item.refundDate)}</td>
-                          </tr>
-                        ))}
-                      </Table>
-                    )}
-                    <p className="report-empty">
-                      Cached records provide current payment states and ledger entries; transition history is not
-                      supplied.
-                    </p>
-                  </>
+
+              <Section
+                id="complete-grade-history"
+                title="Complete grade history"
+                className="report-grade-history-section"
+                segment="history"
+              >
+                {semesterEntries.length ? (
+                  semesterEntries.map(([semester, result]: [string, any]) => (
+                    <div key={semester} id={`history-${semester}`} className="mb-4">
+                      <h3 className="font-bold mb-1">
+                        {semester} · GPA {text(result?.gpa)}
+                      </h3>
+                      {Array.isArray(result?.grades) && result.grades.length ? (
+                        result.grades.map((grade: any, index: number) => {
+                          const code = String(grade.courseCode || "")
+                            .replace(/\s*\([TL]\)$/i, "")
+                            .toUpperCase();
+                          const courseMeta = (snapshot.marks?.courses || []).find(
+                            (c: any) =>
+                              String(c.courseCode || "")
+                                .replace(/\s*\([TL]\)$/i, "")
+                                .toUpperCase() === code,
+                          );
+                          return (
+                            <div className="mb-3 report-course" key={`${grade.courseCode}-${index}`}>
+                              <h4 className="font-bold">
+                                {text(grade.courseCode)} · {text(grade.courseTitle)}
+                              </h4>
+                              <div className="report-grade-cards">
+                                <div>
+                                  <strong>{text(grade.courseType)}</strong>
+                                  <span>Type</span>
+                                </div>
+                                {(grade.credits ?? courseMeta?.credits) != null && (
+                                  <div>
+                                    <strong>{text(grade.credits ?? courseMeta?.credits)}</strong>
+                                    <span>Credits</span>
+                                  </div>
+                                )}
+                                {grade.grandTotal != null && grade.grandTotal !== "" && (
+                                  <div>
+                                    <strong>{text(grade.grandTotal)}</strong>
+                                    <span>Grand total</span>
+                                  </div>
+                                )}
+                                {grade.grade != null && grade.grade !== "" && (
+                                  <div>
+                                    <strong>{text(grade.grade)}</strong>
+                                    <span>Grade</span>
+                                  </div>
+                                )}
+                              </div>
+                              {Array.isArray(grade.details) && grade.details.length ? (
+                                <Table headers={["Assessment / component", "Status", "Score", "Maximum"]}>
+                                  {grade.details.map((detail: any, detailIndex: number) => (
+                                    <tr key={`${grade.courseCode}-${detailIndex}`}>
+                                      <td>{text(detail.component)}</td>
+                                      <td>{text(detail.status)}</td>
+                                      <td>{text(detail.scoredMark)}</td>
+                                      <td>{text(detail.maxMark)}</td>
+                                    </tr>
+                                  ))}
+                                </Table>
+                              ) : (
+                                <Empty>No assessment details supplied for this course.</Empty>
+                              )}
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <Empty>No course grades are published for this semester.</Empty>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <Empty>Complete semester grade history is not synced.</Empty>
                 )}
-                {snapshot.transport && (
-                  <>
-                    <h3>Transport</h3>
-                    <Table headers={["Field", "Value"]}>
-                      {[
-                        ["Registration", snapshot.transport.hasRegistration ? "Registered" : "Not registered"],
-                        ["Route", snapshot.transport.routeSelected],
-                        ["Payment status", snapshot.transport.paymentStatus],
-                        ["Bus route", snapshot.transport.busRouteId],
-                        ["Programme", snapshot.transport.programme],
-                        ["Branch", snapshot.transport.branch],
-                      ]
-                        .filter(([, value]) => value != null && value !== "")
-                        .map(([field, value]) => (
-                          <tr key={String(field)}>
-                            <td>{String(field)}</td>
-                            <td>{text(value)}</td>
-                          </tr>
-                        ))}
-                    </Table>
-                  </>
-                )}
-                {snapshot.library && (
-                  <>
-                    <h3>Library</h3>
-                    <Table headers={["Item", "Value"]}>
-                      {Object.entries(snapshot.library.keyValuePairs || {})
-                        .filter(([key]) => !/csrf|authori[sz]edid|token|secret/i.test(key))
-                        .map(([key, value]) => (
-                          <tr key={key}>
-                            <td>{key}</td>
-                            <td>{text(value)}</td>
-                          </tr>
-                        ))}
-                    </Table>
-                  </>
-                )}
-                {snapshot.moodle.length > 0 && (
-                  <>
-                    <h3>Moodle</h3>
-                    <Table headers={["Course", "Activity", "Due", "Status"]}>
-                      {snapshot.moodle.map((item: any, i: number) => (
-                        <tr key={i}>
-                          <td>{text(item.course || item.courseName)}</td>
-                          <td>{text(item.name || item.title || item.activity)}</td>
-                          <td>{text(item.dueDate || item.due)}</td>
-                          <td>{text(item.status)}</td>
-                        </tr>
-                      ))}
-                    </Table>
-                  </>
-                )}
-                {includeServices && !snapshot.transport && !snapshot.library && !snapshot.moodle.length && <Empty />}
               </Section>
-            </>
+
+              {(segments.services || segments.finance || segments.events) && (
+                <>
+                  {segments.events && snapshot.events.length > 0 && (
+                    <div id="registered-events-cover" data-report-segment="events" className="report-divider">
+                      <span>AMAZECC · STUDENT SERVICES</span>
+                      <h2>Registered events</h2>
+                      <p>Event registrations, attendance dates, and payment status</p>
+                    </div>
+                  )}
+                  {segments.events && snapshot.events.length > 0 && (
+                    <Section id="registered-events" title="Registered events" segment="events">
+                      <div className="report-summary">
+                        <div>
+                          <strong>{snapshot.events.length}</strong>
+                          <span>Registrations</span>
+                        </div>
+                        <div>
+                          <strong>
+                            {
+                              new Set(
+                                snapshot.events
+                                  .map((event: any) => parseReportDate(event.date)?.toISOString().slice(0, 10))
+                                  .filter(Boolean),
+                              ).size
+                            }
+                          </strong>
+                          <span>Event days</span>
+                        </div>
+                      </div>
+                      <ComparisonChart
+                        title="Event registrations by month"
+                        items={eventAnalytics(snapshot.events).map((month) => ({
+                          label: month.label,
+                          value: month.count,
+                        }))}
+                        unit="Registrations"
+                      />
+                      <ComparisonChart
+                        title="Distinct event days by month"
+                        items={eventAnalytics(snapshot.events).map((month) => ({
+                          label: month.label,
+                          value: month.days,
+                        }))}
+                        unit="Days"
+                      />
+                      <PieChart
+                        title="Registered events by payment state"
+                        slices={Object.entries(
+                          snapshot.events.reduce((counts: Record<string, number>, event: any) => {
+                            const state = String(event.paymentStatus || "Unknown");
+                            counts[state] = (counts[state] || 0) + 1;
+                            return counts;
+                          }, {}),
+                        ).map(([label, value], index) => ({
+                          label,
+                          value: Number(value),
+                          color: ["#26836d", "#d59b32", "#6d83a3", "#c55454", "#8056a3"][index % 5],
+                        }))}
+                      />
+                      <Table headers={["Event", "Date", "Time", "Venue", "Payment status"]}>
+                        {snapshot.events.map((item: any, i: number) => (
+                          <tr key={i}>
+                            <td>{text(item.name)}</td>
+                            <td>{dateLabel(item.date)}</td>
+                            <td>{text(item.time)}</td>
+                            <td>{text(item.venue)}</td>
+                            <td>{text(item.paymentStatus)}</td>
+                          </tr>
+                        ))}
+                      </Table>
+                    </Section>
+                  )}
+                  {segments.services && (
+                    <div id="student-services-cover" data-report-segment="services" className="report-divider">
+                      <span>AMAZECC · STUDENT SERVICES</span>
+                      <h2>Other student services</h2>
+                      <p>Transport, library, learning platform, and financial records</p>
+                    </div>
+                  )}
+                  {(segments.services || segments.finance) && (
+                    <Section id="student-services" title="Other student services (sensitive)">
+                      {segments.finance && (
+                        <div data-report-segment="finance">
+                          <h3>Financial record</h3>
+                          <p>
+                            Dues:{" "}
+                            {snapshot.payments?.hasDues === false
+                              ? "No dues reported"
+                              : snapshot.payments?.hasDues === true
+                                ? "Dues reported"
+                                : text(snapshot.payments?.message || snapshot.payments?.status)}
+                          </p>
+                          {Array.isArray(snapshot.receipts?.receipts) && (
+                            <Table headers={["Receipt", "Date", "Amount", "Campus"]}>
+                              {snapshot.receipts.receipts.map((item: any, i: number) => (
+                                <tr key={i}>
+                                  <td>{text(item.receiptNumber)}</td>
+                                  <td>{text(item.date)}</td>
+                                  <td>{text(item.amount)}</td>
+                                  <td>{text(item.campusCode)}</td>
+                                </tr>
+                              ))}
+                            </Table>
+                          )}
+                          {Array.isArray(snapshot.wallet?.ledgerINR) && (
+                            <Table headers={["Date", "Receipt", "Type", "Amount", "Refund", "Balance", "Refund date"]}>
+                              {snapshot.wallet.ledgerINR.map((item: any, i: number) => (
+                                <tr key={i}>
+                                  <td>{text(item.transactionDate)}</td>
+                                  <td>{text(item.receiptNumber)}</td>
+                                  <td>{text(item.transactionType)}</td>
+                                  <td>{text(item.amount)}</td>
+                                  <td>{text(item.refundAmount)}</td>
+                                  <td>{text(item.bookBalanceAmount)}</td>
+                                  <td>{text(item.refundDate)}</td>
+                                </tr>
+                              ))}
+                            </Table>
+                          )}
+                          <p className="report-empty">
+                            Cached records provide current payment states and ledger entries; transition history is not
+                            supplied.
+                          </p>
+                        </div>
+                      )}
+                      {segments.services && snapshot.transport && (
+                        <>
+                          <h3>Transport</h3>
+                          <Table headers={["Field", "Value"]}>
+                            {[
+                              ["Registration", snapshot.transport.hasRegistration ? "Registered" : "Not registered"],
+                              ["Route", snapshot.transport.routeSelected],
+                              ["Payment status", snapshot.transport.paymentStatus],
+                              ["Bus route", snapshot.transport.busRouteId],
+                              ["Programme", snapshot.transport.programme],
+                              ["Branch", snapshot.transport.branch],
+                            ]
+                              .filter(([, value]) => value != null && value !== "")
+                              .map(([field, value]) => (
+                                <tr key={String(field)}>
+                                  <td>{String(field)}</td>
+                                  <td>{text(value)}</td>
+                                </tr>
+                              ))}
+                          </Table>
+                        </>
+                      )}
+                      {segments.services && snapshot.library && (
+                        <>
+                          <h3>Library</h3>
+                          <Table headers={["Item", "Value"]}>
+                            {Object.entries(snapshot.library.keyValuePairs || {})
+                              .filter(([key]) => !/csrf|authori[sz]edid|token|secret/i.test(key))
+                              .map(([key, value]) => (
+                                <tr key={key}>
+                                  <td>{key}</td>
+                                  <td>{text(value)}</td>
+                                </tr>
+                              ))}
+                          </Table>
+                        </>
+                      )}
+                      {segments.services && snapshot.moodle.length > 0 && (
+                        <>
+                          <h3>Moodle</h3>
+                          <Table headers={["Course", "Activity", "Due", "Status"]}>
+                            {snapshot.moodle.map((item: any, i: number) => (
+                              <tr key={i}>
+                                <td>{text(item.course || item.courseName)}</td>
+                                <td>{text(item.name || item.title || item.activity)}</td>
+                                <td>{text(item.dueDate || item.due)}</td>
+                                <td>{text(item.status)}</td>
+                              </tr>
+                            ))}
+                          </Table>
+                        </>
+                      )}
+                      {segments.services && !snapshot.transport && !snapshot.library && !snapshot.moodle.length && (
+                        <Empty />
+                      )}
+                    </Section>
+                  )}
+                </>
+              )}
+              <footer className="report-foot">
+                AmazeCC student-generated report · Generated {snapshot.collectedAt.toLocaleString("en-IN")} · Cached
+                source records may be incomplete or stale.
+              </footer>
+            </article>
           )}
-          <footer className="report-foot">
-            AmazeCC student-generated report · Generated {snapshot.collectedAt.toLocaleString("en-IN")} · Cached source
-            records may be incomplete or stale.
-          </footer>
-        </article>
-      )}
-    </main>
+        </main>
+      </div>
+    </div>
   );
 }
