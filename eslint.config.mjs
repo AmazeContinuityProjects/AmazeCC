@@ -34,6 +34,17 @@ const eslintConfig = [
                 "Network calls must go through the SyncEngine (src/lib/sync-engine). Use `api` instead of fetchWithTimeout/API_BASE.",
             },
           ],
+          // The alias above only matches the `@/lib/fetch-utils` spelling.
+          // Relative imports (`./fetch-utils`, `../../lib/fetch-utils`) used to
+          // slip past it, so match the module by its file name too.
+          patterns: [
+            {
+              group: ["**/fetch-utils", "./fetch-utils"],
+              importNames: ["fetchWithTimeout", "API_BASE"],
+              message:
+                "Network calls must go through the SyncEngine (src/lib/sync-engine). Use `api` instead of fetchWithTimeout/API_BASE.",
+            },
+          ],
         },
       ],
     },
@@ -46,7 +57,10 @@ const eslintConfig = [
     ],
   },
   {
-    files: ["src/lib/sync-engine/**"],
+    // The engine owns the network. `workerBase.ts` is part of it: its
+    // `resolveApiRoute` is what the request layer uses to pick the API host or
+    // the public-data Worker for each route, so it needs API_BASE too.
+    files: ["src/lib/sync-engine/**", "src/lib/workerBase.ts"],
     rules: {
       "no-restricted-imports": "off",
     },
@@ -62,6 +76,8 @@ const eslintConfig = [
     ignores: [
       "src/components/custom/shared/primitives/**",
       "src/lib/uiTokens.ts",
+      // Defines API_BASE from NEXT_PUBLIC_API_URL; the one allowed reader.
+      "src/lib/fetch-utils.ts",
     ],
     rules: {
       // R9. `rounded-3xl` is Tailwind's 24px, which our scale spells
@@ -69,6 +85,15 @@ const eslintConfig = [
       // hide drift when only one of them gets edited. See DESIGN_LANGUAGE.md §5.
       "no-restricted-syntax": [
         "warn",
+        {
+          // Reading the API host straight from the environment skips the
+          // engine's failover, retries and offline handling. Only
+          // src/lib/fetch-utils.ts may do it.
+          selector:
+            "MemberExpression[object.object.name='process'][object.property.name='env'][property.name='NEXT_PUBLIC_API_URL']",
+          message:
+            "Don't read NEXT_PUBLIC_API_URL directly. Call the API through `api` from src/lib/sync-engine, or use getActiveApiUrl() for display.",
+        },
         {
           selector:
             "Literal[value=/\\brounded-3xl\\b/]",
