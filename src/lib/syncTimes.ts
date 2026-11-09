@@ -66,6 +66,54 @@ export function subscribeSyncTimes(cb: () => void): () => void {
   };
 }
 
+// ---- Failures -------------------------------------------------------------
+// Kept in memory only: retrying needs the exact args of the failed call, and
+// some args (the bulk sweep's allGradesRes) are too large to persist. A reload
+// starts clean, which is fine: the next sweep re-runs everything anyway.
+
+export interface SyncFailure {
+  op: string;
+  at: number;
+  message: string;
+  args: Record<string, unknown>;
+}
+
+let failures: Record<string, SyncFailure> = {};
+
+export function recordSyncFailure(op: string, message: string, args: Record<string, unknown>, at = Date.now()): void {
+  failures = { ...failures, [op]: { op, at, message, args } };
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(EVENT));
+}
+
+export function clearSyncFailure(op: string): void {
+  if (!(op in failures)) return;
+  const next = { ...failures };
+  delete next[op];
+  failures = next;
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(EVENT));
+}
+
+export function getSyncFailures(): Record<string, SyncFailure> {
+  return failures;
+}
+
+/**
+ * The most recent failure among `ops` that is newer than that op's last
+ * success, i.e. a refresh that failed and has not been fixed since.
+ */
+export function openFailure(
+  ops: readonly string[],
+  times: SyncTimes = getSyncTimes(),
+  fails: Record<string, SyncFailure> = failures,
+): SyncFailure | null {
+  let worst: SyncFailure | null = null;
+  for (const op of ops) {
+    const f = fails[op];
+    if (f && f.at > (times[op] ?? 0) && (!worst || f.at > worst.at)) worst = f;
+  }
+  return worst;
+}
+
 /** "just now", "5 min ago", "3 h ago", "yesterday", "4 days ago". */
 export function formatSyncAge(at: number, now: number): string {
   const s = Math.max(0, Math.round((now - at) / 1000));

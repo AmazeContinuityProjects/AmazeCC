@@ -4,7 +4,7 @@ import { makeCtx, getOp } from "./operation-registry";
 import { resolveMode, loadCustomModes, foregroundSteps, backgroundSteps, type SyncMode } from "./sync-modes";
 import { toEngineError } from "./errors";
 import { storage } from "../storage";
-import { recordSyncTime } from "../syncTimes";
+import { clearSyncFailure, recordSyncFailure, recordSyncTime } from "../syncTimes";
 import type { Ids, VtopCreds, ProgressEvent } from "./types";
 
 import { apiRequest, cancelAllRequests, resetActiveSignal } from "./request-layer";
@@ -142,11 +142,18 @@ class SyncEngine {
         await credentialManager.ensureVtopSession();
       }
       const result = (await op.run(opCtx, args)) as T;
-      if (!storage.demoMode.get()) recordSyncTime(name);
+      if (!storage.demoMode.get()) {
+        recordSyncTime(name);
+        clearSyncFailure(name);
+      }
       emit({ op: name, phase: "done" });
       return result;
     } catch (e) {
-      emit({ op: name, phase: "error", error: toEngineError(e) });
+      const err = toEngineError(e);
+      if (err.kind !== "aborted" && !storage.demoMode.get()) {
+        recordSyncFailure(name, "message" in err ? err.message : "Sync failed", args);
+      }
+      emit({ op: name, phase: "error", error: err });
       throw e;
     }
   }

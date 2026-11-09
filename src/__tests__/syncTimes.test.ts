@@ -34,3 +34,22 @@ describe("sync time store", () => {
     expect(JSON.parse(localStorage.getItem("sync_times") || "{}").calendar).toBe(42);
   });
 });
+
+describe("sync failures", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("reports a failure newer than the last success, with its args", async () => {
+    const { recordSyncFailure, clearSyncFailure, openFailure } = await import("../lib/syncTimes");
+    recordSyncTime("schedule", 1000);
+    recordSyncFailure("schedule", "VTOP timed out", { semesterId: "CH20262705" }, 2000);
+    expect(openFailure(["schedule"])).toMatchObject({ op: "schedule", args: { semesterId: "CH20262705" } });
+
+    // A later success closes it.
+    recordSyncTime("schedule", 3000);
+    expect(openFailure(["schedule"])).toBeNull();
+
+    recordSyncFailure("schedule", "again", {}, 4000);
+    clearSyncFailure("schedule");
+    expect(openFailure(["schedule"])).toBeNull();
+  });
+});
