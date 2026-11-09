@@ -78,6 +78,13 @@ import { toMinutes } from "@/lib/social/schedule";
 import { ensureLunchPeriod } from "@/lib/slots";
 import { exitNativeFullscreen, requestNativeFullscreen } from "@/lib/fullscreen";
 import { FacultyScoresForCourse, GuidedFacultyReviewStats } from "./GuidedFacultyStats";
+import MobilePreflightCard from "./guided/MobilePreflightCard";
+import SetupModeCard from "./guided/SetupModeCard";
+import SetupStrategyCard from "./guided/SetupStrategyCard";
+import AutoSocialCard from "./guided/AutoSocialCard";
+import AutoTimetableViewCard from "./guided/AutoTimetableViewCard";
+import AutoTimingsCard from "./guided/AutoTimingsCard";
+import AutoBlockingCard from "./guided/AutoBlockingCard";
 
 // Fetched only when the student actually opens the swap sheet, not when the
 // guided flow itself loads.
@@ -1380,93 +1387,6 @@ export default function FFCSGuidedSelector({
     setTimeBlockedSlots(new Set());
   };
 
-  // ── RENDER HELPERS FOR SETUP SCREENS ──
-  const renderSetupModeCard = (isLandscape = false) => (
-    <div
-      className={`p-5 sm:p-6 rounded-[28px] sm:rounded-[32px] bg-zinc-900/80 border border-zinc-800/80 backdrop-blur-xl shadow-2xl space-y-4 text-left flex flex-col justify-center ${
-        isLandscape ? "h-[74vh] max-h-[640px] w-full" : "min-h-[380px] max-h-[620px]"
-      }`}
-    >
-      <div className="space-y-3">
-        {/* Option A: Auto-Generate */}
-        <button
-          type="button"
-          onClick={() => setPlanMode("auto")}
-          className={`w-full p-4 sm:p-5 rounded-2xl border text-left transition-all cursor-pointer flex items-start gap-4 group relative ${
-            planMode === "auto"
-              ? "bg-indigo-600/15 border-indigo-500 text-white shadow-lg ring-1 ring-indigo-500/40"
-              : "bg-zinc-950/40 border-zinc-800/80 text-zinc-300 hover:border-zinc-700 hover:bg-zinc-800/30"
-          }`}
-        >
-          <div
-            className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${
-              planMode === "auto"
-                ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-                : "bg-zinc-900 border border-zinc-800 text-indigo-400"
-            }`}
-          >
-            <Wand2 className="w-6 h-6" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
-                ✨ Algorithmic Engine
-              </span>
-              {planMode === "auto" && (
-                <span className="text-[10px] font-black text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
-                  <Check className="w-3 h-3" /> Selected
-                </span>
-              )}
-            </div>
-            <h3 className="text-base sm:text-lg font-black text-white font-outfit">Auto-Generate Timetable</h3>
-            <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
-              Step-by-step guidance: pick target courses, set pacing rules, align with peers, and inspect recommended
-              variants with direct faculty review & schedule views.
-            </p>
-          </div>
-        </button>
-
-        {/* Option B: Build My Own */}
-        <button
-          type="button"
-          onClick={() => setPlanMode("custom")}
-          className={`w-full p-4 sm:p-5 rounded-2xl border text-left transition-all cursor-pointer flex items-start gap-4 group relative ${
-            planMode === "custom"
-              ? "bg-indigo-600/15 border-indigo-500 text-white shadow-lg ring-1 ring-indigo-500/40"
-              : "bg-zinc-950/40 border-zinc-800/80 text-zinc-300 hover:border-zinc-700 hover:bg-zinc-800/30"
-          }`}
-        >
-          <div
-            className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${
-              planMode === "custom"
-                ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-                : "bg-zinc-900 border border-zinc-800 text-indigo-400"
-            }`}
-          >
-            <Compass className="w-6 h-6" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
-                🧭 Manual Builder
-              </span>
-              {planMode === "custom" && (
-                <span className="text-[10px] font-black text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
-                  <Check className="w-3 h-3" /> Selected
-                </span>
-              )}
-            </div>
-            <h3 className="text-base sm:text-lg font-black text-white font-outfit">Build My Own Timetable</h3>
-            <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
-              Select courses and slot offerings one-by-one with real-time conflict checking, faculty ratings, and
-              replacement support.
-            </p>
-          </div>
-        </button>
-      </div>
-    </div>
-  );
-
   const renderSetupTimetableCard = (isLandscape = false) => (
     <div
       className={`p-5 sm:p-6 rounded-[28px] sm:rounded-[32px] bg-zinc-900/80 border border-zinc-800/80 backdrop-blur-xl shadow-2xl space-y-4 text-left flex flex-col ${
@@ -1588,96 +1508,6 @@ export default function FFCSGuidedSelector({
             </div>
           );
         })}
-      </div>
-    </div>
-  );
-
-  const renderSetupStrategyCard = (isLandscape = false) => (
-    <div
-      className={`p-5 sm:p-6 rounded-[28px] sm:rounded-[32px] bg-zinc-900/80 border border-zinc-800/80 backdrop-blur-xl shadow-2xl space-y-4 text-left flex flex-col justify-center ${
-        isLandscape ? "h-[74vh] max-h-[640px] w-full" : "min-h-[380px] max-h-[620px]"
-      }`}
-    >
-      <div className="space-y-3">
-        {/* Option 1: Lock Target Courses */}
-        <button
-          type="button"
-          onClick={() => setCourseStrategy("lock_advance")}
-          className={`w-full p-4 sm:p-5 rounded-2xl border text-left transition-all cursor-pointer flex items-start gap-4 group relative ${
-            courseStrategy === "lock_advance"
-              ? "bg-indigo-600/15 border-indigo-500 text-white shadow-lg ring-1 ring-indigo-500/40"
-              : "bg-zinc-950/40 border-zinc-800/80 text-zinc-300 hover:border-zinc-700 hover:bg-zinc-800/30"
-          }`}
-        >
-          <div
-            className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${
-              courseStrategy === "lock_advance"
-                ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-                : "bg-zinc-900 border border-zinc-800 text-indigo-400"
-            }`}
-          >
-            <Lock className="w-6 h-6" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className="text-[10px] font-black uppercase tracking-wider text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-md border border-purple-500/20">
-                🔒 Mandatory Locks
-              </span>
-              {courseStrategy === "lock_advance" && (
-                <span className="text-[10px] font-black text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
-                  <Check className="w-3 h-3" /> Selected
-                </span>
-              )}
-            </div>
-            <h3 className="text-base sm:text-lg font-black text-white font-outfit">Lock Target Courses in Advance</h3>
-            <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
-              {planMode === "auto"
-                ? "Pre-lock mandatory core courses and optionally restrict allowed slot clusters (like A1, B1) or preferred faculty before generating combinations."
-                : "Pick mandatory core courses and lock preferred faculty or slot groups in advance before scheduling the rest."}
-            </p>
-          </div>
-        </button>
-
-        {/* Option 2: Choose courses normally / manual adder */}
-        <button
-          type="button"
-          onClick={() => setCourseStrategy("one_by_one")}
-          className={`w-full p-4 sm:p-5 rounded-2xl border text-left transition-all cursor-pointer flex items-start gap-4 group relative ${
-            courseStrategy === "one_by_one"
-              ? "bg-indigo-600/15 border-indigo-500 text-white shadow-lg ring-1 ring-indigo-500/40"
-              : "bg-zinc-950/40 border-zinc-800/80 text-zinc-300 hover:border-zinc-700 hover:bg-zinc-800/30"
-          }`}
-        >
-          <div
-            className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${
-              courseStrategy === "one_by_one"
-                ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-                : "bg-zinc-900 border border-zinc-800 text-indigo-400"
-            }`}
-          >
-            {planMode === "auto" ? <BookOpen className="w-6 h-6" /> : <Compass className="w-6 h-6" />}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className="text-[10px] font-black uppercase tracking-wider text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-md border border-cyan-500/20">
-                {planMode === "auto" ? "⚡ Unconstrained Catalog" : "🧭 Manual Course Selector"}
-              </span>
-              {courseStrategy === "one_by_one" && (
-                <span className="text-[10px] font-black text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
-                  <Check className="w-3 h-3" /> Selected
-                </span>
-              )}
-            </div>
-            <h3 className="text-base sm:text-lg font-black text-white font-outfit">
-              {planMode === "auto" ? "Normally Add Courses in List" : "Choose Courses One by One"}
-            </h3>
-            <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
-              {planMode === "auto"
-                ? "Select target courses normally from the course list without locking slot or faculty constraints, giving the solver full flexibility."
-                : "Directly enter the manual course selector and pick slot offerings dynamically as you build."}
-            </p>
-          </div>
-        </button>
       </div>
     </div>
   );
@@ -2716,371 +2546,6 @@ export default function FFCSGuidedSelector({
     );
   };
 
-  const renderAutoTimingsCard = (isLandscape = false) => {
-    const startEdgePresets = [
-      { time: "08:00", label: "08:00 AM", desc: "Period 1 (A1 / L1)" },
-      { time: "08:55", label: "08:55 AM", desc: "Period 2 (F1 / L3)" },
-      { time: "09:50", label: "09:50 AM", desc: "Period 3 (D1 / L5)" },
-      { time: "10:45", label: "10:45 AM", desc: "Period 4 (TB1 / L7)" },
-      { time: "11:40", label: "11:40 AM", desc: "Period 5 (TG1 / L9)" },
-      { time: "14:00", label: "02:00 PM", desc: "Afternoon Start (A2 / L31)" },
-    ];
-
-    const endEdgePresets = [
-      { time: "12:30", label: "12:30 PM", desc: "Period 5 End" },
-      { time: "13:25", label: "01:25 PM", desc: "Lunch Break (Morning End)" },
-      { time: "16:40", label: "04:40 PM", desc: "Period 9 End (D2 / L35)" },
-      { time: "17:35", label: "05:35 PM", desc: "Period 10 End (TB2 / L37)" },
-      { time: "18:30", label: "06:30 PM", desc: "Period 11 End (TG2 / L39)" },
-      { time: "19:30", label: "07:30 PM", desc: "Day Wrap (Full Day End)" },
-    ];
-
-    const quickDaySchedules = [
-      { start: "08:00", end: "19:30", title: "Full Campus Day", badge: "08:00 - 19:30" },
-      { start: "08:00", end: "13:25", title: "Morning Only", badge: "08:00 - 13:25" },
-      { start: "14:00", end: "19:30", title: "Afternoon Only", badge: "14:00 - 19:30" },
-      { start: "08:55", end: "17:35", title: "Balanced Hours", badge: "08:55 - 17:35" },
-    ];
-
-    return (
-      <div
-        className={`p-4 sm:p-6 rounded-[28px] sm:rounded-[32px] bg-zinc-900/80 border border-zinc-800/80 backdrop-blur-xl shadow-2xl space-y-4 text-left flex flex-col justify-between ${
-          isLandscape ? "h-[74vh] max-h-[640px] w-full" : "min-h-[460px] max-h-[680px]"
-        } overflow-y-auto custom-scrollbar`}
-      >
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-sm font-black text-white uppercase tracking-wider font-outfit">
-              3. Day Start &amp; End Timings
-            </h3>
-            <p className="text-xs text-zinc-400">
-              Set earliest permitted class starts and latest wrap times. Slot-based edge chips align with VIT periods.
-            </p>
-          </div>
-
-          {/* Quick Schedule Presets */}
-          <div className="space-y-1.5">
-            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Quick Timing Presets</span>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {quickDaySchedules.map((sched) => {
-                const isActive = autoMinStartTime === sched.start && autoMaxEndTime === sched.end;
-                return (
-                  <button
-                    key={sched.title}
-                    type="button"
-                    onClick={() => {
-                      setAutoMinStartTime(sched.start);
-                      setAutoMaxEndTime(sched.end);
-                      autoBlockOutsideSlots(sched.start, sched.end);
-                    }}
-                    className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                      isActive
-                        ? "bg-indigo-600 text-white border-indigo-500 shadow-sm ring-1 ring-indigo-400"
-                        : "bg-zinc-950/60 border-zinc-800 text-zinc-300 hover:border-zinc-700"
-                    }`}
-                  >
-                    <div className="font-extrabold text-xs font-outfit truncate">{sched.title}</div>
-                    <div className="text-[10px] opacity-80 font-mono mt-0.5">{sched.badge}</div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Auto-blocking Status Feedback */}
-          {timeBlockedSlots.size > 0 ? (
-            <div className="flex items-center gap-2 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-medium">
-              <Clock className="w-4 h-4 shrink-0 text-amber-400" />
-              <span>
-                <strong>{timeBlockedSlots.size} slots</strong> outside {autoMinStartTime} – {autoMaxEndTime} are
-                automatically blocked for generation.
-              </span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 p-3 rounded-2xl bg-zinc-950/40 border border-zinc-800 text-zinc-400 text-xs">
-              <Clock className="w-4 h-4 shrink-0 text-zinc-500" />
-              <span>Full campus schedule open (08:00 – 19:30). No slots are automatically ruled out by time.</span>
-            </div>
-          )}
-
-          {/* Start Time Section */}
-          <div className="p-3.5 rounded-2xl bg-zinc-950/50 border border-zinc-800 space-y-2.5">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-xs font-black text-white uppercase tracking-wider font-outfit block">
-                  Earliest Start Time (No classes before)
-                </span>
-                <span className="text-[11px] text-zinc-400">
-                  Classes starting earlier than this time will be excluded.
-                </span>
-              </div>
-              <input
-                type="time"
-                aria-label="Earliest class start time"
-                value={autoMinStartTime}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setAutoMinStartTime(val);
-                  if (val) autoBlockOutsideSlots(val, autoMaxEndTime);
-                }}
-                className="px-2.5 py-1 rounded-xl bg-zinc-900 border border-zinc-700 text-white text-xs font-mono font-bold"
-              />
-            </div>
-
-            <div className="flex flex-wrap gap-1.5">
-              {startEdgePresets.map((preset) => {
-                const isSelected = autoMinStartTime === preset.time;
-                return (
-                  <button
-                    key={preset.time}
-                    type="button"
-                    onClick={() => {
-                      setAutoMinStartTime(preset.time);
-                      autoBlockOutsideSlots(preset.time, autoMaxEndTime);
-                    }}
-                    className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex flex-col text-left ${
-                      isSelected
-                        ? "bg-indigo-600 text-white border-indigo-500 shadow-xs"
-                        : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-zinc-700"
-                    }`}
-                  >
-                    <span>{preset.label}</span>
-                    <span className="text-[9.5px] opacity-75 font-normal">{preset.desc}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* End Time Section */}
-          <div className="p-3.5 rounded-2xl bg-zinc-950/50 border border-zinc-800 space-y-2.5">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-xs font-black text-white uppercase tracking-wider font-outfit block">
-                  Latest Wrap Time (No classes after)
-                </span>
-                <span className="text-[11px] text-zinc-400">Classes ending later than this time will be excluded.</span>
-              </div>
-              <input
-                type="time"
-                aria-label="Latest class end time"
-                value={autoMaxEndTime}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setAutoMaxEndTime(val);
-                  if (val) autoBlockOutsideSlots(autoMinStartTime, val);
-                }}
-                className="px-2.5 py-1 rounded-xl bg-zinc-900 border border-zinc-700 text-white text-xs font-mono font-bold"
-              />
-            </div>
-
-            <div className="flex flex-wrap gap-1.5">
-              {endEdgePresets.map((preset) => {
-                const isSelected = autoMaxEndTime === preset.time;
-                return (
-                  <button
-                    key={preset.time}
-                    type="button"
-                    onClick={() => {
-                      setAutoMaxEndTime(preset.time);
-                      autoBlockOutsideSlots(autoMinStartTime, preset.time);
-                    }}
-                    className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex flex-col text-left ${
-                      isSelected
-                        ? "bg-indigo-600 text-white border-indigo-500 shadow-xs"
-                        : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-zinc-700"
-                    }`}
-                  >
-                    <span>{preset.label}</span>
-                    <span className="text-[9.5px] opacity-75 font-normal">{preset.desc}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const renderAutoBlockingCard = (isLandscape = false) => {
-    const daysList = DAYS || [
-      { id: "mon", name: "Monday" },
-      { id: "tue", name: "Tuesday" },
-      { id: "wed", name: "Wednesday" },
-      { id: "thu", name: "Thursday" },
-      { id: "fri", name: "Friday" },
-    ];
-
-    const currentDayData = getDaySlots(blockingActiveDay);
-    const morningTheoryBlocked =
-      currentDayData.morningTheory.length > 0 &&
-      currentDayData.morningTheory.every((s) => effectiveBlockedSlots.has(s));
-    const morningLabBlocked =
-      currentDayData.morningLab.length > 0 && currentDayData.morningLab.every((s) => effectiveBlockedSlots.has(s));
-    const eveningTheoryBlocked =
-      currentDayData.eveningTheory.length > 0 &&
-      currentDayData.eveningTheory.every((s) => effectiveBlockedSlots.has(s));
-    const eveningLabBlocked =
-      currentDayData.eveningLab.length > 0 && currentDayData.eveningLab.every((s) => effectiveBlockedSlots.has(s));
-    const dayAllBlocked =
-      currentDayData.all.length > 0 && currentDayData.all.every((s) => effectiveBlockedSlots.has(s));
-
-    const schema = getTimetableSchema();
-    const theoryPeriods = ensureLunchPeriod(schema.theory as TimetablePeriod[]);
-    const labPeriods = ensureLunchPeriod(schema.lab as TimetablePeriod[]);
-
-    return (
-      <div
-        className={`p-4 sm:p-5 rounded-[28px] sm:rounded-[32px] bg-zinc-900/80 border border-zinc-800/80 backdrop-blur-xl shadow-2xl space-y-3 text-left flex flex-col justify-between ${
-          isLandscape ? "h-[74vh] max-h-[640px] w-full" : "min-h-[480px] max-h-[700px]"
-        }`}
-      >
-        <div className="shrink-0 space-y-2">
-          <div className="flex items-center justify-between gap-2">
-            <div>
-              <h3 className="text-sm font-black text-white uppercase tracking-wider font-outfit">
-                4. Slot &amp; Day Blocking
-              </h3>
-              <p className="text-xs text-zinc-400">
-                Rule out whole days or specific periods. Tap any slot in the vertical timetable below to block theory or
-                lab independently.
-              </p>
-            </div>
-            {effectiveBlockedSlots.size > 0 && (
-              <button
-                type="button"
-                onClick={handleClearAllBlocks}
-                className="text-[11px] font-bold text-rose-400 hover:text-rose-300 transition-colors cursor-pointer shrink-0 flex items-center gap-1"
-              >
-                <RotateCcw className="w-3 h-3" />
-                <span>Clear All ({effectiveBlockedSlots.size})</span>
-              </button>
-            )}
-          </div>
-
-          {/* Day Selector Strip */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar">
-            {daysList.map((d) => {
-              const isSelected = blockingActiveDay === d.id;
-              const dayData = getDaySlots(d.id);
-              const blockedInDay = dayData.all.filter((s) => effectiveBlockedSlots.has(s)).length;
-
-              return (
-                <button
-                  key={d.id}
-                  type="button"
-                  onClick={() => setBlockingActiveDay(d.id)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 flex items-center gap-1.5 ${
-                    isSelected
-                      ? "bg-indigo-600 text-white shadow-md ring-1 ring-indigo-400"
-                      : "bg-zinc-950/60 border border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-700"
-                  }`}
-                >
-                  <span>{d.name}</span>
-                  {blockedInDay > 0 && (
-                    <span className="px-1.5 py-0.2 rounded-md bg-rose-500/30 text-rose-300 text-[10px] font-mono">
-                      {blockedInDay}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Quick Per-Day Action Buttons */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => handleToggleDayBlock(blockingActiveDay, "morning_theory")}
-              className={`text-[11px] font-bold px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer ${
-                morningTheoryBlocked
-                  ? "bg-rose-600 text-white border-rose-500 shadow-xs"
-                  : "bg-zinc-950/60 border-zinc-800 text-zinc-300 hover:border-zinc-700"
-              }`}
-            >
-              {morningTheoryBlocked ? "Unblock Morning Theory ✓" : "Block Morning Theory (08:00 - 13:25)"}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleToggleDayBlock(blockingActiveDay, "morning_lab")}
-              className={`text-[11px] font-bold px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer ${
-                morningLabBlocked
-                  ? "bg-rose-600 text-white border-rose-500 shadow-xs"
-                  : "bg-zinc-950/60 border-zinc-800 text-zinc-300 hover:border-zinc-700"
-              }`}
-            >
-              {morningLabBlocked ? "Unblock Morning Lab ✓" : "Block Morning Lab (08:00 - 13:20)"}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleToggleDayBlock(blockingActiveDay, "evening_theory")}
-              className={`text-[11px] font-bold px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer ${
-                eveningTheoryBlocked
-                  ? "bg-rose-600 text-white border-rose-500 shadow-xs"
-                  : "bg-zinc-950/60 border-zinc-800 text-zinc-300 hover:border-zinc-700"
-              }`}
-            >
-              {eveningTheoryBlocked ? "Unblock Afternoon Theory ✓" : "Block Afternoon Theory (14:00 - 19:30)"}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleToggleDayBlock(blockingActiveDay, "evening_lab")}
-              className={`text-[11px] font-bold px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer ${
-                eveningLabBlocked
-                  ? "bg-rose-600 text-white border-rose-500 shadow-xs"
-                  : "bg-zinc-950/60 border-zinc-800 text-zinc-300 hover:border-zinc-700"
-              }`}
-            >
-              {eveningLabBlocked ? "Unblock Afternoon Lab ✓" : "Block Afternoon Lab (14:00 - 19:30)"}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleToggleDayBlock(blockingActiveDay, "all")}
-              className={`text-[11px] font-bold px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer ${
-                dayAllBlocked
-                  ? "bg-rose-600 text-white border-rose-500 shadow-xs"
-                  : "bg-zinc-950/60 border-zinc-800 text-zinc-300 hover:border-zinc-700"
-              }`}
-            >
-              {dayAllBlocked ? "Unblock Full Day ✓" : "Block Entire Day"}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleClearDayBlocks(blockingActiveDay)}
-              className="text-[11px] font-bold px-2.5 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white transition-all cursor-pointer"
-            >
-              Reset Day
-            </button>
-          </div>
-        </div>
-
-        {/* Visual Interactive Vertical Timetable */}
-        <div className="flex-1 min-h-[220px] max-h-[360px] overflow-auto rounded-2xl bg-zinc-950/70 border border-zinc-800/80 p-2 custom-scrollbar">
-          <div className="text-[10px] text-zinc-500 font-bold mb-1.5 px-1 flex items-center justify-between">
-            <span>INTERACTIVE VERTICAL TIMETABLE — TAP ANY CELL TO TOGGLE BLOCK</span>
-            <span className="text-rose-400 font-mono">{effectiveBlockedSlots.size} slots blocked</span>
-          </div>
-          <VerticalTimetableGrid
-            courses={[]}
-            theoryPeriods={theoryPeriods}
-            labPeriods={labPeriods}
-            days={daysList}
-            blockedSlots={effectiveBlockedSlots}
-            onToggleBlockSlot={handleToggleBlockSlot}
-            compact={true}
-            showSlotNames={true}
-          />
-        </div>
-      </div>
-    );
-  };
-
   const renderAutoHalfDaysCard = (isLandscape = false) => {
     return (
       <div
@@ -3296,58 +2761,6 @@ export default function FFCSGuidedSelector({
               </label>
             )}
           </div>
-        </div>
-      </div>
-    );
-  };
-
-  const renderAutoSocialCard = (isLandscape = false) => {
-    return (
-      <div
-        className={`p-5 sm:p-6 rounded-[28px] sm:rounded-[32px] bg-zinc-900/80 border border-zinc-800/80 backdrop-blur-xl shadow-2xl space-y-4 text-left flex flex-col justify-between ${
-          isLandscape ? "h-[74vh] max-h-[640px] w-full" : "min-h-[380px] max-h-[620px]"
-        }`}
-      >
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-sm font-black text-white uppercase tracking-wider font-outfit">
-              3. Friends &amp; Peer Sync
-            </h3>
-            <p className="text-xs text-zinc-400">Align your generated timetable with peer schedules.</p>
-          </div>
-
-          {friends.length === 0 ? (
-            <div className="p-6 rounded-2xl bg-zinc-950/60 border border-zinc-800 text-center space-y-2">
-              <Users className="w-8 h-8 text-zinc-500 mx-auto" />
-              <h4 className="text-sm font-bold text-white">Solo Generation Mode</h4>
-              <p className="text-xs text-zinc-400 max-w-xs mx-auto">
-                No friend timetables added yet. The solver will optimize purely for your personal preferences.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="p-4 rounded-2xl bg-zinc-950/60 border border-zinc-800 flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-bold text-white">Sync Shared Class Slots</p>
-                  <p className="text-[11px] text-zinc-400">Prioritize sections where your friends are enrolled</p>
-                </div>
-                <Switch checked={autoSyncFriends} onCheckedChange={setAutoSyncFriends} size="md" label="Sync Classes" />
-              </div>
-
-              <div className="p-4 rounded-2xl bg-zinc-950/60 border border-zinc-800 flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-bold text-white">Maximize Shared Break Times</p>
-                  <p className="text-[11px] text-zinc-400">Align lunch and free slots with friends</p>
-                </div>
-                <Switch
-                  checked={autoMaximizeFreeTime}
-                  onCheckedChange={setAutoMaximizeFreeTime}
-                  size="md"
-                  label="Maximize Breaks"
-                />
-              </div>
-            </div>
-          )}
         </div>
       </div>
     );
@@ -3907,101 +3320,6 @@ export default function FFCSGuidedSelector({
               </div>
             </div>
           ))}
-        </div>
-      </div>
-    );
-  };
-
-  const renderAutoTimetableViewCard = (isLandscape = false) => {
-    const currentVariant = autoResultsList[selectedVariantIndex];
-    if (!currentVariant) return null;
-
-    const schema = getTimetableSchema();
-    const metrics = timetableMetrics(currentVariant.courses, schema);
-    const totalCredits = currentVariant.courses.reduce((sum, c) => sum + (Number(c.credits) || 0), 0);
-    const daysList = DAYS || [
-      { id: "mon", name: "Monday" },
-      { id: "tue", name: "Tuesday" },
-      { id: "wed", name: "Wednesday" },
-      { id: "thu", name: "Thursday" },
-      { id: "fri", name: "Friday" },
-    ];
-    const theoryPeriods = ensureLunchPeriod(schema.theory as TimetablePeriod[]);
-    const labPeriods = ensureLunchPeriod(schema.lab as TimetablePeriod[]);
-
-    return (
-      <div
-        className={`p-4 sm:p-5 rounded-[28px] sm:rounded-[32px] bg-zinc-900/90 border border-zinc-800/80 backdrop-blur-xl shadow-2xl space-y-3 text-left flex flex-col justify-between ${
-          isLandscape ? "h-[74vh] max-h-[640px] w-full" : "h-[62vh] sm:h-[68vh] min-h-[480px] max-h-[720px]"
-        }`}
-      >
-        {/* Header Strip with Variant Navigator & Switch back to List */}
-        <div className="flex items-center justify-between p-2.5 rounded-2xl bg-zinc-950/60 border border-zinc-800 shrink-0 gap-2 flex-wrap">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              disabled={selectedVariantIndex <= 0}
-              onClick={() => setSelectedVariantIndex((prev) => Math.max(0, prev - 1))}
-              className="p-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <div className="text-left">
-              <span className="font-extrabold text-xs sm:text-sm text-white font-outfit block">
-                Timetable {selectedVariantIndex + 1} of {autoResultsList.length}
-              </span>
-              <span className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider block">
-                {selectedVariantIndex === 0 ? "★ Top Recommended" : "Generated Variant"}
-              </span>
-            </div>
-            <button
-              type="button"
-              disabled={selectedVariantIndex >= autoResultsList.length - 1}
-              onClick={() => setSelectedVariantIndex((prev) => Math.min(autoResultsList.length - 1, prev + 1))}
-              className="p-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {/* Metric Chips */}
-            <span className="px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[11px] font-bold">
-              {metrics.halfDays} Free Half-Days
-            </span>
-            <span className="px-2 py-1 rounded-lg bg-zinc-800/80 border border-zinc-700/60 text-zinc-300 text-[11px] font-bold">
-              {totalCredits} Credits
-            </span>
-            <button
-              type="button"
-              onClick={() => setGuidedPhase("auto_results")}
-              className="px-2.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-zinc-400" />
-              <span>List &amp; Faculty View</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setGuidedPhase("manual_timetable_view")}
-              className="px-2.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
-            >
-              <Calendar className="w-3.5 h-3.5 text-zinc-400" />
-              <span>My Timetables ({effectiveTimetables.length})</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Embedded Interactive Vertical Timetable Grid */}
-        <div className="flex-1 min-h-[260px] overflow-auto rounded-2xl bg-zinc-950/70 border border-zinc-800/80 p-2 custom-scrollbar">
-          <VerticalTimetableGrid
-            courses={currentVariant.courses}
-            theoryPeriods={theoryPeriods}
-            labPeriods={labPeriods}
-            days={daysList}
-            blockedSlots={effectiveBlockedSlots}
-            compact={true}
-            showSlotNames={true}
-          />
         </div>
       </div>
     );
@@ -5203,62 +4521,6 @@ export default function FFCSGuidedSelector({
     return manualPhases;
   };
 
-  const renderMobilePreflightCard = () => (
-    <div
-      data-testid="mobile-preflight-screen"
-      className="w-full max-w-md mx-auto flex-1 flex flex-col justify-center gap-4 my-auto animate-in fade-in duration-200"
-    >
-      {/* Top category label */}
-      <div className="space-y-1.5 text-center sm:text-left">
-        <div className="mb-1">
-          <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400 font-outfit">
-            Mobile First · Timetable Studio
-          </span>
-        </div>
-        <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight font-outfit">
-          Mobile-First Timetable Builder
-        </h1>
-        <p className="text-xs text-zinc-400 leading-relaxed font-medium">
-          Step-by-step mobile timetable designer with live clash checking, faculty ratings, and fast multi-timetable
-          switching.
-        </p>
-      </div>
-
-      {/* Feature Highlight Cards */}
-      <div className="grid grid-cols-1 gap-2.5">
-        <div className="flex items-center gap-3 p-3 rounded-2xl bg-zinc-900/80 border border-zinc-800 shadow-sm">
-          <div className="w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center shrink-0">
-            <Wand2 className="w-4 h-4 text-indigo-400" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-xs font-bold text-zinc-200">Clash-Free Timetable Generator</p>
-            <p className="text-[11px] text-zinc-400 truncate">Automatic ranking with preferred slots and timings</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 p-3 rounded-2xl bg-zinc-900/80 border border-zinc-800 shadow-sm">
-          <div className="w-8 h-8 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center shrink-0">
-            <Users className="w-4 h-4 text-purple-400" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-xs font-bold text-zinc-200">Faculty Ratings & Swapping</p>
-            <p className="text-[11px] text-zinc-400 truncate">Compare faculty scores and swap slots seamlessly</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 p-3 rounded-2xl bg-zinc-900/80 border border-zinc-800 shadow-sm">
-          <div className="w-8 h-8 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center shrink-0">
-            <CalendarDays className="w-4 h-4 text-blue-400" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-xs font-bold text-zinc-200">Multi-Timetable Browser</p>
-            <p className="text-[11px] text-zinc-400 truncate">Switch, create, and manage schedules side-by-side</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
   const renderHeader = () => {
     if (isMobileViewport && !hasLaunchedHero) {
       return (
@@ -5760,19 +5022,69 @@ export default function FFCSGuidedSelector({
           </div>
           {/* Right Pane (~58%) */}
           <div className="w-[58%] flex-1 flex items-center justify-center h-full min-h-0 pl-2 lg:pl-6 overflow-hidden">
-            {guidedPhase === "setup_mode" && renderSetupModeCard(true)}
+            {guidedPhase === "setup_mode" && (
+              <SetupModeCard isLandscape={true} setPlanMode={setPlanMode} planMode={planMode} />
+            )}
             {guidedPhase === "setup_timetable" && renderSetupTimetableCard(true)}
-            {guidedPhase === "setup_strategy" && renderSetupStrategyCard(true)}
+            {guidedPhase === "setup_strategy" && (
+              <SetupStrategyCard
+                isLandscape={true}
+                setCourseStrategy={setCourseStrategy}
+                courseStrategy={courseStrategy}
+                planMode={planMode}
+              />
+            )}
             {guidedPhase === "setup_locks" && renderSetupLocksCard(true)}
             {guidedPhase === "auto_courses" && renderAutoCoursesCard(true)}
             {guidedPhase === "auto_slots_faculty" && renderAutoSlotsFacultyCard(true)}
-            {guidedPhase === "auto_timings" && renderAutoTimingsCard(true)}
-            {guidedPhase === "auto_blocking" && renderAutoBlockingCard(true)}
+            {guidedPhase === "auto_timings" && (
+              <AutoTimingsCard
+                isLandscape={true}
+                autoMinStartTime={autoMinStartTime}
+                autoMaxEndTime={autoMaxEndTime}
+                setAutoMinStartTime={setAutoMinStartTime}
+                setAutoMaxEndTime={setAutoMaxEndTime}
+                autoBlockOutsideSlots={autoBlockOutsideSlots}
+                timeBlockedSlots={timeBlockedSlots}
+              />
+            )}
+            {guidedPhase === "auto_blocking" && (
+              <AutoBlockingCard
+                isLandscape={true}
+                getDaySlots={getDaySlots}
+                blockingActiveDay={blockingActiveDay}
+                effectiveBlockedSlots={effectiveBlockedSlots}
+                handleClearAllBlocks={handleClearAllBlocks}
+                setBlockingActiveDay={setBlockingActiveDay}
+                handleToggleDayBlock={handleToggleDayBlock}
+                handleClearDayBlocks={handleClearDayBlocks}
+                handleToggleBlockSlot={handleToggleBlockSlot}
+              />
+            )}
             {guidedPhase === "auto_half_days" && renderAutoHalfDaysCard(true)}
-            {guidedPhase === "auto_social" && renderAutoSocialCard(true)}
+            {guidedPhase === "auto_social" && (
+              <AutoSocialCard
+                isLandscape={true}
+                friends={friends}
+                autoSyncFriends={autoSyncFriends}
+                setAutoSyncFriends={setAutoSyncFriends}
+                autoMaximizeFreeTime={autoMaximizeFreeTime}
+                setAutoMaximizeFreeTime={setAutoMaximizeFreeTime}
+              />
+            )}
             {guidedPhase === "auto_summary" && renderAutoSummaryCard(true)}
             {guidedPhase === "auto_results" && renderAutoResultsCard(true)}
-            {guidedPhase === "auto_timetable_view" && renderAutoTimetableViewCard(true)}
+            {guidedPhase === "auto_timetable_view" && (
+              <AutoTimetableViewCard
+                isLandscape={true}
+                autoResultsList={autoResultsList}
+                selectedVariantIndex={selectedVariantIndex}
+                setSelectedVariantIndex={setSelectedVariantIndex}
+                setGuidedPhase={setGuidedPhase}
+                effectiveTimetables={effectiveTimetables}
+                effectiveBlockedSlots={effectiveBlockedSlots}
+              />
+            )}
             {guidedPhase === "manual_timetable_view" && renderManualTimetableViewCard(true)}
             {guidedPhase === "builder" && currentStep === 1 && renderCourseListCard(true)}
             {guidedPhase === "builder" && currentStep === 2 && renderSlotOfferingsCard(true)}
@@ -5785,7 +5097,7 @@ export default function FFCSGuidedSelector({
           {renderHeader()}
           <main className="relative z-20 w-full max-w-md sm:max-w-2xl mx-auto flex-1 flex flex-col justify-center min-h-0 my-auto py-2 sm:py-3">
             {isMobileViewport && !hasLaunchedHero ? (
-              renderMobilePreflightCard()
+              <MobilePreflightCard />
             ) : (
               <>
                 {guidedPhase === "setup_mode" && (
@@ -5799,7 +5111,7 @@ export default function FFCSGuidedSelector({
                         <>Choose between automated algorithmic generation or building your timetable step-by-step.</>
                       }
                     />
-                    {renderSetupModeCard(false)}
+                    <SetupModeCard isLandscape={false} setPlanMode={setPlanMode} planMode={planMode} />
                   </div>
                 )}
 
@@ -5827,7 +5139,12 @@ export default function FFCSGuidedSelector({
                         <>Choose whether to lock mandatory target courses in advance or pick courses dynamically.</>
                       }
                     />
-                    {renderSetupStrategyCard(false)}
+                    <SetupStrategyCard
+                      isLandscape={false}
+                      setCourseStrategy={setCourseStrategy}
+                      courseStrategy={courseStrategy}
+                      planMode={planMode}
+                    />
                   </div>
                 )}
 
@@ -5879,7 +5196,15 @@ export default function FFCSGuidedSelector({
                       title={<>Day Timings</>}
                       description={<>Set earliest class starts and latest wrap-up hours.</>}
                     />
-                    {renderAutoTimingsCard(false)}
+                    <AutoTimingsCard
+                      isLandscape={false}
+                      autoMinStartTime={autoMinStartTime}
+                      autoMaxEndTime={autoMaxEndTime}
+                      setAutoMinStartTime={setAutoMinStartTime}
+                      setAutoMaxEndTime={setAutoMaxEndTime}
+                      autoBlockOutsideSlots={autoBlockOutsideSlots}
+                      timeBlockedSlots={timeBlockedSlots}
+                    />
                   </div>
                 )}
 
@@ -5892,7 +5217,17 @@ export default function FFCSGuidedSelector({
                       title={<>Day &amp; Slot Blocking</>}
                       description={<>Rule out days or tap slots in the vertical timetable to block them.</>}
                     />
-                    {renderAutoBlockingCard(false)}
+                    <AutoBlockingCard
+                      isLandscape={false}
+                      getDaySlots={getDaySlots}
+                      blockingActiveDay={blockingActiveDay}
+                      effectiveBlockedSlots={effectiveBlockedSlots}
+                      handleClearAllBlocks={handleClearAllBlocks}
+                      setBlockingActiveDay={setBlockingActiveDay}
+                      handleToggleDayBlock={handleToggleDayBlock}
+                      handleClearDayBlocks={handleClearDayBlocks}
+                      handleToggleBlockSlot={handleToggleBlockSlot}
+                    />
                   </div>
                 )}
 
@@ -5918,7 +5253,14 @@ export default function FFCSGuidedSelector({
                       title={<>Friends &amp; Peer Sync</>}
                       description={<>Sync class hours and shared break slots with your peers.</>}
                     />
-                    {renderAutoSocialCard(false)}
+                    <AutoSocialCard
+                      isLandscape={false}
+                      friends={friends}
+                      autoSyncFriends={autoSyncFriends}
+                      setAutoSyncFriends={setAutoSyncFriends}
+                      autoMaximizeFreeTime={autoMaximizeFreeTime}
+                      setAutoMaximizeFreeTime={setAutoMaximizeFreeTime}
+                    />
                   </div>
                 )}
 
@@ -5959,7 +5301,15 @@ export default function FFCSGuidedSelector({
                       title={<>Timetable Grid View</>}
                       description={<>Inspect this generated timetable variant in full vertical timetable layout.</>}
                     />
-                    {renderAutoTimetableViewCard(false)}
+                    <AutoTimetableViewCard
+                      isLandscape={false}
+                      autoResultsList={autoResultsList}
+                      selectedVariantIndex={selectedVariantIndex}
+                      setSelectedVariantIndex={setSelectedVariantIndex}
+                      setGuidedPhase={setGuidedPhase}
+                      effectiveTimetables={effectiveTimetables}
+                      effectiveBlockedSlots={effectiveBlockedSlots}
+                    />
                   </div>
                 )}
 
