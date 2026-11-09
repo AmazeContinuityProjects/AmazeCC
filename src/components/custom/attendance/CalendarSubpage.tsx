@@ -37,7 +37,7 @@ import {
   type AttendanceDayCardsMap,
 } from "@/lib/attendanceTimetable";
 import { summariseAttendance } from "@/lib/attendanceSummary";
-import { dayKeyForDate } from "@/lib/schedule";
+import { dayKeyForDate } from "@/lib/social/schedule";
 import {
   activeMonthIndex,
   buildAttendanceByDate,

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { AddedCourse, TimetablePeriod } from "@amazecontinuityprojects/amazeui";
 import chennai from "../data/campus/chennai.json";
 import { buildVerticalGrid, describeCell, weekDateForDayId, RUN_MERGE_GAP_MIN, type Cell } from "@/lib/buildBands";
-import { DAYS, slotMap, toMinutes } from "../lib/schedule";
+import { DAYS, slotMap, toMinutes } from "../lib/social/schedule";
 
 /**
  * The vertical grid's projection is asserted rather than trusted, for the same

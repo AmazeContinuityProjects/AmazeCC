@@ -352,7 +352,7 @@ export function useAppCommands(input: AppCommandInputs) {
       {
         id: "nav-tools",
         label: "Tools & Utilities",
-        description: "Question bank, faculty, CGPA predictor, timetable sharing & cab share",
+        description: "Question bank, faculty, CGPA predictor, social & cab share",
         icon: "🛠️",
         category: "Navigation",
       },
@@ -385,13 +385,7 @@ export function useAppCommands(input: AppCommandInputs) {
         icon: "🚏",
         category: "Navigation",
       },
-      {
-        id: "nav-more",
-        label: "More",
-        description: "Timetable sharing & FFCS planner",
-        icon: "➕",
-        category: "Navigation",
-      },
+      { id: "nav-more", label: "More", description: "Events, social & schedules", icon: "➕", category: "Navigation" },
     ];
     nav.forEach((c) => result.push({ ...c, onSelect: () => setActiveTab(c.id.replace("nav-", "")) }));
 
@@ -639,8 +633,8 @@ export function useAppCommands(input: AppCommandInputs) {
       },
       {
         id: "tool-social",
-        label: "Share Timetable",
-        description: "Send your timetable as a link",
+        label: "Social Timetable Sharing",
+        description: "Events, friends & timetables",
         icon: "👥",
         category: "Tools",
         onSelect: () => {

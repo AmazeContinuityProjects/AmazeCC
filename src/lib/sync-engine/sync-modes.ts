@@ -87,6 +87,7 @@ export const BUILT_IN_MODES: SyncMode[] = [
       step("bulk", { background: true }),
       step("lms", { background: true }),
       step("officialOd", { background: true }),
+      step("social", { background: true }),
     ],
   },
   {
@@ -108,9 +109,16 @@ export const BUILT_IN_MODES: SyncMode[] = [
   {
     id: "campus",
     label: "Campus Life",
-    description: "Events, buses, transport and hostel.",
+    description: "Events, buses, transport, hostel and social.",
     builtIn: true,
-    steps: [step("events"), step("buses"), step("transport"), step("hostel"), step("officialOd", { background: true })],
+    steps: [
+      step("events"),
+      step("buses"),
+      step("transport"),
+      step("hostel"),
+      step("social", { background: true }),
+      step("officialOd", { background: true }),
+    ],
   },
 ];
 
@@ -287,32 +295,18 @@ function readStorage(): unknown {
   }
 }
 
-/**
- * Ops that used to exist. A saved custom mode that still lists one keeps its
- * other steps: without this, the step would fail validation and the student's
- * whole mode would be dropped on load just because one feature was retired.
- */
-const RETIRED_OPS = new Set(["social"]);
-
-function withoutRetiredSteps(m: unknown): unknown {
-  if (!m || typeof m !== "object" || !Array.isArray((m as SyncMode).steps)) return m;
-  return { ...(m as SyncMode), steps: (m as SyncMode).steps.filter((s) => !RETIRED_OPS.has(s?.op)) };
-}
-
 /** Load customs, dropping anything that no longer validates. */
 export function loadCustomModes(): SyncMode[] {
   const raw = readStorage();
   if (!Array.isArray(raw)) return [];
-  return raw
-    .map(withoutRetiredSteps)
-    .filter(
-      (m): m is SyncMode =>
-        !!m &&
-        typeof m === "object" &&
-        typeof (m as SyncMode).id === "string" &&
-        !BUILT_IN_MODE_IDS.has((m as SyncMode).id) &&
-        validateMode(m as SyncMode).ok,
-    );
+  return raw.filter(
+    (m): m is SyncMode =>
+      !!m &&
+      typeof m === "object" &&
+      typeof (m as SyncMode).id === "string" &&
+      !BUILT_IN_MODE_IDS.has((m as SyncMode).id) &&
+      validateMode(m as SyncMode).ok,
+  );
 }
 
 function writeStorage(modes: SyncMode[]): void {

@@ -22,7 +22,9 @@ interface ToolsHubProps {
   setActiveTab?: (tab: string) => void;
 }
 
-export default function ToolsHub({ setActiveToolsSubTab }: ToolsHubProps) {
+export default function ToolsHub({
+  setActiveToolsSubTab,
+}: ToolsHubProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
 
@@ -33,8 +35,7 @@ export default function ToolsHub({ setActiveToolsSubTab }: ToolsHubProps) {
       subtitle: "Homework, tests, week scheduling, pomodoro & LMS sync",
       category: "academic",
       icon: CheckSquare,
-      iconColor:
-        "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/20 border-emerald-500/20",
+      iconColor: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/20 border-emerald-500/20",
     },
     {
       id: "attendance-predictor",
@@ -71,8 +72,8 @@ export default function ToolsHub({ setActiveToolsSubTab }: ToolsHubProps) {
     },
     {
       id: "social",
-      title: "Share Timetable",
-      subtitle: "Send your timetable as a link; plan with friends",
+      title: "Social Timetable",
+      subtitle: "Share schedules & find common free slots",
       category: "social",
       icon: Users,
       iconColor: "text-purple-600 dark:text-purple-400 bg-purple-500/10 dark:bg-purple-500/20 border-purple-500/20",
@@ -83,8 +84,7 @@ export default function ToolsHub({ setActiveToolsSubTab }: ToolsHubProps) {
       subtitle: "Find travel partners & split cab fares",
       category: "campus",
       icon: Car,
-      iconColor:
-        "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/20 border-emerald-500/20",
+      iconColor: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/20 border-emerald-500/20",
     },
     {
       id: "free-class",
@@ -105,10 +105,13 @@ export default function ToolsHub({ setActiveToolsSubTab }: ToolsHubProps) {
   ];
 
   const filteredTools = tools.filter((tool) => {
-    const matchesCategory = categoryFilter === "all" || tool.category === categoryFilter;
+    const matchesCategory =
+      categoryFilter === "all" || tool.category === categoryFilter;
     const term = searchTerm.toLowerCase().trim();
     const matchesSearch =
-      !term || tool.title.toLowerCase().includes(term) || tool.subtitle.toLowerCase().includes(term);
+      !term ||
+      tool.title.toLowerCase().includes(term) ||
+      tool.subtitle.toLowerCase().includes(term);
     return matchesCategory && matchesSearch;
   });
 
@@ -148,7 +151,7 @@ export default function ToolsHub({ setActiveToolsSubTab }: ToolsHubProps) {
         {[
           { id: "all", label: "All Utilities" },
           { id: "academic", label: "Academic & Exam Tools" },
-          { id: "social", label: "Friends & Sharing" },
+          { id: "social", label: "Social & Friends" },
           { id: "campus", label: "Campus & Travel" },
         ].map((cat) => {
           const isActive = categoryFilter === cat.id;
@@ -175,7 +178,7 @@ export default function ToolsHub({ setActiveToolsSubTab }: ToolsHubProps) {
           return (
             <button
               key={tool.id}
-              onClick={() => (tool.id === "ffcs" ? navigateToFFCSPlanner() : setActiveToolsSubTab(tool.id))}
+              onClick={() => tool.id === "ffcs" ? navigateToFFCSPlanner() : setActiveToolsSubTab(tool.id)}
               className="group relative flex items-center justify-between p-3.5 sm:p-4 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 card-surface hover:border-indigo-500/40 dark:hover:border-indigo-500/40 transition-all duration-150 cursor-pointer shadow-2xs hover:shadow-sm active:scale-[0.99] text-left"
             >
               <div className="flex items-center gap-3.5 min-w-0 flex-1 pr-2">
@@ -205,7 +208,9 @@ export default function ToolsHub({ setActiveToolsSubTab }: ToolsHubProps) {
           <p className="text-sm font-bold text-zinc-700 dark:text-zinc-300">
             No tools found matching &quot;{searchTerm}&quot;
           </p>
-          <p className="text-xs text-zinc-400">Try adjusting your search query or category filter.</p>
+          <p className="text-xs text-zinc-400">
+            Try adjusting your search query or category filter.
+          </p>
         </div>
       )}
     </div>

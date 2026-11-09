@@ -74,7 +74,7 @@ import { FFCSSettingsDefaults, type FFCSSettings, type RankingPriority } from "@
 import type { FacultyRatingLookup } from "@/lib/ffcsFacultyRanking";
 import dynamic from "next/dynamic";
 import VerticalTimetableGrid from "@/components/custom/timetable/VerticalTimetableGrid";
-import { toMinutes } from "@/lib/schedule";
+import { toMinutes } from "@/lib/social/schedule";
 import { ensureLunchPeriod } from "@/lib/slots";
 import { exitNativeFullscreen, requestNativeFullscreen } from "@/lib/fullscreen";
 import { FacultyScoresForCourse, GuidedFacultyReviewStats } from "./GuidedFacultyStats";

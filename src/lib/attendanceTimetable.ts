@@ -1,5 +1,5 @@
 import config from "../../config.json";
-import { DAYS, dayKeyForDate, slotRange, toMinutes } from "./schedule";
+import { DAYS, dayKeyForDate, slotRange, toMinutes } from "./social/schedule";
 import { TEACHING_DAYS, type TeachingDay } from "./calendarDay";
 
 export const ATTENDANCE_DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"] as const;
@@ -70,7 +70,7 @@ export function resolveTeachingDay(date: Date, dayOrder?: TeachingDay): Attendan
 export function buildAttendanceDayCardsMap(
   attendance: any[] = [],
   slotMap: any = (config as any).slotMap,
-  saturdayOverride?: string,
+  saturdayOverride?: string
 ): AttendanceDayCardsMap {
   let satDay = saturdayOverride;
   if (!satDay && typeof window !== "undefined") {
@@ -92,7 +92,7 @@ export function buildAttendanceDayCardsMap(
 
     slots.forEach((cleanSlot) => {
       ATTENDANCE_DAYS.forEach((day) => {
-        const lookupDay = day === "SAT" && satDay && satDay !== "SAT" ? satDay : day;
+        const lookupDay = (day === "SAT" && satDay && satDay !== "SAT") ? satDay : day;
         const info = slotMap?.[lookupDay]?.[cleanSlot];
         if (!info) return;
 
@@ -153,7 +153,7 @@ export function buildAttendanceDayCardsMap(
 export function getTodayAttendanceClasses(
   attendance: any[] = [],
   date = new Date(),
-  slotMap: any = (config as any).slotMap,
+  slotMap: any = (config as any).slotMap
 ) {
   const dayCardsMap = buildAttendanceDayCardsMap(attendance, slotMap);
   return dayCardsMap[getTodayAttendanceDay(date)] || [];
