@@ -7,6 +7,7 @@ import BackgroundPrefetch from "../components/custom/BackgroundPrefetch";
 import type { Viewport, Metadata } from "next";
 import { Geist, Geist_Mono, DM_Sans } from "next/font/google";
 import "./globals.css";
+import { buildContentSecurityPolicy } from "@/lib/csp";
 
 const geist = Geist({ weight: "variable", subsets: ["latin"], display: "swap", variable: "--font-geist" });
 const geistMono = Geist_Mono({
@@ -102,6 +103,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${geist.className} ${geistMono.className} ${dmSans.className}`}
     >
       <head>
+        {/* Production only: Next.js dev mode needs eval for fast refresh. See lib/csp.ts. */}
+        {process.env.NODE_ENV === "production" && (
+          <meta httpEquiv="Content-Security-Policy" content={buildContentSecurityPolicy()} />
+        )}
         <script
           id="amaze-session-early-detect"
           dangerouslySetInnerHTML={{
