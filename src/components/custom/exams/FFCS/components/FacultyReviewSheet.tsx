@@ -8,11 +8,9 @@ import {
   Sparkles,
   BookOpen,
   GraduationCap,
-  Award,
   AlertTriangle,
   Smile,
   FileText,
-  X,
   Loader2,
 } from "lucide-react";
 import BottomSheet from "../../../shared/BottomSheet";
@@ -67,7 +65,7 @@ export default function FacultyReviewSheet({
   const { review, loading } = useVitfacReview(employeeId, facultyName);
   const vitfacEnabled = useVitfacEnabled();
   const [bundle, setBundle] = useState<VitfacProfileBundle | null>(null);
-  const [loadingBundle, setLoadingBundle] = useState(false);
+  const [, setLoadingBundle] = useState(false);
   const [activeCourseFilter, setActiveCourseFilter] = useState<string>("global");
 
   useEffect(() => {

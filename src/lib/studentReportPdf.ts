@@ -1,4 +1,3 @@
-import type { jsPDF } from "jspdf";
 
 const MARGIN = 13;
 const PAGE_W = 210;

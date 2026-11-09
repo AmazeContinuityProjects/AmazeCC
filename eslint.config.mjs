@@ -17,6 +17,9 @@ const eslintConfig = [
       "react-hooks/rules-of-hooks": "warn",
       "react/no-unescaped-entities": "warn",
       "@next/next/no-img-element": "warn",
+      // Typing debt ratchet (docs/todo/typing-issues/01-quick-wins.md §1.3):
+      // a warning for now so the build stays green; watch the count fall.
+      "@typescript-eslint/no-explicit-any": "warn",
       // Guardrail for the unified SyncEngine: NO component may import the raw
       // network primitive (fetchWithTimeout / API_BASE) — every app-API call
       // must go through `api` from src/lib/sync-engine. Non-network helpers in

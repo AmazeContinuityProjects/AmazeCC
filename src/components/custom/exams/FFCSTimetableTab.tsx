@@ -17,7 +17,6 @@ import {
   X,
   Settings2,
   Users,
-  ChevronRight,
   HelpCircle,
   Share2,
   Search,
@@ -122,7 +121,6 @@ import {
   TimetableState,
   Friend,
   FriendGroup,
-  CourseLock,
   ManualLink,
 } from "@/lib/ffcsTypes";
 import {
@@ -139,11 +137,10 @@ import { renderCourseTypeChips } from "./FFCS/components/CourseTypeChips";
 import { isCourseFullyAdded } from "./FFCS/utils";
 import { useFacultyReviewSheet } from "./FFCS/hooks/useFacultyReviewSheet";
 import { CourseListImportSection } from "./FFCS/components/CourseListImportSection";
-import { freeHalfDays } from "@/lib/timetableMetrics";
 import { safeStorage } from "@/lib/safeStorage";
 import { matchesOfferingTimeFilter, matchesSlotTokenFilter } from "@/lib/ffcsOfferingFilters";
 import { FFCSShortcutsModal, SettingsModalHost } from "./FFCS/components/FFCSTimetableModals";
-import { courseInPeriod, periodsForSlot, splitSlots, findPeriodClash } from "@/lib/slots";
+import { periodsForSlot, splitSlots, findPeriodClash } from "@/lib/slots";
 import { exportTimetableIcal } from "@/lib/exportIcal";
 import { getBatchColorClass, getAssetPath } from "@/lib/utils";
 import { TimetableView, useTimetableViewMode } from "../timetable";
@@ -202,28 +199,6 @@ const PdfGenerationBadge = dynamic(() => import("./FFCS/components/PdfGeneration
  */
 const FFCS_FINAL_LIST_NOTICE_SEEN_KEY = "ffcs_final_list_notice_seen";
 
-/**
- * `timeToMinutes` and `parse24HourToMinutes` used to sit here as well.
- *
- * Both are now in `lib/slots.ts` — the first rejects an unreadable time rather
- * than reporting it as midnight, and the second came along with the generator's
- * time-bounds filter. Neither is referenced in this file any more.
- */
-
-/**
- * Free half-days for a set of slots.
- *
- * A thin shim over `lib/timetableMetrics`, kept because two callers in this file
- * hold a `Set<string>` of slots rather than a course list. `freeHalfDays` itself
- * needs courses, so the set is wrapped in the thinnest thing that satisfies it.
- *
- * Both spellings are resolved inside `freeHalfDays`: the schema hands out "A1"
- * and a law course says "A", and compared literally nothing a law student takes
- * ever registers — the answer is the maximum score, ten free half-days for a
- * timetable that is full every morning.
- */
-const getFreeHalfDaysList = (slots: Set<string>): string[] =>
-  freeHalfDays([{ slots: [...slots] }], getTimetableSchema());
 
 export default function FFCSTimetableTab({
   onLayoutModeChange,
@@ -322,7 +297,6 @@ export default function FFCSTimetableTab({
 
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isShareSheetOpen, setIsShareSheetOpen] = useState(false);
@@ -648,11 +622,7 @@ export default function FFCSTimetableTab({
     } catch {}
   }, [router]);
   const [socialTargetId, setSocialTargetId] = useState<string>("");
-  const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
-  const [selectedDashDetails, setSelectedDashDetails] = useState<
-    NonNullable<TimetableState["metrics"]>["dashDetails"] | null
-  >(null);
-  const [selectedGapDetails, setSelectedGapDetails] = useState<
+  const [selectedGapDetails] = useState<
     NonNullable<TimetableState["metrics"]>["gapDetails"] | null
   >(null);
   const [isSocialMatrixOpen, setIsSocialMatrixOpen] = useState(false);
@@ -681,7 +651,6 @@ export default function FFCSTimetableTab({
   // "Curriculum & grade history" integration sheet: open state + its sync run.
   const [isIntegrateSheetOpen, setIsIntegrateSheetOpen] = useState(false);
   const [isIntegrating, setIsIntegrating] = useState(false);
-  const [generatorCourseSearchQuery, setGeneratorCourseSearchQuery] = useState("");
   const [isVariantSearchOpen, setIsVariantSearchOpen] = useState(false);
   const [variantSearchQuery, setVariantSearchQuery] = useState("");
   const [manualLinks, setManualLinks] = useState<ManualLink[]>([]);
@@ -1030,24 +999,7 @@ export default function FFCSTimetableTab({
 
   const theoryPeriods = (getTimetableSchema().theory as TimetablePeriod[]).filter((p) => !p.lunch);
   const labPeriods = (getTimetableSchema().lab as TimetablePeriod[]).filter((p) => !p.lunch);
-  const allPeriods = [...theoryPeriods, ...labPeriods];
 
-  const allAvailableSlots = useMemo(() => {
-    const slots = new Set<string>();
-    theoryPeriods.forEach((p) => {
-      if (p.days) Object.values(p.days).forEach((s) => slots.add(s));
-    });
-    labPeriods.forEach((p) => {
-      if (p.days) Object.values(p.days).forEach((s) => slots.add(s));
-    });
-    return Array.from(slots).sort((a, b) => {
-      const isALab = a.startsWith("L");
-      const isBLab = b.startsWith("L");
-      if (isALab && !isBLab) return 1;
-      if (!isALab && isBLab) return -1;
-      return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
-    });
-  }, [theoryPeriods, labPeriods]);
 
   // The one lookup, shared with the module-level copy above and the modal's.
   // The old local version also returned a `pIdx`, which nothing ever read.
@@ -1075,7 +1027,6 @@ export default function FFCSTimetableTab({
     return null;
   };
 
-  const getCourseForSlot = (slotName: string) => courseInPeriod(courses, slotName);
 
   // Unique Courses with their associated types
   const uniqueCourses = useMemo(() => {

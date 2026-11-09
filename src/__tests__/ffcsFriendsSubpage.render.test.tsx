@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
-import React, { useState } from "react";
+import React from "react";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import FFCSFriendsSubpage, { type FFCSFriendsSubpageProps } from "../components/custom/exams/FFCS/FFCSFriendsSubpage";
 import { ShareInputError } from "../lib/ffcsShareInput";

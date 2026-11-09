@@ -22,7 +22,6 @@ import {
   Minimize2,
   ClipboardPaste,
   Sliders,
-  Filter,
   Award,
   Star,
   MapPin,
@@ -369,7 +368,7 @@ export default function FFCSGuidedSelector({
   const [autoFacultyScoreFilters, setAutoFacultyScoreFilters] = useState<FFCSSettings["facultyScoreFilters"]>(() => ({
     ...(settings?.facultyScoreFilters ?? FFCSSettingsDefaults.facultyScoreFilters),
   }));
-  const [autoUniqueFaculties, setAutoUniqueFaculties] = useState<boolean>(false);
+  const [autoUniqueFaculties] = useState<boolean>(false);
   const [autoSyncFriends, setAutoSyncFriends] = useState<boolean>(true);
   const [autoMaximizeFreeTime, setAutoMaximizeFreeTime] = useState<boolean>(true);
   const [stagedTimetables, setStagedTimetables] = useState<TimetableState[]>([]);
@@ -1102,13 +1101,6 @@ export default function FFCSGuidedSelector({
 
   useOverlayBack("ffcs-guided-flow", true, handleSystemBack);
 
-  const handleNextStep = () => {
-    if (guidedPhase === "builder") {
-      if (currentStep === 1 && selectedCourseCode) setCurrentStep(2);
-      else if (currentStep === 2 && selectedOffering) setCurrentStep(3);
-      else if (currentStep === 3) setGuidedPhase("manual_timetable_view");
-    }
-  };
 
   // ── SLOT & FACULTY HELPERS ──
   const getSlotClusterKey = (slot: string): { cluster: string; letter: string } => {

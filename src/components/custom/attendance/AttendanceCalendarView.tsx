@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { getDay } from "date-fns";
 import { AnimatePresence, m } from "framer-motion";
 import { CheckCircle2, FileText } from "lucide-react";
@@ -265,7 +265,6 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
 
                                 const isLastCol = (monthData.blanks.length + i + 1) % 7 === 0;
 
-                                const dateStr = monthData.daysInMonth[i]?.fullDate ? new Date(monthData.daysInMonth[i].fullDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-') : null;
 
                                 const exactDateStr = entry ? entry.date : null;
 

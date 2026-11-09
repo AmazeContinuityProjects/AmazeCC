@@ -48,20 +48,15 @@ import {
   displayName,
   ensureClassmatesSession,
   FRIEND_FINDER_REFRESH_EVENT,
-  type ClassmateOffering,
   type ClassmateOverlap,
   type ClassmatePerson,
   type ClassmateSection,
   type ClassmatesRequest,
   type ClassmatesState,
 } from "@/lib/ffcsClassmates";
-import { getSelectedFinalSemesterId, GLOBAL_SEMESTER_CHANGE_EVENT, mapToFinalSemesterId } from "@/lib/ffcsReports";
-import { safeStorage } from "@/lib/safeStorage";
+import { GLOBAL_SEMESTER_CHANGE_EVENT } from "@/lib/ffcsReports";
 import { GHOST_BUTTON, LIST_ROW, LIST_SHELL, TILE_CARD, TONE_ICON_TILE } from "@/lib/uiTokens";
 import {
-  EmptyPanel,
-  ListRowText,
-  ListShell,
   ListSkeleton,
   PageShell,
   RadioGroup,

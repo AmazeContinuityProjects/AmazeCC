@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { AnimatePresence, m } from "framer-motion";
 import {
   Columns,
   List,
@@ -89,7 +88,7 @@ export default function TasksTab({ initialView = "kanban", initialCourseCode, on
   const quickAddRequest = useAtomValue(tasksQuickAddRequestAtom);
   const setQuickAddRequest = useSetAtom(tasksQuickAddRequestAtom);
   const [viewMode, setViewMode] = useState<TasksViewMode>(initialView);
-  const [activeNotification, setActiveNotification] = useState<string | null>(null);
+  const [, setActiveNotification] = useState<string | null>(null);
 
   // Edit sheet state
   const [editingTask, setEditingTask] = useState<Task | null>(null);

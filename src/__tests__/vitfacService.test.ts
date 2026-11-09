@@ -14,7 +14,6 @@ import {
   isVitfacIntegrationEnabled,
   useVitfacEnabled,
   ENABLE_VITFAC_INTEGRATION,
-  VITFAC_WORKER_BASE,
   useChennaiImage,
   type VitfacFaculty,
 } from "../lib/vitfacService";

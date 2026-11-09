@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { RefreshCcw, CheckCircle, AlertCircle, Clock, Eye, EyeOff, Undo2, LogOut } from "lucide-react";
 import FetchButton from "../shared/FetchButton";
 import EmptyState from "../shared/EmptyState";
@@ -88,7 +88,7 @@ export default function MoodleDisplay({ moodleData, handleFetchMoodle, setMoodle
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {visibleAssignments.map((item, idx) => {
                     const isOverdue = !item.done && new Date(item.due) < new Date();
-                    const [SemCode, courseName, assignmentName] = item.name.split("/");
+                    const [, courseName, assignmentName] = item.name.split("/");
 
                     return (
                         <div

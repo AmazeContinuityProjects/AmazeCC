@@ -30,7 +30,6 @@ import { activeRegNumberAtom, pendingInviteHandleAtom } from "@/store/socialAtom
 import { activeToolsSubTabAtom } from "@/store/uiAtoms";
 import { INVITE_PARAM, handleFromInvite, isValidHandle } from "@/lib/social/handle";
 import IntroSong from "@/lib/introSong/IntroSong";
-import config from "../../../config.json";
 import { useTaskReminderScheduler } from "./tasks/useTaskReminderScheduler";
 import { useAppBootstrap } from "./app/useAppBootstrap";
 import { AnimatePresence, LazyMotion, m } from "framer-motion";

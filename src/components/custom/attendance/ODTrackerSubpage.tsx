@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useAtom } from "jotai";
 import { officialOdDataAtom } from "@/store";
 import { AnimatePresence, m } from "framer-motion";

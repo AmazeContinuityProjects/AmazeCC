@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import { TONE_TEXT } from "@/lib/uiTokens";
 import { toneForGrade } from "@/lib/gradeHistory";
 

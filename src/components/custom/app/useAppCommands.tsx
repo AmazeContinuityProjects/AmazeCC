@@ -16,7 +16,6 @@ import {
   gradesDisplayIsOpenAtom,
   hostelDataAtom,
   marksDataAtom,
-  messageAtom,
   moodleDataAtom,
   odHoursDataAtom,
   registeredEventsAtom,

@@ -10,7 +10,6 @@ import {
   Plus,
   Star,
   Trash2,
-  X,
 } from "lucide-react";
 import BottomSheet from "./BottomSheet";
 import { Switch } from "./primitives";

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { detectQuad, rasterFromGray, warpSizeFor } from "../lib/scanner/imageOps";
-import { OcrUnavailableError, type OcrOptions, type OcrResult } from "../lib/scanner/ocr";
+import { OcrUnavailableError, type OcrOptions } from "../lib/scanner/ocr";
 import {
   assessQuality,
   extractPaperHints,

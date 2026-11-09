@@ -1,9 +1,9 @@
-import React, { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { ChipTabs, EmptyPanel, PageShell, SelectField } from "../shared/primitives";
 import { SEARCH_FIELD, TILE_INTERACTIVE_ROW } from "@/lib/uiTokens";
 import { formatSemesterName } from "@/lib/formatSemesterName";
 import { loadFrozenPastSemesters } from "@/lib/pastDataSync";
-import { BookOpen, Search, ChevronRight, GraduationCap, History, Lock, Sparkles } from "lucide-react";
+import { BookOpen, Search, ChevronRight, GraduationCap, History, Sparkles } from "lucide-react";
 
 /** The four course-type pills above the list. Ordered, so `ChipTabs` scrolls rather than wraps. */
 type CourseTypeFilter = "all" | "theory" | "lab" | "embedded";

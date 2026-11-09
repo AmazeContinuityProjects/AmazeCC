@@ -7,7 +7,6 @@ import {
   isUniccReachable,
   loginViaUnicc,
 } from "../lib/unicc-fallback";
-import type { VtopCreds } from "../lib/sync-engine/types";
 
 /**
  * The UniCC fallback, and the one rule it exists to keep.
@@ -17,14 +16,6 @@ import type { VtopCreds } from "../lib/sync-engine/types";
  * that a rejected password is never retried anywhere. That rule is the first
  * test, because it is the one that protects the student's account.
  */
-
-const creds = (over: Partial<VtopCreds> = {}): VtopCreds => ({
-  cookies: "JSESSIONID=abc; Path=/",
-  authorizedID: "24BCE1234",
-  csrf: "csrf-token",
-  fetchedAt: 1_700_000_000_000,
-  ...over,
-});
 
 const jsonResponse = (body: unknown, status = 200) =>
   ({

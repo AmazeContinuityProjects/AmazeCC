@@ -3,8 +3,8 @@
 import React from "react";
 import { 
   ExternalLink, Bus, BookOpen, FileText, GraduationCap, MapPin, 
-  CalendarDays, ArrowRight, Sparkles, CheckCircle, FileText as FileTextIcon, 
-  AlertCircle, X, ChevronRight, Check
+  CalendarDays, ArrowRight, Sparkles, CheckCircle, 
+  AlertCircle, ChevronRight, Check
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 

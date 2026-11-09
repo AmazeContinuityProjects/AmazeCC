@@ -37,7 +37,7 @@ export default function GroupsSubpage({ onBack }: { onBack: () => void }) {
   }, [peers]);
   const known = useMemo(() => peers.map((p) => p.handle), [peers]);
 
-  const { summaries, createGroup, deleteGroup, prune } = useSocialGroups({
+  const { summaries, deleteGroup, prune } = useSocialGroups({
     ownBusyMap,
     knownHandles: known,
     busyByHandle,

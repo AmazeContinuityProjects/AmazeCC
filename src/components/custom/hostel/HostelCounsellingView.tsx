@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import GenericApiView from "../exams/GenericApiView";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
-import { Users, Info, ShieldAlert, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 interface CounsellingProps {
   loginToVTOP: () => Promise<any>;

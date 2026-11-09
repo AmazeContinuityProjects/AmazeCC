@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { getTargetAttendancePct } from "@/store/settingsAtoms";
 import { normalize, getEffectiveState } from "@/lib/attendanceRemainingClasses";
 

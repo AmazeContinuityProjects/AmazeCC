@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { AnimatePresence, m } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import { api } from "@/lib/sync-engine";
 import { runPageSync } from "@/lib/sync-engine/single-sync";
 import {
@@ -17,7 +17,6 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
-import TabHelpFooter from "./shared/TabHelpFooter";
 import BottomSheet from "./shared/BottomSheet";
 import {
   EmptyPanel,
@@ -26,7 +25,6 @@ import {
   KeyValue,
   ListRowText,
   ListSkeleton,
-  ListShell,
   PageShell,
   useCarousel,
   type InsightSlide,

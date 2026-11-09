@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { Plus } from "lucide-react";
 import BottomSheet from "../../shared/BottomSheet";
 import { ToneBadge } from "../../shared/primitives";

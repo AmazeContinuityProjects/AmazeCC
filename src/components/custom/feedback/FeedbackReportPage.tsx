@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useTransition } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useAtom, useSetAtom } from "jotai";
 import {
@@ -37,7 +37,6 @@ import {
 import { AnimatePresence, m } from "framer-motion";
 import {
   PageShell,
-  SegmentedControl,
   ToneBadge,
   Switch,
   SectionHeader,
@@ -62,7 +61,6 @@ import {
   type PostHogConversationMessage,
 } from "@/lib/posthog";
 import { getActiveDisplayName, getActiveRegNumber } from "@/lib/social/identity";
-import buildInfo from "@/data/buildInfo.json";
 
 export type ReportCategory = "bug" | "feature" | "experience" | "other";
 
@@ -156,7 +154,6 @@ export default function FeedbackReportPage({
   );
   const [flowMode, setFlowMode] = useState<"guided" | "classic">(initialMode);
   const [guidedStep, setGuidedStep] = useState<1 | 2 | 3 | 4>(initialStep);
-  const [, startTransition] = useTransition();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
