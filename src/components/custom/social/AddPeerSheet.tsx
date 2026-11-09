@@ -17,13 +17,13 @@
  *      arrive in the UI without a second manual sync.
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera, Link2, Loader2, ShieldCheck, UserCheck, UserX } from "lucide-react";
 import BottomSheet from "../shared/BottomSheet";
 import ScanHandleSheet from "./ScanHandleSheet";
 import { FIELD_INPUT, TONE_BADGE } from "@/lib/libraries/ui";
 import { claimPair, lookupPerson, SocialApiError } from "@/lib/social/client";
-import { isSelfHandle, isValidHandle, normaliseHandle } from "@/lib/social/handle";
+import { handleFromInvite, isSelfHandle, isValidHandle, normaliseHandle } from "@/lib/social/handle";
 import { credentialManager } from "@/lib/sync-engine/credential-manager";
 import { AuthError } from "@/lib/sync-engine/errors";
 import { useSocialData } from "@/lib/social/useSocialData";
@@ -31,9 +31,12 @@ import { useSocialData } from "@/lib/social/useSocialData";
 export default function AddPeerSheet({
   onClose,
   onPaired,
+  initialHandle,
 }: {
   onClose: () => void;
   onPaired?: (handle: string) => void;
+  /** From an invite link: filled in and looked up on open. */
+  initialHandle?: string;
 }) {
   const { markDirty, handle: myHandle } = useSocialData();
   const [handle, setHandle] = useState("");
@@ -129,10 +132,21 @@ export default function AddPeerSheet({
    * `check()` that read `handle` would verify the previous, empty value.
    */
   const check = useCallback(async () => {
-    const candidate = normaliseHandle(handle);
+    const candidate = handleFromInvite(handle);
     setHandle(candidate);
     await checkFor(candidate);
   }, [handle, checkFor]);
+
+  // An invite link opened this sheet: fill the handle in and look it up once,
+  // so the student sees who it is before deciding to pair.
+  const usedInitial = useRef(false);
+  useEffect(() => {
+    if (usedInitial.current || !initialHandle) return;
+    usedInitial.current = true;
+    const candidate = handleFromInvite(initialHandle);
+    setHandle(candidate);
+    void checkFor(candidate);
+  }, [initialHandle, checkFor]);
 
   const claim = useCallback(async () => {
     if (!isValidHandle(handle)) return;
@@ -198,7 +212,9 @@ export default function AddPeerSheet({
             id="social-peer-handle"
             value={handle}
             onChange={(e) => {
-              setHandle(e.target.value.toUpperCase());
+              // A pasted invite link becomes its handle; anything else is typed.
+              const v = e.target.value;
+              setHandle(/https?:|[?&]add=/i.test(v) ? handleFromInvite(v) : v.toUpperCase());
               setStage("idle");
               setError(null);
             }}

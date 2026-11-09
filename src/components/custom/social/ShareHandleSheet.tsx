@@ -10,11 +10,12 @@
  * is the moment someone should learn that pairing is two-way.
  */
 
-import { useCallback, useState } from "react";
-import { Check, Copy, Download, Link2, Loader2, MessageSquare, RefreshCcw, ShieldCheck } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
+import { Check, Copy, Download, Link2, Loader2, MessageSquare, RefreshCcw, Share2, ShieldCheck } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import BottomSheet from "../shared/BottomSheet";
 import { useSocialData } from "@/lib/social/useSocialData";
+import { buildInviteLink } from "@/lib/social/handle";
 import { downloadHtmlImage } from "@/lib/imageDownload";
 import posthog from "posthog-js";
 
@@ -27,6 +28,14 @@ export default function ShareHandleSheet({ onClose }: { onClose: () => void }) {
   const [copied, setCopied] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [qrError, setQrError] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  /** `/?add=<handle>`: opens the Add friend sheet on this handle. */
+  const inviteLink = useMemo(
+    () => (handle && typeof window !== "undefined" ? buildInviteLink(handle, window.location.origin) : null),
+    [handle],
+  );
+  const canNativeShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
 
   const name = identity?.displayName || "Student";
 
@@ -38,6 +47,31 @@ export default function ShareHandleSheet({ onClose }: { onClose: () => void }) {
       setTimeout(() => setCopied(false), 2000);
     });
   }, [handle]);
+
+  const copyLink = useCallback(() => {
+    if (!inviteLink) return;
+    void navigator.clipboard.writeText(inviteLink).then(() => {
+      if (posthogConfigured) posthog.capture("social_handle_shared", { method: "copy_link" });
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    });
+  }, [inviteLink]);
+
+  const nativeShare = useCallback(() => {
+    if (!inviteLink || !handle) return;
+    navigator
+      .share({
+        title: "Pair with me on AmazeCC",
+        text: `Pair timetables with me on AmazeCC (handle ${handle}):`,
+        url: inviteLink,
+      })
+      .then(() => {
+        if (posthogConfigured) posthog.capture("social_handle_shared", { method: "native_share" });
+      })
+      .catch(() => {
+        /* dismissed */
+      });
+  }, [inviteLink, handle]);
 
   const requestSync = useCallback(() => {
     setSyncing(true);
@@ -65,10 +99,14 @@ export default function ShareHandleSheet({ onClose }: { onClose: () => void }) {
 
   const shareWhatsApp = useCallback(() => {
     if (!handle) return;
-    const text = encodeURIComponent(`Share your timetable with me on AmazeCC. My handle is ${handle}`);
+    const text = encodeURIComponent(
+      inviteLink
+        ? `Pair timetables with me on AmazeCC. Tap to add me: ${inviteLink}\n(or enter my handle ${handle})`
+        : `Share your timetable with me on AmazeCC. My handle is ${handle}`,
+    );
     window.open(`https://wa.me/?text=${text}`, "_blank");
     if (posthogConfigured) posthog.capture("social_handle_shared", { method: "whatsapp" });
-  }, [handle]);
+  }, [handle, inviteLink]);
 
   return (
     <BottomSheet
@@ -112,6 +150,41 @@ export default function ShareHandleSheet({ onClose }: { onClose: () => void }) {
               </button>
             </div>
 
+            {inviteLink && (
+              <div className="p-3 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 space-y-2.5">
+                <p className="flex items-center gap-1.5 text-[11px] font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
+                  <Link2 className="w-3.5 h-3.5 text-indigo-500" />
+                  Invite link
+                </p>
+                <p className="text-[11px] font-mono text-zinc-500 dark:text-zinc-400 truncate" title={inviteLink}>
+                  {inviteLink}
+                </p>
+                <div className={`grid gap-2 ${canNativeShare ? "grid-cols-2" : "grid-cols-1"}`}>
+                  <button
+                    type="button"
+                    onClick={copyLink}
+                    className="py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-colors cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    {linkCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    {linkCopied ? "Link copied" : "Copy link"}
+                  </button>
+                  {canNativeShare && (
+                    <button
+                      type="button"
+                      onClick={nativeShare}
+                      className="py-2.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-bold text-xs transition-colors cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <Share2 className="w-4 h-4" />
+                      Share…
+                    </button>
+                  )}
+                </div>
+                <p className="text-[10.5px] text-zinc-400 dark:text-zinc-500 font-medium leading-relaxed">
+                  Opens AmazeCC with your handle filled in. They still confirm before anything is shared.
+                </p>
+              </div>
+            )}
+
             <div className="flex flex-col items-center gap-3 p-4 rounded-2xl border border-zinc-200/80 dark:border-zinc-800">
               {qrError ? (
                 <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium py-6 text-center">
@@ -119,7 +192,7 @@ export default function ShareHandleSheet({ onClose }: { onClose: () => void }) {
                 </p>
               ) : (
                 <div id="social-handle-qr" className="bg-white p-4 rounded-2xl">
-                  <QRCodeSVG value={handle} size={160} level="M" />
+                  <QRCodeSVG value={inviteLink ?? handle} size={160} level="M" />
                 </div>
               )}
               {!qrError && (

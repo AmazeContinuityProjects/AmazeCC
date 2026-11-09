@@ -49,3 +49,40 @@ export function isSelfHandle(candidate: string | null | undefined, myHandle: str
   if (!myHandle) return false;
   return normaliseHandle(candidate) === myHandle;
 }
+
+/* ------------------------------------------------------------------ *
+ * Invite links
+ * ------------------------------------------------------------------ */
+
+/** Query parameter an invite link carries the handle in: `/?add=AMZ-XXXX-XXXX`. */
+export const INVITE_PARAM = "add";
+
+/**
+ * A link that opens the app on the Add friend sheet with this handle filled in.
+ * It carries only the public handle, which gives nothing away on its own:
+ * opening it still needs a signed-in student to confirm the pairing.
+ */
+export function buildInviteLink(handle: string, origin: string): string {
+  const url = new URL("/", origin);
+  url.searchParams.set(INVITE_PARAM, handle);
+  return url.toString();
+}
+
+/**
+ * The handle in whatever someone pasted or scanned: a bare handle in any
+ * spacing or case, or an invite link. Returns the input normalised when it is
+ * neither, so the caller's "does not look like a handle" message still fires.
+ */
+export function handleFromInvite(raw: string | null | undefined): string {
+  const text = String(raw ?? "").trim();
+  if (/^https?:\/\//i.test(text) || text.includes(`?${INVITE_PARAM}=`) || text.includes(`&${INVITE_PARAM}=`)) {
+    try {
+      const url = new URL(text, "https://placeholder.invalid");
+      const fromLink = url.searchParams.get(INVITE_PARAM);
+      if (fromLink) return normaliseHandle(fromLink);
+    } catch {
+      /* not a URL after all; fall through */
+    }
+  }
+  return normaliseHandle(text);
+}

@@ -26,7 +26,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera, CameraOff, Loader2 } from "lucide-react";
 import BottomSheet from "../shared/BottomSheet";
-import { isValidHandle, normaliseHandle } from "@/lib/social/handle";
+import { handleFromInvite, isValidHandle } from "@/lib/social/handle";
 
 /** Must match the `id` on the element below — the library looks it up by id. */
 const REGION_ID = "social-peer-qr-region";
@@ -115,7 +115,9 @@ export default function ScanHandleSheet({
             // stays honest for typed input — so a decoder that hands back a
             // stray newline would be rejected here. The trim belongs at this
             // boundary, not in the normaliser.
-            const candidate = normaliseHandle(String(decodedText).trim());
+            // Accepts a bare handle (older Share screens) or an invite link,
+            // which is what the QR carries now.
+            const candidate = handleFromInvite(String(decodedText).trim());
             if (!isValidHandle(candidate)) {
               // Wrong code, or a real QR that is not a handle. Say what was read
               // so the mismatch is obvious, and keep the camera up.

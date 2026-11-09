@@ -19,6 +19,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, m } from "framer-motion";
 import {
   AlertTriangle,
+  BookOpen,
   CalendarRange,
   Clock,
   Link2,
@@ -51,6 +52,10 @@ import FreeNowSubpage from "./FreeNowSubpage";
 import CommonFreeGridSubpage from "./CommonFreeGridSubpage";
 import ShareHandleSheet from "./ShareHandleSheet";
 import AddPeerSheet from "./AddPeerSheet";
+import ClassesTogetherSubpage from "./ClassesTogetherSubpage";
+import { countClassesTogether, sharedClassesByCourse } from "@/lib/social/sharedClasses";
+import { useAtom } from "jotai";
+import { pendingInviteHandleAtom } from "@/store/socialAtoms";
 import PeerTimetableSheet from "./PeerTimetableSheet";
 import { useSocialData, useSocialWriters } from "@/lib/social/useSocialData";
 import { upgradeGrantsToFull } from "@/lib/social/visibility";
@@ -61,7 +66,7 @@ import { STALE_AFTER_DAYS, type BusyMap } from "@/lib/social/types";
 import { useSocialGroups } from "@/lib/social/useSocialGroups";
 import GroupsSubpage from "./GroupsSubpage";
 
-type Screen = "landing" | "people" | "pairs" | "freeNow" | "grid" | "groups";
+type Screen = "landing" | "people" | "pairs" | "freeNow" | "grid" | "groups" | "classes";
 
 export default function SocialTab({
   attendanceData,
@@ -75,6 +80,7 @@ export default function SocialTab({
     peers,
     grants,
     ownBusyMap,
+    ownCourses,
     handle,
     markDirty,
     syncError,
@@ -97,9 +103,23 @@ export default function SocialTab({
     }, [peerTimetables]),
   }).groups.length;
 
+  const classesTogether = useMemo(
+    () => countClassesTogether(sharedClassesByCourse(ownCourses, peerTimetables)),
+    [ownCourses, peerTimetables],
+  );
+
   const [screen, setScreen] = useState<Screen>("landing");
   const [shareOpen, setShareOpen] = useState(false);
   const [addPeerOpen, setAddPeerOpen] = useState(false);
+  // An invite link (/?add=AMZ-…) parks its handle here; open the add sheet on it.
+  const [pendingInvite, setPendingInvite] = useAtom(pendingInviteHandleAtom);
+  const [inviteHandle, setInviteHandle] = useState<string | null>(null);
+  useEffect(() => {
+    if (!pendingInvite || isDemo) return;
+    setInviteHandle(pendingInvite);
+    setPendingInvite("");
+    setAddPeerOpen(true);
+  }, [pendingInvite, isDemo, setPendingInvite]);
   const [openPeer, setOpenPeer] = useState<string | null>(null);
   const [syncingNow, setSyncingNow] = useState(false);
   /** Set when a manual sync fails, so the inline status can say so. */
@@ -332,13 +352,14 @@ export default function SocialTab({
 
       {/* Sections */}
       <div className="space-y-3">
-        <SectionHeader icon={Users} title="Sections" count={4} />
+        <SectionHeader icon={Users} title="Sections" count={5} />
         <div className={LIST_SHELL}>
           {(
             [
               { id: "people" as Screen, icon: Users, title: "People", desc: "Everyone you are paired with", count: peers.length, suffix: "paired", tone: "indigo" },
               { id: "pairs" as Screen, icon: Link2, title: "Pairs", desc: "Full-detail sharing and revocation", count: grants.length, suffix: "pairs", tone: "sky" },
               { id: "freeNow" as Screen, icon: Clock, title: "Free Right Now", desc: currentSlot ? `Free in ${currentSlot.split(":")[0]}` : "Outside class hours", count: freeNowHandles.size, suffix: "free", tone: "emerald" },
+              { id: "classes" as Screen, icon: BookOpen, title: "Classes Together", desc: "Who shares your courses and sections", count: classesTogether, suffix: "shared", tone: "violet" },
               { id: "grid" as Screen, icon: CalendarRange, title: "Common Free Grid", desc: "Where everyone's free", count: 0, suffix: "", tone: "amber" },
             ] as const
           ).map((s) => {
@@ -382,6 +403,8 @@ export default function SocialTab({
       <FreeNowSubpage onBack={() => setScreen("landing")} onOpenPeer={openPeerSheet} />
     ) : screen === "groups" ? (
       <GroupsSubpage onBack={() => setScreen("landing")} />
+    ) : screen === "classes" ? (
+      <ClassesTogetherSubpage onBack={() => setScreen("landing")} onOpenPeer={openPeerSheet} />
     ) : (
       <CommonFreeGridSubpage onBack={() => setScreen("landing")} onOpenPeer={openPeerSheet} />
     );
@@ -497,9 +520,14 @@ export default function SocialTab({
       <AnimatePresence>
         {addPeerOpen && (
           <AddPeerSheet
-            onClose={() => setAddPeerOpen(false)}
+            initialHandle={inviteHandle ?? undefined}
+            onClose={() => {
+              setAddPeerOpen(false);
+              setInviteHandle(null);
+            }}
             onPaired={() => {
               setAddPeerOpen(false);
+              setInviteHandle(null);
               setScreen("people");
             }}
           />
@@ -510,6 +538,7 @@ export default function SocialTab({
           <PeerTimetableSheet
             peer={peerForSheet}
             ownBusyMap={ownBusyMap}
+            ownCourses={ownCourses}
             onClose={() => setOpenPeer(null)}
           />
         )}

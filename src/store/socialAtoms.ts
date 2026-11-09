@@ -59,3 +59,9 @@ export const socialSyncStateAtom = atom<SocialSyncState>({
   lastError: null,
   syncing: false,
 });
+
+/**
+ * A handle from an invite link (`/?add=AMZ-…`) waiting for the Social tab to
+ * open the Add friend sheet on it. Set by `Main.tsx`, cleared by `SocialTab`.
+ */
+export const pendingInviteHandleAtom = atom<string>(""); // "" = none

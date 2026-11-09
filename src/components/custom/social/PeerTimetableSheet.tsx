@@ -10,12 +10,13 @@
  */
 
 import { useMemo } from "react";
-import { EyeOff, MapPin, Clock } from "lucide-react";
+import { BookOpen, EyeOff, MapPin, Clock } from "lucide-react";
 import BottomSheet from "../shared/BottomSheet";
 import { CHIP, TONE_TEXT } from "@/lib/libraries/ui";
 import { DAYS, computeOverlap, parseSlotKey, slotMap, type Day } from "@/lib/social/schedule";
 import { relativePublished, type PeerTimetable } from "@/lib/social/usePeerTimetables";
-import type { BusyMap } from "@/lib/social/types";
+import type { BusyMap, SocialCourse } from "@/lib/social/types";
+import { sharedWithPeer } from "@/lib/social/sharedClasses";
 import { initials } from "./rows";
 
 function busyDays(busyMap: BusyMap): { day: Day; count: number }[] {
@@ -28,12 +29,16 @@ function busyDays(busyMap: BusyMap): { day: Day; count: number }[] {
 export default function PeerTimetableSheet({
   peer,
   ownBusyMap,
+  ownCourses = [],
   onClose,
 }: {
   peer: PeerTimetable;
   ownBusyMap: BusyMap;
+  /** Your courses, to show which classes you share. */
+  ownCourses?: SocialCourse[];
   onClose: () => void;
 }) {
+  const shared = useMemo(() => sharedWithPeer(ownCourses, peer.courses ?? []), [ownCourses, peer.courses]);
   const metrics = useMemo(
     () => (peer.loaded ? computeOverlap(ownBusyMap, peer.busyMap) : null),
     [peer.loaded, peer.busyMap, ownBusyMap]
@@ -117,6 +122,43 @@ export default function PeerTimetableSheet({
                 </p>
               </div>
             ) : peer.courses.length > 0 ? (
+              <>
+              {(shared.sameClass.length > 0 || shared.sameCourse.length > 0) && (
+                <div className="space-y-2">
+                  <p className="flex items-center gap-1.5 text-[11px] font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
+                    <BookOpen className="w-3.5 h-3.5 text-emerald-500" />
+                    Classes together
+                  </p>
+                  {shared.sameClass.map(({ mine }) => (
+                    <div
+                      key={`same-${mine.classId || mine.code}`}
+                      className="p-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/5"
+                    >
+                      <p className="text-xs font-black text-zinc-800 dark:text-zinc-200 font-outfit truncate">
+                        {mine.code} · {mine.title}
+                      </p>
+                      <p className="text-[11px] text-emerald-700 dark:text-emerald-400 font-bold mt-0.5 truncate">
+                        Same class{mine.venue ? ` · ${mine.venue}` : ""}
+                        {mine.componentType ? ` · ${mine.componentType}` : ""}
+                      </p>
+                    </div>
+                  ))}
+                  {shared.sameCourse.map(({ mine, theirs }) => (
+                    <div
+                      key={`course-${mine.classId || mine.code}-${mine.componentType}`}
+                      className="p-3 rounded-2xl border border-zinc-200/70 dark:border-zinc-800"
+                    >
+                      <p className="text-xs font-black text-zinc-800 dark:text-zinc-200 font-outfit truncate">
+                        {mine.code} · {mine.title}
+                      </p>
+                      <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5 truncate">
+                        Same course, other section
+                        {theirs.faculty ? ` · their faculty: ${theirs.faculty}` : ""}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
               <div className="space-y-2">
                 <p className="flex items-center gap-1.5 text-[11px] font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
                   <Clock className="w-3.5 h-3.5 text-indigo-500" />
@@ -138,6 +180,7 @@ export default function PeerTimetableSheet({
                   </div>
                 ))}
               </div>
+              </>
             ) : null}
 
             <div className="space-y-2">
