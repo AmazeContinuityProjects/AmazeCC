@@ -181,9 +181,9 @@ describe("estimateComponentGrades — a half's sub-total", () => {
       3,
     );
     const grades = estimateComponentGrades(stats);
-    // Released = 80 (the unscored 20 is pending). pace = 50 → D.
+    // Released = 80 (the unscored 20 is pending). pace = 50 → E (Table 6: E is 50–54).
     expect(grades.pacePct).toBe(50);
-    expect(grades.optimal?.letter).toBe("D");
+    expect(grades.optimal?.letter).toBe("E");
     // Ceiling = total − lost = 100 − 40 = 60 → C, capped by points lost.
     expect(grades.maximisablePct).toBe(60);
     expect(grades.maximisable.letter).toBe("C");
@@ -211,13 +211,13 @@ describe("estimateComponentGrades — a half's sub-total", () => {
     );
     const grades = estimateComponentGrades(stats);
     // Half of the max mark on the half's 60-point ladder = 30 secured of 60;
-    // everything is released, so pace = 30/60 = 50% → D.
+    // everything is released, so pace = 30/60 = 50% → E.
     expect(grades.pacePct).toBe(50);
-    expect(grades.optimal?.letter).toBe("D");
-    // Ceiling = (60−30)/60 = 50% → D (the ≥50 band). The lost 30 points are
+    expect(grades.optimal?.letter).toBe("E");
+    // Ceiling = (60−30)/60 = 50% → E (the 50–54 band). The lost 30 points are
     // gone however the continuous assessment finishes.
     expect(grades.maximisablePct).toBe(50);
-    expect(grades.maximisable.letter).toBe("D");
+    expect(grades.maximisable.letter).toBe("E");
   });
 });
 

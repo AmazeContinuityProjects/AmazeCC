@@ -23,7 +23,13 @@ import {
 } from "../shared/primitives";
 import { LIST_ROW, TILE_CARD, TONE_BADGE, TONE_ICON_TILE, TONE_TEXT } from "@/lib/uiTokens";
 import { toneForGrade, gradePoints } from "@/lib/gradeHistory";
-import { buildGradeBoundaries } from "@/lib/gradeBoundaries";
+import {
+  buildGradeBoundaries,
+  effectiveClassStats,
+  hasUsableClassStats,
+  isEarlyEstimate,
+  MIN_CURVE_SAMPLE,
+} from "@/lib/gradeBoundaries";
 import { buildAttendanceDayCardsMap, ATTENDANCE_DAYS } from "@/lib/attendanceTimetable";
 import GradeLadderChart from "./marks-predictor/GradeLadderChart";
 import {
@@ -2332,7 +2338,12 @@ export default function CourseDetailSubpage({
               // standing is read against 80. The displayed percentages
               // below stay fractional; only this band read ceils.
               const standing = boundaries.find((b) => Math.ceil(currentPct) >= b.limit);
-              const statsMissing = isRelative && !stats;
+              // Fewer than MIN_CURVE_SAMPLE contributors (or the server's empty
+              // placeholder) is not a curve: the ladder above already fell back
+              // to absolute, so say so. The σ shown is the one the ladder used.
+              const statsMissing = isRelative && !hasUsableClassStats(stats);
+              const used = effectiveClassStats(stats);
+              const early = isEarlyEstimate(stats);
 
               return (
                 <>
@@ -2350,9 +2361,13 @@ export default function CourseDetailSubpage({
                     <div className={`${TILE_CARD} ${statsMissing ? "opacity-60 grayscale" : ""}`}>
                       {isRelative && (
                         <p className="mb-2.5 flex items-center gap-2 text-[11px] font-medium text-text-secondary dark:text-text-muted flex-wrap">
-                          <ToneDot tone={statsMissing ? "zinc" : stats.count < 30 ? "amber" : "emerald"} />
+                          <ToneDot tone={statsMissing ? "zinc" : early ? "amber" : "emerald"} />
                           {statsMissing ? (
-                            <span>No class data yet — showing default bands</span>
+                            <span>
+                              {stats?.count > 0
+                                ? `Only ${stats.count} ${stats.count === 1 ? "peer" : "peers"} so far — the curve needs ${MIN_CURVE_SAMPLE}+, showing default bands`
+                                : "No class data yet — showing default bands"}
+                            </span>
                           ) : (
                             <span>
                               <span className="font-bold text-text-heading">{stats.count}</span>{" "}
@@ -2360,7 +2375,8 @@ export default function CourseDetailSubpage({
                               <span aria-hidden="true"> · </span>μ{" "}
                               <span className="font-bold text-text-heading">{formatNumber(stats.mean)}</span>
                               <span aria-hidden="true"> · </span>σ{" "}
-                              <span className="font-bold text-text-heading">{formatNumber(stats.sd)}</span>
+                              <span className="font-bold text-text-heading">{formatNumber(used?.sd ?? stats.sd)}</span>
+                              {early ? <span> · early estimate</span> : null}
                             </span>
                           )}
                         </p>

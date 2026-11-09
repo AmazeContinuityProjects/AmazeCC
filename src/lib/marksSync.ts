@@ -29,16 +29,24 @@ const getNumericValue = (value: any, fallback = 0) => {
   return Number.isFinite(numericValue) ? numericValue : fallback;
 };
 
-const getAssessmentTotals = (assessments: any[]) =>
+const getScoredMark = (assessment: any): number | null => {
+  const raw = assessment?.scoredMark;
+  if (raw === null || raw === undefined || String(raw).trim() === "" || String(raw).trim() === "-") {
+    return null;
+  }
+  const scoredMark = Number(raw);
+  return Number.isFinite(scoredMark) ? scoredMark : null;
+};
+
+const getAssessmentTotals = (assessments: any[], includeUnscoredWeight = false) =>
   assessments.reduce(
     (acc, asm) => {
-      acc.max += getNumericValue(asm.maxMark);
-      acc.scored += getNumericValue(asm.scoredMark);
+      if (!includeUnscoredWeight && getScoredMark(asm) === null) return acc;
       acc.weightPercent += getNumericValue(asm.weightagePercent);
       acc.weighted += getNumericValue(asm.weightageMark);
       return acc;
     },
-    { max: 0, scored: 0, weightPercent: 0, weighted: 0 }
+    { weightPercent: 0, weighted: 0 }
   );
 
 const getCourseCredits = (course: any) => {
@@ -50,31 +58,68 @@ const getCourseCredits = (course: any) => {
 const normalisedPct = (earned: number, available: number) =>
   available > 0 ? (earned / available) * 100 : 0;
 
-/** The blended course total: credit-weighted across the theory and lab halves. */
-const overallPct = (group: any): number => {
-  const theoryTotals = getAssessmentTotals(group.theory?.assessments || []);
-  const labTotals = getAssessmentTotals(group.lab?.assessments || []);
+/**
+ * The total as the regulations feed it into the class statistics: "Before calculating
+ * the class average and standard deviation, the grand total marks obtained by the
+ * student is 'rounded-up' to the next integer" (FFCS Academic Regulations v5.0 §9.5).
+ * The epsilon keeps a float like 36.000000001 from ceiling to 37.
+ */
+const roundUpTotal = (pct: number | null): number | null =>
+  pct === null ? null : Math.min(100, Math.ceil(pct - 1e-9));
 
-  if (!group.lab) return normalisedPct(theoryTotals.weighted, theoryTotals.weightPercent);
-  if (!group.theory) return normalisedPct(labTotals.weighted, labTotals.weightPercent);
+/**
+ * The blended course total: credit-weighted across the theory and lab halves.
+ *
+ * `includeUnscoredWeight` reproduces the pre-V2 formula (pending weight in the
+ * denominator, unrounded) only so a backfill can name the value the server already
+ * holds; every value this client contributes goes through the current one.
+ */
+const overallPct = (group: any, includeUnscoredWeight = false): number | null =>
+  includeUnscoredWeight
+    ? rawOverallPct(group, true)
+    : roundUpTotal(rawOverallPct(group, false));
+
+const rawOverallPct = (group: any, includeUnscoredWeight: boolean): number | null => {
+  const theoryTotals = getAssessmentTotals(
+    group.theory?.assessments || [],
+    includeUnscoredWeight
+  );
+  const labTotals = getAssessmentTotals(
+    group.lab?.assessments || [],
+    includeUnscoredWeight
+  );
+
+  if (!group.lab) {
+    return theoryTotals.weightPercent > 0
+      ? normalisedPct(theoryTotals.weighted, theoryTotals.weightPercent)
+      : null;
+  }
+  if (!group.theory) {
+    return labTotals.weightPercent > 0
+      ? normalisedPct(labTotals.weighted, labTotals.weightPercent)
+      : null;
+  }
 
   const theoryCredits = getCourseCredits(group.theory);
   const labCredits = getCourseCredits(group.lab);
-  if (theoryCredits < 0 || labCredits < 0) return 0;
+  if (theoryCredits < 0 || labCredits < 0) return includeUnscoredWeight ? 0 : null;
 
   const total = theoryCredits + labCredits;
   const earned = (theoryCredits * theoryTotals.weighted + labCredits * labTotals.weighted) / total;
   const available =
     (theoryCredits * theoryTotals.weightPercent + labCredits * labTotals.weightPercent) / total;
 
-  return normalisedPct(earned, available);
+  return available > 0 || includeUnscoredWeight
+    ? normalisedPct(earned, available)
+    : null;
 };
 
-/** A single assessment's mark as a percentage of its maximum. */
-const assessmentPct = (asm: any) =>
-  getNumericValue(asm?.maxMark) > 0
-    ? (getNumericValue(asm.scoredMark) / getNumericValue(asm.maxMark)) * 100
-    : 0;
+/** A recorded assessment's mark as a percentage of its maximum; zero is a valid mark. */
+const assessmentPct = (asm: any): number | null => {
+  const scoredMark = getScoredMark(asm);
+  const maxMark = getNumericValue(asm?.maxMark);
+  return scoredMark !== null && maxMark > 0 ? (scoredMark / maxMark) * 100 : null;
+};
 
 export type CourseGroupLite = {
   theory?: { classNbr?: string; assessments?: any[] } | null;
@@ -125,12 +170,18 @@ export const remapCohortStats = async (
       }
     }
 
+    // The server answers every class id it was asked about, so a class nobody has
+    // synced arrives as `{ count: 0, mean: 0, sd: 0 }`. That is "no data", not a
+    // class whose average is zero, and passing it on curved every band to 0%.
+    const count = Number(entry?.count);
+    const mean = Number(entry?.mean);
+    const sd = Number(entry?.sd);
     const overall =
-      entry && Number.isFinite(Number(entry.count))
+      entry && Number.isFinite(count) && count > 0 && Number.isFinite(mean)
         ? {
-            count: Number(entry.count),
-            mean: Number(entry.mean ?? 0),
-            sd: Number(entry.sd ?? 0),
+            count,
+            mean,
+            sd: Number.isFinite(sd) && sd > 0 ? sd : 0,
           }
         : null;
 
@@ -205,12 +256,12 @@ function push(
   scope: "overall" | "assessment",
   component: string,
   title: string,
-  mark: number,
+  mark: number | null,
   prev: number | null,
   force = false
 ) {
-  if (!classId) return;
-  if (!Number.isFinite(mark) || mark <= 0) return;
+  if (!classId || mark === null) return;
+  if (!Number.isFinite(mark) || mark < 0 || mark > 100) return;
   // Re-sending an unchanged value would make the server do a remove-then-add of the
   // same number. Harmless, but it is a write we do not need to make — unless this is
   // the one-time backfill below, which exists precisely to state every value once.
@@ -235,7 +286,7 @@ function push(
  * against any legacy record (or adds it), mints a token, and every later sync resumes
  * normal diffing. Set only on `res.ok`, so a failed backfill retries next time.
  */
-const BACKFILL_KEY = "marksSyncBackfillV1";
+const BACKFILL_KEY = "marksSyncBackfillV2";
 
 /** Receipt keys the last successful sync reported as frozen (server-held, not covered). */
 const FROZEN_KEY = "marksFrozenV1";
@@ -386,7 +437,9 @@ export const syncMarksDiff = async (
         "",
         "",
         overallPct(newGroup),
-        oldGroup.theory || oldGroup.lab ? overallPct(oldGroup) : null,
+        oldGroup.theory || oldGroup.lab
+          ? overallPct(oldGroup, backfill)
+          : null,
         backfill
       );
 

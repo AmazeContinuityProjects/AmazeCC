@@ -61,8 +61,9 @@ describe("buildGradeBoundaries — the shifted ladder", () => {
   });
 
   it("shifts bands to mean ± σ under a curve", () => {
-    // mean 55 sd 12: S = min(round(mean+1.5σ)=73, 100) → 73 — no 80 floor, S
-    // rides the σ policy; A → mean+0.5σ = 61; B → 49; C → 43; D → 37; E → 31.
+    // mean 55 sd 12: S = round(mean+1.5σ) = 73 — the 90% floor is suspended,
+    // so S rides the σ line; A → mean+0.5σ = 61; B → 49; C → 43; D → 37;
+    // E → 31.
     expect(buildGradeBoundaries(stats(55, 12), true)).toEqual([
       { grade: "S", limit: 73 },
       { grade: "A", limit: 61 },
@@ -74,10 +75,30 @@ describe("buildGradeBoundaries — the shifted ladder", () => {
     ]);
   });
 
-  it("leaves S free of any fixed floor", () => {
-    // A brutal class (mean 30, σ 10) puts S at round(45) — no letter is
-    // pinned to the fixed ladder's percentage.
+  it("leaves S free of the suspended 90% floor", () => {
+    // A brutal class (mean 30, σ ≈ 10.1 pooled) puts S at round(45.2) = 45.
     expect(buildGradeBoundaries(stats(30, 10), true)[0]).toEqual({ grade: "S", limit: 45 });
+    // A strong one: mean 80 σ 8 → 92.
+    expect(buildGradeBoundaries(stats(80, 8), true)[0]).toEqual({ grade: "S", limit: 92 });
+  });
+
+  it("falls back to the absolute ladder below 5 contributors", () => {
+    expect(buildGradeBoundaries({ count: 4, mean: 55, sd: 12 }, true)).toBe(
+      ABSOLUTE_GRADE_BOUNDARIES
+    );
+    expect(buildGradeBoundaries({ count: 5, mean: 55, sd: 12 }, true)).not.toBe(
+      ABSOLUTE_GRADE_BOUNDARIES
+    );
+  });
+
+  it("does not curve on the server's empty placeholder", () => {
+    // A class nobody synced comes back { count: 0, mean: 0, sd: 0 }. Curving
+    // on it put every band at 0 and called every student an S.
+    expect(buildGradeBoundaries({ count: 0, mean: 0, sd: 0 }, true)).toBe(
+      ABSOLUTE_GRADE_BOUNDARIES
+    );
+    // Five identical totals (σ 0) still curve: the pooled σ gives them a spread.
+    expect(buildGradeBoundaries(stats(70, 0), true)).not.toBe(ABSOLUTE_GRADE_BOUNDARIES);
   });
 
   it("caps S at 100 so a perfect score can still earn it", () => {
@@ -92,23 +113,26 @@ describe("buildGradeBoundaries — the shifted ladder", () => {
   });
 
   it("lets the E–F boundary sink to the σ line on strong classes", () => {
-    // mean 62, σ 8: mean−2σ = 46 — the pass line is the σ value itself,
-    // below 50, exactly where the class curve puts it.
-    expect(buildGradeBoundaries(stats(62, 8), true)[5]).toEqual({ grade: "E", limit: 46 });
+    // mean 62, sample σ 8 over 69 contributors → pooled σ ≈ 8.27:
+    // mean−2σ = 45.45 → 45 — the pass line is the σ value itself, below 50,
+    // exactly where the class curve puts it.
+    expect(buildGradeBoundaries(stats(62, 8), true)[5]).toEqual({ grade: "E", limit: 45 });
   });
 });
 
 describe("gradeAt — reading the ladder", () => {
-  it("sits on the absolute ladder by default (parity with the old switch)", () => {
+  it("sits on the absolute ladder by default (Table 6)", () => {
     expect(gradeAt(90)).toBe("S");
     expect(gradeAt(89)).toBe("A");
     expect(gradeAt(80)).toBe("A");
     expect(gradeAt(79)).toBe("B");
     expect(gradeAt(70)).toBe("B");
     expect(gradeAt(60)).toBe("C");
-    expect(gradeAt(50)).toBe("D");
-    expect(gradeAt(40)).toBe("E");
-    expect(gradeAt(39)).toBe("F");
+    expect(gradeAt(55)).toBe("D");
+    expect(gradeAt(54)).toBe("E");
+    expect(gradeAt(50)).toBe("E");
+    expect(gradeAt(49)).toBe("F");
+    expect(gradeAt(40)).toBe("F");
     expect(gradeAt(100)).toBe("S");
   });
 
@@ -123,15 +147,15 @@ describe("gradeAt — reading the ladder", () => {
   });
 
   it("hands out S when the ceiled weightage reaches the band's σ boundary", () => {
-    // The rule verbatim: an S at 78, a student at 77.2 — the ceiled
-    // weightage (78) reaches the S limit, so that student is S.
-    // stats(60, 12): S = min(round(60 + 1.5σ = 78), 100) = 78.
-    const curved = buildGradeBoundaries(stats(60, 12), true);
-    expect(curved[0].limit).toBe(78);
-    expect(gradeAt(77.2, curved)).toBe("S");
-    expect(gradeAt(77.05, curved)).toBe("S");
-    // 77.0 ceils to 77, misses the boundary, and reads A.
-    expect(gradeAt(77, curved)).toBe("A");
+    // An S at 93, a student at 92.2 — the ceiled weightage (93) reaches the
+    // S limit, so that student is S.
+    // stats(78, 10): S = round(78 + 1.5σ) = 93 (σ ≈ 10.1 pooled → 93.2).
+    const curved = buildGradeBoundaries(stats(78, 10), true);
+    expect(curved[0].limit).toBe(93);
+    expect(gradeAt(92.2, curved)).toBe("S");
+    expect(gradeAt(92.05, curved)).toBe("S");
+    // 92.0 ceils to 92, misses the boundary, and reads A.
+    expect(gradeAt(92, curved)).toBe("A");
   });
 
   it("returns the F tail on garbage percentages", () => {
@@ -160,9 +184,11 @@ describe("estimateGrade — the predictor reads the same ladder", () => {
   });
 
   it("ceils the weightage before the band read on either ladder", () => {
-    // Absolute: 79.5 → 80 → A, not B. Curved (mean 55 σ 12, S at 73):
-    // 80 ≥ 73 → S.
+    // Absolute: 79.5 → 80 → A, not B. Curved (mean 55 σ 12, A at 61):
+    // 60.5 → 61 → A, not B.
     expect(estimateGrade(79.5).letter).toBe("A");
+    expect(estimateGrade(60.5, curved).letter).toBe("A");
+    // And 79.5 → 80 clears the curve's S at 73.
     expect(estimateGrade(79.5, curved).letter).toBe("S");
   });
 });
