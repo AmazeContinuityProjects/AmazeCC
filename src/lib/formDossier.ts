@@ -39,6 +39,8 @@ const FRAME_INSET = 8;
 const CONTENT_X = 16;
 const CONTENT_W = PAGE_W - CONTENT_X * 2; // 178mm
 const CONTENT_TOP = 17;
+/** Extra headroom on continuation pages so the running head never crowds the content. */
+const CONTENT_TOP_CONTINUED = 22;
 const CONTENT_BOTTOM = 279;
 const FOOTER_Y = 284.5;
 
@@ -229,6 +231,8 @@ interface ChunkedTableOptions {
   boldColumns?: readonly number[];
   cellFont?: number;
   lineHeight?: number;
+  /** Draw vertical rules between every column (default true — form-style grid). */
+  columnLines?: boolean;
   /** Called after a page break: draws the continued heading + table header. */
   onContinue: () => number;
 }
@@ -239,7 +243,16 @@ interface ChunkedTableOptions {
  * sign of a screen export printed to paper.
  */
 function drawChunkedTable(pdf: jsPDF, startY: number, options: ChunkedTableOptions): number {
-  const { columns, headers, rows, boldColumns = [], cellFont = 5.8, lineHeight = 3.25, onContinue } = options;
+  const {
+    columns,
+    headers,
+    rows,
+    boldColumns = [],
+    cellFont = 5.8,
+    lineHeight = 3.25,
+    columnLines = true,
+    onContinue,
+  } = options;
   let y = drawTableHeader(pdf, columns, headers, startY);
 
   for (let index = 0; index < rows.length; index++) {
@@ -258,6 +271,14 @@ function drawChunkedTable(pdf: jsPDF, startY: number, options: ChunkedTableOptio
       color(pdf, "setDrawColor", FORM_INK.ink);
       pdf.setLineWidth(0.2);
       pdf.rect(CONTENT_X, y, CONTENT_W, rowHeight, "FD");
+      if (columnLines && columns.length > 1) {
+        // Vertical rules between columns so every field is boxed, form-style.
+        let ruleX = CONTENT_X;
+        for (let i = 0; i < columns.length - 1; i++) {
+          ruleX += columns[i];
+          pdf.line(ruleX, y, ruleX, y + rowHeight);
+        }
+      }
       let cellX = CONTENT_X;
       wrapped.forEach((lines, i) => {
         const slice = lines.slice(lineOffset, lineOffset + chunkLines);
@@ -429,25 +450,33 @@ function drawScheduleGrid(pdf: jsPDF, params: PrintDossierParams, y: number): nu
           color(pdf, "setDrawColor", FORM_INK.ink);
           pdf.rect(x, lunchY, colW, lunchH, "FD");
           color(pdf, "setTextColor", FORM_INK.ink);
+          const lunchCx = x + colW / 2;
+          const lunchCy = lunchY + lunchH / 2;
+          // Rotated 90° CCW the text reads bottom-to-top; anchor y = cy + width/2
+          // centers it vertically, and the two lines sit side-by-side in the column.
           pdf.setFont("helvetica", "bold");
-          pdf.setFontSize(7);
-          pdf.text("LUNCH", x + colW / 2, lunchY + lunchH / 2 - 3, { align: "center", angle: 90 });
+          pdf.setFontSize(6.5);
+          const lunchW = pdf.getTextWidth("LUNCH");
+          pdf.text("LUNCH", lunchCx - 1.4, lunchCy + lunchW / 2, { angle: 90 });
           pdf.setFont("helvetica", "normal");
-          pdf.setFontSize(5);
-          pdf.text("1:20-2:00", x + colW / 2, lunchY + lunchH / 2 + 16, { align: "center", angle: 90 });
+          pdf.setFontSize(4.5);
+          const timeW = pdf.getTextWidth("1:20-2:00");
+          pdf.text("1:20-2:00", lunchCx + 1.6, lunchCy + timeW / 2, { angle: 90 });
         }
         continue;
       }
-      color(pdf, "setFillColor", FORM_INK.paper);
-      color(pdf, "setDrawColor", FORM_INK.ink);
-      pdf.rect(x, rowY, colW, rowH, "FD");
-
       const theoryCourse = theorySlot ? params.courses.find((item) => item.slots.includes(theorySlot)) : undefined;
       const labCourse = labSlot ? params.courses.find((item) => item.slots.includes(labSlot)) : undefined;
       const halves = [
         { slot: theorySlot, course: theoryCourse },
         { slot: labSlot, course: labCourse },
       ].filter((half) => half.slot || half.course);
+
+      // Class cells get a light grey fill so occupied periods stand out on paper.
+      const hasClass = halves.some((half) => half.course);
+      color(pdf, "setFillColor", hasClass ? FORM_INK.panel : FORM_INK.paper);
+      color(pdf, "setDrawColor", FORM_INK.ink);
+      pdf.rect(x, rowY, colW, rowH, "FD");
       halves.slice(0, 2).forEach((half, halfIndex) => {
         const halfHeight = rowH / halves.length;
         const centerY = rowY + halfIndex * halfHeight + halfHeight / 2;
@@ -560,7 +589,7 @@ export async function createPrintDossierPdf(params: PrintDossierParams): Promise
   const newPage = () => {
     pageNumber += 1;
     addPage(pdf, pageNumber);
-    y = CONTENT_TOP;
+    y = CONTENT_TOP_CONTINUED;
   };
 
   y = drawFormHeader(pdf, params, groups, credits, clashPairs, y);
@@ -590,7 +619,13 @@ export async function createPrintDossierPdf(params: PrintDossierParams): Promise
     ]),
     onContinue: () => {
       newPage();
-      const headingY = continueSection(pdf, 2, "COURSE REGISTER", "Course details continue on this page", CONTENT_TOP);
+      const headingY = continueSection(
+        pdf,
+        2,
+        "COURSE REGISTER",
+        "Course details continue on this page",
+        CONTENT_TOP_CONTINUED,
+      );
       return drawTableHeader(pdf, PRINT_COURSE_COLUMNS, PRINT_COURSE_HEADERS, headingY);
     },
   });
@@ -627,7 +662,7 @@ export async function createPrintDossierPdf(params: PrintDossierParams): Promise
             3,
             "FACULTY ASSESSMENT",
             "Faculty assessment continues on this page",
-            CONTENT_TOP,
+            CONTENT_TOP_CONTINUED,
           );
           return drawTableHeader(pdf, PRINT_FACULTY_COLUMNS, PRINT_FACULTY_HEADERS, headingY);
         },
@@ -665,7 +700,7 @@ export async function createPrintDossierPdf(params: PrintDossierParams): Promise
           4,
           "DROP-IN REPLACEMENTS",
           "Drop-in alternatives continue on this page",
-          CONTENT_TOP,
+          CONTENT_TOP_CONTINUED,
         );
         return drawTableHeader(pdf, PRINT_DROPIN_COLUMNS, PRINT_DROPIN_HEADERS, headingY);
       },
