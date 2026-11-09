@@ -77,6 +77,10 @@ describe("sectionHomeFor", () => {
     expect(Object.values(s).every((fn) => !fn.mock.calls.length)).toBe(true);
   });
 
+  it("includes friend-finder in SINGLE_SCREEN_TABS", () => {
+    expect(SINGLE_SCREEN_TABS).toContain("friend-finder");
+  });
+
   it("returns null for toggle icons", () => {
     const s = spySetters();
     for (const tab of NO_HOME_TABS) {

@@ -1,11 +1,11 @@
 # FFCS friend finder ("Find classmates")
 
 Our version of [ffcs-finder.web.app](https://ffcs-finder.web.app/): see who
-picked the same faculty and slot as you. It lives in the planner at
-**FFCS → Friends → Find classmates**.
+picked the same faculty and slot as you. It lives on the home screen as a
+top-level tab (**Find Classmates** button under Quick Tools / `friend-finder` tab).
 
 - Status: built, not deployed
-- Frontend: `src/lib/ffcsClassmates.ts`, `src/components/custom/exams/FFCS/FFCSClassmatesSection.tsx`
+- Frontend: `src/lib/ffcsClassmates.ts`, `src/components/custom/friendfinder/FriendFinderTab.tsx`
 - Backend (amazecc-api): `src/app/api/social/ffcs-match/route.ts`, `src/lib/ffcsMatch.ts`,
   `src/lib/ffcsMatchDb.ts`, `src/lib/ffcsReport.ts`
 
@@ -19,18 +19,25 @@ as the admin's typing.
 
 ## How ours works
 
-| Concern         | ffcs-finder                                       | Ours                                                                                                                                                              |
-| --------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Who you are     | Typed-in name + PIN                               | Your VTOP session. The server reads your name and reg no from VTOP's response (`identifyCaller`), never from the request.                                         |
-| What you picked | Faculty/slot chosen from an admin-maintained list | Class ids from one of your planner timetables, checked against the semester's registration report, or your registered timetable read from VTOP (marked verified). |
-| Matching        | In the browser, over everyone's data              | On the server. You get back only the people who share your sections.                                                                                              |
-| Course data     | Typed in by an admin                              | The same report CSV the planner uses (`amazecc.com/ffcs/*.csv`).                                                                                                  |
+| Concern         | ffcs-finder                                       | Ours                                                                                                                      |
+| --------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Who you are     | Typed-in name + PIN                               | Your VTOP session. The server reads your name and reg no from VTOP's response (`identifyCaller`), never from the request. |
+| What you picked | Faculty/slot chosen from an admin-maintained list | Registered timetable read directly from VTOP (marked verified; planned sharing is disabled).                              |
+| Matching        | In the browser, over everyone's data              | On the server. You get back only the people who share your sections.                                                      |
+| Course data     | Typed in by an admin                              | The same report CSV the planner uses (`amazecc.com/ffcs/*.csv`).                                                          |
 
 **The unit of matching is the class id.** One class id is one section: a
 course component taught by one faculty member in one slot. Holding the same
 class id means being in the same class. The response lists each of your
 sections with who's in it, plus a "most in common" ranking (two or more
 shared sections, with identical timetables first).
+
+**Two views and bottom sheet.** The UI provides two groupings:
+
+- **Classes**: lists your sections with enrolled classmates count, drilling into a class subpage with faculty reviews.
+- **Friends**: lists people sharing common classes. Tapping opens a Friend bottom sheet showing name, registration number, and shared classes.
+
+**Automatic refresh.** Quick sync dispatches `FRIEND_FINDER_REFRESH_EVENT` on success, automatically refreshing matches without re-opening.
 
 **One request per action.** `POST /api/social/ffcs-match` takes
 `op: get | publish | visibility | leave` and always returns your state plus
@@ -44,17 +51,19 @@ section rosters:
 
 - **Opt-in and reciprocal.** You only appear to people who share a section
   with you, and you only see others while you're visible yourself.
-- **Minimal output.** Each person comes back as a handle, their VTOP name and
-  a planned/registered flag. No reg no, no owner key, no other classes.
-- **Plans must be plausible.** Every class must be in the report, with at
-  most one section per course component, no slot clashes and at most 20
-  classes. You can't submit every section of a course.
+- **Minimal output.** Each person comes back as a handle and their VTOP name.
+  Plaintext registration numbers are shared only with people who share ≥2 classes
+  (reciprocal overlaps in the friend bottom sheet); section rosters remain names
+  and handles only. No owner keys or unshared classes are exposed.
+- **Verified-only sharing.** Only VTOP-verified registered timetables can be published.
+  Planned sharing is rejected at the route (`planned_sharing_disabled`).
 - **10 changes a day.** Enforced inside a single upsert, so concurrent
   requests can't exceed it (covered by `ffcsMatchDb.test.ts`). Republishing
   the same classes is free.
 - **Pseudonymous storage.** Rows are keyed by `maskUserID(regNo)`, like the
   rest of social. Names come from `social_people` and are refreshed from VTOP
-  on every call.
+  on every call. Plaintext `register_no` is stored in `ffcs_match_entries`
+  strictly for reciprocal overlaps.
 
 ## Semesters
 

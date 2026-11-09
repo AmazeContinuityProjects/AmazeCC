@@ -26,6 +26,7 @@ const ClubHubTab = dynamic(() => import("../clubs/ClubHubTab"), { loading: Featu
 const CommunityFeed = dynamic(() => import("../clubs/CommunityFeed"), { loading: FeatureLoading });
 const FreeClassroomsTab = dynamic(() => import("../exams/FreeClassroomsTab"), { loading: FeatureLoading });
 const FacultyScheduleTab = dynamic(() => import("../exams/FacultyScheduleTab"), { loading: FeatureLoading });
+const FriendFinderTab = dynamic(() => import("../friendfinder/FriendFinderTab"), { loading: FeatureLoading });
 const PaperScannerPage = dynamic(() => import("../tools/scanner/PaperScannerPage"), { loading: FeatureLoading });
 const MoreTab = dynamic(() => import("../more/MoreTab"), { loading: FeatureLoading });
 const AboutTab = dynamic(() => import("../AboutTab"), { loading: FeatureLoading });
@@ -128,6 +129,11 @@ export default function DashboardUtilityRoutes({
       <DashboardRoute route="faculty-schedule">
         <div className="animate-fadeIn">
           <FacultyScheduleTab onBack={onSystemBack} handleReloadRequest={handleReloadRequest} />
+        </div>
+      </DashboardRoute>
+      <DashboardRoute route="friend-finder">
+        <div className="animate-fadeIn">
+          <FriendFinderTab onBack={onSystemBack} />
         </div>
       </DashboardRoute>
       <DashboardRoute route="paper-scanner">

@@ -27,6 +27,7 @@ import {
   BookOpen,
   CalendarDays,
   UserSearch,
+  UsersRound,
   Sun,
   CalendarOff,
   Building,
@@ -2222,6 +2223,18 @@ export default function SimplifiedMobileHome({
               >
                 <UserSearch className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                 <span>Find Faculty Schedule</span>
+              </button>
+              <button
+                onClick={() => {
+                  try {
+                    localStorage.setItem("friend_finder_source", "home");
+                  } catch {}
+                  setActiveTab("friend-finder");
+                }}
+                className="sm:col-span-2 w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-amber-50/80 hover:bg-amber-100/80 dark:bg-amber-950/20 dark:hover:bg-amber-900/30 border border-amber-200/70 dark:border-amber-900/40 text-xs font-bold text-amber-700 dark:text-amber-300 hover:border-amber-300 dark:hover:border-amber-800 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
+              >
+                <UsersRound className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                <span>Find Classmates</span>
               </button>
 
               {/* Bug Report Button below Faculty Schedule */}

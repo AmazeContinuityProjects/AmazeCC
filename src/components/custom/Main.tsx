@@ -24,6 +24,7 @@ import {
   officialOdDataAtom,
   authorizedIDAtom,
   defaultSettings,
+  activeTabAtom,
 } from "@/store";
 import { activeRegNumberAtom } from "@/store/authAtoms";
 import IntroSong from "@/lib/introSong/IntroSong";
@@ -165,6 +166,21 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
   // Client-side navigation, so the sync still running in the background keeps
   // going.
   const router = useRouter();
+  const setActiveTab = useSetAtom(activeTabAtom);
+
+  // Consume deep-link /?open=friend-finder (e.g. from share links or post-login return)
+  useEffect(() => {
+    try {
+      if (typeof window === "undefined") return;
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("open") === "friend-finder") {
+        setActiveTab("friend-finder");
+        url.searchParams.delete("open");
+        window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+      }
+    } catch {}
+  }, [setActiveTab]);
+
   useEffect(() => {
     const returnIfFreshlySignedIn = () => {
       if (demoMode) return;

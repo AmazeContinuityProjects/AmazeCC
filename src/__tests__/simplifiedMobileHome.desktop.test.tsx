@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import SimplifiedMobileHome from "../components/custom/mobile/SimplifiedMobileHome";
+import { installLocalStorage } from "./helpers/localStorage";
 
 const TODAY = new Date(2026, 8, 29, 10, 0, 0); // Tuesday, 10am local
 
@@ -63,7 +64,11 @@ function defaultProps(over: Record<string, unknown> = {}) {
   } as any;
 }
 
+let ls: Storage;
+
 beforeEach(() => {
+  ls = installLocalStorage();
+  ls.clear();
   vi.useFakeTimers({ shouldAdvanceTime: true });
   vi.setSystemTime(TODAY);
   Object.defineProperty(window, "innerWidth", { writable: true, configurable: true, value: 1200 });
@@ -71,6 +76,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
+  ls?.clear();
 });
 
 describe("SimplifiedMobileHome Desktop Layout & Course Pane", () => {
@@ -175,5 +181,17 @@ describe("SimplifiedMobileHome Desktop Layout & Course Pane", () => {
     expect(screen.getByText("92%")).toBeDefined();
     // CGPA slide in carousel
     expect(screen.getByText("9.15")).toBeDefined();
+  });
+
+  it("navigates to friend-finder tab and sets friend_finder_source on clicking Find Classmates", () => {
+    const setActiveTab = vi.fn();
+    render(<SimplifiedMobileHome {...defaultProps({ setActiveTab })} />);
+
+    const btn = screen.getByRole("button", { name: /find classmates/i });
+    expect(btn).toBeTruthy();
+    fireEvent.click(btn);
+
+    expect(window.localStorage.getItem("friend_finder_source")).toBe("home");
+    expect(setActiveTab).toHaveBeenCalledWith("friend-finder");
   });
 });

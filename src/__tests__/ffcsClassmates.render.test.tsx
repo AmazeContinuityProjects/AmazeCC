@@ -2,8 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { getDefaultStore } from "jotai";
 import { demoModeAtom, isLoggedInAtom } from "../store";
-import type { ClassmatesState } from "../lib/ffcsClassmates";
-import type { ParsedCourse, TimetableState } from "../lib/ffcsTypes";
+import { FRIEND_FINDER_REFRESH_EVENT, type ClassmatesState } from "../lib/ffcsClassmates";
 
 const apiMock = vi.fn();
 const ensureMock = vi.fn();
@@ -16,8 +15,21 @@ vi.mock("@/lib/sync-engine/credential-manager", () => ({
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: pushMock }) }));
 
+vi.mock("../components/custom/exams/FFCS/components/FacultyReviewSheetHost", () => ({
+  default: ({ target }: { target: { name: string; courseCode?: string } | null }) =>
+    target ? (
+      <div data-testid="faculty-review-sheet">
+        {target.name} - {target.courseCode}
+      </div>
+    ) : null,
+}));
+
 import { AuthError } from "../lib/sync-engine/errors";
-import FFCSClassmatesSection from "../components/custom/exams/FFCS/FFCSClassmatesSection";
+import { closeTopOverlayFromPop } from "../lib/overlayStack";
+import FriendFinderTab from "../components/custom/friendfinder/FriendFinderTab";
+import { installLocalStorage } from "./helpers/localStorage";
+
+const ls = installLocalStorage();
 
 const OFFERING = {
   classId: "CH2026270500101",
@@ -29,38 +41,6 @@ const OFFERING = {
   slot: "B1+TB1",
   faculty: "PRIYA S",
 };
-const report: ParsedCourse[] = [
-  {
-    CODE: "BAMAT101",
-    TITLE: "Calculus",
-    TYPE: "TH",
-    CREDITS: "4",
-    ROOM: "AB2-102",
-    SLOT: "B1+TB1",
-    FACULTY: "PRIYA S",
-    CLASS_ID: "CH2026270500101",
-  },
-];
-const timetables: TimetableState[] = [
-  {
-    id: "t1",
-    name: "Plan A",
-    courses: [
-      {
-        id: "c1",
-        code: "BAMAT101",
-        title: "Calculus",
-        slots: ["B1", "TB1"],
-        faculty: "PRIYA S",
-        venue: "",
-        credits: "4",
-        type: "TH",
-        color: "blue",
-      },
-    ],
-  },
-  { id: "t2", name: "Empty plan", courses: [] },
-];
 
 function stateWith(partial: Partial<ClassmatesState["me"]>, extra: Partial<ClassmatesState> = {}): ClassmatesState {
   return {
@@ -86,7 +66,7 @@ function stateWith(partial: Partial<ClassmatesState["me"]>, extra: Partial<Class
 
 const joinedWithMatch = () =>
   stateWith(
-    { joined: true, discoverable: true, source: "planned", classIds: [OFFERING.classId] },
+    { joined: true, discoverable: true, source: "registered", classIds: [OFFERING.classId] },
     {
       sections: [
         {
@@ -95,64 +75,74 @@ const joinedWithMatch = () =>
           people: [{ handle: "AMZ-B", name: "BALA MURUGAN", source: "registered" }],
         },
       ],
-      overlaps: [],
+      overlaps: [
+        {
+          handle: "AMZ-B",
+          name: "BALA MURUGAN",
+          source: "registered",
+          shared: 1,
+          sharedClassIds: [OFFERING.classId],
+          identical: false,
+          updatedAt: "2026-11-09",
+          regNo: "22BCE1234",
+        },
+      ],
     },
   );
 
-async function renderSection(semesterId: "winter-2026-2027" | "winter-2026-2027-mock" = "winter-2026-2027") {
+async function renderTab(onBack?: () => void, semesterId?: string) {
+  let res: any;
   await act(async () => {
-    render(
-      <FFCSClassmatesSection
-        semesterId={semesterId}
-        timetables={timetables}
-        activeTimetableId="t1"
-        reportCourses={report}
-      />,
-    );
+    res = render(<FriendFinderTab onBack={onBack} semesterId={semesterId} />);
   });
+  return res;
 }
 
-describe("FFCSClassmatesSection", () => {
+describe("FriendFinderTab", () => {
   beforeEach(() => {
     apiMock.mockReset();
     ensureMock.mockReset();
     pushMock.mockReset();
     ensureMock.mockResolvedValue({ cookies: ["x"], authorizedID: "A", csrf: "c", fetchedAt: Date.now() });
     window.sessionStorage.clear();
+    ls.clear();
     getDefaultStore().set(isLoggedInAtom, true);
     getDefaultStore().set(demoModeAtom, false);
   });
-  afterEach(() => {
+
+  afterEach(async () => {
     cleanup();
     getDefaultStore().set(isLoggedInAtom, false);
+    let guard = 0;
+    while (closeTopOverlayFromPop() && guard++ < 25) {
+      await act(async () => {});
+    }
   });
 
-  it("offers guests a sign-in that comes back to the friend finder", async () => {
+  it("offers guests a sign-in that comes back to the friend finder with open=friend-finder", async () => {
     getDefaultStore().set(isLoggedInAtom, false);
-    await renderSection();
+    await renderTab();
     expect(apiMock).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: /Sign in with VTOP/ }));
-    expect(pushMock).toHaveBeenCalledWith("/?signin=1");
-    expect(JSON.parse(window.sessionStorage.getItem("amaze_signin_return")!).path).toBe("/ffcs/?open=classmates");
+    expect(pushMock).toHaveBeenCalledWith("/?signin=1&open=friend-finder");
   });
 
   it("refuses the mock list without calling the server", async () => {
-    await renderSection("winter-2026-2027-mock");
-    expect(screen.getByText(/final course list/)).toBeTruthy();
+    await renderTab(undefined, "winter-2026-2027-mock");
+    expect(screen.getByText(/final course list/i)).toBeTruthy();
     expect(apiMock).not.toHaveBeenCalled();
   });
 
-  it("explains the privacy rules, offers only timetables with classes, and publishes the chosen plan", async () => {
+  it("explains privacy rules, offers registered timetable, and publishes", async () => {
     apiMock.mockResolvedValueOnce(stateWith({}));
-    await renderSection();
+    await renderTab();
     expect(apiMock).toHaveBeenLastCalledWith(
       "social/ffcs-match",
       expect.objectContaining({ body: { op: "get", semesterId: "CH20262705" } }),
     );
     expect(screen.getByText(/12 students have joined/)).toBeTruthy();
     expect(screen.getByText(/Only people in at least one of your sections/)).toBeTruthy();
-    expect(screen.getByText("Plan A")).toBeTruthy();
-    expect(screen.queryByText("Empty plan")).toBeNull();
+    expect(screen.getByText("My registered timetable")).toBeTruthy();
 
     apiMock.mockResolvedValueOnce(joinedWithMatch());
     await act(async () => {
@@ -161,7 +151,7 @@ describe("FFCSClassmatesSection", () => {
     expect(apiMock).toHaveBeenLastCalledWith(
       "social/ffcs-match",
       expect.objectContaining({
-        body: { op: "publish", source: "planned", classIds: [OFFERING.classId], semesterId: "CH20262705" },
+        body: { op: "publish", source: "registered", semesterId: "CH20262705" },
       }),
     );
     expect(screen.getByText("Mohammed Anas")).toBeTruthy();
@@ -173,7 +163,7 @@ describe("FFCSClassmatesSection", () => {
 
   it("asks for a second tap before removing you", async () => {
     apiMock.mockResolvedValueOnce(joinedWithMatch());
-    await renderSection();
+    await renderTab();
     fireEvent.click(screen.getByRole("button", { name: /Remove me/ }));
     expect(apiMock).toHaveBeenCalledTimes(1);
     apiMock.mockResolvedValueOnce(stateWith({}));
@@ -188,7 +178,7 @@ describe("FFCSClassmatesSection", () => {
 
   it("offers Sign in again when there is no session, and retries after a fresh login", async () => {
     ensureMock.mockRejectedValueOnce(new AuthError("Not logged in", "vtop"));
-    await renderSection();
+    await renderTab();
     expect(screen.getByRole("alert").textContent).toMatch(/sign-in needs refreshing/i);
     expect(apiMock).not.toHaveBeenCalled();
 
@@ -203,25 +193,18 @@ describe("FFCSClassmatesSection", () => {
 
   it("sends you to the sign-in page when the saved login no longer works", async () => {
     ensureMock.mockRejectedValue(new AuthError("Login failed", "vtop"));
-    await renderSection();
+    await renderTab();
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: /Sign in again/ }));
     });
-    expect(pushMock).toHaveBeenCalledWith("/?signin=1");
-  });
-
-  it("shows other errors in plain words with Try again", async () => {
-    apiMock.mockResolvedValueOnce({ success: false, error: "report_unavailable" });
-    await renderSection();
-    expect(screen.getByRole("alert").textContent).toMatch(/course list/i);
-    expect(screen.getByRole("button", { name: /Try again/ })).toBeTruthy();
+    expect(pushMock).toHaveBeenCalledWith("/?signin=1&open=friend-finder");
   });
 
   it("tells a hidden user they are hidden, with a one-tap way back", async () => {
     apiMock.mockResolvedValueOnce(
-      stateWith({ joined: true, discoverable: false, source: "planned", classIds: [OFFERING.classId] }),
+      stateWith({ joined: true, discoverable: false, source: "registered", classIds: [OFFERING.classId] }),
     );
-    await renderSection();
+    await renderTab();
     expect(screen.getByText("You're hidden")).toBeTruthy();
     expect(screen.queryByText("Your sections")).toBeNull();
     apiMock.mockResolvedValueOnce(joinedWithMatch());
@@ -231,6 +214,70 @@ describe("FFCSClassmatesSection", () => {
     expect(apiMock).toHaveBeenLastCalledWith(
       "social/ffcs-match",
       expect.objectContaining({ body: { op: "visibility", discoverable: true, semesterId: "CH20262705" } }),
+    );
+  });
+
+  it("supports both groupings: by class and by friend with bottom sheet", async () => {
+    apiMock.mockResolvedValueOnce(joinedWithMatch());
+    await renderTab();
+
+    // Default grouping is Classes
+    expect(screen.getByText("Your sections")).toBeTruthy();
+    expect(screen.getByText("BAMAT101")).toBeTruthy();
+
+    // Switch to Friends grouping
+    fireEvent.click(screen.getByRole("button", { name: "Friends" }));
+    expect(screen.getByText("Friends with common classes")).toBeTruthy();
+    expect(screen.getByText("Bala Murugan")).toBeTruthy();
+    expect(screen.getByText("22BCE1234")).toBeTruthy();
+
+    // Click on friend row -> opens Friend bottom sheet
+    fireEvent.click(screen.getByText("Bala Murugan"));
+    expect(await screen.findByText(/1 class in common/i)).toBeTruthy();
+    expect(screen.getByText("Classes in common (tap to view details)")).toBeTruthy();
+
+    // Click shared class row in the sheet -> closes sheet and drills into class subpage
+    fireEvent.click(screen.getByText(/Calculus/));
+    expect(screen.getByText("Faculty reviews")).toBeTruthy();
+    expect(screen.getByText("Priya S")).toBeTruthy();
+    expect(screen.getByText("1 classmate here")).toBeTruthy();
+  });
+
+  it("class subpage displays offering details and opens faculty review sheet", async () => {
+    apiMock.mockResolvedValueOnce(joinedWithMatch());
+    const { container } = await renderTab();
+
+    // Drill into class from Classes view
+    fireEvent.click(screen.getByText("BAMAT101"));
+    expect(screen.getByText("Faculty reviews")).toBeTruthy();
+    expect(screen.getByText("4")).toBeTruthy(); // Credits
+    expect(screen.getByText("Room AB2-102")).toBeTruthy();
+
+    // Click faculty reviews
+    fireEvent.click(screen.getByText("Faculty reviews"));
+    expect(await screen.findByTestId("faculty-review-sheet")).toBeTruthy();
+    expect(screen.getByTestId("faculty-review-sheet").textContent).toContain("PRIYA S - BAMAT101");
+
+    // Back returns to main sections list
+    const backBtn = container.querySelector("button.self-start")!;
+    expect(backBtn).toBeTruthy();
+    fireEvent.click(backBtn);
+    expect(screen.getByText("Your sections")).toBeTruthy();
+  });
+
+  it("refreshes data when FRIEND_FINDER_REFRESH_EVENT fires", async () => {
+    apiMock.mockResolvedValueOnce(joinedWithMatch());
+    await renderTab();
+    expect(apiMock).toHaveBeenCalledTimes(1);
+
+    apiMock.mockResolvedValueOnce(joinedWithMatch());
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent(FRIEND_FINDER_REFRESH_EVENT));
+    });
+    expect(apiMock).toHaveBeenCalledTimes(2);
+    expect(apiMock).toHaveBeenLastCalledWith(
+      "social/ffcs-match",
+      expect.objectContaining({ body: { op: "publish", source: "registered", semesterId: "CH20262705" } }),
     );
   });
 });

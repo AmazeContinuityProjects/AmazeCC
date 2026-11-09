@@ -59,8 +59,6 @@ describe("TimetableShareCard", () => {
     expect(screen.getByRole("link", { name: /Friends in the FFCS planner/ }).getAttribute("href")).toMatch(
       /^\/ffcs\/?$/,
     );
-    expect(screen.getByRole("link", { name: /Find classmates/ }).getAttribute("href")).toMatch(
-      /^\/ffcs\/?\?open=classmates$/,
-    );
+    expect(screen.getByRole("link", { name: /Find classmates/ }).getAttribute("href")).toBe("/?open=friend-finder");
   });
 });
