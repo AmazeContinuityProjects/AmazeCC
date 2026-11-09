@@ -258,6 +258,7 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
   );
 
   const shellProps = {
+    syncedOps: ["schedule"],
     eyebrow: "Academics",
     title: "Exam Schedule",
     subtitle: semester ? `Session ${semester}` : undefined,

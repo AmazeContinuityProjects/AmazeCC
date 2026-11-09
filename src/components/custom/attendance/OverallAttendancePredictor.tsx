@@ -487,6 +487,7 @@ export default function OverallAttendancePredictor({
 
   return (
     <PageShell
+      syncedOps={["attendanceMarks"]}
       eyebrow="Attendance · Predictor"
       title="Attendance Predictor & Simulator"
       subtitle={`Projected ${formatPct(overallStats.predictedPct, decimalValues)}% · target ${targetThreshold}%`}

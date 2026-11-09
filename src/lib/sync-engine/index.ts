@@ -4,6 +4,7 @@ import { makeCtx, getOp } from "./operation-registry";
 import { resolveMode, loadCustomModes, foregroundSteps, backgroundSteps, type SyncMode } from "./sync-modes";
 import { toEngineError } from "./errors";
 import { storage } from "../storage";
+import { recordSyncTime } from "../syncTimes";
 import type { Ids, VtopCreds, ProgressEvent } from "./types";
 
 import { apiRequest, cancelAllRequests, resetActiveSignal } from "./request-layer";
@@ -141,6 +142,7 @@ class SyncEngine {
         await credentialManager.ensureVtopSession();
       }
       const result = (await op.run(opCtx, args)) as T;
+      if (!storage.demoMode.get()) recordSyncTime(name);
       emit({ op: name, phase: "done" });
       return result;
     } catch (e) {

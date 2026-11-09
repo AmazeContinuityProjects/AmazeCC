@@ -756,6 +756,7 @@ export default function SimplifiedAcademicsPage({
   // ── VIEW 1: CURRENT SEMESTER COURSES + PREVIOUS SEMESTERS PILL AT BOTTOM ──
   return (
     <PageShell
+      syncedOps={["attendanceMarks"]}
       eyebrow="Academics"
       title="My Courses & Marks"
       subtitle={`${filteredCurrentCourses.length} ${filteredCurrentCourses.length === 1 ? "course" : "courses"}`}

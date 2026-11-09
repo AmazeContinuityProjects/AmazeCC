@@ -463,6 +463,7 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
   ─────────────────────────────────────────────────────────────────────── */
   return (
     <PageShell
+      syncedOps={["bulk"]}
       eyebrow="Campus · Payments"
       title="Payments & Financials"
       subtitle="Dues, wallet ledger and official fee receipts"

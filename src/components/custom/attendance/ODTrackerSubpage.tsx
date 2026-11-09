@@ -311,6 +311,7 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, onBack, 
 
     return (
         <PageShell
+          syncedOps={["officialOd", "attendanceMarks"]}
             selectable
             eyebrow="Attendance · On-Duty"
             title="On-Duty hours"

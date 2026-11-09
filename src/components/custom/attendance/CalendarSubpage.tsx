@@ -633,6 +633,7 @@ export default function CalendarSubpage({
   );
 
   const shellProps = {
+    syncedOps: ["calendar"],
     eyebrow: "Attendance · Calendar",
     title: "Super Calendar",
     subtitle: [CALENDAR_TYPES[type], currSemesterID ? formatSemesterName(currSemesterID) : null]
