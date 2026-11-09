@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { AlertTriangle, Clock } from "lucide-react";
 import { ATTENDANCE_DAYS, AttendanceDay } from "@/lib/attendanceTimetable";
 import { detectChunkOverlaps } from "@/lib/taskMatch";

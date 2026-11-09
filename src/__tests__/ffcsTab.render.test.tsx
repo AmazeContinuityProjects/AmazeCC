@@ -1,6 +1,5 @@
-import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor, waitForElementToBeRemoved, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, waitForElementToBeRemoved, within } from "@testing-library/react";
 import { getDefaultStore } from "jotai";
 import FFCSTimetableTab from "../components/custom/exams/FFCSTimetableTab";
 import { getFittingStatTileCount } from "../components/custom/exams/FFCS/components/FFCSDashboardHeader";

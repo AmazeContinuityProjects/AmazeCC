@@ -1,10 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   generateModernTimetableHtml,
-  downloadModernTimetableImage,
   generateModernPrintableHtml,
   generateModernDossierInnerHtml,
-  downloadModernTimetablePdf,
   compileDossierPdfInline,
   compileDossierPdf,
   generateModernDossierHtml,

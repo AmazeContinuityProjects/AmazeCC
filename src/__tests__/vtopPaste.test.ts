@@ -2,8 +2,6 @@ import { describe, it, expect } from "vitest";
 import {
   isVtopRegistrationText,
   parseVtopRegistrationText,
-  parsePastedText,
-  toParsedCourses,
   vtopRowsToAddedCourses,
   parseAndConvert,
 } from "../features/import/parsePastedText";

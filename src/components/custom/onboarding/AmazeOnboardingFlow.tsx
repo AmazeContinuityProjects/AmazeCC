@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Sparkles,
   LayoutGrid,
-  CheckCircle2,
   ArrowRight,
   ChevronLeft,
   ChevronRight,
@@ -13,11 +12,8 @@ import {
   Bus,
   Bell,
   Palette,
-  ShieldCheck,
   Loader2,
-  Sliders,
   User,
-  Calendar,
   CalendarCheck,
   Car,
   CreditCard,

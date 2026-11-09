@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { getOp } from "../lib/sync-engine/operation-registry";
 import "../lib/sync-engine/operations";
 import {

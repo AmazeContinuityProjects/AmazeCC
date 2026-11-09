@@ -70,9 +70,6 @@ const IDS = {
   MoodlePassword: "",
 };
 
-function seedIds() {
-  storage.ids.set({ ...IDS });
-}
 
 /** A login response shaped like `/api/login` returns. */
 function loginResponse(n: number) {

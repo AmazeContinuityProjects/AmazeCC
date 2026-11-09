@@ -1,6 +1,6 @@
 "use client";
 import NavigationTabs from "./header/NavigationTabs";
-import { useState, useEffect, useCallback, memo } from "react";
+import { useState, useEffect, memo } from "react";
 import { useAtom } from "jotai";
 import {
   attendanceDataAtom,
@@ -20,7 +20,6 @@ import {
   settingsAtom,
   isReloadingAtom,
 } from "@/store";
-import SubpageLayout from "./shared/SubpageLayout";
 import dynamic from "next/dynamic";
 import { AnimatePresence } from "framer-motion";
 

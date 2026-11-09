@@ -1,19 +1,5 @@
 "use client";
 
-import React, { useState } from "react";
-import dynamic from "next/dynamic";
-import {
-  ChevronLeft,
-  Database,
-  UserCheck,
-  TrendingUp,
-  Users,
-  Car,
-  DoorOpen,
-  Compass,
-  Layers,
-  Sparkles,
-} from "lucide-react";
 import ToolsHub from "./ToolsHub";
 import FacultyInfoTab from "../exams/FacultyInfoTab";
 import FreeClassroomsTab from "../exams/FreeClassroomsTab";

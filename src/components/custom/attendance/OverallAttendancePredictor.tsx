@@ -1,22 +1,18 @@
 "use client";
 
-import React, { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useSetAtom } from "jotai";
 import {
   ChipTabs,
   EmptyPanel,
   GhostButton,
   InsightCarousel,
-  KeyValue,
   ListShell,
   PageShell,
-  SectionHeader,
   SegmentedControl,
   StatTile,
-  SubpageScreen,
   ToneBadge,
   useCarousel,
-  useSubpageStack,
   type InsightSlide,
 } from "../shared/primitives";
 import { SEARCH_FIELD, TILE_CARD } from "@/lib/uiTokens";
@@ -48,11 +44,7 @@ import {
   ChevronRight,
   RotateCcw,
   Sparkles,
-  ShieldAlert,
-  ShieldCheck,
   CheckCircle2,
-  AlertTriangle,
-  Clock,
   Flame,
   Search,
   BookOpen,
@@ -376,15 +368,6 @@ export default function OverallAttendancePredictor({
     [allWorkingDays, cutoffDate],
   );
 
-  /**
-   * The course whose date skipper is expanded, re-read from `predictions` every
-   * render so its percentage moves as dates are toggled rather than freezing at
-   * the value it had when the row was tapped.
-   */
-  const activeSubject = useMemo(
-    () => (openSubject ? (predictions.find((p) => p.courseCode === openSubject.courseCode) ?? null) : null),
-    [openSubject, predictions],
-  );
   // Filtered courses based on search and status filter
   const filteredCourses = useMemo(() => {
     return predictions.filter((p) => {

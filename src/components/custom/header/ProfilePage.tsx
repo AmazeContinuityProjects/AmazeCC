@@ -2,12 +2,10 @@
 
 import { api } from "@/lib/sync-engine";
 import { updatePostHogPersonName } from "@/lib/posthog";
-import TabHelpFooter from "../shared/TabHelpFooter";
 import {
   switchApiHost,
   hasBackupApi,
   getActiveApiUrl,
-  PRIMARY_API_URL,
   BACKUP_API_URL,
   type ApiHostChoice,
 } from "@/lib/fetch-utils";
@@ -23,23 +21,15 @@ import {
   Database,
   Shield,
   ChevronRight,
-  ChevronLeft,
   RefreshCcw,
   Sliders,
-  Settings,
-  Bell,
   Info,
   Key,
   Grid,
   Search,
   Keyboard,
-  Sparkles,
   Palette,
-  Layers,
   GraduationCap,
-  Home as HomeIcon,
-  Volume2,
-  VolumeX,
   Check,
   Edit3,
   Copy,
@@ -58,22 +48,17 @@ import {
   SectionHeader,
   SegmentedControl,
   SelectField,
-  SettingRow,
   StatTile,
   SubpageScreen,
   Switch,
-  TitleBlock,
-  ToggleRow,
-  ToneDot,
 } from "../shared/primitives";
 // `TILE` was already dead here; `TILE_INTERACTIVE` went with the settings tile
 // grid. `LIST_ROW` is the row shell the course overview uses for the same shape.
-import { LIST_ROW, TILE_CARD, TONE_BADGE, TONE_ICON_TILE, FIELD_INPUT } from "@/lib/uiTokens";
+import { LIST_ROW, TILE_CARD, TONE_ICON_TILE, FIELD_INPUT } from "@/lib/uiTokens";
 import { getAssetPath } from "@/lib/utils";
 import { parentOf } from "@/lib/settingsNav";
 import { RegistrationModalContent, BankDayStatusModal } from "./ProfileModals";
 import config from "../../../../config.json";
-import Links from "./Links";
 import PushNotificationManager from "./PushNotificationManager";
 import PwaInstallCard from "../shared/PwaInstallCard";
 import LocalStorageSubpage from "../footer/LocalStorageSubpage";
@@ -83,14 +68,13 @@ import TeamModal from "./TeamModal";
 import AboutBody from "./AboutBody";
 import ProfileStatusCards from "../profile/ProfileStatusCards";
 import AcknowledgementCards from "../profile/AcknowledgementCards";
-import { Badge, useIsMobile } from "../shared";
+import { useIsMobile } from "../shared";
 import BottomSheet from "../shared/BottomSheet";
 import { effectiveCellDensity } from "../timetable/useTimetableViewMode";
 import SyncModeEditor, { SyncModeEditorContent } from "../shared/SyncModeEditor";
 import { listModes, loadCustomModes, resolveMode, type SyncMode } from "@/lib/sync-engine/sync-modes";
 import GenericApiView, { clearApiCache } from "../exams/GenericApiView";
 import { useTheme } from "next-themes";
-import { AnimatePresence, m } from "framer-motion";
 
 export type SectionId =
   "profile" | "credentials" | "preferences" | "academic" | "sync" | "sync-modes" | "navigation" | "advanced" | "about";
@@ -365,7 +349,7 @@ export default function ProfilePage({
 
   // Credentials Section States
   const [credData, setCredData] = useState<any>(null);
-  const [credLoading, setCredLoading] = useState(true);
+  const [, setCredLoading] = useState(true);
   const [changedUsername, setChangedUsername] = useState(username || "");
   const [changedPassword, setChangedPassword] = useState(Array.isArray(password) ? password[0] : password || "");
   const [showPasswords, setShowPasswords] = useState<Record<number, boolean>>({});

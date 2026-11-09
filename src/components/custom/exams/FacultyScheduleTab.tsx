@@ -7,7 +7,6 @@ import { attendanceDataAtom, marksDataAtom } from "@/store/dataAtoms";
 import { settingsAtom } from "@/store/settingsAtoms";
 import {
   EmptyPanel,
-  ListRowText,
   ListShell,
   ListSkeleton,
   PageShell,
@@ -15,7 +14,7 @@ import {
   SegmentedControl,
   ToneBadge,
 } from "../shared/primitives";
-import { LIST_ROW, SEARCH_FIELD, TONE_ICON_TILE } from "@/lib/uiTokens";
+import { LIST_ROW, SEARCH_FIELD } from "@/lib/uiTokens";
 import FacultyScheduleModal from "./FFCS/components/modals/FacultyScheduleModal";
 import { VitfacReviewPill, FacultyAvatar } from "./FFCS/components/FacultyReviewSheet";
 import {

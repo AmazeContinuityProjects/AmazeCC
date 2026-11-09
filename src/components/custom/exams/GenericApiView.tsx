@@ -253,7 +253,6 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
     if (!tables || tables.length === 0) return null;
     return tables.map((table: any, idx: number) => {
       const hasRows = table.headers?.length > 0 && table.rows?.length > 0;
-      const columns = table.headers.map((h: string) => ({ key: h, label: h }));
       return (
         <div key={idx} className="solid-card mb-5">
           <div className="p-5">

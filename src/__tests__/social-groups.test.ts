@@ -57,7 +57,7 @@ function firstKeys(n: number, map: SlotMap = slotMap): string[] {
 }
 
 const [K1, K2, K3] = firstKeys(3);
-const [W1, W2, W3] = firstKeys(6).slice(3);
+const [W1, W2] = firstKeys(6).slice(3);
 
 beforeAll(installLocalStorage);
 beforeEach(() => window.localStorage.clear());

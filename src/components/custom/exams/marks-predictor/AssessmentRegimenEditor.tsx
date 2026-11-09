@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   Sliders,
   Plus,
@@ -89,7 +89,6 @@ export default function AssessmentRegimenEditor({
     .reduce((sum, item) => sum + safeNumber(item.weightagePercent, 0), 0);
   const remaining = remainingWeightFor(currentList);
   const anyPublished = currentList.some(isAssessmentPublished);
-  const anyFrozen = currentList.some((item) => weightFreezeFor(item).frozen);
 
   const handleApplyPreset = (preset: RegimenPreset) => {
     // A preset rewrites the whole component — that is exactly the change the

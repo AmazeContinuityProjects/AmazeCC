@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { Target, AlertTriangle, CheckCircle2, Sparkles, Flame, ShieldAlert } from "lucide-react";
 import { solveTargetFAT, TargetFATSolverResult, CoursePredictionResult, estimateGrade } from "@/lib/marksPredictor";
 import { fatNeededForEachGrade } from "@/lib/gradeInsights";

@@ -99,21 +99,6 @@ const ALIASES: Record<ImportableField, readonly string[]> = {
   BATCH: ["batch name", "batchname", "batch", "section", "group", "division"],
 };
 
-/**
- * `Venue` is what the shipped `ffcsReport.csv` calls the room column while the
- * loader has always read `VENUE` — so both spellings land on one field and the
- * two readers cannot disagree about where a class meets.
- */
-const CANONICAL_BY_FIELD: Record<ImportableField, string> = {
-  CODE: "CODE",
-  TITLE: "TITLE",
-  TYPE: "TYPE",
-  CREDITS: "CREDITS",
-  SLOT: "SLOT",
-  FACULTY: "FACULTY",
-  ROOM: "ROOM",
-  BATCH: "BATCH",
-};
 
 /**
  * The name `ParsedCourse` uses for each importable field.

@@ -21,7 +21,6 @@ import {
   ChipTabs,
   SectionHeader,
   StatTile,
-  ToneBadge,
   useCarousel,
   type InsightSlide,
 } from "../shared/primitives";

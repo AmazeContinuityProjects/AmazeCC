@@ -3,7 +3,7 @@
 import { effectiveClassStats, isEarlyEstimate, MIN_CURVE_SAMPLE } from "@/lib/gradeBoundaries";
 import ClassCurveEditor from "./ClassCurveEditor";
 import { gradeMargin, gradeRange } from "@/lib/gradeInsights";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import type { RefObject } from "react";
 import { createPortal } from "react-dom";
 import {

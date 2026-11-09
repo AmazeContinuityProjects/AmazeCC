@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import { type AddedCourse, type GapDetail, type TimetablePeriod } from "@amazecontinuityprojects/amazeui";
 import { cn } from "@/lib/utils";
 import { COLOR_HEX_MAP } from "@/lib/ffcsConstants";

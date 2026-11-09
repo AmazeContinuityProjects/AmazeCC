@@ -449,7 +449,6 @@ export default function NavigationTabs({
   ]);
 
   const sidebarActiveStyles = "bg-sidebar-accent border border-sidebar-border text-info font-semibold";
-  const sidebarActiveIconStyles = "text-info font-semibold";
   const railActiveStyles = "bg-sidebar-accent text-info border border-sidebar-border shadow-sm";
 
   const handleThemeChange = (selectedTheme: string, e?: React.MouseEvent<HTMLElement>) => {

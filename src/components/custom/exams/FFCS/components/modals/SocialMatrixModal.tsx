@@ -1,4 +1,3 @@
-import React, { useMemo } from "react";
 import { AnimatePresence } from "framer-motion";
 import { Users } from "lucide-react";
 import { TimetableState, Friend, FriendGroup, AddedCourse } from "@/lib/ffcsTypes";
@@ -28,34 +27,7 @@ export function SocialMatrixModal({
   stagedTimetables,
   activeTimetableId,
 }: SocialMatrixModalProps) {
-  /**
-   * No `if (!isOpen) return null` guard any more, and that is load-bearing:
-   * `useMemo` below used to sit behind it, so the hook ran only while open. The
-   * closed tree is now an empty `<AnimatePresence>`, which keeps every hook on
-   * every render.
-   */
-  // Calculate pairs
-  const calculatePairs = () => {
-    let pairs = [];
-    timetables.forEach((mt, mtIdx) => {
-      friends.forEach((ft, ftIdx) => {
-        if (ft.timetables && ft.timetables.length > 0) {
-          const score = calculatePairwiseSocialScore(
-            mt.courses as AddedCourse[],
-            ft.timetables[0].courses as AddedCourse[],
-          );
-          pairs.push({
-            myTimetable: mt,
-            friendTimetable: ft,
-            score,
-          });
-        }
-      });
-    });
-    return pairs.sort((a, b) => b.score.actualScore - a.score.actualScore);
-  };
 
-  const topPairs = useMemo(() => calculatePairs(), [timetables, friends]);
 
   /*
     A sheet now, so the chrome — grabber, one X, swipe-down, Escape and system

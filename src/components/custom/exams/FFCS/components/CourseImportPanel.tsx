@@ -7,7 +7,6 @@ import type { ParsedCourse, AddedCourse } from "@/lib/ffcsTypes";
 import { parsePastedText, toParsedCourses, parsedCoursesToAddedCourses } from "@/features/import/parsePastedText";
 import { track } from "@/lib/analytics";
 import { importFile, type FileImport } from "@/features/import/importFile";
-import { SegmentedControl } from "@/components/custom/shared/primitives";
 
 /**
  * The `Paste` and `File` halves of the Course Selector.

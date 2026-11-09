@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useAtom } from "jotai";
 import { Download, Clock, BookOpen } from "lucide-react";
 import BottomSheet from "../shared/BottomSheet";

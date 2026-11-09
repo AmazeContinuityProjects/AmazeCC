@@ -1,4 +1,3 @@
-import React from "react";
 import { DAYS } from "@/lib/ffcsConstants";
 import type { AddedCourse, GapDetail, TimetablePeriod } from "@amazecontinuityprojects/amazeui";
 import { TimetableView } from "../../../timetable";
