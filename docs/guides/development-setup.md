@@ -89,8 +89,8 @@ supabase link --project-ref your-project-ref
 supabase db push
 
 # Option B: Direct SQL
-psql $DATABASE_URL -f supabase_setup.sql
-psql $DATABASE_URL -f migrate.sql
+psql $DATABASE_URL -f sql/supabase_setup.sql
+psql $DATABASE_URL -f sql/migrate.sql
 ```
 
 ### 3. Enable Row Level Security
