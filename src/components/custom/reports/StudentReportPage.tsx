@@ -4,7 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import { Download, RotateCw, ShieldCheck } from "lucide-react";
 import { getAssetPath } from "@/lib/utils";
 import { downloadStudentReportPdf } from "@/lib/studentReportPdf";
-import { computeCoursePrediction, createPredictorAssessmentsFromVTOP } from "@/lib/marksPredictor";
+import { computeCoursePrediction } from "@/lib/marksPredictor";
+import { remapCohortStats } from "@/lib/marksSync";
+import {
+  buildCourseConfig,
+  buildEnrolledCourses,
+} from "@/components/custom/exams/marks-predictor/useCoursePredictionScope";
 import {
   getFacultyDirectoryProfile,
   getFacultyProfileBundle,
@@ -323,62 +328,23 @@ function subjectsFrom(data: ReportData) {
       venue: c.slotVenue,
       credits: c.credits,
     }));
-    const theory = item.marks.find(
-      (c: any) =>
-        !String(c.slot || "")
-          .toUpperCase()
-          .startsWith("L") && !/lab/i.test(c.courseType),
-    );
-    const lab = item.marks.find(
-      (c: any) =>
-        String(c.slot || "")
-          .toUpperCase()
-          .startsWith("L") || /lab/i.test(c.courseType),
-    );
-    const saved = data.predictor?.[item.code] || {};
-    const theoryAssessments = saved.theoryAssessments || createPredictorAssessmentsFromVTOP(theory, "theory");
-    const labAssessments = saved.labAssessments || createPredictorAssessmentsFromVTOP(lab, "lab");
-    for (const assessment of [...theoryAssessments, ...labAssessments]) {
-      if (saved.simulations?.[assessment.id] !== undefined) {
-        assessment.scoredMark = Number(saved.simulations[assessment.id]);
-        assessment.isSimulated = true;
-        assessment.status = "Simulated";
-      }
-    }
-    const courseType =
-      item.attendance
-        .map((c: any) => c.courseType)
-        .filter(Boolean)
-        .join(" + ") ||
-      theory?.courseType ||
-      lab?.courseType ||
-      "Course";
-    const stats = theory?.classNbr
-      ? data.marksStats?.[theory.classNbr]?.overall
-      : lab?.classNbr
-        ? data.marksStats?.[lab.classNbr]?.overall
-        : null;
-    item.prediction =
-      theoryAssessments.length || labAssessments.length
-        ? computeCoursePrediction({
-            courseCode: item.code,
-            courseTitle: item.title,
-            courseType,
-            theoryAssessments,
-            labAssessments,
-            theoryCredits: Number(saved.theoryCredits ?? theory?.credits ?? 3),
-            labCredits: Number(saved.labCredits ?? lab?.credits ?? 1),
-            courseSystem: theory?.courseSystem || lab?.courseSystem,
-            classStats: stats,
-          })
-        : null;
   }
   return [...byCode.values()].sort((a, b) => a.code.localeCompare(b.code));
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  children,
+  className = "",
+  id,
+}: {
+  title: string;
+  children: React.ReactNode;
+  className?: string;
+  id?: string;
+}) {
   return (
-    <section className="report-section">
+    <section id={id} className={`report-section ${className}`.trim()}>
       <h2>{title}</h2>
       {children}
     </section>
@@ -509,12 +475,17 @@ export default function StudentReportPage() {
   const [includeServices, setIncludeServices] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [exportError, setExportError] = useState("");
+  const [enginePredictions, setEnginePredictions] = useState<Record<string, any>>({});
+  const [engineClassStats, setEngineClassStats] = useState<Record<string, any>>({});
   useEffect(() => setData(collectReportData()), []);
   const snapshot = data;
   const attendanceCourses = Array.isArray(snapshot?.attendance?.attendance) ? snapshot.attendance.attendance : [];
   const gradeMap = snapshot?.allGrades?.grades || (snapshot?.grades as any)?.grades || snapshot?.grades || {};
   const semesterEntries = Object.entries(gradeMap)
-    .filter(([, value]) => value && typeof value === "object")
+    .filter(
+      ([, value]) =>
+        value && typeof value === "object" && Array.isArray((value as any).grades) && (value as any).grades.length > 0,
+    )
     .sort(([a], [b]) =>
       a === snapshot?.attendance?.semesterId ? -1 : b === snapshot?.attendance?.semesterId ? 1 : b.localeCompare(a),
     );
@@ -537,9 +508,84 @@ export default function StudentReportPage() {
   );
   const percentage = totals.total ? ((totals.attended / totals.total) * 100).toFixed(1) : "—";
   const calendarRows = academicCalendar(snapshot?.calendar);
+  const calendarMonths = useMemo(() => {
+    const grouped = new Map<
+      string,
+      { label: string; year: number; monthIndex: number; offset: number; days: Map<number, any[]> }
+    >();
+    calendarRows.forEach((day) => {
+      const [year, monthIndex, dayNumber] = day.key.split("-").map(Number);
+      if (![year, monthIndex, dayNumber].every(Number.isFinite) || monthIndex < 0) return;
+      const key = `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
+      const month = grouped.get(key) || {
+        label: new Date(year, monthIndex, 1).toLocaleDateString("en-IN", { month: "long", year: "numeric" }),
+        year,
+        monthIndex,
+        offset: new Date(year, monthIndex, 1).getDay(),
+        days: new Map<number, any[]>(),
+      };
+      month.days.set(dayNumber, [...(month.days.get(dayNumber) || []), ...day.events]);
+      grouped.set(key, month);
+    });
+    return [...grouped.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([, month]) => month);
+  }, [calendarRows]);
   const attendanceMonths = attendanceByMonth(attendanceCourses);
   const totalPresentDays = attendanceMonths.reduce((sum, month) => sum + month.presentDays, 0);
-  const subjects = useMemo(() => (snapshot ? subjectsFrom(snapshot) : []), [snapshot]);
+  const subjects = useMemo(
+    () =>
+      snapshot
+        ? subjectsFrom(snapshot).map((subject) => ({
+            ...subject,
+            prediction: enginePredictions[subject.code] ?? null,
+            classStats: engineClassStats[subject.code] ?? null,
+          }))
+        : [],
+    [snapshot, enginePredictions, engineClassStats],
+  );
+
+  useEffect(() => {
+    if (!snapshot) return;
+    let cancelled = false;
+    (async () => {
+      const enrolled = buildEnrolledCourses(
+        snapshot.marks,
+        snapshot.attendance?.attendance || [],
+        snapshot.customPredictorCourses || [],
+      );
+      const remapped = await remapCohortStats(
+        snapshot.marksStats || {},
+        enrolled.map((course) => ({ theory: course.theoryCourse, lab: course.labCourse })),
+      );
+      const predictions: Record<string, any> = {};
+      const classStatsByCourse: Record<string, any> = {};
+      for (const course of enrolled) {
+        const config = buildCourseConfig(course, snapshot.predictor?.[course.courseCode] || null);
+        const classNbr = course.theoryCourse?.classNbr || course.labCourse?.classNbr;
+        const overall = classNbr ? remapped?.[classNbr]?.overall : null;
+        const classStats = overall && Number.isFinite(overall.mean) ? overall : null;
+        const prediction = computeCoursePrediction({
+          courseCode: course.courseCode,
+          courseTitle: course.courseTitle,
+          courseType: course.courseType,
+          theoryAssessments: config.theory,
+          labAssessments: config.lab,
+          theoryCredits: config.theoryCredits,
+          labCredits: config.labCredits,
+          courseSystem: course.courseSystem ?? null,
+          classStats,
+        });
+        predictions[course.courseCode] = prediction;
+        classStatsByCourse[course.courseCode] = classStats;
+      }
+      if (!cancelled) {
+        setEnginePredictions(predictions);
+        setEngineClassStats(classStatsByCourse);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [snapshot]);
 
   useEffect(() => {
     if (!snapshot || !isVitfacIntegrationEnabled()) return;
@@ -593,6 +639,62 @@ export default function StudentReportPage() {
       setIsDownloading(false);
     }
   };
+  const downloadJson = () => {
+    if (!snapshot) return;
+    const payload = {
+      schema: "amazecc.student-report.v1",
+      generatedAt: snapshot.collectedAt.toISOString(),
+      student: {
+        name: studentName,
+        registerNumber: regNo || null,
+        programme: snapshot.profile?.branch || snapshot.profile?.program || snapshot.profile?.programme || null,
+        campus: snapshot.profile?.campus || null,
+      },
+      currentSemester: {
+        semesterId: snapshot.attendance?.semesterId || null,
+        summary: { cgpa: snapshot.marks?.cgpa, gpa: snapshot.grades?.gpa || snapshot.grades?.sgpa, attendance: totals },
+        attendance: attendanceCourses,
+        assessments: marksCourses,
+        subjects: subjects.map(({ odDates, officialOdDates, ...subject }) => ({
+          ...subject,
+          odDates: [...odDates],
+          officialOdDates: [...officialOdDates],
+          facultyProfile: facultyProfiles[subject.faculty.id || subject.faculty.name]?.profile || null,
+          facultyReviews:
+            facultyProfiles[subject.faculty.id || subject.faculty.name]?.bundle ||
+            facultyProfiles[subject.faculty.id || subject.faculty.name]?.review ||
+            null,
+        })),
+        schedule: snapshot.schedule?.Schedule || {},
+        odUsage: snapshot.wastedODsTracker,
+      },
+      history: { semesters: gradeMap, attendance: snapshot.attendanceHistory },
+      curriculum: snapshot.allGrades?.curriculum || snapshot.grades?.curriculum || snapshot.curriculum,
+      academicCalendar: snapshot.calendar,
+      officialOdRecords: snapshot.officialOd,
+      ...(includeFinance
+        ? { finance: { payments: snapshot.payments, receipts: snapshot.receipts, wallet: snapshot.wallet } }
+        : {}),
+      ...(includeServices
+        ? {
+            services: {
+              hostel: snapshot.hostel,
+              transport: snapshot.transport,
+              library: snapshot.library,
+              moodle: snapshot.moodle,
+              events: snapshot.events,
+            },
+          }
+        : {}),
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `AmazeCC-Student-Report-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <main id="student-report" className={`student-report ${mode}`}>
@@ -603,15 +705,22 @@ export default function StudentReportPage() {
         .report-controls{display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:14px;border:1px solid var(--line);border-radius:10px;margin-bottom:20px;background:var(--band)}
         .report-controls button,.report-controls select{font:inherit;padding:8px 12px;border:1px solid var(--line);border-radius:7px;background:var(--paper);color:var(--ink)}
         .report-controls button{display:inline-flex;align-items:center;gap:7px;font-weight:700;cursor:pointer}.report-controls label{display:inline-flex;align-items:center;gap:6px}
-        .report-cover{display:grid;grid-template-columns:64px 1fr 88px;gap:16px;align-items:center;padding:16px 0 20px;border-bottom:3px double var(--ink)}
+        .report-cover{position:relative;isolation:isolate;overflow:hidden;min-height:78vh;display:grid;grid-template-columns:1fr 150px;gap:24px;align-items:center;padding:clamp(30px,7vw,82px);margin:0 -1px 34px;border:1px solid color-mix(in srgb,var(--accent) 16%,white);border-radius:28px;background:radial-gradient(ellipse at 84% 16%,color-mix(in srgb,#f3bd61 42%,white),transparent 31%),radial-gradient(ellipse at 76% 79%,color-mix(in srgb,#60b8a5 30%,white),transparent 34%),linear-gradient(135deg,color-mix(in srgb,var(--accent) 10%,white),var(--paper) 72%)}.report-cover:before,.report-cover:after{content:"";position:absolute;z-index:-1;border-radius:50%;animation:report-bounce 5s ease-in-out infinite}.report-cover:before{width:210px;height:210px;right:17%;top:9%;background:color-mix(in srgb,#e4a7c6 45%,white)}.report-cover:after{width:120px;height:120px;right:4%;bottom:10%;background:color-mix(in srgb,#f3bd61 55%,white);animation-delay:-2.1s}.report-cover-copy{max-width:620px}.report-cover-eyebrow{font-size:11px!important;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--accent)!important}.report-cover h1{font:700 clamp(38px,7vw,72px)/1.02 Georgia,serif;max-width:600px;margin:15px 0 22px;color:var(--accent)}.report-cover p{margin:6px 0;color:var(--muted)}.report-cover-student{font-size:17px!important;color:var(--ink)!important}.report-cover-chips{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0}.report-cover-chips span{padding:7px 12px;border:1px solid color-mix(in srgb,var(--accent) 20%,white);border-radius:999px;background:color-mix(in srgb,var(--paper) 82%,transparent);font-size:10px;font-weight:700;color:var(--accent);box-shadow:0 5px 14px #173b6715}.report-logo{position:absolute;left:24px;top:22px;width:44px;height:44px;object-fit:contain}.report-photo{width:132px;height:160px;object-fit:cover;border:5px solid white;border-radius:26px;box-shadow:0 18px 46px #173b6730;transform:rotate(3deg)}.report-cover-photo-placeholder{display:grid;place-items:center;text-align:center;background:color-mix(in srgb,var(--paper) 84%,transparent);color:var(--accent);font-weight:700}
+        @keyframes report-bounce{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-18px) rotate(7deg)}}
+        .report-index{break-before:page;break-after:page;page-break-before:always;page-break-after:always;min-height:84vh;margin:0;padding:36px 28px;border:1px solid color-mix(in srgb,var(--accent) 18%,white);border-radius:22px;background:radial-gradient(ellipse at 100% 0%,color-mix(in srgb,#60b8a5 22%,white),transparent 35%),linear-gradient(145deg,var(--band),var(--paper) 72%);display:flex;flex-direction:column;justify-content:center}.report-index h2{font:700 26px Georgia,serif;color:var(--accent);margin:0 0 20px;text-align:center}.report-index ol{list-style:none;counter-reset:toc;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:0;padding:0}.report-index li{counter-increment:toc}.report-index a{display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:10px;background:var(--paper);color:var(--ink);text-decoration:none;border:1px solid color-mix(in srgb,var(--accent) 12%,white);font-size:11px}.report-index a:before{content:counter(toc,decimal-leading-zero);color:var(--accent);font-weight:700;font-size:10px}.report-index li ol{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 7px;margin:4px 0 5px 15px}.report-index li ol a{padding:5px 8px;font-size:9px;background:color-mix(in srgb,var(--accent) 3%,white)}
         .report-logo{width:58px;height:58px;object-fit:contain}.report-photo{width:78px;height:92px;object-fit:cover;border:1px solid var(--line);border-radius:4px}
         .report-cover h1{font-family:Georgia,serif;font-size:25px;line-height:1.15;margin:0 0 5px;color:var(--accent)}.report-cover p{margin:2px 0;color:var(--muted)}
-        .report-notice{font-size:11px;color:var(--muted);margin:14px 0 26px;padding:10px 12px;border-left:3px solid var(--line);background:var(--band)}.report-section{margin:34px 0 42px;padding-top:4px;break-inside:auto}.report-section h2{font:700 16px Georgia,serif;color:var(--accent);padding:8px 11px;margin:0 0 18px;background:var(--band);border-left:3px solid var(--accent)}.report-section>*+*{margin-top:18px}.report-section h3{margin-top:26px}.report-section .report-chart{margin:18px 0 22px}
-        .report-table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid var(--line);padding:5px 7px;text-align:left;vertical-align:top;overflow-wrap:anywhere}thead{display:table-header-group}th{background:var(--band);font-weight:700}tr{break-inside:avoid}
+        .report-notice{font-size:11px;color:var(--muted);margin:14px 0 26px;padding:10px 12px;border-left:3px solid var(--line);background:var(--band)}.report-section{margin:34px 0 42px;padding-top:4px;break-inside:auto}.report-section h2{font:700 16px Georgia,serif;color:var(--accent);padding:8px 11px;margin:0 0 18px;background:var(--band);border-left:3px solid var(--accent);text-align:center}.report-section>*+*{margin-top:18px}.report-section h3{margin-top:26px}.report-section .report-chart{margin:18px 0 22px}
+        .report-table-wrap{overflow-x:auto;border:1px solid color-mix(in srgb,var(--accent) 24%,white);border-radius:7px}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:0;border-bottom:1px solid color-mix(in srgb,var(--accent) 14%,white);padding:7px 9px;text-align:left;vertical-align:top;overflow-wrap:anywhere}thead{display:table-header-group}th{background:color-mix(in srgb,var(--accent) 9%,white);color:var(--accent);font-weight:700;border-bottom:1px solid color-mix(in srgb,var(--accent) 25%,white)}tbody tr:nth-child(even){background:color-mix(in srgb,var(--accent) 3.5%,white)}tbody tr:last-child td{border-bottom:0}tr{break-inside:avoid}
         .report-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px;margin:16px 0}.report-summary div{border:1px solid var(--line);border-top:3px solid var(--accent);padding:11px 12px;background:var(--paper);min-height:58px}.report-summary strong{display:block;font:700 19px Georgia,serif}.report-summary span{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
         .report-chart{border:1px solid var(--line);padding:12px;margin:10px 0 14px;break-inside:avoid}.report-chart h4{margin:0 0 9px;font:700 12px Georgia,serif;color:var(--accent)}.report-bars{display:flex;align-items:end;gap:5px;height:110px;border-bottom:1px solid var(--line);padding:0 4px;overflow:hidden}.report-bar-item{flex:1;min-width:16px;text-align:center;font-size:8px;color:var(--muted)}.report-bar-pair{height:86px;display:flex;align-items:end;justify-content:center;gap:2px}.report-bar{min-height:2px;background:#2d6a9f;border-radius:3px 3px 0 0;width:40%;max-width:13px}.report-bar.absent{background:#c55454}.report-chart-legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:7px;font-size:9px;color:var(--muted)}.report-chart-legend span{display:inline-flex;align-items:center;gap:4px}.report-chart-legend i{display:inline-block;width:8px;height:8px;background:#2d6a9f}.report-chart-legend .absent-key{background:#c55454}.report-pie-layout{display:flex;align-items:center;gap:20px}.report-pie-disc{width:116px;height:116px;flex:0 0 116px;border-radius:50%;position:relative}.report-pie-disc:after{content:"";position:absolute;inset:30px;border-radius:50%;background:var(--paper);border:1px solid var(--line)}.report-pie-disc>i{display:none}.report-pie .report-chart-legend{display:grid}.report-month{break-before:page}.report-month h3,.report-subject h3,.report-curriculum-category h3{font:700 15px Georgia,serif;color:var(--accent);border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:16px}.report-subject{break-before:page;padding-top:8px}.report-subject>*+*{margin-top:18px}.report-subject h4,.report-curriculum-basket h4{font:700 12px Georgia,serif;color:var(--accent);margin:22px 0 9px;padding-bottom:5px;border-bottom:1px solid var(--line)}.report-faculty-card{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-left:4px solid var(--accent);padding:12px 14px;margin:14px 0;background:var(--band);break-inside:avoid}.report-faculty-card img,.report-faculty-placeholder{width:58px;height:68px;object-fit:cover;border:1px solid var(--line);background:var(--paper);flex:none}.report-faculty-placeholder{display:grid;place-items:center;font:700 18px Georgia,serif;color:var(--accent)}.report-faculty-card-copy{display:grid;gap:3px;flex:1}.report-faculty-card-copy strong{font:700 14px Georgia,serif;color:var(--accent)}.report-faculty-card-copy span,.report-faculty-card-stat span{font-size:10px;color:var(--muted)}.report-faculty-card-stat{text-align:right}.report-faculty-card-stat strong{display:block;font:700 18px Georgia,serif;color:var(--accent)}.report-curriculum-category{break-before:page}.report-curriculum-basket{margin-bottom:24px}
         .report-empty{color:var(--muted);font-style:italic;font-size:12px}.report-foot{border-top:1px solid var(--line);padding-top:8px;margin-top:24px;color:var(--muted);font-size:10px}
-        @media(max-width:600px){.report-cover{grid-template-columns:44px 1fr 60px;gap:9px}.report-logo{width:42px;height:42px}.report-photo{width:56px;height:68px}.report-cover h1{font-size:19px}}
+        .report-curriculum-section{break-before:page;page-break-before:always}.report-divider{position:relative;isolation:isolate;overflow:hidden;break-before:page;page-break-before:always;break-after:page;page-break-after:always;min-height:90vh;display:flex;flex-direction:column;justify-content:center;padding:48px;border:1px solid color-mix(in srgb,var(--accent) 20%,white);border-radius:32px;background:radial-gradient(ellipse at 13% 12%,color-mix(in srgb,#e4a7c6 33%,white),transparent 32%),linear-gradient(145deg,color-mix(in srgb,var(--accent) 10%,white),var(--paper) 65%);text-align:center;color:var(--accent)}.report-divider:before,.report-divider:after{content:"";position:absolute;z-index:-1;left:-10%;width:120%;height:24%;border-radius:48% 52% 0 0 / 24% 38% 0 0}.report-divider:before{bottom:-7%;background:color-mix(in srgb,#60b8a5 23%,white);transform:rotate(-3deg)}.report-divider:after{bottom:-12%;left:-14%;height:18%;background:color-mix(in srgb,#f3bd61 30%,white);transform:rotate(3deg)}.report-divider span{font-size:10px;letter-spacing:.16em}.report-divider h2{font:700 30px Georgia,serif;margin:14px 0}.report-divider p{color:var(--muted);font-size:13px}.report-calendar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin:12px 0 22px}.report-calendar-weekday{padding:6px 3px;text-align:center;background:var(--band);color:var(--accent);font-weight:700;font-size:10px}.report-calendar-day{min-height:76px;padding:5px;border:1px solid color-mix(in srgb,var(--accent) 18%,white);background:var(--paper);font-size:9px}.report-calendar-day.empty{border-color:transparent;background:transparent}.report-calendar-day strong{display:block;margin-bottom:4px;color:var(--accent)}.report-calendar-day span{display:block;margin:2px 0;padding:2px 3px;background:var(--band);border-radius:3px;color:var(--ink);overflow-wrap:anywhere}.report-attendance-calendar{gap:3px;margin:12px 0 16px}.report-attendance-calendar .report-calendar-day{min-height:43px;padding:4px;border-radius:7px;font-size:8px}.report-attendance-calendar .report-calendar-weekday{padding:4px 2px;border-radius:5px;font-size:8px}.report-attendance-calendar .attendance-day.all-present{background:#eaf5ee;border-color:#c6e3d0}.report-attendance-calendar .attendance-day.has-absence{background:#fff0ed;border-color:#f1c9c1}.report-attendance-calendar .attendance-day.on-duty{background:#edf4fb;border-color:#ccdeef}.report-attendance-calendar .attendance-day span{background:transparent;font-size:7px}.report-grade-history-section{break-before:page;page-break-before:always}.report-overview-subheading{text-align:center;color:var(--accent);font:700 14px Georgia,serif;margin:24px 0 8px}.report-subject{border:1px solid color-mix(in srgb,var(--accent) 16%,white);border-radius:18px;background:linear-gradient(145deg,var(--paper),color-mix(in srgb,var(--accent) 3%,white));padding:18px 20px;margin:30px 0;box-shadow:0 8px 24px #173b6710}.report-subject h3{text-align:center}.report-subject h4{margin-top:24px}.report-faculty-card{border-radius:13px}.report-education-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;margin:12px 0}.report-education-card{display:flex;flex-direction:column;gap:5px;padding:10px 12px;border:1px solid color-mix(in srgb,var(--accent) 13%,white);border-radius:10px;background:color-mix(in srgb,var(--accent) 3%,white);font-size:10px;line-height:1.4}.report-education-card strong{font:700 12px Georgia,serif;color:var(--accent)}.report-education-year{font-weight:700;color:var(--muted)}.report-grade-cards{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}.report-grade-cards div{min-width:100px;padding:9px 12px;border-top:3px solid var(--accent);border-radius:8px;background:var(--band)}.report-grade-cards strong,.report-grade-cards span{display:block}.report-grade-cards strong{font:700 14px Georgia,serif;color:var(--accent)}.report-grade-cards span{font-size:8px;text-transform:uppercase;color:var(--muted)}.report-basket-index{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 16px}.report-basket-index span{padding:5px 10px;border:1px solid color-mix(in srgb,var(--accent) 16%,white);border-radius:999px;background:var(--band);font-size:9px;color:var(--accent)}.report-theme-group.critical .report-theme-pill{background:#fff0ed;border-color:#efb7ad;color:#842c20}.report-theme-group.critical .report-theme-pill b{color:#a82e20}
+        .report-theme-group{margin:14px 0}.report-theme-group>strong{display:block;font:700 11px Georgia,serif;color:var(--muted);margin-bottom:7px}.report-theme-list{display:flex;flex-wrap:wrap;gap:7px}.report-theme-pill{display:inline-flex;align-items:center;gap:7px;padding:5px 9px;border:1px solid color-mix(in srgb,var(--accent) 17%,white);border-radius:999px;background:color-mix(in srgb,var(--accent) 6%,white);color:var(--ink);font-size:10px;line-height:1.3}.report-theme-group.positive .report-theme-pill{background:#eef7f2;border-color:#c8e4d4}.report-theme-group.critical .report-theme-pill{background:#fbf1ef;border-color:#ecd0cb}.report-theme-pill b{color:var(--accent);font-size:9px}
+        .report-page-start{break-before:page;page-break-before:always}
+        @media(max-width:600px){.report-cover{grid-template-columns:1fr 72px;min-height:68vh;padding:72px 20px 28px;border-radius:20px}.report-logo{width:34px;height:34px;left:16px;top:16px}.report-photo{width:68px;height:88px;border-width:3px;border-radius:16px}.report-cover h1{font-size:39px}.report-index ol{grid-template-columns:1fr}}
+        @media(prefers-reduced-motion:reduce){.report-cover:before,.report-cover:after{animation:none}}
+        @media print{.report-cover:before,.report-cover:after{animation:none}}
       `}</style>
       <div className="report-controls" aria-label="Report export options">
         <label>
@@ -643,6 +752,9 @@ export default function StudentReportPage() {
         <button type="button" onClick={downloadPdf} disabled={isDownloading || !snapshot}>
           <Download size={16} /> {isDownloading ? "Generating PDF…" : "Download PDF"}
         </button>
+        <button type="button" onClick={downloadJson} disabled={!snapshot}>
+          <Download size={16} /> Download JSON
+        </button>
         <span className="text-xs text-muted-foreground">
           <ShieldCheck size={14} className="inline" /> Generated on this device
         </span>
@@ -657,9 +769,10 @@ export default function StudentReportPage() {
         <article>
           <header className="report-cover">
             <img className="report-logo" src={getAssetPath("/logo.png")} alt="AmazeCC" />
-            <div>
+            <div className="report-cover-copy">
+              <p className="report-cover-eyebrow">AmazeCC · Academic portfolio</p>
               <h1>Student Academic Report</h1>
-              <p>
+              <p className="report-cover-student">
                 <strong>{text(studentName)}</strong>
                 {regNo ? ` · ${text(regNo)}` : ""}
               </p>
@@ -670,9 +783,14 @@ export default function StudentReportPage() {
                 )}
                 {snapshot.profile?.campus ? ` · ${snapshot.profile.campus}` : ""}
               </p>
+              <div className="report-cover-chips">
+                <span>Academic summary</span>
+                <span>Current semester</span>
+                <span>Historic record</span>
+              </div>
               <p>
                 Generated {snapshot.collectedAt.toLocaleString("en-IN")}
-                {snapshot.attendance?.semesterId ? ` · Current semester ${snapshot.attendance.semesterId}` : ""}
+                {snapshot.attendance?.semesterId ? ` · ${snapshot.attendance.semesterId}` : ""}
               </p>
             </div>
             {profilePhoto ? (
@@ -686,19 +804,83 @@ export default function StudentReportPage() {
                 alt="Student profile"
               />
             ) : (
-              <div className="report-photo grid place-items-center text-xs text-center text-muted-foreground">
+              <div className="report-photo report-cover-photo-placeholder">
                 Photo
                 <br />
                 not synced
               </div>
             )}
           </header>
+          <nav className="report-index" aria-label="Report contents">
+            <h2>Inside your report</h2>
+            <ol className="report-index-list">
+              <li>
+                <a href="#academic-summary">Academic performance overview</a>
+              </li>
+              <li>
+                <a href="#curriculum-cover">Curriculum and credit progress</a>
+              </li>
+              <li>
+                <a href="#current-record">Current academic records</a>
+                <ol>
+                  <li>
+                    <a href="#current-attendance">Attendance</a>
+                  </li>
+                  <li>
+                    <a href="#exam-schedule">Exam schedule</a>
+                  </li>
+                  <li>
+                    <a href="#od-records">OD records and comparisons</a>
+                  </li>
+                  {subjects.map((subject) => (
+                    <li key={subject.code}>
+                      <a href={`#subject-${subject.code}`}>
+                        {subject.code} · {subject.title}
+                      </a>
+                    </li>
+                  ))}
+                  {attendanceMonths.map((month) => (
+                    <li key={month.label}>
+                      <a href={`#attendance-${month.label.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`}>
+                        {month.label} attendance calendar
+                      </a>
+                    </li>
+                  ))}
+                </ol>
+              </li>
+              <li>
+                <a href="#historic-record">Archived semester records</a>
+                <ol>
+                  {semesterEntries.map(([semester]) => (
+                    <li key={semester}>
+                      <a href={`#history-${semester}`}>{semester} grade record</a>
+                    </li>
+                  ))}
+                  <li>
+                    <a href="#complete-grade-history">Complete grade history</a>
+                  </li>
+                </ol>
+              </li>
+              {(includeServices || includeFinance) && (
+                <>
+                  {includeServices && (
+                    <li>
+                      <a href="#registered-events-cover">Registered events</a>
+                    </li>
+                  )}
+                  <li>
+                    <a href="#student-services-cover">Other student services</a>
+                  </li>
+                </>
+              )}
+            </ol>
+          </nav>
           <p className="report-notice">
             Student generated informational report from data currently available in AmazeCC. This is not an official
             institutional transcript or certificate. Missing source details are not inferred.
           </p>
 
-          <Section title="Academic summary">
+          <Section id="academic-summary" title="Academic summary">
             <div className="report-summary">
               <div>
                 <strong>{text(snapshot.marks?.cgpa?.cgpa || snapshot.marks?.cgpa || snapshot.profile?.cgpa)}</strong>
@@ -734,10 +916,62 @@ export default function StudentReportPage() {
                 <span>Credits earned</span>
               </div>
             </div>
+            <h3 className="report-overview-subheading">Semester performance by course</h3>
+            {semesterEntries.length ? (
+              <div className="report-summary report-semester-cards">
+                {semesterEntries.map(([semester, result]: [string, any]) => (
+                  <div key={semester}>
+                    <strong>{text(result?.gpa)}</strong>
+                    <span>
+                      {semester} · {Array.isArray(result?.grades) ? result.grades.length : 0} courses
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <Empty>Semester performance history is not synced.</Empty>
+            )}
             <p className="report-empty">
               *Derived from current semester aggregate counts. Daily absence details are listed only where VTOP provides
               datewise records.
             </p>
+            <div id="academic-calendar" className="report-overview-calendar">
+              <h3 className="report-overview-subheading">Academic calendar events</h3>
+              {calendarMonths.length ? (
+                calendarMonths.map((month) => {
+                  const daysInMonth = new Date(month.year, month.monthIndex + 1, 0).getDate();
+                  return (
+                    <div className="report-calendar-month" key={month.label}>
+                      <h3>{month.label}</h3>
+                      <div className="report-calendar">
+                        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+                          <div className="report-calendar-weekday" key={day}>
+                            {day}
+                          </div>
+                        ))}
+                        {Array.from({ length: month.offset }, (_, index) => (
+                          <div className="report-calendar-day empty" key={`blank-${index}`} />
+                        ))}
+                        {Array.from({ length: daysInMonth }, (_, index) => {
+                          const number = index + 1;
+                          const events = month.days.get(number) || [];
+                          return (
+                            <div className="report-calendar-day" key={number}>
+                              <strong>{number}</strong>
+                              {events.map((event: any, eventIndex: number) => (
+                                <span key={eventIndex}>{text(event.text || event.category)}</span>
+                              ))}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <Empty />
+              )}
+            </div>
           </Section>
 
           <Section title="Performance and attendance comparisons">
@@ -790,7 +1024,79 @@ export default function StudentReportPage() {
             />
           </Section>
 
-          <Section title="Current semester attendance">
+          <div
+            id="curriculum-cover"
+            className="report-divider report-curriculum-divider"
+            aria-label="Curriculum and credit progress"
+          >
+            <span>AMAZECC · DEGREE MAP</span>
+            <h2>Curriculum and credit progress</h2>
+            <p>Course baskets, programme requirements, and progress through the degree</p>
+          </div>
+          <Section id="curriculum" title="Curriculum and credit progress" className="report-curriculum-section">
+            {Array.isArray(snapshot.allGrades?.curriculum || snapshot.grades?.curriculum) &&
+            (snapshot.allGrades?.curriculum || snapshot.grades?.curriculum).length ? (
+              <Table headers={["Basket / distribution", "Credits required", "Credits earned", "Progress"]}>
+                {(snapshot.allGrades?.curriculum || snapshot.grades?.curriculum).map((item: any, index: number) => (
+                  <tr key={index}>
+                    <td>{text(item.basketTitle || item.distributionType || item.title)}</td>
+                    <td>{text(item.creditsRequired)}</td>
+                    <td>{text(item.creditsEarned)}</td>
+                    <td>
+                      {Number(item.creditsRequired) > 0
+                        ? `${((Number(item.creditsEarned || 0) / Number(item.creditsRequired)) * 100).toFixed(1)}%`
+                        : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </Table>
+            ) : Array.isArray(snapshot.curriculum?.details) ? (
+              <div className="report-curriculum-groups">
+                {snapshot.curriculum.details.map((category: any, categoryIndex: number) => (
+                  <section
+                    className="report-curriculum-category"
+                    key={`${category.code || category.name}-${categoryIndex}`}
+                  >
+                    <h3>{text(category.name || category.code, "Curriculum category")}</h3>
+                    <div className="report-basket-index" aria-label="Baskets in this category">
+                      {(category.baskets || []).map((basket: any, basketIndex: number) => (
+                        <span key={`${basket.title}-${basketIndex}`}>{text(basket.title, "Course basket")}</span>
+                      ))}
+                    </div>
+                    {(category.baskets || []).map((basket: any, basketIndex: number) => (
+                      <div className="report-curriculum-basket" key={`${basket.title}-${basketIndex}`}>
+                        <h4>{text(basket.title, "Course basket")}</h4>
+                        <Table headers={["Course code", "Course", "Credits", "Type"]}>
+                          {(basket.items || []).map((item: any, itemIndex: number) => (
+                            <tr key={`${item.code}-${itemIndex}`}>
+                              <td>{text(item.code)}</td>
+                              <td>{text(item.name)}</td>
+                              <td>{text(item.credits)}</td>
+                              <td>{text(item.type)}</td>
+                            </tr>
+                          ))}
+                        </Table>
+                      </div>
+                    ))}
+                  </section>
+                ))}
+              </div>
+            ) : (
+              <Empty />
+            )}
+          </Section>
+
+          <div
+            id="current-record"
+            className="report-divider report-current-divider"
+            aria-label="Current semester academic record"
+          >
+            <span>AMAZECC · STUDENT RECORD</span>
+            <h2>Current semester academic record</h2>
+            <p>Attendance, assessments, course details, and grade predictions for the active semester</p>
+          </div>
+          <Section title="Datewise attendance register">
+            <h3 id="current-attendance">Current semester attendance by subject</h3>
             {attendanceCourses.length ? (
               <Table headers={["Course", "Type", "Faculty", "Slot / venue", "Attended", "Total", "Attendance"]}>
                 {attendanceCourses.map((course: any, index: number) => (
@@ -815,9 +1121,6 @@ export default function StudentReportPage() {
             ) : (
               <Empty />
             )}
-          </Section>
-
-          <Section title="Datewise attendance register">
             {attendanceMonths.length ? (
               attendanceMonths.map((month) => {
                 const daily = new Map<string, { present: number; absent: number; od: number }>();
@@ -833,10 +1136,54 @@ export default function StudentReportPage() {
                   label: label.slice(0, 6),
                   ...counts,
                 }));
+                const calendarDate = month.rows.find((row: any) => row.date)?.date as Date | undefined;
+                const calendarDays = new Map<number, { present: number; absent: number; od: number }>();
+                daily.forEach((counts, label) => {
+                  const parsed = parseReportDate(label);
+                  if (parsed) calendarDays.set(parsed.getDate(), counts);
+                });
                 const peak = Math.max(1, ...chartData.map((item) => Math.max(item.present, item.absent)));
                 return (
-                  <div className="report-month" key={month.label}>
+                  <div
+                    className="report-month"
+                    id={`attendance-${month.label.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`}
+                    key={month.label}
+                  >
                     <h3>{month.label}</h3>
+                    {calendarDate && (
+                      <div
+                        className="report-calendar report-attendance-calendar"
+                        aria-label={`${month.label} attendance calendar`}
+                      >
+                        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+                          <div className="report-calendar-weekday" key={day}>
+                            {day}
+                          </div>
+                        ))}
+                        {Array.from({ length: calendarDate.getDay() }, (_, i) => (
+                          <div className="report-calendar-day empty" key={`gap-${i}`} />
+                        ))}
+                        {Array.from(
+                          { length: new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 0).getDate() },
+                          (_, i) => {
+                            const day = i + 1;
+                            const c = calendarDays.get(day);
+                            const tint = !c ? "" : c.absent ? "has-absence" : c.od ? "on-duty" : "all-present";
+                            return (
+                              <div className={`report-calendar-day attendance-day ${tint}`} key={day}>
+                                <strong>{day}</strong>
+                                {c && (
+                                  <span>
+                                    {c.present} present{c.absent ? ` · ${c.absent} absent` : ""}
+                                    {c.od ? ` · ${c.od} OD` : ""}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          },
+                        )}
+                      </div>
+                    )}
                     <div className="report-summary">
                       <div>
                         <strong>{month.days}</strong>
@@ -918,89 +1265,7 @@ export default function StudentReportPage() {
             )}
           </Section>
 
-          {snapshot.attendanceHistory.length > 0 && (
-            <Section title="Archived semester attendance summaries">
-              {snapshot.attendanceHistory.map(({ semesterId, data: archived }) => (
-                <div key={semesterId} className="mb-3">
-                  <h3 className="font-bold mb-1">{semesterId}</h3>
-                  {Array.isArray(archived.attendance) ? (
-                    <Table headers={["Course", "Type", "Attended", "Total", "Attendance", "Date detail"]}>
-                      {archived.attendance.map((course: any, index: number) => (
-                        <tr key={`${course.courseCode}-${index}`}>
-                          <td>
-                            {text(course.courseCode)} · {text(course.courseTitle)}
-                          </td>
-                          <td>{text(course.courseType)}</td>
-                          <td>{text(course.attendedClasses)}</td>
-                          <td>{text(course.totalClasses)}</td>
-                          <td>{text(course.attendancePercentage)}%</td>
-                          <td>{Array.isArray(course.viewLink) ? course.viewLink.length : "Not supplied"}</td>
-                        </tr>
-                      ))}
-                    </Table>
-                  ) : (
-                    <Empty />
-                  )}
-                </div>
-              ))}
-            </Section>
-          )}
-
-          <Section title="Complete grade history">
-            {semesterEntries.length ? (
-              semesterEntries.map(([semester, result]: [string, any]) => (
-                <div key={semester} className="mb-4">
-                  <h3 className="font-bold mb-1">
-                    {semester} · GPA {text(result?.gpa)}
-                  </h3>
-                  {Array.isArray(result?.grades) && result.grades.length ? (
-                    result.grades.map((grade: any, index: number) => {
-                      const code = String(grade.courseCode || "")
-                        .replace(/\s*\([TL]\)$/i, "")
-                        .toUpperCase();
-                      const courseMeta = (snapshot.marks?.courses || []).find(
-                        (c: any) =>
-                          String(c.courseCode || "")
-                            .replace(/\s*\([TL]\)$/i, "")
-                            .toUpperCase() === code,
-                      );
-                      return (
-                        <div className="mb-3 report-course" key={`${grade.courseCode}-${index}`}>
-                          <h4 className="font-bold">
-                            {text(grade.courseCode)} · {text(grade.courseTitle)}
-                          </h4>
-                          <p>
-                            Type: {text(grade.courseType)} · Credits: {text(grade.credits ?? courseMeta?.credits)} ·
-                            Grand total: {text(grade.grandTotal)} · Grade: {text(grade.grade)}
-                          </p>
-                          {Array.isArray(grade.details) && grade.details.length ? (
-                            <Table headers={["Assessment / component", "Status", "Score", "Maximum"]}>
-                              {grade.details.map((detail: any, detailIndex: number) => (
-                                <tr key={`${grade.courseCode}-${detailIndex}`}>
-                                  <td>{text(detail.component)}</td>
-                                  <td>{text(detail.status)}</td>
-                                  <td>{text(detail.scoredMark)}</td>
-                                  <td>{text(detail.maxMark)}</td>
-                                </tr>
-                              ))}
-                            </Table>
-                          ) : (
-                            <Empty>No assessment details supplied for this course.</Empty>
-                          )}
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <Empty>No course grades are published for this semester.</Empty>
-                  )}
-                </div>
-              ))
-            ) : (
-              <Empty>Complete semester grade history is not synced.</Empty>
-            )}
-          </Section>
-
-          <Section title="OD usage and official coverage">
+          <Section id="od-records" title="OD usage and official coverage" className="report-page-start">
             {subjects.some((subject) => subject.odHours > 0) ? (
               <>
                 <div className="report-summary">
@@ -1066,6 +1331,49 @@ export default function StudentReportPage() {
             ) : (
               <Empty>No datewise On Duty entries are available to calculate OD usage.</Empty>
             )}
+            <h3>Official OD records</h3>
+            {snapshot.officialOd.length ? (
+              <Table headers={["Date", "Type", "Reason", "Basis", "Time", "Remarks"]}>
+                {snapshot.officialOd.map((item: any, index: number) => (
+                  <tr key={index}>
+                    <td>{dateLabel(item.date)}</td>
+                    <td>{text(item.type)}</td>
+                    <td>{text(item.reason)}</td>
+                    <td>{text(item.basis)}</td>
+                    <td>{text(item.time)}</td>
+                    <td>{text(item.remarks)}</td>
+                  </tr>
+                ))}
+              </Table>
+            ) : (
+              <Empty>No official OD records are available.</Empty>
+            )}
+          </Section>
+
+          <Section id="exam-schedule" title="Current semester examination schedule" className="report-page-start">
+            {snapshot.schedule?.Schedule && Object.keys(snapshot.schedule.Schedule).length ? (
+              Object.entries(snapshot.schedule.Schedule).map(([type, exams]: [string, any]) => (
+                <div key={type} className="mb-3">
+                  <h3 className="font-bold mb-1">{type}</h3>
+                  <Table headers={["Course", "Date", "Session", "Time", "Venue", "Seat"]}>
+                    {(Array.isArray(exams) ? exams : []).map((exam: any, index: number) => (
+                      <tr key={index}>
+                        <td>
+                          {text(exam.courseCode)} · {text(exam.courseTitle)}
+                        </td>
+                        <td>{dateLabel(exam.examDate)}</td>
+                        <td>{text(exam.examSession)}</td>
+                        <td>{text(exam.examTime || exam.reportingTime)}</td>
+                        <td>{text(exam.venue || exam.examVenue)}</td>
+                        <td>{text(exam.seatLocation || exam.seatNo)}</td>
+                      </tr>
+                    ))}
+                  </Table>
+                </div>
+              ))
+            ) : (
+              <Empty />
+            )}
           </Section>
 
           <Section title="Current semester subject dossiers">
@@ -1112,7 +1420,7 @@ export default function StudentReportPage() {
                   ) / marked.length
                 : null;
               return (
-                <div className="report-subject" key={subject.code}>
+                <div className="report-subject" id={`subject-${subject.code}`} key={subject.code}>
                   <h3>
                     {subject.code} · {subject.title}
                   </h3>
@@ -1131,14 +1439,18 @@ export default function StudentReportPage() {
                       <strong>{subject.odHours}</strong>
                       <span>OD hours claimed</span>
                     </div>
-                    <div>
-                      <strong>{text(currentGrade?.grade, "—")}</strong>
-                      <span>Published grade</span>
-                    </div>
-                    <div>
-                      <strong>{text(currentGrade?.grandTotal, "—")}</strong>
-                      <span>Published total</span>
-                    </div>
+                    {currentGrade?.grade != null && currentGrade.grade !== "" && (
+                      <div>
+                        <strong>{text(currentGrade.grade)}</strong>
+                        <span>Published grade</span>
+                      </div>
+                    )}
+                    {currentGrade?.grandTotal != null && currentGrade.grandTotal !== "" && (
+                      <div>
+                        <strong>{text(currentGrade.grandTotal)}</strong>
+                        <span>Published total</span>
+                      </div>
+                    )}
                   </div>
                   <div className="report-summary report-subject-highlights" aria-label="Additional subject statistics">
                     <div>
@@ -1218,13 +1530,15 @@ export default function StudentReportPage() {
                           <span>Maximum possible score</span>
                         </div>
                         <div>
-                          <strong>{subject.prediction.isCurved ? "Yes" : "No"}</strong>
-                          <span>Relative grade curve used</span>
+                          <strong>{subject.classStats ? `${subject.classStats.mean.toFixed(1)}%` : "—"}</strong>
+                          <span>
+                            Class average{subject.classStats ? ` · n=${subject.classStats.count}` : " unavailable"}
+                          </span>
                         </div>
                       </div>
                       <p className="report-empty">
-                        Default uses AmazeCC's current marks and default assessment regimen. Any saved simulated marks
-                        are included in the prediction.{" "}
+                        Uses the grade prediction page engine, current class average when available, and the saved
+                        assessment setup and simulated marks.{" "}
                         {subject.prediction.optimalGrade?.description ||
                           "No marked assessments yet; current-pace grade is not available."}
                       </p>
@@ -1340,13 +1654,6 @@ export default function StudentReportPage() {
                       </div>
                       <div className="report-summary">
                         <div>
-                          <strong>
-                            {text(review?.wPct ?? directory?.wPct, "Not rated")}
-                            {review?.wPct != null || directory?.wPct != null ? "%" : ""}
-                          </strong>
-                          <span>VITFAC win / recommendation rate</span>
-                        </div>
-                        <div>
                           <strong>{text(review?.reviews ?? directory?.reviews, "0")}</strong>
                           <span>Review count</span>
                         </div>
@@ -1375,12 +1682,7 @@ export default function StudentReportPage() {
                             "Specialization",
                             (review?.areasOfSpecialization || directory?.areasOfSpecialization || []).join("; "),
                           ],
-                          [
-                            "Education",
-                            (directory?.education || review?.education || [])
-                              .map((x: any) => (typeof x === "string" ? x : Object.values(x).join(" · ")))
-                              .join("; "),
-                          ],
+                          ["Education", null],
                           ["Awards", (directory?.awards || review?.awards || []).join("; ")],
                           ["Scopus h-index", directory?.hIndexScopus ?? review?.hIndexScopus],
                           ["i10-index", directory?.i10Index ?? review?.i10Index],
@@ -1393,17 +1695,56 @@ export default function StudentReportPage() {
                             </tr>
                           ))}
                       </Table>
+                      {Array.isArray(directory?.education || review?.education) &&
+                        (directory?.education || review?.education).length > 0 && (
+                          <div className="report-education-list" aria-label="Faculty education">
+                            {(directory?.education || review?.education).map((entry: any, entryIndex: number) => {
+                              const values = typeof entry === "string" ? { degree: entry } : entry;
+                              const degree =
+                                values.degree || values.qualification || values.title || values.program || "Education";
+                              const year = [
+                                values.startYear || values.fromYear,
+                                values.endYear || values.year || values.toYear,
+                              ]
+                                .filter(Boolean)
+                                .join("–");
+                              const field = values.field || values.specialization || values.discipline || values.major;
+                              const institution =
+                                values.institution || values.university || values.institute || values.school;
+                              return (
+                                <div className="report-education-card" key={entryIndex}>
+                                  <strong>{text(degree)}</strong>
+                                  {year && <span className="report-education-year">{text(year)}</span>}
+                                  {field && <span>{text(field)}</span>}
+                                  {institution && <span>{text(institution)}</span>}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
                       {Array.isArray(review?.lore?.green) && review.lore.green.length > 0 && (
-                        <p>
-                          Common positive review themes:{" "}
-                          {review.lore.green.map((x: any) => `${x.text} (${x.count})`).join("; ")}
-                        </p>
+                        <div className="report-theme-group positive">
+                          <strong>Common positive review themes</strong>
+                          <div className="report-theme-list">
+                            {review.lore.green.map((x: any, index: number) => (
+                              <span className="report-theme-pill" key={`${x.text}-${index}`}>
+                                {x.text} <b>{x.count}</b>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
                       )}
                       {Array.isArray(review?.lore?.red) && review.lore.red.length > 0 && (
-                        <p>
-                          Common critical review themes:{" "}
-                          {review.lore.red.map((x: any) => `${x.text} (${x.count})`).join("; ")}
-                        </p>
+                        <div className="report-theme-group critical">
+                          <strong>Common critical review themes</strong>
+                          <div className="report-theme-list">
+                            {review.lore.red.map((x: any, index: number) => (
+                              <span className="report-theme-pill" key={`${x.text}-${index}`}>
+                                {x.text} <b>{x.count}</b>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
                       )}
                       <p className="report-empty">
                         Faculty review data is community supplied by VITFAC and may not represent the full class.
@@ -1418,232 +1759,125 @@ export default function StudentReportPage() {
             })}
           </Section>
 
-          <Section title="Curriculum and credit progress">
-            {Array.isArray(snapshot.allGrades?.curriculum || snapshot.grades?.curriculum) &&
-            (snapshot.allGrades?.curriculum || snapshot.grades?.curriculum).length ? (
-              <Table headers={["Basket / distribution", "Credits required", "Credits earned", "Progress"]}>
-                {(snapshot.allGrades?.curriculum || snapshot.grades?.curriculum).map((item: any, index: number) => (
-                  <tr key={index}>
-                    <td>{text(item.basketTitle || item.distributionType || item.title)}</td>
-                    <td>{text(item.creditsRequired)}</td>
-                    <td>{text(item.creditsEarned)}</td>
-                    <td>
-                      {Number(item.creditsRequired) > 0
-                        ? `${((Number(item.creditsEarned || 0) / Number(item.creditsRequired)) * 100).toFixed(1)}%`
-                        : "—"}
-                    </td>
-                  </tr>
-                ))}
-              </Table>
-            ) : Array.isArray(snapshot.curriculum?.details) ? (
-              <div className="report-curriculum-groups">
-                {snapshot.curriculum.details.map((category: any, categoryIndex: number) => (
-                  <section
-                    className="report-curriculum-category"
-                    key={`${category.code || category.name}-${categoryIndex}`}
-                  >
-                    <h3>{text(category.name || category.code, "Curriculum category")}</h3>
-                    {(category.baskets || []).map((basket: any, basketIndex: number) => (
-                      <div className="report-curriculum-basket" key={`${basket.title}-${basketIndex}`}>
-                        <h4>{text(basket.title, "Course basket")}</h4>
-                        <Table headers={["Course code", "Course", "Credits", "Type"]}>
-                          {(basket.items || []).map((item: any, itemIndex: number) => (
-                            <tr key={`${item.code}-${itemIndex}`}>
-                              <td>{text(item.code)}</td>
-                              <td>{text(item.name)}</td>
-                              <td>{text(item.credits)}</td>
-                              <td>{text(item.type)}</td>
-                            </tr>
-                          ))}
-                        </Table>
-                      </div>
-                    ))}
-                  </section>
-                ))}
-              </div>
-            ) : (
-              <Empty />
-            )}
-          </Section>
+          <div id="historic-record" className="report-divider" aria-label="Historical academic report">
+            <span>AMAZECC · STUDENT RECORD</span>
+            <h2>Historical academic report</h2>
+            <p>Previously recorded semesters and archived academic results</p>
+          </div>
 
-          <Section title="Exam schedule">
-            {snapshot.schedule?.Schedule && Object.keys(snapshot.schedule.Schedule).length ? (
-              Object.entries(snapshot.schedule.Schedule).map(([type, exams]: [string, any]) => (
-                <div key={type} className="mb-3">
-                  <h3 className="font-bold mb-1">{type}</h3>
-                  <Table headers={["Course", "Date", "Session", "Time", "Venue", "Seat"]}>
-                    {(Array.isArray(exams) ? exams : []).map((exam: any, index: number) => (
-                      <tr key={index}>
-                        <td>
-                          {text(exam.courseCode)} · {text(exam.courseTitle)}
-                        </td>
-                        <td>{dateLabel(exam.examDate)}</td>
-                        <td>{text(exam.examSession)}</td>
-                        <td>{text(exam.examTime || exam.reportingTime)}</td>
-                        <td>{text(exam.venue || exam.examVenue)}</td>
-                        <td>{text(exam.seatLocation || exam.seatNo)}</td>
-                      </tr>
-                    ))}
-                  </Table>
+          {snapshot.attendanceHistory.length > 0 && (
+            <Section title="Archived semester attendance summaries">
+              {snapshot.attendanceHistory.map(({ semesterId, data: archived }) => (
+                <div key={semesterId} className="mb-3">
+                  <h3 className="font-bold mb-1">{semesterId}</h3>
+                  {Array.isArray(archived.attendance) ? (
+                    <Table headers={["Course", "Type", "Attended", "Total", "Attendance", "Date detail"]}>
+                      {archived.attendance.map((course: any, index: number) => (
+                        <tr key={`${course.courseCode}-${index}`}>
+                          <td>
+                            {text(course.courseCode)} · {text(course.courseTitle)}
+                          </td>
+                          <td>{text(course.courseType)}</td>
+                          <td>{text(course.attendedClasses)}</td>
+                          <td>{text(course.totalClasses)}</td>
+                          <td>{text(course.attendancePercentage)}%</td>
+                          <td>{Array.isArray(course.viewLink) ? course.viewLink.length : "Not supplied"}</td>
+                        </tr>
+                      ))}
+                    </Table>
+                  ) : (
+                    <Empty />
+                  )}
                 </div>
-              ))
-            ) : (
-              <Empty />
-            )}
-          </Section>
-
-          <Section title="Academic calendar">
-            {calendarRows.length ? (
-              <Table headers={["Date", "Academic calendar event", "Type", "Category"]}>
-                {calendarRows.flatMap((day) =>
-                  day.events.map((event, index) => (
-                    <tr key={`${day.key}-${index}`}>
-                      <td>{day.label}</td>
-                      <td>{text(event.text)}</td>
-                      <td>{text(event.type)}</td>
-                      <td>{text(event.category)}</td>
-                    </tr>
-                  )),
-                )}
-              </Table>
-            ) : (
-              <Empty />
-            )}
-          </Section>
-
-          <Section title="Official OD records">
-            {snapshot.officialOd.length ? (
-              <Table headers={["Date", "Type", "Reason", "Basis", "Time", "Remarks"]}>
-                {snapshot.officialOd.map((item: any, index: number) => (
-                  <tr key={index}>
-                    <td>{dateLabel(item.date)}</td>
-                    <td>{text(item.type)}</td>
-                    <td>{text(item.reason)}</td>
-                    <td>{text(item.basis)}</td>
-                    <td>{text(item.time)}</td>
-                    <td>{text(item.remarks)}</td>
-                  </tr>
-                ))}
-              </Table>
-            ) : (
-              <Empty />
-            )}
-          </Section>
-
-          <Section title="Semester performance by course">
-            {semesterEntries.length ? (
-              semesterEntries.map(([semester, result]: [string, any]) => (
-                <div key={semester} className="mb-3">
-                  <h3 className="font-bold">{semester}</h3>
-                  <p>
-                    GPA: {text(result?.gpa)} · Courses: {Array.isArray(result?.grades) ? result.grades.length : 0}
-                  </p>
-                </div>
-              ))
-            ) : (
-              <Empty />
-            )}
-          </Section>
-
-          {includeFinance && (
-            <Section title="Financial record (sensitive)">
-              <p>
-                Dues:{" "}
-                {snapshot.payments?.hasDues === false
-                  ? "No dues reported"
-                  : snapshot.payments?.hasDues === true
-                    ? "Dues reported"
-                    : text(snapshot.payments?.message || snapshot.payments?.status)}
-              </p>
-              {Array.isArray(snapshot.receipts?.receipts) && (
-                <Table headers={["Receipt", "Date", "Amount", "Campus"]}>
-                  {snapshot.receipts.receipts.map((item: any, i: number) => (
-                    <tr key={i}>
-                      <td>{text(item.receiptNumber)}</td>
-                      <td>{text(item.date)}</td>
-                      <td>{text(item.amount)}</td>
-                      <td>{text(item.campusCode)}</td>
-                    </tr>
-                  ))}
-                </Table>
-              )}
-              {Array.isArray(snapshot.wallet?.ledgerINR) && (
-                <Table headers={["Date", "Receipt", "Type", "Amount", "Refund", "Balance", "Refund date"]}>
-                  {snapshot.wallet.ledgerINR.map((item: any, i: number) => (
-                    <tr key={i}>
-                      <td>{text(item.transactionDate)}</td>
-                      <td>{text(item.receiptNumber)}</td>
-                      <td>{text(item.transactionType)}</td>
-                      <td>{text(item.amount)}</td>
-                      <td>{text(item.refundAmount)}</td>
-                      <td>{text(item.bookBalanceAmount)}</td>
-                      <td>{text(item.refundDate)}</td>
-                    </tr>
-                  ))}
-                </Table>
-              )}
-              <p className="report-empty">
-                Cached records provide current payment states and ledger entries; transition history is not supplied.
-              </p>
+              ))}
             </Section>
           )}
-          {includeServices && (
-            <Section title="Other student services (sensitive)">
-              {snapshot.transport && (
-                <>
-                  <h3>Transport</h3>
-                  <Table headers={["Field", "Value"]}>
-                    {[
-                      ["Registration", snapshot.transport.hasRegistration ? "Registered" : "Not registered"],
-                      ["Route", snapshot.transport.routeSelected],
-                      ["Payment status", snapshot.transport.paymentStatus],
-                      ["Bus route", snapshot.transport.busRouteId],
-                      ["Programme", snapshot.transport.programme],
-                      ["Branch", snapshot.transport.branch],
-                    ]
-                      .filter(([, value]) => value != null && value !== "")
-                      .map(([field, value]) => (
-                        <tr key={String(field)}>
-                          <td>{String(field)}</td>
-                          <td>{text(value)}</td>
-                        </tr>
-                      ))}
-                  </Table>
-                </>
+
+          <Section id="complete-grade-history" title="Complete grade history" className="report-grade-history-section">
+            {semesterEntries.length ? (
+              semesterEntries.map(([semester, result]: [string, any]) => (
+                <div key={semester} id={`history-${semester}`} className="mb-4">
+                  <h3 className="font-bold mb-1">
+                    {semester} · GPA {text(result?.gpa)}
+                  </h3>
+                  {Array.isArray(result?.grades) && result.grades.length ? (
+                    result.grades.map((grade: any, index: number) => {
+                      const code = String(grade.courseCode || "")
+                        .replace(/\s*\([TL]\)$/i, "")
+                        .toUpperCase();
+                      const courseMeta = (snapshot.marks?.courses || []).find(
+                        (c: any) =>
+                          String(c.courseCode || "")
+                            .replace(/\s*\([TL]\)$/i, "")
+                            .toUpperCase() === code,
+                      );
+                      return (
+                        <div className="mb-3 report-course" key={`${grade.courseCode}-${index}`}>
+                          <h4 className="font-bold">
+                            {text(grade.courseCode)} · {text(grade.courseTitle)}
+                          </h4>
+                          <div className="report-grade-cards">
+                            <div>
+                              <strong>{text(grade.courseType)}</strong>
+                              <span>Type</span>
+                            </div>
+                            {(grade.credits ?? courseMeta?.credits) != null && (
+                              <div>
+                                <strong>{text(grade.credits ?? courseMeta?.credits)}</strong>
+                                <span>Credits</span>
+                              </div>
+                            )}
+                            {grade.grandTotal != null && grade.grandTotal !== "" && (
+                              <div>
+                                <strong>{text(grade.grandTotal)}</strong>
+                                <span>Grand total</span>
+                              </div>
+                            )}
+                            {grade.grade != null && grade.grade !== "" && (
+                              <div>
+                                <strong>{text(grade.grade)}</strong>
+                                <span>Grade</span>
+                              </div>
+                            )}
+                          </div>
+                          {Array.isArray(grade.details) && grade.details.length ? (
+                            <Table headers={["Assessment / component", "Status", "Score", "Maximum"]}>
+                              {grade.details.map((detail: any, detailIndex: number) => (
+                                <tr key={`${grade.courseCode}-${detailIndex}`}>
+                                  <td>{text(detail.component)}</td>
+                                  <td>{text(detail.status)}</td>
+                                  <td>{text(detail.scoredMark)}</td>
+                                  <td>{text(detail.maxMark)}</td>
+                                </tr>
+                              ))}
+                            </Table>
+                          ) : (
+                            <Empty>No assessment details supplied for this course.</Empty>
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <Empty>No course grades are published for this semester.</Empty>
+                  )}
+                </div>
+              ))
+            ) : (
+              <Empty>Complete semester grade history is not synced.</Empty>
+            )}
+          </Section>
+
+          {(includeServices || includeFinance) && (
+            <>
+              {includeServices && snapshot.events.length > 0 && (
+                <div id="registered-events-cover" className="report-divider">
+                  <span>AMAZECC · STUDENT SERVICES</span>
+                  <h2>Registered events</h2>
+                  <p>Event registrations, attendance dates, and payment status</p>
+                </div>
               )}
-              {snapshot.library && (
-                <>
-                  <h3>Library</h3>
-                  <Table headers={["Item", "Value"]}>
-                    {Object.entries(snapshot.library.keyValuePairs || {})
-                      .filter(([key]) => !/csrf|authori[sz]edid|token|secret/i.test(key))
-                      .map(([key, value]) => (
-                        <tr key={key}>
-                          <td>{key}</td>
-                          <td>{text(value)}</td>
-                        </tr>
-                      ))}
-                  </Table>
-                </>
-              )}
-              {snapshot.moodle.length > 0 && (
-                <>
-                  <h3>Moodle</h3>
-                  <Table headers={["Course", "Activity", "Due", "Status"]}>
-                    {snapshot.moodle.map((item: any, i: number) => (
-                      <tr key={i}>
-                        <td>{text(item.course || item.courseName)}</td>
-                        <td>{text(item.name || item.title || item.activity)}</td>
-                        <td>{text(item.dueDate || item.due)}</td>
-                        <td>{text(item.status)}</td>
-                      </tr>
-                    ))}
-                  </Table>
-                </>
-              )}
-              {snapshot.events.length > 0 && (
-                <>
-                  <h3>Registered events</h3>
+              {includeServices && snapshot.events.length > 0 && (
+                <Section id="registered-events" title="Registered events">
                   <div className="report-summary">
                     <div>
                       <strong>{snapshot.events.length}</strong>
@@ -1697,12 +1931,113 @@ export default function StudentReportPage() {
                       </tr>
                     ))}
                   </Table>
-                </>
+                </Section>
               )}
-              {!snapshot.transport && !snapshot.library && !snapshot.moodle.length && !snapshot.events.length && (
-                <Empty />
-              )}
-            </Section>
+              <div id="student-services-cover" className="report-divider">
+                <span>AMAZECC · STUDENT SERVICES</span>
+                <h2>Other student services</h2>
+                <p>Transport, library, learning platform, and financial records</p>
+              </div>
+              <Section id="student-services" title="Other student services (sensitive)">
+                {includeFinance && (
+                  <>
+                    <h3>Financial record</h3>
+                    <p>
+                      Dues:{" "}
+                      {snapshot.payments?.hasDues === false
+                        ? "No dues reported"
+                        : snapshot.payments?.hasDues === true
+                          ? "Dues reported"
+                          : text(snapshot.payments?.message || snapshot.payments?.status)}
+                    </p>
+                    {Array.isArray(snapshot.receipts?.receipts) && (
+                      <Table headers={["Receipt", "Date", "Amount", "Campus"]}>
+                        {snapshot.receipts.receipts.map((item: any, i: number) => (
+                          <tr key={i}>
+                            <td>{text(item.receiptNumber)}</td>
+                            <td>{text(item.date)}</td>
+                            <td>{text(item.amount)}</td>
+                            <td>{text(item.campusCode)}</td>
+                          </tr>
+                        ))}
+                      </Table>
+                    )}
+                    {Array.isArray(snapshot.wallet?.ledgerINR) && (
+                      <Table headers={["Date", "Receipt", "Type", "Amount", "Refund", "Balance", "Refund date"]}>
+                        {snapshot.wallet.ledgerINR.map((item: any, i: number) => (
+                          <tr key={i}>
+                            <td>{text(item.transactionDate)}</td>
+                            <td>{text(item.receiptNumber)}</td>
+                            <td>{text(item.transactionType)}</td>
+                            <td>{text(item.amount)}</td>
+                            <td>{text(item.refundAmount)}</td>
+                            <td>{text(item.bookBalanceAmount)}</td>
+                            <td>{text(item.refundDate)}</td>
+                          </tr>
+                        ))}
+                      </Table>
+                    )}
+                    <p className="report-empty">
+                      Cached records provide current payment states and ledger entries; transition history is not
+                      supplied.
+                    </p>
+                  </>
+                )}
+                {snapshot.transport && (
+                  <>
+                    <h3>Transport</h3>
+                    <Table headers={["Field", "Value"]}>
+                      {[
+                        ["Registration", snapshot.transport.hasRegistration ? "Registered" : "Not registered"],
+                        ["Route", snapshot.transport.routeSelected],
+                        ["Payment status", snapshot.transport.paymentStatus],
+                        ["Bus route", snapshot.transport.busRouteId],
+                        ["Programme", snapshot.transport.programme],
+                        ["Branch", snapshot.transport.branch],
+                      ]
+                        .filter(([, value]) => value != null && value !== "")
+                        .map(([field, value]) => (
+                          <tr key={String(field)}>
+                            <td>{String(field)}</td>
+                            <td>{text(value)}</td>
+                          </tr>
+                        ))}
+                    </Table>
+                  </>
+                )}
+                {snapshot.library && (
+                  <>
+                    <h3>Library</h3>
+                    <Table headers={["Item", "Value"]}>
+                      {Object.entries(snapshot.library.keyValuePairs || {})
+                        .filter(([key]) => !/csrf|authori[sz]edid|token|secret/i.test(key))
+                        .map(([key, value]) => (
+                          <tr key={key}>
+                            <td>{key}</td>
+                            <td>{text(value)}</td>
+                          </tr>
+                        ))}
+                    </Table>
+                  </>
+                )}
+                {snapshot.moodle.length > 0 && (
+                  <>
+                    <h3>Moodle</h3>
+                    <Table headers={["Course", "Activity", "Due", "Status"]}>
+                      {snapshot.moodle.map((item: any, i: number) => (
+                        <tr key={i}>
+                          <td>{text(item.course || item.courseName)}</td>
+                          <td>{text(item.name || item.title || item.activity)}</td>
+                          <td>{text(item.dueDate || item.due)}</td>
+                          <td>{text(item.status)}</td>
+                        </tr>
+                      ))}
+                    </Table>
+                  </>
+                )}
+                {includeServices && !snapshot.transport && !snapshot.library && !snapshot.moodle.length && <Empty />}
+              </Section>
+            </>
           )}
           <footer className="report-foot">
             AmazeCC student-generated report · Generated {snapshot.collectedAt.toLocaleString("en-IN")} · Cached source
