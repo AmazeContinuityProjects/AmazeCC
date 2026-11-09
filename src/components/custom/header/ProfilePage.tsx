@@ -64,6 +64,7 @@ import config from "../../../../config.json";
 import PushNotificationManager from "./PushNotificationManager";
 import PwaInstallCard from "../shared/PwaInstallCard";
 import LocalStorageSubpage from "../footer/LocalStorageSubpage";
+import BackupRestoreCard from "../profile/BackupRestoreCard";
 import ChangelogModal from "./ChangelogModal";
 import HallOfFameModal from "./HallOfFameModal";
 import TeamModal from "./TeamModal";
@@ -2270,6 +2271,7 @@ export default function ProfilePage({
   const renderAdvancedContent = () => (
     <div className="space-y-6">
       <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 divide-y divide-zinc-100 dark:divide-zinc-800/60 overflow-hidden shadow-2xs">
+        <BackupRestoreCard />
         {/* Local Storage — a drill-down, so it pushes a screen on the settings
             stack and inherits this page's header and back button, rather than
             opening an overlay with a second copy of both. */}
