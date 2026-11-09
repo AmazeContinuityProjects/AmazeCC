@@ -1,9 +1,3 @@
-> **Retired (2026-11).** Friend timetable sharing (handles, pairing, server-stored
-> timetables) has been removed from the app. Timetables are now shared as FFCS
-> "shape" links (`src/lib/timetableShareLink.ts`, opened at `/share/ffcs/`), and
-> friends are managed in the FFCS planner. This folder is kept as history.
-> The `/api/social/*` routes in amazecc-api are no longer called by the app.
-
 # Social Timetable Sharing — Design Docs
 
 - **Status:** Designed, not implemented. Both empirical unknowns are now **resolved** against live VTOP (see [13-open-questions.md](./13-open-questions.md) §1).
@@ -12,21 +6,21 @@
 
 ## What is in here
 
-| Doc                                                          | Read it for                                                                                                               |
-| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| [01-overview.md](./01-overview.md)                           | The problem, the shape of the solution, and every locked decision with its rationale                                      |
-| [02-current-state-audit.md](./02-current-state-audit.md)     | Evidence audit of both repos today. Every claim carries a `file:line`. Read this first if you want to argue with a claim. |
-| [03-identity-and-semester.md](./03-identity-and-semester.md) | How the server learns who you are, and how "current semester" is resolved                                                 |
-| [04-data-model.md](./04-data-model.md)                       | DDL, TypeScript types, the `busy_map` shape, slot-vocabulary versioning                                                   |
-| [05-server-derivation.md](./05-server-derivation.md)         | The VTOP call sequence, parsers, and how a busy map is built                                                              |
-| [06-grants-and-pairing.md](./06-grants-and-pairing.md)       | The shared signed key, mutual pairing semantics, lifecycle, revocation                                                    |
-| [07-api-contract.md](./07-api-contract.md)                   | Every endpoint, request and response shapes, status codes, limits                                                         |
-| [08-security-and-privacy.md](./08-security-and-privacy.md)   | Threat model, and exactly what coarse/full visibility does and does not guarantee                                         |
-| [09-schedule-math.md](./09-schedule-math.md)                 | The 164-slot vocabulary, why `(day, slotId)` is the only correct key, overlap computation                                 |
-| [10-frontend-integration.md](./10-frontend-integration.md)   | Sync engine op, atoms, storage keys, comparison helpers, legacy migration                                                 |
-| [11-ui-redesign.md](./11-ui-redesign.md)                     | Landing + 4 subpages in the Libraries grammar                                                                             |
-| [12-migration-plan.md](./12-migration-plan.md)               | Phased build order, cutover, v5/v6 deprecation                                                                            |
-| [13-open-questions.md](./13-open-questions.md)               | Unresolved decisions, and the two verification risks with their probe                                                     |
+| Doc | Read it for |
+|---|---|
+| [01-overview.md](./01-overview.md) | The problem, the shape of the solution, and every locked decision with its rationale |
+| [02-current-state-audit.md](./02-current-state-audit.md) | Evidence audit of both repos today. Every claim carries a `file:line`. Read this first if you want to argue with a claim. |
+| [03-identity-and-semester.md](./03-identity-and-semester.md) | How the server learns who you are, and how "current semester" is resolved |
+| [04-data-model.md](./04-data-model.md) | DDL, TypeScript types, the `busy_map` shape, slot-vocabulary versioning |
+| [05-server-derivation.md](./05-server-derivation.md) | The VTOP call sequence, parsers, and how a busy map is built |
+| [06-grants-and-pairing.md](./06-grants-and-pairing.md) | The shared signed key, mutual pairing semantics, lifecycle, revocation |
+| [07-api-contract.md](./07-api-contract.md) | Every endpoint, request and response shapes, status codes, limits |
+| [08-security-and-privacy.md](./08-security-and-privacy.md) | Threat model, and exactly what coarse/full visibility does and does not guarantee |
+| [09-schedule-math.md](./09-schedule-math.md) | The 164-slot vocabulary, why `(day, slotId)` is the only correct key, overlap computation |
+| [10-frontend-integration.md](./10-frontend-integration.md) | Sync engine op, atoms, storage keys, comparison helpers, legacy migration |
+| [11-ui-redesign.md](./11-ui-redesign.md) | Landing + 4 subpages in the Libraries grammar |
+| [12-migration-plan.md](./12-migration-plan.md) | Phased build order, cutover, v5/v6 deprecation |
+| [13-open-questions.md](./13-open-questions.md) | Unresolved decisions, and the two verification risks with their probe |
 
 ## The one-paragraph version
 

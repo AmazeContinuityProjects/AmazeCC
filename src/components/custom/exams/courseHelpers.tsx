@@ -4,7 +4,14 @@ import { ChevronDown } from "lucide-react";
 import { KeyValue, ListRowText, MiniBar, ToneDot } from "../shared/primitives";
 import { LIST_ROW, TONE_BADGE, TONE_TEXT } from "@/lib/uiTokens";
 import { toneForGrade } from "@/lib/gradeHistory";
-import { isRelativeGrading } from "@/lib/gradeBoundaries";
+import {
+  buildGradeBoundaries,
+  effectiveClassStats,
+  gradeAt,
+  hasUsableClassStats,
+  isRelativeGrading,
+  MIN_CURVE_SAMPLE,
+} from "@/lib/gradeBoundaries";
 
 export interface Creds {
   cookies: string[];
@@ -178,54 +185,25 @@ export function AssessmentRow({
   // an assessment with the same VTOP title.
   const panelId = `asm-panel-${useId()}`;
 
-  let gradePlacement = "?";
-  let gradeBounds: { grade: string; range: string }[] = [];
-
   const sBoundaryCalc = (boundPct: number, maxMark: number) => {
     const rawMark = (boundPct / 100) * maxMark;
     return rawMark.toFixed(1);
   };
 
-  if (isRelative) {
-    if (aStat && aStat.count > 0) {
-      const sB = Math.min(Math.max(aStat.mean + 1.5 * aStat.sd, 80), 100);
-      const aB = aStat.mean + 0.5 * aStat.sd;
-      const bB = aStat.mean - 0.5 * aStat.sd;
-      const cB = aStat.mean - 1.0 * aStat.sd;
-      const dB = aStat.mean - 1.5 * aStat.sd;
-      const eB = Math.min(aStat.mean - 2.0 * aStat.sd, 50);
-
-      if (asmPct >= sB) gradePlacement = "S";
-      else if (asmPct >= aB) gradePlacement = "A";
-      else if (asmPct >= bB) gradePlacement = "B";
-      else if (asmPct >= cB) gradePlacement = "C";
-      else if (asmPct >= dB) gradePlacement = "D";
-      else if (asmPct >= eB) gradePlacement = "E";
-      else gradePlacement = "F";
-
-      gradeBounds = [
-        { grade: "S", range: `>= ${sBoundaryCalc(sB, detail.maxMark)}` },
-        { grade: "A", range: `>= ${sBoundaryCalc(aB, detail.maxMark)}` },
-        { grade: "B", range: `>= ${sBoundaryCalc(bB, detail.maxMark)}` },
-        { grade: "C", range: `>= ${sBoundaryCalc(cB, detail.maxMark)}` },
-      ];
-    }
-  } else {
-    if (asmPct >= 90) gradePlacement = "S";
-    else if (asmPct >= 80) gradePlacement = "A";
-    else if (asmPct >= 70) gradePlacement = "B";
-    else if (asmPct >= 60) gradePlacement = "C";
-    else if (asmPct >= 50) gradePlacement = "D";
-    else if (asmPct >= 40) gradePlacement = "E";
-    else gradePlacement = "F";
-
-    gradeBounds = [
-      { grade: "S", range: `>= ${sBoundaryCalc(90, detail.maxMark)}` },
-      { grade: "A", range: `>= ${sBoundaryCalc(80, detail.maxMark)}` },
-      { grade: "B", range: `>= ${sBoundaryCalc(70, detail.maxMark)}` },
-      { grade: "C", range: `>= ${sBoundaryCalc(60, detail.maxMark)}` },
-    ];
-  }
+  // One ladder for every screen: the shared builder applies Table 5 / Table 6
+  // (S at mean + 1.5σ, D 55, E 50, absolute below MIN_CURVE_SAMPLE). An assessment
+  // is not graded on its own — this only shows where the mark would sit if
+  // the class finished the way it scored here.
+  const statsUsable = hasUsableClassStats(aStat);
+  const ladder = buildGradeBoundaries(statsUsable ? aStat : null, isRelative);
+  // A pending row ("-" or blank) has no mark to place; reading it as 0% put an F on it.
+  const rawScored = String(detail.scoredMark ?? "").trim();
+  const isRecorded = rawScored !== "" && rawScored !== "-" && Number.isFinite(Number(rawScored));
+  const gradePlacement =
+    !isRecorded || (isRelative && !statsUsable) ? "?" : gradeAt(asmPct, ladder);
+  const gradeBounds = ladder
+    .filter((b) => ["S", "A", "B", "C"].includes(b.grade))
+    .map((b) => ({ grade: b.grade, range: `>= ${sBoundaryCalc(b.limit, detail.maxMark)}` }));
 
   return (
     <div>
@@ -266,9 +244,11 @@ export function AssessmentRow({
           id={panelId}
           className="px-4 pb-4 pt-3 bg-surface-tertiary/40 dark:bg-background/40 border-t border-border-muted dark:border-border"
         >
-          {isRelative && (!aStat || aStat.count === 0) ? (
+          {isRelative && !statsUsable ? (
             <p className="text-[11px] text-text-secondary dark:text-text-muted italic text-center py-2">
-              Not enough data to calculate class statistics for this assessment yet.
+              {aStat?.count > 0
+                ? `Only ${aStat.count} ${aStat.count === 1 ? "student has" : "students have"} shared this assessment — the curve needs at least ${MIN_CURVE_SAMPLE}.`
+                : "Not enough data to calculate class statistics for this assessment yet."}
             </p>
           ) : (
             <div className="space-y-3">
@@ -278,7 +258,10 @@ export function AssessmentRow({
                     label="Class avg"
                     value={`${sBoundaryCalc(aStat.mean, detail.maxMark)} (${formatNumber(aStat.mean)}%)`}
                   />
-                  <KeyValue label="Std dev" value={`±${sBoundaryCalc(aStat.sd, detail.maxMark)}`} />
+                  <KeyValue
+                    label="Std dev"
+                    value={`±${sBoundaryCalc(effectiveClassStats(aStat)?.sd ?? aStat.sd, detail.maxMark)}`}
+                  />
                   <KeyValue label="Samples" value={String(aStat.count)} />
                 </div>
               )}

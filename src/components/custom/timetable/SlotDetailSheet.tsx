@@ -26,7 +26,7 @@ import { hasSlot } from "@/lib/slots";
 // A leaf module (its only import is a campus JSON), so depending on it from a
 // shared component costs nothing and avoids a third copy of the type maps.
 import { defaultColor, typeColors, typeLabels } from "@/lib/ffcsConstants";
-import { minutesToTimeStr } from "@/lib/schedule";
+import { minutesToTimeStr } from "@/lib/social/schedule";
 import type { Cell } from "@/lib/buildBands";
 
 /** What the attendance surface knows about a course that the planner does not. */

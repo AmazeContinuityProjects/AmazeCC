@@ -18,6 +18,7 @@ import {
 import { LIST_ROW } from "@/lib/uiTokens";
 import { toneForGrade } from "@/lib/gradeHistory";
 import { predictGpa } from "@/lib/predictorGpa";
+import { manualClassStats } from "@/lib/gradeBoundaries";
 import {
   type CoursePredictionResult,
   computeCoursePrediction,
@@ -135,10 +136,14 @@ export default function MarksPredictorTab({
     void refreshTrigger;
     const byCode = new Map<string, CoursePredictionResult>();
     for (const course of enrolledCourses) {
-      const config = buildCourseConfig(course, getCoursePredictorState(course.courseCode));
+      const stored = getCoursePredictorState(course.courseCode);
+      const config = buildCourseConfig(course, stored);
       const classNbr = course.theoryCourse?.classNbr || course.labCourse?.classNbr;
       const overall = classNbr ? cohortStats?.[classNbr]?.overall : null;
-      const classStats = overall && Number.isFinite(overall.mean) ? overall : null;
+      // The reader's own curve for this course, when set, wins — the same rule
+      // the course page applies, so the list and the page agree.
+      const classStats =
+        manualClassStats(stored?.classStatsOverride) ?? (overall && Number.isFinite(overall.mean) ? overall : null);
       byCode.set(
         course.courseCode,
         computeCoursePrediction({

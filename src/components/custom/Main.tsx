@@ -26,7 +26,9 @@ import {
   defaultSettings,
   activeTabAtom,
 } from "@/store";
-import { activeRegNumberAtom } from "@/store/authAtoms";
+import { activeRegNumberAtom, pendingInviteHandleAtom } from "@/store/socialAtoms";
+import { activeToolsSubTabAtom } from "@/store/uiAtoms";
+import { INVITE_PARAM, handleFromInvite, isValidHandle } from "@/lib/social/handle";
 import IntroSong from "@/lib/introSong/IntroSong";
 import config from "../../../config.json";
 import { useTaskReminderScheduler } from "./tasks/useTaskReminderScheduler";
@@ -180,6 +182,26 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
       }
     } catch {}
   }, [setActiveTab]);
+
+  // Consume an invite link /?add=AMZ-XXXX-XXXX: open Social with the Add friend
+  // sheet on that handle. Pairing still needs the student to confirm there.
+  const setActiveToolsSubTab = useSetAtom(activeToolsSubTabAtom);
+  const setPendingInvite = useSetAtom(pendingInviteHandleAtom);
+  useEffect(() => {
+    try {
+      if (typeof window === "undefined") return;
+      const url = new URL(window.location.href);
+      const raw = url.searchParams.get(INVITE_PARAM);
+      if (raw === null) return;
+      url.searchParams.delete(INVITE_PARAM);
+      window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+      const invited = handleFromInvite(raw);
+      if (!isValidHandle(invited)) return;
+      setPendingInvite(invited);
+      setActiveTab("tools");
+      setActiveToolsSubTab("social");
+    } catch {}
+  }, [setActiveTab, setActiveToolsSubTab, setPendingInvite]);
 
   useEffect(() => {
     const returnIfFreshlySignedIn = () => {

@@ -118,6 +118,14 @@ describe("remapCohortStats", () => {
     expect(out[CLASS].assessments).toEqual({});
   });
 
+  it("treats the server's empty placeholder as no data, not a zero average", async () => {
+    const out = await remapCohortStats(
+      { [CLASS]: { count: 0, mean: 0, sd: 0, assessments: {} } },
+      []
+    );
+    expect(out[CLASS].overall).toBeNull();
+  });
+
   it("ignores assessments with no matching statistic", async () => {
     const out = await remapCohortStats(
       { [CLASS]: serverEntry },
@@ -175,11 +183,11 @@ describe("syncMarksDiff backfill", () => {
     // …then the bootstrap, because the store started empty and the sync returned
     // no receipts to file.
     expect(calls[1][0]).toBe("marks/tokens");
-    expect(window.localStorage.getItem("marksSyncBackfillV1")).toBe("true");
+    expect(window.localStorage.getItem("marksSyncBackfillV2")).toBe("true");
   });
 
   it("skips unchanged values once the backfill is done", async () => {
-    window.localStorage.setItem("marksSyncBackfillV1", "true");
+    window.localStorage.setItem("marksSyncBackfillV2", "true");
     (api as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
       json: async () => ({ success: true, tokens: [], legacy: [] }),
@@ -193,16 +201,89 @@ describe("syncMarksDiff backfill", () => {
   it("retries the backfill after a failure", async () => {
     (api as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: false });
     await syncMarksDiff(MARKS, MARKS);
-    expect(window.localStorage.getItem("marksSyncBackfillV1")).toBeNull();
+    expect(window.localStorage.getItem("marksSyncBackfillV2")).toBeNull();
   });
 
   it("still sends genuinely changed marks without the backfill", async () => {
-    window.localStorage.setItem("marksSyncBackfillV1", "true");
+    window.localStorage.setItem("marksSyncBackfillV2", "true");
     (api as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: true });
     const changed = JSON.parse(JSON.stringify(MARKS));
     changed.courses[0].assessments[0].scoredMark = 45;
     await syncMarksDiff(MARKS, changed);
     expect(api).toHaveBeenCalledOnce();
+  });
+});
+
+describe("syncMarksDiff cohort scores", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    window.localStorage.clear();
+    (api as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+      json: async () => ({ tally: { added: 1 }, tokens: {} }),
+    });
+  });
+
+  it("includes recorded zero marks and excludes pending rows from cohort statistics", async () => {
+    window.localStorage.setItem("marksSyncBackfillV1", "true");
+    const marks = {
+      courses: [
+        {
+          courseCode: "AAA1001",
+          courseType: "Theory Only",
+          classNbr: "C1",
+          slot: "A1",
+          credits: 3,
+          assessments: [
+            {
+              title: "CAT I",
+              maxMark: "50",
+              scoredMark: "0",
+              weightagePercent: "15",
+              weightageMark: "0",
+            },
+            {
+              title: "CAT II",
+              maxMark: "50",
+              scoredMark: "-",
+              weightagePercent: "15",
+              weightageMark: "",
+            },
+            {
+              title: "CAT III",
+              maxMark: "100",
+              scoredMark: "50",
+              weightagePercent: "40",
+              weightageMark: "20",
+            },
+          ],
+        },
+      ],
+    };
+
+    await syncMarksDiff(marks, marks);
+
+    const contributions = (api as ReturnType<typeof vi.fn>).mock.calls[0][1].body.contributions as Array<{
+      scope: string;
+      title: string;
+      mark: number;
+      prevMark: number | null;
+    }>;
+    const overall = contributions.find((contribution) => contribution.scope === "overall");
+    const assessments = contributions.filter((contribution) => contribution.scope === "assessment");
+
+    // CAT II has no mark and must not dilute CAT I's 0% and CAT III's 50%:
+    // (15 × 0 + 40 × 50%) / (15 + 40) = 36.36%, rounded up to 37 the way the
+    // regulations round a total before computing the class mean and σ.
+    expect(overall?.mark).toBe(37);
+    // The old denominator included CAT II, so V2 must identify the old
+    // contribution with its original value for the server to replace it.
+    expect(overall?.prevMark).toBeCloseTo((20 / 70) * 100, 8);
+    expect(window.localStorage.getItem("marksSyncBackfillV2")).toBe("true");
+    expect(assessments.map(({ title, mark }) => [title, mark])).toEqual([
+      ["CAT I", 0],
+      ["CAT III", 50],
+    ]);
   });
 });
 
@@ -279,7 +360,7 @@ describe("token receipts and frozen visibility", () => {
         "C9::assessment::k9": "tok-stale",
       })
     );
-    window.localStorage.setItem("marksSyncBackfillV1", "true");
+    window.localStorage.setItem("marksSyncBackfillV2", "true");
     (api as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
       json: async () => ({ tally: {}, tokens: {} }),

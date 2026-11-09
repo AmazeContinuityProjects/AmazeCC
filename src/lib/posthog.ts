@@ -1,7 +1,7 @@
 "use client";
 
 import posthog from "posthog-js";
-import { getActiveDisplayName, getActiveRegNumber } from "./activeIdentity";
+import { getActiveDisplayName, getActiveRegNumber } from "./social/identity";
 import { getCachedRegisterNumber } from "./introSong/gate";
 
 /**
@@ -357,6 +357,15 @@ const MODAL_METADATA_MAP: Record<string, { name: string; feature: string }> = {
   "widget-room-inspector": { name: "Widget Free Classroom Inspector", feature: "free_classrooms" },
   "qbank-upload": { name: "Upload Paper to QBank", feature: "qbank" },
 
+  // Social & Friend Timetables
+  "social-share-handle": { name: "Share Timetable Handle", feature: "social" },
+  "social-scan-peer": { name: "Scan Friend QR Handle", feature: "social" },
+  "social-add-peer": { name: "Add Friend by Handle", feature: "social" },
+  "social-peer-sheet": { name: "Friend Timetable Sheet", feature: "social" },
+  "social-common-slots": { name: "Common Free Slots Finder", feature: "social" },
+  "social-cell-detail": { name: "Social Timetable Cell Detail", feature: "social" },
+  "group-members": { name: "Social Group Members Sheet", feature: "social" },
+
   // Campus Services, Hostel & Transport
   "club-details": { name: "Club Details Sheet", feature: "events_and_clubs" },
   "eventhub-status": { name: "EventHub Status Sheet", feature: "events_and_clubs" },
@@ -493,8 +502,7 @@ export function resolveScreenFeature(
   if (normScreen === "attendance") return { feature_category: "attendance", feature_name: "Attendance Tracker" };
   if (normScreen === "academics") return { feature_category: "academics", feature_name: "Academics & Grades" };
   if (normScreen === "tasks") return { feature_category: "tasks", feature_name: "Task Manager" };
-  // The "social" sub-tab now hosts timetable sharing; the id is kept so analytics series stay continuous.
-  if (normScreen === "social") return { feature_category: "social", feature_name: "Share Timetable" };
+  if (normScreen === "social") return { feature_category: "social", feature_name: "Social Timetables" };
   if (normScreen === "hostel") return { feature_category: "hostel", feature_name: "Hostel & Leaves" };
   if (normScreen === "events" || normScreen === "clubs")
     return { feature_category: "events_and_clubs", feature_name: "Events & Clubs" };

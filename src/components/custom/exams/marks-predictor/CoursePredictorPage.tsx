@@ -1,5 +1,8 @@
 "use client";
 
+import { effectiveClassStats, isEarlyEstimate, MIN_CURVE_SAMPLE } from "@/lib/gradeBoundaries";
+import ClassCurveEditor from "./ClassCurveEditor";
+import { gradeMargin, gradeRange } from "@/lib/gradeInsights";
 import React, { useEffect, useState } from "react";
 import type { RefObject } from "react";
 import { createPortal } from "react-dom";
@@ -163,8 +166,20 @@ interface CoursePredictorPageProps {
 }
 
 function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: CoursePredictorPageProps) {
-  const { config, updateConfig, reset, prediction, assessmentStats, classStats, targetScore, persistTargetScore } =
-    useCoursePredictionScope(course, marksStats);
+  const {
+    config,
+    updateConfig,
+    reset,
+    prediction,
+    assessmentStats,
+    classStats,
+    syncedClassStats,
+    classStatsOverride,
+    setClassStatsOverride,
+    curveEligible,
+    targetScore,
+    persistTargetScore,
+  } = useCoursePredictionScope(course, marksStats);
 
   const [isRegimenEditorOpen, setIsRegimenEditorOpen] = useState(false);
   /** The assessment whose mark sheet is open, with its half's tone and
@@ -382,6 +397,38 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
       tone: pointsLostScaled > 0 ? "red" : "emerald",
     },
   ];
+  // How far the pace sits from the letters either side — only when the letter
+  // comes from the ladder (an F or N from a pass condition has no "next band").
+  const margin =
+    optimalGrade && prediction.passIssues.length === 0 ? gradeMargin(pacePct, prediction.boundaries) : null;
+  if (margin && (margin.next || margin.previous)) {
+    carouselSlides.splice(1, 0, {
+      id: "margin",
+      label: "Next grade",
+      value: margin.next ? `+${(margin.toNext ?? 0).toFixed(1)}` : "Top",
+      sub: [
+        margin.next ? `pace past this for ${margin.next}` : "already at S",
+        margin.previous && margin.cushion !== null
+          ? `${margin.cushion.toFixed(1)} cushion before ${margin.previous}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      tone: margin.next ? "cyan" : "emerald",
+    });
+  }
+  // A curve from a handful of classmates is a wide estimate; say how wide.
+  const range =
+    optimalGrade && prediction.passIssues.length === 0 ? gradeRange(pacePct, classStats, prediction.isCurved) : null;
+  if (range && range.best !== range.worst) {
+    carouselSlides.splice(1, 0, {
+      id: "curve-range",
+      label: "Curve range",
+      value: `${range.worst}–${range.best}`,
+      sub: `Likely ${range.likely} · ${classStats?.count ?? 0} classmates so far`,
+      tone: "amber",
+    });
+  }
   if (isEmbedded && theoryStats) {
     carouselSlides.push({
       id: "theory-half",
@@ -506,7 +553,9 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
         <ToneBadge tone="violet">
           {prediction.theoryCredits}T + {prediction.labCredits}L
         </ToneBadge>
-        {prediction.isCurved ? <ToneBadge tone="amber">Curved</ToneBadge> : null}
+        {prediction.isCurved ? (
+          <ToneBadge tone={classStats?.manual ? "indigo" : "amber"}>{classStats?.manual ? "Your curve" : "Curved"}</ToneBadge>
+        ) : null}
         {targetScore != null ? <ToneBadge tone="cyan">Goal {targetScore.toFixed(0)}%</ToneBadge> : null}
         {actionsEl ? null : (
           <>
@@ -528,6 +577,24 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
         />
         <InsightCarousel slides={carouselSlides} carousel={carousel} />
       </div>
+
+      {/* Pass conditions the letter alone cannot explain (§9.4, §9.6, §9.7):
+          when one applies, the F or N above comes from here, not the ladder. */}
+      {prediction.passIssues.length > 0 && (
+        <div className="space-y-1.5">
+          {prediction.passIssues.map((issue) => (
+            <p
+              key={issue.code}
+              className={`flex items-start gap-2 text-[11px] leading-relaxed font-medium ${
+                issue.certain ? "text-red-700 dark:text-red-400" : "text-amber-700 dark:text-amber-400"
+              }`}
+            >
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" aria-hidden="true" />
+              <span>{issue.message}</span>
+            </p>
+          ))}
+        </div>
+      )}
 
       {/* Segmented progress */}
       <div className="space-y-2.5">
@@ -672,30 +739,69 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
             icon={Gauge}
             title="Grade boundaries"
             count={ladderBands.length}
-            right={prediction.isCurved && !classStats ? <ToneBadge tone="zinc">Awaiting class data</ToneBadge> : null}
+            right={
+              classStats?.manual && prediction.isCurved ? (
+                <ToneBadge tone="indigo">Your curve</ToneBadge>
+              ) : curveEligible && !prediction.isCurved ? (
+                <ToneBadge tone="zinc">Awaiting class data</ToneBadge>
+              ) : null
+            }
           />
-          <div
-            className={`rounded-3xl border border-border-strong dark:border-border card-surface px-4 py-3.5 space-y-2.5 ${
-              prediction.isCurved && !classStats ? "opacity-60 grayscale" : ""
-            }`}
-          >
-            {/* The marks page's in-card stats line: dose · μ · σ above the bar. */}
-            {prediction.isCurved && (
-              <p className="flex items-center gap-2 text-[11px] font-medium text-text-secondary dark:text-text-muted flex-wrap">
-                <ToneDot tone={!classStats ? "zinc" : classStats.count < 30 ? "amber" : "emerald"} />
-                {classStats ? (
-                  <span>
-                    <span className="font-bold text-text-heading">{classStats.count}</span>{" "}
-                    {classStats.count === 1 ? "peer" : "peers"}
-                    <span aria-hidden="true"> · </span>μ{" "}
-                    <span className="font-bold text-text-heading">{classStats.mean.toFixed(1)}</span>
-                    <span aria-hidden="true"> · </span>σ{" "}
-                    <span className="font-bold text-text-heading">{classStats.sd.toFixed(1)}</span>
-                  </span>
-                ) : (
-                  <span>No class data yet — showing default bands</span>
-                )}
-              </p>
+          {/* Not dimmed while awaiting class data: the curve editor lives in
+              this card and must not read as disabled. The badge says it. */}
+          <div className="rounded-[24px] border border-border-strong dark:border-border card-surface px-4 py-3.5 space-y-2.5">
+            {/* The marks page's in-card stats line: dose · μ · σ above the bar —
+                or the reader's own numbers, when they have set them. Shown on
+                every curve-eligible course, so a course still short of
+                classmates says how short, and offers the manual curve. */}
+            {curveEligible && (
+              <div className="space-y-1.5">
+                <p className="flex items-center gap-2 text-[11px] font-medium text-text-secondary dark:text-text-muted flex-wrap">
+                  <ToneDot
+                    tone={
+                      !prediction.isCurved
+                        ? "zinc"
+                        : classStats?.manual
+                          ? "indigo"
+                          : isEarlyEstimate(classStats)
+                            ? "amber"
+                            : "emerald"
+                    }
+                  />
+                  {prediction.isCurved && classStats ? (
+                    <span>
+                      {classStats.manual ? (
+                        <span className="font-bold text-text-heading">Your numbers</span>
+                      ) : (
+                        <>
+                          <span className="font-bold text-text-heading">{classStats.count}</span>{" "}
+                          {classStats.count === 1 ? "peer" : "peers"}
+                        </>
+                      )}
+                      <span aria-hidden="true"> · </span>μ{" "}
+                      <span className="font-bold text-text-heading">{classStats.mean.toFixed(1)}</span>
+                      <span aria-hidden="true"> · </span>σ{" "}
+                      <span className="font-bold text-text-heading">
+                        {(effectiveClassStats(classStats)?.sd ?? classStats.sd).toFixed(1)}
+                      </span>
+                      {isEarlyEstimate(classStats) ? <span> · early estimate</span> : null}
+                    </span>
+                  ) : syncedClassStats && syncedClassStats.count > 0 ? (
+                    <span>
+                      Only {syncedClassStats.count} {syncedClassStats.count === 1 ? "peer" : "peers"} so far — the
+                      curve needs {MIN_CURVE_SAMPLE}+, showing default bands
+                    </span>
+                  ) : (
+                    <span>No class data yet — showing default bands</span>
+                  )}
+                </p>
+                <ClassCurveEditor
+                  key={classStatsOverride ? `${classStatsOverride.mean}-${classStatsOverride.sd}` : "synced"}
+                  synced={syncedClassStats}
+                  override={classStatsOverride}
+                  onChange={setClassStatsOverride}
+                />
+              </div>
             )}
             <GradeLadderChart
               bands={ladderBands}
