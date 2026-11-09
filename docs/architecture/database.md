@@ -322,7 +322,7 @@ SELECT cron.schedule('cleanup-cache', '0 * * * *', 'SELECT cleanup_expired_cache
 
 ## Migrations
 
-Located in `supabase_setup.sql` and `migrate.sql` at project root.
+Located in `sql/supabase_setup.sql` and `sql/migrate.sql`.
 
 Run migrations:
 ```bash
@@ -330,7 +330,7 @@ Run migrations:
 supabase db push
 
 # Or directly
-psql $DATABASE_URL -f supabase_setup.sql
+psql $DATABASE_URL -f sql/supabase_setup.sql
 ```
 
 ## Backup & Recovery
