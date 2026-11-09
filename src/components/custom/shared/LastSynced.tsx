@@ -13,6 +13,7 @@ import {
   subscribeSyncTimes,
 } from "@/lib/syncTimes";
 import { getOpMeta } from "@/lib/sync-engine/operation-registry";
+import { friendlyErrorMessage } from "@/lib/sync-engine/errors";
 
 const EMPTY = {};
 
@@ -50,7 +51,7 @@ export default function LastSynced({ ops, className = "" }: { ops: readonly stri
     return (
       <p
         className={`mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] font-medium text-rose-600 dark:text-rose-400 ${className}`.trim()}
-        title={failure.message}
+        title={friendlyErrorMessage(failure.message)}
       >
         <AlertCircle className="h-3 w-3 shrink-0" aria-hidden="true" />
         <span>

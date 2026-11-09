@@ -269,7 +269,7 @@ export default function SyncNotification({
   // Ping VTOP directly if all APIs failed to sync (and it's not a rejected password)
   const hasApiFailure =
     (outcome === "error" && !authFailure) ||
-    (logLines.some((l) => /AmazeCC API failed|could not answer|fallback also failed|Failed to fetch/i.test(l)) &&
+    (logLines.some((l) => /AmazeCC API failed|could not answer|fallback also failed|Failed to fetch|couldn't reach AmazeCC/i.test(l)) &&
       !authFailure);
 
   const isPingingRef = useRef(false);

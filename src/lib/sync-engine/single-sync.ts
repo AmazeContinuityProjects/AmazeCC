@@ -9,6 +9,7 @@ import {
 import { cancelAllRequests } from "./request-layer";
 import { pingVtopDirectly } from "../vtopHealth";
 import { setVtopState } from "../vtopStatus";
+import { friendlyErrorWithDetail } from "./errors";
 
 export interface PageSyncStep {
   /** Registered engine op, e.g. `"grades"` or `"bulk"`. */
@@ -72,7 +73,7 @@ export async function runPageSync<T = any>(opts: PageSyncOptions): Promise<T | n
       setSyncProgress(0);
       return null;
     }
-    appendSyncLine(err instanceof Error ? err.message : "Sync failed, check console.", "error");
+    appendSyncLine(friendlyErrorWithDetail(err instanceof Error ? err.message : null), "error");
     setSyncProgress(0);
     closeSyncSession(4000, "error");
     throw err;

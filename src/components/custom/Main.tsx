@@ -65,6 +65,7 @@ import { credentialManager } from "@/lib/sync-engine/credential-manager";
 import { hasStoredVtopCredentials } from "./app/readBootstrapSnapshot";
 import ConnectionBanner from "./shared/ConnectionBanner";
 import { isMacPlatform, NAV_SHORTCUTS } from "@/lib/shortcuts";
+import { friendlyErrorMessage } from "@/lib/sync-engine/errors";
 
 interface MainProps {
   initialIntent?: "login" | "demo";
@@ -311,7 +312,8 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
       // modal can pop up behind the hero that deliberately suppressed it.
       const failure = [...getSyncSessionSnapshot().lines].reverse().find((line) => line.status === "error");
       setLoginError(
-        failure?.text ?? (err instanceof Error && err.message ? err.message : "Sign-in failed. Please try again."),
+        failure?.text ??
+          (err instanceof Error && err.message ? friendlyErrorMessage(err.message) : "Sign-in failed. Please try again."),
       );
       if (isSyncSessionOpen()) dismissSyncSession();
       return false;

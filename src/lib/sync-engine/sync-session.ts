@@ -4,6 +4,7 @@ import { getOpMeta } from "./operation-registry";
 import { classifyAuthFailure } from "./errors";
 import { subscribeUniccLogEvents } from "../unicc-fallback";
 import { cancelAllRequests, resetActiveSignal } from "./request-layer";
+import { friendlyErrorWithDetail } from "./errors";
 
 export type SyncLineStatus = "success" | "error" | "pending" | "info" | "loading";
 
@@ -302,7 +303,7 @@ export function handleEngineProgressEvent(e: ProgressEvent) {
     bumpSyncProgress(meta.delta);
   } else if (e.phase === "error") {
     ensureSyncSession("VTOP Sync");
-    const detail = e.error && "message" in e.error ? ` — ${e.error.message}` : "";
+    const detail = e.error && "message" in e.error ? ` — ${friendlyErrorWithDetail(e.error.message)}` : "";
     appendSyncLine(`${meta.label} failed${detail}`, "error");
   }
 }

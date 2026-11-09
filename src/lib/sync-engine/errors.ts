@@ -173,3 +173,73 @@ export function classifyAuthFailure(msg?: string): AuthFailureKind | null {
 
   return null;
 }
+
+/**
+ * Raw failure text from VTOP, the API or the browser, rewritten as one plain
+ * sentence that says what happened and what to do. Unknown messages come back
+ * unchanged, so nothing is ever hidden.
+ *
+ * Every rewrite keeps the words `classifyAuthFailure` keys on ("password is
+ * wrong", "captcha", "too many"), so the sign-in screen's "change password"
+ * offer behaves exactly as it did with the raw text (see the tests).
+ */
+const FRIENDLY_ERRORS: { test: RegExp; text: string }[] = [
+  {
+    test: /expired|change your password|3 month/i,
+    text: "Your VTOP password has expired. Change it on VTOP, then update it here.",
+  },
+  {
+    test: /invalid (username|user name)\s*\/\s*password|invalid username|invalid password|invalid credential/i,
+    text: "VTOP says your username or password is wrong. Check them, or reset your password on VTOP.",
+  },
+  {
+    test: /invalid captcha|captcha/i,
+    text: "VTOP's captcha check failed. This usually clears up on its own; try again in a minute.",
+  },
+  {
+    test: /too many|rate limit|429/i,
+    text: "Too many sign-in attempts in a short time. Wait a minute, then try again.",
+  },
+  {
+    test: /vtop.*(unreachable|is down)|vtopcc\.vit\.ac\.in.*(down|unreachable)/i,
+    // Keeps "VTOP is down": sync-session and SyncNotification detect outages by it.
+    text: "VTOP is down or not responding right now. This is on VIT's side; your saved data is still shown.",
+  },
+  {
+    test: /timed? ?out|deadline|exceeded \d+ ?ms|took too long/i,
+    text: "VTOP took too long to answer. It is probably busy; try again in a few minutes.",
+  },
+  {
+    test: /failed to fetch|networkerror|network request failed|load failed/i,
+    // SyncNotification matches "couldn't reach AmazeCC" to tell gateway trouble from a VTOP outage.
+    text: "Couldn't reach AmazeCC's servers. Check your internet connection and try again.",
+  },
+  {
+    test: /not logged in|add your vtop credentials/i,
+    text: "You're not logged in to VTOP yet. Sign in to load this.",
+  },
+  {
+    test: /internal server error|\b50[0234]\b/i,
+    text: "AmazeCC's server hit an error. Try again in a moment; if it keeps happening, report it from Settings.",
+  },
+];
+
+export function friendlyErrorMessage(raw: string | null | undefined): string {
+  const msg = (raw ?? "").trim();
+  if (!msg) return "Something went wrong. Please try again.";
+  for (const { test, text } of FRIENDLY_ERRORS) if (test.test(msg)) return text;
+  return msg;
+}
+
+/**
+ * Friendly text plus the raw message in brackets, for logs people also use to
+ * report bugs ("... try again in a moment. (HTTP 500)"). Raw text is shown
+ * once, and trimmed so a stack trace cannot flood the sheet.
+ */
+export function friendlyErrorWithDetail(raw: string | null | undefined): string {
+  const friendly = friendlyErrorMessage(raw);
+  const detail = (raw ?? "").trim();
+  if (!detail || friendly === detail) return friendly;
+  const short = detail.length > 80 ? `${detail.slice(0, 77)}...` : detail;
+  return `${friendly} (${short})`;
+}
