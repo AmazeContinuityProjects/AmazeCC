@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Trash2,
   AlertTriangle,
@@ -632,25 +633,20 @@ export default function FFCSTimetableTab({
   const [friends, setFriends] = useState<Friend[]>([]);
   const [friendGroups, setFriendGroups] = useState<FriendGroup[]>([]);
   const [socialScoreGroupMethod, setSocialScoreGroupMethod] = useState<"intersection" | "cumulative">("intersection");
+  const router = useRouter();
   // The friends manager is a full-page subpage now (see FFCSFriendsSubpage);
   // everything it needs beyond these two arrays lives inside it.
   const [isFriendsManagerOpen, setIsFriendsManagerOpen] = useState(false);
-  // "classmates" when opened from the header's Find classmates button, so it
-  // lands on the friend finder instead of the Friends menu.
-  const [friendsStartSection, setFriendsStartSection] = useState<"hub" | "classmates">("hub");
-  // `/ffcs/?open=classmates` lands straight on the friend finder: it is where
-  // "Sign in" returns to, and a link students can pass around. Dropped from
-  // the address bar after use so a refresh behaves normally.
+  // Legacy `/ffcs/?open=classmates` redirect: friend finder moved to home tab.
   useEffect(() => {
     try {
       const url = new URL(window.location.href);
       if (url.searchParams.get("open") !== "classmates") return;
       url.searchParams.delete("open");
       window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
-      setFriendsStartSection("classmates");
-      setIsFriendsManagerOpen(true);
+      router.replace("/?open=friend-finder");
     } catch {}
-  }, []);
+  }, [router]);
   const [socialTargetId, setSocialTargetId] = useState<string>("");
   const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
   const [selectedDashDetails, setSelectedDashDetails] = useState<
@@ -2118,9 +2114,7 @@ export default function FFCSTimetableTab({
       <FFCSFriendsSubpage
         onClose={() => {
           setIsFriendsManagerOpen(false);
-          setFriendsStartSection("hub");
         }}
-        initialSection={friendsStartSection}
         friends={friends}
         setFriends={setFriends}
         friendGroups={friendGroups}
@@ -2318,28 +2312,6 @@ export default function FFCSTimetableTab({
                 </IconButton>
               </div>
             </div>
-
-            {/* Always visible, in every layout: the friend finder is the planner's
-              most-asked-for social feature, so it is not left behind a widget toggle. */}
-            <button
-              type="button"
-              onClick={() => {
-                setFriendsStartSection("classmates");
-                setIsFriendsManagerOpen(true);
-              }}
-              className="w-full flex items-center gap-3 rounded-2xl border border-amber-500/25 bg-amber-500/10 hover:bg-amber-500/15 px-4 py-3 text-left transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
-            >
-              <span className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 bg-amber-500/15 text-amber-600 dark:text-amber-400">
-                <Users className="w-5 h-5" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-bold text-text-heading">Find classmates</span>
-                <span className="block text-xs text-muted-foreground">
-                  See who picked the same faculty and slots as you
-                </span>
-              </span>
-              <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-            </button>
 
             {/* Secondary controls (Classic & Guided). Row 1: which course list,
               and whether it loaded — the list switch scrolls sideways on a phone

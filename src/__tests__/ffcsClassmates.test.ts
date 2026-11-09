@@ -10,79 +10,14 @@ vi.mock("@/lib/sync-engine/credential-manager", () => ({
 }));
 
 import { AuthError } from "../lib/sync-engine/errors";
-
-import { callClassmates, classmatesSemester, ClassmatesError, displayName, planClassIds } from "../lib/ffcsClassmates";
-import type { AddedCourse, ParsedCourse } from "../lib/ffcsTypes";
-
-const report: ParsedCourse[] = [
-  {
-    CODE: "BAMAT101",
-    TITLE: "Calculus",
-    TYPE: "TH",
-    CREDITS: "4",
-    ROOM: "AB2-101",
-    SLOT: "A1+TA1",
-    FACULTY: "RAMAN K",
-    CLASS_ID: "CH2026270500100",
-  },
-  {
-    CODE: "BAMAT101",
-    TITLE: "Calculus",
-    TYPE: "TH",
-    CREDITS: "4",
-    ROOM: "AB2-102",
-    SLOT: "B1+TB1",
-    FACULTY: "PRIYA S",
-    CLASS_ID: "CH2026270500101",
-  },
-  {
-    CODE: "BAPHY105",
-    TITLE: "Physics",
-    TYPE: "TH",
-    CREDITS: "3",
-    ROOM: "AB1-201",
-    SLOT: "C1+TC1",
-    FACULTY: "KUMAR K",
-    CLASS_ID: "CH2026270500200",
-  },
-];
-
-const course = (code: string, slots: string[], faculty: string): AddedCourse => ({
-  id: code,
-  code,
-  title: code,
-  slots,
-  faculty,
-  venue: "",
-  credits: "3",
-  type: "TH",
-  color: "blue",
-});
+import { callClassmates, classmatesSemester, ClassmatesError, displayName } from "../lib/ffcsClassmates";
 
 describe("classmatesSemester", () => {
-  it("only maps the final lists", () => {
+  it("only maps the upcoming winter list (CH20262705)", () => {
     expect(classmatesSemester("winter-2026-2027")).toBe("CH20262705");
-    expect(classmatesSemester("fall-2026-2027")).toBe("CH20262701");
+    expect(classmatesSemester("fall-2026-2027")).toBeNull();
     expect(classmatesSemester("winter-2026-2027-mock")).toBeNull();
     expect(classmatesSemester("codechef-vit")).toBeNull();
-  });
-});
-
-describe("planClassIds", () => {
-  it("resolves each course to its report section and reports the ones it cannot", () => {
-    const { classIds, unresolved } = planClassIds(
-      {
-        name: "Plan A",
-        courses: [
-          course("BAMAT101", ["B1", "TB1"], "PRIYA S"),
-          course("BAPHY105", ["C1", "TC1"], "KUMAR K"),
-          course("BAXXX999", ["D1"], "NOBODY"),
-        ],
-      },
-      report,
-    );
-    expect(classIds).toEqual(["CH2026270500101", "CH2026270500200"]);
-    expect(unresolved).toEqual(["BAXXX999"]);
   });
 });
 
@@ -133,7 +68,7 @@ describe("callClassmates", () => {
     }
   });
 
-  it("sends one authenticated request with the semester and op", async () => {
+  it("sends registered-only authenticated publish requests", async () => {
     apiMock.mockResolvedValueOnce({
       success: true,
       semesterId: "CH20262705",
@@ -143,7 +78,7 @@ describe("callClassmates", () => {
         name: "A",
         joined: true,
         discoverable: true,
-        source: "planned",
+        source: "registered",
         classIds: [],
         updatedAt: null,
         changesLeft: 9,
@@ -153,15 +88,55 @@ describe("callClassmates", () => {
     });
     const state = await callClassmates("CH20262705", {
       op: "publish",
-      source: "planned",
-      classIds: ["CH2026270500100"],
+      source: "registered",
     });
     expect(state.participants).toBe(3);
     expect(apiMock).toHaveBeenCalledWith("social/ffcs-match", {
       method: "POST",
       auth: "vtop",
-      body: { op: "publish", source: "planned", classIds: ["CH2026270500100"], semesterId: "CH20262705" },
+      body: { op: "publish", source: "registered", semesterId: "CH20262705" },
     });
+  });
+
+  it("translates planned_sharing_disabled error code", async () => {
+    apiMock.mockResolvedValueOnce({ success: false, error: "planned_sharing_disabled" });
+    const err = await callClassmates("CH20262705", { op: "get" }).catch((e) => e);
+    expect(err).toBeInstanceOf(ClassmatesError);
+    expect(err.code).toBe("planned_sharing_disabled");
+    expect(err.message).toBe("Only VTOP-verified timetables can be shared.");
+  });
+
+  it("parses regNo in overlaps when returned by server", async () => {
+    apiMock.mockResolvedValueOnce({
+      success: true,
+      semesterId: "CH20262705",
+      participants: 2,
+      me: {
+        handle: "AMZ-1",
+        name: "User",
+        joined: true,
+        discoverable: true,
+        source: "registered",
+        classIds: [],
+        updatedAt: null,
+        changesLeft: 10,
+      },
+      sections: [],
+      overlaps: [
+        {
+          handle: "AMZ-2",
+          name: "Friend",
+          source: "registered",
+          shared: 2,
+          sharedClassIds: ["C1", "C2"],
+          identical: false,
+          updatedAt: "2026-11-09",
+          regNo: "22BCE1000",
+        },
+      ],
+    });
+    const state = await callClassmates("CH20262705", { op: "get" });
+    expect(state.overlaps[0].regNo).toBe("22BCE1000");
   });
 
   it("turns server error codes into readable errors", async () => {

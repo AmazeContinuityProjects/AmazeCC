@@ -150,17 +150,13 @@ export default function TimetableShareCard({
             />
             <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
           </Link>
-          <Link href={`${FFCS_PLANNER_PATH}?open=classmates`} className={LIST_ROW}>
+          <Link href="/?open=friend-finder" className={LIST_ROW}>
             <span
               className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.amber}`}
             >
               <UsersRound className="w-4 h-4" />
             </span>
-            <ListRowText
-              title="Find classmates"
-              subtitle="See who picked the same faculty and slots as you"
-              titleTag="span"
-            />
+            <ListRowText title="Find classmates" subtitle="See who shares your classes" titleTag="span" />
             <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
           </Link>
         </div>

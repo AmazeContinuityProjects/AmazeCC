@@ -17,13 +17,16 @@ import { apiRequest } from "@/lib/sync-engine/request-layer";
 // to `auth: "vtop"` requests. Without it every call left with no session.
 import { credentialManager } from "@/lib/sync-engine/credential-manager";
 import { AuthError } from "@/lib/sync-engine/errors";
-import { attachReportClassIds } from "@/lib/ffcsShare";
 import type { FFCSSemesterId } from "@/lib/ffcsReports";
-import type { ParsedCourse, TimetableState } from "@/lib/ffcsTypes";
 
 export type ClassmateSource = "planned" | "registered";
 
-export type ClassmatePerson = { handle: string; name: string; source: ClassmateSource };
+export type ClassmatePerson = {
+  handle: string;
+  name: string;
+  source: ClassmateSource;
+  regNo?: string;
+};
 
 export type ClassmateOffering = {
   classId: string;
@@ -39,6 +42,7 @@ export type ClassmateOffering = {
 export type ClassmateSection = {
   classId: string;
   offering: ClassmateOffering | null;
+  registerNos?: string[];
   people: ClassmatePerson[];
 };
 
@@ -47,6 +51,7 @@ export type ClassmateOverlap = ClassmatePerson & {
   sharedClassIds: string[];
   identical: boolean;
   updatedAt: string;
+  regNo?: string;
 };
 
 export type ClassmatesState = {
@@ -68,7 +73,6 @@ export type ClassmatesState = {
 
 export type ClassmatesRequest =
   | { op: "get" }
-  | { op: "publish"; source: "planned"; classIds: string[]; discoverable?: boolean }
   | { op: "publish"; source: "registered"; discoverable?: boolean }
   | { op: "visibility"; discoverable: boolean }
   | { op: "leave" };
@@ -92,6 +96,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   slot_clash: "This timetable has a slot clash. Fix it and try again.",
   change_limit: "You've changed your classes too many times today. Try again tomorrow.",
   no_registered_classes: "VTOP shows no registered classes for this semester yet.",
+  planned_sharing_disabled: "Only VTOP-verified timetables can be shared.",
   not_joined: "Share your classes first.",
 };
 
@@ -132,38 +137,25 @@ export async function ensureClassmatesSession(forceNew = false): Promise<void> {
 }
 
 /**
- * The VTOP semester the finder runs against, for a planner report. Only the
- * two final lists qualify: the winter mock list shares the final list's class
- * id prefix, but its ids are not in the final report, so the server would
- * refuse them.
+ * The VTOP semester the finder runs against. Only the upcoming next semester
+ * qualifies (CH20262705): current/previous semesters are disabled for sharing.
  */
 export function classmatesSemester(semesterId: FFCSSemesterId): string | null {
   if (semesterId === "winter-2026-2027") return "CH20262705";
-  if (semesterId === "fall-2026-2027") return "CH20262701";
   return null;
 }
 
-/**
- * The class ids of a planner timetable, resolved against the loaded report the
- * same way share links are. Courses that cannot be pinned to exactly one
- * section are returned separately so the UI can say which ones will not be
- * shared, instead of quietly dropping them.
- */
-export function planClassIds(
-  timetable: Pick<TimetableState, "name" | "courses">,
-  reportCourses: readonly ParsedCourse[],
-): { classIds: string[]; unresolved: string[] } {
-  const resolved = attachReportClassIds(timetable, reportCourses);
-  const classIds = new Set<string>();
-  const unresolved: string[] = [];
-  for (const course of resolved.courses) {
-    const ids = (course.classIds?.length ? course.classIds : course.classId ? [course.classId] : [])
-      .map((id) => id.trim().toUpperCase())
-      .filter(Boolean);
-    if (ids.length) ids.forEach((id) => classIds.add(id));
-    else unresolved.push(course.code);
+/** Event broadcast on sync success so an open friend finder tab can refresh. */
+export const FRIEND_FINDER_REFRESH_EVENT = "amaze_friend_finder_refresh";
+
+/** Dispatches the refresh event to listeners in an open friend finder tab. */
+export function broadcastFriendFinderRefresh(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.dispatchEvent(new CustomEvent(FRIEND_FINDER_REFRESH_EVENT));
+  } catch {
+    // SSR or unsupported environment guard
   }
-  return { classIds: [...classIds].sort(), unresolved };
 }
 
 /** VTOP names arrive in capitals: "MOHAMMED ANAS" → "Mohammed Anas". */

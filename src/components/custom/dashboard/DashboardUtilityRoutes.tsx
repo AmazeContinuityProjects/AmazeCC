@@ -26,10 +26,12 @@ const ClubHubTab = dynamic(() => import("../clubs/ClubHubTab"), { loading: Featu
 const CommunityFeed = dynamic(() => import("../clubs/CommunityFeed"), { loading: FeatureLoading });
 const FreeClassroomsTab = dynamic(() => import("../exams/FreeClassroomsTab"), { loading: FeatureLoading });
 const FacultyScheduleTab = dynamic(() => import("../exams/FacultyScheduleTab"), { loading: FeatureLoading });
+const FriendFinderTab = dynamic(() => import("../friendfinder/FriendFinderTab"), { loading: FeatureLoading });
 const PaperScannerPage = dynamic(() => import("../tools/scanner/PaperScannerPage"), { loading: FeatureLoading });
 const MoreTab = dynamic(() => import("../more/MoreTab"), { loading: FeatureLoading });
 const AboutTab = dynamic(() => import("../AboutTab"), { loading: FeatureLoading });
 const FeedbackReportPage = dynamic(() => import("../feedback/FeedbackReportPage"), { loading: FeatureLoading });
+const StudentReportPage = dynamic(() => import("../reports/StudentReportPage"), { loading: FeatureLoading });
 
 interface DashboardUtilityRoutesProps {
   onSystemBack: () => void;
@@ -130,9 +132,19 @@ export default function DashboardUtilityRoutes({
           <FacultyScheduleTab onBack={onSystemBack} handleReloadRequest={handleReloadRequest} />
         </div>
       </DashboardRoute>
+      <DashboardRoute route="friend-finder">
+        <div className="animate-fadeIn">
+          <FriendFinderTab onBack={onSystemBack} />
+        </div>
+      </DashboardRoute>
       <DashboardRoute route="paper-scanner">
         <div className="animate-fadeIn">
           <PaperScannerPage onBack={onSystemBack} />
+        </div>
+      </DashboardRoute>
+      <DashboardRoute route="student-report">
+        <div className="animate-fadeIn">
+          <StudentReportPage />
         </div>
       </DashboardRoute>
       <DashboardRoute route="more">

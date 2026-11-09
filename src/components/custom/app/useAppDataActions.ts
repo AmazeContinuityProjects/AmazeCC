@@ -20,6 +20,7 @@ import {
 } from "@/lib/sync-engine/sync-session";
 import type { Ids } from "@/lib/sync-engine/types";
 import { broadcastGlobalSemesterChange, mapToFinalSemesterId } from "@/lib/ffcsReports";
+import { broadcastFriendFinderRefresh } from "@/lib/ffcsClassmates";
 
 interface AppDataActionOptions {
   IDs: any;
@@ -450,6 +451,8 @@ export function useAppDataActions({
             setSyncProgress(100);
             setIsLoggedIn(true);
             setIsReloading(false);
+            // Quick-sync friend finder refresh (decision D5)
+            broadcastFriendFinderRefresh();
             closeSyncSession();
           } catch (err) {
             console.error(err);
@@ -493,6 +496,8 @@ export function useAppDataActions({
             } else {
               appendSyncLine(`${mode.label} complete`, "success");
             }
+            // Quick-sync friend finder refresh (decision D5)
+            broadcastFriendFinderRefresh();
             closeSyncSession();
           } catch (err) {
             console.error(err);
@@ -646,6 +651,8 @@ export function useAppDataActions({
         appendSyncLine("Primary data ready", "success");
         setIsLoggedIn(true);
         setIsReloading(false);
+        // Quick-sync friend finder refresh (decision D5)
+        broadcastFriendFinderRefresh();
 
         appendSyncLine("Starting background sync…", "info");
         const runBackgroundSync = async () => {

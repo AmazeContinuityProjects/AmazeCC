@@ -46,6 +46,7 @@ import {
   UserCheck,
   DoorOpen,
   Users,
+  UsersRound,
   UserSearch,
   ScanLine,
   type LucideIcon,
@@ -346,6 +347,7 @@ export default function NavigationTabs({
       "free-class": { icon: <DoorOpen className="h-5 w-5 stroke-[2]" />, label: "Free Classrooms" },
       "paper-scanner": { icon: <ScanLine className="h-5 w-5 stroke-[2]" />, label: "Paper Scanner" },
       "faculty-schedule": { icon: <UserSearch className="h-5 w-5 stroke-[2]" />, label: "Faculty Schedule" },
+      "friend-finder": { icon: <UsersRound className="h-5 w-5 stroke-[2]" />, label: "Find Classmates" },
       cabshare: { icon: <CarTaxiFront className="h-5 w-5 stroke-[2]" />, label: "Cab Share" },
       transport: { icon: <Bus className="h-5 w-5 stroke-[2]" />, label: "Transport" },
       more: { icon: <MoreHorizontal className="h-5 w-5 stroke-[2]" />, label: "More" },
@@ -570,6 +572,13 @@ export default function NavigationTabs({
         isActive: activeTab === "faculty-schedule",
         onSelect: () => selectTab("faculty-schedule"),
       },
+      {
+        id: "friend-finder",
+        label: "Find Classmates",
+        icon: UsersRound,
+        isActive: activeTab === "friend-finder",
+        onSelect: () => selectTab("friend-finder"),
+      },
     ];
 
     if (isHosteller === true || residentialStatus === "hosteller") {
@@ -616,6 +625,13 @@ export default function NavigationTabs({
         icon: ScanLine,
         isActive: activeTab === "paper-scanner",
         onSelect: () => selectTab("paper-scanner"),
+      },
+      {
+        id: "student-report",
+        label: "Student Report",
+        icon: GraduationCap,
+        isActive: activeTab === "student-report",
+        onSelect: () => selectTab("student-report"),
       },
       {
         id: "tools",
@@ -752,6 +768,14 @@ export default function NavigationTabs({
         isActive: activeTab === "faculty-schedule",
         onSelect: () => {
           selectTab("faculty-schedule");
+        },
+      },
+      "friend-finder": {
+        label: "Find Classmates",
+        icon: UsersRound,
+        isActive: activeTab === "friend-finder",
+        onSelect: () => {
+          selectTab("friend-finder");
         },
       },
       "paper-scanner": {
@@ -1466,6 +1490,7 @@ export default function NavigationTabs({
                           "community",
                           "free-class",
                           "faculty-schedule",
+                          "friend-finder",
                           "hostel",
                           "transport",
                         ].includes(activeTab)
