@@ -43,10 +43,12 @@ import {
   Check,
   Edit3,
   Copy,
+  KeyRound,
 } from "lucide-react";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Button, cn } from "@amazecontinuityprojects/amazeui";
 import { useOverlayBack } from "@/lib/overlayStack";
+import { useForgetCredentialsAction } from "../app/useForgetCredentialsAction";
 import {
   EmptyPanel,
   GhostButton,
@@ -265,6 +267,7 @@ export default function ProfilePage({
   mode = "settings",
   onOpenShortcutsHelp,
 }: any) {
+  const handleForgetCredentials = useForgetCredentialsAction();
   const isMobile = useIsMobile();
   // One navigation state for both breakpoints. `null` is the category hub;
   // anything else is that section's page. `mode` is the profile screen's
@@ -1405,8 +1408,34 @@ export default function ProfilePage({
       <div className="space-y-3">
         <SectionHeader icon={LogOut} title="Sign out & end session" />
         <p className="px-1 -mt-1 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
-          Clear your active session and cookies on this device. Your saved logins above stay put.
+          Two ways to sign out of this device. Both remove your saved logins.
         </p>
+        <div className={TILE_CARD}>
+          <div className="flex items-center gap-3">
+            <span
+              className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.amber}`}
+            >
+              <KeyRound className="w-5 h-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold text-text-heading font-outfit tracking-tight">Forget my logins</p>
+              <p className="text-[11px] text-text-secondary dark:text-text-muted font-medium mt-0.5">
+                Removes your VTOP, Moodle, library and VITOL logins from this device. Your tasks, FFCS plans,
+                friends and settings stay here for next time.
+              </p>
+            </div>
+          </div>
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={handleForgetCredentials}
+              className="inline-flex items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2.5 text-sm font-black text-amber-700 dark:text-amber-300 transition-colors hover:bg-amber-500/20 cursor-pointer"
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+              Forget logins and sign out
+            </button>
+          </div>
+        </div>
         <div className={TILE_CARD}>
           <div className="flex items-center gap-3">
             <span
@@ -1415,9 +1444,10 @@ export default function ProfilePage({
               <LogOut className="w-5 h-5" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold text-text-heading font-outfit tracking-tight">End this session</p>
+              <p className="text-sm font-bold text-text-heading font-outfit tracking-tight">Sign out and clear everything</p>
               <p className="text-[11px] text-text-secondary dark:text-text-muted font-medium mt-0.5">
-                You can sign back in anytime with the stored logins above.
+                Removes your logins and everything AmazeCC has stored on this device, including tasks and FFCS
+                plans. Only your theme is kept.
               </p>
             </div>
           </div>
@@ -1428,7 +1458,7 @@ export default function ProfilePage({
               className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-black text-white transition-colors hover:bg-red-700 cursor-pointer"
             >
               <LogOut className="w-3.5 h-3.5" />
-              Log out now
+              Sign out and clear
             </button>
           </div>
         </div>
@@ -2452,7 +2482,7 @@ export default function ProfilePage({
             <div className="min-w-0">
               <span className="font-bold text-xs text-red-600 block">Sign Out</span>
               <span className="text-[11px] text-red-500/80 block truncate mt-0.5">
-                Safely disconnect and clear active session tokens
+                Removes your logins and all data stored on this device
               </span>
             </div>
           </div>
