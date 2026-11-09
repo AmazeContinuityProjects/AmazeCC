@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Download, RotateCw, ShieldCheck, FileText, FileJson2, Code2, FileArchive } from "lucide-react";
+import { Download, RotateCw, ShieldCheck, FileText, FileJson2, Code2, FileArchive, ChevronRight } from "lucide-react";
 import PageShell from "@/components/custom/shared/primitives/PageShell";
 import { ListShell, SectionHeader } from "@/components/custom/shared/primitives/Surfaces";
 import SettingRow from "@/components/custom/shared/primitives/SettingRow";
@@ -131,6 +131,29 @@ function normalizedPhoto(value: unknown): string {
     .replace(/^null;base64,/i, "")
     .replace(/^base64,/i, "");
   return `data:${encoded.startsWith("/9j/") ? "image/jpeg" : "image/png"};base64,${encoded}`;
+}
+
+async function embedReportImages(root: HTMLElement): Promise<void> {
+  await Promise.all(
+    Array.from(root.querySelectorAll<HTMLImageElement>("img[src]")).map(async (image) => {
+      const src = image.getAttribute("src") || "";
+      if (!src || src.startsWith("data:")) return;
+      try {
+        const response = await fetch(new URL(src, window.location.href).toString());
+        if (!response.ok) return;
+        const blob = await response.blob();
+        const bytes = new Uint8Array(await blob.arrayBuffer());
+        let binary = "";
+        const chunkSize = 0x8000;
+        for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+          binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+        }
+        image.src = `data:${blob.type || "image/png"};base64,${btoa(binary)}`;
+      } catch {
+        // Keep the source URL if a remote image host blocks fetching.
+      }
+    }),
+  );
 }
 
 function academicCalendar(calendar: any): Array<{ key: string; label: string; events: any[] }> {
@@ -476,7 +499,7 @@ export default function StudentReportPage() {
   const [facultyProfiles, setFacultyProfiles] = useState<
     Record<string, { review: any; profile: FacultyDirectoryProfile | null; bundle: VitfacProfileBundle | null }>
   >({});
-  const [mode, setMode] = useState<"color" | "greyscale">("greyscale");
+  const [mode, setMode] = useState<"color" | "greyscale">("color");
   const segmentOptions = [
     ["overview", "Academic performance overview", "Summary, comparisons, and academic calendar"],
     ["curriculum", "Curriculum and credit progress", "Course baskets and degree requirements"],
@@ -678,8 +701,12 @@ export default function StudentReportPage() {
     }
   };
   const downloadHtml = () => {
+    void createHtmlDownload();
+  };
+  const createHtmlDownload = async () => {
     const markup = reportMarkup();
     if (!markup) return;
+    await embedReportImages(markup.article);
     const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AmazeCC Student Academic Report</title><style>${markup.styles}.mb-4{margin-bottom:1rem}.mb-3{margin-bottom:.75rem}.mb-1{margin-bottom:.25rem}.font-bold{font-weight:700}.text-xs{font-size:12px}.text-center{text-align:center}.whitespace-pre-wrap{white-space:pre-wrap}.break-words{overflow-wrap:anywhere}.grid{display:grid}.place-items-center{place-items:center}</style></head><body><main id="student-report" class="student-report ${mode}">${markup.article.outerHTML}</main></body></html>`;
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -766,45 +793,57 @@ export default function StudentReportPage() {
       >
         <section className="space-y-3">
           <SectionHeader icon={Download} title="Download report" />
-          <ListShell className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border-muted">
-            <button
-              type="button"
-              onClick={downloadPdf}
-              disabled={isDownloading || !snapshot}
-              className="flex min-h-28 flex-col items-start justify-between gap-3 p-4 text-left transition-colors hover:bg-surface-secondary/70 disabled:opacity-50"
-            >
-              <span className="flex items-center gap-2 font-bold text-text-heading">
-                <FileText className="h-4 w-4 text-indigo-500" />
-                PDF
-              </span>
-              <span className="text-xs text-text-secondary">
-                {isDownloading ? "Preparing PDF…" : "Print-ready academic report"}
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={downloadJson}
-              disabled={!snapshot}
-              className="flex min-h-28 flex-col items-start justify-between gap-3 p-4 text-left transition-colors hover:bg-surface-secondary/70 disabled:opacity-50"
-            >
-              <span className="flex items-center gap-2 font-bold text-text-heading">
-                <FileJson2 className="h-4 w-4 text-indigo-500" />
-                JSON
-              </span>
-              <span className="text-xs text-text-secondary">Structured data for custom report design</span>
-            </button>
-            <button
-              type="button"
-              onClick={downloadHtml}
-              disabled={!snapshot}
-              className="flex min-h-28 flex-col items-start justify-between gap-3 p-4 text-left transition-colors hover:bg-surface-secondary/70 disabled:opacity-50"
-            >
-              <span className="flex items-center gap-2 font-bold text-text-heading">
-                <Code2 className="h-4 w-4 text-indigo-500" />
-                HTML
-              </span>
-              <span className="text-xs text-text-secondary">Download the formatted report shown in the export</span>
-            </button>
+          <ListShell className="divide-y divide-border-muted">
+            {[
+              {
+                key: "pdf",
+                title: "Download as PDF",
+                description: isDownloading ? "Preparing your report…" : "Print ready, with color or greyscale styling",
+                icon: FileText,
+                action: downloadPdf,
+                disabled: isDownloading || !snapshot,
+                tint: "bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/30 dark:text-rose-300 dark:border-rose-900",
+              },
+              {
+                key: "json",
+                title: "Download as JSON",
+                description: "Structured report data for your own designs",
+                icon: FileJson2,
+                action: downloadJson,
+                disabled: !snapshot,
+                tint: "bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-900",
+              },
+              {
+                key: "html",
+                title: "Download as HTML",
+                description: "Formatted report with images embedded for offline viewing",
+                icon: Code2,
+                action: downloadHtml,
+                disabled: !snapshot,
+                tint: "bg-indigo-50 text-indigo-600 border-indigo-200 dark:bg-indigo-950/30 dark:text-indigo-300 dark:border-indigo-900",
+              },
+            ].map(({ key, title, description, icon: Icon, action, disabled, tint }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={action}
+                disabled={disabled}
+                className="group flex w-full items-center gap-3.5 p-3.5 text-left transition-colors hover:bg-surface-secondary/70 disabled:cursor-not-allowed disabled:opacity-50 sm:p-4"
+              >
+                <span
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-transform group-hover:scale-105 ${tint}`}
+                >
+                  <Icon className="h-5 w-5" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-bold text-text-heading group-hover:text-indigo-600">
+                    {title}
+                  </span>
+                  <span className="mt-0.5 block text-xs text-text-secondary">{description}</span>
+                </span>
+                <ChevronRight className="h-4 w-4 shrink-0 text-zinc-400 transition-transform group-hover:translate-x-0.5 group-hover:text-indigo-500" />
+              </button>
+            ))}
           </ListShell>
         </section>
 
