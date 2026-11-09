@@ -21,7 +21,12 @@ import type { FFCSSemesterId } from "@/lib/ffcsReports";
 
 export type ClassmateSource = "planned" | "registered";
 
-export type ClassmatePerson = { handle: string; name: string; source: ClassmateSource };
+export type ClassmatePerson = {
+  handle: string;
+  name: string;
+  source: ClassmateSource;
+  regNo?: string;
+};
 
 export type ClassmateOffering = {
   classId: string;
@@ -37,6 +42,7 @@ export type ClassmateOffering = {
 export type ClassmateSection = {
   classId: string;
   offering: ClassmateOffering | null;
+  registerNos?: string[];
   people: ClassmatePerson[];
 };
 

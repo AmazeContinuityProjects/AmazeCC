@@ -120,7 +120,10 @@ function PersonChip({ person }: { person: ClassmatePerson }) {
   return (
     <span className="inline-flex items-center gap-1.5 rounded-2xl border border-border-strong dark:border-border bg-surface pl-1 pr-2.5 py-1 text-xs font-semibold text-text-heading max-w-full">
       <Avatar person={person} size="sm" />
-      <span className="truncate">{displayName(person.name) || person.handle}</span>
+      <span className="truncate">
+        {displayName(person.name) || person.handle}
+        {person.regNo ? ` (${person.regNo})` : ""}
+      </span>
       {person.source === "registered" ? <VerifiedTick className="w-3.5 h-3.5" /> : null}
     </span>
   );
@@ -630,10 +633,17 @@ export default function FriendFinderTab({ onBack, semesterId }: FriendFinderTabP
                   >
                     <Avatar person={p} />
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold text-text-heading flex items-center gap-1.5">
-                        <span className="truncate">{displayName(p.name) || p.handle}</span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-sm font-bold text-text-heading truncate">
+                          {displayName(p.name) || p.handle}
+                        </span>
+                        {p.regNo && (
+                          <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 shrink-0">
+                            {p.regNo}
+                          </span>
+                        )}
                         {p.source === "registered" ? <VerifiedTick /> : null}
-                      </p>
+                      </div>
                       <p className="text-xs text-muted-foreground truncate">{p.handle}</p>
                     </div>
                     {p.source === "registered" && (
