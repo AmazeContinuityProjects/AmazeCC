@@ -1,4 +1,11 @@
 import posthog from "posthog-js";
+import { installCredentialVault } from "@/lib/credentialVault";
+
+// Decrypt stored credentials as early as possible, before React hydrates.
+// See src/lib/credentialVault.ts.
+if (typeof window !== "undefined") {
+  void installCredentialVault();
+}
 
 const posthogProjectToken =
   process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN || "phc_obkUKCrFiFpJGfqSbx9LsJzmZDNdzdHhvpSFDhxSwGUt";
