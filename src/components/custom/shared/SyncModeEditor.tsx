@@ -1,7 +1,17 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, Copy, Pencil, Play, Plus, Star, Trash2, X } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  Copy,
+  Pencil,
+  Play,
+  Plus,
+  Star,
+  Trash2,
+  X,
+} from "lucide-react";
 import BottomSheet from "./BottomSheet";
 import { Switch } from "./primitives";
 import { FIELD_INPUT } from "@/lib/uiTokens";
@@ -28,6 +38,7 @@ const CATEGORY_LABEL: Record<SyncOpCategory, string> = {
   stay: "Stay & Transport",
   campus: "Campus Life",
   profile: "Profile & Records",
+  social: "Social",
 };
 
 const COST_CHIP: Record<string, string> = {
@@ -74,7 +85,12 @@ export interface SyncModeEditorContentProps {
  * The full editor UI without any overlay chrome, so the settings page can
  * render it inline while the sheet wrapper stays for modal use.
  */
-export function SyncModeEditorContent({ onChanged, onRun, defaultId, onSetDefault }: SyncModeEditorContentProps) {
+export function SyncModeEditorContent({
+  onChanged,
+  onRun,
+  defaultId,
+  onSetDefault,
+}: SyncModeEditorContentProps) {
   const [customs, setCustoms] = useState<SyncMode[]>(() => loadCustomModes());
   const [draft, setDraft] = useState<Draft | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -129,15 +145,7 @@ export function SyncModeEditorContent({ onChanged, onRun, defaultId, onSetDefaul
 
   const startCreate = () => {
     setError(null);
-    setDraft({
-      id: null,
-      label: "",
-      description: "",
-      steps: [{ op: "attendanceMarks" }],
-      bulkSel: [],
-      bulkBg: true,
-      bulkPos: -1,
-    });
+    setDraft({ id: null, label: "", description: "", steps: [{ op: "attendanceMarks" }], bulkSel: [], bulkBg: true, bulkPos: -1 });
   };
 
   const startEdit = (m: SyncMode) => {
@@ -240,11 +248,7 @@ export function SyncModeEditorContent({ onChanged, onRun, defaultId, onSetDefaul
   // Combined order list: op steps with the bulk pseudo-row at its position.
   const ordered: Array<{ key: string; kind: "op" | "bulk"; step?: SyncModeStep }> = (() => {
     if (!draft) return [];
-    const rows: Array<{ key: string; kind: "op" | "bulk"; step?: SyncModeStep }> = draft.steps.map((s, i) => ({
-      key: `${s.op}-${i}`,
-      kind: "op",
-      step: s,
-    }));
+    const rows: Array<{ key: string; kind: "op" | "bulk"; step?: SyncModeStep }> = draft.steps.map((s, i) => ({ key: `${s.op}-${i}`, kind: "op", step: s }));
     if (draft.bulkSel.length > 0) {
       const at = draft.bulkPos >= 0 ? Math.min(draft.bulkPos, rows.length) : rows.length;
       rows.splice(at, 0, { key: "__bulk", kind: "bulk" as const });
@@ -460,16 +464,7 @@ export function SyncModeEditorContent({ onChanged, onRun, defaultId, onSetDefaul
             <div>
               <p className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-gray-500 mb-1">
                 Order & background ({ordered.length} steps ·{" "}
-                {
-                  estimateModeCost({
-                    id: "",
-                    label: "",
-                    description: "",
-                    builtIn: false,
-                    steps: collapseBulkSteps(draft.steps, draft.bulkSel, draft.bulkPos),
-                  }).label
-                }
-                )
+                {estimateModeCost({ id: "", label: "", description: "", builtIn: false, steps: collapseBulkSteps(draft.steps, draft.bulkSel, draft.bulkPos) }).label})
               </p>
               <div className="space-y-1 max-h-[140px] overflow-y-auto">
                 {ordered.map((row, i) =>
@@ -576,7 +571,9 @@ export function SyncModeEditorContent({ onChanged, onRun, defaultId, onSetDefaul
                     className="flex items-center gap-1 px-2.5 py-2 rounded-xl bg-indigo-500/5 border border-indigo-500/20"
                   >
                     <div className="min-w-0 flex-1">
-                      <p className="text-[11px] font-bold text-slate-800 dark:text-zinc-200 truncate">{m.label}</p>
+                      <p className="text-[11px] font-bold text-slate-800 dark:text-zinc-200 truncate">
+                        {m.label}
+                      </p>
                       <p className="text-[9px] text-slate-500 dark:text-gray-500 truncate">
                         {m.steps.length} ops · {estimateModeCost(m).label}
                       </p>
@@ -625,7 +622,9 @@ export function SyncModeEditorContent({ onChanged, onRun, defaultId, onSetDefaul
                   className="flex items-center gap-1 px-2.5 py-2 rounded-xl bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800"
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="text-[11px] font-bold text-slate-800 dark:text-zinc-200 truncate">{m.label}</p>
+                    <p className="text-[11px] font-bold text-slate-800 dark:text-zinc-200 truncate">
+                      {m.label}
+                    </p>
                     <p className="text-[9px] text-slate-500 dark:text-gray-500 truncate">
                       {m.description} · {m.steps.length} ops
                     </p>
@@ -687,7 +686,12 @@ export default function SyncModeEditor({
       closeLabel="Close sync mode editor"
     >
       <div className="relative">
-        <SyncModeEditorContent onChanged={onChanged} onRun={onRun} defaultId={defaultId} onSetDefault={onSetDefault} />
+        <SyncModeEditorContent
+          onChanged={onChanged}
+          onRun={onRun}
+          defaultId={defaultId}
+          onSetDefault={onSetDefault}
+        />
       </div>
     </BottomSheet>
   );

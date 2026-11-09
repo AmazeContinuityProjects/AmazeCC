@@ -18,7 +18,7 @@ import ToolsHub from "./ToolsHub";
 import FacultyInfoTab from "../exams/FacultyInfoTab";
 import FreeClassroomsTab from "../exams/FreeClassroomsTab";
 import FFCSTimetableTab from "../exams/FFCSTimetableTab";
-import TimetableShareCard from "../timetable/TimetableShareCard";
+import SocialTab from "../social/SocialTab";
 import CabShareTab from "../hostel/CabShare/CabShareTab";
 import QBankSubpage from "../qbank/QBankSubpage";
 import OverallAttendancePredictor from "../attendance/OverallAttendancePredictor";
@@ -106,7 +106,7 @@ export default function ToolsTab({
 
         {activeToolsSubTab === "social" && (
           <div className="animate-fadeIn">
-            <TimetableShareCard attendanceData={attendanceData} isDemo={IDs?.VtopUsername === "demo"} />
+            <SocialTab attendanceData={attendanceData} isDemo={IDs?.VtopUsername === "demo"} />
           </div>
         )}
 

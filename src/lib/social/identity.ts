@@ -1,23 +1,34 @@
 /**
- * Reading the current user's registration number and name (used by PostHog
- * identification, feedback reports and the intro-song gate).
+ * Reading the current user's registration number and name.
  *
- * There are two live shapes for the `profile` localStorage blob:
+ * There are two live shapes for the `profile` localStorage blob and three
+ * readers in the app, all of which were wrong:
  *
  *   - Live, written by `ProfilePage` from `/api/student` → `parseStudentProfile`:
  *     `{ registerNo, name }`
  *   - Demo, from `src/data/demoData.json`: `{ registerNumber, studentName }`
  *
- * Readers that picked one spelling each got it wrong on one of them and
- * silently resolved to `""`, so the chain below tries every spelling in order
- * rather than picking one and hoping. (This lived in `lib/social/` until the
- * friend-timetable feature it was written for was retired.)
+ *   - `Main.tsx` read `p?.regNo`          → undefined on both
+ *   - `socialUtils.ts` read `parsed?.regNumber` → undefined on the live shape
+ *   - `SocialTab` read `attendanceData?.studentInfo?.regNumber`, but
+ *     `attendanceRes` has no `studentInfo` field at all
+ *
+ * So the register number silently resolved to `""`, which meant the friends
+ * list was stored under the un-namespaced global key and the cloud POST
+ * early-returned. The chain below tries every spelling in order rather than
+ * picking one and hoping.
  *
  * Server-side normalisation of the same value is `registerNo ||
  * applicationNumber` — see `AmazeCC-API/src/lib/identity.ts:175`.
  */
 
-const REG_KEYS = ["registerNo", "registerNumber", "regNo", "regNumber", "applicationNumber"] as const;
+const REG_KEYS = [
+  "registerNo",
+  "registerNumber",
+  "regNo",
+  "regNumber",
+  "applicationNumber",
+] as const;
 
 const NAME_KEYS = ["name", "studentName", "fullName"] as const;
 
