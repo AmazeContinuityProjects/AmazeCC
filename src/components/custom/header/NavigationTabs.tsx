@@ -50,6 +50,7 @@ import {
   UserSearch,
   ScanLine,
   type LucideIcon,
+  AlertTriangle,
 } from "lucide-react";
 import { AnimatePresence, m } from "framer-motion";
 import {
@@ -1218,11 +1219,22 @@ export default function NavigationTabs({
                       title="Click to toggle attendance format"
                     >
                       <span className="text-sidebar-foreground/">Attendance</span>
-                      <span
-                        className={`font-semibold ${attendancePercentage?.percentage < 75 ? "text-rose-400" : "text-emerald-400"}`}
-                      >
-                        {attendanceValue}
-                      </span>
+                      {(() => {
+                        // Colour alone does not say "below target" to everyone,
+                        // so a warning icon and a spoken label carry it too.
+                        const target = Number(settings?.targetAttendance) || 75;
+                        const below = attendancePercentage?.percentage < target;
+                        return (
+                          <span
+                            className={`inline-flex items-center gap-1 font-semibold ${below ? "text-rose-400" : "text-emerald-400"}`}
+                            title={below ? `Below your ${target}% target` : `At or above your ${target}% target`}
+                          >
+                            {below ? <AlertTriangle className="w-3 h-3" aria-hidden="true" /> : null}
+                            {attendanceValue}
+                            <span className="sr-only">{below ? `, below your ${target}% target` : `, on track`}</span>
+                          </span>
+                        );
+                      })()}
                     </button>
 
                     <button
