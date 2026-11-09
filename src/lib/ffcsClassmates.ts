@@ -131,14 +131,11 @@ export async function ensureClassmatesSession(forceNew = false): Promise<void> {
 }
 
 /**
- * The VTOP semester the finder runs against, for a planner report. Only the
- * two final lists qualify: the winter mock list shares the final list's class
- * id prefix, but its ids are not in the final report, so the server would
- * refuse them.
+ * The VTOP semester the finder runs against. Only the upcoming next semester
+ * qualifies (CH20262705): current/previous semesters are disabled for sharing.
  */
 export function classmatesSemester(semesterId: FFCSSemesterId): string | null {
   if (semesterId === "winter-2026-2027") return "CH20262705";
-  if (semesterId === "fall-2026-2027") return "CH20262701";
   return null;
 }
 

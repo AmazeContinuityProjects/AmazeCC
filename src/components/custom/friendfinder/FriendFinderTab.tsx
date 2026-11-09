@@ -267,21 +267,14 @@ function SectionCard({ section, onClick }: { section: ClassmateSection; onClick?
   );
 }
 
+/**
+ * Friend Finder is exclusively for the upcoming next semester (CH20262705 / Winter 2026-27),
+ * not the currently ongoing semester.
+ */
+export const UPCOMING_FFCS_SEMESTER = "CH20262705";
+
 function getActiveVtopSemester(): string | null {
-  try {
-    const rawSettings = safeStorage.getItem("settings");
-    if (rawSettings) {
-      const parsed = JSON.parse(rawSettings);
-      if (parsed?.currSemesterID !== undefined && parsed?.currSemesterID !== null) {
-        const raw = String(parsed.currSemesterID);
-        const mapped = mapToFinalSemesterId(raw);
-        if (!mapped) return null;
-        return classmatesSemester(mapped);
-      }
-    }
-  } catch {}
-  const def = getSelectedFinalSemesterId();
-  return classmatesSemester(def);
+  return UPCOMING_FFCS_SEMESTER;
 }
 
 export default function FriendFinderTab({ onBack, semesterId }: FriendFinderTabProps = {}) {
@@ -516,11 +509,10 @@ export default function FriendFinderTab({ onBack, semesterId }: FriendFinderTabP
             <AlertTriangle className="w-7 h-7" />
           </span>
           <h3 className="text-lg font-black font-outfit tracking-tight text-text-heading">
-            Switch to a final course list
+            Switch to the upcoming winter course list
           </h3>
           <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-            The friend finder works with the final Winter or Fall 2026-27 list. Pick one in the settings, then come
-            back.
+            The friend finder shares only the upcoming Winter 2026-27 semester (CH20262705).
           </p>
         </div>
       </PageShell>

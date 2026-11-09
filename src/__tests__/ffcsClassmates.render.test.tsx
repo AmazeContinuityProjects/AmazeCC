@@ -129,7 +129,13 @@ describe("FriendFinderTab", () => {
 
   it("refuses the mock list without calling the server", async () => {
     await renderTab(undefined, "winter-2026-2027-mock");
-    expect(screen.getByText(/final course list/i)).toBeTruthy();
+    expect(screen.getByText(/upcoming winter course list/i)).toBeTruthy();
+    expect(apiMock).not.toHaveBeenCalled();
+  });
+
+  it("refuses this semester (fall-2026-2027) without calling the server", async () => {
+    await renderTab(undefined, "fall-2026-2027");
+    expect(screen.getByText(/upcoming winter course list/i)).toBeTruthy();
     expect(apiMock).not.toHaveBeenCalled();
   });
 

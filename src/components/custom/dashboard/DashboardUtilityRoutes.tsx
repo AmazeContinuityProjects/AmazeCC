@@ -31,6 +31,7 @@ const PaperScannerPage = dynamic(() => import("../tools/scanner/PaperScannerPage
 const MoreTab = dynamic(() => import("../more/MoreTab"), { loading: FeatureLoading });
 const AboutTab = dynamic(() => import("../AboutTab"), { loading: FeatureLoading });
 const FeedbackReportPage = dynamic(() => import("../feedback/FeedbackReportPage"), { loading: FeatureLoading });
+const StudentReportPage = dynamic(() => import("../reports/StudentReportPage"), { loading: FeatureLoading });
 
 interface DashboardUtilityRoutesProps {
   onSystemBack: () => void;
@@ -139,6 +140,11 @@ export default function DashboardUtilityRoutes({
       <DashboardRoute route="paper-scanner">
         <div className="animate-fadeIn">
           <PaperScannerPage onBack={onSystemBack} />
+        </div>
+      </DashboardRoute>
+      <DashboardRoute route="student-report">
+        <div className="animate-fadeIn">
+          <StudentReportPage />
         </div>
       </DashboardRoute>
       <DashboardRoute route="more">

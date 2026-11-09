@@ -29,7 +29,7 @@ Both modes use the same content, pagination logic, and data. No semantic meaning
 
 ## Output and completeness
 
-PDF is the primary artifact. An optional machine-readable JSON export should accompany the PDF for audit/analysis, with the same provenance, inclusion settings, and missing-data markers. A flat unescaped CSV is not an acceptable substitute for nested report data; if provided, create separate well-formed files/tables for courses, attendance rows, assessments, payments, etc.
+PDF is the primary artifact and is generated directly in the browser with jsPDF drawing real text and vector table rules. Embed only photographic/logo assets as images; keep report text searchable and crisp. It should download without opening the browser print dialog. An optional machine-readable JSON export should accompany the PDF for audit/analysis, with the same provenance, inclusion settings, and missing-data markers. A flat unescaped CSV is not an acceptable substitute for nested report data; if provided, create separate well-formed files/tables for courses, attendance rows, assessments, payments, etc.
 
 The export must include all selected source rows, not just the first page of a paginated endpoint. On oversized reports, paginate and repeat headers; never silently truncate. If a source cannot be fully collected, label that section partial and state what was collected. Report generation must be reproducible from a frozen collection snapshot and timestamped.
 

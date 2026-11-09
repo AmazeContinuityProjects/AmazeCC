@@ -627,6 +627,13 @@ export default function NavigationTabs({
         onSelect: () => selectTab("paper-scanner"),
       },
       {
+        id: "student-report",
+        label: "Student Report",
+        icon: GraduationCap,
+        isActive: activeTab === "student-report",
+        onSelect: () => selectTab("student-report"),
+      },
+      {
         id: "tools",
         label: "Tools & Utilities Hub",
         icon: Layers,

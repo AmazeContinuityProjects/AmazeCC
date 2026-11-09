@@ -13,9 +13,9 @@ import { AuthError } from "../lib/sync-engine/errors";
 import { callClassmates, classmatesSemester, ClassmatesError, displayName } from "../lib/ffcsClassmates";
 
 describe("classmatesSemester", () => {
-  it("only maps the final lists", () => {
+  it("only maps the upcoming winter list (CH20262705)", () => {
     expect(classmatesSemester("winter-2026-2027")).toBe("CH20262705");
-    expect(classmatesSemester("fall-2026-2027")).toBe("CH20262701");
+    expect(classmatesSemester("fall-2026-2027")).toBeNull();
     expect(classmatesSemester("winter-2026-2027-mock")).toBeNull();
     expect(classmatesSemester("codechef-vit")).toBeNull();
   });
