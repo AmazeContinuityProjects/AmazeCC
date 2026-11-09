@@ -1,10 +1,12 @@
 # AmazeCC — Complete Feature Documentation
 
-> **Version:** 2.1.0  
+> **Version:** 3.1.0 (refreshed 2026-11-10)  
 > **Stack:** Next.js 16 (App Router) + TypeScript + Tailwind CSS v4 + PostgreSQL  
 > **Frontend:** AmazeCC (`:3001`)  
 > **Backend/API:** AmazeCC-API (`:3000`)  
 > **Admin Dashboard:** AmazeCC-Dashboard (`:3002`)
+>
+> Code references name a file and symbol rather than line numbers, because line numbers go stale with every refactor.
 
 ---
 
@@ -76,17 +78,17 @@
 - TypeScript 5.9
 - Tailwind CSS v4 with `@tailwindcss/postcss`
 - Framer Motion (animations)
-- Radix UI primitives (Dialog, Dropdown, Popover, Tabs, etc.)
+- AmazeUI (`@amazecontinuityprojects/amazeui`), the shared component library
 - lucide-react (icons)
 - React Markdown (for markdown rendering)
-- Recharts (charts)
-- cmdk (command palette)
-- Jotai (state management — available)
+- Jotai (shared app state atoms in `src/store/`)
+- Custom command palette (`shared/CommandPalette.tsx`)
+- posthog-js (product analytics and error tracking)
+- lz-string (FFCS share links), xlsx (course list import), tesseract.js (OCR)
 - serwist (Service Worker / PWA)
 - next-themes (theme provider)
 - html-to-image, jspdf (export)
 - react-dropzone (file uploads)
-- Swiper (carousel/slider)
 
 **Backend (AmazeCC-API):**
 
@@ -122,11 +124,11 @@ User submits → POST /api/login
 
 **Key implementation details:**
 
-- Rate limited to 5 attempts per 60s per IP (`checkRateLimit` in `login/route.ts:49`)
+- Rate limited to 5 attempts per 60s per IP (`checkRateLimit` in the API's `src/app/api/login/route.ts`)
 - Captcha solving uses a custom solver (`solveCaptcha.ts`)
 - Uses `VTOPClient()` — an Axios instance with cookie handling
-- Login promise is cached in `loginPromise` to prevent concurrent logins (`Main.tsx:261-302`)
-- 60-second fetch timeout with `AbortController` (`fetchWithTimeout`)
+- Concurrent logins join one in-flight attempt, with give-up after bad credentials (`src/lib/sync-engine/credential-manager.ts`)
+- Requests go through the sync engine's request layer (`src/lib/sync-engine/request-layer.ts`), which wraps `fetchWithTimeout`
 
 ### 1.2 VTOPClient (`lib/clients/VTOPClient.ts`)
 
@@ -145,22 +147,22 @@ Credentials are stored in `localStorage`:
 - `moodle_username`, `moodle_password` — Moodle/LMS credentials
 - `IDs` — JSON object with `{ VtopUsername, VtopPassword, MoodleUsername, MoodlePassword }`
 
-On app load, `Main.tsx:211-259` restores all cached data from localStorage.
+On app load, the hooks in `src/components/custom/app/` (`useAppDataActions`, `useAttendanceState`) restore cached data from localStorage.
 
 ### 1.4 Demo Mode
 
-`Main.tsx:864-882` — Sets `demoMode=true`, loads fake data from `demoData.json`:
+The demo handler in `Main.tsx` sets `demoMode=true`, loads fake data from `demoData.json`:
 
 - Pre-populated attendance, marks, grades, schedule, hostel, calendar
 - Useful for testing without live credentials
 
 ### 1.5 Logout
 
-`Main.tsx:814-838` — `handleLogOutRequest`:
+`useLogoutAction` (`src/components/custom/app/useLogoutAction.ts`):
 
-- Clears all localStorage EXCEPT `theme`, `activityTree`, `settings`
-- Resets all state to defaults
-- Keeps user preferences intact
+- Clears all localStorage EXCEPT `theme` and `activityTree`
+- Resets settings and all data state to defaults
+- Note: this also clears local-only data such as tasks and saved FFCS plans
 
 ---
 
@@ -199,18 +201,13 @@ The main logged-in interface consists of:
 - **Hostel** tab is conditionally inserted when `profileData?.isHosteller === true` or `residentialStatus === "hosteller"`
 - **DayScholar** tab is inserted when `isHosteller === false` or `residentialStatus === "dayscholar"`
 
-### 2.3 Touch Gesture Swipe
+### 2.3 Touch Gestures
 
-`Dashboard.tsx:207-247` — Horizontal swipe detection:
-
-- Tracks touch start/end coordinates via refs
-- Minimum threshold of 75px
-- Swipe left → next tab, swipe right → previous tab
-- Prevents swipe on scrollable elements, buttons, inputs
+The horizontal tab-swipe gesture has been removed. Navigation is through the bottom nav and the App Library (opened from the Modules button; see `header/NavigationTabs.tsx`).
 
 ### 2.4 Ambient Background Glows
 
-`Dashboard.tsx:510-513` — Fixed-position decorative blurs:
+`Dashboard.tsx` renders fixed-position decorative blurs:
 
 - Blue glow top-left
 - Emerald glow bottom-right
@@ -260,7 +257,7 @@ Multi-layered calendar displaying:
 
 ### 3.4 OD Hours Tracker
 
-When attendance data is loaded/updated (`Main.tsx:125-208`):
+When attendance data is loaded or updated (`useAttendanceState` in `src/components/custom/app/useAttendanceState.ts`):
 
 - Scans all attendance records for "On Duty" entries
 - Groups by date
@@ -631,12 +628,11 @@ Full-screen welcome page for new students showing:
 
 ### 12.2 Trigger Conditions
 
-Currently, the FresherWelcomePage only shows in **demo mode** (`Dashboard.tsx:129-134`).  
-For production, it would be triggered by:
+`useDashboardWelcomeState` (`src/components/custom/dashboard/useDashboardWelcomeState.ts`) shows the page when:
 
-- First-time login detection
-- Presence of EPT schedule data (indicating a fresher)
-- `hasFutureExam()` helper checks for future EPT dates
+- demo mode is on, or
+- cached EPT schedule (`cache_ept_schedule`) or acknowledgement (`cache_acknowledgement`) data has rows, and
+- the student has not dismissed it (`fresherWelcomeDismissed`)
 
 ### 12.3 API Endpoints
 
@@ -661,7 +657,7 @@ A Spotlight/Alfred-style command palette triggered by `Cmd+K` or `Ctrl+K`.
 - Detail panel below results for rich previews
 - Responsive: full overlay on mobile, centered on desktop
 
-### 13.2 Commands Generated (`Main.tsx:928-1733`)
+### 13.2 Commands Generated (`useAppCommands` in `src/components/custom/app/useAppCommands.tsx`)
 
 The `cmds` array is built dynamically via `useMemo` with dozens of categories:
 
@@ -755,7 +751,7 @@ The `cmds` array is built dynamically via `useMemo` with dozens of categories:
 
 When the user types `koha` in the command palette query:
 
-1. Detect the "koha" keyword (`Main.tsx:912-926`)
+1. Detect the "koha" keyword (`shared/CommandPalette.tsx`)
 2. Extract the search term after "koha:"
 3. Debounce-fetch `/api/koha/search?q=<term>&count=10` with `AbortController`
 4. Show results as command items with cover images, author, publisher
@@ -781,7 +777,7 @@ A section in the More tab for discovering events:
 - Payment status tracking
 - Event reminders in calendar view
 
-### 14.2 EventPreviewCard (`Main.tsx:1905-1932`)
+### 14.2 Event previews (`events/EventHubTab.tsx`, `palette/EventSearchPalette.tsx`)
 
 Lazy-loads event preview data:
 
@@ -869,7 +865,7 @@ Uses `@serwist/next` for PWA/service worker:
 
 ### 17.2 Offline Detection
 
-`Main.tsx:848-862` — Detects online/offline status:
+`useAppNetworkStatus` (`src/components/custom/app/useAppNetworkStatus.ts`) detects online/offline status:
 
 - Shows yellow banner "You're currently offline" when offline
 - Banners only show during logged-in state
@@ -1207,7 +1203,9 @@ All admin endpoints require `Authorization: Bearer <token>` header with HMAC-SHA
 
 Semester IDs are used to target specific academic semesters when fetching data.
 
-### 20.2 Settings State (`Main.tsx:42-61`)
+### 20.2 Settings State (`Settings` in `src/store/settingsAtoms.ts`)
+
+Abridged; see the source for the full type.
 
 ```typescript
 type settings = {
@@ -1301,12 +1299,12 @@ Run `/api/admin/migrate` (POST) to create all tables:
 
 - **iCal export** (`lib/exportIcal.ts`) — Export timetable to iCalendar format
 - **Timetable export** (`lib/exportTimetable.ts`) — Export timetable as PDF/image
-- **PDF generation** — Using jspdf + html2canvas
+- **PDF generation** — Using jspdf + html-to-image
 
 ### 21.6 Analytics
 
-- Google Analytics via `@next/third-parties/google`
-- Two GA IDs: `G-40NYS6B13N` and `G-2H76BLP4VK`
+- Google Analytics via `@next/third-parties/google` (`G-HGB7VDJKX0`, in `src/app/layout.tsx`)
+- PostHog (`src/lib/posthog.ts`, `instrumentation-client.ts`)
 
 ---
 
@@ -1363,7 +1361,7 @@ CREATE TABLE IF NOT EXISTS fresher_resources (
 Tailwind CSS v4 (@tailwindcss/postcss)
   └── @import "tailwindcss" in globals.css
   └── tw-animate-css (animation utilities)
-  └── @radix-ui/* (headless primitives)
+  └── @amazecontinuityprojects/amazeui (shared components)
   └── shadcn/ui style components (button, card, dialog, etc.)
 
 ThemeProvider (next-themes)
@@ -1381,11 +1379,7 @@ Component styling pattern:
 
 ```
 Component Layer:
-├── @radix-ui/react-dialog        → Modal, CommandPalette background
-├── @radix-ui/react-tabs          → Sub-tab navigation
-├── @radix-ui/react-dropdown-menu → Dropdown menus
-├── @radix-ui/react-popover       → Popovers
-├── cmdk                          → Command palette engine
+├── @amazecontinuityprojects/amazeui → Shared design library (modals, sheets, nav)
 ├── framer-motion                 → Animated transitions, modals
 ├── lucide-react                  → Icon library
 │
@@ -1397,9 +1391,6 @@ Data Layer:
 │
 UI Enhancements:
 ├── react-markdown                → Markdown resource rendering
-├── recharts                      → Charts (GPA predictor, etc.)
-├── react-circular-progressbar    → Circular progress indicators
-├── swiper                        → Carousel/slider
 ├── katex                        → LaTeX rendering for QBank
 ├── html-to-image / jspdf         → Export to image/PDF
 ├── qrcode.react                  → QR code generation
@@ -1414,4 +1405,4 @@ PWA:
 _Generated from codebase analysis.  
 Frontend: 190+ components across 40+ directories  
 API: 130+ endpoints across 40+ feature categories  
-Commit: This document covers ALL features implemented as of v2.1.0_
+Last refreshed for v3.1.0 on 2026-11-10._
