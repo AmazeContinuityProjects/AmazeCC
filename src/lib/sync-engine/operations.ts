@@ -3,7 +3,14 @@ import { credentialManager } from "./credential-manager";
 import { registerOp, type OpCtx } from "./operation-registry";
 import { dataAtoms } from "./state-bridge";
 import { toEngineError, assertApiSuccess } from "./errors";
-import { clearPeerTimetables, writeGrants, writeIdentity, writeOwnTimetable, writePeers } from "../social/storage";
+import {
+  clearPeerTimetables,
+  readIdentity,
+  writeGrants,
+  writeIdentity,
+  writeOwnTimetable,
+  writePeers,
+} from "../social/storage";
 import type { SocialSyncPayload } from "../social/types";
 import { getActiveRegNumber } from "../social/identity";
 import { activeRegNumberAtom } from "../../store/socialAtoms";
@@ -14,6 +21,7 @@ import {
   socialOwnCoursesAtom,
   socialPeersAtom,
   socialSyncStateAtom,
+  type SocialSyncState,
 } from "../../store/socialAtoms";
 
 /**
@@ -894,6 +902,20 @@ registerOp({
     const semesterId =
       (args?.proposedSemesterId as string) || (args?.semesterId as string) || (args?.activeSem as string) || "";
 
+    // Keep the last good sync time and version through the run. A failure used
+    // to reset both to empty, so one dropped request made the page read
+    // "never synced" even though the cached friends were minutes old.
+    const prevState = (ctx.bridge.getAtom(socialSyncStateAtom) as SocialSyncState | undefined) ?? {
+      version: 0,
+      lastSyncedAt: null,
+      lastError: null,
+      syncing: false,
+    };
+    // Nothing set `syncing` to true before, so the spinner only showed for
+    // syncs started by the Sync now button, never for the debounced push or
+    // the login chain.
+    ctx.bridge.setAtom(socialSyncStateAtom, { ...prevState, syncing: true });
+
     try {
       const res = (await ctx.request("social/identity/sync", semesterId ? { proposedSemesterId: semesterId } : {}, {
         auth: "vtop",
@@ -913,7 +935,13 @@ registerOp({
 
       // The term changed, so every cached peer busy map is from a different
       // schedule. Drop them before writing the new identity.
-      if (res.identity.semesterId && cachedSemester && res.identity.semesterId !== cachedSemester) {
+      // `cachedSemester` lives in memory and is null after a reload, so fall
+      // back to the term stored with the cached identity. Without that, a term
+      // switch noticed on the first sync after a reload kept every friend's
+      // old-term timetable on screen.
+      const previousSemester =
+        cachedSemester ?? readIdentity<{ semesterId?: string | null }>()?.semesterId ?? null;
+      if (res.identity.semesterId && previousSemester && res.identity.semesterId !== previousSemester) {
         clearPeerTimetables();
       }
       cachedSemester = res.identity.semesterId ?? cachedSemester;
@@ -952,8 +980,7 @@ registerOp({
       // empty one, and a failed social push must not read as "you have no
       // friends".
       ctx.bridge.setAtom(socialSyncStateAtom, {
-        version: 0,
-        lastSyncedAt: null,
+        ...prevState,
         lastError: e instanceof Error ? e.message : String(e),
         syncing: false,
       });

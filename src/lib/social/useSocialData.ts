@@ -135,11 +135,27 @@ export function useSocialData(): SocialData {
   const setOwnBusyMap = useSetAtom(socialOwnBusyMapAtom);
   const setOwnCourses = useSetAtom(socialOwnCoursesAtom);
 
+  // Read at fire time, not at schedule time: the push runs ~5s later and the
+  // identity may have landed in between.
+  const semesterRef = useRef<string | undefined>(undefined);
+  semesterRef.current = identity?.semesterId || undefined;
+
   const markDirty = useCallback(() => {
     // Imported lazily so this module can be read by tests without pulling the
     // whole sync engine (and its credential manager) into the graph.
+    //
+    // `syncBackground`, not `sync`: a raw `sync()` emits into the progress feed
+    // and opens the "VTOP Sync" sheet, which only a flow that owns its
+    // lifecycle can close — so every toggle left a sheet stuck open. It also
+    // passes the current term, which the op otherwise leaves to the server to
+    // guess.
     void import("@/lib/sync-engine").then(({ syncEngine }) =>
-      schedulePublish(() => syncEngine.sync("social"))
+      schedulePublish(() =>
+        syncEngine.syncBackground(
+          "social",
+          semesterRef.current ? { semesterId: semesterRef.current } : {},
+        ),
+      )
     );
   }, []);
 

@@ -145,7 +145,7 @@ describe("social op writes", () => {
     const setAtom = vi.fn();
     const request = vi.fn().mockResolvedValue(OK_RESPONSE);
     await getOp("social")!.run(makeCtx({ request, bridge: { setAtom, getAtom: vi.fn() } }), {});
-    const state = setAtom.mock.calls.map((c) => c[1]).find((v) => v && "version" in v);
+    const state = setAtom.mock.calls.map((c) => c[1]).filter((v) => v && "version" in v).at(-1);
     expect(state.version).toBe(4);
     expect(state.lastError).toBeNull();
     expect(state.lastSyncedAt).toEqual(expect.any(String));

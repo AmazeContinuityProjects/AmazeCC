@@ -82,7 +82,7 @@ export default function SocialTab({
     syncing: syncingInFlight,
   } = useSocialData();
   const { setGrants } = useSocialWriters();
-  const { peers: peerTimetables, loading: loadingPeers } = usePeerTimetables();
+  const { peers: peerTimetables, loading: loadingPeers, refresh: refreshPeerTimetables } = usePeerTimetables();
   const overlap = useOverlap(ownBusyMap, peerTimetables);
 
   // Only the count is needed here, and only to label the carousel card. The
@@ -149,12 +149,15 @@ export default function SocialTab({
     setSyncFailed(false);
     try {
       await syncEngine.syncSocial({ semesterId: identity?.semesterId });
+      // The sync refreshes the friends list; this re-reads their timetables
+      // too, which is what someone pressing "Sync now" actually expects.
+      refreshPeerTimetables();
     } catch {
       setSyncFailed(true);
     } finally {
       setSyncingNow(false);
     }
-  }, [syncing, identity?.semesterId]);
+  }, [syncing, identity?.semesterId, refreshPeerTimetables]);
 
   const relativeSynced = lastSyncedAt ? relativePublished(lastSyncedAt) : "";
 
