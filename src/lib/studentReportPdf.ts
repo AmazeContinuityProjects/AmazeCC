@@ -33,7 +33,16 @@ export async function downloadStudentReportPdf(html: string, fileName: string, g
   const pendingLinks: Array<{ x: number; y: number; w: number; h: number; target: string }> = [];
   const indexHeadings = Array.from(root.querySelectorAll<HTMLElement>("h2, h3, h4"))
     .filter((heading) => !heading.closest(".report-index, .report-chart, .report-cover"))
-    .filter((heading) => !(heading.matches("h3") && heading.closest(".report-overview-calendar")));
+    .filter((heading) => !(heading.matches("h3") && heading.closest(".report-overview-calendar")))
+    .filter((heading) => {
+      const divider = heading.closest(".report-divider");
+      if (!divider || heading.tagName !== "H2") return true;
+      const nextSection = divider.nextElementSibling?.matches(".report-section")
+        ? divider.nextElementSibling.querySelector(":scope > h2")
+        : null;
+      const normalize = (value: string) => value.replace(/\s+/g, " ").trim().toLocaleLowerCase();
+      return normalize(heading.textContent || "") !== normalize(nextSection?.textContent || "");
+    });
   indexHeadings.forEach((heading, index) => {
     if (!heading.id) heading.id = `pdf-report-heading-${index + 1}`;
   });

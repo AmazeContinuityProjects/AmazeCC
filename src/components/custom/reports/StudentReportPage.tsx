@@ -1376,6 +1376,11 @@ export default function StudentReportPage() {
             )}
           </Section>
 
+          <div id="subject-dossiers-cover" className="report-divider" aria-label="Current semester subject dossiers">
+            <span>AMAZECC · STUDENT RECORD</span>
+            <h2>Current semester subject dossiers</h2>
+            <p>Course attendance, assessment performance, grade predictions, faculty, and On Duty details</p>
+          </div>
           <Section title="Current semester subject dossiers">
             <p>
               Each dossier combines current semester attendance, marks, course metadata, default AmazeCC grade
