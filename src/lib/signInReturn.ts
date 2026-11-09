@@ -26,7 +26,7 @@ export const SIGN_IN_PARAM = "signin";
 export const VTOP_LOGIN_EVENT = "amaze:vtop-login";
 
 /** Paths a sign-in may return to. */
-const ALLOWED_PREFIXES = ["/ffcs"];
+const ALLOWED_PREFIXES = ["/ffcs", "/friend-finder"];
 
 export function isAllowedReturnPath(path: unknown): path is string {
   return (

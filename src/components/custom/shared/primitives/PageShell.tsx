@@ -17,8 +17,7 @@ import TitleBlock from "./TitleBlock";
  * and the two header arrangements. Surface tokens live in `@/lib/uiTokens`.
  */
 
-const SHELL_BASE =
-  "w-full max-w-4xl mx-auto space-y-6 pt-3 sm:pt-5 md:pb-8 animate-in fade-in duration-300 text-left";
+const SHELL_BASE = "w-full max-w-4xl mx-auto space-y-6 pt-3 sm:pt-5 md:pb-8 animate-in fade-in duration-300 text-left";
 
 const HEADER_ROOT = "px-1";
 const ACTION_ROW = "flex items-start justify-between gap-3";
@@ -42,6 +41,8 @@ export interface PageShellProps {
    * the cluster flush right.
    */
   onBack?: () => void;
+  /** Custom leading element (e.g. AmazeCC Logo) to render instead of BackButton. */
+  leading?: ReactNode;
   layout?: PageHeaderLayout;
   /**
    * Let the title wrap instead of truncating. For pages whose title is user
@@ -66,6 +67,7 @@ export default function PageShell({
   subtitle,
   actions,
   onBack,
+  leading,
   layout = "actions-above",
   wrap = false,
   selectable = false,
@@ -77,16 +79,16 @@ export default function PageShell({
 
   // Back is always far left, the action cluster always far right and
   // shrink-0, so a long title can truncate but never squeeze a button.
-  const back = onBack ? <BackButton onClick={onBack} className="self-start" /> : null;
+  const back = leading !== undefined ? leading : onBack ? <BackButton onClick={onBack} className="self-start" /> : null;
   const cluster = actions ? <div className={ACTION_CLUSTER}>{actions}</div> : null;
 
   if (layout === "actions-above") {
     return (
       <div className={`${shell} ${className}`.trim()}>
         <div className={HEADER_ROOT}>
-          {onBack || actions ? (
+          {leading !== undefined || onBack || actions ? (
             <div className={`${ACTION_ROW} mb-4 sm:mb-5`}>
-              {onBack ? back : <span />}
+              {back ? back : <span />}
               {cluster}
             </div>
           ) : null}

@@ -99,6 +99,9 @@ export default function FFCSPageView() {
             <Link href="/" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
               Home
             </Link>
+            <Link href="/friend-finder" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+              Friend Finder
+            </Link>
             <Link href="/privacy" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
               Privacy
             </Link>
