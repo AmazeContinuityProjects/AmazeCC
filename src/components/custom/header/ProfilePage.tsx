@@ -1575,6 +1575,20 @@ export default function ProfilePage({
         <div className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
           <div className="flex items-center justify-between py-3">
             <div>
+              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Privacy Mode</p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Blur grades, attendance, marks and fees everywhere, for screen sharing or showing your phone. Hover
+                or tap a value to peek. Shortcut: Alt/Option + P
+              </p>
+            </div>
+            <Switch
+              checked={settings?.privacyMode ?? false}
+              onCheckedChange={(val) => updateSetting("privacyMode", val)}
+            />
+          </div>
+
+          <div className="flex items-center justify-between py-3">
+            <div>
               <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Grades Anonymizer Mode</p>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
                 Blur CGPA, GPA, and course grades to protect privacy in public (hover to reveal)

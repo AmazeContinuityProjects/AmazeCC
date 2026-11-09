@@ -113,7 +113,7 @@ export default function StatsCards({
               {card.label}
             </h2>
             {card.customContent || (
-              <p className="text-2xl font-black text-zinc-900 dark:text-zinc-100 mt-2 select-none font-outfit">
+              <p data-private className="text-2xl font-black text-zinc-900 dark:text-zinc-100 mt-2 select-none font-outfit">
                 {Number.isNaN(card.value) ? "0" : card.value}
               </p>
             )}

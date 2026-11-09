@@ -634,6 +634,7 @@ export default function SimplifiedAcademicsPage({
             ) : grandWeightage.hasAssessments ? (
               <div className="flex flex-col items-end">
                 <span
+                  data-private
                   className={`text-base sm:text-lg font-black font-outfit tracking-tight leading-none ${statColor}`}
                 >
                   {grandWeightage.maxWeight > 0

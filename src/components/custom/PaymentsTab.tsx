@@ -651,6 +651,7 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
                       </div>
                       <div className="text-right shrink-0">
                         <p
+                          data-private
                           className={`font-black text-sm font-outfit leading-tight ${
                             isDebit
                               ? "text-rose-600 dark:text-rose-400"
@@ -661,7 +662,7 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
                           {fmtAmt(String(Math.abs(amt)), symbol)}
                         </p>
                         {entry.bookBalanceAmount && (
-                          <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">
+                          <p data-private className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">
                             Bal {fmtAmt(entry.bookBalanceAmount, symbol)}
                           </p>
                         )}
@@ -698,7 +699,7 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
 
                   <div className="flex items-center gap-2 shrink-0">
                     <div className="text-right">
-                      <p className="font-black text-sm font-outfit text-zinc-900 dark:text-white leading-tight">
+                      <p data-private className="font-black text-sm font-outfit text-zinc-900 dark:text-white leading-tight">
                         {fmtAmt(r.amount)}
                       </p>
                       <p className="text-[9px] font-extrabold uppercase text-emerald-600 dark:text-emerald-400 mt-0.5">

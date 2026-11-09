@@ -573,6 +573,7 @@ function GlobalShortcutsModal({ onClose }: { onClose: () => void }) {
         { keys: [mod, "K"], desc: "Command palette" },
         { keys: ["/"], desc: "Command palette" },
         { keys: [alt, "B"], desc: "Hide or show CGPA" },
+        { keys: [alt, "P"], desc: "Privacy mode (blur grades, attendance, fees)" },
         { keys: [alt, "T"], desc: "Switch light / dark theme" },
         { keys: ["?"], desc: "This list" },
       ],

@@ -1197,6 +1197,7 @@ export default function NavigationTabs({
                       >
                         <span className="text-sidebar-foreground/">CGPA</span>
                         <span
+                          data-private
                           className={`font-semibold text-sidebar-foreground transition-all duration-300 ${settings.CGPAHidden ? "blur-[4.5px] select-none" : ""}`}
                         >
                           {marksData?.cgpa?.cgpa || "-"}
@@ -1226,6 +1227,7 @@ export default function NavigationTabs({
                         const below = attendancePercentage?.percentage < target;
                         return (
                           <span
+                            data-private
                             className={`inline-flex items-center gap-1 font-semibold ${below ? "text-rose-400" : "text-emerald-400"}`}
                             title={below ? `Below your ${target}% target` : `At or above your ${target}% target`}
                           >
@@ -1243,7 +1245,7 @@ export default function NavigationTabs({
                       title="Click to view credits & grades details"
                     >
                       <span className="text-sidebar-foreground/">Credits</span>
-                      <span className="font-semibold text-sidebar-foreground">{credits}</span>
+                      <span data-private className="font-semibold text-sidebar-foreground">{credits}</span>
                     </button>
 
                     <button

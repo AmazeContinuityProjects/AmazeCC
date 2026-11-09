@@ -893,6 +893,7 @@ export function useAppCommands(input: AppCommandInputs) {
     toggle("Dayscholar Bus Mode", "isDayscholarWithBus", "Settings", "🚌");
     toggle("Show Profile Photo on Dashboard", "showProfilePhoto", "Settings", "👤");
     toggle("Grades Anonymizer Mode", "blurGrades", "Settings", "🕵️");
+    toggle("Privacy Mode (blur grades, attendance, marks, fees)", "privacyMode", "Settings", "🔒");
     toggle("Hide Home Page Search Bar", "hideHomeSearchBar", "Settings", "🔍");
 
     [

@@ -107,6 +107,7 @@ export function StatTile({
 
       <div className="my-auto min-w-0">
         <p
+          data-private
           className={`text-2xl sm:text-3xl font-black font-outfit tracking-tight leading-tight truncate block ${valueTone}`}
         >
           {value}

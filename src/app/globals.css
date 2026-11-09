@@ -777,3 +777,26 @@ html.has-stored-session .guest-experience-root {
 html.has-stored-session .opening-screen-fallback {
   display: flex !important;
 }
+
+
+/*
+ * Privacy mode (Settings → Privacy mode, Alt/Option+P, or the command palette).
+ * Blurs every value marked `data-private`: CGPA, attendance, marks, fees.
+ * Hovering or focusing a value reveals it, so a student can peek without
+ * turning the mode off. Unlayered so it wins over Tailwind utilities.
+ */
+.privacy-mode [data-private] {
+  filter: blur(6px);
+  user-select: none;
+  transition: filter 150ms ease;
+}
+.privacy-mode [data-private]:hover,
+.privacy-mode :focus-within > [data-private],
+.privacy-mode [data-private]:focus-within {
+  filter: none;
+}
+@media print {
+  .privacy-mode [data-private] {
+    filter: none;
+  }
+}

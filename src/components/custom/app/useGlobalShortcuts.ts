@@ -65,6 +65,9 @@ export function useGlobalShortcuts({
         } else if (letter === "b") {
           e.preventDefault();
           setSettings((prev) => ({ ...prev, CGPAHidden: !prev.CGPAHidden }));
+        } else if (letter === "p") {
+          e.preventDefault();
+          setSettings((prev) => ({ ...prev, privacyMode: !prev.privacyMode }));
         } else if (letter === "t") {
           e.preventDefault();
           setTheme(theme === "dark" ? "light" : "dark");
