@@ -76,6 +76,7 @@ import {
   ToneBadge,
 } from "../shared/primitives";
 import BottomSheet from "../shared/BottomSheet";
+import FriendFinderLoginModal from "./FriendFinderLoginModal";
 import { useFacultyReviewSheet } from "../exams/FFCS/hooks/useFacultyReviewSheet";
 import FacultyReviewSheetHost from "../exams/FFCS/components/FacultyReviewSheetHost";
 
@@ -83,6 +84,7 @@ export interface FriendFinderTabProps {
   onBack?: () => void;
   semesterId?: string;
   standaloneLogo?: boolean;
+  onRequestSignIn?: () => void;
 }
 
 const REGISTERED = "registered";
@@ -319,7 +321,12 @@ function AmazeCCLogoLeading() {
   );
 }
 
-export default function FriendFinderTab({ onBack, semesterId, standaloneLogo = false }: FriendFinderTabProps = {}) {
+export default function FriendFinderTab({
+  onBack,
+  semesterId,
+  standaloneLogo = false,
+  onRequestSignIn,
+}: FriendFinderTabProps = {}) {
   const router = useRouter();
   const setActiveTab = useSetAtom(activeTabAtom);
   const isLoggedIn = useAtomValue(isLoggedInAtom);
@@ -327,6 +334,7 @@ export default function FriendFinderTab({ onBack, semesterId, standaloneLogo = f
   const isDemo = useAtomValue(demoModeAtom);
   const setDemoMode = useSetAtom(demoModeAtom);
   const setIDs = useSetAtom(credentialsAtom);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -545,22 +553,37 @@ export default function FriendFinderTab({ onBack, semesterId, standaloneLogo = f
             <TrustPoints />
           </div>
           {isDemo ? (
-            <Link href="/" className={`${PRIMARY_BUTTON} w-full`}>
-              <LogIn className="w-4 h-4" /> Go to sign in
-            </Link>
+            <button
+              type="button"
+              className={`${PRIMARY_BUTTON} w-full`}
+              onClick={() => {
+                if (onRequestSignIn) onRequestSignIn();
+                else setShowLoginModal(true);
+              }}
+            >
+              <LogIn className="w-4 h-4" /> Sign in with your VTOP account
+            </button>
           ) : (
             <button
               type="button"
               className={`${PRIMARY_BUTTON} w-full`}
-              onClick={() => router.push("/?signin=1&open=friend-finder")}
+              onClick={() => {
+                if (onRequestSignIn) onRequestSignIn();
+                else setShowLoginModal(true);
+              }}
             >
               <LogIn className="w-4 h-4" /> Sign in with VTOP
             </button>
           )}
           <p className="mt-3 text-center text-xs text-muted-foreground">
-            You&apos;ll come straight back here after signing in.
+            Logging in here will log you into the rest of AmazeCC.
           </p>
         </div>
+        <FriendFinderLoginModal
+          open={showLoginModal}
+          onClose={() => setShowLoginModal(false)}
+          onSuccess={() => setShowLoginModal(false)}
+        />
       </PageShell>
     );
   }

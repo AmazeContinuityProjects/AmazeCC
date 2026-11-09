@@ -24,6 +24,7 @@ import { getAssetPath } from "@/lib/utils";
 import { useOverlayBackBoundary } from "@/lib/overlayStack";
 import { storage } from "@/lib/storage";
 import { hasStoredVtopCredentials } from "@/components/custom/app/readBootstrapSnapshot";
+import FriendFinderLoginModal from "@/components/custom/friendfinder/FriendFinderLoginModal";
 
 // Lazy-load the interactive FriendFinderTab to match the FFCS pattern
 const FriendFinderTab = dynamic(() => import("@/components/custom/friendfinder/FriendFinderTab"), {
@@ -38,6 +39,7 @@ const FriendFinderTab = dynamic(() => import("@/components/custom/friendfinder/F
 export default function FriendFinderPageView() {
   useOverlayBackBoundary("friend-finder-route");
   const [mounted, setMounted] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const isLoggedIn = useAtomValue(isLoggedInAtom);
   const setIsLoggedIn = useSetAtom(isLoggedInAtom);
   const setDemoMode = useSetAtom(demoModeAtom);
@@ -163,16 +165,16 @@ export default function FriendFinderPageView() {
               <span>Disclaimer</span>
             </Link>
 
-            <Link
-              href={`/?${SIGN_IN_PARAM}=1`}
-              onClick={() => prepareSignIn("/friend-finder")}
+            <button
+              type="button"
+              onClick={() => setShowLoginModal(true)}
               title="Login with VTOP"
               aria-label="Login with VTOP"
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors p-2 sm:px-3 sm:py-2 rounded-xl bg-slate-100 hover:bg-slate-200/80 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-slate-200/80 dark:border-zinc-800 shadow-2xs active:scale-95"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors p-2 sm:px-3 sm:py-2 rounded-xl bg-slate-100 hover:bg-slate-200/80 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-slate-200/80 dark:border-zinc-800 shadow-2xs active:scale-95 cursor-pointer"
             >
               <LogIn size={14} className="shrink-0" />
               <span className="hidden sm:inline">Login with VTOP</span>
-            </Link>
+            </button>
             {mounted && <ThemeToggle />}
           </div>
         </div>
@@ -211,14 +213,14 @@ export default function FriendFinderPageView() {
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-            <Link
-              href={`/?${SIGN_IN_PARAM}=1`}
-              onClick={() => prepareSignIn("/friend-finder")}
+            <button
+              type="button"
+              onClick={() => setShowLoginModal(true)}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white font-bold px-7 py-3.5 text-sm shadow-xl shadow-indigo-500/25 transition-all cursor-pointer"
             >
               <LogIn className="w-4 h-4" />
               <span>Sign in with VTOP to Discover</span>
-            </Link>
+            </button>
 
             <Link
               href="/friend-finder/disclaimer"
@@ -366,14 +368,14 @@ export default function FriendFinderPageView() {
 
             {/* Action Banner */}
             <div className="pt-2">
-              <Link
-                href={`/?${SIGN_IN_PARAM}=1`}
-                onClick={() => prepareSignIn("/friend-finder")}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white font-bold py-3 text-xs shadow-md transition-all"
+              <button
+                type="button"
+                onClick={() => setShowLoginModal(true)}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white font-bold py-3 text-xs shadow-md transition-all cursor-pointer"
               >
                 <LogIn className="w-4 h-4" />
                 <span>Sign in with VTOP to see your actual classmates</span>
-              </Link>
+              </button>
             </div>
           </div>
         </div>
@@ -475,6 +477,13 @@ export default function FriendFinderPageView() {
           </div>
         </div>
       </footer>
+
+      {/* VTOP Sync Engine Login Modal */}
+      <FriendFinderLoginModal
+        open={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onSuccess={() => setShowLoginModal(false)}
+      />
     </div>
   );
 }

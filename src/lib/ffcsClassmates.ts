@@ -17,7 +17,7 @@ import { apiRequest } from "@/lib/sync-engine/request-layer";
 // to `auth: "vtop"` requests. Without it every call left with no session.
 import { credentialManager } from "@/lib/sync-engine/credential-manager";
 import { AuthError } from "@/lib/sync-engine/errors";
-import { getActiveRegNumber } from "@/lib/activeIdentity";
+import { getActiveRegNumber } from "@/lib/social/identity";
 import type { FFCSSemesterId } from "@/lib/ffcsReports";
 
 export type ClassmateSource = "planned" | "registered";

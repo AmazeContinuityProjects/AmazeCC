@@ -139,6 +139,8 @@ export default function FriendFinderLoginModal({ open, onClose, onSuccess }: Fri
       storage.ids.set({
         VtopUsername: cleanUsername,
         VtopPassword: password,
+        MoodleUsername: storage.moodleUsername.get() || "",
+        MoodlePassword: storage.moodlePassword.get() || "",
       });
       storage.username.set(cleanUsername);
       storage.password.set(password);
