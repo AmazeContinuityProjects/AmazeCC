@@ -4,6 +4,7 @@ import { SEARCH_FIELD, TILE_INTERACTIVE_ROW } from "@/lib/uiTokens";
 import { formatSemesterName } from "@/lib/formatSemesterName";
 import { loadFrozenPastSemesters } from "@/lib/pastDataSync";
 import { BookOpen, Search, ChevronRight, GraduationCap, History, Sparkles } from "lucide-react";
+import { clickable } from "@/lib/a11y";
 
 /** The four course-type pills above the list. Ordered, so `ChipTabs` scrolls rather than wraps. */
 type CourseTypeFilter = "all" | "theory" | "lab" | "embedded";
@@ -580,7 +581,7 @@ export default function SimplifiedAcademicsPage({
     return (
       <div
         key={course.courseCode}
-        onClick={() => handleCourseClick(course.courseCode)}
+        {...clickable(() => handleCourseClick(course.courseCode))}
         className={`${TILE_INTERACTIVE_ROW} hover:border-indigo-500/40 dark:hover:border-indigo-500/40 duration-200 group select-none`}
       >
         {/* Left Column: Clean Icon + Course Code, Title & Subtitle */}

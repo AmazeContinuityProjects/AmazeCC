@@ -84,6 +84,7 @@ import AutoSocialCard from "./guided/AutoSocialCard";
 import AutoTimetableViewCard from "./guided/AutoTimetableViewCard";
 import AutoTimingsCard from "./guided/AutoTimingsCard";
 import AutoBlockingCard from "./guided/AutoBlockingCard";
+import { clickable } from "@/lib/a11y";
 
 // Fetched only when the student actually opens the swap sheet, not when the
 // guided flow itself loads.
@@ -1412,10 +1413,10 @@ export default function FFCSGuidedSelector({
           return (
             <div
               key={tt.id}
-              onClick={() => {
+              {...clickable(() => {
                 setSelectedTimetableId(tt.id);
                 if (onSelectTimetable) onSelectTimetable(tt.id);
-              }}
+              })}
               className={`w-full p-3.5 sm:p-4 rounded-2xl border text-left transition-all cursor-pointer flex items-center justify-between gap-3 group ${
                 isSelected
                   ? "bg-indigo-600/15 border-indigo-500 text-white shadow-md ring-1 ring-indigo-500/40"
@@ -1867,7 +1868,7 @@ export default function FFCSGuidedSelector({
             return (
               <div
                 key={c.code}
-                onClick={() => {
+                {...clickable(() => {
                   if (isSelected) {
                     updateCourseLocks((prev) => prev.filter((l) => l.code !== c.code));
                     if (expandedCourseForAuto === c.code) setExpandedCourseForAuto(null);
@@ -1877,7 +1878,7 @@ export default function FFCSGuidedSelector({
                       { code: c.code, title: c.title, allowedSlots: [], allowedFaculty: [] },
                     ]);
                   }
-                }}
+                })}
                 className={`p-3 sm:p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col gap-2 group ${
                   isSelected
                     ? "bg-indigo-600/15 border-indigo-500 text-white shadow-md ring-1 ring-indigo-500/40"
@@ -2463,7 +2464,7 @@ export default function FFCSGuidedSelector({
                   return (
                     <div
                       key={fac.name}
-                      onClick={() => handleToggleLockFaculty(currentCode, fac.name)}
+                      {...clickable(() => handleToggleLockFaculty(currentCode, fac.name))}
                       className={`p-2.5 sm:p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-2.5 ${
                         checked
                           ? "bg-indigo-600/15 border-indigo-500 text-white shadow-xs ring-1 ring-indigo-500/30"

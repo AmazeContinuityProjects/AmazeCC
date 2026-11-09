@@ -3,6 +3,7 @@ import { getDay } from "date-fns";
 import { AnimatePresence, m } from "framer-motion";
 import { CheckCircle2, FileText } from "lucide-react";
 import BottomSheet from "../shared/BottomSheet";
+import { clickable } from "@/lib/a11y";
 
 export default function AttendanceCalendarView({ analyzeCalendars, historyList, notesTracker, toggleNotes, courseCode, isOverall, toggleIndividualNote, isODTracker = false, compact = false }) {
     const [activeIdx, setActiveIdx] = useState(0);
@@ -293,7 +294,7 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
                                 return (
                                     <div
                                         key={date}
-                                        onClick={() => { if (isOverall && isMissed) setSelectedOverallDate(entry); }}
+                                        {...clickable(() => { if (isOverall && isMissed) setSelectedOverallDate(entry); })}
                                         className={`relative flex flex-col p-1.5 h-16 sm:h-20 border-b border-gray-100  dark:border-gray-800/50 transition-all ${bgClass} ${isLastCol ? '' : 'border-r'} ${isOverall && isMissed ? 'cursor-pointer hover:shadow-inner' : ''}`}
                                     >
                                         <div className="w-full flex justify-between items-start">

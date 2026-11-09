@@ -61,6 +61,7 @@ import {
   type PostHogConversationMessage,
 } from "@/lib/posthog";
 import { getActiveDisplayName, getActiveRegNumber } from "@/lib/social/identity";
+import { clickable } from "@/lib/a11y";
 
 export type ReportCategory = "bug" | "feature" | "experience" | "other";
 
@@ -1974,7 +1975,7 @@ export default function FeedbackReportPage({
                   {tickets.map((t) => (
                     <div
                       key={t.id}
-                      onClick={() => openTicketThread(t)}
+                      {...clickable(() => openTicketThread(t))}
                       className="p-4 hover:bg-surface-tertiary transition-colors cursor-pointer flex items-center justify-between gap-4"
                     >
                       <div className="min-w-0 space-y-1">

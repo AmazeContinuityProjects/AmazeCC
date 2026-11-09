@@ -52,6 +52,7 @@ import {
   Snowflake,
   Zap,
 } from "lucide-react";
+import { clickable } from "@/lib/a11y";
 
 /** The four attendance targets the picker offers, and their option values. */
 const THRESHOLD_OPTIONS = [75, 80, 85, 90] as const;
@@ -667,7 +668,7 @@ export default function OverallAttendancePredictor({
               return (
                 <div
                   key={time || i}
-                  onClick={() => toggleDayState(d.date)}
+                  {...clickable(() => toggleDayState(d.date))}
                   aria-pressed={state === 1}
                   className={`group relative flex flex-col items-center justify-between p-2.5 rounded-2xl border text-center transition-all duration-200 cursor-pointer select-none active:scale-95 ${
                     state === 1

@@ -16,6 +16,7 @@ import type { TimetableState } from "@/lib/ffcsTypes";
 import { getTimetableSchema } from "@/lib/campusSchema";
 import { DAYS_OF_WEEK } from "@/lib/slots";
 import { dayOccupancy, formatHours } from "@/lib/timetableMetrics";
+import { clickable } from "@/lib/a11y";
 
 export type GeneratorStatTile = {
   id: string;
@@ -232,7 +233,7 @@ export const StagedCard = memo(function StagedCard({
   return (
     <div
       className={`relative flex flex-col bg-surface rounded-2xl border-2 transition-all cursor-pointer overflow-hidden ${selectedIds.has(tt.id) ? "border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.2)]" : "border-border-strong hover:border-amber-500/50 hover:shadow-lg"}`}
-      onClick={() => {
+      {...clickable(() => {
         const newSet = new Set(selectedIds);
         if (newSet.has(tt.id)) {
           newSet.delete(tt.id);
@@ -242,7 +243,7 @@ export const StagedCard = memo(function StagedCard({
           if (tt.variants) tt.variants.forEach((v) => newSet.add(v.id));
         }
         setSelectedIds(newSet);
-      }}
+      })}
       onDoubleClick={(e) => {
         e.preventDefault();
         onPreview(tt);
@@ -423,7 +424,7 @@ export const StagedCard = memo(function StagedCard({
                 return (
                   <div
                     key={v.id}
-                    onClick={(e) => {
+                    {...clickable((e) => {
                       e.stopPropagation();
                       const newSet = new Set(selectedIds);
                       if (isSelected) newSet.delete(v.id);
@@ -433,7 +434,7 @@ export const StagedCard = memo(function StagedCard({
                       if (!isSelected && !newSet.has(tt.id)) newSet.add(tt.id);
 
                       setSelectedIds(newSet);
-                    }}
+                    })}
                     className={`flex items-center justify-between p-2 rounded-lg border text-xs cursor-pointer transition-colors ${isSelected ? "bg-amber-500/10 border-amber-500/50 text-text-heading" : "bg-surface border-border-strong text-muted-foreground hover:border-amber-500/30"}`}
                   >
                     <span className="font-medium">Variant {vIdx + 1}</span>

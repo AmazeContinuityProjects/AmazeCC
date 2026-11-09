@@ -5,6 +5,7 @@ import { Building2, Clock, User, FileText, CheckCircle2, Minus, Plus } from "luc
 import EmptyState from "../shared/EmptyState";
 import { findOfficialOdWhy } from "@/lib/officialOd";
 import { getTargetAttendancePct } from "@/store/settingsAtoms";
+import { clickable } from "@/lib/a11y";
 
 export interface DesktopCourseDetailProps {
   a?: any;
@@ -275,11 +276,11 @@ export default function DesktopCourseDetail({
                   <Minus className="w-3 h-3 text-gray-655 dark:text-gray-300" />
                 </button>
                 <span
-                  onClick={() => {
+                  {...clickable(() => {
                     if (simulatedSkips !== 0) {
                       handleSimulateSkipsChange(0);
                     }
-                  }}
+                  })}
                   className={`text-xs font-bold w-4 text-center select-none ${
                     simulatedSkips !== 0
                       ? "cursor-pointer hover:text-red-500 hover:scale-110 active:scale-95 transition-all text-blue-605 dark:text-blue-400 font-extrabold"

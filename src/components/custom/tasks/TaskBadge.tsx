@@ -4,10 +4,11 @@ import React from "react";
 import { Layers } from "lucide-react";
 import type { ClassTaskSummary } from "@/lib/taskMatch";
 import { KIND_CONFIG } from "./TaskCard";
+import { clickable } from "@/lib/a11y";
 
 interface TaskBadgeProps {
   summary: ClassTaskSummary;
-  onClick?: (e: React.MouseEvent) => void;
+  onClick?: (e: React.SyntheticEvent) => void;
   className?: string;
   /** Shorten labels ("DA today") for cramped cards */
   compact?: boolean;
@@ -59,10 +60,10 @@ export default function TaskBadge({
 
   return (
     <span
-      onClick={(e) => {
+      {...clickable((e) => {
         e.stopPropagation();
         onClick?.(e);
-      }}
+      })}
       className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-bold border shrink-0 transition-all ${colorClass} ${className}`}
     >
       <Icon className="w-3 h-3 shrink-0" />

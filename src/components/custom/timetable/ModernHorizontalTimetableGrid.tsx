@@ -4,6 +4,7 @@ import { type AddedCourse, type GapDetail, type TimetablePeriod } from "@amazeco
 import { cn } from "@/lib/utils";
 import { COLOR_HEX_MAP } from "@/lib/ffcsConstants";
 import { ensureLunchPeriod, expandSlotSpellings, hasSlot, ownSlotSpelling, timeToMinutes } from "@/lib/slots";
+import { clickable } from "@/lib/a11y";
 
 const DEFAULT_DAYS: { id: string; name: string }[] = [
   { id: "mon", name: "Monday" },
@@ -246,7 +247,7 @@ export default function ModernHorizontalTimetableGrid({
                     if (isBlocked) {
                       return (
                         <div
-                          onClick={() => onToggleBlockSlot?.(slotName)}
+                          {...clickable(() => onToggleBlockSlot?.(slotName))}
                           title={`Blocked slot (${slotName}). Click to unblock.`}
                           className={cn(
                             "h-[38px] p-1 rounded-md flex flex-col items-center justify-center relative transition-all duration-200 border border-red-500/30 dark:border-red-500/40",
@@ -266,7 +267,7 @@ export default function ModernHorizontalTimetableGrid({
                         COLOR_HEX_MAP[course.color] || (course.color?.startsWith("#") ? course.color : "#2563eb");
                       return (
                         <div
-                          onClick={() => onToggleBlockSlot?.(slotName)}
+                          {...clickable(() => onToggleBlockSlot?.(slotName))}
                           className={cn(
                             "h-[38px] p-1.5 rounded-md flex flex-col justify-between relative transition-all duration-200 group/tile",
                             onToggleBlockSlot && "cursor-pointer",
@@ -308,7 +309,7 @@ export default function ModernHorizontalTimetableGrid({
                     if (inGap) {
                       return (
                         <div
-                          onClick={() => onToggleBlockSlot?.(slotName)}
+                          {...clickable(() => onToggleBlockSlot?.(slotName))}
                           className={cn(
                             "h-[38px] p-1 rounded-md flex items-center justify-center border border-yellow-500/40 bg-yellow-500/10 text-yellow-700 dark:text-yellow-300 animate-pulse text-[10px] font-bold",
                             onToggleBlockSlot && "cursor-pointer",
@@ -321,7 +322,7 @@ export default function ModernHorizontalTimetableGrid({
 
                     return (
                       <div
-                        onClick={() => onToggleBlockSlot?.(slotName)}
+                        {...clickable(() => onToggleBlockSlot?.(slotName))}
                         title={onToggleBlockSlot ? `Slot ${slotName}. Click to rule out.` : `Slot ${slotName}`}
                         className={cn(
                           "h-[38px] p-1 rounded-md flex items-center justify-center border border-dashed border-slate-300/80 dark:border-white/5 transition-all duration-200",

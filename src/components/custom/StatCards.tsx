@@ -1,3 +1,4 @@
+import { clickable } from "@/lib/a11y";
 "use client";
 
 
@@ -106,7 +107,7 @@ export default function StatsCards({
           <div
             key={card.key}
             className={`${cardBase} bg-white  dark:bg-black dark:border dark:border-gray-800`}
-            onClick={card.onClick}
+            {...clickable(card.onClick)}
           >
             <h2 className="text-xs font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit">
               {card.label}
