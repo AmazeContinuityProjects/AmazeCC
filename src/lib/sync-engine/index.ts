@@ -5,6 +5,7 @@ import { resolveMode, loadCustomModes, foregroundSteps, backgroundSteps, type Sy
 import { toEngineError } from "./errors";
 import { storage } from "../storage";
 import { clearSyncFailure, recordSyncFailure, recordSyncTime } from "../syncTimes";
+import { setVtopState } from "../vtopStatus";
 import type { Ids, VtopCreds, ProgressEvent } from "./types";
 
 import { apiRequest, cancelAllRequests, resetActiveSignal } from "./request-layer";
@@ -145,6 +146,8 @@ class SyncEngine {
       if (!storage.demoMode.get()) {
         recordSyncTime(name);
         clearSyncFailure(name);
+        // A VTOP-backed op just worked, so VTOP is up.
+        if (op.auth === "vtop") setVtopState("up");
       }
       emit({ op: name, phase: "done" });
       return result;

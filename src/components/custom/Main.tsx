@@ -63,6 +63,7 @@ import { useRouter } from "next/navigation";
 import { clearSignInReturn, peekSignInReturn, VTOP_LOGIN_EVENT } from "@/lib/signInReturn";
 import { credentialManager } from "@/lib/sync-engine/credential-manager";
 import { hasStoredVtopCredentials } from "./app/readBootstrapSnapshot";
+import ConnectionBanner from "./shared/ConnectionBanner";
 
 interface MainProps {
   initialIntent?: "login" | "demo";
@@ -489,6 +490,7 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
             />
           )}
 
+          <ConnectionBanner enabled={isLoggedIn && !demoMode} />
           <AuthenticatedWorkspace
             handleLogOutRequest={handleLogOutRequest}
             handleReloadRequest={handleReloadRequest}
