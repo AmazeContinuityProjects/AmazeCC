@@ -30,7 +30,6 @@ import {
   LogIn,
   LogOut,
   MapPin,
-  Pencil,
   RefreshCw,
   Share2,
   ShieldCheck,
@@ -59,9 +58,11 @@ import { storage } from "@/lib/storage";
 import { hasStoredVtopCredentials } from "@/components/custom/app/readBootstrapSnapshot";
 import { getAssetPath } from "@/lib/utils";
 import { syncCurrentUserPostHogIdentity, trackFeatureUsage } from "@/lib/posthog";
+import { getActiveRegNumber } from "@/lib/social/identity";
 import ThemeToggle from "@/components/custom/ThemeToggle";
 import { GHOST_BUTTON, LIST_ROW, LIST_SHELL, TILE_CARD, TONE_ICON_TILE } from "@/lib/uiTokens";
 import {
+  IconButton,
   ListSkeleton,
   PageShell,
   RadioGroup,
@@ -241,6 +242,124 @@ export function getOverlapForPerson(p: ClassmatePerson, state: ClassmatesState |
   };
 }
 
+export interface ClassEntryPerson extends ClassmatePerson {
+  enrollmentRole: "both" | "theory" | "lab" | "single";
+}
+
+export interface ClassEntry {
+  id: string;
+  classIds: string[];
+  isPaired: boolean;
+  code: string;
+  title: string;
+  type: string;
+  credits: string;
+  slot: string;
+  room: string;
+  faculty: string;
+  people: ClassEntryPerson[];
+  theorySection?: ClassmateSection;
+  labSection?: ClassmateSection;
+  singleSection?: ClassmateSection;
+}
+
+export function buildClassEntries(sections: ClassmateSection[], embeddedMap: EmbeddedPairingMap): ClassEntry[] {
+  const entries: ClassEntry[] = [];
+  const handledClassIds = new Set<string>();
+
+  for (const s of sections) {
+    if (handledClassIds.has(s.classId)) continue;
+
+    const counterpart = embeddedMap.counterparts.get(s.classId);
+    const role = embeddedMap.roles.get(s.classId);
+
+    if (counterpart && role && !handledClassIds.has(counterpart.classId)) {
+      // Paired entry: merge ETH and ELA into ONE single entry
+      const theory = role === "theory" ? s : counterpart;
+      const lab = role === "theory" ? counterpart : s;
+
+      handledClassIds.add(theory.classId);
+      handledClassIds.add(lab.classId);
+
+      const peopleMap = new Map<string, ClassEntryPerson>();
+
+      for (const tp of theory.people) {
+        const inLab = isPersonInCounterpart(tp, lab);
+        peopleMap.set(tp.handle, {
+          ...tp,
+          enrollmentRole: inLab ? "both" : "theory",
+        });
+      }
+
+      for (const lp of lab.people) {
+        if (!peopleMap.has(lp.handle)) {
+          peopleMap.set(lp.handle, {
+            ...lp,
+            enrollmentRole: "lab",
+          });
+        }
+      }
+
+      const tOff = theory.offering;
+      const lOff = lab.offering;
+
+      const code = tOff?.code || lOff?.code || theory.classId;
+      const title = tOff?.title || lOff?.title || theory.classId;
+      const tCred = parseInt(tOff?.credits || "0", 10) || 0;
+      const lCred = parseInt(lOff?.credits || "0", 10) || 0;
+      const totalCredits = tCred + lCred > 0 ? String(tCred + lCred) : tOff?.credits || lOff?.credits || "";
+
+      const faculty =
+        tOff?.faculty && lOff?.faculty && tOff.faculty.toUpperCase() === lOff.faculty.toUpperCase()
+          ? tOff.faculty
+          : [tOff?.faculty, lOff?.faculty].filter(Boolean).map(displayName).join(" / ");
+
+      // Slots shown together, e.g. "F1+TF1 + L23+L24"
+      const slotParts = [tOff?.slot, lOff?.slot].filter(Boolean);
+      const slot = slotParts.join(" + ");
+      const roomParts = [tOff?.room, lOff?.room].filter(Boolean);
+      const room = roomParts[0] === roomParts[1] ? roomParts[0] : roomParts.join(" / ");
+
+      entries.push({
+        id: theory.classId,
+        classIds: [theory.classId, lab.classId],
+        isPaired: true,
+        code,
+        title,
+        type: "Embedded",
+        credits: totalCredits,
+        slot,
+        room,
+        faculty,
+        people: Array.from(peopleMap.values()),
+        theorySection: theory,
+        labSection: lab,
+      });
+    } else if (!counterpart) {
+      // Standalone section
+      handledClassIds.add(s.classId);
+      const o = s.offering;
+
+      entries.push({
+        id: s.classId,
+        classIds: [s.classId],
+        isPaired: false,
+        code: o?.code || s.classId,
+        title: o?.title || s.classId,
+        type: o?.type || "",
+        credits: o?.credits || "",
+        slot: o?.slot || "",
+        room: o?.room || "",
+        faculty: o?.faculty || "",
+        people: s.people.map((p) => ({ ...p, enrollmentRole: "single" })),
+        singleSection: s,
+      });
+    }
+  }
+
+  return entries.sort((a, b) => b.people.length - a.people.length || a.code.localeCompare(b.code));
+}
+
 function PersonChip({
   person,
   onClick,
@@ -369,20 +488,15 @@ function InviteButton({ className = "" }: { className?: string }) {
 }
 
 function SectionCard({
-  section,
+  entry,
   onClick,
-  pairedSection,
-  role,
   onPersonClick,
 }: {
-  section: ClassmateSection;
+  entry: ClassEntry;
   onClick?: () => void;
-  pairedSection?: ClassmateSection | null;
-  role?: "theory" | "lab" | null;
   onPersonClick?: (person: ClassmatePerson) => void;
 }) {
-  const o = section.offering;
-  const count = section.people.length;
+  const count = entry.people.length;
   return (
     <div
       role={onClick ? "button" : undefined}
@@ -403,50 +517,41 @@ function SectionCard({
           <BookOpen className="w-4 h-4" />
         </span>
         <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <p className="text-sm font-bold text-text-heading leading-snug min-w-0">
-              {o ? (
-                <>
-                  <span className="font-outfit font-black tracking-tight">{o.code}</span>
-                  <span className="text-muted-foreground font-medium"> · </span>
-                  {o.title.replace(/\s+-\s*|-\s+/g, "-")}
-                </>
-              ) : (
-                section.classId
-              )}
-            </p>
-            <div className="flex items-center gap-1.5 shrink-0">
-              <ToneBadge size="sm" tone={count ? "indigo" : "zinc"}>
-                {count ? `${count} ${count === 1 ? "classmate" : "classmates"}` : "No one yet"}
-              </ToneBadge>
-              {onClick && <ChevronRight className="w-4 h-4 text-zinc-400" />}
-            </div>
-          </div>
-          {o ? (
-            <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-              <span className="inline-flex items-center gap-1">
-                <Clock className="w-3 h-3" /> {o.slot}
-              </span>
-              <span className="inline-flex items-center gap-1 min-w-0">
-                <UserRound className="w-3 h-3 shrink-0" />
-                <span className="truncate">{displayName(o.faculty)}</span>
-              </span>
-              <span className="uppercase tracking-wide text-[10px] font-bold">{o.type}</span>
-              {pairedSection?.offering && (
-                <span className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-1.5 py-0.5 rounded border border-indigo-200 dark:border-indigo-800/40">
-                  Paired with {pairedSection.offering.type} ({pairedSection.offering.slot})
-                </span>
-              )}
-            </p>
-          ) : null}
+          <p className="text-sm font-bold text-text-heading leading-snug">
+            <span className="font-outfit font-black tracking-tight">{entry.code}</span>
+            <span className="text-muted-foreground font-medium"> · </span>
+            {entry.title.replace(/\s+-\s*|-\s+/g, "-")}
+          </p>
+          <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1">
+              <Clock className="w-3 h-3" /> {entry.slot}
+            </span>
+            <span className="inline-flex items-center gap-1 min-w-0">
+              <UserRound className="w-3 h-3 shrink-0" />
+              <span className="truncate">{displayName(entry.faculty)}</span>
+            </span>
+            <span className="uppercase tracking-wide text-[10px] font-bold">{entry.type}</span>
+          </p>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0 self-center pl-1">
+          <span
+            aria-label={`${count} ${count === 1 ? "classmate" : "classmates"}`}
+            title={`${count} ${count === 1 ? "classmate" : "classmates"}`}
+            className={`text-2xl sm:text-3xl font-black font-outfit tracking-tight leading-none ${
+              count ? "text-indigo-600 dark:text-indigo-400" : "text-zinc-300 dark:text-zinc-600"
+            }`}
+          >
+            {count}
+          </span>
+          {onClick && <ChevronRight className="w-4 h-4 text-zinc-400 shrink-0" />}
         </div>
       </div>
       {count ? (
         <div className="flex flex-wrap gap-1.5 sm:pl-[52px]">
-          {section.people.map((p) => {
-            const inPaired = pairedSection ? isPersonInCounterpart(p, pairedSection) : true;
-            const isMarked = pairedSection ? !inPaired : false;
-            const markLabel = isMarked ? (role === "theory" ? "ETH only" : "ELA only") : undefined;
+          {entry.people.map((p) => {
+            const isMarked = p.enrollmentRole === "theory" || p.enrollmentRole === "lab";
+            const markLabel =
+              p.enrollmentRole === "theory" ? "ETH only" : p.enrollmentRole === "lab" ? "ELA only" : undefined;
 
             return (
               <PersonChip
@@ -485,24 +590,17 @@ function AmazeCCLogoLeading() {
   return (
     <Link
       href="/"
-      className="inline-flex items-center gap-2.5 group transition-transform active:scale-95 py-0.5"
+      className="inline-flex items-center transition-transform active:scale-95 py-0.5"
       title="AmazeCC Home"
+      aria-label="AmazeCC Home"
     >
       <img
         loading="lazy"
         decoding="async"
         src={getAssetPath("/favicon/favicon.svg")}
         alt="AmazeCC"
-        className="h-8 w-8 object-contain"
+        className="h-9 w-9 sm:h-10 sm:w-10 object-contain"
       />
-      <div className="flex items-center gap-2">
-        <span className="text-base sm:text-lg font-black tracking-tight font-outfit text-zinc-900 dark:text-white">
-          AmazeCC <span className="text-indigo-600 dark:text-indigo-400">Friend Finder</span>
-        </span>
-        <span className="hidden sm:inline-flex items-center text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20">
-          Winter 26-27
-        </span>
-      </div>
     </Link>
   );
 }
@@ -559,10 +657,31 @@ export default function FriendFinderTab({
   const [reauthing, setReauthing] = useState(false);
   const [editing, setEditing] = useState(false);
   const [confirmingRemove, setConfirmingRemove] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const [grouping, setGrouping] = useState<"classes" | "friends">("classes");
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
   const [selectedFriend, setSelectedFriend] = useState<ClassmateOverlap | null>(null);
+
+  const handleShare = useCallback(async () => {
+    const text =
+      "Check who's in your classes on AmazeCC Friend Finder — see everyone who picked the same faculty and slots as you:";
+    const url = `${typeof window !== "undefined" ? window.location.origin : ""}${CLASSMATES_PATH}`;
+    if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+      try {
+        await navigator.share({ title: "Find classmates", text, url });
+        return;
+      } catch (err) {
+        if ((err as Error)?.name === "AbortError") return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(`${text}\n${url}`);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {}
+  }, []);
 
   const { target: reviewTarget, open: openFacultyReview, close: closeFacultyReview } = useFacultyReviewSheet();
 
@@ -668,22 +787,20 @@ export default function FriendFinderTab({
     return m;
   }, [state]);
 
-  const sortedSections = useMemo(
-    () =>
-      [...(state?.sections ?? [])].sort(
-        (a, b) =>
-          b.people.length - a.people.length ||
-          (a.offering?.code ?? a.classId).localeCompare(b.offering?.code ?? b.classId),
-      ),
-    [state],
-  );
-
-  const selectedSection = useMemo(
-    () => (selectedClassId ? (state?.sections.find((s) => s.classId === selectedClassId) ?? null) : null),
-    [selectedClassId, state],
-  );
-
   const embeddedMap = useMemo(() => buildEmbeddedPairMap(state?.sections ?? []), [state?.sections]);
+
+  const classEntries = useMemo(
+    () => buildClassEntries(state?.sections ?? [], embeddedMap),
+    [state?.sections, embeddedMap],
+  );
+
+  const selectedEntry = useMemo(
+    () =>
+      selectedClassId
+        ? (classEntries.find((e) => e.id === selectedClassId || e.classIds.includes(selectedClassId)) ?? null)
+        : null,
+    [selectedClassId, classEntries],
+  );
 
   const handlePersonClick = useCallback(
     (person: ClassmatePerson) => {
@@ -693,17 +810,168 @@ export default function FriendFinderTab({
     [state],
   );
 
-  const pairedSection = useMemo(
-    () => (selectedClassId ? (embeddedMap.counterparts.get(selectedClassId) ?? null) : null),
-    [selectedClassId, embeddedMap],
-  );
-  const currentRole = useMemo(
-    () => (selectedClassId ? (embeddedMap.roles.get(selectedClassId) ?? null) : null),
-    [selectedClassId, embeddedMap],
-  );
+  const renderProfileBottomSheet = () => {
+    if (!isProfileOpen || !state?.me) return null;
+    const me = state.me;
+    const myRegNo = (me as any).regNo || getActiveRegNumber();
+
+    return (
+      <BottomSheet
+        overlayId="profile-sheet"
+        onClose={() => {
+          setIsProfileOpen(false);
+          setConfirmingRemove(false);
+        }}
+        title="Your Profile"
+        subtitle="Friend Finder status & settings"
+        icon={<Avatar person={{ handle: me.handle, name: me.name }} size="sm" />}
+      >
+        <div className="space-y-4 p-1">
+          {/* User Details Card */}
+          <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-border-subtle space-y-3">
+            <div className="flex items-center gap-3">
+              <Avatar person={{ handle: me.handle, name: me.name }} size="md" />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h4 className="text-base font-bold text-text-heading truncate">{displayName(me.name)}</h4>
+                  {me.source === "registered" ? <VerifiedTick /> : null}
+                </div>
+                <p className="text-xs text-muted-foreground truncate">
+                  {myRegNo ? <span>{myRegNo}</span> : <span>{me.handle}</span>}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <div className="p-2.5 rounded-xl bg-white dark:bg-zinc-900/60 border border-border-subtle/60">
+                <span className="block text-[11px] font-medium text-muted-foreground">Classes Shared</span>
+                <span className="text-xs font-bold text-text-heading">
+                  {me.classIds.length} {me.classIds.length === 1 ? "class" : "classes"}
+                </span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-white dark:bg-zinc-900/60 border border-border-subtle/60">
+                <span className="block text-[11px] font-medium text-muted-foreground">Status</span>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <ToneBadge size="sm" tone={me.source === "registered" ? "emerald" : "indigo"}>
+                    {me.source === "registered" ? "Verified" : "Planned"}
+                  </ToneBadge>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Visibility Switch */}
+          <div className="flex items-center justify-between p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-border-subtle">
+            <div>
+              <p className="text-xs font-bold text-text-heading">Visible to classmates</p>
+              <p className="text-[11px] text-muted-foreground">
+                {me.discoverable ? "Others in your sections can find you" : "You are hidden from everyone"}
+              </p>
+            </div>
+            <Switch
+              size="md"
+              checked={me.discoverable}
+              disabled={busy}
+              label="Visible to classmates"
+              onCheckedChange={(on) => void run({ op: "visibility", discoverable: on }, "action")}
+            />
+          </div>
+
+          {/* Menu item to leave */}
+          <div>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                if (confirmingRemove) {
+                  setIsProfileOpen(false);
+                  void run({ op: "leave" }, "action");
+                } else {
+                  setConfirmingRemove(true);
+                }
+              }}
+              onBlur={() => setConfirmingRemove(false)}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+                confirmingRemove
+                  ? "!bg-red-500 !text-white hover:!bg-red-600 shadow-sm"
+                  : "!bg-red-500/10 !text-red-600 dark:!text-red-400 hover:!bg-red-500/15 border border-red-500/20"
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <LogOut className="w-4 h-4" />
+                {confirmingRemove ? "Tap again to remove" : "Remove me"}
+              </span>
+              <ChevronRight className="w-4 h-4 opacity-70" />
+            </button>
+          </div>
+        </div>
+      </BottomSheet>
+    );
+  };
 
   const renderFriendBottomSheet = () => {
     if (!selectedFriend || !state) return null;
+
+    const sharedEntries: {
+      entry: ClassEntry;
+      roleBadge: React.ReactNode;
+    }[] = [];
+    const seenEntryIds = new Set<string>();
+
+    for (const classId of selectedFriend.sharedClassIds) {
+      const entry = classEntries.find((e) => e.classIds.includes(classId));
+      if (!entry) {
+        const rawSec = state.sections.find((s) => s.classId === classId);
+        if (rawSec && !seenEntryIds.has(rawSec.classId)) {
+          seenEntryIds.add(rawSec.classId);
+          sharedEntries.push({
+            entry: {
+              id: rawSec.classId,
+              classIds: [rawSec.classId],
+              isPaired: false,
+              code: rawSec.offering?.code || rawSec.classId,
+              title: rawSec.offering?.title || rawSec.classId,
+              type: rawSec.offering?.type || "",
+              credits: rawSec.offering?.credits || "",
+              slot: rawSec.offering?.slot || "",
+              room: rawSec.offering?.room || "",
+              faculty: rawSec.offering?.faculty || "",
+              people: rawSec.people.map((p) => ({ ...p, enrollmentRole: "single" })),
+              singleSection: rawSec,
+            },
+            roleBadge: null,
+          });
+        }
+        continue;
+      }
+
+      if (seenEntryIds.has(entry.id)) continue;
+      seenEntryIds.add(entry.id);
+
+      let roleBadge: React.ReactNode = null;
+      if (entry.isPaired) {
+        const hasTheory = entry.theorySection && selectedFriend.sharedClassIds.includes(entry.theorySection.classId);
+        const hasLab = entry.labSection && selectedFriend.sharedClassIds.includes(entry.labSection.classId);
+        if (hasTheory && !hasLab) {
+          roleBadge = (
+            <ToneBadge size="sm" tone="amber">
+              ETH only · Lab differs
+            </ToneBadge>
+          );
+        } else if (!hasTheory && hasLab) {
+          roleBadge = (
+            <ToneBadge size="sm" tone="amber">
+              ELA only · Theory differs
+            </ToneBadge>
+          );
+        }
+      }
+
+      sharedEntries.push({ entry, roleBadge });
+    }
+
+    const sharedCount = sharedEntries.length;
+
     return (
       <BottomSheet
         overlayId="friend-sheet"
@@ -711,35 +979,29 @@ export default function FriendFinderTab({
         title={displayName(selectedFriend.name) || selectedFriend.handle}
         subtitle={
           selectedFriend.regNo
-            ? `${selectedFriend.regNo} · ${selectedFriend.shared} ${selectedFriend.shared === 1 ? "class" : "classes"} in common`
-            : `${selectedFriend.shared} ${selectedFriend.shared === 1 ? "class" : "classes"} in common`
+            ? `${selectedFriend.regNo} · ${sharedCount} ${sharedCount === 1 ? "class" : "classes"} in common`
+            : `${sharedCount} ${sharedCount === 1 ? "class" : "classes"} in common`
         }
         icon={<Avatar person={selectedFriend} size="sm" />}
       >
         <div className="space-y-3 p-1">
           <p className="text-xs font-semibold text-muted-foreground px-1">Classes in common (tap to view details)</p>
           <div className={LIST_SHELL}>
-            {selectedFriend.sharedClassIds.map((classId) => {
-              const section = state.sections.find((s) => s.classId === classId);
-              const o = section?.offering;
-              const counterpart = section ? embeddedMap.counterparts.get(section.classId) : null;
-              const role = section ? embeddedMap.roles.get(section.classId) : null;
-              const friendInBoth = counterpart ? selectedFriend.sharedClassIds.includes(counterpart.classId) : true;
-
+            {sharedEntries.map(({ entry, roleBadge }) => {
               return (
                 <div
-                  key={classId}
+                  key={entry.id}
                   role="button"
                   tabIndex={0}
                   onClick={() => {
                     setSelectedFriend(null);
-                    setSelectedClassId(classId);
+                    setSelectedClassId(entry.id);
                   }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
                       setSelectedFriend(null);
-                      setSelectedClassId(classId);
+                      setSelectedClassId(entry.id);
                     }
                   }}
                   className={`${LIST_ROW} cursor-pointer hover:bg-zinc-50/70 dark:hover:bg-zinc-800/40 transition-all`}
@@ -752,32 +1014,21 @@ export default function FriendFinderTab({
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <p className="text-sm font-bold text-text-heading truncate">
-                        {o ? `${o.code} · ${o.title.replace(/\s+-\s*|-\s+/g, "-")}` : classId}
+                        {`${entry.code} · ${entry.title.replace(/\s+-\s*|-\s+/g, "-")}`}
                       </p>
-                      {counterpart &&
-                        (friendInBoth ? (
-                          <ToneBadge size="sm" tone="emerald">
-                            Both ETH + ELA
-                          </ToneBadge>
-                        ) : (
-                          <ToneBadge size="sm" tone="amber">
-                            {role === "theory" ? "ETH only · Lab differs" : "ELA only · Theory differs"}
-                          </ToneBadge>
-                        ))}
+                      {roleBadge}
                     </div>
-                    {o ? (
-                      <p className="text-xs text-muted-foreground flex items-center gap-2 truncate">
-                        <span>Slot {o.slot}</span>
-                        <span>·</span>
-                        <span>{displayName(o.faculty)}</span>
-                        {o.type ? (
-                          <>
-                            <span>·</span>
-                            <span className="uppercase font-bold text-[10px]">{o.type}</span>
-                          </>
-                        ) : null}
-                      </p>
-                    ) : null}
+                    <p className="text-xs text-muted-foreground flex items-center gap-2 truncate">
+                      <span>Slot {entry.slot}</span>
+                      <span>·</span>
+                      <span>{displayName(entry.faculty)}</span>
+                      {entry.type ? (
+                        <>
+                          <span>·</span>
+                          <span className="uppercase font-bold text-[10px]">{entry.type}</span>
+                        </>
+                      ) : null}
+                    </p>
                   </div>
                   <ChevronRight className="w-4 h-4 text-zinc-400 shrink-0" />
                 </div>
@@ -953,27 +1204,24 @@ export default function FriendFinderTab({
   ) : null;
 
   /* ── Class Subpage (Drill-in) ──────────────────────────────────── */
-  if (selectedClassId && selectedSection) {
-    const o = selectedSection.offering;
-    const count = selectedSection.people.length;
+  if (selectedClassId && selectedEntry) {
+    const isPaired = selectedEntry.isPaired;
+    const count = selectedEntry.people.length;
+
     return (
       <PageShell
         onBack={handleBack}
         actions={standaloneLogo ? <ThemeToggle /> : undefined}
-        eyebrow={o ? o.code : "Class Details"}
-        title={o ? o.title.replace(/\s+-\s*|-\s+/g, "-") : selectedSection.classId}
+        eyebrow={selectedEntry.code}
+        title={selectedEntry.title.replace(/\s+-\s*|-\s+/g, "-")}
         subtitle={
-          o
-            ? `${o.type} · ${o.credits} Credits · Slot ${o.slot}${
-                pairedSection?.offering
-                  ? ` · Paired with ${pairedSection.offering.type} (Slot ${pairedSection.offering.slot})`
-                  : ""
-              }`
-            : undefined
+          isPaired
+            ? `Embedded · ${selectedEntry.credits} Credits · Slots: ${selectedEntry.slot}`
+            : `${selectedEntry.type} · ${selectedEntry.credits} Credits · Slot ${selectedEntry.slot}`
         }
       >
         <div className="space-y-5 max-w-3xl mx-auto">
-          {o ? (
+          {isPaired && selectedEntry.theorySection?.offering && selectedEntry.labSection?.offering ? (
             <div className={`${TILE_CARD} space-y-4`}>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
@@ -983,14 +1231,152 @@ export default function FriendFinderTab({
                     <GraduationCap className="w-6 h-6" />
                   </span>
                   <div>
-                    <h4 className="text-base font-bold text-text-heading">{displayName(o.faculty)}</h4>
+                    <h4 className="text-base font-bold text-text-heading">{displayName(selectedEntry.faculty)}</h4>
                     <p className="text-xs text-muted-foreground flex items-center gap-2">
                       <span className="inline-flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5" /> Slot {o.slot}
+                        <Clock className="w-3.5 h-3.5" /> Slots: {selectedEntry.slot}
                       </span>
-                      {o.room ? (
+                      {selectedEntry.room ? (
                         <span className="inline-flex items-center gap-1">
-                          <MapPin className="w-3.5 h-3.5" /> Room {o.room}
+                          <MapPin className="w-3.5 h-3.5" /> Room {selectedEntry.room}
+                        </span>
+                      ) : null}
+                    </p>
+                  </div>
+                </div>
+                {selectedEntry.faculty && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const fac = selectedEntry.theorySection?.offering?.faculty || selectedEntry.faculty;
+                      openFacultyReview({ name: fac, courseCode: selectedEntry.code });
+                    }}
+                    className={`${ACTION_BUTTON} !border !border-indigo-500/30 !bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 hover:!bg-indigo-500/20`}
+                  >
+                    <Star className="w-3.5 h-3.5 fill-current" />
+                    Faculty reviews
+                  </button>
+                )}
+              </div>
+
+              {/* Theory and Lab components breakdown */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-border-strong dark:border-border">
+                {/* Theory (ETH) */}
+                <div className="p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-border-subtle space-y-2">
+                  <div className="flex items-center justify-between">
+                    <ToneBadge size="sm" tone="indigo">
+                      Theory (ETH)
+                    </ToneBadge>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        openFacultyReview({
+                          name: selectedEntry.theorySection!.offering!.faculty,
+                          courseCode: selectedEntry.theorySection!.offering!.code,
+                        })
+                      }
+                      className={`${ACTION_BUTTON} !py-1 !px-2 !text-xs !border !border-indigo-500/30 !bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 hover:!bg-indigo-500/20`}
+                    >
+                      <Star className="w-3 h-3 fill-current" />
+                      Review
+                    </button>
+                  </div>
+                  <div>
+                    <h5 className="text-sm font-bold text-text-heading">
+                      {displayName(selectedEntry.theorySection!.offering!.faculty)}
+                    </h5>
+                    <p className="text-xs text-muted-foreground flex flex-wrap items-center gap-2 mt-0.5">
+                      <span className="inline-flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> Slot {selectedEntry.theorySection!.offering!.slot}
+                      </span>
+                      {selectedEntry.theorySection!.offering!.room && (
+                        <span className="inline-flex items-center gap-1">
+                          <MapPin className="w-3 h-3" /> Room {selectedEntry.theorySection!.offering!.room}
+                        </span>
+                      )}
+                      <span>· {selectedEntry.theorySection!.offering!.credits} Credits</span>
+                    </p>
+                  </div>
+                </div>
+
+                {/* Lab (ELA) */}
+                <div className="p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-border-subtle space-y-2">
+                  <div className="flex items-center justify-between">
+                    <ToneBadge size="sm" tone="emerald">
+                      Lab (ELA)
+                    </ToneBadge>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        openFacultyReview({
+                          name: selectedEntry.labSection!.offering!.faculty,
+                          courseCode: selectedEntry.labSection!.offering!.code,
+                        })
+                      }
+                      className={`${ACTION_BUTTON} !py-1 !px-2 !text-xs !border !border-indigo-500/30 !bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 hover:!bg-indigo-500/20`}
+                    >
+                      <Star className="w-3 h-3 fill-current" />
+                      Review
+                    </button>
+                  </div>
+                  <div>
+                    <h5 className="text-sm font-bold text-text-heading">
+                      {displayName(selectedEntry.labSection!.offering!.faculty)}
+                    </h5>
+                    <p className="text-xs text-muted-foreground flex flex-wrap items-center gap-2 mt-0.5">
+                      <span className="inline-flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> Slot {selectedEntry.labSection!.offering!.slot}
+                      </span>
+                      {selectedEntry.labSection!.offering!.room && (
+                        <span className="inline-flex items-center gap-1">
+                          <MapPin className="w-3 h-3" /> Room {selectedEntry.labSection!.offering!.room}
+                        </span>
+                      )}
+                      <span>· {selectedEntry.labSection!.offering!.credits} Credits</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-border-strong dark:border-border">
+                <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50">
+                  <span className="block text-[11px] font-medium text-muted-foreground">Course Code</span>
+                  <span className="text-xs font-bold text-text-heading">{selectedEntry.code}</span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50">
+                  <span className="block text-[11px] font-medium text-muted-foreground">Total Credits</span>
+                  <span className="text-xs font-bold text-text-heading">{selectedEntry.credits}</span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50">
+                  <span className="block text-[11px] font-medium text-muted-foreground">Type</span>
+                  <span className="text-xs font-bold text-text-heading uppercase">Embedded</span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50">
+                  <span className="block text-[11px] font-medium text-muted-foreground">Class IDs</span>
+                  <span className="text-xs font-mono font-bold text-text-heading truncate">
+                    {selectedEntry.classIds.join(", ")}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className={`${TILE_CARD} space-y-4`}>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <span
+                    className={`w-12 h-12 rounded-2xl border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.indigo}`}
+                  >
+                    <GraduationCap className="w-6 h-6" />
+                  </span>
+                  <div>
+                    <h4 className="text-base font-bold text-text-heading">{displayName(selectedEntry.faculty)}</h4>
+                    <p className="text-xs text-muted-foreground flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5" /> Slot {selectedEntry.slot}
+                      </span>
+                      {selectedEntry.room ? (
+                        <span className="inline-flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5" /> Room {selectedEntry.room}
                         </span>
                       ) : null}
                     </p>
@@ -998,7 +1384,7 @@ export default function FriendFinderTab({
                 </div>
                 <button
                   type="button"
-                  onClick={() => openFacultyReview({ name: o.faculty, courseCode: o.code })}
+                  onClick={() => openFacultyReview({ name: selectedEntry.faculty, courseCode: selectedEntry.code })}
                   className={`${ACTION_BUTTON} !border !border-indigo-500/30 !bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 hover:!bg-indigo-500/20`}
                 >
                   <Star className="w-3.5 h-3.5 fill-current" />
@@ -1009,23 +1395,23 @@ export default function FriendFinderTab({
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-border-strong dark:border-border">
                 <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50">
                   <span className="block text-[11px] font-medium text-muted-foreground">Course Code</span>
-                  <span className="text-xs font-bold text-text-heading">{o.code}</span>
+                  <span className="text-xs font-bold text-text-heading">{selectedEntry.code}</span>
                 </div>
                 <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50">
                   <span className="block text-[11px] font-medium text-muted-foreground">Credits</span>
-                  <span className="text-xs font-bold text-text-heading">{o.credits}</span>
+                  <span className="text-xs font-bold text-text-heading">{selectedEntry.credits}</span>
                 </div>
                 <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50">
                   <span className="block text-[11px] font-medium text-muted-foreground">Type</span>
-                  <span className="text-xs font-bold text-text-heading uppercase">{o.type}</span>
+                  <span className="text-xs font-bold text-text-heading uppercase">{selectedEntry.type}</span>
                 </div>
                 <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50">
                   <span className="block text-[11px] font-medium text-muted-foreground">Class ID</span>
-                  <span className="text-xs font-mono font-bold text-text-heading">{selectedSection.classId}</span>
+                  <span className="text-xs font-mono font-bold text-text-heading">{selectedEntry.id}</span>
                 </div>
               </div>
             </div>
-          ) : null}
+          )}
 
           <section className="space-y-3">
             <SectionHeader
@@ -1035,10 +1421,7 @@ export default function FriendFinderTab({
             />
             {count > 0 ? (
               <div className={LIST_SHELL}>
-                {selectedSection.people.map((p) => {
-                  const inBoth = pairedSection ? isPersonInCounterpart(p, pairedSection) : true;
-                  const notInBoth = pairedSection && !inBoth;
-
+                {selectedEntry.people.map((p) => {
                   return (
                     <div
                       key={p.handle}
@@ -1066,14 +1449,14 @@ export default function FriendFinderTab({
                         </p>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
-                        {notInBoth && (
+                        {p.enrollmentRole === "theory" && (
                           <ToneBadge size="sm" tone="amber">
-                            {currentRole === "theory" ? "ETH only · Lab differs" : "ELA only · Theory differs"}
+                            ETH only · Lab differs
                           </ToneBadge>
                         )}
-                        {pairedSection && inBoth && (
-                          <ToneBadge size="sm" tone="emerald">
-                            Both ETH + ELA
+                        {p.enrollmentRole === "lab" && (
+                          <ToneBadge size="sm" tone="amber">
+                            ELA only · Theory differs
                           </ToneBadge>
                         )}
                         {p.source === "registered" && (
@@ -1098,6 +1481,7 @@ export default function FriendFinderTab({
 
         <FacultyReviewSheetHost target={reviewTarget} onClose={closeFacultyReview} />
         {renderFriendBottomSheet()}
+        {renderProfileBottomSheet()}
       </PageShell>
     );
   }
@@ -1198,18 +1582,48 @@ export default function FriendFinderTab({
 
   /* ── Joined: main view ─────────────────────────────────────────── */
   const uniqueClassmates = new Set(state.sections.flatMap((s) => s.people.map((p) => p.handle))).size;
-  const sectionsWithPeople = state.sections.filter((s) => s.people.length).length;
   const hasVerified = state.sections.some((s) => s.people.some((p) => p.source === "registered"));
 
   return (
     <PageShell
       leading={standaloneLogo ? <AmazeCCLogoLeading /> : undefined}
       onBack={standaloneLogo ? undefined : (onBack ?? (openedFromHome ? () => setActiveTab("home") : undefined))}
-      eyebrow="Friend Finder"
-      title="Find classmates"
+      eyebrow={
+        <span className="font-black tracking-tight text-zinc-700 dark:text-zinc-200">
+          Amaze<span className="text-indigo-600 dark:text-indigo-400">CC</span>
+        </span>
+      }
+      title="Find your friend"
       subtitle="See who picked the same faculty and slots as you"
       actions={
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <IconButton
+            onClick={() => void run({ op: "get" }, "load")}
+            title="Refresh classmates"
+            aria-label="Refresh"
+            disabled={busy || loading}
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+          </IconButton>
+          <IconButton
+            onClick={() => void handleShare()}
+            title={copied ? "Link copied" : "Share with friends"}
+            aria-label="Share"
+          >
+            {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Share2 className="w-4 h-4" />}
+          </IconButton>
+          <IconButton onClick={() => setIsProfileOpen(true)} title="Profile" aria-label="Profile">
+            <UserRound className="w-4 h-4" />
+          </IconButton>
+          {standaloneLogo ? <ThemeToggle /> : null}
+        </div>
+      }
+    >
+      <div className="space-y-5">
+        {errorNotice}
+
+        {/* Switcher between classes and friends (just like /ffcs route) */}
+        <div>
           <SegmentedControl
             options={[
               { value: "classes", label: "Classes" },
@@ -1218,72 +1632,6 @@ export default function FriendFinderTab({
             value={grouping}
             onChange={(val) => setGrouping(val as "classes" | "friends")}
           />
-          {standaloneLogo ? <ThemeToggle /> : null}
-        </div>
-      }
-    >
-      <div className="space-y-5">
-        {errorNotice}
-
-        {/* Profile bar */}
-        <div className={`${TILE_CARD} space-y-4`}>
-          <div className="flex items-center gap-3">
-            <Avatar person={{ handle: me.handle, name: me.name }} />
-            <div className="min-w-0 flex-1">
-              <p className="text-sm sm:text-base font-bold text-text-heading truncate">{displayName(me.name)}</p>
-              <p className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1">
-                <span>
-                  Sharing {me.classIds.length} {me.classIds.length === 1 ? "class" : "classes"}
-                </span>
-                <ToneBadge size="sm" tone={me.source === "registered" ? "emerald" : "indigo"}>
-                  {me.source === "registered" ? "Verified" : "Planned"}
-                </ToneBadge>
-              </p>
-            </div>
-            <label className="flex items-center gap-2 shrink-0 cursor-pointer">
-              <span className="hidden sm:block text-xs font-semibold text-muted-foreground">
-                {me.discoverable ? "Visible" : "Hidden"}
-              </span>
-              <Switch
-                size="md"
-                checked={me.discoverable}
-                disabled={busy}
-                label="Visible to classmates"
-                onCheckedChange={(on) => void run({ op: "visibility", discoverable: on }, "action")}
-              />
-            </label>
-          </div>
-
-          <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
-            <button
-              type="button"
-              className={ACTION_BUTTON}
-              disabled={busy}
-              onClick={() => {
-                setEditing(true);
-              }}
-            >
-              <Pencil className="w-3.5 h-3.5" /> Change classes
-            </button>
-            <button
-              type="button"
-              className={ACTION_BUTTON}
-              disabled={busy || loading}
-              onClick={() => void run({ op: "get" }, "load")}
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} /> Refresh
-            </button>
-            <InviteButton />
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => (confirmingRemove ? void run({ op: "leave" }, "action") : setConfirmingRemove(true))}
-              onBlur={() => setConfirmingRemove(false)}
-              className={`${ACTION_BUTTON} ${confirmingRemove ? "!bg-red-500 !text-white hover:!bg-red-600" : "!text-red-600 dark:!text-red-400"}`}
-            >
-              <LogOut className="w-3.5 h-3.5" /> {confirmingRemove ? "Tap again to remove" : "Remove me"}
-            </button>
-          </div>
         </div>
 
         {!me.discoverable ? (
@@ -1308,19 +1656,12 @@ export default function FriendFinderTab({
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
               <StatTile
                 label="Classmates"
                 value={uniqueClassmates}
                 sub={<span className="text-[11px] text-muted-foreground">found</span>}
                 tone="indigo"
-                height="h-24 sm:h-28"
-              />
-              <StatTile
-                label="Sections"
-                value={`${sectionsWithPeople}/${state.sections.length}`}
-                sub={<span className="text-[11px] text-muted-foreground">shared</span>}
-                tone="emerald"
                 height="h-24 sm:h-28"
               />
               <StatTile
@@ -1334,15 +1675,13 @@ export default function FriendFinderTab({
 
             {grouping === "classes" ? (
               <section className="space-y-3">
-                <SectionHeader icon={Link2} title="Your sections" count={state.sections.length} />
+                <SectionHeader icon={Link2} title="Your sections" count={classEntries.length} />
                 <div className={LIST_SHELL}>
-                  {sortedSections.map((s) => (
+                  {classEntries.map((entry) => (
                     <SectionCard
-                      key={s.classId}
-                      section={s}
-                      pairedSection={embeddedMap.counterparts.get(s.classId)}
-                      role={embeddedMap.roles.get(s.classId)}
-                      onClick={() => setSelectedClassId(s.classId)}
+                      key={entry.id}
+                      entry={entry}
+                      onClick={() => setSelectedClassId(entry.id)}
                       onPersonClick={handlePersonClick}
                     />
                   ))}
@@ -1357,7 +1696,6 @@ export default function FriendFinderTab({
                       const codes = o.sharedClassIds.map((id) => codeOf.get(id)).filter(Boolean);
 
                       let hasPartialEmbedded: string | null = null;
-                      let hasBothEmbedded = false;
 
                       for (const cid of o.sharedClassIds) {
                         const counterpart = embeddedMap.counterparts.get(cid);
@@ -1367,8 +1705,6 @@ export default function FriendFinderTab({
                             const role = embeddedMap.roles.get(cid);
                             hasPartialEmbedded = role === "theory" ? "ETH only" : "ELA only";
                             break;
-                          } else {
-                            hasBothEmbedded = true;
                           }
                         }
                       }
@@ -1413,11 +1749,6 @@ export default function FriendFinderTab({
                                 {hasPartialEmbedded}
                               </ToneBadge>
                             )}
-                            {!hasPartialEmbedded && hasBothEmbedded && (
-                              <ToneBadge size="sm" tone="emerald">
-                                Both ETH + ELA
-                              </ToneBadge>
-                            )}
                             <ToneBadge size="sm" tone={o.identical ? "emerald" : "indigo"}>
                               {o.identical ? "Identical" : `${o.shared} shared`}
                             </ToneBadge>
@@ -1448,6 +1779,7 @@ export default function FriendFinderTab({
       </div>
 
       {renderFriendBottomSheet()}
+      {renderProfileBottomSheet()}
 
       <FacultyReviewSheetHost target={reviewTarget} onClose={closeFacultyReview} />
     </PageShell>

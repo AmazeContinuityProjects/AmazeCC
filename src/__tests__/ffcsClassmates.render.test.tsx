@@ -160,17 +160,21 @@ describe("FriendFinderTab", () => {
         body: { op: "publish", source: "registered", semesterId: "CH20262705" },
       }),
     );
-    expect(screen.getByText("Mohammed Anas")).toBeTruthy();
-    expect(screen.getByText(/Sharing 1 class$/)).toBeTruthy();
     expect(screen.getByText("BAMAT101")).toBeTruthy();
     expect(screen.getByText("Bala Murugan")).toBeTruthy();
-    expect(screen.getByText("1 classmate")).toBeTruthy();
+    expect(screen.getByLabelText("1 classmate")).toBeTruthy();
+
+    // Profile button in top right opens bottom sheet with profile info
+    fireEvent.click(screen.getByRole("button", { name: "Profile" }));
+    expect(await screen.findByText("Mohammed Anas")).toBeTruthy();
+    expect(screen.getByText("1 class")).toBeTruthy();
   });
 
   it("asks for a second tap before removing you", async () => {
     apiMock.mockResolvedValueOnce(joinedWithMatch());
     await renderTab();
-    fireEvent.click(screen.getByRole("button", { name: /Remove me/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Profile" }));
+    fireEvent.click(await screen.findByRole("button", { name: /Remove me/ }));
     expect(apiMock).toHaveBeenCalledTimes(1);
     apiMock.mockResolvedValueOnce(stateWith({}));
     await act(async () => {
@@ -384,24 +388,26 @@ describe("FriendFinderTab", () => {
     apiMock.mockResolvedValueOnce(embeddedState);
     await renderTab();
 
-    // In classes list, sections display their paired counterpart
-    expect(screen.getByText("Paired with ELA (L23+L24)")).toBeTruthy();
-    expect(screen.getByText("Paired with ETH (F1+TF1)")).toBeTruthy();
+    // Paired ETH + ELA is unified into ONE single entry with combined slots and "Embedded" type
+    expect(screen.queryByText(/Paired with/)).toBeNull();
+    expect(screen.getByText("Embedded")).toBeTruthy();
+    expect(screen.getByText("F1+TF1 + L23+L24")).toBeTruthy();
 
     // In SectionCard chips, friends not in both are marked
     expect(screen.getByText("ETH only")).toBeTruthy();
     expect(screen.getByText("ELA only")).toBeTruthy();
 
-    // Drill into ETH section
-    fireEvent.click(screen.getByText("Paired with ELA (L23+L24)"));
-    expect(screen.getByText("2 classmates here")).toBeTruthy();
+    // Drill into the unified embedded section
+    fireEvent.click(screen.getByText("Database Systems"));
+    expect(screen.getByText("3 classmates here")).toBeTruthy();
 
-    // In the ETH section, Kavya is in both ETH+ELA, while Rahul is only in ETH
-    expect(screen.getByText("Both ETH + ELA")).toBeTruthy();
+    // In the unified section, Kavya is in both ETH+ELA (no extra badge), Rahul is only in ETH, Sneha is only in ELA
+    expect(screen.queryByText(/Both ETH \+ ELA/i)).toBeNull();
     expect(screen.getByText("ETH only · Lab differs")).toBeTruthy();
+    expect(screen.getByText("ELA only · Theory differs")).toBeTruthy();
 
     // Clicking on Rahul in the class subpage opens his bottom sheet modal showing the mark
-    fireEvent.click(screen.getByText("Rahul M"));
+    fireEvent.click(screen.getAllByText("Rahul M")[0]);
     expect(await screen.findByText("Classes in common (tap to view details)")).toBeTruthy();
     expect(screen.getAllByText("ETH only · Lab differs").length).toBeGreaterThan(0);
   });
