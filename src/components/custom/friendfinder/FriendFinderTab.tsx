@@ -72,7 +72,7 @@ import {
   ToneBadge,
 } from "../shared/primitives";
 import BottomSheet from "../shared/BottomSheet";
-import FriendFinderLoginModal from "./FriendFinderLoginModal";
+import { openLoginSyncSession } from "@/lib/sync-engine/sync-session";
 import { useFacultyReviewSheet } from "../exams/FFCS/hooks/useFacultyReviewSheet";
 import FacultyReviewSheetHost from "../exams/FFCS/components/FacultyReviewSheetHost";
 
@@ -330,7 +330,6 @@ export default function FriendFinderTab({
   const isDemo = useAtomValue(demoModeAtom);
   const setDemoMode = useSetAtom(demoModeAtom);
   const setIDs = useSetAtom(credentialsAtom);
-  const [showLoginModal, setShowLoginModal] = useState(false);
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -571,7 +570,7 @@ export default function FriendFinderTab({
               className={`${PRIMARY_BUTTON} w-full`}
               onClick={() => {
                 if (onRequestSignIn) onRequestSignIn();
-                else if (standaloneLogo) setShowLoginModal(true);
+                else if (standaloneLogo) openLoginSyncSession();
                 else router.push("/?signin=1&open=friend-finder");
               }}
             >
@@ -583,7 +582,7 @@ export default function FriendFinderTab({
               className={`${PRIMARY_BUTTON} w-full`}
               onClick={() => {
                 if (onRequestSignIn) onRequestSignIn();
-                else if (standaloneLogo) setShowLoginModal(true);
+                else if (standaloneLogo) openLoginSyncSession();
                 else router.push("/?signin=1&open=friend-finder");
               }}
             >
@@ -594,11 +593,6 @@ export default function FriendFinderTab({
             Logging in here will log you into the rest of AmazeCC.
           </p>
         </div>
-        <FriendFinderLoginModal
-          open={showLoginModal}
-          onClose={() => setShowLoginModal(false)}
-          onSuccess={() => setShowLoginModal(false)}
-        />
       </PageShell>
     );
   }
@@ -755,7 +749,7 @@ export default function FriendFinderTab({
                         )}
                         {p.source === "registered" ? <VerifiedTick /> : null}
                       </div>
-                      <p className="text-xs text-muted-foreground truncate">{p.handle}</p>
+                      <p className="text-xs text-muted-foreground truncate">{p.regNo || p.handle}</p>
                     </div>
                     {p.source === "registered" && (
                       <ToneBadge size="sm" tone="emerald">
@@ -1053,6 +1047,7 @@ export default function FriendFinderTab({
                               {o.source === "registered" ? <VerifiedTick /> : null}
                             </div>
                             <p className="text-xs text-muted-foreground truncate">
+                              {o.regNo ? `${o.regNo} · ` : ""}
                               {o.identical
                                 ? "Exactly your timetable"
                                 : codes.length

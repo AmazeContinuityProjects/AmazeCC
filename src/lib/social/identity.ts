@@ -22,13 +22,20 @@
  * applicationNumber` — see `AmazeCC-API/src/lib/identity.ts:175`.
  */
 
-const REG_KEYS = [
-  "registerNo",
-  "registerNumber",
-  "regNo",
-  "regNumber",
-  "applicationNumber",
-] as const;
+import { storage } from "@/lib/storage";
+
+const REG_NO_RE = /^\d{2}[A-Z]{2,5}\d{3,5}$/i;
+
+function normalizeRegNo(value: unknown): string {
+  if (typeof value !== "string") return "";
+  return value.trim().toUpperCase();
+}
+
+function isLikelyRegNo(value: unknown): value is string {
+  return typeof value === "string" && REG_NO_RE.test(value.trim());
+}
+
+const REG_KEYS = ["registerNo", "registerNumber", "regNo", "regNumber", "applicationNumber"] as const;
 
 const NAME_KEYS = ["name", "studentName", "fullName"] as const;
 
@@ -60,7 +67,7 @@ export function getActiveRegNumber(): string {
   const profile = readJson("profile");
   if (profile) {
     for (const key of REG_KEYS) {
-      if (isUsable(profile[key])) return profile[key].trim();
+      if (isUsable(profile[key])) return normalizeRegNo(profile[key]);
     }
   }
 
@@ -71,8 +78,20 @@ export function getActiveRegNumber(): string {
   if (info && typeof info === "object") {
     const rec = info as Record<string, unknown>;
     for (const key of REG_KEYS) {
-      if (isUsable(rec[key])) return rec[key].trim();
+      if (isUsable(rec[key])) return normalizeRegNo(rec[key]);
     }
+  }
+
+  // Login/sync flows persist the VTOP username/authorizedID as the registration
+  // number before profile hydration completes; use them as a reliable fallback.
+  try {
+    const ids = storage.ids.get();
+    const candidates = [ids?.VtopUsername, storage.username.get(), storage.vtopSession.get()?.authorizedID];
+    for (const c of candidates) {
+      if (isLikelyRegNo(c)) return normalizeRegNo(c);
+    }
+  } catch {
+    // storage unavailable
   }
 
   return "";

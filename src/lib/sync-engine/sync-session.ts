@@ -15,7 +15,7 @@ export interface SyncLogLine {
 export type SyncOutcome = "success" | "error" | null;
 
 /** Non-run reasons the sheet can be opened; drives a notice instead of progress. */
-export type SyncNotice = "offline" | null;
+export type SyncNotice = "offline" | "login" | null;
 
 /**
  * Where an open session draws itself.
@@ -98,6 +98,36 @@ export function setSyncPresentation(next: SyncPresentation) {
  */
 export function openOfflineSyncSession() {
   openSyncSession("You're Offline", "offline");
+}
+
+/**
+ * Open the sheet as a VTOP login notice, allowing unauthenticated or guest users
+ * to authenticate directly inside the sync engine bottom sheet.
+ */
+export function openLoginSyncSession(title: string = "Sign in with VTOP") {
+  if (closeTimer) {
+    clearTimeout(closeTimer);
+    closeTimer = null;
+  }
+  resetActiveSignal();
+  dismissedRunId = -1;
+  state = {
+    open: true,
+    title,
+    lines: [],
+    progress: 0,
+    runId: state.runId + 1,
+    outcome: null,
+    notice: "login",
+    presentation: state.presentation,
+  };
+  emit();
+}
+
+/** Update the notice condition of the active sync session. */
+export function setSyncNotice(notice: SyncNotice) {
+  state = { ...state, notice };
+  emit();
 }
 
 /** Open only when no session is active (safe for concurrent flows). */

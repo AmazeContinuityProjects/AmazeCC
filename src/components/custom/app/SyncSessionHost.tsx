@@ -8,25 +8,25 @@ import { isReloadingAtom } from "@/store";
 import { useAtom } from "jotai";
 
 interface SyncSessionHostProps {
-  activeModeId: string;
-  modes: any[];
-  modeLabel: string;
-  onSelectMode: (modeId: string) => void;
-  onOpenEditor: () => void;
-  onChangePassword: () => void;
-  onRetry: () => void;
+  activeModeId?: string;
+  modes?: any[];
+  modeLabel?: string;
+  onSelectMode?: (modeId: string) => void;
+  onOpenEditor?: () => void;
+  onChangePassword?: () => void;
+  onRetry?: () => void;
 }
 
 /** Owns sync-session notification UI and its retry/dismiss interactions. */
 export default function SyncSessionHost({
-  activeModeId,
+  activeModeId = "full",
   modes,
-  modeLabel,
+  modeLabel = "VTOP Sync",
   onSelectMode,
   onOpenEditor,
   onChangePassword,
   onRetry,
-}: SyncSessionHostProps) {
+}: SyncSessionHostProps = {}) {
   const session = useSyncSession();
   const [isReloading, setIsReloading] = useAtom(isReloadingAtom);
 
