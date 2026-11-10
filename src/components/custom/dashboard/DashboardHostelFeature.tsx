@@ -4,9 +4,10 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import { RefreshCcw } from "lucide-react";
 import type { Creds } from "../exams/courseHelpers";
+import { PageSkeleton } from "../shared/primitives/PageSkeleton";
 
 function FeatureLoading() {
-  return <div className="min-h-40 animate-pulse rounded-2xl bg-slate-100 dark:bg-zinc-900" role="status" aria-label="Loading hostel" />;
+  return <PageSkeleton label="Loading hostel" />;
 }
 
 const MessDisplay = dynamic(() => import("../hostel/MessDisplay"), { loading: FeatureLoading });

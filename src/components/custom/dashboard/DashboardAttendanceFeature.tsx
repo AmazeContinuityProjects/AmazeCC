@@ -9,6 +9,7 @@ import type { Settings } from "@/store/settingsAtoms";
 import type { Creds } from "../exams/courseHelpers";
 import { buildAttendanceDayCardsMap } from "@/lib/attendanceTimetable";
 import { buildMilestoneDates } from "@/lib/milestoneDates";
+import { PageSkeleton } from "../shared/primitives/PageSkeleton";
 
 interface DashboardAttendanceFeatureProps {
   activeSubTab: string;
@@ -34,12 +35,7 @@ interface DashboardAttendanceFeatureProps {
 }
 
 function FeatureLoading() {
-  return (
-    <div className="min-h-40 space-y-4 p-4" role="status" aria-label="Loading attendance">
-      <div className="h-6 w-32 animate-pulse rounded-lg bg-slate-200 dark:bg-neutral-800" />
-      <div className="h-36 w-full animate-pulse rounded-2xl bg-slate-200 dark:bg-neutral-800" />
-    </div>
-  );
+  return <PageSkeleton label="Loading attendance" />;
 }
 
 const CalendarSubpage = dynamic(() => import("../attendance/CalendarSubpage"), { loading: FeatureLoading });

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, CheckCircle2, Loader2, Receipt, RefreshCcw, TriangleAlert } from "lucide-react";
 import { api } from "@/lib/sync-engine";
 import { runPageSync } from "@/lib/sync-engine/single-sync";

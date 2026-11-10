@@ -6,6 +6,7 @@ import type ProfileTabComponent from "../profile/ProfileTab";
 import type { Credentials } from "@/store/authAtoms";
 import type { Settings } from "@/store/settingsAtoms";
 import { useDashboardNavigator } from "./DashboardNavigator";
+import { PageSkeleton } from "../shared/primitives/PageSkeleton";
 
 type ProfileTabProps = ComponentProps<typeof ProfileTabComponent>;
 type ProfileTabOwnedProps =
@@ -40,13 +41,7 @@ interface DashboardProfileFeatureProps extends Omit<ProfileTabProps, ProfileTabO
 }
 
 function FeatureLoading() {
-  return (
-    <div
-      className="min-h-40 animate-pulse rounded-2xl bg-slate-100 dark:bg-zinc-900"
-      role="status"
-      aria-label="Loading profile"
-    />
-  );
+  return <PageSkeleton label="Loading profile" />;
 }
 
 const ProfileTab = dynamic(() => import("../profile/ProfileTab"), { loading: FeatureLoading });

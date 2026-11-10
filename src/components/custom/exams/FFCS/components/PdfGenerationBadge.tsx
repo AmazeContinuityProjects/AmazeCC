@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import { FileText, Check, AlertCircle, X } from "lucide-react";
 
 export interface PdfGenerationBadgeProps {

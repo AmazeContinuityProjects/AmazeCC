@@ -21,7 +21,6 @@ import type {
   BusyMap,
   SocialCourse,
   SocialIdentity,
-  SocialPeer,
   SocialStoredGrant,
   SocialSyncPayload,
   SocialVisibility,

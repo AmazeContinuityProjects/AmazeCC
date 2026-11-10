@@ -15,8 +15,8 @@
  * tick rather than re-navigating to a subpage that already has its own row.
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { AnimatePresence, m } from "framer-motion";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { AnimatePresence } from "framer-motion";
 import {
   AlertTriangle,
   BookOpen,
@@ -36,7 +36,6 @@ import {
   TILE,
   TONE_BADGE,
   TONE_ICON_TILE,
-  TONE_TEXT,
 } from "@/lib/libraries/ui";
 import { SectionHeader, initials } from "./rows";
 import {

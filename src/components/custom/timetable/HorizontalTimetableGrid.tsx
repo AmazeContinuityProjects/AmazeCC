@@ -6,7 +6,6 @@
  * and the classic amazeui grid.
  */
 
-import React from "react";
 import type {
   AddedCourse,
   GapDetail,

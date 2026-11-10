@@ -17,7 +17,6 @@ import { ChevronRight, Pencil, Trash2, Users } from "lucide-react";
 import {
   CHIP,
   LIST_ROW,
-  SECTION_CHIP,
   TONE_BADGE,
   TONE_ICON_TILE,
   TONE_TEXT,

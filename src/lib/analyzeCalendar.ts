@@ -3,7 +3,6 @@ import type {
     AnalyzeAllCalendarsReturn,
     AnalyzeCalendarReturn,
     AnalyzedDay,
-    CalendarEvent,
     CalendarInput,
     CalendarResult,
     ImportantEvent,

@@ -13,6 +13,8 @@ export type Settings = {
   showGpa?: boolean;
   showProfilePhoto?: boolean;
   blurGrades?: boolean;
+  /** Blur grades, attendance, marks and fees app-wide (screen sharing, showing your phone). */
+  privacyMode?: boolean;
   colorPalette?: string;
   customPalette?: {
     accent: string;
@@ -106,6 +108,7 @@ export const defaultSettings: Settings = {
   showGpa: false,
   showProfilePhoto: true,
   blurGrades: false,
+  privacyMode: false,
   colorPalette: "default",
   cardSurfaceZinc: false,
   customPalette: {

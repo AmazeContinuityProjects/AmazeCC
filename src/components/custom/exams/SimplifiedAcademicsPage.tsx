@@ -1,9 +1,10 @@
-import React, { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { ChipTabs, EmptyPanel, PageShell, SelectField } from "../shared/primitives";
 import { SEARCH_FIELD, TILE_INTERACTIVE_ROW } from "@/lib/uiTokens";
 import { formatSemesterName } from "@/lib/formatSemesterName";
 import { loadFrozenPastSemesters } from "@/lib/pastDataSync";
-import { BookOpen, Search, ChevronRight, GraduationCap, History, Lock, Sparkles } from "lucide-react";
+import { BookOpen, Search, ChevronRight, GraduationCap, History, Sparkles } from "lucide-react";
+import { clickable } from "@/lib/a11y";
 
 /** The four course-type pills above the list. Ordered, so `ChipTabs` scrolls rather than wraps. */
 type CourseTypeFilter = "all" | "theory" | "lab" | "embedded";
@@ -580,7 +581,7 @@ export default function SimplifiedAcademicsPage({
     return (
       <div
         key={course.courseCode}
-        onClick={() => handleCourseClick(course.courseCode)}
+        {...clickable(() => handleCourseClick(course.courseCode))}
         className={`${TILE_INTERACTIVE_ROW} hover:border-indigo-500/40 dark:hover:border-indigo-500/40 duration-200 group select-none`}
       >
         {/* Left Column: Clean Icon + Course Code, Title & Subtitle */}
@@ -633,6 +634,7 @@ export default function SimplifiedAcademicsPage({
             ) : grandWeightage.hasAssessments ? (
               <div className="flex flex-col items-end">
                 <span
+                  data-private
                   className={`text-base sm:text-lg font-black font-outfit tracking-tight leading-none ${statColor}`}
                 >
                   {grandWeightage.maxWeight > 0
@@ -756,6 +758,7 @@ export default function SimplifiedAcademicsPage({
   // ── VIEW 1: CURRENT SEMESTER COURSES + PREVIOUS SEMESTERS PILL AT BOTTOM ──
   return (
     <PageShell
+      syncedOps={["attendanceMarks"]}
       eyebrow="Academics"
       title="My Courses & Marks"
       subtitle={`${filteredCurrentCourses.length} ${filteredCurrentCourses.length === 1 ? "course" : "courses"}`}

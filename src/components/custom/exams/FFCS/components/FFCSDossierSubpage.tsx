@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useOverlayBack } from "@/lib/overlayStack";
 import {
   ArrowLeft,
@@ -11,16 +11,9 @@ import {
   Smartphone,
   ExternalLink,
   ShieldCheck,
-  CheckCircle2,
-  AlertTriangle,
-  Info,
-  Sparkles,
   BookOpen,
   Award,
-  Users,
   Clock,
-  MapPin,
-  Calendar,
   Download,
   Loader2,
 } from "lucide-react";
@@ -274,7 +267,6 @@ export default function FFCSDossierSubpage({
     : "bg-slate-800/60 border-white/8 text-slate-200";
   const textHeading = isLightMode ? "text-slate-900 font-extrabold" : "text-white font-extrabold";
   const textMuted = isLightMode ? "text-slate-600" : "text-slate-400";
-  const borderSubtle = isLightMode ? "border-slate-200" : "border-white/10";
 
   return (
     <div data-prevent-swipe="true" className={`min-h-screen w-full transition-colors duration-200 ${themeBg}`}>

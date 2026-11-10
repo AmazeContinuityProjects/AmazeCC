@@ -134,9 +134,6 @@ export default function CourseFacultyCard({
 }: CourseFacultyCardProps) {
   const rawFaculty = courseComp?.faculty || attItem?.faculty || "";
   const venue = attItem?.slotVenue || courseComp?.venue || "";
-  const slot = courseComp?.slot || attItem?.slotName || "";
-  const credits =
-    attItem?.credits != null ? String(attItem.credits) : courseComp?.credits != null ? String(courseComp.credits) : "";
 
   const {
     cleanName,

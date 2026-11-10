@@ -1,6 +1,6 @@
 "use client";
 import NavigationTabs from "./header/NavigationTabs";
-import { useState, useEffect, useCallback, memo } from "react";
+import { useState, useEffect, memo } from "react";
 import { useAtom } from "jotai";
 import {
   attendanceDataAtom,
@@ -20,7 +20,6 @@ import {
   settingsAtom,
   isReloadingAtom,
 } from "@/store";
-import SubpageLayout from "./shared/SubpageLayout";
 import dynamic from "next/dynamic";
 import { AnimatePresence } from "framer-motion";
 
@@ -29,19 +28,10 @@ import { DashboardRoute, useDashboardNavigator } from "./dashboard/DashboardNavi
 import { useDashboardDataActions } from "./dashboard/useDashboardDataActions";
 import { useDashboardTransportState } from "./dashboard/useDashboardTransportState";
 import { broadcastGlobalSemesterChange, mapToFinalSemesterId } from "@/lib/ffcsReports";
+import { PageSkeleton } from "./shared/primitives/PageSkeleton";
 
 function FeatureLoading() {
-  return (
-    <div
-      className="min-h-40 w-full rounded-2xl border border-slate-200/70 bg-white/70 p-5 dark:border-white/[0.08] dark:bg-zinc-950/40"
-      role="status"
-      aria-label="Loading section"
-      aria-busy="true"
-    >
-      <div className="h-5 w-36 animate-pulse rounded-lg bg-slate-200 dark:bg-zinc-800" />
-      <div className="mt-4 h-24 animate-pulse rounded-xl bg-slate-100 dark:bg-zinc-900" />
-    </div>
-  );
+  return <PageSkeleton label="Loading section" />;
 }
 
 // Keep the app chrome in the dashboard chunk; feature screens are fetched only

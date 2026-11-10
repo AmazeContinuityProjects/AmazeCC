@@ -5,7 +5,7 @@
 The app has **no client-side scheduler**: `src/app/sw.ts:63-83` only renders
 inbound server `push` events; all reminder prefs (`notifyAssignments`,
 `classReminderLeadMinutes`, quiet hours) are flags sent to the backend cron
-(`supabase_setup.sql:25-34`, backend out of repo). So timed task reminders
+(`sql/supabase_setup.sql:25-34`, backend out of repo). So timed task reminders
 need a new foreground scheduler.
 
 ## 2. Scheduler (`src/lib/taskReminders.ts` + `useTaskReminderScheduler.ts`)

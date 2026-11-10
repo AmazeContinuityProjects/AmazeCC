@@ -116,12 +116,6 @@ function dateLabel(value: unknown): string {
   return Number.isNaN(parsed.getTime()) ? String(value) : parsed.toLocaleDateString("en-IN");
 }
 
-function rows(value: unknown): any[] {
-  if (Array.isArray(value)) return value;
-  if (value && typeof value === "object")
-    return Object.values(value as Record<string, unknown>).flatMap((v) => (Array.isArray(v) ? v : []));
-  return [];
-}
 
 function normalizedPhoto(value: unknown): string {
   if (typeof value !== "string" || !value) return "";

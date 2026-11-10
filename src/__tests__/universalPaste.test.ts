@@ -1,15 +1,9 @@
 import { describe, it, expect } from "vitest";
 import {
   parseUniversalPaste,
-  isVtopRegistrationText,
 } from "../features/import/parsePastedText";
 
 describe("Universal Paste Parser", () => {
-  const expectedCourses = [
-    { code: "BACSE202", title: "Database Systems", slot: "F1+TF1", faculty: "VISWANATHAN V", venue: "AB4-305", credits: "3.0" },
-    { code: "BACSE202", title: "Database Systems", slot: "L23+L24", faculty: "VISWANATHAN V", venue: "AB4-409", credits: "1.0" },
-    { code: "BACSE203", title: "Computer Networks", slot: "B1+TB1", faculty: "PRASANNA BHARATHI S", venue: "AB4-305", credits: "3.0" },
-  ];
 
   it("parses Markdown table format", () => {
     const markdown = `

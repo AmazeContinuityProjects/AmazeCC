@@ -47,8 +47,6 @@ const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "
 const ALL_TYPES = "__all__";
 /** Sentinel: every row expanded — used for PNG/print capture. */
 const EXPAND_ALL = "__all_rows__";
-/** Must outlast the 0.22s expand transition before the DOM is captured. */
-const EXPAND_SETTLE_MS = 280;
 
 /** Reporting time + the exam series' duration -> UTC bounds for the VEVENT. */
 function computeExamTimes(reportingTimeStr: string, examDateStr: string, examType: string) {
@@ -121,16 +119,11 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
   const [typeFilter, setTypeFilter] = useState(ALL_TYPES);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [selectedModalSeries, setSelectedModalSeries] = useState<string>(ALL_TYPES);
-  const [copied, setCopied] = useState(false);
+  const [, setCopied] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
 
   const { theme, resolvedTheme } = useTheme();
   const currentTheme = resolvedTheme || theme || "light";
-  const rootStyles = typeof window === "undefined" ? null : getComputedStyle(document.documentElement);
-  const themeBgColor = rootStyles?.getPropertyValue("--background").trim() || "#ffffff";
-  const themeTextColor = rootStyles?.getPropertyValue("--text-primary").trim() || "#111827";
-  const themeHtmlClass =
-    typeof document === "undefined" ? currentTheme : document.documentElement.className || currentTheme;
 
   useEffect(() => {
     setIsIOS(/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream);
@@ -265,6 +258,7 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
   );
 
   const shellProps = {
+    syncedOps: ["schedule"],
     eyebrow: "Academics",
     title: "Exam Schedule",
     subtitle: semester ? `Session ${semester}` : undefined,

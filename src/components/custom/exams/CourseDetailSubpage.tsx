@@ -1,12 +1,11 @@
 "use client";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { api } from "@/lib/sync-engine";
-import { assessmentKeyFor, getFrozenKeys, remapCohortStats } from "@/lib/marksSync";
+import { getFrozenKeys, remapCohortStats } from "@/lib/marksSync";
 import { BackButton } from "../shared";
 import {
   EmptyPanel,
   InsightCarousel,
-  KeyValue,
   ListRowText,
   ListShell,
   ListSkeleton,
@@ -1554,44 +1553,6 @@ export default function CourseDetailSubpage({
       {scope === "theory" ? "Theory" : "Lab"}
     </ToneBadge>
   );
-  const renderCourseDetailCard = (courseComp: any, attItem: any, badge: "Theory" | "Lab" | null) => {
-    if (!courseComp && !attItem) return null;
-    const tiles: Array<[string, string]> = [
-      ["Type", isEmbedded ? "Embedded" : courseComp?.courseType || "—"],
-      ["Slot", courseComp?.slot || attItem?.slotName || "—"],
-      ["System", courseComp?.courseSystem || "—"],
-      [
-        "Credits",
-        attItem?.credits != null
-          ? String(attItem.credits)
-          : courseComp?.credits != null
-            ? String(courseComp.credits)
-            : "—",
-      ],
-    ];
-    const faculty = courseComp?.faculty || attItem?.faculty || "";
-    const venue = attItem?.slotVenue || "";
-    return (
-      <div className={`${TILE_CARD} space-y-3`}>
-        {badge && renderScopeBadge(badge === "Theory" ? "theory" : "lab")}
-        <div className="grid grid-cols-2 gap-2.5">
-          {tiles.map(([label, value]) => (
-            <KeyValue key={label} label={label} value={value} />
-          ))}
-        </div>
-        {(faculty || venue) && (
-          <div className="space-y-0.5">
-            {faculty && (
-              <p title={faculty} className="text-xs font-bold text-text-heading truncate">
-                {faculty}
-              </p>
-            )}
-            {venue && <p className="text-[10px] text-text-muted font-medium">Venue: {venue}</p>}
-          </div>
-        )}
-      </div>
-    );
-  };
   // Heatmap status colors, shared by the panel and the rectRender override.
   // (0 = no class, 1 = present, 2 = absent, 3 = on duty)
   const HEAT_STATUS_COLORS: Record<number, string> = {

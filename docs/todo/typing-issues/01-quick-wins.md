@@ -104,8 +104,15 @@ time. Consider a CI budget: fail if `no-explicit-any` count rises.
 
 ## Definition of done
 
-- [ ] `noUnusedLocals` + `noUnusedParameters` on, tsc clean
-- [ ] `CurriculumCategoriesTab.tsx` deleted
-- [ ] `AcademicsHub` import removed and file deleted (or a task filed to revive it)
-- [ ] `@typescript-eslint/no-explicit-any` as a warning
-- [ ] `npx vitest run` green
+- [x] `noUnusedLocals` on, tsc clean (2026-11-10: 186 unused imports and 59
+      unused locals removed)
+- [ ] `noUnusedParameters` on — 74 findings left, almost all destructured
+      component props that callers still pass. Each needs the prop removed from
+      the component's type **and** its call sites, so it is a separate PR.
+      List them with `npx tsc --noEmit -p tsconfig.json --noUnusedParameters`.
+- [x] `CurriculumCategoriesTab.tsx` deleted (already gone)
+- [x] `AcademicsHub` import removed and file deleted (already gone)
+- [x] `@typescript-eslint/no-explicit-any` as a warning (1,171 at the time it
+      was turned on)
+- [x] `npx vitest run` unchanged (the 44 failures in `ffcsTab.render`,
+      `ffcsPageView.render` and `zinc-palette-binding` predate this change)

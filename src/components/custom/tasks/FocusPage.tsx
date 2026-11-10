@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useAtom } from "jotai";
 import {
   CheckCircle2,
@@ -13,6 +13,7 @@ import { getTodayAttendanceDay } from "@/lib/attendanceTimetable";
 import type { Task } from "@/types/tasks";
 import PomodoroTimer from "./PomodoroTimer";
 import SelectField from "../shared/primitives/SelectField";
+import { clickable } from "@/lib/a11y";
 
 interface FocusPageProps {
   tasks: Task[];
@@ -134,7 +135,7 @@ export default function FocusPage({
             {todayUpcomingChunks.map(({ task, start, end }, idx) => (
               <div
                 key={idx}
-                onClick={() => setSelectedTaskId(task.id)}
+                {...clickable(() => setSelectedTaskId(task.id))}
                 className={`p-2.5 rounded-xl border flex items-center justify-between gap-3 text-xs transition-all cursor-pointer ${
                   selectedTaskId === task.id
                     ? "bg-indigo-50/70 dark:bg-indigo-950/30 border-indigo-500/40 text-indigo-900 dark:text-indigo-200"

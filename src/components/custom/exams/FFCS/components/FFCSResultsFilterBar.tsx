@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import { Building2, Layers, Search, X } from "lucide-react";
 import { ChipTabs } from "../../../shared/primitives";
 import { DEFAULT_RESULT_FILTERS, filtersActive, type ResultFilters, type TheorySession } from "@/lib/ffcsResultFilters";

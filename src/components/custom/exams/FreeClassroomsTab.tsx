@@ -452,7 +452,6 @@ export default function FreeClassroomsTab({
   // Falls back rather than asserting: a bad `day` should not blank the page.
   const shown = week.get(day) ?? week.get("mon")!;
   const periods = shown.periods;
-  const periodSlots = shown.slots;
   const index = shown.index;
 
   /* ── the server's half ─────────────────────────────────────────────────── */

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef, type ReactNode } from "react";
+import { useState, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { AnimatePresence } from "framer-motion";
 import { Check, ChevronRight, Edit3, Eye, EyeOff, FlaskConical, Plus, RotateCcw, Trash2 } from "lucide-react";
 import AddCustomCourseModal from "./marks-predictor/AddCustomCourseModal";
@@ -22,7 +22,6 @@ import { manualClassStats } from "@/lib/gradeBoundaries";
 import {
   type CoursePredictionResult,
   computeCoursePrediction,
-  safeNumber,
 } from "@/lib/marksPredictor";
 import {
   deleteCustomCourse,

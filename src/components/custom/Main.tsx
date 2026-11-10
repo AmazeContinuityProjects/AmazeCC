@@ -30,7 +30,6 @@ import { activeRegNumberAtom, pendingInviteHandleAtom } from "@/store/socialAtom
 import { activeToolsSubTabAtom } from "@/store/uiAtoms";
 import { INVITE_PARAM, handleFromInvite, isValidHandle } from "@/lib/social/handle";
 import IntroSong from "@/lib/introSong/IntroSong";
-import config from "../../../config.json";
 import { useTaskReminderScheduler } from "./tasks/useTaskReminderScheduler";
 import { useAppBootstrap } from "./app/useAppBootstrap";
 import { AnimatePresence, LazyMotion, m } from "framer-motion";
@@ -64,6 +63,8 @@ import { useRouter } from "next/navigation";
 import { clearSignInReturn, peekSignInReturn, VTOP_LOGIN_EVENT } from "@/lib/signInReturn";
 import { credentialManager } from "@/lib/sync-engine/credential-manager";
 import { hasStoredVtopCredentials } from "./app/readBootstrapSnapshot";
+import ConnectionBanner from "./shared/ConnectionBanner";
+import { isMacPlatform, NAV_SHORTCUTS } from "@/lib/shortcuts";
 
 interface MainProps {
   initialIntent?: "login" | "demo";
@@ -490,6 +491,7 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
             />
           )}
 
+          <ConnectionBanner enabled={isLoggedIn && !demoMode} />
           <AuthenticatedWorkspace
             handleLogOutRequest={handleLogOutRequest}
             handleReloadRequest={handleReloadRequest}
@@ -554,26 +556,26 @@ function OpeningScreen() {
 
 function GlobalShortcutsModal({ onClose }: { onClose: () => void }) {
   // Registered for system back via BottomSheet below.
+  const alt = isMacPlatform() ? "⌥" : "Alt";
+  const mod = isMacPlatform() ? "⌘" : "Ctrl";
   const categories = [
     {
-      title: "Navigation",
-      items: [
-        { keys: ["Alt", "H"], desc: "Go to Home Tab" },
-        { keys: ["Alt", "A"], desc: "Go to Attendance & Timetable" },
-        { keys: ["Alt", "E"], desc: "Go to Event Hub" },
-        { keys: ["Alt", "L"], desc: "Go to Koha Library Search" },
-        { keys: ["Alt", "G"], desc: "Go to Academic Grades" },
-        { keys: ["Alt", "S"], desc: "Go to Settings" },
-      ],
+      title: "Go to (press g, then the letter)",
+      items: NAV_SHORTCUTS.map((s) => ({
+        keys: ["g", s.key.toUpperCase()],
+        joiner: "then",
+        desc: s.alt ? `${s.desc}  ·  also ${alt}+${s.key.toUpperCase()}` : s.desc,
+      })),
     },
     {
-      title: "Quick Tools & Actions",
+      title: "Actions",
       items: [
-        { keys: ["Ctrl", "K"], desc: "Toggle Spotlight Command Palette" },
-        { keys: ["Alt", "O"], desc: "Open On-Duty (OD) hours page" },
-        { keys: ["Alt", "B"], desc: "Toggle privacy blur filter (hides GPA)" },
-        { keys: ["Alt", "T"], desc: "Toggle Theme (Light / Dark mode)" },
-        { keys: ["?"], desc: "Show this keyboard shortcuts cheat-sheet" },
+        { keys: [mod, "K"], desc: "Command palette" },
+        { keys: ["/"], desc: "Command palette" },
+        { keys: [alt, "B"], desc: "Hide or show CGPA" },
+        { keys: [alt, "P"], desc: "Privacy mode (blur grades, attendance, fees)" },
+        { keys: [alt, "T"], desc: "Switch light / dark theme" },
+        { keys: ["?"], desc: "This list" },
       ],
     },
   ];
@@ -602,7 +604,11 @@ function GlobalShortcutsModal({ onClose }: { onClose: () => void }) {
                     <div className="flex items-center gap-1">
                       {item.keys.map((k, kIdx) => (
                         <span key={kIdx} className="flex items-center gap-1">
-                          {kIdx > 0 && <span className="text-[10px] text-gray-400 font-bold px-0.5">+</span>}
+                          {kIdx > 0 && (
+                            <span className="text-[10px] text-gray-400 font-bold px-0.5">
+                              {"joiner" in item ? item.joiner : "+"}
+                            </span>
+                          )}
                           <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-md font-mono text-[10px] font-bold text-gray-800 dark:text-gray-200 shadow-xs">
                             {k}
                           </kbd>

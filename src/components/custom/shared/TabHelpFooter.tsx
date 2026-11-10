@@ -3,10 +3,8 @@
 import React, { useState } from "react";
 import { 
   HelpCircle, 
-  Info, 
   Sparkles, 
   BookOpen, 
-  ChevronRight, 
   Sliders, 
   RefreshCcw, 
   Search, 

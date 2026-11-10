@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { ArrowLeft, CalendarDays, ChevronRight, Search, Users, X, ExternalLink } from "lucide-react";
 

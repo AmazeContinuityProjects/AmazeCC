@@ -7,6 +7,7 @@ import BackgroundPrefetch from "../components/custom/BackgroundPrefetch";
 import type { Viewport, Metadata } from "next";
 import { Geist, Geist_Mono, DM_Sans } from "next/font/google";
 import "./globals.css";
+import { buildContentSecurityPolicy } from "@/lib/csp";
 
 const geist = Geist({ weight: "variable", subsets: ["latin"], display: "swap", variable: "--font-geist" });
 const geistMono = Geist_Mono({
@@ -102,10 +103,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${geist.className} ${geistMono.className} ${dmSans.className}`}
     >
       <head>
+        {/* Production only: Next.js dev mode needs eval for fast refresh. See lib/csp.ts. */}
+        {process.env.NODE_ENV === "production" && (
+          <meta httpEquiv="Content-Security-Policy" content={buildContentSecurityPolicy()} />
+        )}
         <script
           id="amaze-session-early-detect"
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var d=localStorage.getItem("IDs"),u=localStorage.getItem("username"),m=localStorage.getItem("demoMode");var s=false;if(d){try{var p=JSON.parse(d);if(p&&p.VtopUsername&&p.VtopPassword)s=true;}catch(e){}}if(!s&&u&&localStorage.getItem("password"))s=true;if(!s&&m==="true")s=true;if(s){document.documentElement.classList.add("has-stored-session");}}catch(e){}})();`,
+            __html: `(function(){try{var d=localStorage.getItem("IDs"),u=localStorage.getItem("username"),m=localStorage.getItem("demoMode");var s=false;if(d){try{var p=JSON.parse(d);if(p&&p.VtopUsername&&p.VtopPassword)s=true;}catch(e){}}if(!s&&u&&localStorage.getItem("password"))s=true;if(!s&&localStorage.getItem("cred_vault_session")==="1")s=true;if(!s&&m==="true")s=true;if(s){document.documentElement.classList.add("has-stored-session");}}catch(e){}})();`,
           }}
         />
       </head>

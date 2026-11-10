@@ -11,7 +11,7 @@ Created 0 of 1 detected sources in PostHog. The MongoDB credential prompt timed 
 
 ## Files created
 
-- `posthog-warehouse-report.md`
+- `docs/reports/posthog-warehouse-report.md`
 
 ## Manual step required
 

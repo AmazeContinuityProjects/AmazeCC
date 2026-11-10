@@ -37,7 +37,6 @@ import {
   type AttendanceDayCardsMap,
 } from "@/lib/attendanceTimetable";
 import { summariseAttendance } from "@/lib/attendanceSummary";
-import { dayKeyForDate } from "@/lib/social/schedule";
 import {
   activeMonthIndex,
   buildAttendanceByDate,
@@ -634,6 +633,7 @@ export default function CalendarSubpage({
   );
 
   const shellProps = {
+    syncedOps: ["calendar"],
     eyebrow: "Attendance · Calendar",
     title: "Super Calendar",
     subtitle: [CALENDAR_TYPES[type], currSemesterID ? formatSemesterName(currSemesterID) : null]

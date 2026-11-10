@@ -1483,6 +1483,7 @@ export default function CurriculumPage({
   // action buttons, same eyebrow + title. Only the back target differs.
   const topBar = (inSubpage: boolean) => (
     <PageShell
+      syncedOps={["curriculum"]}
       eyebrow="Academics"
       title="Degree Curriculum"
       onBack={() => (inSubpage ? stack.reset() : stack.back())}

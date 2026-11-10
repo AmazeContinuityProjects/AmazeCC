@@ -3,11 +3,12 @@
 import dynamic from "next/dynamic";
 import type ToolsTabComponent from "../tools/ToolsTab";
 import type { ComponentProps } from "react";
+import { PageSkeleton } from "../shared/primitives/PageSkeleton";
 
 type ToolsTabProps = ComponentProps<typeof ToolsTabComponent>;
 
 function FeatureLoading() {
-  return <div className="min-h-40 animate-pulse rounded-2xl bg-slate-100 dark:bg-zinc-900" role="status" aria-label="Loading tools" />;
+  return <PageSkeleton label="Loading tools" />;
 }
 
 const ToolsTab = dynamic(() => import("../tools/ToolsTab"), { loading: FeatureLoading });

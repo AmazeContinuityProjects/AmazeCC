@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useDashboardNavigator } from "../dashboard/DashboardNavigator";
+import { createSequenceTracker, isTypingTarget, letterOf, NAV_SHORTCUTS, type NavTarget } from "@/lib/shortcuts";
 
 export function useGlobalShortcuts({
   theme,
@@ -12,78 +13,75 @@ export function useGlobalShortcuts({
   setIsShortcutsHelpOpen,
 }: any) {
   const { setActiveTab, setActiveSubTab, setActiveAttendanceSubTab, setActiveProfileSubTab } = useDashboardNavigator();
+  const sequence = useRef(createSequenceTracker());
+
   useEffect(() => {
+    const go = (target: NavTarget) => {
+      setActiveTab(target.tab);
+      if ("academicsSub" in target) setActiveSubTab(target.academicsSub);
+      if ("attendanceSub" in target) setActiveAttendanceSubTab(target.attendanceSub);
+      if ("profileSub" in target) setActiveProfileSubTab(target.profileSub);
+    };
+
     const handler = (e: KeyboardEvent) => {
       // Toggle search palette (Ctrl/Cmd + K)
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+      if ((e.metaKey || e.ctrlKey) && letterOf(e) === "k") {
         e.preventDefault();
         setCommandPaletteOpen((prev) => !prev);
         return;
       }
 
-      // Toggle shortcuts help sheet (Shift + ? or just ?)
+      if (e.key === "Escape") {
+        setIsShortcutsHelpOpen(false);
+        sequence.current.reset();
+        return;
+      }
+
+      // Never steal keys from a field the user is typing in.
+      if (isTypingTarget(document.activeElement)) return;
+
+      // Shortcuts help sheet (? / Shift + /)
       if (e.key === "?" && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
         setIsShortcutsHelpOpen(true);
         return;
       }
 
-      if (e.key === "Escape") {
-        setIsShortcutsHelpOpen(false);
-      }
-
-      // Ignore shortcuts if typing inside inputs/textareas
-      const activeEl = document.activeElement;
-      if (
-        activeEl &&
-        (activeEl.tagName === "INPUT" ||
-          activeEl.tagName === "TEXTAREA" ||
-          activeEl.getAttribute("contenteditable") === "true")
-      ) {
+      // "/" opens the command palette, as in most search-first apps.
+      if (e.key === "/" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        setCommandPaletteOpen(true);
         return;
       }
 
-      // We only listen for Alt (Option) key combinations for global actions
-      if (e.altKey) {
-        const key = e.key.toLowerCase();
+      const letter = letterOf(e);
 
-        // Navigation Shortcuts
-        if (key === "h") {
+      // Alt/Option + letter: the original set, plus two actions.
+      if (e.altKey && !e.ctrlKey && !e.metaKey) {
+        const nav = NAV_SHORTCUTS.find((s) => s.alt && s.key === letter);
+        if (nav) {
           e.preventDefault();
-          setActiveTab("home");
-        } else if (key === "a") {
+          go(nav.target);
+        } else if (letter === "b") {
           e.preventDefault();
-          setActiveTab("attendance");
-        } else if (key === "e") {
+          setSettings((prev) => ({ ...prev, CGPAHidden: !prev.CGPAHidden }));
+        } else if (letter === "p") {
           e.preventDefault();
-          setActiveTab("events");
-        } else if (key === "l") {
-          e.preventDefault();
-          setActiveTab("libraries");
-        } else if (key === "g") {
-          e.preventDefault();
-          setActiveTab("academics");
-          setActiveSubTab("grades");
-        } else if (key === "s") {
-          e.preventDefault();
-          setActiveTab("profile");
-          setActiveProfileSubTab("settings");
-        }
-
-        // Modal & Action Shortcuts
-        else if (key === "o") {
-          e.preventDefault();
-          setActiveTab("attendance");
-          setActiveAttendanceSubTab("od");
-        } else if (key === "b") {
-          e.preventDefault();
-          setSettings((prev) => {
-            const nextVal = !prev.CGPAHidden;
-            return { ...prev, CGPAHidden: nextVal };
-          });
-        } else if (key === "t") {
+          setSettings((prev) => ({ ...prev, privacyMode: !prev.privacyMode }));
+        } else if (letter === "t") {
           e.preventDefault();
           setTheme(theme === "dark" ? "light" : "dark");
+        }
+        return;
+      }
+
+      // "g" then a letter.
+      if (!e.ctrlKey && !e.metaKey && !e.shiftKey && /^[a-z]$/.test(letter)) {
+        const hit = sequence.current.feed(letter);
+        if (hit === "pending") return;
+        if (hit) {
+          e.preventDefault();
+          go(hit.target);
         }
       }
     };
@@ -94,6 +92,8 @@ export function useGlobalShortcuts({
     setTheme,
     settings,
     setSettings,
+    setCommandPaletteOpen,
+    setIsShortcutsHelpOpen,
     setActiveTab,
     setActiveSubTab,
     setActiveAttendanceSubTab,

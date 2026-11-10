@@ -176,6 +176,7 @@ export function InsightCarousel({
 
       <div className="flex min-h-0 flex-1 items-center min-w-0 relative z-10 pointer-events-none">
         <p
+          data-private
           className={cn(
             "font-black font-outfit tracking-tight truncate block",
             HEADLINE[headlineSize],

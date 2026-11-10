@@ -553,11 +553,12 @@ export default function TaskEditSheet({
             {pomodoro && (
               <div className="grid grid-cols-3 gap-2 pt-1">
                 <div>
-                  <label className="block text-[10px] font-bold text-zinc-500 mb-1">
+                  <label htmlFor="pomodoro-focusMin" className="block text-[10px] font-bold text-zinc-500 mb-1">
                     Focus (min)
                   </label>
                   <input
                     type="number"
+                    id="pomodoro-focusMin"
                     min="5"
                     max="120"
                     value={pomodoro.focusMin}
@@ -568,11 +569,12 @@ export default function TaskEditSheet({
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-zinc-500 mb-1">
+                  <label htmlFor="pomodoro-breakMin" className="block text-[10px] font-bold text-zinc-500 mb-1">
                     Break (min)
                   </label>
                   <input
                     type="number"
+                    id="pomodoro-breakMin"
                     min="1"
                     max="60"
                     value={pomodoro.breakMin}
@@ -583,11 +585,12 @@ export default function TaskEditSheet({
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-zinc-500 mb-1">
+                  <label htmlFor="pomodoro-rounds" className="block text-[10px] font-bold text-zinc-500 mb-1">
                     Rounds
                   </label>
                   <input
                     type="number"
+                    id="pomodoro-rounds"
                     min="1"
                     max="20"
                     value={pomodoro.rounds}

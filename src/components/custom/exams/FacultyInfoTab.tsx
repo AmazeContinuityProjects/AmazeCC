@@ -5,7 +5,6 @@ import {
   loadFacultyRoster,
   getFacultyDirectoryProfile,
   getFacultyReview,
-  type FacultyRosterEntry,
 } from "@/lib/vitfacService";
 import {
   Search,
@@ -26,7 +25,6 @@ import {
   EmptyPanel,
   KeyValue,
   ListRowText,
-  ListShell,
   ListSkeleton,
   PageShell,
   SectionHeader,

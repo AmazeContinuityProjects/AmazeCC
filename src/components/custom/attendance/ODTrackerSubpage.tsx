@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useAtom } from "jotai";
 import { officialOdDataAtom } from "@/store";
 import { AnimatePresence, m } from "framer-motion";
@@ -311,6 +311,7 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, onBack, 
 
     return (
         <PageShell
+          syncedOps={["officialOd", "attendanceMarks"]}
             selectable
             eyebrow="Attendance · On-Duty"
             title="On-Duty hours"

@@ -71,7 +71,7 @@ export default function PaperDetailSheet({ record, store, onClose, onChanged, on
   const [semester, setSemester] = useState<string>(meta.exam?.semester || "");
   const [session, setSession] = useState<string>(meta.exam?.session || "");
   const [slot, setSlot] = useState<string>(meta.exam?.slot || "");
-  const [classNbr, setClassNbr] = useState<string>(meta.exam?.classNbr || "");
+  const [classNbr] = useState<string>(meta.exam?.classNbr || "");
   const [maxMarks, setMaxMarks] = useState<string>(meta.exam?.maxMarks ? String(meta.exam.maxMarks) : "");
   const [uploading, setUploading] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);

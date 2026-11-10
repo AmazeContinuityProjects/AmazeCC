@@ -1,6 +1,5 @@
-import React from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { BookOpen, Search, Zap, Users, Settings2, Share2 } from 'lucide-react';
+import { BookOpen, Search, Zap, Users, Settings2 } from 'lucide-react';
 import BottomSheet from '../shared/BottomSheet';
 
 interface FFCSGuideModalProps {

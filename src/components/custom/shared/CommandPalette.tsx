@@ -11,6 +11,7 @@ import {
   CheckCircle2, Sun, Moon, AlertTriangle
 } from "lucide-react";
 import { api } from "@/lib/sync-engine";
+import { clickable } from "@/lib/a11y";
 
 function renderCommandIcon(icon: React.ReactNode | string) {
   if (React.isValidElement(icon)) return icon;
@@ -335,14 +336,14 @@ export function CommandPalette({ isOpen, onClose, commands, demoMode = false }: 
                       return (
                         <div
                           key={cmd.id || idx}
-                          onClick={() => {
+                          {...clickable(() => {
                             if (cmd.subpage) {
                               setActiveSubpage(cmd.subpage);
                             } else {
                               cmd.onSelect();
                               onClose();
                             }
-                          }}
+                          })}
                           onMouseEnter={() => setSelectedIndex(idx)}
                           className={`flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-all ${
                             isSelected

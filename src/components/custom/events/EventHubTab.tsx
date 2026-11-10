@@ -558,6 +558,7 @@ export default function EventHubTab({
 
   return (
     <PageShell
+      syncedOps={["events"]}
       onBack={onBack}
       eyebrow="Campus · Events"
       title="Event Hub"
