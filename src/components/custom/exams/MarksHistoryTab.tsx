@@ -716,6 +716,7 @@ export default function MarksHistoryTab({
 
   return (
     <PageShell
+      syncedOps={["all-grades"]}
       eyebrow="Academics · Grades"
       title={title}
       subtitle={subtitle}

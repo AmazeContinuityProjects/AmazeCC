@@ -2,12 +2,10 @@
 
 import { api } from "@/lib/sync-engine";
 import { updatePostHogPersonName } from "@/lib/posthog";
-import TabHelpFooter from "../shared/TabHelpFooter";
 import {
   switchApiHost,
   hasBackupApi,
   getActiveApiUrl,
-  PRIMARY_API_URL,
   BACKUP_API_URL,
   type ApiHostChoice,
 } from "@/lib/fetch-utils";
@@ -23,30 +21,24 @@ import {
   Database,
   Shield,
   ChevronRight,
-  ChevronLeft,
   RefreshCcw,
   Sliders,
-  Settings,
-  Bell,
   Info,
   Key,
   Grid,
   Search,
   Keyboard,
-  Sparkles,
   Palette,
-  Layers,
   GraduationCap,
-  Home as HomeIcon,
-  Volume2,
-  VolumeX,
   Check,
   Edit3,
   Copy,
+  KeyRound,
 } from "lucide-react";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Button, cn } from "@amazecontinuityprojects/amazeui";
 import { useOverlayBack } from "@/lib/overlayStack";
+import { useForgetCredentialsAction } from "../app/useForgetCredentialsAction";
 import {
   EmptyPanel,
   GhostButton,
@@ -58,22 +50,17 @@ import {
   SectionHeader,
   SegmentedControl,
   SelectField,
-  SettingRow,
   StatTile,
   SubpageScreen,
   Switch,
-  TitleBlock,
-  ToggleRow,
-  ToneDot,
 } from "../shared/primitives";
 // `TILE` was already dead here; `TILE_INTERACTIVE` went with the settings tile
 // grid. `LIST_ROW` is the row shell the course overview uses for the same shape.
-import { LIST_ROW, TILE_CARD, TONE_BADGE, TONE_ICON_TILE, FIELD_INPUT } from "@/lib/uiTokens";
+import { LIST_ROW, TILE_CARD, TONE_ICON_TILE, FIELD_INPUT } from "@/lib/uiTokens";
 import { getAssetPath } from "@/lib/utils";
 import { parentOf } from "@/lib/settingsNav";
 import { RegistrationModalContent, BankDayStatusModal } from "./ProfileModals";
 import config from "../../../../config.json";
-import Links from "./Links";
 import PushNotificationManager from "./PushNotificationManager";
 import PwaInstallCard from "../shared/PwaInstallCard";
 import LocalStorageSubpage from "../footer/LocalStorageSubpage";
@@ -83,14 +70,13 @@ import TeamModal from "./TeamModal";
 import AboutBody from "./AboutBody";
 import ProfileStatusCards from "../profile/ProfileStatusCards";
 import AcknowledgementCards from "../profile/AcknowledgementCards";
-import { Badge, useIsMobile } from "../shared";
+import { useIsMobile } from "../shared";
 import BottomSheet from "../shared/BottomSheet";
 import { effectiveCellDensity } from "../timetable/useTimetableViewMode";
 import SyncModeEditor, { SyncModeEditorContent } from "../shared/SyncModeEditor";
 import { listModes, loadCustomModes, resolveMode, type SyncMode } from "@/lib/sync-engine/sync-modes";
 import GenericApiView, { clearApiCache } from "../exams/GenericApiView";
 import { useTheme } from "next-themes";
-import { AnimatePresence, m } from "framer-motion";
 
 export type SectionId =
   "profile" | "credentials" | "preferences" | "academic" | "sync" | "sync-modes" | "navigation" | "advanced" | "about";
@@ -265,6 +251,7 @@ export default function ProfilePage({
   mode = "settings",
   onOpenShortcutsHelp,
 }: any) {
+  const handleForgetCredentials = useForgetCredentialsAction();
   const isMobile = useIsMobile();
   // One navigation state for both breakpoints. `null` is the category hub;
   // anything else is that section's page. `mode` is the profile screen's
@@ -365,7 +352,7 @@ export default function ProfilePage({
 
   // Credentials Section States
   const [credData, setCredData] = useState<any>(null);
-  const [credLoading, setCredLoading] = useState(true);
+  const [, setCredLoading] = useState(true);
   const [changedUsername, setChangedUsername] = useState(username || "");
   const [changedPassword, setChangedPassword] = useState(Array.isArray(password) ? password[0] : password || "");
   const [showPasswords, setShowPasswords] = useState<Record<number, boolean>>({});
@@ -1405,8 +1392,34 @@ export default function ProfilePage({
       <div className="space-y-3">
         <SectionHeader icon={LogOut} title="Sign out & end session" />
         <p className="px-1 -mt-1 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
-          Clear your active session and cookies on this device. Your saved logins above stay put.
+          Two ways to sign out of this device. Both remove your saved logins.
         </p>
+        <div className={TILE_CARD}>
+          <div className="flex items-center gap-3">
+            <span
+              className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.amber}`}
+            >
+              <KeyRound className="w-5 h-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold text-text-heading font-outfit tracking-tight">Forget my logins</p>
+              <p className="text-[11px] text-text-secondary dark:text-text-muted font-medium mt-0.5">
+                Removes your VTOP, Moodle, library and VITOL logins from this device. Your tasks, FFCS plans,
+                friends and settings stay here for next time.
+              </p>
+            </div>
+          </div>
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={handleForgetCredentials}
+              className="inline-flex items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2.5 text-sm font-black text-amber-700 dark:text-amber-300 transition-colors hover:bg-amber-500/20 cursor-pointer"
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+              Forget logins and sign out
+            </button>
+          </div>
+        </div>
         <div className={TILE_CARD}>
           <div className="flex items-center gap-3">
             <span
@@ -1415,9 +1428,10 @@ export default function ProfilePage({
               <LogOut className="w-5 h-5" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold text-text-heading font-outfit tracking-tight">End this session</p>
+              <p className="text-sm font-bold text-text-heading font-outfit tracking-tight">Sign out and clear everything</p>
               <p className="text-[11px] text-text-secondary dark:text-text-muted font-medium mt-0.5">
-                You can sign back in anytime with the stored logins above.
+                Removes your logins and everything AmazeCC has stored on this device, including tasks and FFCS
+                plans. Only your theme is kept.
               </p>
             </div>
           </div>
@@ -1428,7 +1442,7 @@ export default function ProfilePage({
               className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-black text-white transition-colors hover:bg-red-700 cursor-pointer"
             >
               <LogOut className="w-3.5 h-3.5" />
-              Log out now
+              Sign out and clear
             </button>
           </div>
         </div>
@@ -1559,6 +1573,20 @@ export default function ProfilePage({
         <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">Privacy & Visibility</h3>
 
         <div className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
+          <div className="flex items-center justify-between py-3">
+            <div>
+              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Privacy Mode</p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Blur grades, attendance, marks and fees everywhere, for screen sharing or showing your phone. Hover
+                or tap a value to peek. Shortcut: Alt/Option + P
+              </p>
+            </div>
+            <Switch
+              checked={settings?.privacyMode ?? false}
+              onCheckedChange={(val) => updateSetting("privacyMode", val)}
+            />
+          </div>
+
           <div className="flex items-center justify-between py-3">
             <div>
               <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Grades Anonymizer Mode</p>
@@ -2452,7 +2480,7 @@ export default function ProfilePage({
             <div className="min-w-0">
               <span className="font-bold text-xs text-red-600 block">Sign Out</span>
               <span className="text-[11px] text-red-500/80 block truncate mt-0.5">
-                Safely disconnect and clear active session tokens
+                Removes your logins and all data stored on this device
               </span>
             </div>
           </div>

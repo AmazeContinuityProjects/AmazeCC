@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import GuestExperience from "./GuestExperience";
 import { hasStoredAppSession } from "./readBootstrapSnapshot";
 import { SIGN_IN_PARAM } from "@/lib/signInReturn";
+import { SIGNED_OUT_EVENT } from "@/lib/forgetDevice";
 
 type EntryIntent = "login" | "demo" | null;
 
@@ -68,6 +69,13 @@ export default function HomeEntryController() {
     setExplicitSignedOut(true);
     setIntent(null);
   }, []);
+
+  // Sign-outs started deeper in the app (e.g. "Forget my logins" on the
+  // profile page) announce themselves with an event instead of a prop chain.
+  useEffect(() => {
+    window.addEventListener(SIGNED_OUT_EVENT, handleSignedOut);
+    return () => window.removeEventListener(SIGNED_OUT_EVENT, handleSignedOut);
+  }, [handleSignedOut]);
 
   const handleGetStarted = useCallback(() => {
     setExplicitSignedOut(false);

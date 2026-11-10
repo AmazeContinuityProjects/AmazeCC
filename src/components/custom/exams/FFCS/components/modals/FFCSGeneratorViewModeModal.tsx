@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, LayoutDashboard, Layers, Sparkles } from "lucide-react";
 import BottomSheet from "../../../../shared/BottomSheet";
 import { ListRowText, ListShell } from "../../../../shared/primitives";

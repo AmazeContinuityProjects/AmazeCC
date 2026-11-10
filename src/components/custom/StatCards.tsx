@@ -1,3 +1,4 @@
+import { clickable } from "@/lib/a11y";
 "use client";
 
 
@@ -106,13 +107,13 @@ export default function StatsCards({
           <div
             key={card.key}
             className={`${cardBase} bg-white  dark:bg-black dark:border dark:border-gray-800`}
-            onClick={card.onClick}
+            {...clickable(card.onClick)}
           >
             <h2 className="text-xs font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit">
               {card.label}
             </h2>
             {card.customContent || (
-              <p className="text-2xl font-black text-zinc-900 dark:text-zinc-100 mt-2 select-none font-outfit">
+              <p data-private className="text-2xl font-black text-zinc-900 dark:text-zinc-100 mt-2 select-none font-outfit">
                 {Number.isNaN(card.value) ? "0" : card.value}
               </p>
             )}

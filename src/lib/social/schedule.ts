@@ -326,16 +326,6 @@ export interface OverlapMetrics {
   currentSlot: string | null;
 }
 
-const EMPTY_METRICS: OverlapMetrics = {
-  commonFreeSlots: 0,
-  commonFreeHours: 0,
-  matchPct: 0,
-  sharedClassHours: 0,
-  myClassHours: 0,
-  firstCommonFreeSlot: null,
-  freeNow: true,
-  currentSlot: null,
-};
 
 /** Each day's slots in start-time order, so "first" means chronologically first. */
 const orderedDayCache = new WeakMap<SlotMap, { day: Day; slotId: string; start: number }[][]>();
@@ -383,7 +373,7 @@ export function computeOverlap(
   let first: string | null = null;
 
   for (const daySlots of orderedDays(map)) {
-    for (const { day, slotId, start } of daySlots) {
+    for (const { day, slotId } of daySlots) {
       const key = slotKey(day, slotId);
       const span = slotSpanMinutes(map[day]![slotId].time);
       const iAmBusy = myKeys.has(key);

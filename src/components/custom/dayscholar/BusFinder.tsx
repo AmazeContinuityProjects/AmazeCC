@@ -7,7 +7,6 @@ import TransportRegistration from "./TransportRegistration";
 import {
   PlacementZones,
   RouteContacts,
-  RouteIdentity,
   RouteSection,
   StopsTimeline,
   routeTone,
@@ -17,7 +16,6 @@ import {
   IconButton,
   ListRowText,
   ListShell,
-  ListSkeleton,
   PageShell,
   StatTile,
   ToneBadge,

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAtom, useSetAtom } from "jotai";
 import {
   isBugRecordingActiveAtom,
@@ -12,7 +12,7 @@ import {
 } from "@/store/uiAtoms";
 import { stopPostHogSessionRecording } from "@/lib/posthog";
 import { useDashboardNavigator } from "../dashboard/DashboardNavigator";
-import { CheckCircle2, Video, X } from "lucide-react";
+import { CheckCircle2, X } from "lucide-react";
 
 export function formatElapsed(seconds: number): string {
   const m = Math.floor(seconds / 60);

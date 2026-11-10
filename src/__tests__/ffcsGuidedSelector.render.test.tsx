@@ -1,9 +1,8 @@
-import React from "react";
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import FFCSGuidedSelector from "../components/custom/exams/FFCS/components/FFCSGuidedSelector";
 import { closeTopOverlayFromPop, hasOpenOverlays } from "../lib/overlayStack";
-import type { ParsedCourse, AddedCourse, TimetableState } from "@/lib/ffcsTypes";
+import type { ParsedCourse, TimetableState } from "@/lib/ffcsTypes";
 
 // The auto-generator awaits the live Vitfac catalog before solving (~1.6s over
 // the network, and longer on a cold connection). The results assertions below

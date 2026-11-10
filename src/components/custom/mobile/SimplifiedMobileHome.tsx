@@ -2,34 +2,23 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
-  CalendarCheck,
   Clock,
   MapPin,
   Sparkles,
   RefreshCcw,
-  Sliders,
   ChevronRight,
   ChevronLeft,
-  AlertCircle,
-  GraduationCap,
-  Award,
   Coffee,
   CheckCircle2,
   Calendar as CalendarIcon,
   Search,
   Bug,
-  Zap,
-  ArrowRight,
   List,
   Layers,
-  FileText,
-  Utensils,
-  BookOpen,
   CalendarDays,
   UserSearch,
   UsersRound,
   Sun,
-  CalendarOff,
   Building,
   DoorOpen,
   WifiOff,
@@ -52,7 +41,6 @@ import { buildExamRows, classifyExamState } from "@/lib/examSchedule";
 import { dateKey } from "@/lib/calendarDay";
 import { isLabFatMarked, labFatPapersByDate, labSlotTokens, type LabFatPaper } from "@/lib/labFatWeek";
 import { cn } from "@amazecontinuityprojects/amazeui";
-import { TILE } from "@/lib/uiTokens";
 import TimetableGrid from "../attendance/TimetableGrid";
 import DesktopCourseDetail from "../attendance/DesktopCourseDetail";
 import BottomSheet from "../shared/BottomSheet";
@@ -87,6 +75,7 @@ import { parseCachedCourses, parseCourseRows, type FreeRoomCourse } from "@/lib/
 import { facultyGroupKey } from "../exams/FFCS/logic/facultyGroups";
 import { getSelectedFinalReportPath, getSelectedFinalSemesterId, mapToFinalSemesterId } from "@/lib/ffcsReports";
 import { useDayKey, useNow, useNowHour, useNowMinute } from "@/lib/useNow";
+import { clickable } from "@/lib/a11y";
 
 interface SimplifiedMobileHomeProps {
   attendanceData: any;
@@ -530,7 +519,7 @@ export default function SimplifiedMobileHome({
     onPrev: () => goToWeek(weekOffset - 1, -1),
   });
 
-  const [satOverride, setSatOverride] = useState<string>(() => {
+  const [satOverride] = useState<string>(() => {
     if (typeof window !== "undefined") {
       try {
         return localStorage.getItem("saturday_timetable_override") || "MON";
@@ -588,12 +577,6 @@ export default function SimplifiedMobileHome({
   const shouldDisplayGpa = shouldShowGpa(settings);
   const targetAttendancePct = Number(settings?.targetAttendance || 75);
 
-  const initials = String(profileName)
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
 
   // Overall attendance — the app's one formula, shared with the calendar page so
   // two screens can never show different percentages for the same student.
@@ -952,7 +935,6 @@ export default function SimplifiedMobileHome({
       const monthNum = d.getMonth();
       const monthStr = d.toLocaleDateString("en-US", { month: "short" });
       const yearNum = d.getFullYear();
-      const dateKey1 = `${dayNum < 10 ? "0" + dayNum : dayNum}-${monthStr}-${yearNum}`;
 
       // Check for exam on this date
       const targetDateStart = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
@@ -1377,7 +1359,7 @@ export default function SimplifiedMobileHome({
             }}
           >
             {directTiles.map((tile) => (
-              <div key={tile.id} onClick={tile.onClick} className={cn("min-w-0", tile.onClick && "cursor-pointer")}>
+              <div key={tile.id} {...clickable(tile.onClick)} className={cn("min-w-0", tile.onClick && "cursor-pointer")}>
                 <StatTile
                   label={tile.label}
                   value={tile.value}
@@ -1856,7 +1838,7 @@ export default function SimplifiedMobileHome({
                     return (
                       <div
                         key={`${cls.courseCode}-${cls.slotName}-${index}`}
-                        onClick={() => handleCourseClick(cls.courseCode)}
+                        {...clickable(() => handleCourseClick(cls.courseCode))}
                         className={`relative overflow-hidden rounded-2xl transition-all duration-200 cursor-pointer text-left border ${taskBorderClass} ${
                           isSelectedCourse ? "lg:ring-2 lg:ring-indigo-500/80 lg:border-indigo-500 shadow-sm" : ""
                         } ${
@@ -1991,7 +1973,7 @@ export default function SimplifiedMobileHome({
                   return (
                     <div
                       key={`${cls.courseCode}-${cls.slotName}-${index}`}
-                      onClick={() => handleCourseClick(cls.courseCode)}
+                      {...clickable(() => handleCourseClick(cls.courseCode))}
                       className={`relative overflow-hidden rounded-[24px] transition-all duration-300 cursor-pointer text-left border ${taskBorderClass} ${
                         isSelectedCourse ? "lg:ring-2 lg:ring-indigo-500/80 lg:border-indigo-500 shadow-sm" : ""
                       } ${
@@ -2167,10 +2149,10 @@ export default function SimplifiedMobileHome({
                   {todayTasks.map((t) => (
                     <div
                       key={t.id}
-                      onClick={() => {
+                      {...clickable(() => {
                         setActiveTab("tools");
                         setActiveToolsSubTab?.("tasks");
-                      }}
+                      })}
                       className="p-3.5 flex items-center justify-between gap-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/40 cursor-pointer transition-colors"
                     >
                       <div className="min-w-0 flex-1">

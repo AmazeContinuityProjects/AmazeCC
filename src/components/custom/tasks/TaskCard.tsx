@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import type { Task, TaskKind } from "@/types/tasks";
 import { isTaskOverdue } from "@/types/tasks";
+import { clickable } from "@/lib/a11y";
 
 interface TaskCardProps {
   task: Task;
@@ -82,7 +83,7 @@ export default function TaskCard({
 
   return (
     <div
-      onClick={() => onEdit(task)}
+      {...clickable(() => onEdit(task))}
       className="group relative rounded-2xl card-surface border border-zinc-200/70 dark:border-zinc-800/80 p-3.5 shadow-2xs hover:shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700 transition-all cursor-pointer text-left"
     >
       <div className="flex items-start justify-between gap-2.5">

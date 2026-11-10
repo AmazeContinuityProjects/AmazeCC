@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAtom } from "jotai";
 import { Play, Pause, RotateCcw, SkipForward } from "lucide-react";
 import { settingsAtom } from "@/store/settingsAtoms";

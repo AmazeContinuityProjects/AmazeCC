@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, act, renderHook } from "@testing-library/react";
 import { useEffect } from "react";
 import { getDefaultStore } from "jotai";

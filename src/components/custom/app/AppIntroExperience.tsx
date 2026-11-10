@@ -3,7 +3,6 @@
 import dynamic from "next/dynamic";
 import { useAtom } from "jotai";
 import {
-  allGradesDataAtom,
   attendanceDataAtom,
   calendarDataAtom,
   credentialsAtom,

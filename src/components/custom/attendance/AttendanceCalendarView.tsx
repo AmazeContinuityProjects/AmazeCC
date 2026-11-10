@@ -1,8 +1,9 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { getDay } from "date-fns";
 import { AnimatePresence, m } from "framer-motion";
 import { CheckCircle2, FileText } from "lucide-react";
 import BottomSheet from "../shared/BottomSheet";
+import { clickable } from "@/lib/a11y";
 
 export default function AttendanceCalendarView({ analyzeCalendars, historyList, notesTracker, toggleNotes, courseCode, isOverall, toggleIndividualNote, isODTracker = false, compact = false }) {
     const [activeIdx, setActiveIdx] = useState(0);
@@ -73,6 +74,15 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
         return { bg: "", dot: "" };
     };
 
+    // Present: dot. Absent: diamond. On duty: square. Partial or half-day: short bar.
+    const dotShape = (status: string | undefined) => {
+        if (!status) return "w-1.5 h-1.5 rounded-full";
+        if (status === "absent" || status === "wasted od") return "w-1.5 h-1.5 rotate-45 rounded-[1px]";
+        if (status === "on duty" || status === "partial od" || status === "valid od") return "w-1.5 h-1.5 rounded-[1px]";
+        if (status.includes("partial") || status.includes("half-day")) return "w-2.5 h-1 rounded-full";
+        return "w-1.5 h-1.5 rounded-full";
+    };
+
     if (compact) {
         return (
             <div className="w-full min-w-0 flex flex-col">
@@ -123,16 +133,20 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
                                 return (
                                     <div
                                         key={date}
+                                        title={dataObj?.status ? `${date}: ${dataObj.status}` : undefined}
                                         className={`aspect-square rounded-xl flex flex-col items-center justify-center gap-1 transition-all ${tint.bg}`}
                                     >
                                         <span className={`text-xs font-black font-outfit leading-none ${dataObj ? "text-zinc-900 dark:text-white" : "text-zinc-400 dark:text-zinc-600"}`}>
                                             {date}
                                         </span>
                                         {tint.dot ? (
-                                            <span className={`w-1.5 h-1.5 rounded-full ${tint.dot}`} />
+                                            // Shape as well as colour, so present/absent is
+                                            // readable without telling red from green.
+                                            <span aria-hidden="true" className={`${dotShape(dataObj?.status)} ${tint.dot}`} />
                                         ) : (
                                             <span className="w-1.5 h-1.5" />
                                         )}
+                                        {dataObj?.status ? <span className="sr-only">{dataObj.status}</span> : null}
                                     </div>
                                 );
                             })}
@@ -265,7 +279,6 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
 
                                 const isLastCol = (monthData.blanks.length + i + 1) % 7 === 0;
 
-                                const dateStr = monthData.daysInMonth[i]?.fullDate ? new Date(monthData.daysInMonth[i].fullDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-') : null;
 
                                 const exactDateStr = entry ? entry.date : null;
 
@@ -281,7 +294,7 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
                                 return (
                                     <div
                                         key={date}
-                                        onClick={() => { if (isOverall && isMissed) setSelectedOverallDate(entry); }}
+                                        {...clickable(() => { if (isOverall && isMissed) setSelectedOverallDate(entry); })}
                                         className={`relative flex flex-col p-1.5 h-16 sm:h-20 border-b border-gray-100  dark:border-gray-800/50 transition-all ${bgClass} ${isLastCol ? '' : 'border-r'} ${isOverall && isMissed ? 'cursor-pointer hover:shadow-inner' : ''}`}
                                     >
                                         <div className="w-full flex justify-between items-start">

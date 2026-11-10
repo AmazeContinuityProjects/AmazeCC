@@ -1,22 +1,18 @@
 "use client";
 
-import React, { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useSetAtom } from "jotai";
 import {
   ChipTabs,
   EmptyPanel,
   GhostButton,
   InsightCarousel,
-  KeyValue,
   ListShell,
   PageShell,
-  SectionHeader,
   SegmentedControl,
   StatTile,
-  SubpageScreen,
   ToneBadge,
   useCarousel,
-  useSubpageStack,
   type InsightSlide,
 } from "../shared/primitives";
 import { SEARCH_FIELD, TILE_CARD } from "@/lib/uiTokens";
@@ -48,11 +44,7 @@ import {
   ChevronRight,
   RotateCcw,
   Sparkles,
-  ShieldAlert,
-  ShieldCheck,
   CheckCircle2,
-  AlertTriangle,
-  Clock,
   Flame,
   Search,
   BookOpen,
@@ -60,6 +52,7 @@ import {
   Snowflake,
   Zap,
 } from "lucide-react";
+import { clickable } from "@/lib/a11y";
 
 /** The four attendance targets the picker offers, and their option values. */
 const THRESHOLD_OPTIONS = [75, 80, 85, 90] as const;
@@ -376,15 +369,6 @@ export default function OverallAttendancePredictor({
     [allWorkingDays, cutoffDate],
   );
 
-  /**
-   * The course whose date skipper is expanded, re-read from `predictions` every
-   * render so its percentage moves as dates are toggled rather than freezing at
-   * the value it had when the row was tapped.
-   */
-  const activeSubject = useMemo(
-    () => (openSubject ? (predictions.find((p) => p.courseCode === openSubject.courseCode) ?? null) : null),
-    [openSubject, predictions],
-  );
   // Filtered courses based on search and status filter
   const filteredCourses = useMemo(() => {
     return predictions.filter((p) => {
@@ -504,6 +488,7 @@ export default function OverallAttendancePredictor({
 
   return (
     <PageShell
+      syncedOps={["attendanceMarks"]}
       eyebrow="Attendance · Predictor"
       title="Attendance Predictor & Simulator"
       subtitle={`Projected ${formatPct(overallStats.predictedPct, decimalValues)}% · target ${targetThreshold}%`}
@@ -683,7 +668,7 @@ export default function OverallAttendancePredictor({
               return (
                 <div
                   key={time || i}
-                  onClick={() => toggleDayState(d.date)}
+                  {...clickable(() => toggleDayState(d.date))}
                   aria-pressed={state === 1}
                   className={`group relative flex flex-col items-center justify-between p-2.5 rounded-2xl border text-center transition-all duration-200 cursor-pointer select-none active:scale-95 ${
                     state === 1

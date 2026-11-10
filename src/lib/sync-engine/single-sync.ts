@@ -8,6 +8,7 @@ import {
 } from "./sync-session";
 import { cancelAllRequests } from "./request-layer";
 import { pingVtopDirectly } from "../vtopHealth";
+import { setVtopState } from "../vtopStatus";
 
 export interface PageSyncStep {
   /** Registered engine op, e.g. `"grades"` or `"bulk"`. */
@@ -48,6 +49,7 @@ export async function runPageSync<T = any>(opts: PageSyncOptions): Promise<T | n
     if (hasVtopStep) {
       const isVtopUp = await pingVtopDirectly(4000);
       if (!isVtopUp) {
+        setVtopState("down");
         cancelAllRequests("VTOP is down");
         appendSyncLine("VTOP is down (vtopcc.vit.ac.in unreachable) — sync cancelled", "error");
         setSyncProgress(0);

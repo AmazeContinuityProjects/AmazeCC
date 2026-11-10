@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ChevronDown, GraduationCap, Layers, RefreshCw } from "lucide-react";
 import Switch from "../../../shared/primitives/Switch";
 import { catalogSlotChips, type CatalogCurriculum, type CatalogSlotIndex } from "@/lib/ffcsCatalogFilters";

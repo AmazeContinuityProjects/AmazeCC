@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { BackButton } from "@amazecontinuityprojects/amazeui";
 import TitleBlock from "./TitleBlock";
+import LastSynced from "../LastSynced";
 
 /**
  * Page shell + page header.
@@ -55,6 +56,11 @@ export interface PageShellProps {
    * shell does not quietly make their copy unselectable.
    */
   selectable?: boolean;
+  /**
+   * Sync ops whose data this page shows. Adds an "Updated 5 min ago" line
+   * under the title (see lib/syncTimes.ts).
+   */
+  syncedOps?: readonly string[];
   /** Extra classes merged onto the shell (the app sets `text-center` globally). */
   className?: string;
   children: ReactNode;
@@ -69,11 +75,21 @@ export default function PageShell({
   layout = "actions-above",
   wrap = false,
   selectable = false,
+  syncedOps,
   className = "",
   children,
 }: PageShellProps) {
   const shell = selectable ? `${SHELL_BASE} select-text` : `${SHELL_BASE} select-none`;
-  const titleBlock = <TitleBlock eyebrow={eyebrow} title={title} subtitle={subtitle} wrap={wrap} />;
+  const block = <TitleBlock eyebrow={eyebrow} title={title} subtitle={subtitle} wrap={wrap} />;
+  // One element either way, so the inline layout's flex row keeps its shape.
+  const titleBlock = syncedOps?.length ? (
+    <div className="min-w-0 flex-1">
+      {block}
+      <LastSynced ops={syncedOps} />
+    </div>
+  ) : (
+    block
+  );
 
   // Back is always far left, the action cluster always far right and
   // shrink-0, so a long title can truncate but never squeeze a button.

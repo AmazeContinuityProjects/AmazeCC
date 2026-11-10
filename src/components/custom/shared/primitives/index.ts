@@ -18,6 +18,7 @@ export { default as PageShell, type PageShellProps, type PageHeaderLayout } from
 export { default as TitleBlock, type TitleBlockProps, type TitleTag } from "./TitleBlock";
 export { useSubpageStack, SubpageScreen, type SubpageStack, type SubpageStackOptions } from "./Subpage";
 export { ListSkeleton } from "./ListSkeleton";
+export { PageSkeleton } from "./PageSkeleton";
 export { useCarousel, type CarouselState } from "./useCarousel";
 export { useHorizontalSwipe, type HorizontalSwipe } from "./useHorizontalSwipe";
 export { InsightCarousel, type InsightSlide } from "./InsightCarousel";

@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useAtom } from "jotai";
 import { Download, Clock, BookOpen } from "lucide-react";
 import BottomSheet from "../shared/BottomSheet";
 import { moodleDataAtom, tasksAtom } from "@/store/dataAtoms";
 import { previewMoodleImport, importMoodleTasks } from "@/lib/moodleImport";
+import { clickable } from "@/lib/a11y";
 
 interface MoodleImportModalProps {
   isOpen: boolean;
@@ -117,7 +118,7 @@ export default function MoodleImportModal({
                   return (
                     <div
                       key={key}
-                      onClick={() => !item.alreadyImported && toggleItem(key)}
+                      {...clickable(() => !item.alreadyImported && toggleItem(key))}
                       className={`p-3 rounded-xl border flex items-start gap-3 transition-all ${
                         item.alreadyImported
                           ? "bg-zinc-50/50 dark:bg-zinc-900/30 border-zinc-200/50 dark:border-zinc-800/50 opacity-60 cursor-default"

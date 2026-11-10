@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useState, useMemo, useEffect } from "react";
+import React, { useCallback, useState, useMemo, useEffect } from "react";
 import {
   X,
   Wand2,
@@ -7,7 +7,6 @@ import {
   ChevronUp,
   ChevronRight,
   Check,
-  ArrowRight,
   Search,
   AlertTriangle,
   ArrowLeft,
@@ -79,7 +78,7 @@ import FFCSGeneratorRunSummaryModal from "./components/modals/FFCSGeneratorRunSu
 import FacultyPriorityModal from "./components/modals/FacultyPriorityModal";
 import { loadVitfacRankingData } from "@/lib/vitfacService";
 import type { FacultyRatingLookup } from "@/lib/ffcsFacultyRanking";
-import { DAYS_OF_WEEK, timeToMinutes, type DayId } from "@/lib/slots";
+import { DAYS_OF_WEEK, type DayId } from "@/lib/slots";
 
 const posthogConfigured = Boolean(
   process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST,
@@ -353,7 +352,7 @@ export function FFCSGeneratorSubpage({
   const [dayLimitsOpen, setDayLimitsOpen] = useState<boolean>(
     () => Object.keys(sessionPrefs.maxEndTimeByDay ?? {}).length > 0,
   );
-  const [generatorSortBy, setGeneratorSortBy] = useState<SortBy>(() => sessionPrefs.sortBy ?? settings.defaultSortBy);
+  const [generatorSortBy] = useState<SortBy>(() => sessionPrefs.sortBy ?? settings.defaultSortBy);
   const [selectedStagedIds, setSelectedStagedIds] = useState<Set<string>>(new Set());
   const [selectedTimetablesToCompare, setSelectedTimetablesToCompare] = useState<string[]>([]);
   const [generatorPreviewTimetable, setGeneratorPreviewTimetable] = useState<TimetableState | null>(null);

@@ -31,7 +31,6 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as FetchUtils from "../lib/fetch-utils";
-import { switchApiHost } from "../lib/fetch-utils";
 
 const PRIMARY = "https://api.amazecc.com";
 const BACKUP = "https://mirror.amazecc.deno.net";

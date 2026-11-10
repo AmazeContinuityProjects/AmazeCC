@@ -1,13 +1,11 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup, fireEvent, act } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { Provider } from "jotai";
 import { useHydrateAtoms } from "jotai/utils";
 import BugRecordingFloatingBar, { formatElapsed } from "../components/custom/feedback/BugRecordingFloatingBar";
 import {
   isBugRecordingActiveAtom,
   bugRecordingStartedAtAtom,
-  hasBugRecordingClipAtom,
-  bugRecordingDurationAtom,
   bugRecordingOriginAtom,
 } from "@/store/uiAtoms";
 import { DashboardNavigatorProvider } from "../components/custom/dashboard/DashboardNavigator";

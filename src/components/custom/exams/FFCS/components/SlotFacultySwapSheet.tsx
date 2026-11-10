@@ -15,7 +15,7 @@
  * strategy guide so students can pick backup faculties immediately during registration rush.
  */
 
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Search, Users, Download, Loader2, Sparkles, AlertCircle, X } from "lucide-react";
 import BottomSheet from "../../../shared/BottomSheet";
 import SearchInput from "../../../shared/SearchInput";

@@ -27,7 +27,6 @@ interface EventItem {
   _source?: "registered" | "discover";
 }
 
-interface EventSearchPaletteProps {}
 
 const badge = {
   violet:

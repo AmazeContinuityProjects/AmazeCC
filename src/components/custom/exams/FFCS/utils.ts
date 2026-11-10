@@ -1,4 +1,4 @@
-import { AddedCourse, ParsedCourse } from "@/lib/ffcsTypes";
+import { AddedCourse } from "@/lib/ffcsTypes";
 
 /**
  * `timeToMinutes` used to live here too, returning `0` for anything it could not

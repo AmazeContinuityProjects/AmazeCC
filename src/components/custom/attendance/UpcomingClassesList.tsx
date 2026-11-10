@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { getTargetAttendancePct } from "@/store/settingsAtoms";
 import { normalize, getEffectiveState } from "@/lib/attendanceRemainingClasses";
+import { clickable } from "@/lib/a11y";
 
 export interface UpcomingClassesListProps {
   classes: any[];
@@ -112,7 +113,7 @@ export default function UpcomingClassesList({
           return (
             <div
               key={i}
-              onClick={() => toggleAttendance(time)}
+              {...clickable(() => toggleAttendance(time))}
               className={`flex flex-col items-center justify-center rounded-lg border p-2 text-center cursor-pointer select-none transition-all duration-150 hover:scale-[1.03] active:scale-[0.97] ${
                 isSkipped
                   ? "bg-red-50/50 border-red-200 text-red-700 dark:bg-red-950/20 dark:border-red-900/40 dark:text-red-400"

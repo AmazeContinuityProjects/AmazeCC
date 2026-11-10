@@ -11,6 +11,12 @@ const COLOR_PALETTES: Record<string, { accent: string; background?: string; surf
 };
 
 export function useAppAppearance(settings: any, theme: any) {
+  // Privacy mode: CSS in globals.css blurs every [data-private] value.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.documentElement.classList.toggle("privacy-mode", Boolean(settings?.privacyMode));
+  }, [settings?.privacyMode]);
+
   useEffect(() => {
     if (typeof document === "undefined") return;
     const root = document.documentElement;

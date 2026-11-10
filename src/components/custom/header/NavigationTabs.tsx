@@ -50,6 +50,7 @@ import {
   UserSearch,
   ScanLine,
   type LucideIcon,
+  AlertTriangle,
 } from "lucide-react";
 import { AnimatePresence, m } from "framer-motion";
 import {
@@ -449,7 +450,6 @@ export default function NavigationTabs({
   ]);
 
   const sidebarActiveStyles = "bg-sidebar-accent border border-sidebar-border text-info font-semibold";
-  const sidebarActiveIconStyles = "text-info font-semibold";
   const railActiveStyles = "bg-sidebar-accent text-info border border-sidebar-border shadow-sm";
 
   const handleThemeChange = (selectedTheme: string, e?: React.MouseEvent<HTMLElement>) => {
@@ -1197,6 +1197,7 @@ export default function NavigationTabs({
                       >
                         <span className="text-sidebar-foreground/">CGPA</span>
                         <span
+                          data-private
                           className={`font-semibold text-sidebar-foreground transition-all duration-300 ${settings.CGPAHidden ? "blur-[4.5px] select-none" : ""}`}
                         >
                           {marksData?.cgpa?.cgpa || "-"}
@@ -1219,11 +1220,23 @@ export default function NavigationTabs({
                       title="Click to toggle attendance format"
                     >
                       <span className="text-sidebar-foreground/">Attendance</span>
-                      <span
-                        className={`font-semibold ${attendancePercentage?.percentage < 75 ? "text-rose-400" : "text-emerald-400"}`}
-                      >
-                        {attendanceValue}
-                      </span>
+                      {(() => {
+                        // Colour alone does not say "below target" to everyone,
+                        // so a warning icon and a spoken label carry it too.
+                        const target = Number(settings?.targetAttendance) || 75;
+                        const below = attendancePercentage?.percentage < target;
+                        return (
+                          <span
+                            data-private
+                            className={`inline-flex items-center gap-1 font-semibold ${below ? "text-rose-400" : "text-emerald-400"}`}
+                            title={below ? `Below your ${target}% target` : `At or above your ${target}% target`}
+                          >
+                            {below ? <AlertTriangle className="w-3 h-3" aria-hidden="true" /> : null}
+                            {attendanceValue}
+                            <span className="sr-only">{below ? `, below your ${target}% target` : `, on track`}</span>
+                          </span>
+                        );
+                      })()}
                     </button>
 
                     <button
@@ -1232,7 +1245,7 @@ export default function NavigationTabs({
                       title="Click to view credits & grades details"
                     >
                       <span className="text-sidebar-foreground/">Credits</span>
-                      <span className="font-semibold text-sidebar-foreground">{credits}</span>
+                      <span data-private className="font-semibold text-sidebar-foreground">{credits}</span>
                     </button>
 
                     <button

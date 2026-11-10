@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { AlertTriangle, Clock } from "lucide-react";
 import { ATTENDANCE_DAYS, AttendanceDay } from "@/lib/attendanceTimetable";
 import { detectChunkOverlaps } from "@/lib/taskMatch";
 import type { Task, WeekChunk } from "@/types/tasks";
 import { KIND_CONFIG } from "./TaskCard";
+import { clickable } from "@/lib/a11y";
 
 interface TaskWeekViewProps {
   tasks: Task[];
@@ -110,7 +111,7 @@ export default function TaskWeekView({
                     return (
                       <div
                         key={`${task.id}-${idx}`}
-                        onClick={() => onEdit(task)}
+                        {...clickable(() => onEdit(task))}
                         className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99] bg-white dark:bg-zinc-800 shadow-2xs ${
                           hasConflict
                             ? "border-amber-500/50 ring-1 ring-amber-500/20"

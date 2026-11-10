@@ -20,7 +20,7 @@ import {
 import { cn } from "@amazecontinuityprojects/amazeui";
 import BottomSheet from "../shared/BottomSheet";
 import { AvatarDot, DotPill, EmptyPanel, GhostButton, IconButton, IconLink, ListRowText, ListShell, SectionHeader, ToneBadge, ToneDot } from "../shared/primitives";
-import { dayKeyForDate, minutesToTimeStr, slotRange } from "@/lib/social/schedule";
+import { minutesToTimeStr, slotRange } from "@/lib/social/schedule";
 import { resolveTeachingDay, type AttendanceDayCardsMap } from "@/lib/attendanceTimetable";
 import {
   dayHeadline,
