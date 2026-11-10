@@ -286,4 +286,123 @@ describe("FriendFinderTab", () => {
       expect.objectContaining({ body: { op: "publish", source: "registered", semesterId: "CH20262705" } }),
     );
   });
+
+  it("opens friend bottom sheet modal when clicking a friend in classes mode", async () => {
+    apiMock.mockResolvedValueOnce(joinedWithMatch());
+    await renderTab();
+
+    // Default grouping is Classes. Clicking on a friend's chip directly in the section card opens the bottom sheet.
+    expect(screen.getByText("Your sections")).toBeTruthy();
+    const friendChip = screen.getByText(/Bala Murugan/);
+    expect(friendChip).toBeTruthy();
+    fireEvent.click(friendChip);
+
+    // Friend bottom sheet opens with shared classes
+    expect(await screen.findByText(/1 class in common/i)).toBeTruthy();
+    expect(screen.getByText("Classes in common (tap to view details)")).toBeTruthy();
+    expect(screen.getAllByText(/Calculus/).length).toBeGreaterThan(0);
+
+    // Tapping the shared class inside the sheet navigates into that class subpage
+    fireEvent.click(screen.getAllByText(/Calculus/)[0]);
+    expect(screen.getByText("Faculty reviews")).toBeTruthy();
+    expect(screen.getByText("1 classmate here")).toBeTruthy();
+
+    // Now inside the class subpage, clicking the classmate row also opens the bottom sheet modal
+    fireEvent.click(screen.getAllByText("Bala Murugan")[0]);
+    expect(await screen.findByText(/1 class in common/i)).toBeTruthy();
+    expect(screen.getByText("Classes in common (tap to view details)")).toBeTruthy();
+  });
+
+  it("pairs embedded courses and marks friends who are not in both ETH and ELA", async () => {
+    const ETH_OFFERING = {
+      classId: "ETH_001",
+      code: "BCSE202L",
+      title: "Database Systems",
+      type: "ETH",
+      credits: "3",
+      room: "SJT101",
+      slot: "F1+TF1",
+      faculty: "DR ALICE",
+    };
+    const ELA_OFFERING = {
+      classId: "ELA_002",
+      code: "BCSE202L",
+      title: "Database Systems",
+      type: "ELA",
+      credits: "1",
+      room: "SJT102",
+      slot: "L23+L24",
+      faculty: "DR ALICE",
+    };
+
+    const embeddedState = stateWith(
+      { joined: true, discoverable: true, source: "registered", classIds: ["ETH_001", "ELA_002"] },
+      {
+        sections: [
+          {
+            classId: "ETH_001",
+            offering: ETH_OFFERING,
+            people: [
+              { handle: "AMZ-BOTH", name: "Kavya S", source: "registered", regNo: "22BCE1111" },
+              { handle: "AMZ-ETH-ONLY", name: "Rahul M", source: "registered", regNo: "22BCE2222" },
+            ],
+          },
+          {
+            classId: "ELA_002",
+            offering: ELA_OFFERING,
+            people: [
+              { handle: "AMZ-BOTH", name: "Kavya S", source: "registered", regNo: "22BCE1111" },
+              { handle: "AMZ-ELA-ONLY", name: "Sneha R", source: "registered", regNo: "22BCE3333" },
+            ],
+          },
+        ],
+        overlaps: [
+          {
+            handle: "AMZ-BOTH",
+            name: "Kavya S",
+            source: "registered",
+            regNo: "22BCE1111",
+            shared: 2,
+            sharedClassIds: ["ETH_001", "ELA_002"],
+            identical: true,
+            updatedAt: "2026-11-09",
+          },
+          {
+            handle: "AMZ-ETH-ONLY",
+            name: "Rahul M",
+            source: "registered",
+            regNo: "22BCE2222",
+            shared: 1,
+            sharedClassIds: ["ETH_001"],
+            identical: false,
+            updatedAt: "2026-11-09",
+          },
+        ],
+      },
+    );
+
+    apiMock.mockResolvedValueOnce(embeddedState);
+    await renderTab();
+
+    // In classes list, sections display their paired counterpart
+    expect(screen.getByText("Paired with ELA (L23+L24)")).toBeTruthy();
+    expect(screen.getByText("Paired with ETH (F1+TF1)")).toBeTruthy();
+
+    // In SectionCard chips, friends not in both are marked
+    expect(screen.getByText("ETH only")).toBeTruthy();
+    expect(screen.getByText("ELA only")).toBeTruthy();
+
+    // Drill into ETH section
+    fireEvent.click(screen.getByText("Paired with ELA (L23+L24)"));
+    expect(screen.getByText("2 classmates here")).toBeTruthy();
+
+    // In the ETH section, Kavya is in both ETH+ELA, while Rahul is only in ETH
+    expect(screen.getByText("Both ETH + ELA")).toBeTruthy();
+    expect(screen.getByText("ETH only · Lab differs")).toBeTruthy();
+
+    // Clicking on Rahul in the class subpage opens his bottom sheet modal showing the mark
+    fireEvent.click(screen.getByText("Rahul M"));
+    expect(await screen.findByText("Classes in common (tap to view details)")).toBeTruthy();
+    expect(screen.getAllByText("ETH only · Lab differs").length).toBeGreaterThan(0);
+  });
 });

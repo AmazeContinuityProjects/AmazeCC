@@ -119,14 +119,168 @@ function VerifiedTick({ className = "w-4 h-4" }: { className?: string }) {
   return <BadgeCheck className={`${className} text-emerald-500 shrink-0`} aria-label="Registered in VTOP" />;
 }
 
-function PersonChip({ person }: { person: ClassmatePerson }) {
+/**
+ * Normalizes course codes to their base (e.g. BCSE202L / BCSE202P -> BCSE202).
+ */
+export function getBaseCourseCode(code?: string): string {
+  if (!code) return "";
+  const upper = code.trim().toUpperCase();
+  if ((upper.endsWith("L") || upper.endsWith("P")) && upper.length > 4) {
+    return upper.slice(0, -1);
+  }
+  return upper;
+}
+
+/**
+ * Normalizes course title for fuzzy embedded pairing comparison.
+ */
+export function normalizeCourseTitle(title?: string): string {
+  if (!title) return "";
+  return title
+    .trim()
+    .toLowerCase()
+    .replace(/\s+-\s*|-\s+/g, " ")
+    .replace(/\b(theory|lab|embedded|only)\b/gi, "")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+/**
+ * Checks whether a section is Embedded Theory (ETH) or Embedded Lab (ELA).
+ */
+export function getSectionEmbeddedRole(section?: ClassmateSection | null): "theory" | "lab" | null {
+  if (!section?.offering) return null;
+  const t = section.offering.type.trim().toUpperCase();
+  if (t === "ETH" || t === "EMBEDDED THEORY" || t.includes("ETH") || (t.includes("THEORY") && t.includes("EMBEDDED"))) {
+    return "theory";
+  }
+  if (t === "ELA" || t === "EMBEDDED LAB" || t.includes("ELA") || (t.includes("LAB") && t.includes("EMBEDDED"))) {
+    return "lab";
+  }
+  return null;
+}
+
+export interface EmbeddedPairingMap {
+  counterparts: Map<string, ClassmateSection>;
+  roles: Map<string, "theory" | "lab">;
+}
+
+export function buildEmbeddedPairMap(sections: ClassmateSection[]): EmbeddedPairingMap {
+  const counterparts = new Map<string, ClassmateSection>();
+  const roles = new Map<string, "theory" | "lab">();
+
+  const theories: ClassmateSection[] = [];
+  const labs: ClassmateSection[] = [];
+
+  for (const s of sections) {
+    const role = getSectionEmbeddedRole(s);
+    if (role === "theory") {
+      theories.push(s);
+      roles.set(s.classId, "theory");
+    } else if (role === "lab") {
+      labs.push(s);
+      roles.set(s.classId, "lab");
+    }
+  }
+
+  for (const t of theories) {
+    const tBase = getBaseCourseCode(t.offering?.code);
+    const tTitle = normalizeCourseTitle(t.offering?.title);
+
+    const matchingLab = labs.find((l) => {
+      if (counterparts.has(l.classId)) return false;
+      const lBase = getBaseCourseCode(l.offering?.code);
+      if (tBase && lBase && tBase === lBase) return true;
+      const lTitle = normalizeCourseTitle(l.offering?.title);
+      if (tTitle && lTitle && tTitle === lTitle) return true;
+      return false;
+    });
+
+    if (matchingLab) {
+      counterparts.set(t.classId, matchingLab);
+      counterparts.set(matchingLab.classId, t);
+    }
+  }
+
+  return { counterparts, roles };
+}
+
+export function isPersonInCounterpart(
+  person: ClassmatePerson,
+  counterpart: ClassmateSection | null | undefined,
+): boolean {
+  if (!counterpart) return false;
+  return counterpart.people.some(
+    (cp) =>
+      cp.handle === person.handle ||
+      (person.regNo && cp.regNo && cp.regNo.toUpperCase() === person.regNo.toUpperCase()),
+  );
+}
+
+export function getOverlapForPerson(p: ClassmatePerson, state: ClassmatesState | null): ClassmateOverlap {
+  const match = state?.overlaps.find(
+    (o) => o.handle === p.handle || (p.regNo && o.regNo && o.regNo.toUpperCase() === p.regNo.toUpperCase()),
+  );
+  if (match) return match;
+
+  const sharedSections = (state?.sections ?? []).filter((s) =>
+    s.people.some(
+      (sp) => sp.handle === p.handle || (p.regNo && sp.regNo && sp.regNo.toUpperCase() === p.regNo.toUpperCase()),
+    ),
+  );
+  const sharedClassIds = sharedSections.map((s) => s.classId);
+
+  return {
+    handle: p.handle,
+    name: p.name,
+    source: p.source,
+    regNo: p.regNo,
+    shared: sharedClassIds.length,
+    sharedClassIds,
+    identical: Boolean(state?.sections.length && sharedClassIds.length === state.sections.length),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function PersonChip({
+  person,
+  onClick,
+  isMarked,
+  markLabel,
+}: {
+  person: ClassmatePerson;
+  onClick?: (e: React.MouseEvent) => void;
+  isMarked?: boolean;
+  markLabel?: string;
+}) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-2xl border border-border-strong dark:border-border bg-surface pl-1 pr-2.5 py-1 text-xs font-semibold text-text-heading max-w-full">
+    <span
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick(e as unknown as React.MouseEvent);
+              }
+            }
+          : undefined
+      }
+      className={`inline-flex items-center gap-1.5 rounded-2xl border border-border-strong dark:border-border bg-surface pl-1 pr-2.5 py-1 text-xs font-semibold text-text-heading max-w-full ${
+        onClick ? "cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors" : ""
+      }`}
+    >
       <Avatar person={person} size="sm" />
       <span className="truncate">
         {displayName(person.name) || person.handle}
         {person.regNo ? ` (${person.regNo})` : ""}
       </span>
+      {isMarked && markLabel ? (
+        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
+          {markLabel}
+        </span>
+      ) : null}
       {person.source === "registered" ? <VerifiedTick className="w-3.5 h-3.5" /> : null}
     </span>
   );
@@ -214,7 +368,19 @@ function InviteButton({ className = "" }: { className?: string }) {
   );
 }
 
-function SectionCard({ section, onClick }: { section: ClassmateSection; onClick?: () => void }) {
+function SectionCard({
+  section,
+  onClick,
+  pairedSection,
+  role,
+  onPersonClick,
+}: {
+  section: ClassmateSection;
+  onClick?: () => void;
+  pairedSection?: ClassmateSection | null;
+  role?: "theory" | "lab" | null;
+  onPersonClick?: (person: ClassmatePerson) => void;
+}) {
   const o = section.offering;
   const count = section.people.length;
   return (
@@ -266,15 +432,39 @@ function SectionCard({ section, onClick }: { section: ClassmateSection; onClick?
                 <span className="truncate">{displayName(o.faculty)}</span>
               </span>
               <span className="uppercase tracking-wide text-[10px] font-bold">{o.type}</span>
+              {pairedSection?.offering && (
+                <span className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-1.5 py-0.5 rounded border border-indigo-200 dark:border-indigo-800/40">
+                  Paired with {pairedSection.offering.type} ({pairedSection.offering.slot})
+                </span>
+              )}
             </p>
           ) : null}
         </div>
       </div>
       {count ? (
         <div className="flex flex-wrap gap-1.5 sm:pl-[52px]">
-          {section.people.map((p) => (
-            <PersonChip key={p.handle} person={p} />
-          ))}
+          {section.people.map((p) => {
+            const inPaired = pairedSection ? isPersonInCounterpart(p, pairedSection) : true;
+            const isMarked = pairedSection ? !inPaired : false;
+            const markLabel = isMarked ? (role === "theory" ? "ETH only" : "ELA only") : undefined;
+
+            return (
+              <PersonChip
+                key={p.handle}
+                person={p}
+                isMarked={isMarked}
+                markLabel={markLabel}
+                onClick={
+                  onPersonClick
+                    ? (e) => {
+                        e.stopPropagation();
+                        onPersonClick(p);
+                      }
+                    : undefined
+                }
+              />
+            );
+          })}
         </div>
       ) : null}
     </div>
@@ -493,6 +683,112 @@ export default function FriendFinderTab({
     [selectedClassId, state],
   );
 
+  const embeddedMap = useMemo(() => buildEmbeddedPairMap(state?.sections ?? []), [state?.sections]);
+
+  const handlePersonClick = useCallback(
+    (person: ClassmatePerson) => {
+      const overlap = getOverlapForPerson(person, state);
+      setSelectedFriend(overlap);
+    },
+    [state],
+  );
+
+  const pairedSection = useMemo(
+    () => (selectedClassId ? (embeddedMap.counterparts.get(selectedClassId) ?? null) : null),
+    [selectedClassId, embeddedMap],
+  );
+  const currentRole = useMemo(
+    () => (selectedClassId ? (embeddedMap.roles.get(selectedClassId) ?? null) : null),
+    [selectedClassId, embeddedMap],
+  );
+
+  const renderFriendBottomSheet = () => {
+    if (!selectedFriend || !state) return null;
+    return (
+      <BottomSheet
+        overlayId="friend-sheet"
+        onClose={() => setSelectedFriend(null)}
+        title={displayName(selectedFriend.name) || selectedFriend.handle}
+        subtitle={
+          selectedFriend.regNo
+            ? `${selectedFriend.regNo} · ${selectedFriend.shared} ${selectedFriend.shared === 1 ? "class" : "classes"} in common`
+            : `${selectedFriend.shared} ${selectedFriend.shared === 1 ? "class" : "classes"} in common`
+        }
+        icon={<Avatar person={selectedFriend} size="sm" />}
+      >
+        <div className="space-y-3 p-1">
+          <p className="text-xs font-semibold text-muted-foreground px-1">Classes in common (tap to view details)</p>
+          <div className={LIST_SHELL}>
+            {selectedFriend.sharedClassIds.map((classId) => {
+              const section = state.sections.find((s) => s.classId === classId);
+              const o = section?.offering;
+              const counterpart = section ? embeddedMap.counterparts.get(section.classId) : null;
+              const role = section ? embeddedMap.roles.get(section.classId) : null;
+              const friendInBoth = counterpart ? selectedFriend.sharedClassIds.includes(counterpart.classId) : true;
+
+              return (
+                <div
+                  key={classId}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    setSelectedFriend(null);
+                    setSelectedClassId(classId);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setSelectedFriend(null);
+                      setSelectedClassId(classId);
+                    }
+                  }}
+                  className={`${LIST_ROW} cursor-pointer hover:bg-zinc-50/70 dark:hover:bg-zinc-800/40 transition-all`}
+                >
+                  <span
+                    className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.indigo}`}
+                  >
+                    <BookOpen className="w-4 h-4" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <p className="text-sm font-bold text-text-heading truncate">
+                        {o ? `${o.code} · ${o.title.replace(/\s+-\s*|-\s+/g, "-")}` : classId}
+                      </p>
+                      {counterpart &&
+                        (friendInBoth ? (
+                          <ToneBadge size="sm" tone="emerald">
+                            Both ETH + ELA
+                          </ToneBadge>
+                        ) : (
+                          <ToneBadge size="sm" tone="amber">
+                            {role === "theory" ? "ETH only · Lab differs" : "ELA only · Theory differs"}
+                          </ToneBadge>
+                        ))}
+                    </div>
+                    {o ? (
+                      <p className="text-xs text-muted-foreground flex items-center gap-2 truncate">
+                        <span>Slot {o.slot}</span>
+                        <span>·</span>
+                        <span>{displayName(o.faculty)}</span>
+                        {o.type ? (
+                          <>
+                            <span>·</span>
+                            <span className="uppercase font-bold text-[10px]">{o.type}</span>
+                          </>
+                        ) : null}
+                      </p>
+                    ) : null}
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-zinc-400 shrink-0" />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </BottomSheet>
+    );
+  };
+
   const handleBack = () => {
     if (selectedClassId) {
       setSelectedClassId(null);
@@ -666,7 +962,15 @@ export default function FriendFinderTab({
         actions={standaloneLogo ? <ThemeToggle /> : undefined}
         eyebrow={o ? o.code : "Class Details"}
         title={o ? o.title.replace(/\s+-\s*|-\s+/g, "-") : selectedSection.classId}
-        subtitle={o ? `${o.type} · ${o.credits} Credits · Slot ${o.slot}` : undefined}
+        subtitle={
+          o
+            ? `${o.type} · ${o.credits} Credits · Slot ${o.slot}${
+                pairedSection?.offering
+                  ? ` · Paired with ${pairedSection.offering.type} (Slot ${pairedSection.offering.slot})`
+                  : ""
+              }`
+            : undefined
+        }
       >
         <div className="space-y-5 max-w-3xl mx-auto">
           {o ? (
@@ -731,28 +1035,57 @@ export default function FriendFinderTab({
             />
             {count > 0 ? (
               <div className={LIST_SHELL}>
-                {selectedSection.people.map((p) => (
-                  <div
-                    key={p.handle}
-                    className="flex items-center gap-3 px-4 py-3 border-b last:border-b-0 border-border-subtle"
-                  >
-                    <Avatar person={p} />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-sm font-bold text-text-heading truncate">
-                          {displayName(p.name) || p.handle}
-                        </span>
-                        {p.source === "registered" ? <VerifiedTick /> : null}
+                {selectedSection.people.map((p) => {
+                  const inBoth = pairedSection ? isPersonInCounterpart(p, pairedSection) : true;
+                  const notInBoth = pairedSection && !inBoth;
+
+                  return (
+                    <div
+                      key={p.handle}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => handlePersonClick(p)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          handlePersonClick(p);
+                        }
+                      }}
+                      className="flex items-center gap-3 px-4 py-3 border-b last:border-b-0 border-border-subtle cursor-pointer hover:bg-zinc-50/70 dark:hover:bg-zinc-800/40 active:scale-[0.99] transition-all"
+                    >
+                      <Avatar person={p} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-sm font-bold text-text-heading truncate">
+                            {displayName(p.name) || p.handle}
+                          </span>
+                          {p.source === "registered" ? <VerifiedTick /> : null}
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">
+                          <span>{p.regNo || p.handle}</span>
+                        </p>
                       </div>
-                      <p className="text-xs text-muted-foreground truncate">{p.regNo || p.handle}</p>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {notInBoth && (
+                          <ToneBadge size="sm" tone="amber">
+                            {currentRole === "theory" ? "ETH only · Lab differs" : "ELA only · Theory differs"}
+                          </ToneBadge>
+                        )}
+                        {pairedSection && inBoth && (
+                          <ToneBadge size="sm" tone="emerald">
+                            Both ETH + ELA
+                          </ToneBadge>
+                        )}
+                        {p.source === "registered" && (
+                          <ToneBadge size="sm" tone="emerald">
+                            Verified
+                          </ToneBadge>
+                        )}
+                        <ChevronRight className="w-4 h-4 text-zinc-400" />
+                      </div>
                     </div>
-                    {p.source === "registered" && (
-                      <ToneBadge size="sm" tone="emerald">
-                        Verified
-                      </ToneBadge>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="rounded-2xl border border-dashed border-border-strong dark:border-border p-6 text-center space-y-2">
@@ -764,6 +1097,7 @@ export default function FriendFinderTab({
         </div>
 
         <FacultyReviewSheetHost target={reviewTarget} onClose={closeFacultyReview} />
+        {renderFriendBottomSheet()}
       </PageShell>
     );
   }
@@ -1003,7 +1337,14 @@ export default function FriendFinderTab({
                 <SectionHeader icon={Link2} title="Your sections" count={state.sections.length} />
                 <div className={LIST_SHELL}>
                   {sortedSections.map((s) => (
-                    <SectionCard key={s.classId} section={s} onClick={() => setSelectedClassId(s.classId)} />
+                    <SectionCard
+                      key={s.classId}
+                      section={s}
+                      pairedSection={embeddedMap.counterparts.get(s.classId)}
+                      role={embeddedMap.roles.get(s.classId)}
+                      onClick={() => setSelectedClassId(s.classId)}
+                      onPersonClick={handlePersonClick}
+                    />
                   ))}
                 </div>
               </section>
@@ -1014,6 +1355,24 @@ export default function FriendFinderTab({
                   <div className={LIST_SHELL}>
                     {state.overlaps.map((o) => {
                       const codes = o.sharedClassIds.map((id) => codeOf.get(id)).filter(Boolean);
+
+                      let hasPartialEmbedded: string | null = null;
+                      let hasBothEmbedded = false;
+
+                      for (const cid of o.sharedClassIds) {
+                        const counterpart = embeddedMap.counterparts.get(cid);
+                        if (counterpart) {
+                          const inBoth = o.sharedClassIds.includes(counterpart.classId);
+                          if (!inBoth) {
+                            const role = embeddedMap.roles.get(cid);
+                            hasPartialEmbedded = role === "theory" ? "ETH only" : "ELA only";
+                            break;
+                          } else {
+                            hasBothEmbedded = true;
+                          }
+                        }
+                      }
+
                       return (
                         <div
                           key={o.handle}
@@ -1049,6 +1408,16 @@ export default function FriendFinderTab({
                             </p>
                           </div>
                           <div className="flex items-center gap-1.5 shrink-0">
+                            {hasPartialEmbedded && (
+                              <ToneBadge size="sm" tone="amber">
+                                {hasPartialEmbedded}
+                              </ToneBadge>
+                            )}
+                            {!hasPartialEmbedded && hasBothEmbedded && (
+                              <ToneBadge size="sm" tone="emerald">
+                                Both ETH + ELA
+                              </ToneBadge>
+                            )}
                             <ToneBadge size="sm" tone={o.identical ? "emerald" : "indigo"}>
                               {o.identical ? "Identical" : `${o.shared} shared`}
                             </ToneBadge>
@@ -1078,68 +1447,7 @@ export default function FriendFinderTab({
         )}
       </div>
 
-      {/* Friend bottom sheet */}
-      {selectedFriend && (
-        <BottomSheet
-          overlayId="friend-sheet"
-          onClose={() => setSelectedFriend(null)}
-          title={displayName(selectedFriend.name) || selectedFriend.handle}
-          subtitle={
-            selectedFriend.regNo
-              ? `${selectedFriend.regNo} · ${selectedFriend.shared} ${selectedFriend.shared === 1 ? "class" : "classes"} in common`
-              : `${selectedFriend.shared} ${selectedFriend.shared === 1 ? "class" : "classes"} in common`
-          }
-          icon={<Avatar person={selectedFriend} size="sm" />}
-        >
-          <div className="space-y-3 p-1">
-            <p className="text-xs font-semibold text-muted-foreground px-1">Classes in common (tap to view details)</p>
-            <div className={LIST_SHELL}>
-              {selectedFriend.sharedClassIds.map((classId) => {
-                const section = state.sections.find((s) => s.classId === classId);
-                const o = section?.offering;
-                return (
-                  <div
-                    key={classId}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => {
-                      setSelectedFriend(null);
-                      setSelectedClassId(classId);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        setSelectedFriend(null);
-                        setSelectedClassId(classId);
-                      }
-                    }}
-                    className={`${LIST_ROW} cursor-pointer hover:bg-zinc-50/70 dark:hover:bg-zinc-800/40 transition-all`}
-                  >
-                    <span
-                      className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.indigo}`}
-                    >
-                      <BookOpen className="w-4 h-4" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold text-text-heading truncate">
-                        {o ? `${o.code} · ${o.title.replace(/\s+-\s*|-\s+/g, "-")}` : classId}
-                      </p>
-                      {o ? (
-                        <p className="text-xs text-muted-foreground flex items-center gap-2 truncate">
-                          <span>Slot {o.slot}</span>
-                          <span>·</span>
-                          <span>{displayName(o.faculty)}</span>
-                        </p>
-                      ) : null}
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-zinc-400 shrink-0" />
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </BottomSheet>
-      )}
+      {renderFriendBottomSheet()}
 
       <FacultyReviewSheetHost target={reviewTarget} onClose={closeFacultyReview} />
     </PageShell>
