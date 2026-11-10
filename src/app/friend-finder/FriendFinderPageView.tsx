@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import {
@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 import { useAtomValue, useSetAtom } from "jotai";
 import { credentialsAtom, demoModeAtom, isLoggedInAtom } from "@/store";
-import { prepareSignIn, SIGN_IN_PARAM } from "@/lib/signInReturn";
 import ThemeToggle from "@/components/custom/ThemeToggle";
 import { getAssetPath } from "@/lib/utils";
 import { useOverlayBackBoundary } from "@/lib/overlayStack";

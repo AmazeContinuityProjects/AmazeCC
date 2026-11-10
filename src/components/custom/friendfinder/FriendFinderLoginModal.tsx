@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   LogIn,
@@ -12,7 +12,6 @@ import {
   ShieldCheck,
   RefreshCw,
   AlertCircle,
-  CheckCircle2,
   Loader2,
   Layers,
 } from "lucide-react";
