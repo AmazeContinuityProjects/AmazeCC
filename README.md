@@ -31,6 +31,8 @@
 
 ## Overview
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/AmazeContinuityProjects/AmazeCC)
+
 AmazeCC is a comprehensive student dashboard for **VIT University**, replacing the clunky official VTOP portal with a fast, modern, and intuitive experience. It aggregates attendance, grades, schedules, hostel info, library services, payments, events, and more — all in one place.
 
 > Originally forked from [Arya4930/UniCC](https://github.com/Arya4930/UniCC) · Captcha solver adapted from [arshsaxena/ViBoot-Enhanced](https://github.com/arshsaxena/ViBoot-Enhanced)
