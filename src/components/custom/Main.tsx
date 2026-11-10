@@ -66,6 +66,8 @@ import { hasStoredVtopCredentials } from "./app/readBootstrapSnapshot";
 import ConnectionBanner from "./shared/ConnectionBanner";
 import { isMacPlatform, NAV_SHORTCUTS } from "@/lib/shortcuts";
 import { friendlyErrorMessage } from "@/lib/sync-engine/errors";
+import NewSemesterWizard from "./shared/NewSemesterWizard";
+import { broadcastGlobalSemesterChange, mapToFinalSemesterId } from "@/lib/ffcsReports";
 
 interface MainProps {
   initialIntent?: "login" | "demo";
@@ -273,6 +275,18 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
     setMessage,
     onSignedOut,
   });
+  // Same steps as Settings > Academic > semester: sign in for the new term,
+  // save it, and tell the FFCS pages.
+  const switchSemester = useCallback(
+    async (semesterId: string) => {
+      setIsReloading(true);
+      await handleLogin(semesterId);
+      setSettings((prev) => ({ ...prev, currSemesterID: semesterId }));
+      const mapped = mapToFinalSemesterId(semesterId);
+      if (mapped) broadcastGlobalSemesterChange(mapped);
+    },
+    [handleLogin, setIsReloading, setSettings],
+  );
   const openCommandPalette = useCallback(() => setCommandPaletteOpen(true), [setCommandPaletteOpen]);
   const openShortcutsHelp = useCallback(() => setIsShortcutsHelpOpen(true), [setIsShortcutsHelpOpen]);
 
@@ -494,6 +508,11 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
           )}
 
           <ConnectionBanner enabled={isLoggedIn && !demoMode} />
+          <NewSemesterWizard
+            enabled={isLoggedIn && !demoMode}
+            currSemesterID={settings.currSemesterID}
+            onSwitch={switchSemester}
+          />
           <AuthenticatedWorkspace
             handleLogOutRequest={handleLogOutRequest}
             handleReloadRequest={handleReloadRequest}

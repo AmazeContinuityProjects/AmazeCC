@@ -29,6 +29,7 @@ import {
   demoModeAtom,
   isFeedbackModalOpenAtom,
 } from "@/store";
+import { OPEN_EVENT as OPEN_SEMESTER_WIZARD_EVENT } from "@/lib/semesterRollover";
 
 interface AppCommandInputs {
   enabled: boolean;
@@ -761,6 +762,14 @@ export function useAppCommands(input: AppCommandInputs) {
         icon: "💬",
         category: "Tools",
         onSelect: () => setActiveTab("profile"),
+      },
+      {
+        id: "tool-new-semester",
+        label: "Start new semester",
+        description: "Keep last term's data, clear old tasks, switch and sync",
+        icon: "🗓️",
+        category: "Tools",
+        onSelect: () => window.dispatchEvent(new Event(OPEN_SEMESTER_WIZARD_EVENT)),
       },
       {
         id: "tool-reload",
