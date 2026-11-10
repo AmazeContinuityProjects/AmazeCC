@@ -742,11 +742,6 @@ export default function FriendFinderTab({
                         <span className="text-sm font-bold text-text-heading truncate">
                           {displayName(p.name) || p.handle}
                         </span>
-                        {p.regNo && (
-                          <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 shrink-0">
-                            {p.regNo}
-                          </span>
-                        )}
                         {p.source === "registered" ? <VerifiedTick /> : null}
                       </div>
                       <p className="text-xs text-muted-foreground truncate">{p.regNo || p.handle}</p>
@@ -1039,20 +1034,18 @@ export default function FriendFinderTab({
                               <span className="text-sm font-bold text-text-heading truncate">
                                 {displayName(o.name) || o.handle}
                               </span>
-                              {o.regNo && (
-                                <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 shrink-0">
-                                  {o.regNo}
-                                </span>
-                              )}
                               {o.source === "registered" ? <VerifiedTick /> : null}
                             </div>
                             <p className="text-xs text-muted-foreground truncate">
-                              {o.regNo ? `${o.regNo} · ` : ""}
-                              {o.identical
-                                ? "Exactly your timetable"
-                                : codes.length
-                                  ? codes.join(" · ")
-                                  : `${o.shared} shared classes`}
+                              {o.regNo && <span>{o.regNo}</span>}
+                              {o.regNo ? " · " : ""}
+                              <span>
+                                {o.identical
+                                  ? "Exactly your timetable"
+                                  : codes.length
+                                    ? codes.join(" · ")
+                                    : `${o.shared} shared classes`}
+                              </span>
                             </p>
                           </div>
                           <div className="flex items-center gap-1.5 shrink-0">
