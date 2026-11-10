@@ -1,18 +1,23 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, m } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import BottomSheet from "./BottomSheet";
 import { BACKUP_API_URL, PRIMARY_API_URL, getActiveApiUrl, setActiveApiUrl, hasBackupApi } from "@/lib/fetch-utils";
 import { UNICC_API_URL, resetUniccActivity } from "@/lib/unicc-fallback";
 import { useUniccActivity, useUniccTarget, setUniccTarget, isUniccFallbackEnabled } from "@/lib/useUniccTarget";
 import { pingVtopDirectly, VTOP_PORTAL_URL } from "@/lib/vtopHealth";
-import { appendSyncLine, closeSyncSession } from "@/lib/sync-engine/sync-session";
+import { appendSyncLine, closeSyncSession, setSyncNotice, setSyncProgress } from "@/lib/sync-engine/sync-session";
 import { cancelAllRequests } from "@/lib/sync-engine/request-layer";
 import type { SyncNotice } from "@/lib/sync-engine/sync-session";
 import { classifyAuthFailure } from "@/lib/sync-engine/errors";
 import type { AuthFailureKind } from "@/lib/sync-engine/errors";
 import type { SyncMode } from "@/lib/sync-engine/sync-modes";
+import { syncEngine } from "@/lib/sync-engine";
+import { storage } from "@/lib/storage";
+import { getDefaultStore } from "jotai";
+import { credentialsAtom, isLoggedInAtom, demoModeAtom } from "@/store";
+import { syncCurrentUserPostHogIdentity, trackFeatureUsage } from "@/lib/posthog";
 import {
   Loader2,
   RefreshCw,
@@ -34,6 +39,11 @@ import {
   Sparkles,
   Layers,
   ServerOff,
+  User,
+  Lock,
+  Eye,
+  EyeOff,
+  LogIn,
 } from "lucide-react";
 
 interface SyncNotificationProps {
@@ -151,6 +161,162 @@ export default function SyncNotification({
   const targetValue = uniccTarget === "unicc" ? UNICC_API_URL : getActiveApiUrl();
 
   const isOfflineNotice = notice === "offline";
+  const isLoginNotice = notice === "login";
+
+  // Login form state for unauthenticated bottom sheet view
+  const [loginUsername, setLoginUsername] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+
+  const hasExistingProfile = Boolean(storage.profile.get());
+  const isNewStudent = !hasExistingProfile;
+
+  // Prefill saved credentials on open if any
+  useEffect(() => {
+    if (active && isLoginNotice) {
+      const storedU = storage.username.get() || storage.ids.get()?.VtopUsername || "";
+      const storedP = storage.password.get() || storage.ids.get()?.VtopPassword || "";
+      if (storedU) setLoginUsername(storedU);
+      if (storedP) setLoginPassword(storedP);
+      setLoginError(null);
+    }
+  }, [active, isLoginNotice]);
+
+  const handleLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanUsername = loginUsername.trim().toUpperCase();
+    if (!cleanUsername || !loginPassword) {
+      setLoginError("Please enter both your VTOP username and password.");
+      return;
+    }
+
+    setLoginError(null);
+    setIsLoggingIn(true);
+
+    try {
+      // 1. Transition notice from "login" to null so the sheet displays the active sync engine progress
+      setSyncNotice(null);
+      setSyncProgress(10);
+      appendSyncLine("Initializing AmazeCC Sync Engine…", "loading");
+
+      // 2. Gateway Connectivity Check
+      appendSyncLine("Pinging VTOP gateway (vtopcc.vit.ac.in)…", "loading");
+      const isUp = await pingVtopDirectly(4000);
+      if (!isUp) {
+        appendSyncLine("VTOP gateway is unreachable. Check network connection.", "error");
+        closeSyncSession(0, "error");
+        setIsLoggingIn(false);
+        return;
+      }
+      appendSyncLine("VTOP gateway reachable", "success");
+      setSyncProgress(30);
+
+      // 3. Negotiate session
+      appendSyncLine("Solving captcha and negotiating session tokens…", "loading");
+      const creds = await syncEngine.login(
+        {
+          VtopUsername: cleanUsername,
+          VtopPassword: loginPassword,
+          MoodleUsername: "",
+          MoodlePassword: "",
+        },
+        false,
+      );
+      appendSyncLine("VTOP session established successfully", "success");
+      setSyncProgress(55);
+
+      // 4. New user (Full Sync) vs Returning user (Quick Sync)
+      if (isNewStudent) {
+        appendSyncLine("New student account detected — performing full sync…", "loading");
+        try {
+          await syncEngine.sync("studentProfile");
+          appendSyncLine("Student profile cached locally", "success");
+        } catch {
+          appendSyncLine("Profile fetch skipped (best effort)", "info");
+        }
+        setSyncProgress(75);
+
+        appendSyncLine("Syncing registered timetable snapshot…", "loading");
+        try {
+          await syncEngine.sync("timetable", { semesterId: "CH20262705" });
+          appendSyncLine("Registered courses synchronized", "success");
+        } catch {
+          appendSyncLine("Timetable fetch skipped (best effort)", "info");
+        }
+        setSyncProgress(95);
+      } else {
+        appendSyncLine("Returning student — performing quick sync…", "loading");
+        try {
+          await syncEngine.sync("timetable", { semesterId: "CH20262705" });
+          appendSyncLine("Registered courses synchronized", "success");
+        } catch {
+          appendSyncLine("Timetable fetch skipped (best effort)", "info");
+        }
+        setSyncProgress(85);
+
+        try {
+          await syncEngine.sync("studentProfile");
+        } catch {}
+        setSyncProgress(95);
+      }
+
+      // 5. Persist credentials & session across AmazeCC
+      storage.ids.set({
+        VtopUsername: cleanUsername,
+        VtopPassword: loginPassword,
+        MoodleUsername: storage.moodleUsername.get() || "",
+        MoodlePassword: storage.moodlePassword.get() || "",
+      });
+      storage.username.set(cleanUsername);
+      storage.password.set(loginPassword);
+      storage.demoMode.set(false);
+
+      if (creds?.cookies) {
+        storage.vtopSession.set({
+          cookies: creds.cookies,
+          authorizedID: creds.authorizedID,
+          csrf: creds.csrf,
+          fetchedAt: Date.now(),
+        });
+      }
+
+      const store = getDefaultStore();
+      store.set(credentialsAtom, {
+        VtopUsername: cleanUsername,
+        VtopPassword: loginPassword,
+        MoodleUsername: "",
+        MoodlePassword: "",
+      });
+      store.set(demoModeAtom, false);
+      store.set(isLoggedInAtom, true);
+
+      // 6. PostHog registration
+      syncCurrentUserPostHogIdentity({
+        route: "sync_engine",
+        semester: "CH20262705",
+        username: cleanUsername,
+        authorizedID: creds?.authorizedID,
+        extraProperties: {
+          sync_mode: isNewStudent ? "full" : "quick",
+          login_source: "sync_bottom_sheet",
+        },
+      });
+      trackFeatureUsage("sync_engine", "login_completed", {
+        is_new_user: isNewStudent,
+      });
+
+      appendSyncLine("Ready! Logged in across AmazeCC.", "success");
+      closeSyncSession(1500, "success");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Authentication failed";
+      appendSyncLine(`Sync error: ${msg}`, "error");
+      closeSyncSession(0, "error");
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
 
   // Close menus on click outside
   useEffect(() => {
@@ -247,7 +413,7 @@ export default function SyncNotification({
 
   // Pre-flight check: check if VTOP is working as soon as sync starts
   useEffect(() => {
-    if (active && outcome === null && vtopState === "idle" && !isOfflineNotice) {
+    if (active && outcome === null && vtopState === "idle" && !isOfflineNotice && !isLoginNotice) {
       let isMounted = true;
       pingVtopDirectly(4000).then((isUp) => {
         if (!isMounted) return;
@@ -402,7 +568,8 @@ export default function SyncNotification({
   const strokeOffset = strokeCircumference - (Math.min(progress, 100) / 100) * strokeCircumference;
 
   const minimizeToBackground = () => setIsMinimized(true);
-  const isFinished = isOfflineNotice || effectiveOutcome === "success" || effectiveOutcome === "error" || hasSwitched;
+  const isFinished =
+    isOfflineNotice || isLoginNotice || effectiveOutcome === "success" || effectiveOutcome === "error" || hasSwitched;
   const parkOrClose = isFinished ? onDismiss : minimizeToBackground;
 
   const handleCancelSync = (e?: React.MouseEvent) => {
@@ -418,7 +585,7 @@ export default function SyncNotification({
     <AnimatePresence>
       {isMinimized ? (
         /* Minimized background pill - refined mobile dock capsule */
-        <m.div
+        <motion.div
           key="sync-minimized"
           layout
           initial={{ opacity: 0, scale: 0.94, y: 12 }}
@@ -492,7 +659,7 @@ export default function SyncNotification({
               </button>
             </div>
           </div>
-        </m.div>
+        </motion.div>
       ) : (
         /* Expanded Bottom Sheet */
         <BottomSheet
@@ -508,7 +675,7 @@ export default function SyncNotification({
           <div className="flex flex-col gap-3.5 w-full relative">
             {/* 1. OFFLINE NOTICE TAKEOVER */}
             {isOfflineNotice ? (
-              <m.div
+              <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ type: "spring", damping: 20, stiffness: 240 }}
@@ -546,10 +713,124 @@ export default function SyncNotification({
                     <span>Try Again</span>
                   </button>
                 </div>
-              </m.div>
+              </motion.div>
+            ) : isLoginNotice ? (
+              /* 1B. LOGIN NOTICE TAKEOVER (UNAUTHENTICATED VIEW) */
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: "spring", damping: 20, stiffness: 240 }}
+                className="flex flex-col py-2 px-1 w-full"
+              >
+                <div className="flex flex-col items-center text-center mb-4">
+                  <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 flex items-center justify-center border border-indigo-500/20 shadow-lg shadow-indigo-500/10 mb-3">
+                    <KeyRound className="w-7 h-7" strokeWidth={2.4} />
+                  </div>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white font-outfit tracking-tight">
+                    Sign in with VTOP
+                  </h3>
+                  <p className="mt-1 text-xs font-medium text-slate-500 dark:text-zinc-400 max-w-[320px] leading-relaxed">
+                    Authenticate through the AmazeCC Unified Sync Engine to retrieve your profile and courses.
+                  </p>
+                  <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-700 dark:text-indigo-300 text-[11px] font-bold">
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+                    <span>{isNewStudent ? "New Student — Full Initial Sync" : "Returning Student — Quick Sync"}</span>
+                  </div>
+                </div>
+
+                <form onSubmit={handleLoginSubmit} className="flex flex-col gap-3 w-full">
+                  {loginError && (
+                    <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/25 flex items-start gap-2 text-rose-600 dark:text-rose-400 text-xs font-medium">
+                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                      <span>{loginError}</span>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-zinc-400 flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5 text-indigo-500" />
+                      <span>VTOP Username / Reg No</span>
+                    </label>
+                    <input
+                      type="text"
+                      autoCapitalize="characters"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      placeholder="e.g. 25BLC1081"
+                      value={loginUsername}
+                      onChange={(e) => setLoginUsername(e.target.value.toUpperCase())}
+                      disabled={isLoggingIn}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-600 text-sm font-semibold tracking-wide focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50 transition-all uppercase"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-zinc-400 flex items-center gap-1.5">
+                      <Lock className="w-3.5 h-3.5 text-indigo-500" />
+                      <span>VTOP Password</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showLoginPassword ? "text" : "password"}
+                        placeholder="Enter your VTOP password"
+                        value={loginPassword}
+                        onChange={(e) => setLoginPassword(e.target.value)}
+                        disabled={isLoggingIn}
+                        className="w-full pl-3.5 pr-11 py-2.5 rounded-xl bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-600 text-sm font-semibold tracking-wide focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowLoginPassword((v) => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
+                        aria-label={showLoginPassword ? "Hide password" : "Show password"}
+                      >
+                        {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl p-3 bg-slate-50 dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/[0.06] text-[11px] text-slate-500 dark:text-zinc-400 leading-relaxed mt-1">
+                    <p className="font-medium">
+                      🔒 <strong className="text-slate-700 dark:text-zinc-200">Unified Sign-In:</strong> Logging in here
+                      synchronizes your timetable and profile, and signs you into all of AmazeCC.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 mt-2">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDismiss();
+                      }}
+                      disabled={isLoggingIn}
+                      className="flex-1 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200/80 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 font-bold text-xs uppercase tracking-wider transition-all active:scale-[0.985] cursor-pointer"
+                    >
+                      Dismiss
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isLoggingIn}
+                      className="flex-2 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider transition-all active:scale-[0.985] cursor-pointer shadow-md shadow-indigo-500/20 disabled:opacity-50"
+                    >
+                      {isLoggingIn ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Connecting…</span>
+                        </>
+                      ) : (
+                        <>
+                          <LogIn className="w-4 h-4" />
+                          <span>Sign In & Sync</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
             ) : effectiveOutcome === "success" ? (
               /* 2. SUCCESS STATE TAKEOVER */
-              <m.div
+              <motion.div
                 initial={{ opacity: 0, scale: 0.92 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ type: "spring", damping: 18, stiffness: 240 }}
@@ -573,12 +854,12 @@ export default function SyncNotification({
                 >
                   Done
                 </button>
-              </m.div>
+              </motion.div>
             ) : effectiveOutcome === "error" ? (
               /* 3. FULL-SCREEN ERROR TAKEOVER */
               isVtopDown ? (
                 /* 3A. BOLD VTOP IS DOWN TAKEOVER */
-                <m.div
+                <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ type: "spring", damping: 20, stiffness: 240 }}
@@ -648,10 +929,10 @@ export default function SyncNotification({
                       </button>
                     </div>
                   </div>
-                </m.div>
+                </motion.div>
               ) : vtopState === "checking" ? (
                 /* 3B. CHECKING VTOP STATUS TAKEOVER (PREVENTS FLASHING "SYNC FAILED") */
-                <m.div
+                <motion.div
                   initial={{ opacity: 0, scale: 0.96 }}
                   animate={{ opacity: 1, scale: 1 }}
                   className="flex flex-col items-center text-center py-8 px-4 w-full"
@@ -668,10 +949,10 @@ export default function SyncNotification({
                   <p className="mt-1 text-xs font-medium text-slate-500 dark:text-zinc-400 max-w-[280px] leading-relaxed">
                     Checking if vtopcc.vit.ac.in is online to determine server status.
                   </p>
-                </m.div>
+                </motion.div>
               ) : (
                 /* 3C. OTHER ERRORS (Auth Rejection / General Error) */
-                <m.div
+                <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ type: "spring", damping: 20, stiffness: 240 }}
@@ -834,7 +1115,7 @@ export default function SyncNotification({
 
                         <AnimatePresence>
                           {showConsole && (
-                            <m.div
+                            <motion.div
                               initial={{ opacity: 0, height: 0 }}
                               animate={{ opacity: 1, height: "auto" }}
                               exit={{ opacity: 0, height: 0 }}
@@ -863,17 +1144,17 @@ export default function SyncNotification({
                                   );
                                 })}
                               </div>
-                            </m.div>
+                            </motion.div>
                           )}
                         </AnimatePresence>
                       </div>
                     )}
                   </div>
-                </m.div>
+                </motion.div>
               )
             ) : hasSwitched ? (
               /* 4. SWITCHED TO BACKUP STATE */
-              <m.div
+              <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.2 }}
@@ -916,7 +1197,7 @@ export default function SyncNotification({
                 >
                   Dismiss & Try Again
                 </button>
-              </m.div>
+              </motion.div>
             ) : (
               /* 5. ACTIVE RUNNING SYNC VIEW */
               <>
@@ -1110,7 +1391,7 @@ export default function SyncNotification({
 
                   {/* High performance spring progress bar */}
                   <div className="w-full bg-slate-100 dark:bg-zinc-800 h-2 rounded-full overflow-hidden relative">
-                    <m.div
+                    <motion.div
                       className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-600 rounded-full"
                       animate={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
                       transition={{ type: "spring", damping: 24, stiffness: 140 }}
@@ -1168,7 +1449,7 @@ export default function SyncNotification({
 
                 {/* INLINE VTOP DOWN ALERT (DURING RUN) */}
                 {vtopState === "down" && (
-                  <m.div
+                  <motion.div
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 flex items-start gap-2.5 shadow-[0_0_16px_rgba(244,63,94,0.18)]"
@@ -1185,7 +1466,7 @@ export default function SyncNotification({
                         Direct connection to vtopcc.vit.ac.in timed out. The university portal appears to be offline.
                       </p>
                     </div>
-                  </m.div>
+                  </motion.div>
                 )}
 
                 {/* 4. PROGRESSIVE DISCLOSURE: LIVE CONSOLE LOG DRAWER */}
@@ -1228,7 +1509,7 @@ export default function SyncNotification({
 
                   <AnimatePresence>
                     {showConsole && (
-                      <m.div
+                      <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
@@ -1247,7 +1528,7 @@ export default function SyncNotification({
                             );
                           })}
                         </div>
-                      </m.div>
+                      </motion.div>
                     )}
                   </AnimatePresence>
                 </div>
@@ -1255,7 +1536,7 @@ export default function SyncNotification({
                 {/* 5. SLOW NETWORK ALERT BUTTON */}
                 <AnimatePresence>
                   {showBackupBtn && hasBackupApi() && (
-                    <m.div
+                    <motion.div
                       initial={{ opacity: 0, y: 6 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 6 }}
@@ -1275,7 +1556,7 @@ export default function SyncNotification({
                         />
                         <span>Slow network? Switch to Backup API</span>
                       </button>
-                    </m.div>
+                    </motion.div>
                   )}
                 </AnimatePresence>
 

@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import posthog from "posthog-js";
+import { installLocalStorage } from "./helpers/localStorage";
 import {
   identifyPostHogUser,
+  syncCurrentUserPostHogIdentity,
   resetPostHogUser,
   trackScreenView,
   trackModalOpen,
@@ -56,6 +58,7 @@ describe("posthog integration utilities", () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
+    installLocalStorage();
     vi.clearAllMocks();
     process.env = {
       ...originalEnv,
@@ -439,6 +442,40 @@ describe("posthog integration utilities", () => {
       window.localStorage.setItem("profile", JSON.stringify({ registerNo: "25BLC1081" }));
 
       expect(getPostHogUserIdentifiers({ authorizedID: "25BLC1081" })?.name).toBeUndefined();
+    });
+  });
+
+  describe("syncCurrentUserPostHogIdentity", () => {
+    it("identifies user and registers super properties from stored credentials and profile", () => {
+      window.localStorage.clear();
+      window.localStorage.setItem("profile", JSON.stringify({ registerNo: "25BLC1081", name: "BALA MURUGAN" }));
+
+      const identity = syncCurrentUserPostHogIdentity({
+        route: "friend_finder",
+        semester: "CH20262705",
+      });
+
+      expect(identity?.distinctId).toBe("25BLC1081");
+      expect(identity?.name).toBe("BALA MURUGAN");
+      expect(posthog.identify).toHaveBeenCalledWith(
+        "25BLC1081",
+        expect.objectContaining({
+          registration_number: "25BLC1081",
+          name: "BALA MURUGAN",
+          initial_route: "friend_finder",
+          semester: "CH20262705",
+        }),
+      );
+      expect(posthog.register).toHaveBeenCalledWith({
+        registration_number: "25BLC1081",
+        name: "BALA MURUGAN",
+      });
+    });
+
+    it("resolves friend-finder in modal metadata", () => {
+      const info = resolveModalInfo("friend-finder");
+      expect(info.feature_category).toBe("friend_finder");
+      expect(info.modal_name).toBe("Friend Finder");
     });
   });
 });

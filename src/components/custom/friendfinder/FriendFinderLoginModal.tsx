@@ -20,6 +20,7 @@ import { credentialsAtom, isLoggedInAtom, demoModeAtom } from "@/store";
 import { storage } from "@/lib/storage";
 import { syncEngine } from "@/lib/sync-engine";
 import { pingVtopDirectly } from "@/lib/vtopHealth";
+import { syncCurrentUserPostHogIdentity, trackFeatureUsage } from "@/lib/posthog";
 import {
   useSyncSession,
   openSyncSession,
@@ -162,6 +163,22 @@ export default function FriendFinderLoginModal({ open, onClose, onSuccess }: Fri
       });
       setDemoMode(false);
       setIsLoggedIn(true);
+
+      // Register verified student identity with PostHog immediately on login
+      syncCurrentUserPostHogIdentity({
+        route: "friend_finder",
+        semester: "CH20262705",
+        username: cleanUsername,
+        authorizedID: creds?.authorizedID,
+        extraProperties: {
+          login_source: "friend_finder_modal",
+          sync_mode: "vtop",
+        },
+      });
+
+      trackFeatureUsage("friend_finder", "login_completed", {
+        registration_number: cleanUsername,
+      });
 
       closeSyncSession(1200, "success");
 
