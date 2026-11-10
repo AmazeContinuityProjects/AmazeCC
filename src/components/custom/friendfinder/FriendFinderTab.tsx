@@ -58,6 +58,7 @@ import { GLOBAL_SEMESTER_CHANGE_EVENT } from "@/lib/ffcsReports";
 import { storage } from "@/lib/storage";
 import { hasStoredVtopCredentials } from "@/components/custom/app/readBootstrapSnapshot";
 import { getAssetPath } from "@/lib/utils";
+import { syncCurrentUserPostHogIdentity, trackFeatureUsage } from "@/lib/posthog";
 import ThemeToggle from "@/components/custom/ThemeToggle";
 import { GHOST_BUTTON, LIST_ROW, LIST_SHELL, TILE_CARD, TONE_ICON_TILE } from "@/lib/uiTokens";
 import {
@@ -300,9 +301,9 @@ function AmazeCCLogoLeading() {
       <img
         loading="lazy"
         decoding="async"
-        src={getAssetPath("/favicon/FFCS.png")}
-        alt="AmazeCC Friend Finder"
-        className="h-8 w-8 rounded-xl object-contain shadow-xs border border-indigo-500/30 p-0.5 bg-white dark:bg-zinc-900"
+        src={getAssetPath("/favicon/favicon.svg")}
+        alt="AmazeCC"
+        className="h-8 w-8 object-contain"
       />
       <div className="flex items-center gap-2">
         <span className="text-base sm:text-lg font-black tracking-tight font-outfit text-zinc-900 dark:text-white">
@@ -419,6 +420,17 @@ export default function FriendFinderTab({
         setState(next);
         if (request.op === "publish" || request.op === "leave") {
           setEditing(false);
+          if (request.op === "publish") {
+            syncCurrentUserPostHogIdentity({
+              route: "friend_finder",
+              semester: vtopSemester,
+            });
+            trackFeatureUsage("friend_finder", "timetable_published", {
+              semester: vtopSemester,
+            });
+          } else {
+            trackFeatureUsage("friend_finder", "timetable_unpublished");
+          }
         }
       } catch (err) {
         setError({
@@ -435,8 +447,14 @@ export default function FriendFinderTab({
   );
 
   useEffect(() => {
-    if (canUse) void run({ op: "get" }, "load");
-  }, [canUse, run]);
+    if (canUse) {
+      syncCurrentUserPostHogIdentity({
+        route: "friend_finder",
+        semester: vtopSemester,
+      });
+      void run({ op: "get" }, "load");
+    }
+  }, [canUse, run, vtopSemester]);
 
   useEffect(() => {
     const onRefresh = () => {
@@ -553,7 +571,8 @@ export default function FriendFinderTab({
               className={`${PRIMARY_BUTTON} w-full`}
               onClick={() => {
                 if (onRequestSignIn) onRequestSignIn();
-                else setShowLoginModal(true);
+                else if (standaloneLogo) setShowLoginModal(true);
+                else router.push("/?signin=1&open=friend-finder");
               }}
             >
               <LogIn className="w-4 h-4" /> Sign in with your VTOP account
@@ -564,7 +583,8 @@ export default function FriendFinderTab({
               className={`${PRIMARY_BUTTON} w-full`}
               onClick={() => {
                 if (onRequestSignIn) onRequestSignIn();
-                else setShowLoginModal(true);
+                else if (standaloneLogo) setShowLoginModal(true);
+                else router.push("/?signin=1&open=friend-finder");
               }}
             >
               <LogIn className="w-4 h-4" /> Sign in with VTOP

@@ -23,6 +23,7 @@ import { getAssetPath } from "@/lib/utils";
 import { useOverlayBackBoundary } from "@/lib/overlayStack";
 import { storage } from "@/lib/storage";
 import { hasStoredVtopCredentials } from "@/components/custom/app/readBootstrapSnapshot";
+import { syncCurrentUserPostHogIdentity, trackScreenView } from "@/lib/posthog";
 import FriendFinderLoginModal from "@/components/custom/friendfinder/FriendFinderLoginModal";
 
 // Lazy-load the interactive FriendFinderTab to match the FFCS pattern
@@ -69,6 +70,17 @@ export default function FriendFinderPageView() {
       // Storage access guard
     }
   }, [setIsLoggedIn, setDemoMode, setIDs]);
+
+  // Track screen view and ensure logged in users are registered in PostHog
+  useEffect(() => {
+    trackScreenView("friend_finder", isLoggedIn ? "dashboard" : "landing");
+    if (isLoggedIn) {
+      syncCurrentUserPostHogIdentity({
+        route: "friend_finder",
+        semester: "CH20262705",
+      });
+    }
+  }, [isLoggedIn]);
 
   /* ─────────────────────────────────────────────────────────────
      When logged in:
@@ -133,9 +145,9 @@ export default function FriendFinderPageView() {
               <img
                 loading="lazy"
                 decoding="async"
-                src={getAssetPath("/favicon/FFCS.png")}
-                alt="AmazeCC Friend Finder"
-                className="h-8 w-8 rounded-xl object-contain shadow-xs border border-indigo-500/30 p-0.5 bg-white dark:bg-zinc-900"
+                src={getAssetPath("/favicon/favicon.svg")}
+                alt="AmazeCC"
+                className="h-8 w-8 object-contain"
               />
               <div className="flex items-center gap-2">
                 <span className="text-base sm:text-lg font-black tracking-tight font-outfit text-zinc-900 dark:text-white">

@@ -237,6 +237,65 @@ export function identifyPostHogUser(distinctId: string, properties?: Record<stri
 }
 
 /**
+ * Automatically resolves and registers the active user's verified identity in PostHog.
+ * Checks storage, active session, and credentials to identify the user by their registration
+ * number (e.g. 25BLC1081), sets person name, super properties, and aliases any numeric
+ * enrollment numbers.
+ */
+export function syncCurrentUserPostHogIdentity(options?: {
+  route?: string;
+  semester?: string;
+  authorizedID?: string | null;
+  username?: string | null;
+  activeReg?: string | null;
+  extraProperties?: Record<string, unknown>;
+}): PostHogUserIdentity | null {
+  if (typeof window === "undefined" || !isPostHogConfigured()) return null;
+
+  const identity = getPostHogUserIdentifiers({
+    authorizedID: options?.authorizedID,
+    username: options?.username,
+    activeReg: options?.activeReg,
+  });
+
+  if (!identity || !identity.distinctId) return null;
+
+  try {
+    const currentPhId = (posthog as unknown as { get_distinct_id?: () => string }).get_distinct_id?.();
+    if (currentPhId && currentPhId !== identity.distinctId && /^\d{6,12}$/.test(currentPhId)) {
+      aliasPostHogUser(identity.distinctId, currentPhId);
+    }
+  } catch (err) {
+    console.debug("[PostHog alias]", err);
+  }
+
+  const regNumber = identity.registrationNumber || identity.distinctId;
+  const studentName = identity.name;
+
+  try {
+    posthog.identify(identity.distinctId, {
+      ...(studentName ? { name: studentName } : {}),
+      registration_number: regNumber,
+      reg_number: regNumber,
+      enrollment_number: identity.enrollmentNumber,
+      application_number: identity.enrollmentNumber,
+      ...(options?.semester ? { semester: options.semester } : {}),
+      ...(options?.route ? { initial_route: options.route } : {}),
+      ...(options?.extraProperties || {}),
+    });
+
+    posthog.register({
+      registration_number: regNumber,
+      ...(studentName ? { name: studentName } : {}),
+    });
+  } catch (err) {
+    console.debug("[PostHog syncCurrentUserPostHogIdentity]", err);
+  }
+
+  return identity;
+}
+
+/**
  * Push the reader's VTOP name onto the person PostHog already knows, and onto
  * every event after it.
  *
@@ -358,6 +417,8 @@ const MODAL_METADATA_MAP: Record<string, { name: string; feature: string }> = {
   "qbank-upload": { name: "Upload Paper to QBank", feature: "qbank" },
 
   // Social & Friend Timetables
+  "friend-finder": { name: "Friend Finder", feature: "friend_finder" },
+  "friend-finder-login": { name: "Friend Finder Login Modal", feature: "friend_finder" },
   "social-share-handle": { name: "Share Timetable Handle", feature: "social" },
   "social-scan-peer": { name: "Scan Friend QR Handle", feature: "social" },
   "social-add-peer": { name: "Add Friend by Handle", feature: "social" },
