@@ -64,6 +64,12 @@ class CredentialManager {
       this.eventHub = stored.id;
       this.eventHubFetchedAt = stored.fetchedAt ?? 0;
     }
+    const storedVtop = storage.vtopSession.get();
+    if (storedVtop?.authorizedID && storedVtop?.cookies && storedVtop?.fetchedAt) {
+      if (Date.now() - storedVtop.fetchedAt < VTOP_SESSION_MAX_AGE_MS) {
+        this.vtop = storedVtop as VtopCreds;
+      }
+    }
   }
 
   /** True when there is no session, or the one we hold is older than the limit. */
@@ -272,6 +278,7 @@ class CredentialManager {
       csrf: res.csrf,
       fetchedAt: Date.now(),
     };
+    storage.vtopSession.set(this.vtop);
     this.failedVtop = null;
     // Announce it: pages waiting on a fresh sign-in (see `signInReturn`) listen.
     if (typeof window !== "undefined") window.dispatchEvent(new Event(VTOP_LOGIN_EVENT));
@@ -336,10 +343,12 @@ class CredentialManager {
   logout(): void {
     this.clearCache();
     storage.eventHubSession.remove();
+    storage.vtopSession.remove();
   }
 
   clearCache(): void {
     this.vtop = null;
+    storage.vtopSession.remove();
     this.eventHub = null;
     this.failedVtop = null;
     this.failedEventHub = null;

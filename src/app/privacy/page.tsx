@@ -36,21 +36,31 @@ export default function PrivacyPolicyPage() {
             </Link>
           </div>
 
-          {/* Switcher Tab between Privacy & Terms */}
+          {/* Switcher Tab between Privacy, Terms & Friend Finder */}
           <div className="flex items-center gap-1 p-1 bg-slate-200/60 dark:bg-neutral-900/80 rounded-2xl border border-slate-200/60 dark:border-white/[0.06]">
             <Link
               href="/privacy"
               className="px-3 py-1 rounded-xl text-xs font-extrabold bg-white dark:bg-neutral-800 text-indigo-600 dark:text-white shadow-xs flex items-center gap-1.5 transition-all"
             >
               <ShieldCheck size={13} />
-              <span>Privacy Policy</span>
+              <span className="hidden sm:inline">Privacy Policy</span>
+              <span className="sm:hidden">Privacy</span>
             </Link>
             <Link
               href="/terms"
               className="px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1.5 transition-all"
             >
               <FileText size={13} />
-              <span>Terms of Service</span>
+              <span className="hidden sm:inline">Terms of Service</span>
+              <span className="sm:hidden">Terms</span>
+            </Link>
+            <Link
+              href="/friend-finder/disclaimer"
+              className="px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1.5 transition-all"
+            >
+              <ShieldCheck size={13} />
+              <span className="hidden sm:inline">Friend Finder</span>
+              <span className="sm:hidden">Disclaimer</span>
             </Link>
           </div>
 
@@ -91,6 +101,31 @@ export default function PrivacyPolicyPage() {
                 processes the numbers in-memory to incrementally update the class-wide averages using Welford's
                 Algorithm and then <strong>immediately discards</strong> your individual marks. We do not store, map, or
                 link any marks to any user. The process is completely anonymous.
+              </p>
+            </section>
+
+            <section className="space-y-2">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                Friend Finder (Voluntary Timetable Matching)
+              </h2>
+              <p>
+                The optional <strong>Friend Finder</strong> feature allows students to find classmates sharing their
+                registered course sections for the upcoming semester. If and only if you explicitly choose to publish
+                your registered timetable, your verified name, university registration number (e.g.{" "}
+                <code>25BXX0001</code>), and enrolled section identifiers are shared with classmates enrolled in those
+                exact sections.
+              </p>
+              <p>
+                Visibility is strictly reciprocal: only students sharing your sections can view you. You can switch your
+                profile to &ldquo;Hidden&rdquo; or permanently delete your timetable registration at any time. For more
+                information, read our{" "}
+                <Link
+                  href="/friend-finder/disclaimer"
+                  className="text-indigo-600 dark:text-indigo-400 underline font-semibold"
+                >
+                  Friend Finder Data Sharing Disclaimer
+                </Link>
+                .
               </p>
             </section>
 

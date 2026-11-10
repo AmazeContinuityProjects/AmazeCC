@@ -17,6 +17,7 @@ import { apiRequest } from "@/lib/sync-engine/request-layer";
 // to `auth: "vtop"` requests. Without it every call left with no session.
 import { credentialManager } from "@/lib/sync-engine/credential-manager";
 import { AuthError } from "@/lib/sync-engine/errors";
+import { getActiveRegNumber } from "@/lib/social/identity";
 import type { FFCSSemesterId } from "@/lib/ffcsReports";
 
 export type ClassmateSource = "planned" | "registered";
@@ -173,11 +174,12 @@ export function displayName(name: string): string {
 export async function callClassmates(semesterId: string, request: ClassmatesRequest): Promise<ClassmatesState> {
   await ensureClassmatesSession();
   let json: Record<string, unknown> | null;
+  const regNo = getActiveRegNumber();
   try {
     json = (await apiRequest("social/ffcs-match", {
       method: "POST",
       auth: "vtop",
-      body: { ...request, semesterId },
+      body: { ...request, semesterId, regNo: regNo || undefined },
     })) as Record<string, unknown> | null;
   } catch (err) {
     if (err instanceof AuthError) throw new ClassmatesError("signin_required", err.message);

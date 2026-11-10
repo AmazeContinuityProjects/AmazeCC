@@ -40,7 +40,7 @@ import {
   Users,
   UsersRound,
 } from "lucide-react";
-import { activeTabAtom, demoModeAtom, isLoggedInAtom } from "@/store";
+import { activeTabAtom, credentialsAtom, demoModeAtom, isLoggedInAtom } from "@/store";
 import {
   callClassmates,
   classmatesSemester,
@@ -55,6 +55,10 @@ import {
   type ClassmatesState,
 } from "@/lib/ffcsClassmates";
 import { GLOBAL_SEMESTER_CHANGE_EVENT } from "@/lib/ffcsReports";
+import { storage } from "@/lib/storage";
+import { hasStoredVtopCredentials } from "@/components/custom/app/readBootstrapSnapshot";
+import { getAssetPath } from "@/lib/utils";
+import ThemeToggle from "@/components/custom/ThemeToggle";
 import { GHOST_BUTTON, LIST_ROW, LIST_SHELL, TILE_CARD, TONE_ICON_TILE } from "@/lib/uiTokens";
 import {
   ListSkeleton,
@@ -67,12 +71,15 @@ import {
   ToneBadge,
 } from "../shared/primitives";
 import BottomSheet from "../shared/BottomSheet";
+import FriendFinderLoginModal from "./FriendFinderLoginModal";
 import { useFacultyReviewSheet } from "../exams/FFCS/hooks/useFacultyReviewSheet";
 import FacultyReviewSheetHost from "../exams/FFCS/components/FacultyReviewSheetHost";
 
 export interface FriendFinderTabProps {
   onBack?: () => void;
   semesterId?: string;
+  standaloneLogo?: boolean;
+  onRequestSignIn?: () => void;
 }
 
 const REGISTERED = "registered";
@@ -142,6 +149,14 @@ function TrustPoints() {
           <span className="text-sm text-text-secondary dark:text-text-muted leading-snug pt-1.5">{text}</span>
         </li>
       ))}
+      <li className="pt-1 text-xs text-muted-foreground pl-11">
+        <Link
+          href="/friend-finder/disclaimer"
+          className="text-indigo-600 dark:text-indigo-400 underline hover:opacity-80 font-medium"
+        >
+          Read Sharing & Liability Disclaimer →
+        </Link>
+      </li>
     </ul>
   );
 }
@@ -275,11 +290,70 @@ function getActiveVtopSemester(): string | null {
   return UPCOMING_FFCS_SEMESTER;
 }
 
-export default function FriendFinderTab({ onBack, semesterId }: FriendFinderTabProps = {}) {
+function AmazeCCLogoLeading() {
+  return (
+    <Link
+      href="/"
+      className="inline-flex items-center gap-2.5 group transition-transform active:scale-95 py-0.5"
+      title="AmazeCC Home"
+    >
+      <img
+        loading="lazy"
+        decoding="async"
+        src={getAssetPath("/favicon/FFCS.png")}
+        alt="AmazeCC Friend Finder"
+        className="h-8 w-8 rounded-xl object-contain shadow-xs border border-indigo-500/30 p-0.5 bg-white dark:bg-zinc-900"
+      />
+      <div className="flex items-center gap-2">
+        <span className="text-base sm:text-lg font-black tracking-tight font-outfit text-zinc-900 dark:text-white">
+          AmazeCC <span className="text-indigo-600 dark:text-indigo-400">Friend Finder</span>
+        </span>
+        <span className="hidden sm:inline-flex items-center text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20">
+          Winter 26-27
+        </span>
+      </div>
+    </Link>
+  );
+}
+
+export default function FriendFinderTab({
+  onBack,
+  semesterId,
+  standaloneLogo = false,
+  onRequestSignIn,
+}: FriendFinderTabProps = {}) {
   const router = useRouter();
   const setActiveTab = useSetAtom(activeTabAtom);
   const isLoggedIn = useAtomValue(isLoggedInAtom);
+  const setIsLoggedIn = useSetAtom(isLoggedInAtom);
   const isDemo = useAtomValue(demoModeAtom);
+  const setDemoMode = useSetAtom(demoModeAtom);
+  const setIDs = useSetAtom(credentialsAtom);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      try {
+        const idsRaw = storage.ids.get();
+        const storedUsername = storage.username.get();
+        const storedPassword = storage.password.get();
+        const isDemoStored = storage.demoMode.get();
+        const hasVtop = hasStoredVtopCredentials(idsRaw, storedUsername, storedPassword);
+
+        if (hasVtop || isDemoStored) {
+          setIsLoggedIn(true);
+          setDemoMode(Boolean(isDemoStored));
+          setIDs({
+            VtopUsername: storedUsername || "",
+            VtopPassword: storedPassword || "",
+            MoodleUsername: storage.moodleUsername.get() || "",
+            MoodlePassword: storage.moodlePassword.get() || "",
+            ...(idsRaw || {}),
+          });
+        }
+      } catch {}
+    }
+  }, [isLoggedIn, setIsLoggedIn, setDemoMode, setIDs]);
 
   const [derivedSemester, setDerivedSemester] = useState<string | null>(() => getActiveVtopSemester());
   const vtopSemester = semesterId !== undefined ? classmatesSemester(semesterId as any) : derivedSemester;
@@ -449,7 +523,9 @@ export default function FriendFinderTab({ onBack, semesterId }: FriendFinderTabP
   if (!isLoggedIn || isDemo) {
     return (
       <PageShell
-        onBack={onBack ?? (openedFromHome ? () => setActiveTab("home") : undefined)}
+        leading={standaloneLogo ? <AmazeCCLogoLeading /> : undefined}
+        onBack={standaloneLogo ? undefined : (onBack ?? (openedFromHome ? () => setActiveTab("home") : undefined))}
+        actions={standaloneLogo ? <ThemeToggle /> : undefined}
         eyebrow="Friend Finder"
         title="Find classmates"
         subtitle="See who picked the same sections as you"
@@ -472,22 +548,37 @@ export default function FriendFinderTab({ onBack, semesterId }: FriendFinderTabP
             <TrustPoints />
           </div>
           {isDemo ? (
-            <Link href="/" className={`${PRIMARY_BUTTON} w-full`}>
-              <LogIn className="w-4 h-4" /> Go to sign in
-            </Link>
+            <button
+              type="button"
+              className={`${PRIMARY_BUTTON} w-full`}
+              onClick={() => {
+                if (onRequestSignIn) onRequestSignIn();
+                else setShowLoginModal(true);
+              }}
+            >
+              <LogIn className="w-4 h-4" /> Sign in with your VTOP account
+            </button>
           ) : (
             <button
               type="button"
               className={`${PRIMARY_BUTTON} w-full`}
-              onClick={() => router.push("/?signin=1&open=friend-finder")}
+              onClick={() => {
+                if (onRequestSignIn) onRequestSignIn();
+                else setShowLoginModal(true);
+              }}
             >
               <LogIn className="w-4 h-4" /> Sign in with VTOP
             </button>
           )}
           <p className="mt-3 text-center text-xs text-muted-foreground">
-            You&apos;ll come straight back here after signing in.
+            Logging in here will log you into the rest of AmazeCC.
           </p>
         </div>
+        <FriendFinderLoginModal
+          open={showLoginModal}
+          onClose={() => setShowLoginModal(false)}
+          onSuccess={() => setShowLoginModal(false)}
+        />
       </PageShell>
     );
   }
@@ -496,7 +587,9 @@ export default function FriendFinderTab({ onBack, semesterId }: FriendFinderTabP
   if (!vtopSemester) {
     return (
       <PageShell
-        onBack={onBack ?? (openedFromHome ? () => setActiveTab("home") : undefined)}
+        leading={standaloneLogo ? <AmazeCCLogoLeading /> : undefined}
+        onBack={standaloneLogo ? undefined : (onBack ?? (openedFromHome ? () => setActiveTab("home") : undefined))}
+        actions={standaloneLogo ? <ThemeToggle /> : undefined}
         eyebrow="Friend Finder"
         title="Find classmates"
       >
@@ -521,7 +614,9 @@ export default function FriendFinderTab({ onBack, semesterId }: FriendFinderTabP
   if (!state) {
     return (
       <PageShell
-        onBack={onBack ?? (openedFromHome ? () => setActiveTab("home") : undefined)}
+        leading={standaloneLogo ? <AmazeCCLogoLeading /> : undefined}
+        onBack={standaloneLogo ? undefined : (onBack ?? (openedFromHome ? () => setActiveTab("home") : undefined))}
+        actions={standaloneLogo ? <ThemeToggle /> : undefined}
         eyebrow="Friend Finder"
         title="Find classmates"
       >
@@ -554,6 +649,7 @@ export default function FriendFinderTab({ onBack, semesterId }: FriendFinderTabP
     return (
       <PageShell
         onBack={handleBack}
+        actions={standaloneLogo ? <ThemeToggle /> : undefined}
         eyebrow={o ? o.code : "Class Details"}
         title={o ? o.title.replace(/\s+-\s*|-\s+/g, "-") : selectedSection.classId}
         subtitle={o ? `${o.type} · ${o.credits} Credits · Slot ${o.slot}` : undefined}
@@ -679,7 +775,15 @@ export default function FriendFinderTab({ onBack, semesterId }: FriendFinderTabP
 
     return (
       <PageShell
-        onBack={onBack ?? (openedFromHome ? () => setActiveTab("home") : undefined)}
+        leading={standaloneLogo && !editing ? <AmazeCCLogoLeading /> : undefined}
+        onBack={
+          editing
+            ? () => setEditing(false)
+            : standaloneLogo
+              ? undefined
+              : (onBack ?? (openedFromHome ? () => setActiveTab("home") : undefined))
+        }
+        actions={standaloneLogo ? <ThemeToggle /> : undefined}
         eyebrow="Friend Finder"
         title="Find classmates"
         subtitle="Share your registered timetable to find who's in your classes"
@@ -756,19 +860,23 @@ export default function FriendFinderTab({ onBack, semesterId }: FriendFinderTabP
 
   return (
     <PageShell
-      onBack={onBack ?? (openedFromHome ? () => setActiveTab("home") : undefined)}
+      leading={standaloneLogo ? <AmazeCCLogoLeading /> : undefined}
+      onBack={standaloneLogo ? undefined : (onBack ?? (openedFromHome ? () => setActiveTab("home") : undefined))}
       eyebrow="Friend Finder"
       title="Find classmates"
       subtitle="See who picked the same faculty and slots as you"
       actions={
-        <SegmentedControl
-          options={[
-            { value: "classes", label: "Classes" },
-            { value: "friends", label: "Friends" },
-          ]}
-          value={grouping}
-          onChange={(val) => setGrouping(val as "classes" | "friends")}
-        />
+        <div className="flex items-center gap-2">
+          <SegmentedControl
+            options={[
+              { value: "classes", label: "Classes" },
+              { value: "friends", label: "Friends" },
+            ]}
+            value={grouping}
+            onChange={(val) => setGrouping(val as "classes" | "friends")}
+          />
+          {standaloneLogo ? <ThemeToggle /> : null}
+        </div>
       }
     >
       <div className="space-y-5">

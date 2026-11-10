@@ -27,6 +27,7 @@ export const KEYS = {
   TRANSPORT_DATA: "transportData",
   REGISTERED_EVENTS: "registeredEvents",
   EVENT_HUB_SESSION: "eventHubSession",
+  VTOP_SESSION: "vtopSession",
   MOODLE_DATA: "moodleData",
   VITOL_DATA: "vitolData",
   ACTIVITY_TREE: "activityTree",
@@ -220,6 +221,15 @@ export const storage = {
     get: () => getItem<EventHubSession>(KEYS.EVENT_HUB_SESSION),
     set: (val: EventHubSession) => setItem(KEYS.EVENT_HUB_SESSION, val),
     remove: () => removeItem(KEYS.EVENT_HUB_SESSION),
+  },
+  vtopSession: {
+    get: () =>
+      getItem<{ cookies?: string | string[]; authorizedID?: string; csrf?: string; fetchedAt?: number }>(
+        KEYS.VTOP_SESSION,
+      ),
+    set: (val: { cookies?: string | string[]; authorizedID?: string; csrf?: string; fetchedAt?: number }) =>
+      setItem(KEYS.VTOP_SESSION, val),
+    remove: () => removeItem(KEYS.VTOP_SESSION),
   },
   moodleData: {
     get: () => getItem<unknown[]>(KEYS.MOODLE_DATA),

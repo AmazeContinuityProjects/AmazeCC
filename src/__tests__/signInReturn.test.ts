@@ -14,6 +14,8 @@ describe("signInReturn", () => {
     expect(isAllowedReturnPath("/ffcs")).toBe(true);
     expect(isAllowedReturnPath("/ffcs/?open=classmates")).toBe(true);
     expect(isAllowedReturnPath("/ffcs?open=classmates")).toBe(true);
+    expect(isAllowedReturnPath("/friend-finder")).toBe(true);
+    expect(isAllowedReturnPath("/friend-finder/disclaimer")).toBe(true);
     expect(isAllowedReturnPath("/ffcsevil")).toBe(false);
     expect(isAllowedReturnPath("//evil.com/ffcs")).toBe(false);
     expect(isAllowedReturnPath("https://evil.com/ffcs")).toBe(false);
