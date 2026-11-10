@@ -2,12 +2,15 @@
 
 import { useEffect, type ReactNode } from "react";
 import { useAtomValue, useSetAtom } from "jotai";
+import { LazyMotion } from "framer-motion";
 import { credentialsAtom, demoModeAtom, isLoggedInAtom } from "@/store";
 import { storage } from "@/lib/storage";
 import { hasStoredVtopCredentials } from "@/components/custom/app/readBootstrapSnapshot";
 import { syncCurrentUserPostHogIdentity } from "@/lib/posthog";
 import { useSyncSessionBridge } from "@/components/custom/app/useSyncSessionBridge";
 import SyncSessionHost from "@/components/custom/app/SyncSessionHost";
+
+const loadFeatures = () => import("framer-motion").then((mod) => mod.domMax);
 
 export interface AppHousingProps {
   children: ReactNode;
@@ -76,9 +79,9 @@ export default function AppHousing({
   }, [isLoggedIn, route, semester]);
 
   return (
-    <>
+    <LazyMotion features={loadFeatures}>
       {mountSyncHost && <SyncSessionHost />}
       {children}
-    </>
+    </LazyMotion>
   );
 }

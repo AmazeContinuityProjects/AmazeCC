@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, m } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import BottomSheet from "./BottomSheet";
 import { BACKUP_API_URL, PRIMARY_API_URL, getActiveApiUrl, setActiveApiUrl, hasBackupApi } from "@/lib/fetch-utils";
 import { UNICC_API_URL, resetUniccActivity } from "@/lib/unicc-fallback";
@@ -585,7 +585,7 @@ export default function SyncNotification({
     <AnimatePresence>
       {isMinimized ? (
         /* Minimized background pill - refined mobile dock capsule */
-        <m.div
+        <motion.div
           key="sync-minimized"
           layout
           initial={{ opacity: 0, scale: 0.94, y: 12 }}
@@ -659,7 +659,7 @@ export default function SyncNotification({
               </button>
             </div>
           </div>
-        </m.div>
+        </motion.div>
       ) : (
         /* Expanded Bottom Sheet */
         <BottomSheet
@@ -675,7 +675,7 @@ export default function SyncNotification({
           <div className="flex flex-col gap-3.5 w-full relative">
             {/* 1. OFFLINE NOTICE TAKEOVER */}
             {isOfflineNotice ? (
-              <m.div
+              <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ type: "spring", damping: 20, stiffness: 240 }}
@@ -713,10 +713,10 @@ export default function SyncNotification({
                     <span>Try Again</span>
                   </button>
                 </div>
-              </m.div>
+              </motion.div>
             ) : isLoginNotice ? (
               /* 1B. LOGIN NOTICE TAKEOVER (UNAUTHENTICATED VIEW) */
-              <m.div
+              <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ type: "spring", damping: 20, stiffness: 240 }}
@@ -827,10 +827,10 @@ export default function SyncNotification({
                     </button>
                   </div>
                 </form>
-              </m.div>
+              </motion.div>
             ) : effectiveOutcome === "success" ? (
               /* 2. SUCCESS STATE TAKEOVER */
-              <m.div
+              <motion.div
                 initial={{ opacity: 0, scale: 0.92 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ type: "spring", damping: 18, stiffness: 240 }}
@@ -854,12 +854,12 @@ export default function SyncNotification({
                 >
                   Done
                 </button>
-              </m.div>
+              </motion.div>
             ) : effectiveOutcome === "error" ? (
               /* 3. FULL-SCREEN ERROR TAKEOVER */
               isVtopDown ? (
                 /* 3A. BOLD VTOP IS DOWN TAKEOVER */
-                <m.div
+                <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ type: "spring", damping: 20, stiffness: 240 }}
@@ -929,10 +929,10 @@ export default function SyncNotification({
                       </button>
                     </div>
                   </div>
-                </m.div>
+                </motion.div>
               ) : vtopState === "checking" ? (
                 /* 3B. CHECKING VTOP STATUS TAKEOVER (PREVENTS FLASHING "SYNC FAILED") */
-                <m.div
+                <motion.div
                   initial={{ opacity: 0, scale: 0.96 }}
                   animate={{ opacity: 1, scale: 1 }}
                   className="flex flex-col items-center text-center py-8 px-4 w-full"
@@ -949,10 +949,10 @@ export default function SyncNotification({
                   <p className="mt-1 text-xs font-medium text-slate-500 dark:text-zinc-400 max-w-[280px] leading-relaxed">
                     Checking if vtopcc.vit.ac.in is online to determine server status.
                   </p>
-                </m.div>
+                </motion.div>
               ) : (
                 /* 3C. OTHER ERRORS (Auth Rejection / General Error) */
-                <m.div
+                <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ type: "spring", damping: 20, stiffness: 240 }}
@@ -1115,7 +1115,7 @@ export default function SyncNotification({
 
                         <AnimatePresence>
                           {showConsole && (
-                            <m.div
+                            <motion.div
                               initial={{ opacity: 0, height: 0 }}
                               animate={{ opacity: 1, height: "auto" }}
                               exit={{ opacity: 0, height: 0 }}
@@ -1144,17 +1144,17 @@ export default function SyncNotification({
                                   );
                                 })}
                               </div>
-                            </m.div>
+                            </motion.div>
                           )}
                         </AnimatePresence>
                       </div>
                     )}
                   </div>
-                </m.div>
+                </motion.div>
               )
             ) : hasSwitched ? (
               /* 4. SWITCHED TO BACKUP STATE */
-              <m.div
+              <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.2 }}
@@ -1197,7 +1197,7 @@ export default function SyncNotification({
                 >
                   Dismiss & Try Again
                 </button>
-              </m.div>
+              </motion.div>
             ) : (
               /* 5. ACTIVE RUNNING SYNC VIEW */
               <>
@@ -1391,7 +1391,7 @@ export default function SyncNotification({
 
                   {/* High performance spring progress bar */}
                   <div className="w-full bg-slate-100 dark:bg-zinc-800 h-2 rounded-full overflow-hidden relative">
-                    <m.div
+                    <motion.div
                       className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-600 rounded-full"
                       animate={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
                       transition={{ type: "spring", damping: 24, stiffness: 140 }}
@@ -1449,7 +1449,7 @@ export default function SyncNotification({
 
                 {/* INLINE VTOP DOWN ALERT (DURING RUN) */}
                 {vtopState === "down" && (
-                  <m.div
+                  <motion.div
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 flex items-start gap-2.5 shadow-[0_0_16px_rgba(244,63,94,0.18)]"
@@ -1466,7 +1466,7 @@ export default function SyncNotification({
                         Direct connection to vtopcc.vit.ac.in timed out. The university portal appears to be offline.
                       </p>
                     </div>
-                  </m.div>
+                  </motion.div>
                 )}
 
                 {/* 4. PROGRESSIVE DISCLOSURE: LIVE CONSOLE LOG DRAWER */}
@@ -1509,7 +1509,7 @@ export default function SyncNotification({
 
                   <AnimatePresence>
                     {showConsole && (
-                      <m.div
+                      <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
@@ -1528,7 +1528,7 @@ export default function SyncNotification({
                             );
                           })}
                         </div>
-                      </m.div>
+                      </motion.div>
                     )}
                   </AnimatePresence>
                 </div>
@@ -1536,7 +1536,7 @@ export default function SyncNotification({
                 {/* 5. SLOW NETWORK ALERT BUTTON */}
                 <AnimatePresence>
                   {showBackupBtn && hasBackupApi() && (
-                    <m.div
+                    <motion.div
                       initial={{ opacity: 0, y: 6 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 6 }}
@@ -1556,7 +1556,7 @@ export default function SyncNotification({
                         />
                         <span>Slow network? Switch to Backup API</span>
                       </button>
-                    </m.div>
+                    </motion.div>
                   )}
                 </AnimatePresence>
 

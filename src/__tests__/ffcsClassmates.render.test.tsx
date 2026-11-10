@@ -186,6 +186,16 @@ describe("FriendFinderTab", () => {
     );
   });
 
+  it("offers a logout button in the profile sheet with a second confirmation tap", async () => {
+    apiMock.mockResolvedValueOnce(joinedWithMatch());
+    await renderTab();
+    fireEvent.click(screen.getByRole("button", { name: "Profile" }));
+    const logoutBtn = await screen.findByRole("button", { name: /Log out/ });
+    expect(logoutBtn).toBeTruthy();
+    fireEvent.click(logoutBtn);
+    expect(screen.getByRole("button", { name: /Tap again to log out/ })).toBeTruthy();
+  });
+
   it("offers Sign in again when there is no session, and retries after a fresh login", async () => {
     ensureMock.mockRejectedValueOnce(new AuthError("Not logged in", "vtop"));
     await renderTab();

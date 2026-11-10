@@ -38,6 +38,7 @@ import {
   UserRound,
   Users,
   UsersRound,
+  UserX,
 } from "lucide-react";
 import { activeTabAtom, credentialsAtom, demoModeAtom, isLoggedInAtom } from "@/store";
 import {
@@ -58,6 +59,8 @@ import { storage } from "@/lib/storage";
 import { hasStoredVtopCredentials } from "@/components/custom/app/readBootstrapSnapshot";
 import { getAssetPath } from "@/lib/utils";
 import { syncCurrentUserPostHogIdentity, trackFeatureUsage } from "@/lib/posthog";
+import posthog from "posthog-js";
+import { forgetStoredCredentials, SIGNED_OUT_EVENT } from "@/lib/forgetDevice";
 import { getActiveRegNumber } from "@/lib/social/identity";
 import ThemeToggle from "@/components/custom/ThemeToggle";
 import { GHOST_BUTTON, LIST_ROW, LIST_SHELL, TILE_CARD, TONE_ICON_TILE } from "@/lib/uiTokens";
@@ -663,6 +666,34 @@ export default function FriendFinderTab({
   const [grouping, setGrouping] = useState<"classes" | "friends">("classes");
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
   const [selectedFriend, setSelectedFriend] = useState<ClassmateOverlap | null>(null);
+  const [confirmingLogout, setConfirmingLogout] = useState(false);
+
+  const handleLogout = useCallback(() => {
+    if (process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST) {
+      try {
+        posthog.reset();
+      } catch {}
+    }
+    forgetStoredCredentials();
+    setIsLoggedIn(false);
+    setDemoMode(false);
+    setIDs({
+      VtopUsername: "",
+      VtopPassword: "",
+      MoodleUsername: "",
+      MoodlePassword: "",
+    });
+    try {
+      if (typeof document !== "undefined") {
+        document.documentElement.classList.remove("has-stored-session");
+      }
+    } catch {}
+    setIsProfileOpen(false);
+    setConfirmingLogout(false);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent(SIGNED_OUT_EVENT));
+    }
+  }, [setIsLoggedIn, setDemoMode, setIDs]);
 
   const handleShare = useCallback(async () => {
     const text =
@@ -827,6 +858,7 @@ export default function FriendFinderTab({
         icon={<Avatar person={{ handle: me.handle, name: me.name }} size="sm" />}
       >
         <div className="space-y-4 p-1">
+          setConfirmingLogout(false);
           {/* User Details Card */}
           <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-border-subtle space-y-3">
             <div className="flex items-center gap-3">
@@ -859,7 +891,6 @@ export default function FriendFinderTab({
               </div>
             </div>
           </div>
-
           {/* Visibility Switch */}
           <div className="flex items-center justify-between p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-border-subtle">
             <div>
@@ -876,7 +907,6 @@ export default function FriendFinderTab({
               onCheckedChange={(on) => void run({ op: "visibility", discoverable: on }, "action")}
             />
           </div>
-
           {/* Menu item to leave */}
           <div>
             <button
@@ -888,6 +918,7 @@ export default function FriendFinderTab({
                   void run({ op: "leave" }, "action");
                 } else {
                   setConfirmingRemove(true);
+                  setConfirmingLogout(false);
                 }
               }}
               onBlur={() => setConfirmingRemove(false)}
@@ -898,8 +929,35 @@ export default function FriendFinderTab({
               }`}
             >
               <span className="flex items-center gap-2">
-                <LogOut className="w-4 h-4" />
+                <UserX className="w-4 h-4" />
                 {confirmingRemove ? "Tap again to remove" : "Remove me"}
+              </span>
+              <ChevronRight className="w-4 h-4 opacity-70" />
+            </button>
+          </div>
+          {/* Menu item to log out */}
+          <div>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                if (confirmingLogout) {
+                  handleLogout();
+                } else {
+                  setConfirmingLogout(true);
+                  setConfirmingRemove(false);
+                }
+              }}
+              onBlur={() => setConfirmingLogout(false)}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+                confirmingLogout
+                  ? "!bg-rose-600 !text-white hover:!bg-rose-700 shadow-sm"
+                  : "bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-800/80 dark:hover:bg-zinc-700/80 text-zinc-700 dark:text-zinc-200 border border-border-subtle"
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <LogOut className="w-4 h-4 text-rose-500" />
+                {confirmingLogout ? "Tap again to log out" : "Log out"}
               </span>
               <ChevronRight className="w-4 h-4 opacity-70" />
             </button>
