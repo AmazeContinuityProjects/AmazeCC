@@ -1103,6 +1103,36 @@ registerOp({
 });
 
 registerOp({
+  name: "ffcs",
+  auth: "vtop",
+  meta: {
+    label: "FFCS",
+    description: "Registration, feedback, wishlist, exam schedule and QCM in one call.",
+    category: "academics",
+    cost: "heavy",
+    needsSemester: true,
+  },
+  async run(ctx, args) {
+    const semesterId = args?.semesterId as string | undefined;
+    const ffcs = await fetchFfcsAll(ctx, { semesterId, trackAs: "ffcs", label: "FFCS" });
+    distributeFfcsCache(ctx, ffcs, semesterId);
+    const schedule = extractExamSchedule(ffcs);
+    if (schedule) {
+      persist("schedule", schedule);
+      ctx.bridge.setAtom(dataAtoms.scheduleDataAtom, schedule);
+    }
+    return {
+      ...ffcs,
+      registrationSchedule: extractRegistrationSchedule(ffcs),
+      schedule,
+      wishlist: extractWishlist(ffcs),
+      feedback: extractSimpleFeedback(ffcs),
+      feedbackStatus: extractDetailedFeedbackStatus(ffcs),
+    };
+  },
+});
+
+registerOp({
   name: "social",
   auth: "vtop",
   meta: {
@@ -1179,5 +1209,53 @@ registerOp({
       });
       return null;
     }
+  },
+});
+
+registerOp({
+  name: "finance",
+  auth: "vtop",
+  meta: {
+    label: "Finance",
+    description: "Payments, dues, receipts, wallet and receipt details.",
+    category: "campus",
+    cost: "medium",
+  },
+  async run(ctx, args) {
+    const section = (args?.section as string) || "all";
+    const applNo = args?.applNo as string | undefined;
+    const body: Record<string, unknown> = { section };
+    if (applNo) body.applNo = applNo;
+    const res = await ctx.request<any>("finance", body, { auth: "vtop" });
+    assertApiSuccess(res, "Finance");
+    if (section === "all") {
+      const dues = res?.dues ?? null;
+      const receipts = res?.receipts ?? null;
+      const wallet = res?.wallet ?? null;
+      const library = res?.library ?? null;
+      const bank = res?.bank ?? null;
+      try {
+        if (dues) localStorage.setItem("uni_cc_payments_dues", JSON.stringify(dues));
+        if (receipts) localStorage.setItem("uni_cc_payment_receipts", JSON.stringify(receipts));
+        if (wallet) localStorage.setItem("uni_cc_wallet", JSON.stringify(wallet));
+        if (library) storage.cache.set("library-due", { success: true, ...library });
+        if (bank) storage.cache.set("bank-info", bank);
+      } catch {}
+    }
+    return res;
+  },
+});
+
+registerOp({
+  name: "notifications-subscribe",
+  auth: "none",
+  meta: {
+    label: "Push subscribe",
+    description: "Register push notification subscription.",
+    category: "other",
+    cost: "light",
+  },
+  async run(ctx, args) {
+    return ctx.request<any>("notifications/subscribe", args || {}, { auth: "none" });
   },
 });

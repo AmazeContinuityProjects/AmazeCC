@@ -4,7 +4,7 @@ import { Card, Badge } from "../shared";
 import BottomSheet from "../shared/BottomSheet";
 import { AnimatePresence } from "framer-motion";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
-import { api } from "@/lib/sync-engine";
+import { syncEngine } from "@/lib/sync-engine";
 import { XCircle, CheckCircle, Clock, BookOpen, ChevronDown, ChevronRight } from "lucide-react";
 
 interface Props {
@@ -25,22 +25,10 @@ export default function FeedbackStatusModal({ isOpen, onClose, loginToVTOP }: Pr
     setError(null);
     setSemesters([]);
 
-    let creds: any;
-    loginToVTOP()
-      .then((c) => {
-        creds = c;
-        return api("ffcs", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            cookies: creds.cookies,
-            authorizedID: creds.authorizedID,
-            csrf: creds.csrf,
-            section: "feedback",
-          }),
-        });
-      })
-      .then(async (res: any) => {
+    (async () => {
+      try {
+        // Single FFCS(all) call via sync op; adapters/distribution happen inside.
+        const res: any = await syncEngine.sync("ffcs", {});
         const initial = res?.feedbackStatus || res;
         if (!initial || initial.success === false) {
           setError(initial?.error || "Failed to load feedback status");
@@ -56,36 +44,16 @@ export default function FeedbackStatusModal({ isOpen, onClose, loginToVTOP }: Pr
         if (selectedIdx >= 0) {
           setExpanded({ [semList[selectedIdx].label]: true });
         }
-
-        const results = await Promise.allSettled(
-          semesterOptions
-            .filter((s: any) => !s.selected)
-            .map((s: any) =>
-              api("ffcs", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  cookies: creds.cookies,
-                  authorizedID: creds.authorizedID,
-                  csrf: creds.csrf,
-                  section: "feedback",
-                  semesterId: s.value,
-                }),
-              }),
-            ),
-        );
-        results.forEach((result, i) => {
-          if (result.status !== "fulfilled") return;
-          const val: any = result.value?.feedbackStatus || result.value;
-          if (val?.success !== false) {
-            const nonSelectedIndex = semesterOptions.findIndex((s: any) => !s.selected) + i;
-            if (semList[nonSelectedIndex]) semList[nonSelectedIndex].rows = val.feedbackTable || [];
-          }
-        });
+        // Detailed per-semester feedback rows are not part of ffcs(all); keep
+        // rows for currently selected semester from initial response. If other
+        // semesters require per-semester fetch, a dedicated sync op should be added.
         setSemesters(semList);
-      })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+      } catch (err: any) {
+        setError(err?.message || "Failed to load feedback status");
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [isOpen]);
 
   const toggleExpand = (label: string) => setExpanded((p) => ({ ...p, [label]: !p[label] }));

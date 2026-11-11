@@ -156,26 +156,16 @@ function DashboardContent({
     let cancelled = false;
     (async () => {
       try {
-        if (!loginToVTOP) return;
-        const creds = await loginToVTOP();
-        if (!creds || cancelled) return;
-        const { api } = await import("@/lib/sync-engine");
-        const res: any = await api("ffcs", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            cookies: creds.cookies,
-            authorizedID: creds.authorizedID,
-            csrf: creds.csrf,
-            section: "feedback",
-            semesterId: settings?.currSemesterID,
-          }),
-        });
+        if (demoMode) return;
+        const { syncEngine } = await import("@/lib/sync-engine");
+        const res: any = await syncEngine.sync("ffcs", { semesterId: settings?.currSemesterID }).catch(() => null);
         const simple = res?.feedback || null;
         if (!cancelled && simple) {
           setFfcsFeedback(simple);
+        } else if (!cancelled) {
           try {
-            localStorage.setItem("cache_ffcs_feedback", JSON.stringify(simple));
+            const cachedFeedback = localStorage.getItem("cache_ffcs_feedback");
+            if (cachedFeedback) setFfcsFeedback(JSON.parse(cachedFeedback));
           } catch {}
         }
       } catch {}
@@ -183,7 +173,7 @@ function DashboardContent({
     return () => {
       cancelled = true;
     };
-  }, [loginToVTOP, settings?.currSemesterID]);
+  }, [demoMode, settings?.currSemesterID]);
 
   if (showFresherWelcome) {
     return (

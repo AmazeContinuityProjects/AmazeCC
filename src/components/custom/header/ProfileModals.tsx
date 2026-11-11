@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { api, syncEngine } from "@/lib/sync-engine";
+import { syncEngine } from "@/lib/sync-engine";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import { AlertCircle, CheckCircle, Clock } from "lucide-react";
 
-async function getWhoami(creds?: any): Promise<any> {
+async function getWhoami(_creds?: any): Promise<any> {
   try {
     const cached = localStorage.getItem("cache_whoami");
     if (cached) return JSON.parse(cached);
@@ -19,17 +19,6 @@ async function getWhoami(creds?: any): Promise<any> {
       return w;
     }
   } catch {}
-  if (creds?.cookies) {
-    try {
-      const w = (await api("whoami", { method: "POST", auth: "vtop" } as any)) as any;
-      if (w && !w.error) {
-        try {
-          localStorage.setItem("cache_whoami", JSON.stringify(w));
-        } catch {}
-        return w;
-      }
-    } catch {}
-  }
   return null;
 }
 
@@ -48,11 +37,8 @@ export function RegistrationModalContent({ creds, onClose }: { creds: any; onClo
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    const { cookies, authorizedID, csrf } = creds;
-    api("ffcs", {
-      method: "POST",
-      body: { cookies, authorizedID, csrf, section: "registration" },
-    })
+    syncEngine
+      .sync("ffcs", {})
       .then((raw: any) => {
         const res = raw?.registrationSchedule || raw;
         const hasContent = res?.tables?.length > 0 && res.tables.some((t: any) => t.rows?.length > 0);
@@ -186,9 +172,8 @@ export function BankDayStatusModal({ endpoint, title, creds }: { endpoint: strin
           if (!cancelled) setData(w);
           return;
         }
-        const { cookies, authorizedID, csrf } = creds || {};
-        const res = await api(endpoint, { method: "POST", body: { cookies, authorizedID, csrf } });
-        if (!cancelled) setData(res);
+        // Other endpoints must be fetched via sync ops; no direct UI API calls.
+        if (!cancelled) setData(null);
       } catch {
         if (!cancelled) setData(null);
       } finally {

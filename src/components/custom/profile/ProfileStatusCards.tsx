@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
-import { api, syncEngine } from "@/lib/sync-engine";
+import { syncEngine } from "@/lib/sync-engine";
 import { GraduationCap, ClipboardCheck, Landmark, Building, Trophy, IdCard, ChevronRight } from "lucide-react";
 
 export default function ProfileStatusCards({
@@ -36,11 +36,6 @@ export default function ProfileStatusCards({
           } catch {
             w = null;
           }
-          if (!w) {
-            try {
-              w = await api("whoami", { method: "POST", auth: "vtop" } as any);
-            } catch {}
-          }
           if (w && !w.error) {
             try {
               localStorage.setItem("cache_whoami", JSON.stringify(w));
@@ -50,7 +45,7 @@ export default function ProfileStatusCards({
         if (cancelled) return;
         setWhoami(w);
 
-        // registration schedule now comes from unified /api/ffcs
+        // registration schedule comes from unified FFCS op (single ffcs all call + adapters/distribution)
         let regRes: any = null;
         if (refreshKey === 0) {
           try {
@@ -61,21 +56,11 @@ export default function ProfileStatusCards({
           } catch {}
         }
         if (!regRes || refreshKey > 0) {
-          const ffcsRes = await api("ffcs", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              cookies: creds.cookies,
-              authorizedID: creds.authorizedID,
-              csrf: creds.csrf,
-              section: "registration",
-            }),
-          }).catch(() => null);
-          regRes = ffcsRes?.registrationSchedule || ffcsRes;
-          if (regRes) {
-            try {
-              localStorage.setItem("cache_registration_schedule", JSON.stringify(regRes));
-            } catch {}
+          try {
+            const ffcsRes: any = await syncEngine.sync("ffcs", {});
+            regRes = ffcsRes?.registrationSchedule || ffcsRes;
+          } catch {
+            regRes = null;
           }
         }
         if (!cancelled) setReg(regRes);

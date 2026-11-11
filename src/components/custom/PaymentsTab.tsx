@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { AnimatePresence } from "framer-motion";
-import { api } from "@/lib/sync-engine";
+import { syncEngine } from "@/lib/sync-engine";
 import { storage } from "@/lib/storage";
 
 const DEMO_FINANCE_ALL = {
@@ -210,11 +210,7 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
         await new Promise((resolve) => setTimeout(resolve, 300));
         res = DEMO_FINANCE_ALL;
       } else {
-        res = await api("finance", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cookies, authorizedID, csrf, section: "all" }),
-        });
+        res = await syncEngine.sync("finance", { section: "all" });
       }
       const { dues, receipts, wallet } = applyFinanceAll(res);
       if (dues) setDuesData(dues);
@@ -341,12 +337,8 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
       setDetailLoading((prev) => ({ ...prev, [key]: true }));
       void (async () => {
         try {
-          const { cookies, authorizedID, csrf } = await getCreds();
-          const res = await api("finance", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ cookies, authorizedID, csrf, section: "receipt", applNo: key }),
-          });
+          await getCreds();
+          const res = await syncEngine.sync<any>("finance", { section: "receipt", applNo: key });
           const tables = (res?.receiptDetail?.tables || res?.tables || []) as PaymentReceiptTable[];
           if (tables.length) {
             setReceiptDetails((prev) => ({ ...prev, [key]: tables }));
