@@ -8,8 +8,8 @@
  * choice, and worth locking down with a test.
  *
  * That slot is the only place the app rewrites the origin of *every* request, so
- * setting it to UniCC sent `/api/student`, `/api/transport`, `/api/buses`,
- * `/api/wallet`, `/api/od`, `/api/acknowledgement`, `/api/payments` and about
+ * setting it to UniCC sent `/api/whoami`, `/api/transport`, `/api/buses`,
+ * `/api/finance`, `/api/od` and about
  * fifteen more routes to a host that does not implement them. Every one came
  * back 404, and because a 404 is an *answer* rather than a failure, the failover
  * logic never even noticed. The app looked healthy and returned nothing.
@@ -36,8 +36,7 @@ const PRIMARY = "https://api.amazecc.com";
 const BACKUP = "https://mirror.amazecc.deno.net";
 const UNICC = "https://api.uni-cc.site";
 
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), { status });
+const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 const netFail = () => Promise.reject(new TypeError("Failed to fetch"));
 
 let originalWindowFetch: typeof fetch;
@@ -75,9 +74,7 @@ function installLocalStorageStub(): void {
 /**
  * Import a fresh copy of the module under a specific environment.
  */
-async function loadFetchUtils(
-  env: Record<string, string | undefined>
-): Promise<typeof FetchUtils> {
+async function loadFetchUtils(env: Record<string, string | undefined>): Promise<typeof FetchUtils> {
   vi.resetModules();
   for (const [key, value] of Object.entries(env)) {
     if (value === undefined) delete process.env[key];
@@ -133,8 +130,7 @@ describe("UniCC configured as the backup gateway", () => {
   });
 
   it("never becomes the active API URL, even after the primary fails", async () => {
-    const { fetchWithFailover, getActiveApiUrl, setOriginalFetchForTest } =
-      await loadFetchUtils(env);
+    const { fetchWithFailover, getActiveApiUrl, setOriginalFetchForTest } = await loadFetchUtils(env);
 
     // Both attempts fail, so the failure path runs to completion.
     const mock = vi.fn().mockImplementationOnce(netFail).mockImplementationOnce(netFail);
@@ -213,9 +209,7 @@ describe("with every host down", () => {
       "payment-receipts",
     ]) {
       mock.mockImplementationOnce(netFail).mockImplementationOnce(netFail);
-      await expect(
-        fetchWithFailover(`${PRIMARY}/api/${path}`, { method: "POST", body: "{}" })
-      ).rejects.toBeDefined();
+      await expect(fetchWithFailover(`${PRIMARY}/api/${path}`, { method: "POST", body: "{}" })).rejects.toBeDefined();
     }
 
     expect(urlsCalled(mock).some((u) => u.includes("uni-cc"))).toBe(false);
@@ -254,10 +248,7 @@ describe("with every host down", () => {
 
   it("does not treat a 404 as an outage, because a 404 is an answer", async () => {
     const { fetchWithFailover, setOriginalFetchForTest } = await loadFetchUtils(env);
-    const mock = vi
-      .fn()
-      .mockImplementationOnce(netFail)
-      .mockResolvedValueOnce(json("not found", 404));
+    const mock = vi.fn().mockImplementationOnce(netFail).mockResolvedValueOnce(json("not found", 404));
     setOriginalFetchForTest(mock as unknown as typeof fetch);
 
     const res = await fetchWithFailover(`${PRIMARY}/api/grades`);
@@ -269,8 +260,7 @@ describe("with every host down", () => {
   it("goes back to the primary when the backup is the one that is down", async () => {
     // Without this, once the global URL had failed over, a dead backup ended the
     // chain and UniCC was never consulted.
-    const { fetchWithFailover, getActiveApiUrl, setActiveApiUrl, setOriginalFetchForTest } =
-      await loadFetchUtils(env);
+    const { fetchWithFailover, getActiveApiUrl, setActiveApiUrl, setOriginalFetchForTest } = await loadFetchUtils(env);
     setActiveApiUrl(BACKUP);
 
     const mock = vi
@@ -288,9 +278,7 @@ describe("with every host down", () => {
     // VTOP locks accounts after repeated failures, so a 401 must never be
     // retried anywhere. This is the single most important assertion in the file.
     const { fetchWithFailover, setOriginalFetchForTest } = await loadFetchUtils(env);
-    const mock = vi
-      .fn()
-      .mockResolvedValue(json({ success: false, message: "Invalid Username / Password" }, 401));
+    const mock = vi.fn().mockResolvedValue(json({ success: false, message: "Invalid Username / Password" }, 401));
     setOriginalFetchForTest(mock as unknown as typeof fetch);
 
     const res = await fetchWithFailover(`${PRIMARY}/api/login`, {
@@ -312,8 +300,7 @@ describe("with a real mirror configured", () => {
       NEXT_PUBLIC_BACKUP_API_URL: BACKUP,
       NEXT_PUBLIC_UNICC_API_URL: UNICC,
     };
-    const { fetchWithFailover, getActiveApiUrl, setOriginalFetchForTest } =
-      await loadFetchUtils(env);
+    const { fetchWithFailover, getActiveApiUrl, setOriginalFetchForTest } = await loadFetchUtils(env);
 
     const mock = vi
       .fn()

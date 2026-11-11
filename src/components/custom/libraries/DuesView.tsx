@@ -7,13 +7,7 @@ import { runPageSync } from "@/lib/sync-engine/single-sync";
 import { storage } from "@/lib/storage";
 import { DEMO_DUES } from "@/lib/libraries/demo";
 import { num, type LibraryDueResponse, type PatronTable } from "@/lib/libraries/koha";
-import {
-  EMPTY_STATE,
-  LIST_ROW,
-  LIST_SHELL,
-  SECTION_CHIP,
-  TONE_BADGE,
-} from "@/lib/libraries/ui";
+import { EMPTY_STATE, LIST_ROW, LIST_SHELL, SECTION_CHIP, TONE_BADGE } from "@/lib/libraries/ui";
 import { ListSkeleton } from "../shared/primitives";
 
 interface DuesViewProps {
@@ -28,18 +22,13 @@ function renderTable(table: PatronTable, idx: number) {
   return (
     <div key={idx} className="space-y-2">
       {table.caption && (
-        <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 px-1">
-          {table.caption}
-        </p>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 px-1">{table.caption}</p>
       )}
       <div className={LIST_SHELL}>
         {(table.rows || []).map((row, ri) => (
           <div key={ri} className={LIST_ROW}>
             {(row || []).map((cell, ci) => (
-              <div
-                key={ci}
-                className={`min-w-0 flex-1 ${ci === 0 ? "shrink-0 basis-1/4" : ""}`}
-              >
+              <div key={ci} className={`min-w-0 flex-1 ${ci === 0 ? "shrink-0 basis-1/4" : ""}`}>
                 {ci === 0 ? (
                   <span className="text-xs font-bold text-zinc-900 dark:text-white font-outfit truncate block">
                     {String(cell ?? "—")}
@@ -93,22 +82,31 @@ export default function DuesView({ creds, isDemo, refreshKey, onTotals }: DuesVi
       }
 
       if (!creds) return;
-      const res: any = await api("library-due", {
+      // Single /api/finance call: fetch all finance sections and cache them.
+      const res: any = await api("finance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: {
           cookies: creds.cookies,
           authorizedID: creds.authorizedID,
           csrf: creds.csrf,
+          section: "all",
         },
       });
-      if (res?.success === false) {
-        setError(res.error || "Could not load dues");
+      const library = (
+        res?.library && typeof res.library === "object" ? { success: true, ...res.library } : res
+      ) as LibraryDueResponse;
+      if ((library as any)?.success === false || (res as any)?.success === false) {
+        setError((library as any)?.error || (res as any)?.error || "Could not load dues");
         return;
       }
-      setData(res);
+      setData(library);
       try {
-        storage.cache.set("library-due", res);
+        storage.cache.set("library-due", library);
+        if (res?.dues) localStorage.setItem("payments_dues", JSON.stringify(res.dues));
+        if (res?.receipts) localStorage.setItem("payments_receipts", JSON.stringify(res.receipts));
+        if (res?.wallet) localStorage.setItem("payments_wallet", JSON.stringify(res.wallet));
+        if (res?.bank) storage.cache.set("bank-info", res.bank);
       } catch {}
     } catch (e: any) {
       setError(e?.message || "Could not load dues");
@@ -156,9 +154,7 @@ export default function DuesView({ creds, isDemo, refreshKey, onTotals }: DuesVi
   // Headline figures for the landing cards
   const books = data?.books || [];
   const tables = data?.tables || [];
-  const outstanding = books.length
-    ? books.reduce((s, b) => s + num(b.dueAmount), 0)
-    : 0;
+  const outstanding = books.length ? books.reduce((s, b) => s + num(b.dueAmount), 0) : 0;
   const overdue = books.filter((b) => num(b.daysOverdue) > 0).length;
   useEffect(() => {
     onTotals?.(outstanding, overdue);
@@ -229,9 +225,7 @@ export default function DuesView({ creds, isDemo, refreshKey, onTotals }: DuesVi
               <span className={SECTION_CHIP}>{books.length}</span>
             </div>
             {overdue > 0 && (
-              <span
-                className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border ${TONE_BADGE.red}`}
-              >
+              <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border ${TONE_BADGE.red}`}>
                 {overdue} overdue
               </span>
             )}
@@ -242,11 +236,7 @@ export default function DuesView({ creds, isDemo, refreshKey, onTotals }: DuesVi
               const days = num(b.daysOverdue);
               return (
                 <div key={`${b.isbn || b.title}-${i}`} className={LIST_ROW}>
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                      days > 0 ? "bg-red-500" : "bg-emerald-500"
-                    }`}
-                  />
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${days > 0 ? "bg-red-500" : "bg-emerald-500"}`} />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold text-zinc-900 dark:text-white truncate font-outfit leading-tight">
                       {b.title || "Untitled"}
@@ -259,11 +249,7 @@ export default function DuesView({ creds, isDemo, refreshKey, onTotals }: DuesVi
                     <p className="text-sm font-black font-outfit text-zinc-900 dark:text-white leading-tight">
                       ₹{num(b.dueAmount).toLocaleString("en-IN")}
                     </p>
-                    {days > 0 && (
-                      <p className="text-[10px] font-bold text-red-600 dark:text-red-400">
-                        {days}d late
-                      </p>
-                    )}
+                    {days > 0 && <p className="text-[10px] font-bold text-red-600 dark:text-red-400">{days}d late</p>}
                   </div>
                 </div>
               );

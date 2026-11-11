@@ -17,8 +17,7 @@ import {
  * `NEXT_PUBLIC_API_URL`, which the GitHub Pages workflow sets so a build is
  * pinned to a known host rather than whatever happens to be in `.env` locally.
  */
-export const PRIMARY_API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://api.amazecc.com";
+export const PRIMARY_API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.amazecc.com";
 
 /**
  * The global failover host.
@@ -28,9 +27,7 @@ export const PRIMARY_API_URL =
  * env var. Leave blank only if you want no distinct global failover (in
  * which case set it equal to the primary explicitly).
  */
-export const BACKUP_API_URL =
-  process.env.NEXT_PUBLIC_BACKUP_API_URL ||
-  "https://amazecc-api-d402b5.rivendeploy.com";
+export const BACKUP_API_URL = process.env.NEXT_PUBLIC_BACKUP_API_URL || "https://amazecc-api-d402b5.rivendeploy.com";
 
 /**
  * The backup host that is actually safe to swap in globally.
@@ -40,7 +37,7 @@ export const BACKUP_API_URL =
  * real damage. UniCC is refused here: if it is configured as the backup, the
  * effective backup becomes the primary, which degrades to "retry once, then try
  * the allowlisted UniCC fallback" — the intended behaviour — instead of pointing
- * `/api/student` and friends at a host that 404s them.
+ * `/api/whoami`, `/api/transport`, `/api/buses`, `/api/finance` and friends at a host that 404s them.
  */
 function failoverBackupUrl(): string {
   return isUniccHost(BACKUP_API_URL) ? PRIMARY_API_URL : BACKUP_API_URL;
@@ -62,7 +59,7 @@ if (typeof window !== "undefined") {
       localStorage.removeItem("amazecc_custom_api_url");
       console.warn(
         "Ignoring the stored custom API URL because it points at UniCC, " +
-          "which does not implement all of AmazeCC's routes."
+          "which does not implement all of AmazeCC's routes.",
       );
     }
     if (activeUrlFromStorage && isUniccHost(activeUrlFromStorage)) {
@@ -70,7 +67,7 @@ if (typeof window !== "undefined") {
       localStorage.removeItem("amazecc_active_api_url");
       console.warn(
         "Ignoring the stored active API URL because it points at UniCC, " +
-          "which does not implement all of AmazeCC's routes."
+          "which does not implement all of AmazeCC's routes.",
       );
     }
   } catch (e) {}
@@ -81,8 +78,7 @@ if (typeof window !== "undefined") {
 // matters: `setActiveApiUrl(BACKUP)` used to write a key that was never read
 // back, so choosing the mirror looked like it worked and then silently
 // reverted to primary on the next reload.
-export let activeApiUrl =
-  customUrlFromStorage || activeUrlFromStorage || PRIMARY_API_URL;
+export let activeApiUrl = customUrlFromStorage || activeUrlFromStorage || PRIMARY_API_URL;
 
 /**
  * Whether there is a real, distinct backup gateway to show/switch to.
@@ -101,7 +97,7 @@ export function setActiveApiUrl(url: string) {
   if (isUniccHost(url)) {
     console.warn(
       `Refusing to make ${url} the active API URL: it implements only part of ` +
-        "AmazeCC's API, so the app would silently 404 the rest."
+        "AmazeCC's API, so the app would silently 404 the rest.",
     );
     url = PRIMARY_API_URL;
   }
@@ -246,7 +242,7 @@ async function attemptUnicc(
   input: RequestInfo | URL,
   init: RequestInit | undefined,
   prepareInput: (newUrl: string) => RequestInfo | URL,
-  lastError: unknown
+  lastError: unknown,
 ): Promise<Response> {
   const uniccUrl = uniccUrlFor(urlStr);
   if (uniccUrl) {
@@ -289,7 +285,7 @@ async function attemptUnicc(
 async function tryPreferredUnicc(
   urlStr: string,
   init: RequestInit | undefined,
-  prepareInput: (newUrl: string) => RequestInfo | URL
+  prepareInput: (newUrl: string) => RequestInfo | URL,
 ): Promise<Response | null> {
   const uniccUrl = uniccUrlFor(urlStr);
   if (!uniccUrl) {
@@ -328,10 +324,7 @@ async function tryPreferredUnicc(
   }
 }
 
-export async function fetchWithFailover(
-  input: RequestInfo | URL,
-  init?: RequestInit
-): Promise<Response> {
+export async function fetchWithFailover(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   let urlStr = "";
   if (typeof input === "string") {
     urlStr = input;
@@ -379,7 +372,9 @@ export async function fetchWithFailover(
           const initOpts: RequestInit = {};
           if (input.headers) {
             const headers: Record<string, string> = {};
-            input.headers.forEach((v, k) => { headers[k] = v; });
+            input.headers.forEach((v, k) => {
+              headers[k] = v;
+            });
             initOpts.headers = headers;
           }
           initOpts.method = input.method;
@@ -462,7 +457,11 @@ export async function fetchWithFailover(
   }
 }
 
-export async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = FETCH_TIMEOUT): Promise<Response> {
+export async function fetchWithTimeout(
+  url: string,
+  options: RequestInit,
+  timeoutMs = FETCH_TIMEOUT,
+): Promise<Response> {
   const timeoutController = new AbortController();
   const timeoutReason =
     typeof DOMException !== "undefined"
@@ -485,7 +484,10 @@ export async function fetchWithTimeout(url: string, options: RequestInit, timeou
     if (typeof (AbortSignal as any).any === "function") {
       signal = (AbortSignal as any).any([userSignal, timeoutController.signal]);
     } else {
-      const onAbort = () => timeoutController.abort(userSignal.reason ?? new DOMException("signal is aborted without reason", "AbortError"));
+      const onAbort = () =>
+        timeoutController.abort(
+          userSignal.reason ?? new DOMException("signal is aborted without reason", "AbortError"),
+        );
       userSignal.addEventListener("abort", onAbort, { once: true });
       detach = () => userSignal.removeEventListener("abort", onAbort);
     }
@@ -513,7 +515,7 @@ if (typeof window !== "undefined") {
 
         const res = await originalFetch(`${PRIMARY_API_URL}/api/health`, {
           signal: controller.signal,
-          headers: { "Accept": "application/json" }
+          headers: { Accept: "application/json" },
         });
         clearTimeout(timer);
 
@@ -524,14 +526,18 @@ if (typeof window !== "undefined") {
           }
         } else {
           if (activeApiUrl === PRIMARY_API_URL) {
-            console.warn("Primary API health check returned non-200. Keeping primary URL to avoid unnecessary failovers.");
+            console.warn(
+              "Primary API health check returned non-200. Keeping primary URL to avoid unnecessary failovers.",
+            );
           }
         }
       } catch (e) {
         // Do not proactively switch to backup on startup.
         // Let the actual fetch failover handle it during requests.
         if (activeApiUrl === PRIMARY_API_URL) {
-          console.warn("Primary API is unreachable/blocked in health check. Keeping primary URL to avoid unnecessary failovers on slow connections.");
+          console.warn(
+            "Primary API is unreachable/blocked in health check. Keeping primary URL to avoid unnecessary failovers on slow connections.",
+          );
         }
       }
     }, 1500);

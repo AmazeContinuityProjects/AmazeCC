@@ -31,6 +31,63 @@ import {
  */
 let cachedSemester: string | null = null;
 
+export const WHOAMI_CACHE_KEY = "whoami";
+
+function whoamiToProfile(data: any): Record<string, unknown> | null {
+  if (!data || typeof data !== "object") return null;
+  const profile: Record<string, unknown> = {};
+  const map: Record<string, string> = {
+    regNo: "regNo",
+    name: "name",
+    email: "email",
+    mobile: "mobile",
+    dob: "dob",
+    gender: "gender",
+    bloodGroup: "bloodGroup",
+    photoBase64: "photoBase64",
+    program: "program",
+    nationality: "nationality",
+    nativeLanguage: "nativeLanguage",
+    nativeState: "nativeState",
+    community: "community",
+    religion: "religion",
+    caste: "caste",
+    physicallyChallenged: "physicallyChallenged",
+    aadharNumber: "aadharNumber",
+    currentAddress: "currentAddress",
+    permanentAddress: "permanentAddress",
+    father: "father",
+    mother: "mother",
+    guardian: "guardian",
+    proctor: "proctor",
+    hodDean: "hodDean",
+    credentials: "credentials",
+    ranks: "ranks",
+    apaar: "apaar",
+    bank: "bank",
+    contact: "contact",
+  };
+  for (const [k, out] of Object.entries(map)) {
+    if (data[k] !== undefined) profile[out] = data[k];
+  }
+  if (typeof data.isHosteller === "boolean") profile.isHosteller = data.isHosteller;
+  return Object.keys(profile).length ? profile : null;
+}
+
+async function fetchWhoami(ctx: OpCtx): Promise<any> {
+  const data = await ctx.request("whoami", {}, { auth: "vtop", retry: { max: 1 } });
+  if (!data || data.success === false) {
+    throw new Error((data && (data.error || data.message)) || "Failed to fetch whoami");
+  }
+  storage.cache.set(WHOAMI_CACHE_KEY, data);
+  const profile = whoamiToProfile(data);
+  if (profile) {
+    persist("profile", profile);
+    ctx.bridge.setAtom(activeRegNumberAtom, getActiveRegNumber());
+  }
+  return data;
+}
+
 /**
  * Run one request with its own start/done/error emits so the sync log shows
  * per-module results instead of a single opaque parent-op line.
@@ -54,6 +111,150 @@ function settledValue<T>(r: PromiseSettledResult<T>): T | null {
 function persist(key: string, value: unknown): void {
   const bucket = (storage as any)[key];
   bucket?.set?.(value);
+}
+
+// --- Adapters for unified endpoints ----------------------------------------
+
+/**
+ * Unified /api/grades returns a single shape:
+ * { success, overall: { cgpa, curriculum }, semesters: { [id]: { gpa, grades:[{..., effective?:{...}}] } } }
+ * Effective grade info is merged into semester courses. Feedback is served by /api/ffcs.
+ * Adapt into legacy client shapes so existing UI/state consumers keep working.
+ */
+export function adaptUnifiedGradesResponse(res: any): {
+  gradesSummary: any;
+  allGrades: { grades: Record<string, unknown> };
+} {
+  if (!res || typeof res !== "object") {
+    return { gradesSummary: res, allGrades: { grades: {} } };
+  }
+
+  const semesters =
+    (res.semesters && typeof res.semesters === "object" ? res.semesters : null) ||
+    (res.history && typeof res.history === "object" ? res.history : null) ||
+    (res.grades && typeof res.grades === "object" ? res.grades : null) ||
+    {};
+
+  const overall = res.overall && typeof res.overall === "object" ? res.overall : res;
+
+  // Reconstruct legacy effectiveGrades array for compatibility (gradesEffective.ts, UI)
+  const effectiveGrades: any[] = [];
+  if (Array.isArray(overall.effectiveGrades)) {
+    effectiveGrades.push(...overall.effectiveGrades);
+  } else {
+    const seen = new Set<string>();
+    for (const semId of Object.keys(semesters as Record<string, any>)) {
+      const sem = (semesters as any)[semId];
+      if (!sem || !Array.isArray(sem.grades)) continue;
+      for (const course of sem.grades) {
+        // New flattened shape: effective-only fields live on the course (no duplicate code/title/grade)
+        const hasEffectiveInfo =
+          course?.distributionType ||
+          course?.creditsEarned ||
+          course?.examMonth ||
+          course?.resultDeclared ||
+          course?.effectiveCourseType ||
+          course?.effective;
+        if (!hasEffectiveInfo) continue;
+        const eff = course?.effective || {};
+        const courseCode = String(eff.courseCode || course.courseCode || "").trim();
+        const grade = String(eff.grade || course.grade || "").trim();
+        const creditsEarned = String(eff.creditsEarned || course.creditsEarned || "");
+        const key = `${courseCode.toUpperCase()}|${grade.toUpperCase()}|${creditsEarned}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        effectiveGrades.push({
+          basketTitle: eff.courseTitle || course.courseTitle || eff.basketTitle || "",
+          courseType: eff.courseType || course.effectiveCourseType || course.courseType || "",
+          creditsEarned,
+          grade,
+          distributionType: eff.distributionType || course.distributionType || "",
+          courseCode,
+          examMonth: eff.examMonth || course.examMonth || "",
+          resultDeclared: eff.resultDeclared || course.resultDeclared || "",
+        });
+      }
+    }
+  }
+
+  const gradesSummary = {
+    effectiveGrades,
+    curriculum: Array.isArray(overall.curriculum) ? overall.curriculum : (overall.curriculum ?? []),
+    cgpa: overall.cgpa ?? {},
+    ...(res.success !== undefined ? { success: res.success } : {}),
+  };
+
+  return {
+    gradesSummary,
+    allGrades: { grades: semesters as Record<string, unknown> },
+  };
+}
+
+function extractRegistrationSchedule(ffcsRes: any): any {
+  if (!ffcsRes || typeof ffcsRes !== "object") return ffcsRes;
+  if (ffcsRes.registrationSchedule !== undefined) return ffcsRes.registrationSchedule;
+  // allow passing through if already a schedule-shaped response
+  return ffcsRes;
+}
+
+function extractExamSchedule(ffcsRes: any): any {
+  if (!ffcsRes || typeof ffcsRes !== "object") return ffcsRes;
+  const schedule = ffcsRes.schedule !== undefined ? ffcsRes.schedule : ffcsRes;
+  if (schedule && typeof schedule === "object" && !("success" in schedule) && ffcsRes?.success !== undefined) {
+    return { ...schedule, success: ffcsRes.success };
+  }
+  return schedule;
+}
+
+function extractWishlist(ffcsRes: any): any {
+  if (!ffcsRes || typeof ffcsRes !== "object") return ffcsRes;
+  return ffcsRes.wishlist !== undefined ? ffcsRes.wishlist : ffcsRes;
+}
+
+function extractSimpleFeedback(ffcsRes: any): any {
+  if (!ffcsRes || typeof ffcsRes !== "object") return null;
+  return ffcsRes.feedback ?? null;
+}
+
+function extractDetailedFeedbackStatus(ffcsRes: any): any {
+  if (!ffcsRes || typeof ffcsRes !== "object") return ffcsRes;
+  return ffcsRes.feedbackStatus !== undefined ? ffcsRes.feedbackStatus : ffcsRes;
+}
+
+async function fetchFfcsAll(ctx: OpCtx, args: { semesterId?: string; trackAs?: string; label?: string } = {}) {
+  const trackAs = args.trackAs || "ffcs";
+  const label = args.label || "FFCS";
+  return trackedRequest(ctx, trackAs, () =>
+    ctx.request("ffcs", args.semesterId ? { semesterId: args.semesterId } : {}, { auth: "vtop" }).then((r: any) => {
+      assertApiSuccess(r, label);
+      return r;
+    }),
+  );
+}
+
+function distributeFfcsCache(ctx: OpCtx, ffcs: any, semesterId?: string) {
+  if (!ffcs || typeof ffcs !== "object") return;
+  const reg = extractRegistrationSchedule(ffcs);
+  if (reg !== undefined && reg !== null) {
+    persist("registration-schedule", reg);
+    storage.cache.set("registration_schedule", reg);
+  }
+  const wishlist = extractWishlist(ffcs);
+  if (wishlist !== undefined && wishlist !== null) {
+    storage.cache.set("wishlist", wishlist);
+  }
+  const feedback = extractSimpleFeedback(ffcs);
+  if (feedback) {
+    try {
+      localStorage.setItem("cache_ffcs_feedback", JSON.stringify(feedback));
+    } catch {}
+  }
+  const detailed = extractDetailedFeedbackStatus(ffcs);
+  if (detailed !== undefined && detailed !== null) {
+    storage.cache.set("ffcs_feedback_status", detailed);
+  }
+  // exam schedule distribution handled by callers that need atom/persist key semantics
+  void semesterId;
 }
 
 // attendance + marks (combined, as the original fetchAttendanceAndMarks)
@@ -86,16 +287,6 @@ registerOp({
 });
 
 // Cohort marks statistics, per class.
-//
-// Runs after `attendanceMarks` because the class list comes from the marks it just
-// fetched — current marks plus every frozen past semester. Using `ctx.request` (not the
-// bare `api()`) is what makes this robust where the old component-level call was not:
-// credentials are injected by the engine, failures are classified into AuthError vs
-// TransientError with retry, and the sync log shows the outcome per module.
-//
-// The server verifies each requested class against the enrollment recorded during the
-// attendance fetch, so the `classIds` parameter cannot be used to enumerate a cohort
-// the caller does not belong to.
 registerOp({
   name: "marksStats",
   auth: "vtop",
@@ -121,15 +312,12 @@ registerOp({
       collect(current?.courses);
     } catch {}
 
-    // Frozen past semesters live under `frozen_marks_<semId>` (see pastDataSync).
     try {
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (!key || !key.startsWith("frozen_marks_")) continue;
         try {
-          const data = JSON.parse(localStorage.getItem(key) || "null") as {
-            courses?: unknown;
-          } | null;
+          const data = JSON.parse(localStorage.getItem(key) || "null") as { courses?: unknown } | null;
           collect(data?.courses);
         } catch {}
       }
@@ -146,8 +334,6 @@ registerOp({
 
     const fresh = (res as { stats?: Record<string, unknown> })?.stats ?? {};
     const prev = (ctx.bridge.getAtom(dataAtoms.marksStatsAtom) as Record<string, unknown>) ?? {};
-    // Merge, never overwrite: a failed fetch for one semester must not wipe the
-    // classes another one already resolved.
     const merged = { ...prev, ...fresh };
     persist("marksStats", merged);
     ctx.bridge.setAtom(dataAtoms.marksStatsAtom, merged);
@@ -156,24 +342,30 @@ registerOp({
 });
 
 // --- Core bundle children -------------------------------------------------
-//
-// Each module below is BOTH a standalone op (so sync modes can pick them
-// individually) AND the implementation `core` delegates to. The
-// `trackedRequest` child emits are identical either way, so the sync log
-// looks the same whether `grades` ran alone or inside `core`.
 
-async function fetchGrades(ctx: OpCtx, semesterId: string) {
+async function fetchUnifiedGrades(ctx: OpCtx, semesterId: string) {
   return trackedRequest(ctx, "grades", () =>
     ctx.request("grades", { semesterId }, { auth: "vtop" }).then((r: any) => (assertApiSuccess(r, "Grades"), r)),
   );
 }
 
+function applyUnifiedGrades(ctx: OpCtx, unified: any): { gradesSummary: any; allGrades: any } {
+  if (unified === null || unified === undefined) {
+    return { gradesSummary: null, allGrades: null };
+  }
+  const { gradesSummary, allGrades } = adaptUnifiedGradesResponse(unified);
+  persist("grades", gradesSummary);
+  persist("allGrades", allGrades);
+  ctx.bridge.setAtom(dataAtoms.gradesDataAtom, gradesSummary);
+  ctx.bridge.setAtom(dataAtoms.allGradesDataAtom, allGrades);
+  return { gradesSummary, allGrades };
+}
+
 async function fetchSchedule(ctx: OpCtx, semesterId: string) {
-  return trackedRequest(ctx, "schedule", () =>
-    ctx
-      .request("schedule", { semesterId }, { auth: "vtop" })
-      .then((r: any) => (assertApiSuccess(r, "Exam schedule"), r)),
-  );
+  return fetchFfcsAll(ctx, { semesterId, trackAs: "schedule", label: "Exam schedule" }).then((ffcs: any) => {
+    distributeFfcsCache(ctx, ffcs, semesterId);
+    return extractExamSchedule(ffcs);
+  });
 }
 
 async function fetchHostel(ctx: OpCtx) {
@@ -188,9 +380,12 @@ async function fetchCalendar(ctx: OpCtx, semesterId: string, calendarType: strin
   );
 }
 
-async function fetchAllGrades(ctx: OpCtx) {
+async function fetchAllGrades(ctx: OpCtx, semesterId?: string) {
+  // Unified endpoint: fetching grades returns history too. Reuse it and adapt.
   return trackedRequest(ctx, "all-grades", () =>
-    ctx.request("all-grades", {}, { auth: "vtop" }).then((r: any) => (assertApiSuccess(r, "All grades history"), r)),
+    ctx
+      .request("grades", { semesterId }, { auth: "vtop" })
+      .then((r: any) => (assertApiSuccess(r, "All grades history"), r)),
   );
 }
 
@@ -225,18 +420,15 @@ registerOp({
   auth: "vtop",
   meta: {
     label: "Grades",
-    description: "Current-semester grades breakdown.",
+    description: "Unified grades summary and semester history.",
     category: "academics",
-    cost: "medium",
+    cost: "heavy",
     needsSemester: true,
   },
   async run(ctx, args) {
-    const res = await fetchGrades(ctx, args?.semesterId as string);
-    if (res !== null && res !== undefined) {
-      persist("grades", res);
-      ctx.bridge.setAtom(dataAtoms.gradesDataAtom, res);
-    }
-    return res;
+    const unified = await fetchUnifiedGrades(ctx, args?.semesterId as string);
+    const { gradesSummary } = applyUnifiedGrades(ctx, unified);
+    return gradesSummary;
   },
 });
 
@@ -305,17 +497,14 @@ registerOp({
   auth: "vtop",
   meta: {
     label: "All grades history",
-    description: "Every semester's grades — feeds past-semester caches.",
+    description: "Every semester's grades — adapted from unified grades endpoint.",
     category: "academics",
-    cost: "medium",
+    cost: "heavy",
   },
-  async run(ctx) {
-    const res = await fetchAllGrades(ctx);
-    if (res !== null && res !== undefined) {
-      persist("allGrades", res);
-      ctx.bridge.setAtom(dataAtoms.allGradesDataAtom, res);
-    }
-    return res;
+  async run(ctx, args) {
+    const unified = await fetchAllGrades(ctx, args?.semesterId as string);
+    const { allGrades } = applyUnifiedGrades(ctx, unified);
+    return allGrades;
   },
 });
 
@@ -335,7 +524,7 @@ registerOp({
   },
 });
 
-// core data: grades / schedule / hostel / calendar / allGrades / profileImages
+// core data: unified grades (summary+history) / schedule / hostel / calendar / profileImages
 registerOp({
   name: "core",
   auth: "vtop",
@@ -349,52 +538,94 @@ registerOp({
   },
   async run(ctx, args) {
     const { semesterId, calendarType, isHosteller } = coreChildArgs(args);
-    // Granular subset: `syncMode("academics")` and custom modes pass
-    // `only` to fetch some modules without the whole bundle.
     const only = args?.only as string[] | undefined;
     const wanted = new Set<CoreChildOp>(
       only && only.length > 0
         ? (only.filter((n) => (CORE_CHILD_OPS as readonly string[]).includes(n)) as CoreChildOp[])
         : [...CORE_CHILD_OPS],
     );
+
+    const wantUnifiedGrades = wanted.has("grades") || wanted.has("all-grades");
+    const unifiedGradesPromise = wantUnifiedGrades
+      ? fetchUnifiedGrades(ctx, semesterId).catch((e) => {
+          // fetchUnifiedGrades already emitted tracked "grades" events; keep failure
+          throw e;
+        })
+      : Promise.resolve(null);
+
     const runOrSkip = <T>(name: CoreChildOp, fn: () => Promise<T>): Promise<T | null> =>
       wanted.has(name) ? fn() : Promise.resolve(null);
-    // Settle independently: one failing module must not take down the whole
-    // bundle, and failures already emitted their own child error lines above.
-    const [gradesSettled, scheduleSettled, hostelSettled, calendarSettled, allGradesSettled, profileImagesSettled] =
+
+    const ffcsBundlePromise = wanted.has("schedule")
+      ? fetchFfcsAll(ctx, { semesterId, trackAs: "schedule", label: "Exam schedule" }).catch((e) => {
+          throw e;
+        })
+      : Promise.resolve(null);
+
+    const [unifiedGradesSettled, ffcsSettled, hostelSettled, calendarSettled, profileImagesSettled] =
       await Promise.allSettled([
-        runOrSkip("grades", () => fetchGrades(ctx, semesterId)),
-        runOrSkip("schedule", () => fetchSchedule(ctx, semesterId)),
+        unifiedGradesPromise,
+        ffcsBundlePromise,
         wanted.has("hostel") ? (isHosteller ? fetchHostel(ctx) : Promise.resolve({})) : Promise.resolve(null),
         runOrSkip("calendar", () => fetchCalendar(ctx, semesterId, calendarType)),
-        runOrSkip("all-grades", () => fetchAllGrades(ctx)),
         runOrSkip("profile-images", () => fetchProfileImages(ctx)),
       ]);
-    const gradesRes = settledValue(gradesSettled);
-    const scheduleRes = settledValue(scheduleSettled);
+
+    let gradesRes: any = null;
+    let allGradesRes: any = null;
+    const unifiedVal = settledValue(unifiedGradesSettled);
+    if (unifiedVal !== null && unifiedVal !== undefined) {
+      const adapted = applyUnifiedGrades(ctx, unifiedVal);
+      gradesRes = wanted.has("grades") ? adapted.gradesSummary : null;
+      allGradesRes = wanted.has("all-grades") ? adapted.allGrades : null;
+      // if only one was wanted, still keep caches updated above but report requested ones
+      if (wanted.has("grades") && wanted.has("all-grades")) {
+        gradesRes = adapted.gradesSummary;
+        allGradesRes = adapted.allGrades;
+      } else if (wanted.has("grades")) {
+        gradesRes = adapted.gradesSummary;
+      } else if (wanted.has("all-grades")) {
+        allGradesRes = adapted.allGrades;
+      }
+    } else if (wantUnifiedGrades && unifiedGradesSettled.status === "rejected") {
+      // emit all-grades error line too if it was requested separately for visibility
+      if (wanted.has("all-grades") && !wanted.has("grades")) {
+        // fetchUnifiedGrades tracked as "grades"; also surface under all-grades name
+        ctx.emit({ op: "all-grades", phase: "error", error: toEngineError(unifiedGradesSettled.reason) });
+      } else if (wanted.has("all-grades") && wanted.has("grades")) {
+        ctx.emit({ op: "all-grades", phase: "error", error: toEngineError(unifiedGradesSettled.reason) });
+      }
+    }
+
+    const ffcsVal = settledValue(ffcsSettled);
+    if (ffcsVal) distributeFfcsCache(ctx, ffcsVal, semesterId);
+    const scheduleRes = wanted.has("schedule") ? extractExamSchedule(ffcsVal) : null;
     const hostelRes = settledValue(hostelSettled);
     const calendarRes = settledValue(calendarSettled);
-    const allGradesRes = settledValue(allGradesSettled);
     const profileImagesRes = settledValue(profileImagesSettled);
-    // Never persist nulls over good cached data — a failed module keeps its
-    // last good cache while the log shows exactly what failed.
+
     const persistIfPresent = (key: string, value: unknown) => {
       if (value !== null && value !== undefined) persist(key, value);
     };
-    persistIfPresent("grades", gradesRes);
     persistIfPresent("schedule", scheduleRes);
     persistIfPresent("hostel", hostelRes);
     persistIfPresent("calendar", calendarRes);
-    persistIfPresent("allGrades", allGradesRes);
     if (profileImagesRes) persist("profileImages", profileImagesRes);
+
     const setAtomIfPresent = (atom: unknown, value: unknown) => {
       if (value !== null && value !== undefined) ctx.bridge.setAtom(atom, value);
     };
-    setAtomIfPresent(dataAtoms.gradesDataAtom, gradesRes);
     setAtomIfPresent(dataAtoms.scheduleDataAtom, scheduleRes);
     setAtomIfPresent(dataAtoms.hostelDataAtom, hostelRes);
     setAtomIfPresent(dataAtoms.calendarDataAtom, calendarRes);
-    setAtomIfPresent(dataAtoms.allGradesDataAtom, allGradesRes);
+
+    // ensure requested grade outputs reflect state even if fetched via unified call
+    if (wantUnifiedGrades && unifiedVal != null) {
+      const adapted = adaptUnifiedGradesResponse(unifiedVal);
+      gradesRes = wanted.has("grades") ? adapted.gradesSummary : gradesRes;
+      allGradesRes = wanted.has("all-grades") ? adapted.allGrades : allGradesRes;
+    }
+
     return { gradesRes, scheduleRes, hostelRes, calendarRes, allGradesRes, profileImagesRes };
   },
 });
@@ -434,30 +665,40 @@ registerOp({
 });
 
 registerOp({
+  name: "whoami",
+  auth: "vtop",
+  meta: {
+    label: "Identity & profile",
+    description: "Unified identity/profile/contact/credentials/acknowledgement/dayboarder/EPT data.",
+    category: "profile",
+    cost: "medium",
+  },
+  async run(ctx) {
+    try {
+      return await fetchWhoami(ctx);
+    } catch {
+      return storage.cache.get(WHOAMI_CACHE_KEY) ?? null;
+    }
+  },
+});
+
+registerOp({
   name: "studentProfile",
   auth: "vtop",
   meta: {
     label: "Profile details",
-    description: "Student profile; publishes the active reg number.",
+    description: "Student profile/identity via /api/whoami; publishes the active reg number.",
     category: "profile",
-    cost: "light",
+    cost: "medium",
   },
   async run(ctx) {
     try {
-      const data = await ctx.request("student", {}, { auth: "vtop", retry: { max: 0 } });
-      if (data?.profile) {
-        persist("profile", data.profile);
-        // Now that the profile exists, publish the reg number it resolves to.
-        // Every social storage key is namespaced by it, and components that
-        // read it during their first render saw "" and had no reactive way to
-        // retry — leaving the social page empty until a remount.
-        ctx.bridge.setAtom(activeRegNumberAtom, getActiveRegNumber());
-        return data.profile;
-      }
+      const data = await fetchWhoami(ctx);
+      return whoamiToProfile(data);
     } catch {
-      /* background fetch */
+      const cached = storage.cache.get(WHOAMI_CACHE_KEY) as any;
+      return whoamiToProfile(cached);
     }
-    return null;
   },
 });
 
@@ -495,23 +736,17 @@ registerOp({
   auth: "vtop",
   meta: {
     label: "Fresher / EPT data",
-    description: "EPT schedule and acknowledgement records.",
+    description: "EPT schedule and acknowledgement via /api/whoami.",
     category: "campus",
-    cost: "light",
+    cost: "medium",
   },
   async run(ctx) {
     try {
-      // Both ride in one invocation via /api/bulk instead of two requests.
-      const res = await ctx.request(
-        "bulk",
-        { endpoints: ["ept-schedule", "acknowledgement"] },
-        { auth: "vtop", retry: { max: 0 } },
-      );
-      const results = (res as { results?: Record<string, { success?: boolean }> } | null)?.results ?? {};
-      if (results["ept-schedule"]?.success) storage.cache.set("ept_schedule", results["ept-schedule"]);
-      if (results["acknowledgement"]?.success) storage.cache.set("acknowledgement", results["acknowledgement"]);
+      const data = await fetchWhoami(ctx);
+      return { eptSchedule: data?.eptSchedule ?? null, acknowledgement: data?.acknowledgement ?? null };
     } catch {
-      /* fail silently */
+      const cached = storage.cache.get(WHOAMI_CACHE_KEY) as any;
+      return { eptSchedule: cached?.eptSchedule ?? null, acknowledgement: cached?.acknowledgement ?? null };
     }
   },
 });
@@ -531,7 +766,6 @@ registerOp({
       if (data?.success) storage.cache.set("buses", data.buses);
       return data?.buses ?? null;
     } catch {
-      /* fail silently */
       return null;
     }
   },
@@ -565,13 +799,8 @@ registerOp({
   async run(ctx, args) {
     const ids = ctx.ids;
     const demoMode = args?.demoMode as boolean;
-    // Surfaced to the progress bus instead of being swallowed, so a 401 shows as
-    // a failed op rather than as "you have no events".
     let session: string;
     try {
-      // `ensureEventHubSession`, not `loginEventHub`: the latter returns a cached
-      // session with no age check, so an expired one was reused forever and every
-      // `/api/events/profile` call 401'd while the credentials were fine.
       session = await credentialManager.ensureEventHubSession(ids, { demoMode });
     } catch (e) {
       ctx.emit({ op: "events", phase: "error", error: toEngineError(e) });
@@ -579,10 +808,6 @@ registerOp({
     }
     try {
       const jsessionid = session;
-      // Same contract as `eventHubRequest` (EventHubTab): the route needs
-      // username/password alongside the session for its fallback login, and
-      // answers `reauthenticate: true` when the session died. Sending only
-      // `{ jsessionid }` 500'd server-side.
       const fetchProfile = (sid: string) =>
         ctx.request(
           "events/profile",
@@ -606,8 +831,6 @@ registerOp({
         })(),
         ctx.request("events", undefined, { method: "GET", auth: "none", retry: { max: 0 } }).catch(() => []),
       ]);
-      // A 401 here means the session was rejected after we obtained it, so the
-      // cached copy is now known-bad and must not be handed back next time.
       if ((eventsRes as { error?: string } | null)?.error) {
         credentialManager.clearEventHub();
       }
@@ -626,10 +849,7 @@ export const BULK_ADDITIONAL_ENDPOINTS = ["exc-registration", "minor-honour", "c
 
 /** Bulk endpoints gated by `syncProfileData` (profile + payments + library). */
 export const BULK_PROFILE_ENDPOINTS = [
-  "credentials",
   "registration-schedule",
-  "dayboarder",
-  "bank-info",
   "library-due",
   "hostel-counselling",
   "payments",
@@ -643,23 +863,36 @@ export const ALL_BULK_ENDPOINTS: readonly string[] = [...BULK_ADDITIONAL_ENDPOIN
  * The bulk endpoints `/api/bulk` can run inside one invocation. Everything not
  * listed here (today only `minor-honour`, which cascades over nested selects)
  * is still fetched on its own.
- *
- * Mirrors `VTOP_PROXY_NAMES` in the API's `src/lib/vtop-proxy.ts`. Keep the two
- * in step: a name here that the API does not know is silently dropped.
  */
 const BATCHABLE_BULK_ENDPOINTS: ReadonlySet<string> = new Set([
   "exc-registration",
   "course-completion",
-  "credentials",
   "registration-schedule",
-  "dayboarder",
-  "bank-info",
-  "library-due",
   "hostel-counselling",
-  "payments",
-  "payment-receipts",
-  "wallet",
 ]);
+
+const FINANCE_ENDPOINTS = new Set(["payments", "payment-receipts", "wallet", "library-due"]);
+const FINANCE_SECTION_BY_ENDPOINT: Record<string, string> = {
+  payments: "dues",
+  "payment-receipts": "receipts",
+  wallet: "wallet",
+  "library-due": "library",
+};
+
+function adaptFinanceResults(financeRes: any, requested: string[]): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  if (!financeRes || typeof financeRes !== "object") return out;
+  for (const endpoint of requested) {
+    if (!FINANCE_ENDPOINTS.has(endpoint)) continue;
+    const section = FINANCE_SECTION_BY_ENDPOINT[endpoint];
+    const value = (financeRes as any)[section];
+    if (value == null) continue;
+    if (endpoint === "library-due") out[endpoint] = { success: true, ...(value as Record<string, unknown>) };
+    else if (endpoint === "bank-info") out[endpoint] = value;
+    else out[endpoint] = value;
+  }
+  return out;
+}
 
 registerOp({
   name: "bulk",
@@ -680,10 +913,7 @@ registerOp({
     }
     if (settings.syncProfileData !== false) {
       bulkEndpoints.push(
-        "credentials",
         "registration-schedule",
-        "dayboarder",
-        "bank-info",
         "library-due",
         "hostel-counselling",
         "payments",
@@ -691,46 +921,69 @@ registerOp({
         "wallet",
       );
     }
-    // Granular subset: custom modes pass `only` to cache some endpoints
-    // without the whole sweep. Unknown names are dropped, never fetched.
     const only = args?.only as string[] | undefined;
     const wanted = only && only.length > 0 ? bulkEndpoints.filter((p) => only.includes(p)) : bulkEndpoints;
 
-    // Split into the endpoints that /api/bulk can run together and the ones that
-    // must still be fetched individually.
+    const financeWanted = wanted.filter((p) => FINANCE_ENDPOINTS.has(p));
     const batched: string[] = [];
     const single: string[] = [];
     for (const path of wanted) {
+      if (FINANCE_ENDPOINTS.has(path)) continue;
       (BATCHABLE_BULK_ENDPOINTS.has(path) ? batched : single).push(path);
     }
 
     const results: Record<string, unknown> = {};
+    if (financeWanted.length > 0) {
+      try {
+        const sections = [...new Set(financeWanted.map((p) => FINANCE_SECTION_BY_ENDPOINT[p]).filter(Boolean))];
+        const res = await ctx.request(
+          "finance",
+          sections.length === 1 ? { section: sections[0] } : { section: "all" },
+          { auth: "vtop", retry: { max: 0 } },
+        );
+        Object.assign(results, adaptFinanceResults(res, financeWanted));
+      } catch {
+        single.push(...financeWanted);
+      }
+    }
+
     if (batched.length > 0) {
       try {
         const res = await ctx.request("bulk", { endpoints: batched }, { auth: "vtop", retry: { max: 0 } });
         const r = (res as { results?: Record<string, unknown> } | null)?.results;
         if (r) Object.assign(results, r);
       } catch {
-        // The batch endpoint is new: if it fails, fall back to fetching each
-        // endpoint on its own rather than losing the whole sweep.
         single.push(...batched);
       }
     }
 
     await Promise.allSettled(
-      single.map((path) =>
-        ctx
+      single.map((path) => {
+        if (path === "registration-schedule") {
+          return ctx
+            .request("ffcs", {}, { auth: "vtop", retry: { max: 0 } })
+            .then((data: unknown) => {
+              assertApiSuccess(data, "FFCS");
+              distributeFfcsCache(ctx, data);
+              results[path] = extractRegistrationSchedule(data);
+            })
+            .catch(() => {});
+        }
+        return ctx
           .request(path, {}, { auth: "vtop", retry: { max: 0 } })
           .then((data: unknown) => {
             results[path] = data;
           })
-          .catch(() => {}),
-      ),
+          .catch(() => {});
+      }),
     );
 
     for (const [path, data] of Object.entries(results)) {
       if (data && (data as { success?: boolean }).success !== false) {
-        storage.cache.set(path, data);
+        storage.cache.set(path === "registration-schedule" ? "registration-schedule" : path, data);
+        if (path === "registration-schedule") {
+          storage.cache.set("registration_schedule", data);
+        }
         if (path === "payments") localStorage.setItem("payments_dues", JSON.stringify(data));
         if (path === "payment-receipts") localStorage.setItem("payments_receipts", JSON.stringify(data));
         if (path === "wallet") localStorage.setItem("payments_wallet", JSON.stringify(data));
@@ -751,14 +1004,11 @@ registerOp({
   },
   async run(ctx, args) {
     try {
-      // Callers with explicit Moodle credentials (Dashboard refresh) pass them
-      // through; otherwise the server resolves the linked account itself.
       const username = args?.username as string | undefined;
       const pass = (args?.pass ?? args?.password) as string | undefined;
       const body: Record<string, unknown> = username && pass ? { username, pass } : {};
       const res = await ctx.request("lms-data", body, { auth: "vtop", retry: { max: 0 } });
       if (Array.isArray(res)) {
-        // Preserve per-course `hidden` flags across refreshes.
         try {
           const prev = JSON.parse(localStorage.getItem("moodleData") || "[]");
           const merged = res.map((item: any) => {
@@ -852,18 +1102,6 @@ registerOp({
   },
 });
 
-/**
- * Social timetable sharing.
- *
- * This op pushes the caller's own derived state and pulls peers plus the grant
- * secrets needed to read them. The server does all the deriving — see
- * docs/social-tt/05-server-derivation.md.
- *
- * It is registered LAST on purpose, and it NEVER throws. Both `Main.tsx`
- * background chains `await` ops sequentially inside a single `try`, so a throw
- * here would skip every op after it (chain 1 still had `buses` and `bulk` to
- * run). A social failure is a red line in the sheet, not a broken sync.
- */
 registerOp({
   name: "social",
   auth: "vtop",
@@ -875,45 +1113,25 @@ registerOp({
     needsSemester: true,
   },
   async run(ctx, args) {
-    // Demo mode hands back authorizedID "DEMO123" and no real session, so the
-    // route would 401 and put a bogus failure in the sheet. See
-    // credential-manager.ts:71-73.
     const demoMode =
       (args?.demoMode as boolean) ||
       (ctx.ids.VtopUsername as string) === "demo" ||
       (ctx.ids.VtopUsername as string) === "DEMO123";
     if (demoMode) return null;
 
-    // This op used to fire its request with whatever happened to be in the
-    // credential manager, which is `null` after a page reload and a live set of
-    // cookies well past their useful life after sitting idle. Either way the
-    // request went out unauthenticated, the server answered with an error
-    // envelope, and `res.identity` was missing — so the op returned `null` and
-    // the social page silently showed stale data with no red line. Asking for a
-    // session first makes a login explicit, attributed to this op, and costed to
-    // one captcha solve.
     try {
       await credentialManager.ensureVtopSession({ demoMode });
-    } catch {
-      // Handled below: without a session the request cannot succeed, and the
-      // guard on `res.identity` keeps the op from writing anything.
-    }
+    } catch {}
 
     const semesterId =
       (args?.proposedSemesterId as string) || (args?.semesterId as string) || (args?.activeSem as string) || "";
 
-    // Keep the last good sync time and version through the run. A failure used
-    // to reset both to empty, so one dropped request made the page read
-    // "never synced" even though the cached friends were minutes old.
     const prevState = (ctx.bridge.getAtom(socialSyncStateAtom) as SocialSyncState | undefined) ?? {
       version: 0,
       lastSyncedAt: null,
       lastError: null,
       syncing: false,
     };
-    // Nothing set `syncing` to true before, so the spinner only showed for
-    // syncs started by the Sync now button, never for the debounced push or
-    // the login chain.
     ctx.bridge.setAtom(socialSyncStateAtom, { ...prevState, syncing: true });
 
     try {
@@ -923,43 +1141,21 @@ registerOp({
       })) as SocialSyncPayload | null;
 
       if (!res || res.success === false || !res.identity) {
-        // Previously this returned `null` with nothing recorded, so an
-        // unauthenticated or rejected request left the social page showing
-        // stale data with no red line and no way to tell it apart from "nothing
-        // changed". Surface it as a real failure instead.
         throw toEngineError(
           (res as { message?: string } | null)?.message ||
             "Social sync did not return an identity — the VTOP session may have expired.",
         );
       }
 
-      // The term changed, so every cached peer busy map is from a different
-      // schedule. Drop them before writing the new identity.
-      // `cachedSemester` lives in memory and is null after a reload, so fall
-      // back to the term stored with the cached identity. Without that, a term
-      // switch noticed on the first sync after a reload kept every friend's
-      // old-term timetable on screen.
-      const previousSemester =
-        cachedSemester ?? readIdentity<{ semesterId?: string | null }>()?.semesterId ?? null;
+      const previousSemester = cachedSemester ?? readIdentity<{ semesterId?: string | null }>()?.semesterId ?? null;
       if (res.identity.semesterId && previousSemester && res.identity.semesterId !== previousSemester) {
         clearPeerTimetables();
       }
       cachedSemester = res.identity.semesterId ?? cachedSemester;
 
       writeIdentity(res.identity);
-      // The peer list is cached too. It used to exist only inside
-      // `socialPeersAtom`, which nothing but this op writes, so a reload started
-      // with an empty list even though every per-handle timetable was still on
-      // disk — the Pairs subpage showed the tokens while the friend data stayed
-      // blank, and only a resync fixed it.
       writePeers(res.peers ?? []);
-      writeOwnTimetable({
-        busyMap: res.busyMap ?? {},
-        courses: res.courses ?? [],
-      });
-      // The server is authoritative about which pairings exist, so this is a
-      // full replace — a locally-orphaned secret would otherwise linger and
-      // keep being sent on reads that 403.
+      writeOwnTimetable({ busyMap: res.busyMap ?? {}, courses: res.courses ?? [] });
       writeGrants(res.grantSecrets ?? []);
 
       ctx.bridge.setAtom(socialIdentityAtom, res.identity);
@@ -976,9 +1172,6 @@ registerOp({
 
       return res;
     } catch (e) {
-      // Deliberately swallowed. Keep the cached copy: a stale peer list beats an
-      // empty one, and a failed social push must not read as "you have no
-      // friends".
       ctx.bridge.setAtom(socialSyncStateAtom, {
         ...prevState,
         lastError: e instanceof Error ? e.message : String(e),

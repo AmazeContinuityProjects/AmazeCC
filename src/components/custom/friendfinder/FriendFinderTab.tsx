@@ -31,6 +31,7 @@ import {
   LogOut,
   MapPin,
   RefreshCw,
+  Search,
   Share2,
   ShieldCheck,
   Sparkles,
@@ -39,6 +40,7 @@ import {
   Users,
   UsersRound,
   UserX,
+  X,
 } from "lucide-react";
 import { activeTabAtom, credentialsAtom, demoModeAtom, isLoggedInAtom } from "@/store";
 import {
@@ -48,6 +50,7 @@ import {
   displayName,
   ensureClassmatesSession,
   FRIEND_FINDER_REFRESH_EVENT,
+  type ClassmateOffering,
   type ClassmateOverlap,
   type ClassmatePerson,
   type ClassmateSection,
@@ -89,6 +92,29 @@ export interface FriendFinderTabProps {
 
 const REGISTERED = "registered";
 const CLASSMATES_PATH = "/?open=friend-finder";
+const FRIEND_FINDER_CACHE_KEY_PREFIX = "amaze_friend_finder_cache_";
+
+export function getCachedFriendFinderState(sem: string): ClassmatesState | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(`${FRIEND_FINDER_CACHE_KEY_PREFIX}${sem}`);
+    if (!raw) return null;
+    return JSON.parse(raw) as ClassmatesState;
+  } catch {
+    return null;
+  }
+}
+
+export function setCachedFriendFinderState(sem: string, state: ClassmatesState | null): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (!state) {
+      window.localStorage.removeItem(`${FRIEND_FINDER_CACHE_KEY_PREFIX}${sem}`);
+    } else {
+      window.localStorage.setItem(`${FRIEND_FINDER_CACHE_KEY_PREFIX}${sem}`, JSON.stringify(state));
+    }
+  } catch {}
+}
 
 const PRIMARY_BUTTON =
   "inline-flex items-center justify-center gap-2 rounded-2xl bg-indigo-500 hover:bg-indigo-600 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 text-white font-bold px-5 py-3 text-sm shadow-lg shadow-indigo-500/20 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -208,6 +234,11 @@ export function buildEmbeddedPairMap(sections: ClassmateSection[]): EmbeddedPair
   return { counterparts, roles };
 }
 
+export function isVitRegistrationNumber(val?: string | null): boolean {
+  if (!val) return false;
+  return /^[0-9]{2}[A-Z]{2,5}[0-9]{3,5}$/i.test(val.trim());
+}
+
 export function isPersonInCounterpart(
   person: ClassmatePerson,
   counterpart: ClassmateSection | null | undefined,
@@ -266,6 +297,31 @@ export interface ClassEntry {
   singleSection?: ClassmateSection;
 }
 
+export function extractFacultyId(facultyStr?: string | null, offeringFacultyId?: string | null): string {
+  if (offeringFacultyId && offeringFacultyId.trim()) {
+    return offeringFacultyId.trim().toUpperCase();
+  }
+  if (!facultyStr) return "";
+  const str = facultyStr.trim();
+  const idMatch = str.match(/\b(\d{4,6})\b/);
+  if (idMatch) return idMatch[1];
+  return str
+    .toLowerCase()
+    .replace(/^(dr|prof|mr|mrs|ms)\.?\s+/i, "")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+export function isSameFaculty(tOff?: ClassmateOffering | null, lOff?: ClassmateOffering | null): boolean {
+  if (!tOff?.faculty || !lOff?.faculty) return false;
+  if (tOff.facultyId && lOff.facultyId) {
+    return tOff.facultyId.trim().toUpperCase() === lOff.facultyId.trim().toUpperCase();
+  }
+  const tId = extractFacultyId(tOff.faculty, tOff.facultyId);
+  const lId = extractFacultyId(lOff.faculty, lOff.facultyId);
+  if (tId && lId && tId === lId) return true;
+  return tOff.faculty.trim().toUpperCase() === lOff.faculty.trim().toUpperCase();
+}
+
 export function buildClassEntries(sections: ClassmateSection[], embeddedMap: EmbeddedPairingMap): ClassEntry[] {
   const entries: ClassEntry[] = [];
   const handledClassIds = new Set<string>();
@@ -312,10 +368,10 @@ export function buildClassEntries(sections: ClassmateSection[], embeddedMap: Emb
       const lCred = parseInt(lOff?.credits || "0", 10) || 0;
       const totalCredits = tCred + lCred > 0 ? String(tCred + lCred) : tOff?.credits || lOff?.credits || "";
 
-      const faculty =
-        tOff?.faculty && lOff?.faculty && tOff.faculty.toUpperCase() === lOff.faculty.toUpperCase()
-          ? tOff.faculty
-          : [tOff?.faculty, lOff?.faculty].filter(Boolean).map(displayName).join(" / ");
+      const sameFaculty = isSameFaculty(tOff, lOff);
+      const faculty = sameFaculty
+        ? tOff?.faculty || lOff?.faculty || ""
+        : [tOff?.faculty, lOff?.faculty].filter(Boolean).map(displayName).join(" / ");
 
       // Slots shown together, e.g. "F1+TF1 + L23+L24"
       const slotParts = [tOff?.slot, lOff?.slot].filter(Boolean);
@@ -396,7 +452,7 @@ function PersonChip({
       <Avatar person={person} size="sm" />
       <span className="truncate">
         {displayName(person.name) || person.handle}
-        {person.regNo ? ` (${person.regNo})` : ""}
+        {person.regNo && isVitRegistrationNumber(person.regNo) ? ` (${person.regNo})` : ""}
       </span>
       {isMarked && markLabel ? (
         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
@@ -653,7 +709,10 @@ export default function FriendFinderTab({
   const [openedFromHome, setOpenedFromHome] = useState(false);
   const launchSourceRead = useRef(false);
 
-  const [state, setState] = useState<ClassmatesState | null>(null);
+  const [state, setState] = useState<ClassmatesState | null>(() => {
+    return vtopSemester ? getCachedFriendFinderState(vtopSemester) : null;
+  });
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<{ message: string; retry: ClassmatesRequest; needsSignIn: boolean } | null>(null);
@@ -662,6 +721,13 @@ export default function FriendFinderTab({
   const [confirmingRemove, setConfirmingRemove] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (vtopSemester && !state) {
+      const cached = getCachedFriendFinderState(vtopSemester);
+      if (cached) setState(cached);
+    }
+  }, [vtopSemester, state]);
 
   const [grouping, setGrouping] = useState<"classes" | "friends">("classes");
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
@@ -757,6 +823,11 @@ export default function FriendFinderTab({
       try {
         const next = await callClassmates(vtopSemester, request);
         setState(next);
+        if (request.op === "leave") {
+          setCachedFriendFinderState(vtopSemester, null);
+        } else {
+          setCachedFriendFinderState(vtopSemester, next);
+        }
         if (request.op === "publish" || request.op === "leave") {
           setEditing(false);
           if (request.op === "publish") {
@@ -800,11 +871,17 @@ export default function FriendFinderTab({
       if (!vtopSemester || !canUse) return;
       if (state?.me?.joined) {
         void callClassmates(vtopSemester, { op: "publish", source: "registered" })
-          .then((next) => setState(next))
+          .then((next) => {
+            setState(next);
+            setCachedFriendFinderState(vtopSemester, next);
+          })
           .catch(() => {});
       } else {
         void callClassmates(vtopSemester, { op: "get" })
-          .then((next) => setState(next))
+          .then((next) => {
+            setState(next);
+            setCachedFriendFinderState(vtopSemester, next);
+          })
           .catch(() => {});
       }
     };
@@ -824,6 +901,119 @@ export default function FriendFinderTab({
     () => buildClassEntries(state?.sections ?? [], embeddedMap),
     [state?.sections, embeddedMap],
   );
+
+  const allFriends = useMemo(() => {
+    if (!state) return [];
+    const map = new Map<string, ClassmateOverlap>();
+    const regNoToHandle = new Map<string, string>();
+    const nameToHandle = new Map<string, string>();
+
+    // 1. Existing overlaps returned by server
+    for (const o of state.overlaps ?? []) {
+      const handleKey = o.handle.toUpperCase();
+      const item: ClassmateOverlap = {
+        ...o,
+        sharedClassIds: o.sharedClassIds ?? [],
+        shared: o.sharedClassIds?.length ?? o.shared ?? 0,
+      };
+      map.set(handleKey, item);
+      if (o.regNo) {
+        regNoToHandle.set(o.regNo.toUpperCase(), handleKey);
+      }
+      if (o.name) {
+        const norm = o.name.trim().toUpperCase();
+        if (!nameToHandle.has(norm) || isVitRegistrationNumber(o.regNo)) {
+          nameToHandle.set(norm, handleKey);
+        }
+      }
+    }
+
+    // 2. Comprehensive check across all sections: ensure everyone (even if only in 1 class) is listed!
+    for (const s of state.sections ?? []) {
+      for (const p of s.people ?? []) {
+        const handleKey = p.handle.toUpperCase();
+        const norm = p.name ? p.name.trim().toUpperCase() : "";
+        const matchedHandleKey =
+          (p.regNo && regNoToHandle.get(p.regNo.toUpperCase())) ||
+          (norm && nameToHandle.get(norm)) ||
+          (map.has(handleKey) ? handleKey : undefined);
+
+        if (matchedHandleKey) {
+          const existing = map.get(matchedHandleKey)!;
+          const mergedRegNo = isVitRegistrationNumber(p.regNo)
+            ? p.regNo
+            : isVitRegistrationNumber(existing.regNo)
+              ? existing.regNo
+              : existing.regNo || p.regNo;
+          const classIds = existing.sharedClassIds.includes(s.classId)
+            ? existing.sharedClassIds
+            : [...existing.sharedClassIds, s.classId];
+          const updated: ClassmateOverlap = {
+            ...existing,
+            regNo: mergedRegNo,
+            sharedClassIds: classIds,
+            shared: classIds.length,
+            identical: Boolean(state.sections.length && classIds.length === state.sections.length),
+          };
+          map.set(matchedHandleKey, updated);
+          if (mergedRegNo) {
+            regNoToHandle.set(mergedRegNo.toUpperCase(), matchedHandleKey);
+          }
+          if (norm && isVitRegistrationNumber(mergedRegNo)) {
+            nameToHandle.set(norm, matchedHandleKey);
+          }
+        } else {
+          const overlap = getOverlapForPerson(p, state);
+          map.set(handleKey, overlap);
+          if (overlap.regNo) {
+            regNoToHandle.set(overlap.regNo.toUpperCase(), handleKey);
+          }
+          if (norm) {
+            nameToHandle.set(norm, handleKey);
+          }
+        }
+      }
+    }
+
+    // Order:
+    // 1. Identical timetables first
+    // 2. Highest number of shared classes descending
+    // 3. Alphabetical by display name
+    return Array.from(map.values()).sort((a, b) => {
+      if (a.identical !== b.identical) return a.identical ? -1 : 1;
+      if (b.shared !== a.shared) return b.shared - a.shared;
+      const nameA = displayName(a.name) || a.handle;
+      const nameB = displayName(b.name) || b.handle;
+      return nameA.localeCompare(nameB);
+    });
+  }, [state]);
+
+  const filteredFriends = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return allFriends;
+
+    return allFriends.filter((friend) => {
+      const name = (friend.name || "").toLowerCase();
+      const disp = displayName(friend.name || "").toLowerCase();
+      const handle = (friend.handle || "").toLowerCase();
+      if (name.includes(q) || disp.includes(q) || handle.includes(q)) return true;
+
+      if (friend.regNo && friend.regNo.toLowerCase().includes(q)) return true;
+
+      for (const classId of friend.sharedClassIds) {
+        const code = codeOf.get(classId)?.toLowerCase();
+        if (code && code.includes(q)) return true;
+        const entry = classEntries.find((e) => e.classIds.includes(classId));
+        if (entry) {
+          if (entry.code.toLowerCase().includes(q)) return true;
+          if (entry.title.toLowerCase().includes(q)) return true;
+          if (entry.faculty && entry.faculty.toLowerCase().includes(q)) return true;
+        }
+      }
+
+      return false;
+    });
+  }, [allFriends, searchQuery, codeOf, classEntries]);
 
   const selectedEntry = useMemo(
     () =>
@@ -858,7 +1048,6 @@ export default function FriendFinderTab({
         icon={<Avatar person={{ handle: me.handle, name: me.name }} size="sm" />}
       >
         <div className="space-y-4 p-1">
-          setConfirmingLogout(false);
           {/* User Details Card */}
           <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-border-subtle space-y-3">
             <div className="flex items-center gap-3">
@@ -1036,7 +1225,7 @@ export default function FriendFinderTab({
         onClose={() => setSelectedFriend(null)}
         title={displayName(selectedFriend.name) || selectedFriend.handle}
         subtitle={
-          selectedFriend.regNo
+          selectedFriend.regNo && isVitRegistrationNumber(selectedFriend.regNo)
             ? `${selectedFriend.regNo} · ${sharedCount} ${sharedCount === 1 ? "class" : "classes"} in common`
             : `${sharedCount} ${sharedCount === 1 ? "class" : "classes"} in common`
         }
@@ -1318,19 +1507,24 @@ export default function FriendFinderTab({
               </div>
 
               {/* Theory and Lab components breakdown */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-border-strong dark:border-border">
-                {/* Theory (ETH) */}
-                <div className="p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-border-subtle space-y-2">
+              {isSameFaculty(selectedEntry.theorySection?.offering, selectedEntry.labSection?.offering) ? (
+                <div className="p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-border-subtle space-y-2.5 pt-2 border-t border-border-strong dark:border-border">
                   <div className="flex items-center justify-between">
-                    <ToneBadge size="sm" tone="indigo">
-                      Theory (ETH)
-                    </ToneBadge>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <ToneBadge size="sm" tone="indigo">
+                        Theory (ETH)
+                      </ToneBadge>
+                      <span className="text-xs text-muted-foreground font-bold">+</span>
+                      <ToneBadge size="sm" tone="emerald">
+                        Lab (ELA)
+                      </ToneBadge>
+                    </div>
                     <button
                       type="button"
                       onClick={() =>
                         openFacultyReview({
                           name: selectedEntry.theorySection!.offering!.faculty,
-                          courseCode: selectedEntry.theorySection!.offering!.code,
+                          courseCode: selectedEntry.code,
                         })
                       }
                       className={`${ACTION_BUTTON} !py-1 !px-2 !text-xs !border !border-indigo-500/30 !bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 hover:!bg-indigo-500/20`}
@@ -1343,58 +1537,99 @@ export default function FriendFinderTab({
                     <h5 className="text-sm font-bold text-text-heading">
                       {displayName(selectedEntry.theorySection!.offering!.faculty)}
                     </h5>
-                    <p className="text-xs text-muted-foreground flex flex-wrap items-center gap-2 mt-0.5">
+                    <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
                       <span className="inline-flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> Slot {selectedEntry.theorySection!.offering!.slot}
+                        <Clock className="w-3 h-3" /> ETH: {selectedEntry.theorySection!.offering!.slot}
+                        {selectedEntry.theorySection!.offering!.room &&
+                          ` (${selectedEntry.theorySection!.offering!.room})`}
                       </span>
-                      {selectedEntry.theorySection!.offering!.room && (
-                        <span className="inline-flex items-center gap-1">
-                          <MapPin className="w-3 h-3" /> Room {selectedEntry.theorySection!.offering!.room}
-                        </span>
-                      )}
-                      <span>· {selectedEntry.theorySection!.offering!.credits} Credits</span>
-                    </p>
+                      <span className="inline-flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> ELA: {selectedEntry.labSection!.offering!.slot}
+                        {selectedEntry.labSection!.offering!.room && ` (${selectedEntry.labSection!.offering!.room})`}
+                      </span>
+                      <span>· {selectedEntry.credits} Credits</span>
+                    </div>
                   </div>
                 </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-border-strong dark:border-border">
+                  {/* Theory (ETH) */}
+                  <div className="p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-border-subtle space-y-2">
+                    <div className="flex items-center justify-between">
+                      <ToneBadge size="sm" tone="indigo">
+                        Theory (ETH)
+                      </ToneBadge>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openFacultyReview({
+                            name: selectedEntry.theorySection!.offering!.faculty,
+                            courseCode: selectedEntry.theorySection!.offering!.code,
+                          })
+                        }
+                        className={`${ACTION_BUTTON} !py-1 !px-2 !text-xs !border !border-indigo-500/30 !bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 hover:!bg-indigo-500/20`}
+                      >
+                        <Star className="w-3 h-3 fill-current" />
+                        Review
+                      </button>
+                    </div>
+                    <div>
+                      <h5 className="text-sm font-bold text-text-heading">
+                        {displayName(selectedEntry.theorySection!.offering!.faculty)}
+                      </h5>
+                      <p className="text-xs text-muted-foreground flex flex-wrap items-center gap-2 mt-0.5">
+                        <span className="inline-flex items-center gap-1">
+                          <Clock className="w-3 h-3" /> Slot {selectedEntry.theorySection!.offering!.slot}
+                        </span>
+                        {selectedEntry.theorySection!.offering!.room && (
+                          <span className="inline-flex items-center gap-1">
+                            <MapPin className="w-3 h-3" /> Room {selectedEntry.theorySection!.offering!.room}
+                          </span>
+                        )}
+                        <span>· {selectedEntry.theorySection!.offering!.credits} Credits</span>
+                      </p>
+                    </div>
+                  </div>
 
-                {/* Lab (ELA) */}
-                <div className="p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-border-subtle space-y-2">
-                  <div className="flex items-center justify-between">
-                    <ToneBadge size="sm" tone="emerald">
-                      Lab (ELA)
-                    </ToneBadge>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        openFacultyReview({
-                          name: selectedEntry.labSection!.offering!.faculty,
-                          courseCode: selectedEntry.labSection!.offering!.code,
-                        })
-                      }
-                      className={`${ACTION_BUTTON} !py-1 !px-2 !text-xs !border !border-indigo-500/30 !bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 hover:!bg-indigo-500/20`}
-                    >
-                      <Star className="w-3 h-3 fill-current" />
-                      Review
-                    </button>
-                  </div>
-                  <div>
-                    <h5 className="text-sm font-bold text-text-heading">
-                      {displayName(selectedEntry.labSection!.offering!.faculty)}
-                    </h5>
-                    <p className="text-xs text-muted-foreground flex flex-wrap items-center gap-2 mt-0.5">
-                      <span className="inline-flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> Slot {selectedEntry.labSection!.offering!.slot}
-                      </span>
-                      {selectedEntry.labSection!.offering!.room && (
+                  {/* Lab (ELA) */}
+                  <div className="p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-border-subtle space-y-2">
+                    <div className="flex items-center justify-between">
+                      <ToneBadge size="sm" tone="emerald">
+                        Lab (ELA)
+                      </ToneBadge>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openFacultyReview({
+                            name: selectedEntry.labSection!.offering!.faculty,
+                            courseCode: selectedEntry.labSection!.offering!.code,
+                          })
+                        }
+                        className={`${ACTION_BUTTON} !py-1 !px-2 !text-xs !border !border-indigo-500/30 !bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 hover:!bg-indigo-500/20`}
+                      >
+                        <Star className="w-3 h-3 fill-current" />
+                        Review
+                      </button>
+                    </div>
+                    <div>
+                      <h5 className="text-sm font-bold text-text-heading">
+                        {displayName(selectedEntry.labSection!.offering!.faculty)}
+                      </h5>
+                      <p className="text-xs text-muted-foreground flex flex-wrap items-center gap-2 mt-0.5">
                         <span className="inline-flex items-center gap-1">
-                          <MapPin className="w-3 h-3" /> Room {selectedEntry.labSection!.offering!.room}
+                          <Clock className="w-3 h-3" /> Slot {selectedEntry.labSection!.offering!.slot}
                         </span>
-                      )}
-                      <span>· {selectedEntry.labSection!.offering!.credits} Credits</span>
-                    </p>
+                        {selectedEntry.labSection!.offering!.room && (
+                          <span className="inline-flex items-center gap-1">
+                            <MapPin className="w-3 h-3" /> Room {selectedEntry.labSection!.offering!.room}
+                          </span>
+                        )}
+                        <span>· {selectedEntry.labSection!.offering!.credits} Credits</span>
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-border-strong dark:border-border">
                 <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50">
@@ -1410,8 +1645,10 @@ export default function FriendFinderTab({
                   <span className="text-xs font-bold text-text-heading uppercase">Embedded</span>
                 </div>
                 <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50">
-                  <span className="block text-[11px] font-medium text-muted-foreground">Class IDs</span>
-                  <span className="text-xs font-mono font-bold text-text-heading truncate">
+                  <span className="block text-[11px] font-medium text-muted-foreground">
+                    {selectedEntry.classIds.length > 1 ? "Class Numbers" : "Class Number"}
+                  </span>
+                  <span className="text-xs font-mono font-bold text-text-heading break-all whitespace-normal select-all">
                     {selectedEntry.classIds.join(", ")}
                   </span>
                 </div>
@@ -1464,8 +1701,10 @@ export default function FriendFinderTab({
                   <span className="text-xs font-bold text-text-heading uppercase">{selectedEntry.type}</span>
                 </div>
                 <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50">
-                  <span className="block text-[11px] font-medium text-muted-foreground">Class ID</span>
-                  <span className="text-xs font-mono font-bold text-text-heading">{selectedEntry.id}</span>
+                  <span className="block text-[11px] font-medium text-muted-foreground">Class Number</span>
+                  <span className="text-xs font-mono font-bold text-text-heading break-all whitespace-normal select-all">
+                    {selectedEntry.id}
+                  </span>
                 </div>
               </div>
             </div>
@@ -1503,7 +1742,7 @@ export default function FriendFinderTab({
                           {p.source === "registered" ? <VerifiedTick /> : null}
                         </div>
                         <p className="text-xs text-muted-foreground truncate">
-                          <span>{p.regNo || p.handle}</span>
+                          <span>{p.regNo && isVitRegistrationNumber(p.regNo) ? p.regNo : p.handle}</span>
                         </p>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
@@ -1747,10 +1986,37 @@ export default function FriendFinderTab({
               </section>
             ) : (
               <section className="space-y-3">
-                <SectionHeader icon={Sparkles} title="Friends with common classes" count={state.overlaps.length} />
-                {state.overlaps.length ? (
+                {/* Search Bar for Friends */}
+                <div className="relative w-full">
+                  <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search friends by name, reg no, or course…"
+                    aria-label="Search friends"
+                    className="w-full pl-10 pr-9 py-2.5 rounded-2xl bg-surface border border-border-strong dark:border-border text-sm text-text-heading placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50 transition-all font-medium"
+                  />
+                  {searchQuery ? (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-text-heading rounded-full transition-colors cursor-pointer"
+                      aria-label="Clear search input"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  ) : null}
+                </div>
+
+                <SectionHeader
+                  icon={Sparkles}
+                  title="Friends with common classes"
+                  count={searchQuery ? filteredFriends.length : allFriends.length}
+                />
+                {filteredFriends.length ? (
                   <div className={LIST_SHELL}>
-                    {state.overlaps.map((o) => {
+                    {filteredFriends.map((o) => {
                       const codes = o.sharedClassIds.map((id) => codeOf.get(id)).filter(Boolean);
 
                       let hasPartialEmbedded: string | null = null;
@@ -1790,37 +2056,62 @@ export default function FriendFinderTab({
                               {o.source === "registered" ? <VerifiedTick /> : null}
                             </div>
                             <p className="text-xs text-muted-foreground truncate">
-                              {o.regNo && <span>{o.regNo}</span>}
-                              {o.regNo ? " · " : ""}
+                              {o.regNo && isVitRegistrationNumber(o.regNo) && <span>{o.regNo}</span>}
+                              {o.regNo && isVitRegistrationNumber(o.regNo) ? " · " : ""}
                               <span>
                                 {o.identical
                                   ? "Exactly your timetable"
                                   : codes.length
                                     ? codes.join(" · ")
-                                    : `${o.shared} shared classes`}
+                                    : `${o.shared} shared ${o.shared === 1 ? "class" : "classes"}`}
                               </span>
                             </p>
                           </div>
-                          <div className="flex items-center gap-1.5 shrink-0">
+                          <div className="flex items-center gap-2 shrink-0 self-center pl-1">
                             {hasPartialEmbedded && (
                               <ToneBadge size="sm" tone="amber">
                                 {hasPartialEmbedded}
                               </ToneBadge>
                             )}
-                            <ToneBadge size="sm" tone={o.identical ? "emerald" : "indigo"}>
-                              {o.identical ? "Identical" : `${o.shared} shared`}
-                            </ToneBadge>
-                            <ChevronRight className="w-4 h-4 text-zinc-400" />
+                            {o.identical && (
+                              <ToneBadge size="sm" tone="emerald">
+                                Identical
+                              </ToneBadge>
+                            )}
+                            <span
+                              aria-label={`${o.shared} ${o.shared === 1 ? "class" : "classes"} shared`}
+                              title={`${o.shared} ${o.shared === 1 ? "class" : "classes"} shared`}
+                              className="text-2xl sm:text-3xl font-black font-outfit tracking-tight leading-none text-indigo-600 dark:text-indigo-400 min-w-[24px] text-right"
+                            >
+                              {o.shared}
+                            </span>
+                            <ChevronRight className="w-4 h-4 text-zinc-400 shrink-0" />
                           </div>
                         </div>
                       );
                     })}
                   </div>
+                ) : searchQuery ? (
+                  <div className="rounded-2xl border border-dashed border-border-strong dark:border-border px-4 py-8 text-center space-y-2">
+                    <p className="text-sm font-semibold text-text-heading">
+                      No friends matching &ldquo;{searchQuery}&rdquo;
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Try searching by a different name, reg number, or course code.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery("")}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface border border-border-strong text-xs font-semibold text-text-heading hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors mt-2 cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" /> Clear search
+                    </button>
+                  </div>
                 ) : (
                   <div className="rounded-2xl border border-dashed border-border-strong dark:border-border px-4 py-8 text-center space-y-3">
                     <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                      Nobody shares two or more of your sections yet. Invite your friends to see who you&apos;ll be
-                      with.
+                      None of your friends have joined yet. Once classmates register their timetable, they will show up
+                      here.
                     </p>
                     <InviteButton className="mx-auto" />
                   </div>

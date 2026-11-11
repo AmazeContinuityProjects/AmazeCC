@@ -135,6 +135,7 @@ function DashboardContent({
 
   const [isSubpageOpen, setIsSubpageOpen] = useState(false);
   const [showFeedbackStatus, setShowFeedbackStatus] = useState(false);
+  const [ffcsFeedback, setFfcsFeedback] = useState<any>(null);
 
   // Grades + feedback dialogs register themselves for system back via
   // BottomSheet; nothing to do here.
@@ -145,7 +146,44 @@ function DashboardContent({
       const stored = localStorage.getItem("profile");
       if (stored) setProfileData(JSON.parse(stored));
     } catch (e) {}
+    try {
+      const cachedFeedback = localStorage.getItem("cache_ffcs_feedback");
+      if (cachedFeedback) setFfcsFeedback(JSON.parse(cachedFeedback));
+    } catch (e) {}
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        if (!loginToVTOP) return;
+        const creds = await loginToVTOP();
+        if (!creds || cancelled) return;
+        const { api } = await import("@/lib/sync-engine");
+        const res: any = await api("ffcs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cookies: creds.cookies,
+            authorizedID: creds.authorizedID,
+            csrf: creds.csrf,
+            section: "feedback",
+            semesterId: settings?.currSemesterID,
+          }),
+        });
+        const simple = res?.feedback || null;
+        if (!cancelled && simple) {
+          setFfcsFeedback(simple);
+          try {
+            localStorage.setItem("cache_ffcs_feedback", JSON.stringify(simple));
+          } catch {}
+        }
+      } catch {}
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [loginToVTOP, settings?.currSemesterID]);
 
   if (showFresherWelcome) {
     return (
@@ -223,7 +261,7 @@ function DashboardContent({
         marksData={marksData}
         ODhoursData={ODhoursData}
         setODhoursIsOpen={setODhoursIsOpen}
-        feedbackStatus={(GradesData as any).feedback}
+        feedbackStatus={ffcsFeedback}
         setGradesDisplayIsOpen={setGradesDisplayIsOpen}
         activeAttendanceSubTab={activeAttendanceSubTab}
         setActiveAttendanceSubTab={setActiveAttendanceSubTab}

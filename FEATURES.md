@@ -447,17 +447,17 @@ instead of implying the breakdown is complete.
 
 - Fee due summary
 - Payment history
-- Receipt downloads via `/api/payment-receipts`
-- Wallet balance via `/api/wallet`
+- Receipt downloads via `/api/finance`
+- Wallet balance via `/api/finance`
 - Online payment transfer interface
 
 ### API Endpoints for Payments:
 
-- `POST /api/payments` — Fee details and dues
-- `POST /api/payment-receipts` — Downloadable receipt links
-- `POST /api/wallet` — Wallet balance and transactions
+- `POST /api/finance` — Fee details and dues
+- `POST /api/finance` — Downloadable receipt links
+- `POST /api/finance` — Wallet balance and transactions
 - `POST /api/fees-intimation` — Fee intimation notices
-- `POST /api/online-transfer` — Online payment transfer
+- `POST /api/finance` — Online payment transfer
 
 ---
 
@@ -483,10 +483,9 @@ Comprehensive library management with three sub-tabs:
 
 **Library Services:**
 
-- Library due amounts via `/api/library-due`
+- Library due amounts via `/api/finance`
 - Key requests via `/api/library-keys`
 - Scanning services via `/api/library-scanning`
-- Book recommendations via `/api/book-recommendation`
 
 ### KOHA Integration
 
@@ -607,13 +606,11 @@ Full-screen welcome page for new students showing:
 
 **EPT Schedule:**
 
-- Fetched from `/api/ept-schedule`
 - Table with exam dates, sessions, subjects
 - Key-value pairs (reporting time, venue instructions)
 
 **Document Acknowledgement:**
 
-- Fetched from `/api/acknowledgement`
 - Document names with submission status
 - Status badges: Submitted (green), Pending (gray)
 
@@ -637,8 +634,6 @@ Full-screen welcome page for new students showing:
 ### 12.3 API Endpoints
 
 - `GET /api/fresher-resources` — Public, returns active resources
-- `POST /api/ept-schedule` — VTOP-scoped, returns EPT/placement test schedule
-- `POST /api/acknowledgement` — VTOP-scoped, returns document acknowledgment status
 
 ---
 
@@ -971,23 +966,19 @@ All admin endpoints require `Authorization: Bearer <token>` header with HMAC-SHA
 
 ### 19.2 Hostel
 
-| Endpoint                  | Description                        |
-| ------------------------- | ---------------------------------- |
-| `/api/hostel`             | Hostel details (block, room, mess) |
-| `/api/hostel-attendance`  | Hostel attendance                  |
-| `/api/hostel-counselling` | Hostel counselling sessions        |
-| `/api/hostel-leave`       | Leave applications & history       |
-| `/api/mess-menu`          | Mess menu                          |
-| `/api/mess-feedback`      | Mess feedback submission           |
-| `/api/mess-selection`     | Mess selection changes             |
+| Endpoint              | Description                        |
+| --------------------- | ---------------------------------- |
+| `/api/hostel`         | Hostel details (block, room, mess) |
+| `/api/mess-menu`      | Mess menu                          |
+| `/api/mess-feedback`  | Mess feedback submission           |
+| `/api/mess-selection` | Mess selection changes             |
 
 ### 19.3 Day Scholar / Transport
 
-| Endpoint          | Description                   |
-| ----------------- | ----------------------------- |
-| `/api/buses`      | Bus routes & stops            |
-| `/api/transport`  | Transport registration status |
-| `/api/dayboarder` | Day scholar details           |
+| Endpoint         | Description                   |
+| ---------------- | ----------------------------- |
+| `/api/buses`     | Bus routes & stops            |
+| `/api/transport` | Transport registration status |
 
 ### 19.4 Examinations
 
@@ -1001,7 +992,6 @@ All admin endpoints require `Authorization: Bearer <token>` header with HMAC-SHA
 | `/api/makeup-schedule` | Makeup exam schedule       |
 | `/api/compre-exam`     | Comprehensive exam details |
 | `/api/compre-info`     | Compre information         |
-| `/api/reexam`          | Re-exam details            |
 | `/api/special-arrear`  | Special arrear exam        |
 
 ### 19.5 Course Management
@@ -1009,10 +999,6 @@ All admin endpoints require `Authorization: Bearer <token>` header with HMAC-SHA
 | Endpoint                     | Description                   |
 | ---------------------------- | ----------------------------- |
 | `/api/course-option-change`  | Course option change requests |
-| `/api/course-withdraw`       | Course withdrawal             |
-| `/api/course-withdraw-view`  | Course withdrawal view        |
-| `/api/course-completion`     | Course completion status      |
-| `/api/coursework-reg`        | Coursework registration       |
 | `/api/registration-schedule` | Registration schedule         |
 | `/api/registration-status`   | Registration status           |
 | `/api/curriculum`            | Course curriculum             |
@@ -1026,20 +1012,18 @@ All admin endpoints require `Authorization: Bearer <token>` header with HMAC-SHA
 | `/api/project-file-upload` | Upload project files |
 | `/api/thesis-status`       | Thesis status        |
 | `/api/thesis-submission`   | Thesis submission    |
-| `/api/capstone`            | Capstone project     |
 | `/api/sap-project`         | SAP project info     |
 
 ### 19.7 Library
 
-| Endpoint                   | Description                              |
-| -------------------------- | ---------------------------------------- |
-| `/api/koha/search`         | KOHA catalog search                      |
-| `/api/koha/login`          | KOHA patron login                        |
-| `/api/koha/patron`         | KOHA patron details (checkouts, charges) |
-| `/api/library-due`         | Library due amounts                      |
-| `/api/library-keys`        | Library key requests                     |
-| `/api/library-scanning`    | Library scanning services                |
-| `/api/book-recommendation` | Book recommendations                     |
+| Endpoint                | Description                              |
+| ----------------------- | ---------------------------------------- |
+| `/api/koha/search`      | KOHA catalog search                      |
+| `/api/koha/login`       | KOHA patron login                        |
+| `/api/koha/patron`      | KOHA patron details (checkouts, charges) |
+| `/api/finance`          | Library due amounts                      |
+| `/api/library-keys`     | Library key requests                     |
+| `/api/library-scanning` | Library scanning services                |
 
 ### 19.8 LMS / Moodle
 
@@ -1050,44 +1034,36 @@ All admin endpoints require `Authorization: Bearer <token>` header with HMAC-SHA
 
 ### 19.9 Student Profile
 
-| Endpoint              | Description                                |
-| --------------------- | ------------------------------------------ |
-| `/api/student`        | Student profile (name, regno, email, etc.) |
-| `/api/profile-images` | Profile photos                             |
-| `/api/credentials`    | Student credentials                        |
-| `/api/bank-info`      | Bank account info                          |
-| `/api/apaarid`        | APAAR ID                                   |
-| `/api/biometric`      | Biometric data                             |
+| Endpoint       | Description                                |
+| -------------- | ------------------------------------------ |
+| `/api/whoami`  | Student profile (name, regno, email, etc.) |
+| `/api/whoami`  | Profile photos                             |
+| `/api/finance` | Bank account info                          |
 
 ### 19.10 Fees & Payments
 
-| Endpoint                | Description                   |
-| ----------------------- | ----------------------------- |
-| `/api/payments`         | Fee dues & payment history    |
-| `/api/payment-receipts` | Fee receipt downloads         |
-| `/api/wallet`           | Wallet balance & transactions |
-| `/api/fees-intimation`  | Fee intimation notices        |
-| `/api/online-transfer`  | Online payment transfers      |
+| Endpoint               | Description                   |
+| ---------------------- | ----------------------------- |
+| `/api/finance`         | Fee dues & payment history    |
+| `/api/finance`         | Fee receipt downloads         |
+| `/api/finance`         | Wallet balance & transactions |
+| `/api/fees-intimation` | Fee intimation notices        |
+| `/api/finance`         | Online payment transfers      |
 
 ### 19.11 Certificates & Documents
 
-| Endpoint                   | Description                      |
-| -------------------------- | -------------------------------- |
-| `/api/bonafide`            | Bonafide certificate             |
-| `/api/certificate`         | Certificate download             |
-| `/api/transcript`          | Transcript request               |
-| `/api/convocation`         | Convocation details              |
-| `/api/eca-upload`          | Extra-curricular activity upload |
-| `/api/fine-upload`         | Fine payment upload              |
-| `/api/mooc-upload`         | MOOC certificate upload          |
-| `/api/project-file-upload` | Project file upload              |
+| Endpoint                   | Description             |
+| -------------------------- | ----------------------- |
+| `/api/transcript`          | Transcript request      |
+| `/api/convocation`         | Convocation details     |
+| `/api/fine-upload`         | Fine payment upload     |
+| `/api/mooc-upload`         | MOOC certificate upload |
+| `/api/project-file-upload` | Project file upload     |
 
 ### 19.12 Fresher / New Student
 
 | Endpoint                 | Description                                |
 | ------------------------ | ------------------------------------------ |
-| `/api/ept-schedule`      | EPT/placement test schedule                |
-| `/api/acknowledgement`   | Document acknowledgement                   |
 | `/api/fresher-resources` | Fresher resource links (public, DB-backed) |
 
 ### 19.13 Social & Events
@@ -1097,7 +1073,6 @@ All admin endpoints require `Authorization: Bearer <token>` header with HMAC-SHA
 | `/api/events`         | All public events        |
 | `/api/events/profile` | User's registered events |
 | `/api/events/preview` | Event preview details    |
-| `/api/contact`        | Contact information      |
 | `/api/class-messages` | Class group messages     |
 
 ### 19.14 Research & Faculty
@@ -1106,8 +1081,6 @@ All admin endpoints require `Authorization: Bearer <token>` header with HMAC-SHA
 | -------------------------- | -------------------------------- |
 | `/api/faculty-info`        | Faculty contact info             |
 | `/api/hod-dean`            | HOD/Dean info                    |
-| `/api/proctor`             | Proctor details                  |
-| `/api/proctor-messages`    | Proctor messages                 |
 | `/api/research-profile`    | Research profile                 |
 | `/api/research-docs`       | Research documents               |
 | `/api/research-award`      | Research awards                  |
@@ -1119,66 +1092,47 @@ All admin endpoints require `Authorization: Bearer <token>` header with HMAC-SHA
 
 ### 19.15 Registration & Applications
 
-| Endpoint                     | Description                   |
-| ---------------------------- | ----------------------------- |
-| `/api/exc-registration`      | Extra-curricular registration |
-| `/api/club-enrollment`       | Club enrollment               |
-| `/api/facility-reg`          | Facility registration         |
-| `/api/fdp-registration`      | FDP registration              |
-| `/api/mooc-registration`     | MOOC registration             |
-| `/api/mdp`                   | MDP program                   |
-| `/api/pat-reg`               | PAT registration              |
-| `/api/scholar-leave`         | Scholar leave                 |
-| `/api/scholar-verification`  | Scholar verification          |
-| `/api/sem-request`           | Semester request              |
-| `/api/student-withdraw`      | Student withdrawal            |
-| `/api/swf-registration`      | SWF registration              |
-| `/api/swf-attendance`        | SWF attendance                |
-| `/api/swf-requisition`       | SWF requisition               |
-| `/api/university-day`        | University day registration   |
-| `/api/wishlist-registration` | Wishlist registration         |
-| `/api/update-loginid`        | Login ID update               |
+| Endpoint                     | Description           |
+| ---------------------------- | --------------------- |
+| `/api/facility-reg`          | Facility registration |
+| `/api/fdp-registration`      | FDP registration      |
+| `/api/mooc-registration`     | MOOC registration     |
+| `/api/mdp`                   | MDP program           |
+| `/api/pat-reg`               | PAT registration      |
+| `/api/scholar-leave`         | Scholar leave         |
+| `/api/scholar-verification`  | Scholar verification  |
+| `/api/whoami-withdraw`       | Student withdrawal    |
+| `/api/swf-registration`      | SWF registration      |
+| `/api/swf-attendance`        | SWF attendance        |
+| `/api/swf-requisition`       | SWF requisition       |
+| `/api/wishlist-registration` | Wishlist registration |
 
 ### 19.16 Academic Services
 
-| Endpoint                   | Description            |
-| -------------------------- | ---------------------- |
-| `/api/change-password`     | Change VTOP password   |
-| `/api/circulars`           | Academic circulars     |
-| `/api/feedback-status`     | Course feedback status |
-| `/api/slo-feedback`        | SLO feedback           |
-| `/api/notifications`       | Notifications          |
-| `/api/question-preview`    | Question paper preview |
-| `/api/outcome-set`         | Outcome set            |
-| `/api/late-hour`           | Late hour details      |
-| `/api/meeting-info`        | Meeting information    |
-| `/api/online-exam-attempt` | Online exam attempt    |
-| `/api/paper-see-rev`       | Paper revaluation      |
-| `/api/receipt-download`    | Receipt download       |
-| `/api/vitol-data`          | VITOL data             |
+| Endpoint                     | Description            |
+| ---------------------------- | ---------------------- |
+| `(removed: change-password)` | Change VTOP password   |
+| `/api/circulars`             | Academic circulars     |
+| `/api/notifications`         | Notifications          |
+| `/api/question-preview`      | Question paper preview |
+| `/api/online-exam-attempt`   | Online exam attempt    |
+| `/api/receipt-download`      | Receipt download       |
+| `/api/vitol-data`            | VITOL data             |
 
 ### 19.17 QCM / QBank
 
 | Endpoint                | Description      |
 | ----------------------- | ---------------- |
-| `/api/qcm`              | QCM data         |
-| `/api/qcm-view`         | QCM view         |
 | `/api/qbank`            | Question bank    |
 | `/api/question-preview` | Question preview |
 
 ### 19.18 Additional
 
-| Endpoint                   | Description                 |
-| -------------------------- | --------------------------- |
-| `/api/additional-learning` | Additional learning courses |
-| `/api/achievements`        | Student achievements        |
-| `/api/minor-honour`        | Minor/Honour courses        |
-| `/api/extra-curricular`    | Extra-curricular activities |
-| `/api/internship`          | Internship details          |
-| `/api/late-hour`           | Late hour management        |
-| `/api/sap-info`            | SAP info                    |
-| `/api/stats`               | API usage stats             |
-| `/api/test-login`          | Test login endpoint         |
+| Endpoint            | Description          |
+| ------------------- | -------------------- |
+| `/api/achievements` | Student achievements |
+| `/api/sap-info`     | SAP info             |
+| `/api/test-login`   | Test login endpoint  |
 
 ### 19.19 Cron / Scheduled
 
@@ -1322,7 +1276,7 @@ Login Form (if not logged in)
   ├── VTOP login via /api/login
   ├── Attendance fetch via /api/attendance
   ├── Marks fetch via /api/marks
-  ├── Student profile via /api/student
+  ├── Student profile via /api/whoami
   ├── Parallel: grades + schedule + hostel + calendar + allGrades + events + profileImages
   ├── Fresher data: ept-schedule + acknowledgement
   ├── Bus routes: /api/buses

@@ -1615,7 +1615,7 @@ export function useAppCommands(input: AppCommandInputs) {
       const profileRaw = localStorage.getItem("profile");
       if (profileRaw) {
         const p = JSON.parse(profileRaw);
-        // The live profile (from /api/student → parseStudentProfile) uses
+        // The live profile (from /api/whoami identity/profile data) uses
         // `registerNo`; the demo profile uses `registerNumber`. This command
         // used to read `p.regNo`, which is neither, so it never matched.
         const profileReg = p?.registerNo || p?.registerNumber || p?.regNo || p?.regNumber;

@@ -94,7 +94,7 @@ export interface PostHogUserIdentity {
   /**
    * The reader's name as VTOP knows it — the `name` field on the student
    * profile segment (`localStorage.profile`, written by ProfilePage and the
-   * sync engine from `/api/student`; the demo payload spells it
+   * sync engine from `/api/whoami`; the demo payload spells it
    * `studentName`). Sent as a *person property* so the PostHog person reads
    * as a student rather than as a bare registration number. Never an
    * identifier: the distinct id stays the registration number, so a name — or
@@ -300,7 +300,7 @@ export function syncCurrentUserPostHogIdentity(options?: {
  * every event after it.
  *
  * The identify pass runs on hydration/sync, but the student profile segment
- * can land *after* it: ProfilePage refetching `/api/student` writes the blob
+ * can land *after* it: ProfilePage refetching `/api/whoami` writes the blob
  * without changing anything Main's identify effect depends on, so the name
  * would otherwise never reach the person. Called at that write instead. The
  * distinct id does not move — only the label does.

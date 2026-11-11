@@ -41,9 +41,13 @@ registerOp({
     if (ctx.ids.VtopUsername === "demo") return null;
 
     try {
-      const res = await ctx.request("social/identity/sync", {
-        proposedSemesterId: settings.currSemesterID,
-      }, { auth: "vtop", retry: { max: 1 } });
+      const res = await ctx.request(
+        "social/identity/sync",
+        {
+          proposedSemesterId: settings.currSemesterID,
+        },
+        { auth: "vtop", retry: { max: 1 } },
+      );
 
       persistSocialIdentity(res.identity);
       persistGrants(res.grantSecrets);
@@ -53,7 +57,7 @@ registerOp({
       ctx.bridge.setAtom(socialPeersAtom, res.peers);
       return res;
     } catch {
-      return null;   // keep the cache; never clear a good record on failure
+      return null; // keep the cache; never clear a good record on failure
     }
   },
 });
@@ -78,12 +82,15 @@ This is the step that is easy to get wrong, because the obvious place to add an 
 - `Main.tsx:796-870` — the reload background IIFE, next to the `officialOd` precedent at `:831-835`
 
 `BACKGROUND_OPS` in `index.ts:18` feeds `syncEngine.syncAll()`, and `syncAll` plus the `useSync` hook are **dead code** — nothing in `src/` imports `useSync`. Updating `BACKGROUND_OPS` alone would make the global Sync button silently never sync social.
+
 ### Debounced auto-push
 
 Mutations write local state immediately, mark dirty, and schedule a push:
 
 ```ts
-const schedulePublish = debounce(() => { void syncEngine.sync("social"); }, 5000);
+const schedulePublish = debounce(() => {
+  void syncEngine.sync("social");
+}, 5000);
 ```
 
 This replaces the current behaviour where every single add/remove/toggle fired a
@@ -97,11 +104,12 @@ next one is **chained behind it** rather than dropped — otherwise a change mad
 during a slow push would never reach the server. A rejected push is swallowed
 there, because `schedulePublish` is fire-and-forget and the failure is already
 recorded in `socialSyncStateAtom.lastError`.
+
 ### The double mount
 
 `SocialTab` is mounted by both `MoreTab.tsx:33` and `ToolsTab.tsx:134`, so there are two independent copies of the state and the sub-tab resets when switching between them. `useSocialData()` gives both mounts the same atom-backed state.
 
-**Scope note.** `useSocialData` currently backs the *server-derived* state — the
+**Scope note.** `useSocialData` currently backs the _server-derived_ state — the
 handle, the peer list, the grant secrets, the user's own busy map. The legacy
 `Friend[]`/`FriendGroup[]` lists still live in `SocialTab`'s local `useState`,
 because they are local-only records with no server equivalent until Phase 6
@@ -133,13 +141,13 @@ request that quietly returns nothing.
 
 Three details that are load-bearing:
 
-| Detail | Why |
-|---|---|
-| `ensureVtopSession` is **single-flight** | A login solves a captcha, so N callers noticing a stale session must not trigger N logins |
+| Detail                                                        | Why                                                                                                                                                                                                        |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ensureVtopSession` is **single-flight**                      | A login solves a captcha, so N callers noticing a stale session must not trigger N logins                                                                                                                  |
 | The in-flight marker is published **before** the login starts | The login's own request body-building re-enters `getCreds`. Assigning the IIFE's promise instead leaves the marker `null` for the whole synchronous phase of that IIFE — exactly when the re-entry happens |
-| `getCreds` returns the stale creds when a refresh is running | Attaching old cookies to the login request is harmless; awaiting the refresh from inside the refresh is a deadlock |
+| `getCreds` returns the stale creds when a refresh is running  | Attaching old cookies to the login request is harmless; awaiting the refresh from inside the refresh is a deadlock                                                                                         |
 
-A **missing** session is deliberately *not* repaired inside `getCreds`. Re-authenticating
+A **missing** session is deliberately _not_ repaired inside `getCreds`. Re-authenticating
 means solving a captcha, and that belongs to an explicit caller — the `social` op and
 `AddPeerSheet`'s handle lookup both call `ensureVtopSession()` — so a login is
 attributable rather than triggered as a side effect of an unrelated request.
@@ -170,11 +178,11 @@ no query string, `ctx.request` is usable everywhere.
 
 So the split is:
 
-| Call | Transport | Why |
-|---|---|---|
-| `identity/sync` (the push) | `ctx.request` | gets retry + in-flight dedupe |
-| `timetable`, `pair/claim`, `people`, `grant/*` | `api` | one-shot user actions; no retry wanted |
-| `semester` | `api` | `GET`, no credentials |
+| Call                                           | Transport     | Why                                    |
+| ---------------------------------------------- | ------------- | -------------------------------------- |
+| `identity/sync` (the push)                     | `ctx.request` | gets retry + in-flight dedupe          |
+| `timetable`, `pair/claim`, `people`, `grant/*` | `api`         | one-shot user actions; no retry wanted |
+| `semester`                                     | `api`         | `GET`, no credentials                  |
 
 `client.ts` uses `api` throughout because it is also called from the debounced
 auto-push, outside the sync engine. The op itself uses `ctx.request` directly.
@@ -182,7 +190,7 @@ auto-push, outside the sync engine. The op itself uses `ctx.request` directly.
 Two real traps in this area, both hit during implementation:
 
 - **`strictNullChecks` is off in this repo.** `atom<T | null>(null)` resolves to
-  jotai's *read-function* overload and yields a **read-only** atom. `socialAtoms.ts`
+  jotai's _read-function_ overload and yields a **read-only** atom. `socialAtoms.ts`
   uses the `null as unknown as T` cast for the same reason `dataAtoms.ts:16-21` does.
 - **`stateBridge.setAtom` takes `unknown`.** A mismatched atom/value pair is
   neither a compile error nor a runtime error — it is a silent no-op. The op writes
@@ -198,20 +206,20 @@ Two real traps in this area, both hit during implementation:
 // socialUtils.ts:595-597
 const key = reg ? `friends_schedules_${reg}` : "friends_schedules";
 localStorage.setItem(key, JSON.stringify(friends));
-localStorage.setItem("friends_schedules", JSON.stringify(friends));   // ← leak
+localStorage.setItem("friends_schedules", JSON.stringify(friends)); // ← leak
 ```
 
 That mirror hands the last-touched student's friends to any other account on the same browser, and `getFriends()` with no active reg returns it. `src/lib/storage.ts:43-44` declares `FRIENDS_SCHEDULES`/`FRIENDS_GROUPS` with typed accessors at `:296-305` that `socialUtils` never uses — two sources of truth, and no accessor for the `_${reg}` variants at all.
 
 New keys, going through `storage.ts` with a per-user namespace and **no global mirror**:
 
-| Key | Contents | Cache? |
-|---|---|---|
-| `social_identity_v1` | `SocialIdentity` | yes |
-| `social_grants_v1` | `SocialGrant[]` **including secrets** | **no — the only copy** |
-| `social_timetables_v1` | `Record<"ownerKey:semesterId", SocialTimetable>` | yes |
-| `social_peers_v1` | `SocialPeer[]` | yes |
-| `social_legacy_v1` | old `Friend[]`, read-only during deprecation | no |
+| Key                    | Contents                                         | Cache?                 |
+| ---------------------- | ------------------------------------------------ | ---------------------- |
+| `social_identity_v1`   | `SocialIdentity`                                 | yes                    |
+| `social_grants_v1`     | `SocialGrant[]` **including secrets**            | **no — the only copy** |
+| `social_timetables_v1` | `Record<"ownerKey:semesterId", SocialTimetable>` | yes                    |
+| `social_peers_v1`      | `SocialPeer[]`                                   | yes                    |
+| `social_legacy_v1`     | old `Friend[]`, read-only during deprecation     | no                     |
 
 `social_grants_v1` is the one piece of genuinely non-recoverable client state: the server keeps only hashes, so losing this file means re-pairing with everyone. It is written through `storage.ts` (so `clearAllData` treats it deliberately) and excluded from any "wipe cache" action.
 
@@ -221,13 +229,13 @@ Also fixed while here: `saveFriend` and friends have **no SSR guard**, unlike th
 
 `getActiveUserRegNumber()` returns `""` today, which is why the sync POST never fires. Three separate readers are wrong:
 
-| Location | Reads | Correct field |
-|---|---|---|
-| `Main.tsx:2158` | `p?.regNo` | `registerNo` |
-| `socialUtils.ts:494` | `parsed?.regNumber` | `registerNo` |
+| Location              | Reads                                    | Correct field                                                  |
+| --------------------- | ---------------------------------------- | -------------------------------------------------------------- |
+| `Main.tsx:2158`       | `p?.regNo`                               | `registerNo`                                                   |
+| `socialUtils.ts:494`  | `parsed?.regNumber`                      | `registerNo`                                                   |
 | `SocialTab.tsx:56-57` | `attendanceData?.studentInfo?.regNumber` | `registerNo` — and `attendanceRes` has no `studentInfo` at all |
 
-The live shape comes from `/api/student` → `parseStudentProfile` and uses `registerNo` + `name`. The demo shape in `src/data/demoData.json` uses `registerNumber` + `studentName`. `getActiveRegNumber()` tries all five reg spellings and both name spellings.
+The live shape comes from `/api/whoami` → `parseStudentProfile` and uses `registerNo` + `name`. The demo shape in `src/data/demoData.json` uses `registerNumber` + `studentName`. `getActiveRegNumber()` tries all five reg spellings and both name spellings.
 
 **One-time migration.** Because the reg always resolved to `"VIT Student"`, everyone's friends were written to the bare `friends_schedules` key. Once a real reg resolves, the namespaced key is empty and the list would appear to vanish. The getters already fall back to the global key (`socialUtils.ts:577`), so nothing is lost — but on first successful derivation the global key is copied forward to the namespaced one, once, and the global mirror is then dropped.
 
@@ -236,9 +244,9 @@ The live shape comes from `/api/student` → `parseStudentProfile` and uses `reg
 `SocialTab.tsx:230-240`:
 
 ```ts
-const totalPossibleSlots = 35;                                    // vocabulary has 164
+const totalPossibleSlots = 35; // vocabulary has 164
 const seed = (friend.id || friend.name).split("").reduce((a, c) => a + c.charCodeAt(0), 0);
-const overlapPct = Math.min(96, Math.max(62, 70 + (seed % 25)));   // 62–96%, from a hash
+const overlapPct = Math.min(96, Math.max(62, 70 + (seed % 25))); // 62–96%, from a hash
 const commonFreeHours = Math.max(3, Math.min(16, totalPossibleSlots - friendSlotCount - 5));
 ```
 

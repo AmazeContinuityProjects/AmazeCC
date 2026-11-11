@@ -25,8 +25,7 @@ const PRIMARY = "https://api.amazecc.com";
 const BACKUP = "https://mirror.amazecc.deno.net";
 const UNICC = "https://api.uni-cc.site";
 
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), { status });
+const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 const netFail = () => Promise.reject(new TypeError("Failed to fetch"));
 
 let originalWindowFetch: typeof fetch;
@@ -90,8 +89,7 @@ async function load(env: Record<string, string | undefined> = {}) {
   };
 }
 
-const urlsCalled = (mock: ReturnType<typeof vi.fn>) =>
-  mock.mock.calls.map(([u]: [unknown]) => String(u));
+const urlsCalled = (mock: ReturnType<typeof vi.fn>) => mock.mock.calls.map(([u]: [unknown]) => String(u));
 
 beforeEach(() => {
   originalWindowFetch = window.fetch;
@@ -110,10 +108,14 @@ beforeEach(() => {
 afterEach(() => {
   window.fetch = originalWindowFetch;
   for (const [k, v] of Object.entries(realEnv)) {
-    const key = k === "primary" ? "NEXT_PUBLIC_API_URL"
-      : k === "backup" ? "NEXT_PUBLIC_BACKUP_API_URL"
-      : k === "unicc" ? "NEXT_PUBLIC_UNICC_API_URL"
-      : "NEXT_PUBLIC_UNICC_FALLBACK";
+    const key =
+      k === "primary"
+        ? "NEXT_PUBLIC_API_URL"
+        : k === "backup"
+          ? "NEXT_PUBLIC_BACKUP_API_URL"
+          : k === "unicc"
+            ? "NEXT_PUBLIC_UNICC_API_URL"
+            : "NEXT_PUBLIC_UNICC_FALLBACK";
     if (v === undefined) delete process.env[key];
     else process.env[key] = v;
   }
@@ -156,8 +158,7 @@ describe("the default target", () => {
 
 describe("opting in to UniCC", () => {
   it("asks UniCC first", async () => {
-    const { fetchWithFailover, setUniccTarget, getUniccActivity, setOriginalFetchForTest } =
-      await load();
+    const { fetchWithFailover, setUniccTarget, getUniccActivity, setOriginalFetchForTest } = await load();
     setUniccTarget("unicc");
     const mock = vi.fn().mockResolvedValue(json({ source: "unicc" }));
     setOriginalFetchForTest(mock as unknown as typeof fetch);
@@ -187,12 +188,9 @@ describe("opting in to UniCC", () => {
     // A preference, not a takeover. If this moved, the 20-odd routes UniCC does
     // not implement would start 404ing again — the exact bug this feature sits
     // next to.
-    const { fetchWithFailover, setUniccTarget, getActiveApiUrl, setOriginalFetchForTest } =
-      await load();
+    const { fetchWithFailover, setUniccTarget, getActiveApiUrl, setOriginalFetchForTest } = await load();
     setUniccTarget("unicc");
-    setOriginalFetchForTest(
-      vi.fn().mockResolvedValue(json({ ok: true })) as unknown as typeof fetch
-    );
+    setOriginalFetchForTest(vi.fn().mockResolvedValue(json({ ok: true })) as unknown as typeof fetch);
 
     await fetchWithFailover(`${PRIMARY}/api/attendance`);
 
@@ -232,9 +230,7 @@ describe("opting in must not cost a second attempt at VTOP", () => {
     // real VTOP, which is how accounts get locked.
     const { fetchWithFailover, setUniccTarget, setOriginalFetchForTest } = await load();
     setUniccTarget("unicc");
-    const mock = vi
-      .fn()
-      .mockResolvedValue(json({ success: false, message: "Invalid Username / Password" }, 401));
+    const mock = vi.fn().mockResolvedValue(json({ success: false, message: "Invalid Username / Password" }, 401));
     setOriginalFetchForTest(mock as unknown as typeof fetch);
 
     const res = await fetchWithFailover(`${PRIMARY}/api/login`, {
@@ -248,11 +244,10 @@ describe("opting in must not cost a second attempt at VTOP", () => {
   });
 
   it("does not count a rejection as a served request", async () => {
-    const { fetchWithFailover, setUniccTarget, getUniccActivity, setOriginalFetchForTest } =
-      await load();
+    const { fetchWithFailover, setUniccTarget, getUniccActivity, setOriginalFetchForTest } = await load();
     setUniccTarget("unicc");
     setOriginalFetchForTest(
-      vi.fn().mockResolvedValue(json({ success: false, message: "invalid" }, 401)) as unknown as typeof fetch
+      vi.fn().mockResolvedValue(json({ success: false, message: "invalid" }, 401)) as unknown as typeof fetch,
     );
 
     await fetchWithFailover(`${PRIMARY}/api/login`, { method: "POST", body: "{}" });
@@ -266,8 +261,7 @@ describe("opting in must not cost a second attempt at VTOP", () => {
 
 describe("opting in when UniCC cannot help", () => {
   it("carries on to AmazeCC when UniCC is unreachable", async () => {
-    const { fetchWithFailover, setUniccTarget, getUniccActivity, setOriginalFetchForTest } =
-      await load();
+    const { fetchWithFailover, setUniccTarget, getUniccActivity, setOriginalFetchForTest } = await load();
     setUniccTarget("unicc");
     const mock = vi
       .fn()
@@ -282,8 +276,7 @@ describe("opting in when UniCC cannot help", () => {
   });
 
   it("carries on when UniCC answers 503, which is an outage not a verdict", async () => {
-    const { fetchWithFailover, setUniccTarget, getUniccActivity, setOriginalFetchForTest } =
-      await load();
+    const { fetchWithFailover, setUniccTarget, getUniccActivity, setOriginalFetchForTest } = await load();
     setUniccTarget("unicc");
     const mock = vi
       .fn()
@@ -303,23 +296,20 @@ describe("opting in when UniCC cannot help", () => {
     const mock = vi.fn().mockResolvedValue(json({ ok: true }));
     setOriginalFetchForTest(mock as unknown as typeof fetch);
 
-    await fetchWithFailover(`${PRIMARY}/api/student`, { method: "POST", body: "{}" });
+    await fetchWithFailover(`${PRIMARY}/api/whoami`, { method: "POST", body: "{}" });
 
-    expect(urlsCalled(mock)).toEqual([`${PRIMARY}/api/student`]);
+    expect(urlsCalled(mock)).toEqual([`${PRIMARY}/api/whoami`]);
   });
 
   it("counts those, so the sync sheet can admit the preference has limits", async () => {
     // Without this the UI would read "UniCC is serving your data" while the bus
     // route, dues and the wallet quietly came from somewhere else.
-    const { fetchWithFailover, setUniccTarget, getUniccActivity, setOriginalFetchForTest } =
-      await load();
+    const { fetchWithFailover, setUniccTarget, getUniccActivity, setOriginalFetchForTest } = await load();
     setUniccTarget("unicc");
-    setOriginalFetchForTest(
-      vi.fn().mockResolvedValue(json({ ok: true })) as unknown as typeof fetch
-    );
+    setOriginalFetchForTest(vi.fn().mockResolvedValue(json({ ok: true })) as unknown as typeof fetch);
 
     await fetchWithFailover(`${PRIMARY}/api/transport`, { method: "POST", body: "{}" });
-    await fetchWithFailover(`${PRIMARY}/api/wallet`, { method: "POST", body: "{}" });
+    await fetchWithFailover(`${PRIMARY}/api/finance`, { method: "POST", body: "{}" });
 
     const a = getUniccActivity();
     expect(a.unsupported).toBe(2);
@@ -331,11 +321,9 @@ describe("opting in when UniCC cannot help", () => {
     // Otherwise every ordinary request would inflate a counter nobody asked to
     // see, and the sync sheet would be permanently noisy.
     const { fetchWithFailover, getUniccActivity, setOriginalFetchForTest } = await load();
-    setOriginalFetchForTest(
-      vi.fn().mockResolvedValue(json({ ok: true })) as unknown as typeof fetch
-    );
+    setOriginalFetchForTest(vi.fn().mockResolvedValue(json({ ok: true })) as unknown as typeof fetch);
 
-    await fetchWithFailover(`${PRIMARY}/api/student`, { method: "POST", body: "{}" });
+    await fetchWithFailover(`${PRIMARY}/api/whoami`, { method: "POST", body: "{}" });
 
     expect(getUniccActivity().unsupported).toBe(0);
   });
@@ -393,9 +381,7 @@ describe("the target setting itself", () => {
 describe("reporting who is serving", () => {
   it("says AmazeCC answered when AmazeCC answered", async () => {
     const { fetchWithFailover, getUniccActivity, setOriginalFetchForTest } = await load();
-    setOriginalFetchForTest(
-      vi.fn().mockResolvedValue(json({ ok: true })) as unknown as typeof fetch
-    );
+    setOriginalFetchForTest(vi.fn().mockResolvedValue(json({ ok: true })) as unknown as typeof fetch);
 
     await fetchWithFailover(`${PRIMARY}/api/attendance`);
 
@@ -405,12 +391,9 @@ describe("reporting who is serving", () => {
   });
 
   it("says UniCC answered when UniCC answered", async () => {
-    const { fetchWithFailover, setUniccTarget, getUniccActivity, setOriginalFetchForTest } =
-      await load();
+    const { fetchWithFailover, setUniccTarget, getUniccActivity, setOriginalFetchForTest } = await load();
     setUniccTarget("unicc");
-    setOriginalFetchForTest(
-      vi.fn().mockResolvedValue(json({ ok: true })) as unknown as typeof fetch
-    );
+    setOriginalFetchForTest(vi.fn().mockResolvedValue(json({ ok: true })) as unknown as typeof fetch);
 
     await fetchWithFailover(`${PRIMARY}/api/all-grades`);
 
@@ -421,23 +404,19 @@ describe("reporting who is serving", () => {
   it("flips back to AmazeCC when a request UniCC cannot serve comes along", async () => {
     // Otherwise the sheet keeps claiming UniCC is serving after the app has
     // quietly moved on without it.
-    const { fetchWithFailover, setUniccTarget, getUniccActivity, setOriginalFetchForTest } =
-      await load();
+    const { fetchWithFailover, setUniccTarget, getUniccActivity, setOriginalFetchForTest } = await load();
     setUniccTarget("unicc");
-    setOriginalFetchForTest(
-      vi.fn().mockResolvedValue(json({ ok: true })) as unknown as typeof fetch
-    );
+    setOriginalFetchForTest(vi.fn().mockResolvedValue(json({ ok: true })) as unknown as typeof fetch);
 
     await fetchWithFailover(`${PRIMARY}/api/attendance`);
     expect(getUniccActivity().lastServer).toBe("unicc");
 
-    await fetchWithFailover(`${PRIMARY}/api/student`, { method: "POST", body: "{}" });
+    await fetchWithFailover(`${PRIMARY}/api/whoami`, { method: "POST", body: "{}" });
     expect(getUniccActivity().lastServer).toBe("amazecc");
   });
 
   it("says AmazeCC again if UniCC is tried and turns out to be down", async () => {
-    const { fetchWithFailover, setUniccTarget, getUniccActivity, setOriginalFetchForTest } =
-      await load();
+    const { fetchWithFailover, setUniccTarget, getUniccActivity, setOriginalFetchForTest } = await load();
     setUniccTarget("unicc");
     const mock = vi
       .fn()
@@ -454,9 +433,7 @@ describe("reporting who is serving", () => {
   it("does not count a routine AmazeCC request as a UniCC statistic", async () => {
     // Otherwise the sync log would claim a hand-off that never happened.
     const { fetchWithFailover, getUniccActivity, setOriginalFetchForTest } = await load();
-    setOriginalFetchForTest(
-      vi.fn().mockResolvedValue(json({ ok: true })) as unknown as typeof fetch
-    );
+    setOriginalFetchForTest(vi.fn().mockResolvedValue(json({ ok: true })) as unknown as typeof fetch);
 
     await fetchWithFailover(`${PRIMARY}/api/attendance`);
 
@@ -494,9 +471,7 @@ describe("the log events the sync sheet renders", () => {
     const api = await load();
     const events = await collect(api);
     api.setUniccTarget("unicc");
-    api.setOriginalFetchForTest(
-      vi.fn().mockResolvedValue(json({ ok: true })) as unknown as typeof fetch
-    );
+    api.setOriginalFetchForTest(vi.fn().mockResolvedValue(json({ ok: true })) as unknown as typeof fetch);
 
     await api.fetchWithFailover(`${PRIMARY}/api/grades`);
 
@@ -522,11 +497,9 @@ describe("the log events the sync sheet renders", () => {
     const api = await load();
     const events = await collect(api);
     api.setUniccTarget("unicc");
-    api.setOriginalFetchForTest(
-      vi.fn().mockResolvedValue(json({ ok: true })) as unknown as typeof fetch
-    );
+    api.setOriginalFetchForTest(vi.fn().mockResolvedValue(json({ ok: true })) as unknown as typeof fetch);
 
-    await api.fetchWithFailover(`${PRIMARY}/api/student`, { method: "POST", body: "{}" });
+    await api.fetchWithFailover(`${PRIMARY}/api/whoami`, { method: "POST", body: "{}" });
 
     // Logging "UniCC" here would be inventing a hand-off.
     expect(events).toEqual([]);
@@ -535,9 +508,7 @@ describe("the log events the sync sheet renders", () => {
   it("stays quiet when the primary works and no server had to be substituted", async () => {
     const api = await load();
     const events = await collect(api);
-    api.setOriginalFetchForTest(
-      vi.fn().mockResolvedValue(json({ ok: true })) as unknown as typeof fetch
-    );
+    api.setOriginalFetchForTest(vi.fn().mockResolvedValue(json({ ok: true })) as unknown as typeof fetch);
 
     await api.fetchWithFailover(`${PRIMARY}/api/attendance`);
 
@@ -549,6 +520,6 @@ describe("reporting helpers", () => {
   it("names a route for display, supported or not", async () => {
     const { uniccRouteName } = await load();
     expect(uniccRouteName(`${UNICC}/api/all-grades`)).toBe("all-grades");
-    expect(uniccRouteName(`${PRIMARY}/api/hostel-counselling`)).toBe("hostel-counselling");
+    expect(uniccRouteName(`${PRIMARY}/api/registration-schedule`)).toBe("hostel-counselling");
   });
 });
