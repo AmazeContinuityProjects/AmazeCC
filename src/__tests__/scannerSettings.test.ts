@@ -1,3 +1,5 @@
+import { installLocalStorage } from "./helpers/localStorage";
+installLocalStorage();
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   loadScannerSettings,
@@ -89,7 +91,7 @@ describe("scanner settings: save / load", () => {
   });
 
   it("keeps the session's settings when the write is refused", () => {
-    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+    vi.spyOn(Object.getPrototypeOf(localStorage), "setItem").mockImplementation(() => {
       throw new Error("QuotaExceededError");
     });
 
@@ -99,7 +101,7 @@ describe("scanner settings: save / load", () => {
   });
 
   it("reads defaults when localStorage itself is forbidden", () => {
-    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+    vi.spyOn(Object.getPrototypeOf(localStorage), "getItem").mockImplementation(() => {
       throw new Error("SecurityError");
     });
     expect(loadScannerSettings()).toEqual(ScannerSettingsDefaults);

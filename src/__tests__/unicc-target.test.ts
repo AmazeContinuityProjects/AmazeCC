@@ -303,7 +303,7 @@ describe("opting in when UniCC cannot help", () => {
 
   it("counts those, so the sync sheet can admit the preference has limits", async () => {
     // Without this the UI would read "UniCC is serving your data" while the bus
-    // route, dues and the wallet quietly came from somewhere else.
+    // route and the finance data quietly came from somewhere else.
     const { fetchWithFailover, setUniccTarget, getUniccActivity, setOriginalFetchForTest } = await load();
     setUniccTarget("unicc");
     setOriginalFetchForTest(vi.fn().mockResolvedValue(json({ ok: true })) as unknown as typeof fetch);
@@ -314,7 +314,7 @@ describe("opting in when UniCC cannot help", () => {
     const a = getUniccActivity();
     expect(a.unsupported).toBe(2);
     expect(a.served).toBe(0);
-    expect(a.lastPath).toBe("wallet");
+    expect(a.lastPath).toBe("finance");
   });
 
   it("does not count unsupported routes when the user did not opt in", async () => {
@@ -520,6 +520,6 @@ describe("reporting helpers", () => {
   it("names a route for display, supported or not", async () => {
     const { uniccRouteName } = await load();
     expect(uniccRouteName(`${UNICC}/api/all-grades`)).toBe("all-grades");
-    expect(uniccRouteName(`${PRIMARY}/api/registration-schedule`)).toBe("hostel-counselling");
+    expect(uniccRouteName(`${PRIMARY}/api/hostel-counselling`)).toBe("hostel-counselling");
   });
 });

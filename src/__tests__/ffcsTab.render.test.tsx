@@ -9,6 +9,12 @@ import { isLoggedInAtom } from "../store";
 import { defaultSettings, settingsAtom } from "../store/settingsAtoms";
 import { installLocalStorage, stubScrollIntoView } from "./helpers/localStorage";
 
+// The tab calls `useRouter().replace(...)` for its friend-finder hand-off; the
+// jsdom environment has no app router mounted, so supply one.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: vi.fn(), push: vi.fn(), refresh: vi.fn() }),
+}));
+
 // The tab persists its lists through `safeStorage`; this jsdom environment
 // ships without a localStorage, so the repo stub fills it in — the same shape
 // the generator subpage's tests use.

@@ -3,9 +3,12 @@ import {
   GRADE_ORDER,
   averageByType,
   bestTerm,
+  componentScore,
+  creditWeightedTotal,
   cumulativeGpa,
   embeddedSegments,
   gradeDistribution,
+  groupAssessmentsByType,
   isEmbeddedCourse,
   segmentBlend,
   gradePoints,
@@ -15,7 +18,7 @@ import {
   weightedTotal,
   weightedTotalDiffers,
 } from "../lib/gradeHistory";
-import type { GradeItem, GradeResultsMap } from "../types/data/allgrades";
+import type { GradeBreakdown, GradeItem, GradeResultsMap } from "../types/data/allgrades";
 import type { CourseItem } from "../types/data/marks";
 
 /**
@@ -69,21 +72,13 @@ describe("semesterRows", () => {
     // `id.endsWith("1") ? Fall : Winter`, which labelled **summer** "Winter".
     // The expectation is `formatSemesterName`'s real output — the point of
     // delegating is that there is exactly one answer, not one this file likes.
-    const rows = semesterRows(
-      payload({ [SUMMER_25]: { gpa: "8.50", grades: [course()] } })
-    );
-    expect(rows.map((r) => r.label)).toEqual([
-      "Fall 2025-26",
-      "Winter 2025-26",
-      "Summer 2025-26",
-    ]);
+    const rows = semesterRows(payload({ [SUMMER_25]: { gpa: "8.50", grades: [course()] } }));
+    expect(rows.map((r) => r.label)).toEqual(["Fall 2025-26", "Winter 2025-26", "Summer 2025-26"]);
   });
 
   it("keeps a term with no grades rather than dropping it", () => {
     // A term the college has not published yet is information, not noise.
-    const rows = semesterRows(
-      payload({ [FALL_26]: { gpa: null, grades: [] } })
-    );
+    const rows = semesterRows(payload({ [FALL_26]: { gpa: null, grades: [] } }));
     expect(rows.map((r) => r.id)).toEqual([FALL_25, WINTER_25, FALL_26]);
     expect(rows[2].courses).toEqual([]);
     expect(rows[2].gpa).toBe(0);
@@ -93,9 +88,7 @@ describe("semesterRows", () => {
     expect(semesterRows(undefined)).toEqual([]);
     expect(semesterRows(null)).toEqual([]);
     expect(semesterRows({} as GradeResultsMap)).toEqual([]);
-    expect(
-      semesterRows({ [FALL_25]: null } as unknown as GradeResultsMap).map((r) => r.id)
-    ).toEqual([]);
+    expect(semesterRows({ [FALL_25]: null } as unknown as GradeResultsMap).map((r) => r.id)).toEqual([]);
   });
 
   it("averages only the courses that are actually scored", () => {
@@ -109,7 +102,7 @@ describe("semesterRows", () => {
             course({ courseCode: "X2", grandTotal: null, grade: "N" }),
           ],
         },
-      })
+      }),
     );
     const winter = rows.find((r) => r.id === WINTER_25)!;
     expect(winter.scored).toHaveLength(1);
@@ -117,9 +110,7 @@ describe("semesterRows", () => {
   });
 
   it("reports zero for an average when nothing is scored", () => {
-    const rows = semesterRows(
-      payload({ [WINTER_25]: { gpa: "8.00", grades: [course({ grandTotal: "" })] } })
-    );
+    const rows = semesterRows(payload({ [WINTER_25]: { gpa: "8.00", grades: [course({ grandTotal: "" })] } }));
     expect(rows.find((r) => r.id === WINTER_25)!.avgScore).toBe(0);
   });
 
@@ -130,7 +121,7 @@ describe("semesterRows", () => {
           gpa: "8.00",
           grades: [course({ grandTotal: "70" }), course({ courseCode: "B", grandTotal: "72.5" })],
         },
-      })
+      }),
     );
     expect(rows.find((r) => r.id === WINTER_25)!.avgScore).toBe(71.25);
   });
@@ -138,9 +129,7 @@ describe("semesterRows", () => {
 
 describe("latestSemester and bestTerm", () => {
   it("opens on the newest term that has courses in it", () => {
-    const rows = semesterRows(
-      payload({ [FALL_26]: { gpa: null, grades: [] } })
-    );
+    const rows = semesterRows(payload({ [FALL_26]: { gpa: null, grades: [] } }));
     expect(latestSemester(rows)?.id).toBe(WINTER_25);
   });
 
@@ -157,9 +146,7 @@ describe("latestSemester and bestTerm", () => {
 
   it("returns undefined rather than inventing a best term", () => {
     expect(bestTerm([])).toBeUndefined();
-    expect(
-      bestTerm(semesterRows({ [FALL_25]: { gpa: null, grades: [] } } as GradeResultsMap))
-    ).toBeUndefined();
+    expect(bestTerm(semesterRows({ [FALL_25]: { gpa: null, grades: [] } } as GradeResultsMap))).toBeUndefined();
   });
 });
 
@@ -303,19 +290,14 @@ describe("weightedTotal", () => {
   it("sums the weightage, not the raw marks", () => {
     // The distinction is the whole reason the helper exists: a 40/50 worth 60%
     // contributes 24, not 40.
-    const total = weightedTotal([
-      detail("Quiz 1", "40", "24"),
-      detail("Quiz 2", "30", "26"),
-    ]);
+    const total = weightedTotal([detail("Quiz 1", "40", "24"), detail("Quiz 2", "30", "26")]);
     expect(total).toBe(50);
   });
 
   it("distinguishes 'sums to nothing' from 'no usable breakdown'", () => {
     expect(weightedTotal([])).toBeNull();
     expect(weightedTotal(null)).toBeNull();
-    expect(
-      weightedTotal([{ ...detail("Quiz 1", "40", ""), weightageMark: "" }])
-    ).toBeNull();
+    expect(weightedTotal([{ ...detail("Quiz 1", "40", ""), weightageMark: "" }])).toBeNull();
   });
 
   it("skips the assessments that carry no weightage and uses the rest", () => {
@@ -350,6 +332,121 @@ describe("weightedTotalDiffers", () => {
   it("cannot flag a course with no breakdown or no reported total", () => {
     expect(weightedTotalDiffers(course({ details: null, grandTotal: "88" }))).toBe(false);
     expect(weightedTotalDiffers(withBreakdown("88", ""))).toBe(false);
+  });
+});
+
+describe("groupAssessmentsByType", () => {
+  const typed = (component: string, weightagePercent: string, type: string | undefined): GradeBreakdown => ({
+    slNo: "1",
+    component,
+    maxMark: "50",
+    weightagePercent,
+    status: "Present",
+    scoredMark: "40",
+    weightageMark: "30",
+    ...(type !== undefined ? { type } : {}),
+  });
+
+  it("returns null when there is no breakdown, or none of it carries a type", () => {
+    expect(groupAssessmentsByType(null)).toBeNull();
+    expect(groupAssessmentsByType([])).toBeNull();
+    // The frozen legacy route behind api.uni-cc.site strips `type`, so the
+    // flat list survives — the caller cannot group what is not there.
+    expect(groupAssessmentsByType([typed("Quiz 1", "50", undefined)])).toBeNull();
+  });
+
+  it("splits the theory and lab tables into their own groups, theory first", () => {
+    const groups = groupAssessmentsByType([
+      typed("CAT 1", "40", "Lab"),
+      typed("FAT", "60", "Theory"),
+      typed("Lab Exam", "20", "Lab"),
+      typed("Quiz 1", "20", "Theory"),
+    ])!;
+    expect(groups.map((g) => g.type)).toEqual(["Theory", "Lab"]);
+    expect(groups[0].assessments.map((a) => a.component)).toEqual(["FAT", "Quiz 1"]);
+    expect(groups[1].assessments.map((a) => a.component)).toEqual(["CAT 1", "Lab Exam"]);
+  });
+
+  it("orders component groups naturally, keeps Other last, and sorts by weightage within a group", () => {
+    const groups = groupAssessmentsByType([
+      typed("Quiz 10", "10", "Component 10"),
+      typed("Quiz 2", "10", "Component 2"),
+      typed("Untitled", "10", undefined),
+      typed("FAT", "60", "Theory"),
+    ])!;
+    expect(groups.map((g) => g.type)).toEqual(["Theory", "Component 2", "Component 10", "Other"]);
+
+    const theory = groupAssessmentsByType([
+      typed("Quiz 1", "10", "Theory"),
+      typed("Mystery", "", "Theory"),
+      typed("FAT", "50", "Theory"),
+    ])!;
+    expect(theory[0].assessments.map((a) => a.component)).toEqual(["FAT", "Quiz 1", "Mystery"]);
+  });
+
+  it("treats a blank type as Other rather than as a missing field", () => {
+    const groups = groupAssessmentsByType([typed("Quiz", "100", "   ")])!;
+    expect(groups.map((g) => g.type)).toEqual(["Other"]);
+    expect(groups[0].assessments[0].component).toBe("Quiz");
+  });
+});
+
+describe("componentScore", () => {
+  const wMark = (component: string, weightageMark: string): GradeBreakdown => ({
+    slNo: "1",
+    component,
+    maxMark: "50",
+    weightagePercent: "50",
+    status: "Present",
+    scoredMark: "40",
+    weightageMark,
+  });
+
+  it("sums the table's weightageMark, rounded to 2dp", () => {
+    expect(componentScore([wMark("CAT 1", "10.8"), wMark("CAT 2", "10.2"), wMark("FAT", "33.2")])).toBe(54.2);
+  });
+
+  it("returns null when there is no usable weightage", () => {
+    expect(componentScore([])).toBeNull();
+    expect(componentScore(null)).toBeNull();
+    expect(componentScore([wMark("CAT 1", "")])).toBeNull();
+  });
+});
+
+describe("creditWeightedTotal", () => {
+  it("a single component is the whole total, regardless of its credits", () => {
+    expect(creditWeightedTotal([{ type: "Theory", score: 72, credits: null }])).toBe(72);
+    expect(creditWeightedTotal([{ type: "Lab", score: 88.4, credits: 1 }])).toBe(88.4);
+  });
+
+  it("multiplies each component by its credits, summed over the total credits", () => {
+    // BAEEE101: theory 81.2 / 3 cr, lab 88.4 / 1 cr → (243.6 + 88.4) / 4 = 83.0
+    expect(
+      creditWeightedTotal([
+        { type: "Theory", score: 81.2, credits: 3 },
+        { type: "Lab", score: 88.4, credits: 1 },
+      ]),
+    ).toBe(83);
+  });
+
+  it("returns null when a component's credits are missing or zero", () => {
+    expect(
+      creditWeightedTotal([
+        { type: "Theory", score: 81.2, credits: 3 },
+        { type: "Lab", score: 88.4, credits: null },
+      ]),
+    ).toBeNull();
+    expect(
+      creditWeightedTotal([
+        { type: "Theory", score: 81.2, credits: 0 },
+        { type: "Lab", score: 88.4, credits: 1 },
+      ]),
+    ).toBeNull();
+  });
+
+  it("returns null when no component has a usable score", () => {
+    expect(creditWeightedTotal([{ type: "Theory", score: null, credits: 3 }])).toBeNull();
+    expect(creditWeightedTotal([])).toBeNull();
   });
 });
 
@@ -476,9 +573,7 @@ describe("embeddedSegments", () => {
 
   it("returns whatever half exists when only one is published", () => {
     const onlyLab = {
-      courses: [
-        marksCourse({ courseType: "Embedded Lab", credits: 1, assessments: [assess("FAT", "50")] }),
-      ],
+      courses: [marksCourse({ courseType: "Embedded Lab", credits: 1, assessments: [assess("FAT", "50")] })],
     };
     const segments = embeddedSegments("BAEEE101", onlyLab);
     expect(segments!.map((s) => s.kind)).toEqual(["Lab"]);
@@ -549,7 +644,7 @@ describe("segmentBlend", () => {
           { kind: "Theory", courseType: "Embedded Theory", credits: thc, score: th, assessments: [] },
           { kind: "Lab", courseType: "Embedded Lab", credits: labc, score: lab, assessments: [] },
         ],
-        String(pub)
+        String(pub),
       )!;
       expect(Math.abs(blend.delta)).toBeLessThanOrEqual(1);
     }

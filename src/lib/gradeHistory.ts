@@ -1,6 +1,6 @@
 import { formatSemesterName } from "@/lib/formatSemesterName";
 import type { AssessmentItem, CourseItem } from "@/types/data/marks";
-import type { GradeItem, GradeResultsMap } from "@/types/data/allgrades";
+import type { GradeBreakdown, GradeItem, GradeResultsMap } from "@/types/data/allgrades";
 
 /**
  * Grade history, as numbers.
@@ -352,6 +352,126 @@ export function weightedTotalDiffers(course: Pick<GradeItem, "grandTotal" | "det
   const reported = num(course.grandTotal);
   if (weighted === null || reported === null) return false;
   return Math.abs(weighted - reported) > 0.5;
+}
+
+// ---------------------------------------------------------------------------
+// Assessment grouping: theory against lab
+// ---------------------------------------------------------------------------
+
+/**
+ * VTOP's total for a course: each component's score multiplied by the number of
+ * credits VTOP assigns it, summed, over the total credits.
+ *
+ * VTOP publishes a course as one "Mark Title" table per component — the theory
+ * half and the lab half of an embedded course — and each table sums to its own
+ * score out of 100. Summing every row of the whole breakdown is arithmetic far
+ * from the published grade; the number the college records is the credit-
+ * weighted blend across those tables.
+ *
+ * A single component carries the whole total, whatever its credits are (a
+ * one-component course needs no weighting). With more than one, a credit on
+ * each is required — a missing credit means the blend is unknowable, and null
+ * says so rather than inventing a 1:1 weighting.
+ */
+export type ComponentPart = {
+  /** The `type` the "Mark Title" table carries — `"Theory"`, `"Lab"`, `"Component N"`. */
+  type: string;
+  /** The table's own score out of 100, or null when no row carries usable weightage. */
+  score: number | null;
+  /** Credits for that component, or null when unavailable. */
+  credits: number | null;
+};
+
+/**
+ * Score of one "Mark Title" table: the sum of its `weightageMark` rows. Scored
+ * courses only — a table with no usable rows has no score rather than 0.
+ */
+export function componentScore(assessments: GradeBreakdown[] | null | undefined): number | null {
+  if (!Array.isArray(assessments) || assessments.length === 0) return null;
+  const parts = assessments.map((a) => num(a?.weightageMark)).filter((n): n is number => n !== null);
+  if (parts.length === 0) return null;
+  return round2(parts.reduce((sum, n) => sum + n, 0));
+}
+
+/** See {@link ComponentPart}. */
+export function creditWeightedTotal(parts: ComponentPart[]): number | null {
+  const usable = parts.filter((p): p is { type: string; score: number; credits: number | null } => p.score !== null);
+  if (usable.length === 0) return null;
+  const single = usable.length === 1;
+  const weights = usable.map((p) => {
+    if (single) return 1;
+    const w = p.credits;
+    return w !== null && Number.isFinite(w) && w > 0 ? w : null;
+  });
+  if (weights.some((w) => w === null)) return null;
+  const totalCredits = weights.reduce((sum, w) => sum + (w as number), 0);
+  if (totalCredits <= 0) return null;
+  const weighted = usable.reduce((sum, p, i) => sum + p.score * (weights[i] as number), 0);
+  return round2(weighted / totalCredits);
+}
+
+export type AssessmentGroup = {
+  /** The `type` VTOP's "Mark Title" table carries — `"Theory"`, `"Lab"`, `"Component N"`, or `"Other"`. */
+  type: string;
+  /** The assessments of that type, heaviest weightage first. */
+  assessments: GradeBreakdown[];
+};
+
+/**
+ * Split a course's published assessment breakdown by VTOP's "Mark Title" table.
+ *
+ * VTOP publishes a course's marks as one table per segment — the first for the
+ * theory half, the second for the lab half of an embedded course — and the
+ * AmazeCC `/api/grades` route tags every row with the segment it came from as
+ * `detail.type`. There is exactly one `type` per table, so the theory and lab
+ * breakdowns arrive interleaved in one flat list with no other marker; this
+ * regroups them so a subject's assessments read the way VTOP thinks about them.
+ *
+ * Not every deployment has the field: the frozen legacy route behind
+ * `api.uni-cc.site` returns the same breakdown with `type` stripped. When no row
+ * carries it this returns `null` and the caller keeps the flat list — falling
+ * back silently rather than guessing, like every other field the two APIs
+ * disagree on.
+ *
+ * Groups come out Theory, then Lab, then `Component N` by ascending N, then the
+ * rest alphabetical. Within a group the order is by weightage percent, matching
+ * the flat list a reader would otherwise see.
+ */
+export function groupAssessmentsByType(details: GradeBreakdown[] | null | undefined): AssessmentGroup[] | null {
+  if (!Array.isArray(details) || details.length === 0) return null;
+  const hasType = details.some((d) => d?.type !== undefined);
+  if (!hasType) return null;
+
+  const groups = new Map<string, GradeBreakdown[]>();
+  for (const detail of details) {
+    const raw = String(detail?.type ?? "").trim();
+    const key = raw || "Other";
+    const list = groups.get(key) ?? [];
+    list.push(detail);
+    groups.set(key, list);
+  }
+
+  const rank = (name: string): number => {
+    if (/theory/i.test(name)) return 0;
+    if (/lab/i.test(name)) return 1;
+    const m = /^component\s+(\d+)$/i.exec(name);
+    if (m) return 100 + Number(m[1]);
+    return 1000;
+  };
+
+  return [...groups.keys()]
+    .sort((a, b) => {
+      const ra = rank(a);
+      const rb = rank(b);
+      if (ra !== rb) return ra - rb;
+      return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
+    })
+    .map((type) => ({
+      type,
+      assessments: [...(groups.get(type) ?? [])].sort(
+        (a, b) => (num(b?.weightagePercent) ?? 0) - (num(a?.weightagePercent) ?? 0),
+      ),
+    }));
 }
 
 // ---------------------------------------------------------------------------

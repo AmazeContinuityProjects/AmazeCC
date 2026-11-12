@@ -6,6 +6,8 @@
  * written before a field existed. These tests pin both halves: the shim on
  * read, and write-through on `set`.
  */
+import { installLocalStorage } from "./helpers/localStorage";
+installLocalStorage();
 import { getDefaultStore } from "jotai";
 import { afterEach, describe, expect, it } from "vitest";
 import { defaultSettings, settingsAtom } from "@/store/settingsAtoms";

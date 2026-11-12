@@ -201,7 +201,7 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
     setLoading({ dues: true, receipts: true, wallet: true });
     setError({ dues: null, receipts: null, wallet: null });
     try {
-      const { cookies, authorizedID, csrf } = await getCreds();
+      const { authorizedID } = await getCreds();
       let res: any;
       if (
         authorizedID === "DEMO123" ||

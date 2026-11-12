@@ -1,3 +1,5 @@
+import { installLocalStorage } from "./helpers/localStorage";
+installLocalStorage();
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getOp } from "../lib/sync-engine/operation-registry";
 import "../lib/sync-engine/operations";

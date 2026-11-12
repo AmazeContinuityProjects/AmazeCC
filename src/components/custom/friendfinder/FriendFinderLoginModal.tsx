@@ -313,7 +313,7 @@ export default function FriendFinderLoginModal({ open, onClose, onSuccess }: Fri
                   placeholder="e.g. 25BLC1081"
                   autoFocus
                   disabled={isSubmitting}
-                  className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-850 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 text-xs sm:text-sm font-medium focus:outline-hidden focus:ring-2 focus:ring-indigo-500 transition-all uppercase tracking-wider"
+                  className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 text-xs sm:text-sm font-medium focus:outline-hidden focus:ring-2 focus:ring-indigo-500 transition-all uppercase tracking-wider"
                 />
               </div>
             </div>
@@ -336,7 +336,7 @@ export default function FriendFinderLoginModal({ open, onClose, onSuccess }: Fri
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your VTOP password"
                   disabled={isSubmitting}
-                  className="w-full pl-9 pr-10 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-850 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 text-xs sm:text-sm font-medium focus:outline-hidden focus:ring-2 focus:ring-indigo-500 transition-all"
+                  className="w-full pl-9 pr-10 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 text-xs sm:text-sm font-medium focus:outline-hidden focus:ring-2 focus:ring-indigo-500 transition-all"
                 />
                 <button
                   type="button"

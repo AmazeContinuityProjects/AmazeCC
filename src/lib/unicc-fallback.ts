@@ -35,7 +35,7 @@
  * |---|---|---|
  * | `POST /api/login` → `{success, cookies, csrf, authorizedID}` | identical | ✅ drop-in |
  * | `POST /api/grades`, `/api/attendance` | identical | ✅ drop-in |
- * | `POST /api/calendar`, `/api/hostel` | identical | ✅ drop-in |
+ * | `POST /api/calendar`, `/api/schedule`, `/api/hostel` | identical | ✅ drop-in |
  * | `POST /api/lms-data`, `/api/vitol-data` | identical | ✅ drop-in |
  * | `GET /api/health` | `GET /api/status` → `{text}` | ⚠️ different path |
  * | `POST /api/events/*` → `jsessionid` | — | ❌ EventHub has no fallback |
@@ -112,6 +112,7 @@ const UNICC_SUPPORTED_PATHS: ReadonlySet<string> = new Set([
   "all-grades",
   "attendance",
   "calendar",
+  "schedule",
   "hostel",
   "lms-data",
   "vitol-data",

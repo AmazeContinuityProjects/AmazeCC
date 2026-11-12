@@ -39,10 +39,13 @@ import { LIST_ROW, TILE, TILE_CARD, TONE_TEXT } from "@/lib/uiTokens";
 import {
   averageByType,
   bestTerm,
+  componentScore,
+  creditWeightedTotal,
   cumulativeGpa,
   embeddedSegments,
   gradeDistribution,
   gradePoints,
+  groupAssessmentsByType,
   isEmbeddedCourse,
   latestSemester,
   segmentBlend,
@@ -129,7 +132,7 @@ export default function MarksHistoryTab({
   // The newest term with courses in it, unless the reader has picked another.
   const active: SemesterRow | undefined = useMemo(
     () => rows.find((r) => r.id === activeId) ?? latestSemester(rows),
-    [rows, activeId]
+    [rows, activeId],
   );
 
   // `marks` first, then `grades`, then a credit-weighted reconstruction. The
@@ -180,9 +183,40 @@ export default function MarksHistoryTab({
   const frozenMarks = opened ? pastSemesters?.[opened.semesterId]?.marks : null;
   const segments = useMemo(
     () => embeddedSegments(course?.courseCode ?? "", frozenMarks),
-    [course?.courseCode, frozenMarks]
+    [course?.courseCode, frozenMarks],
   );
   const blend = segments ? segmentBlend(segments, course?.grandTotal) : null;
+
+  // The published breakdown, regrouped by the "Mark Title" table each row came
+  // from — theory, lab, component. The frozen legacy route strips `type`, so
+  // this is null there and the flat list below stays as the fallback.
+  const assessmentGroups = useMemo(() => groupAssessmentsByType(course?.details ?? null), [course?.details]);
+
+  // VTOP's own total for the course: each component's score weighted by its
+  // credits, over the total credits. Credits come from the marks halves, so a
+  // course whose marks cache is missing (or which splits into components the
+  // halves cannot carry) resolves to null rather than to a wrong number.
+  const componentBlend = useMemo(() => {
+    if (!assessmentGroups) return null;
+    const oneGroup = assessmentGroups.length === 1;
+    const parts = assessmentGroups.map((group) => ({
+      type: group.type,
+      score: componentScore(group.assessments),
+      credits: oneGroup
+        ? 1
+        : (segments?.find((s) => s.kind.toLowerCase() === group.type.toLowerCase())?.credits ?? null),
+    }));
+    return creditWeightedTotal(parts);
+  }, [assessmentGroups, segments]);
+
+  // Whether the breakdown reconciles with the recorded total. With groups the
+  // credit-weighted blend is the comparison that means something — the flat
+  // sum is out of 100 per table, not a predictor of the grade. A multi-
+  // component breakdown without credits is unknowable and shows nothing.
+  const grandTotalRaw = String(course?.grandTotal ?? "").trim();
+  const blendDelta = componentBlend != null && grandTotalRaw ? Math.abs(componentBlend - Number(grandTotalRaw)) : null;
+  const showReconciliation =
+    blendDelta != null ? blendDelta > 0.5 : assessmentGroups ? false : course ? weightedTotalDiffers(course) : false;
 
   const insightSlides = useMemo<InsightSlide[]>(() => {
     const out: InsightSlide[] = [];
@@ -283,7 +317,7 @@ export default function MarksHistoryTab({
           <span
             className={cn(
               "text-3xl sm:text-4xl font-black font-outfit tracking-tight leading-none block truncate",
-              cumulative.value > 0 ? TONE_TEXT.indigo : "text-zinc-900 dark:text-white"
+              cumulative.value > 0 ? TONE_TEXT.indigo : "text-zinc-900 dark:text-white",
             )}
           >
             {cumulative.value > 0 ? cumulative.value.toFixed(2) : "—"}
@@ -302,11 +336,7 @@ export default function MarksHistoryTab({
         </p>
       </div>
 
-      <InsightCarousel
-        slides={insightSlides}
-        carousel={carousel}
-        height="min-h-32 sm:min-h-36"
-      />
+      <InsightCarousel slides={insightSlides} carousel={carousel} height="min-h-32 sm:min-h-36" />
     </div>
   );
 
@@ -316,8 +346,8 @@ export default function MarksHistoryTab({
       {hero}
 
       <p className="px-1 -mt-3 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
-        GPA is the figure VTOP published for that term. Cumulative is credit-weighted across
-        every term so far, so it moves less than a single term&apos;s average does.
+        GPA is the figure VTOP published for that term. Cumulative is credit-weighted across every term so far, so it
+        moves less than a single term&apos;s average does.
       </p>
 
       <div className="space-y-3">
@@ -363,11 +393,7 @@ export default function MarksHistoryTab({
       {/* The trend, below the list. Reading it is a deliberate act; deciding
           which term to look at is not, so it does not sit above the courses. */}
       <div className="space-y-3">
-        <SectionHeader
-          icon={TrendingUp}
-          title="Across terms"
-          count={rows.length}
-        />
+        <SectionHeader icon={TrendingUp} title="Across terms" count={rows.length} />
         <ListShell>
           {rows.map((r) => {
             const isActive = r.id === active?.id;
@@ -387,7 +413,7 @@ export default function MarksHistoryTab({
                 <span
                   className={cn(
                     "shrink-0 text-sm font-black font-outfit tracking-tight leading-none w-10 text-right",
-                    isActive ? "text-indigo-600 dark:text-indigo-400" : "text-zinc-800 dark:text-zinc-100"
+                    isActive ? "text-indigo-600 dark:text-indigo-400" : "text-zinc-800 dark:text-zinc-100",
                   )}
                 >
                   {r.gpa > 0 ? r.gpa.toFixed(2) : "—"}
@@ -407,9 +433,7 @@ export default function MarksHistoryTab({
           <BarChart3 className="h-4.5 w-4.5" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-sm font-bold text-text-heading font-outfit tracking-tight">
-            Grade insights
-          </span>
+          <span className="block text-sm font-bold text-text-heading font-outfit tracking-tight">Grade insights</span>
           <span className="block text-[11px] text-text-secondary dark:text-text-muted font-medium mt-0.5 truncate">
             Grade distribution, theory against lab, and score by term
           </span>
@@ -428,9 +452,7 @@ export default function MarksHistoryTab({
           value={rows.filter((r) => r.courses.length > 0).length}
           badge="All time"
           tone="indigo"
-          sub={
-            rows.length > 1 ? `${rows.length} terms published` : "so far"
-          }
+          sub={rows.length > 1 ? `${rows.length} terms published` : "so far"}
         />
         <StatTile
           label="Best term"
@@ -442,14 +464,10 @@ export default function MarksHistoryTab({
       </div>
 
       <div className="space-y-3">
-        <SectionHeader
-          icon={Award}
-          title="Grade distribution"
-          count={distribution.reduce((s, r) => s + r.count, 0)}
-        />
+        <SectionHeader icon={Award} title="Grade distribution" count={distribution.reduce((s, r) => s + r.count, 0)} />
         <p className="px-1 -mt-1 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
-          Every graded course across all terms. Ungraded results are left out of the share
-          entirely, so a term you have not been assessed on yet cannot distort it.
+          Every graded course across all terms. Ungraded results are left out of the share entirely, so a term you have
+          not been assessed on yet cannot distort it.
         </p>
         {distribution.length === 0 ? (
           <EmptyPanel variant="dashed" title="No letter grades published yet" />
@@ -478,8 +496,8 @@ export default function MarksHistoryTab({
       <div className="space-y-3">
         <SectionHeader icon={Gauge} title="Theory against lab" count={byType.length} />
         <p className="px-1 -mt-1 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
-          An embedded course is published as two entries under one code, so averaging
-          everything together hides whether it is your labs dragging the number.
+          An embedded course is published as two entries under one code, so averaging everything together hides whether
+          it is your labs dragging the number.
         </p>
         {byType.length === 0 ? (
           <EmptyPanel variant="dashed" title="No scored courses to compare" />
@@ -487,12 +505,12 @@ export default function MarksHistoryTab({
           <ListShell>
             {byType.map((t) => (
               <div key={t.type} className={LIST_ROW}>
-                <ListRowText
-                  title={t.type}
-                  subtitle={`${t.count} course${t.count === 1 ? "" : "s"}`}
-                />
+                <ListRowText title={t.type} subtitle={`${t.count} course${t.count === 1 ? "" : "s"}`} />
                 <span className="w-20 shrink-0">
-                  <MiniBar pct={t.avg} tone={t.avg >= 80 ? "bg-emerald-500" : t.avg >= 65 ? "bg-amber-500" : "bg-red-500"} />
+                  <MiniBar
+                    pct={t.avg}
+                    tone={t.avg >= 80 ? "bg-emerald-500" : t.avg >= 65 ? "bg-amber-500" : "bg-red-500"}
+                  />
                 </span>
                 <span className="shrink-0 text-sm font-black font-outfit text-zinc-800 dark:text-zinc-100 w-12 text-right">
                   {t.avg.toFixed(1)}%
@@ -512,7 +530,10 @@ export default function MarksHistoryTab({
                 {r.label}
               </span>
               <span className="min-w-0 flex-1">
-                <MiniBar pct={r.avgScore} tone={r.avgScore >= 80 ? "bg-emerald-500" : r.avgScore >= 65 ? "bg-amber-500" : "bg-red-500"} />
+                <MiniBar
+                  pct={r.avgScore}
+                  tone={r.avgScore >= 80 ? "bg-emerald-500" : r.avgScore >= 65 ? "bg-amber-500" : "bg-red-500"}
+                />
               </span>
               <span className="shrink-0 text-sm font-black font-outfit text-zinc-800 dark:text-zinc-100 w-12 text-right">
                 {r.scored.length > 0 ? `${r.avgScore.toFixed(1)}%` : "—"}
@@ -552,14 +573,10 @@ export default function MarksHistoryTab({
       {/* The halves, when the term's marks are cached. */}
       {isEmbeddedCourse(course) && segments && (
         <div className="space-y-3">
-          <SectionHeader
-            icon={Layers}
-            title="Theory and lab"
-            count={segments.length}
-          />
+          <SectionHeader icon={Layers} title="Theory and lab" count={segments.length} />
           <p className="px-1 -mt-1 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
-            VTOP records an embedded course as a single blended grade. These are the two
-            halves it blends, each scored out of 100 on its own.
+            VTOP records an embedded course as a single blended grade. These are the two halves it blends, each scored
+            out of 100 on its own.
           </p>
           <div className="grid grid-cols-2 gap-2.5">
             {segments.map((s) => (
@@ -578,10 +595,8 @@ export default function MarksHistoryTab({
             <p className="px-1 flex items-start gap-2 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
               <Info className="h-3.5 w-3.5 shrink-0 mt-px" />
               Weighted by {blend.theoryCredits} and {blend.labCredits} credits, the halves come to{" "}
-              <span className="font-bold text-zinc-600 dark:text-zinc-300">
-                {blend.blended.toFixed(2)}
-              </span>
-              , against the {blend.published} VTOP recorded.
+              <span className="font-bold text-zinc-600 dark:text-zinc-300">{blend.blended.toFixed(2)}</span>, against
+              the {blend.published} VTOP recorded.
             </p>
           )}
 
@@ -598,10 +613,7 @@ export default function MarksHistoryTab({
                 <ListShell>
                   {s.assessments.map((a, i) => (
                     <div key={`${a.title}-${i}`} className="flex items-center gap-3 py-2.5 px-4">
-                      <ListRowText
-                        title={a.title}
-                        subtitle={`${a.weightagePercent || "-"}% weightage`}
-                      />
+                      <ListRowText title={a.title} subtitle={`${a.weightagePercent || "-"}% weightage`} />
                       <span className="shrink-0 text-sm font-black font-outfit text-zinc-800 dark:text-zinc-100">
                         {a.scoredMark || "-"}
                         <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 ml-0.5">
@@ -622,9 +634,8 @@ export default function MarksHistoryTab({
       {isEmbeddedCourse(course) && !segments && (
         <p className="px-1 flex items-start gap-2 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
           <Info className="h-3.5 w-3.5 shrink-0 mt-px" />
-          VTOP records embedded courses as one blended grade, so the theory and lab halves
-          are not part of the published record. Refresh to pull this term&apos;s marks and
-          split them.
+          VTOP records embedded courses as one blended grade, so the theory and lab halves are not part of the published
+          record. Refresh to pull this term&apos;s marks and split them.
         </p>
       )}
 
@@ -640,53 +651,65 @@ export default function MarksHistoryTab({
             title="No assessment breakdown"
             description="VTOP published a final grade for this course without the per-assessment marks behind it."
           />
+        ) : assessmentGroups ? (
+          // VTOP publishes each segment (theory, lab, component) as its own
+          // table; the AmazeCC route tags every row with the table it came
+          // from. Read the split the way VTOP records it.
+          <div className="space-y-4">
+            {assessmentGroups.map((group) => {
+              const lower = group.type.toLowerCase();
+              const icon = /theory/.test(lower) ? BookOpen : /lab/.test(lower) ? FlaskConical : Layers;
+              return (
+                <div key={group.type} className="space-y-2">
+                  <SectionHeader icon={icon} title={`${group.type} assessments`} count={group.assessments.length} />
+                  <ListShell>
+                    {group.assessments.map((d, i) => (
+                      <AssessmentRow key={`${d.component}-${i}`} item={d} />
+                    ))}
+                  </ListShell>
+                </div>
+              );
+            })}
+          </div>
         ) : (
           <ListShell>
             {byWeightage(course.details).map((d, i) => (
-              <div key={`${d.component}-${i}`} className="flex items-center gap-3 py-2.5 px-4">
-                <ListRowText
-                  title={d.component}
-                  subtitle={`${d.weightagePercent ?? "-"}% weightage`}
-                />
-                <span className="shrink-0 text-sm font-black font-outfit text-zinc-800 dark:text-zinc-100">
-                  {d.scoredMark ?? "-"}
-                  <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 ml-0.5">
-                    /{d.maxMark ?? "-"}
-                  </span>
-                </span>
-              </div>
+              <AssessmentRow key={`${d.component}-${i}`} item={d} />
             ))}
           </ListShell>
         )}
 
-        {/* The assessment list sums to a number, and that number is not always the
+        {/* The assessments sum to a number, and that number is not always the
             one VTOP recorded. Saying so beats a reader adding up the column and
             concluding the app is wrong. */}
-        {weightedTotalDiffers(course) && (
+        {showReconciliation && course && (
           <p className="px-1 flex items-start gap-2 text-[11px] leading-relaxed text-amber-600 dark:text-amber-400 font-medium">
             <Info className="h-3.5 w-3.5 shrink-0 mt-px" />
-            The weightage above sums to {weightedTotal(course.details)?.toFixed(2)}, while VTOP
-            records {numOrDash(course.grandTotal)}%. The recorded total is shown here.
+            {componentBlend != null ? (
+              <>
+                The breakdown&apos;s components blend to <span className="font-bold">{componentBlend.toFixed(2)}%</span>{" "}
+                credit-weighted, while VTOP records {numOrDash(course.grandTotal)}%. The recorded total is shown here.
+              </>
+            ) : (
+              <>
+                The weightage above sums to {weightedTotal(course.details)?.toFixed(2)}, while VTOP records{" "}
+                {numOrDash(course.grandTotal)}%. The recorded total is shown here.
+              </>
+            )}
           </p>
         )}
       </div>
 
       {course.range && (
         <div className="space-y-3">
-          <SectionHeader
-            icon={GraduationCap}
-            title="Grade scale"
-            count={Object.keys(course.range).length}
-          />
+          <SectionHeader icon={GraduationCap} title="Grade scale" count={Object.keys(course.range).length} />
           <ListShell>
             {Object.entries(course.range).map(([grade, rangeStr]) => (
               <div key={grade} className={LIST_ROW}>
                 <span className="w-14 shrink-0">
                   <ToneBadge tone={toneForGrade(grade)}>{grade}</ToneBadge>
                 </span>
-                <span className="text-xs font-bold text-zinc-600 dark:text-zinc-300 truncate">
-                  {String(rangeStr)}
-                </span>
+                <span className="text-xs font-bold text-zinc-600 dark:text-zinc-300 truncate">{String(rangeStr)}</span>
                 {String(grade).toUpperCase() === String(course.grade ?? "").toUpperCase() && (
                   <ToneBadge tone="indigo" className="ml-auto">
                     Yours
@@ -706,7 +729,7 @@ export default function MarksHistoryTab({
   // stepping through insights: neither is a child of the other, which is the
   // same reason `CurriculumPage` calls `reset()` here.
   const title =
-    screen === "insights" ? "Grade Insights" : screen === "course" ? course?.courseCode ?? "Course" : "Grade History";
+    screen === "insights" ? "Grade Insights" : screen === "course" ? (course?.courseCode ?? "Course") : "Grade History";
   const subtitle =
     screen === "insights"
       ? "How your grades are spread, across every term."
@@ -731,9 +754,7 @@ export default function MarksHistoryTab({
         ) : null
       }
     >
-      {screen === "overview" && (
-        <SubpageScreen id="overview">{overview}</SubpageScreen>
-      )}
+      {screen === "overview" && <SubpageScreen id="overview">{overview}</SubpageScreen>}
       {screen === "insights" && <SubpageScreen id="insights">{insights}</SubpageScreen>}
       {screen === "course" && course && (
         // Keyed on the course, not the screen, so opening a different subject
@@ -784,17 +805,25 @@ function sortByGrade(courses: GradeItem[]): GradeItem[] {
 /**
  * Heaviest assessment first.
  *
- * There is deliberately no Theory/Lab grouping here. The old screen split the
- * breakdown on `detail.type`, but `GradeBreakdown` has no such field — every
- * assessment fell into a single "Theory" bucket and the group headings never
- * rendered, so the split was decoration. The `component` names ("FAT", "Quiz 1",
- * "Lab Exam") already say what each one is, and sorting by weightage puts the
- * assessments that decide the grade at the top, which is what the reader came
- * for.
+ * This is the fallback for the flat list — used when no row carries a `type`
+ * (the frozen legacy route behind api.uni-cc.site strips it). When it does, the
+ * breakdown renders grouped by VTOP's Mark Title table instead — see
+ * `groupAssessmentsByType` in `lib/gradeHistory.ts`.
  */
 function byWeightage(details: NonNullable<GradeItem["details"]>) {
-  return [...details].sort(
-    (a, b) => (Number(b.weightagePercent) || 0) - (Number(a.weightagePercent) || 0)
+  return [...details].sort((a, b) => (Number(b.weightagePercent) || 0) - (Number(a.weightagePercent) || 0));
+}
+
+/** One published assessment — the row both the flat list and the grouped split render. */
+function AssessmentRow({ item }: { item: NonNullable<GradeItem["details"]>[number] }) {
+  return (
+    <div className="flex items-center gap-3 py-2.5 px-4">
+      <ListRowText title={item.component} subtitle={`${item.weightagePercent ?? "-"}% weightage`} />
+      <span className="shrink-0 text-sm font-black font-outfit text-zinc-800 dark:text-zinc-100">
+        {item.scoredMark ?? "-"}
+        <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 ml-0.5">/{item.maxMark ?? "-"}</span>
+      </span>
+    </div>
   );
 }
 
@@ -804,17 +833,9 @@ function CourseRow({ course, onOpen }: { course: GradeItem; onOpen: () => void }
   return (
     <button type="button" onClick={onOpen} className={`${LIST_ROW} cursor-pointer`}>
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-border-muted bg-surface-secondary text-zinc-500 dark:text-zinc-400">
-        {embedded ? (
-          <Layers className="h-4.5 w-4.5" />
-        ) : (
-          <GraduationCap className="h-4.5 w-4.5" />
-        )}
+        {embedded ? <Layers className="h-4.5 w-4.5" /> : <GraduationCap className="h-4.5 w-4.5" />}
       </span>
-      <ListRowText
-        title={course.courseCode}
-        subtitle={course.courseTitle}
-        titleTooltip={course.courseTitle}
-      />
+      <ListRowText title={course.courseCode} subtitle={course.courseTitle} titleTooltip={course.courseTitle} />
       {embedded && (
         /* The published number blends both halves, so a reader comparing it to
            their own marks needs to know that before they wonder why the

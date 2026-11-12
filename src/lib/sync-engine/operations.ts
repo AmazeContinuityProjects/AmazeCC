@@ -1226,7 +1226,7 @@ registerOp({
     const applNo = args?.applNo as string | undefined;
     const body: Record<string, unknown> = { section };
     if (applNo) body.applNo = applNo;
-    const res = await ctx.request<any>("finance", body, { auth: "vtop" });
+    const res = await ctx.request("finance", body, { auth: "vtop" });
     assertApiSuccess(res, "Finance");
     if (section === "all") {
       const dues = res?.dues ?? null;
@@ -1252,10 +1252,10 @@ registerOp({
   meta: {
     label: "Push subscribe",
     description: "Register push notification subscription.",
-    category: "other",
+    category: "profile",
     cost: "light",
   },
   async run(ctx, args) {
-    return ctx.request<any>("notifications/subscribe", args || {}, { auth: "none" });
+    return ctx.request("notifications/subscribe", args || {}, { auth: "none" });
   },
 });

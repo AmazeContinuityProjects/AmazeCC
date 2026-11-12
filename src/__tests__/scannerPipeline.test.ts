@@ -1,3 +1,5 @@
+import { installLocalStorage } from "./helpers/localStorage";
+installLocalStorage();
 import { beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { detectQuad, rasterFromGray, warpSizeFor } from "../lib/scanner/imageOps";
 import { OcrUnavailableError, type OcrOptions } from "../lib/scanner/ocr";
@@ -214,6 +216,8 @@ describe("scanner pipeline: upload filename", () => {
 /* ----------------------------------------------------------- processScan */
 
 describe("scanner pipeline: processScan", () => {
+  // The full pipeline walk is the heaviest case in the suite; under a full
+  // parallel run it needs more than the 5s default (same convention as the FFCS tab tests).
   it("walks capture → detect → warp → cleanup → PDF → OCR → classify → store", async () => {
     const deps = makeDeps();
     const record = await processScan([{ raster: photoWithSheet() }], deps, { settings: settings() });
@@ -255,7 +259,7 @@ describe("scanner pipeline: processScan", () => {
     expect(images[0].type).toBe("image/png");
     expect(ocrOptions.engine).toBe("tesseract");
     expect(ocrOptions.apiKey).toBeUndefined();
-  });
+  }, 30_000);
 
   it("warps to exactly the detected quad's size", async () => {
     const raster = photoWithSheet();
