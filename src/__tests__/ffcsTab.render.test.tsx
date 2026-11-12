@@ -677,11 +677,11 @@ describe("FFCSTimetableTab", () => {
     // The settings modal is a lazy chunk now — wait for its distinctive
     // content before counting the headings (findAll* resolves at ≥1 match,
     // which is not enough here).
-    expect(await screen.findByText("Ranking profile", {}, { timeout: 10000 })).toBeDefined();
+    expect(await screen.findByText("Ranking profile", {}, { timeout: 30_000 })).toBeDefined();
     expect(screen.getAllByRole("heading", { name: "Planner Settings" })).toHaveLength(2);
 
     fireEvent.click(screen.getByRole("button", { name: /Target Courses/ }));
-    expect(await screen.findByText(/Select the courses you intend to take/, {}, { timeout: 10000 })).toBeDefined();
+    expect(await screen.findByText(/Select the courses you intend to take/, {}, { timeout: 30_000 })).toBeDefined();
   }, 30_000);
 
   it("opens view and course-list switching from Modern menu rows", async () => {

@@ -1,5 +1,5 @@
-import { defineConfig } from 'vitest/config';
-import { fileURLToPath } from 'node:url';
+import { defineConfig } from "vitest/config";
+import { fileURLToPath } from "node:url";
 
 export default defineConfig({
   resolve: {
@@ -7,15 +7,27 @@ export default defineConfig({
     // own resolution. Without this, any module that imports through the alias
     // simply cannot be tested - the import fails to resolve at collection time.
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)),
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
   // Styles are irrelevant to these tests, and the project PostCSS config
   // (tailwind + a plugin Vite loads differently) fails hard on a third-party
   // stylesheet. Nothing under test asserts on computed style.
   css: { postcss: { plugins: [] } },
+  // The heaviest render tests (FFCS tab, planner pages) were given per-test
+  // 30s budgets; the 5s default starves them under a full parallel run and
+  // flaky-fails tests that pass in isolation. Give every test the same
+  // headroom the heavy ones already pin, rather than whack-a-mole per case.
+  //
+  // Worker count: the default (cpus-1 = 7) keeps a whole jsdom + the FFCS
+  // module graph per worker; this suite then flips a handful of heavy tests
+  // between green and timeout depending on what else the machine is doing.
+  // Half the cores is still plenty parallel and stops them starving each
+  // other. Raise if the suite has room to breathe.
   test: {
-    environment: 'jsdom',
+    testTimeout: 30_000,
+    maxWorkers: 4,
+    environment: "jsdom",
     globals: true,
     server: {
       deps: {
@@ -28,10 +40,7 @@ export default defineConfig({
         //
         // This only matters for tests that render DOM; the other 19 test files
         // import no component and never reach the barrel.
-        inline: [
-          '@amazecontinuityprojects/amazeui',
-          'react-circular-progressbar',
-        ],
+        inline: ["@amazecontinuityprojects/amazeui", "react-circular-progressbar"],
       },
     },
   },

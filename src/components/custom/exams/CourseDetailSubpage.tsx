@@ -248,19 +248,6 @@ export default function CourseDetailSubpage({
     }
   };
 
-  const getVtopSemesterSubId = useCallback(() => {
-    return selectedGroup?.semesterSubId && selectedGroup.semesterSubId !== "Current" ? selectedGroup.semesterSubId : "";
-  }, [selectedGroup?.semesterSubId]);
-
-  const getVtopClassId = useCallback(() => {
-    return (
-      (selectedGroup?.theory?.classNbr as string) ||
-      (selectedGroup?.lab?.classNbr as string) ||
-      (mainCourse?.classNbr as string) ||
-      ""
-    );
-  }, [selectedGroup?.theory?.classNbr, selectedGroup?.lab?.classNbr, mainCourse?.classNbr]);
-
   const handleDownloadMaterial = async (action: "course-plan" | "all-materials" | "general-materials") => {
     setDownloadingMaterial(action);
     setDownloadError(null);
@@ -669,6 +656,21 @@ export default function CourseDetailSubpage({
     [selectedCode, uniqueCourses],
   );
   const mainCourse = selectedGroup?.theory || selectedGroup?.lab;
+
+  // Declared after `selectedGroup`/`mainCourse`: the two callbacks read them,
+  // and a dependency array evaluated before them throws a TDZ ReferenceError.
+  const getVtopSemesterSubId = useCallback(() => {
+    return selectedGroup?.semesterSubId && selectedGroup.semesterSubId !== "Current" ? selectedGroup.semesterSubId : "";
+  }, [selectedGroup?.semesterSubId]);
+
+  const getVtopClassId = useCallback(() => {
+    return (
+      (selectedGroup?.theory?.classNbr as string) ||
+      (selectedGroup?.lab?.classNbr as string) ||
+      (mainCourse?.classNbr as string) ||
+      ""
+    );
+  }, [selectedGroup?.theory?.classNbr, selectedGroup?.lab?.classNbr, mainCourse?.classNbr]);
 
   useEffect(() => {
     if (!marksData?.courses) return;
