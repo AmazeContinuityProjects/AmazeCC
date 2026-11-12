@@ -152,28 +152,10 @@ function DashboardContent({
     } catch (e) {}
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        if (demoMode) return;
-        const { syncEngine } = await import("@/lib/sync-engine");
-        const res: any = await syncEngine.sync("ffcs", { semesterId: settings?.currSemesterID }).catch(() => null);
-        const simple = res?.feedback || null;
-        if (!cancelled && simple) {
-          setFfcsFeedback(simple);
-        } else if (!cancelled) {
-          try {
-            const cachedFeedback = localStorage.getItem("cache_ffcs_feedback");
-            if (cachedFeedback) setFfcsFeedback(JSON.parse(cachedFeedback));
-          } catch {}
-        }
-      } catch {}
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [demoMode, settings?.currSemesterID]);
+  // /api/ffcs is only reached from explicit user actions (a manual sync, the
+  // feedback/registration modals). The feedback badge reads whatever those
+  // runs cached into `cache_ffcs_feedback` — fetching on mount costs a VTOP
+  // round trip (or a captcha login) per app start just to paint a stat.
 
   if (showFresherWelcome) {
     return (

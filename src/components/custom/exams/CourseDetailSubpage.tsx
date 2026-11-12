@@ -55,6 +55,7 @@ import {
   StickyNote,
   Download,
   FileDown,
+  Paperclip,
   RefreshCw,
   AlertCircle,
   Check,
@@ -192,6 +193,7 @@ export default function CourseDetailSubpage({
   const [downloadingSyllabus, setDownloadingSyllabus] = useState(false);
   const [downloadingCurriculum, setDownloadingCurriculum] = useState(false);
   const [downloadingMaterial, setDownloadingMaterial] = useState<string | null>(null);
+  const [downloadingRef, setDownloadingRef] = useState<string | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
 
@@ -288,6 +290,46 @@ export default function CourseDetailSubpage({
       setDownloadError(err?.message || "Failed to download course materials.");
     } finally {
       setDownloadingMaterial(null);
+    }
+  };
+
+  // Stream one teacher-uploaded file off the VTOP course page through the API
+  // proxy. `key` identifies the exact row+material so only that row spins.
+  const handleDownloadReferenceMaterial = async (key: string, entry: any, row: any, mat: any) => {
+    setDownloadingRef(key);
+    setDownloadError(null);
+    setDownloadSuccess(null);
+    try {
+      let c = creds;
+      if (!c) {
+        c = await loginToVTOP();
+        setCreds(c);
+      }
+      if (!c) throw new Error("Please log in to VTOP first.");
+
+      const filename = `${selectedCode} ${row?.date ?? ""} ${mat?.label ?? "material"}`
+        .replace(/[\\/:*?"<>|]+/g, "_")
+        .replace(/\s+/g, " ")
+        .trim();
+      await downloadCourseMaterialProxy({
+        cookies: c.cookies,
+        authorizedID: c.authorizedID,
+        csrf: c.csrf,
+        action: "reference-material",
+        semSubId: mat?.semSubId || entry?.data?.semesterSubId || "",
+        classId: mat?.classId || entry?.data?.classId || "",
+        materialId: mat?.materialId,
+        materialDate: mat?.materialDate,
+        filename,
+      });
+
+      setDownloadSuccess(`Downloading ${mat?.label ?? "Reference material"} (${row?.date ?? "VTOP course page"})`);
+      setTimeout(() => setDownloadSuccess(null), 3500);
+    } catch (err: any) {
+      console.error("Reference material download error:", err);
+      setDownloadError(err?.message || "Failed to download the reference material.");
+    } finally {
+      setDownloadingRef(null);
     }
   };
 
@@ -660,8 +702,20 @@ export default function CourseDetailSubpage({
   // Declared after `selectedGroup`/`mainCourse`: the two callbacks read them,
   // and a dependency array evaluated before them throws a TDZ ReferenceError.
   const getVtopSemesterSubId = useCallback(() => {
-    return selectedGroup?.semesterSubId && selectedGroup.semesterSubId !== "Current" ? selectedGroup.semesterSubId : "";
-  }, [selectedGroup?.semesterSubId]);
+    if (selectedGroup?.semesterSubId && selectedGroup.semesterSubId !== "Current") {
+      return selectedGroup.semesterSubId;
+    }
+    // Current semester: the course group is tagged with the synthetic "Current"
+    // marker, so resolve the real VTOP semester id. The attendance sync stores
+    // it on attendanceData.semester; as a fallback, the fetched course detail
+    // page carries it in its hidden inputs.
+    if (attendanceData?.semester && attendanceData.semester !== "Current") return attendanceData.semester;
+    const fromDetail = (viewDetail || [])
+      .map((e: any) => e?.data?.materials?.semesterSubId || e?.data?.semesterSubId)
+      .find(Boolean);
+    return fromDetail || "";
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedGroup?.semesterSubId, attendanceData?.semester, viewDetail]);
 
   const getVtopClassId = useCallback(() => {
     return (
@@ -895,7 +949,9 @@ export default function CourseDetailSubpage({
   };
 
   const fetchViewDetail = async () => {
-    if (!selectedGroup || !creds) return;
+    if (!selectedGroup) return;
+    const c = await ensureCreds();
+    if (!c) return;
     setViewLoading(true);
     setError(null);
     try {
@@ -1007,6 +1063,10 @@ export default function CourseDetailSubpage({
       setViewDetail(null);
       setQcmError("");
       fetchCoursePlan();
+      // Also pull the VTOP "Course Page View" detail (processViewStudentCourseDetail).
+      // It carries the teacher-uploaded reference materials rendered in this page's
+      // Course Details section; without this call viewDetail stays null forever.
+      fetchViewDetail();
 
       // Automatic QCM automapping from storage/cache
       const cachedRaw =
@@ -1608,6 +1668,23 @@ export default function CourseDetailSubpage({
     (coursePlan || []).filter((cp: any) => (cp.scope || "theory") === scope);
   const detailEntriesByScope = (scope: "theory" | "lab") =>
     (viewDetail || []).filter((vd: any) => (vd.scope || "theory") === scope);
+  // Teacher-uploaded reference materials from the VTOP course page detail
+  // (processViewStudentCourseDetail), grouped by scope for the Course Details
+  // section. Only rows that actually carry a file are kept.
+  const uploadedByScope = reviewScopes
+    .map((scope) => ({
+      scope,
+      rows: detailEntriesByScope(scope).flatMap((entry: any) =>
+        (entry?.data?.materials?.rows ?? [])
+          .filter((r: any) => Array.isArray(r?.materials) && r.materials.length > 0)
+          .map((row: any) => ({ entry, row })),
+      ),
+    }))
+    .filter((s) => s.rows.length > 0);
+  const totalUploaded = uploadedByScope.reduce(
+    (n, s) => n + s.rows.reduce((m: number, x: any) => m + (x.row?.materials?.length ?? 0), 0),
+    0,
+  );
   const renderScopeBadge = (scope: "theory" | "lab") => (
     <ToneBadge tone={SCOPE_TONE[scope === "theory" ? "Theory" : "Lab"]}>
       {scope === "theory" ? "Theory" : "Lab"}
@@ -2019,7 +2096,7 @@ export default function CourseDetailSubpage({
             <SectionHeader
               icon={BookOpen}
               title="Course sections"
-              count={isEmbedded && theoryAttItem && labAttItem ? 8 : 6}
+              count={(isEmbedded && theoryAttItem && labAttItem ? 8 : 6) + 1}
             />
             {/* Joined grouped list: single shell, dividers, curves only on outer top/bottom */}
             <ListShell>
@@ -2118,6 +2195,28 @@ export default function CourseDetailSubpage({
                 <span className="flex items-center gap-2 shrink-0">
                   <span className="text-sm font-black font-outfit tracking-tight leading-none text-text-heading truncate max-w-24">
                     {mainCourse?.slot || "—"}
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-zinc-400" />
+                </span>
+              </button>
+              {/* VTOP Course Page — teacher-uploaded files */}
+              <button onClick={() => ovGo("plan")} className={LIST_ROW}>
+                <span
+                  className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.sky}`}
+                >
+                  <Paperclip className="w-5 h-5" />
+                </span>
+                <ListRowText
+                  title="VTOP Course Page"
+                  subtitle={
+                    totalUploaded > 0
+                      ? `${totalUploaded} file${totalUploaded === 1 ? "" : "s"} uploaded by faculty on VTOP`
+                      : "Files uploaded by faculty on VTOP"
+                  }
+                />
+                <span className="flex items-center gap-2 shrink-0">
+                  <span className="text-base font-black font-outfit tracking-tight leading-none text-sky-600 dark:text-sky-400">
+                    {viewLoading ? "…" : totalUploaded > 0 ? String(totalUploaded) : "—"}
                   </span>
                   <ChevronRight className="w-4 h-4 text-zinc-400" />
                 </span>
@@ -2540,6 +2639,68 @@ export default function CourseDetailSubpage({
               <div className="p-3 text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center gap-2">
                 <Check className="w-4 h-4 shrink-0" />
                 <span>{downloadSuccess}</span>
+              </div>
+            )}
+          </div>
+
+          {/* 2.6 · VTOP COURSE PAGE — TEACHER-UPLOADED FILES */}
+          <div className="space-y-4">
+            <SectionHeader
+              icon={Paperclip}
+              title="VTOP Course Page · Uploaded Files"
+              count={totalUploaded > 0 ? totalUploaded : undefined}
+            />
+
+            {viewLoading ? (
+              <ListSkeleton rows={4} />
+            ) : totalUploaded === 0 ? (
+              <EmptyPanel
+                variant="dashed"
+                title="No files on the VTOP course page yet"
+                description="Files your faculty uploads on VTOP's course page will appear here with a download option."
+              />
+            ) : (
+              <div className="space-y-4">
+                {uploadedByScope.map(({ scope, rows }) => (
+                  <div key={scope} className="space-y-3">
+                    {uploadedByScope.length > 1 && <div className="px-1">{renderScopeBadge(scope)}</div>}
+                    <ListShell>
+                      {rows.flatMap(({ entry, row }: any) =>
+                        (row.materials as any[]).map((mat: any) => {
+                          const key = `${scope}-${row.slNo}-${row.date}-${mat.materialId}-${mat.materialDate}-${mat.label}`;
+                          return (
+                            <div key={key} className={`${LIST_ROW} py-3.5`}>
+                              <span
+                                className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.blue}`}
+                              >
+                                <FileText className="w-5 h-5" />
+                              </span>
+                              <ListRowText
+                                title={mat.label}
+                                titleTooltip={row.topic || undefined}
+                                subtitle={`${row.date}${row.slot ? ` · ${row.slot}` : ""}${row.topic ? ` · ${row.topic}` : ""}`}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleDownloadReferenceMaterial(key, entry, row, mat)}
+                                disabled={downloadingRef !== null}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0"
+                                title={`Download ${mat.label} (${row.date}) from VTOP`}
+                              >
+                                {downloadingRef === key ? (
+                                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                  <Download className="w-3.5 h-3.5" />
+                                )}
+                                <span>{downloadingRef === key ? "Downloading." : "Download"}</span>
+                              </button>
+                            </div>
+                          );
+                        }),
+                      )}
+                    </ListShell>
+                  </div>
+                ))}
               </div>
             )}
           </div>

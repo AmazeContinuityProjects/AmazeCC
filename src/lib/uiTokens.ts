@@ -34,8 +34,7 @@
  * read as one wash. `--border-strong` is the step that survives on white; see
  * the border-step override in `globals.css`.
  */
-const TILE_SURFACE =
-  "rounded-[24px] card-surface border border-border-strong dark:border-border shadow-xs";
+const TILE_SURFACE = "rounded-[24px] card-surface border border-border-strong dark:border-border shadow-xs";
 
 export const TILE = `${TILE_SURFACE} p-4 sm:p-5 flex flex-col justify-between text-left relative overflow-hidden`;
 
@@ -102,8 +101,7 @@ export const ICON_BUTTON =
  * all nine segmented controls in the app already use.)
  */
 export const SEG_ACTIVE = "bg-white dark:bg-surface shadow-2xs font-extrabold";
-export const SEG_IDLE =
-  "text-text-secondary dark:text-text-muted hover:text-text-heading dark:hover:text-text-heading";
+export const SEG_IDLE = "text-text-secondary dark:text-text-muted hover:text-text-heading dark:hover:text-text-heading";
 
 /**
  * Pill tone recipes: `bg-<c>-500/10 border-<c>-500/20 text-<c>-600 dark:text-<c>-400`
@@ -125,8 +123,7 @@ export const TONE_BADGE: Record<string, string> = {
   sky: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20",
   violet: "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20",
   cyan: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20",
-  zinc:
-    "bg-surface-secondary text-text-secondary dark:text-text-muted border-border-muted",
+  zinc: "bg-surface-secondary text-text-secondary dark:text-text-muted border-border-muted",
 };
 
 export const TONE_TEXT: Record<string, string> = {
@@ -143,6 +140,7 @@ export const TONE_TEXT: Record<string, string> = {
 
 export const TONE_ICON_TILE: Record<string, string> = {
   sky: "bg-sky-500/10 border-sky-500/20 text-sky-600 dark:text-sky-400",
+  blue: "bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400",
   emerald: "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400",
   amber: "bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400",
   violet: "bg-violet-500/10 border-violet-500/20 text-violet-600 dark:text-violet-400",

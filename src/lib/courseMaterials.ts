@@ -11,10 +11,10 @@
  *    them this cannot produce a working direct link.
  */
 
+import { api } from "@/lib/sync-engine";
+
 export type CourseMaterialAction =
   "reference-material" | "syllabus" | "course-plan" | "all-materials" | "general-materials";
-
-const API_PATH = "/api/course-page/material";
 
 export interface CourseMaterialParams {
   cookies?: string | string[];
@@ -29,14 +29,21 @@ export interface CourseMaterialParams {
   courseTYPE?: string;
   materialId?: string;
   materialDate?: string;
+  /** Suggested filename for the saved file; the server falls back to VTOP's content-disposition. */
+  filename?: string;
 }
 
-/** Server proxy: the API does the authenticated VTOP POST and returns the file. */
+/**
+ * Server proxy: the API does the authenticated VTOP POST and streams the file
+ * bytes back. Routed through `api()` like every other call so the API base,
+ * failover and timeout behavior stay consistent — a bare relative `/api/...`
+ * fetch lands on the static site origin, where nothing is listening.
+ */
 export async function downloadCourseMaterialProxy(params: CourseMaterialParams): Promise<void> {
-  const res = await fetch(API_PATH, {
+  const res: Response = await api("course-page/material", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(params),
+    body: params,
+    parse: "raw",
   });
 
   if (!res.ok) {
