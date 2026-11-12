@@ -1,8 +1,10 @@
-# Payments — Overview
+# Payments — Overview (walkthrough)
 
-VIT fee dues, payment history, receipts (download as PDF), wallet balance — in one page.
+> **In one line:** every paisa VIT owes or owes you — receipts, dues, fines — one screen, zero math guesswork.
 
-## Screens
+1. **Dues tab** — current invoices (hostel fee, tuition, exam fees…) with amounts and due dates
+2. **Receipts** — every payment made: date, mode (UPI/card), amount, download as PDF
+3. **Wallet** — My Wallet balance for canteen/printing spends
+4. **Renewal eligibility** — before the fee window, see the "can renew" hint set
 
-1. **Dues** (current invoices) · 2. **Receipts** (paid) · 3. **Wallet** (My Wallet balance)
-2. **Eligibility** for renewals (disclaimer awareness)
+Fresh sessions re-fetch on every entry — that's intentional.

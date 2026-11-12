@@ -1,4 +1,6 @@
-# Onboarding — Known Issues
+# Onboarding — Known Issues (full)
 
-1. A student can skip every step including sign-in — they'll land in a dead state requiring explicit re-entry (Known flow; by design).
-2. Interface choice flips only the home screen rendering — the rest of the app is shared code.
+1. **Cancel mid-sync** — offers "continue without attendance" — the app never hard-blocks refresh paths after that choice is made (safety net).
+2. **Captcha failures** — VIT captcha print poor-quality variants; the login surfacing "try again" as the common failure; 5s backoff.
+3. **Legacy sessions** — users with old jsessionid never re-See onboarding; the gate is atom-only, not VTOP-aware.
+4. **Demo → full upgrade path** — switching from demo to real student wipes demo atoms; cached attendance from demo evaporates — intended.

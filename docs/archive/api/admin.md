@@ -341,6 +341,6 @@ System analytics.
 
 ## Related Documentation
 
-- [API Overview](../overview.md)
+- [API Overview](overview.md)
 - [Authentication](./auth.md)
-- [Security: Admin Access](../../security/api-security.md)
+- [Security: Admin Access](../../11-security/README.md)

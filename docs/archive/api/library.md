@@ -220,5 +220,5 @@ Get library dues/fines (from VTOP).
 
 ## Related Documentation
 
-- [API Overview](../overview.md)
+- [API Overview](overview.md)
 - [Authentication](./auth.md)

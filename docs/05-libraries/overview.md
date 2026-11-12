@@ -1,8 +1,10 @@
-# Libraries — Overview
+# Libraries — Overview (walkthrough)
 
-Search the VIT library catalog (OPAC/Koha), see your dues, holdings and checkout history — one screen, no VTOP detour.
+> **In one line:** your library life — search, find, check what you owe — without opening the library portal.
 
-## Screens
+1. **Search** — type book/authors/ISBN → results with cover, location, shelf status — one tap per copy
+2. **Item detail** — all holdings, who has it, due date if borrowed — decide before you walk
+3. **My account** — current checkouts with due dates, overdue fines, holds — VTOP-gated
+4. **Repeat patron flows** — reserve via portal link (we don't submit Koha holds for you)
 
-1. **Catalog search** (title/author/ISBN fuzzy) · 2. **Item detail** (holdings by location)
-2. **Your account** — dues, holds, fines (via patron login over VTOP cookies)
+Use case: student standing in the library aisle — search, find, get, done.

@@ -50,7 +50,7 @@ In continuous time, two scheduled events $A$ and $B$ clash if and only if:
 1. They take place on the **same day** (`A.day === B.day`).
 2. Their open time intervals $(A_{\text{start}}, A_{\text{end}})$ and $(B_{\text{start}}, B_{\text{end}})$ overlap.
 
-The canonical mathematical formulation is centralized in [`src/lib/slots.ts`](file:///C:/Users/sugee/Github/AmazeContinuityProjects/AmazeCC/src/lib/slots.ts):
+The canonical mathematical formulation is centralized in [`src/lib/slots.ts`](../../../src/lib/slots.ts):
 
 ```typescript
 /** Do two scheduled periods overlap in time on the same day? */
@@ -102,7 +102,7 @@ Suppose Period C is Theory 8:55 AM – 9:45 AM ($[535, 585]$) and Period B is La
 
 ## 3. How the FFCS Timetable Tab Handles Clashes
 
-In [`FFCSTimetableTab.tsx`](file:///C:/Users/sugee/Github/AmazeContinuityProjects/AmazeCC/src/components/custom/exams/FFCSTimetableTab.tsx), clash detection operates interactively:
+In [`FFCSTimetableTab.tsx`](../../../src/components/custom/exams/FFCSTimetableTab.tsx), clash detection operates interactively:
 
 1. **Incremental Validation on Add**:
    When the user selects an offering and clicks "Add Course":
@@ -125,7 +125,7 @@ In [`FFCSTimetableTab.tsx`](file:///C:/Users/sugee/Github/AmazeContinuityProject
 
 ## 4. How the Timetable Generator Handles Clashes
 
-In [`src/components/custom/exams/FFCS/logic/generate.ts`](file:///C:/Users/sugee/Github/AmazeContinuityProjects/AmazeCC/src/components/custom/exams/FFCS/logic/generate.ts):
+In [`src/components/custom/exams/FFCS/logic/generate.ts`](../../../src/components/custom/exams/FFCS/logic/generator.ts):
 
 1. **Pre-Filtering (Pruning before Search)**:
    - Filters out offerings with user-blocked slots (checked across all alias spellings via `slotSpellings`).

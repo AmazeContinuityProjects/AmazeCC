@@ -1,37 +1,23 @@
-# FFCS Planner — Known Issues & Sharp Edges
+# FFCS Planner — Known Issues & Sharp Edges (complete catalog)
 
-> Read this before filing a bug here; half of these are intended behavior.
+> Read before filing; half of these are load-bearing weirdness.
 
-1. **Slot-token drift.** New slot tokens (`S5`, `S11`, …) arrive with every semester. The
-   vocabulary lives in `slots.ts`; if VTOP starts spelling a slot differently, the grid renders
-   nothing without error — add the token and a test; do not hand-patch screens.
+1. **Slot vocabulary drift.** New spellings (`S11`, `TBB1`, lab-only tokens `L17`…) land without notice. Vocabulary lives in `slots.ts`; UI just renders blanks — add token + test; never special-case UI.
 
-2. **`ffcsReport.csv` ≠ the live registration page.** It's the _printed_ report when VIT last
-   printed it. A student with a stale CSV sees stale sections; adding the `winter mock` file
-   solved the mid-season case but the fix remains: reload the file from the current printing
-   when sections shift (register page ≠ hourly CSV).
+2. **Lab-day pairing.** An embedded TH with its ELA must sit on the same day in the _walk_, but the _UI_ may split — drop-pitching order: `walk` respects `buildWalkRules().labDayConstraints`; if a student sees a theory with no matching lab, the walk failed to prune, not the renderer.
 
-3. **Timetables can go weird after semester switch** if any surface writes semester-hardcoded
-   state — the semester broadcast (`broadcastGlobalSemesterChange`) is the sanctioned path.
+3. **Slot time ambiguity (GLOBAL model).** Two periods mapping to 12:35 means lunch is implicit; the schema renders a divider — don't render two 12:35 periods back-to-back thinking it's a bug.
 
-4. **Drop-ladder UX misfire** (guidance): when the generator drops a course per user-approved
-   policy, the UI explains which course was dropped — keep explanations in terms of
-   `coursesSatisfy` rules, not internals.
+4. **`ffcsReport.csv` is a frozen photograph.** VTOP shows live seats; the CSV is what was dumped at release time. Warn students accordingly; keep mock files for in-progress semesters only (`winter-slot-timetable.csv`).
 
-5. **Share payload drift** — older shared links die loudly if `FFCS_SHARE_VERSION` bumps without
-   a compat window. If you increase the version, decide deliberately.
+5. **`ffcs_settings` merge-on-read.** Removing a settings field silently resurrects the default on next boot — never rename; deprecate-add new.
 
-6. **SW precache exclusions** — CSV fetches in the planner are runtime-cache, not precache;
-   first-ever offline session after install never had a chance to download them.
+6. **Share version mismatch.** Old links + new decoder = loud failure. Bump `FFCS_SHARE_VERSION` only with compat story or a hard break note in the changelog.
 
-7. **Targeted `.split()` on CSV rows** — some report lines have embedded commas inside quotes;
-   `ffcsReports.ts` parses properly, but ad-hoc `split(",")` anywhere else will silently corrupt.
-   Don't.
+7. **Tour everywhere.** Every new primary surface adds tour gating on `TOUR_VERSION` — forgetting it confuses returning users on upgrades.
 
-8. **Guided mode memory** — on low-RAM Androids, >8k candidates can trigger worker OOM-ish stalls;
-   the generator caps candidate volume by default (`HARD_RESULT_LIMIT`); respect it.
+8. **CSV parse robustness is one function.** All CSVs must flow through `parseReportRows`; anything else silently drops rows or splits quoted fields.
 
-## Quiz
+9. **Export failures poison global `isDownloading`.** The export boolean lives in one place; a stuck one looks like a dead button until tab reload.
 
-1. A course that exists on VTOP doesn't appear in search results — what's the _first_ thing to check?
-2. What happens to saved week state when a student flips Fall → Winter and back?
+10. **SW CSVs are runtime-cached only.** No CSVs in precache by policy (install weight) — a student who never opened the planner offline has no offline planner.

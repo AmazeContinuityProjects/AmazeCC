@@ -6,7 +6,7 @@
 # FFCSketch vs AmazeCC FFCS — Comparison
 
 > **Scan date:** 2026-10-30
-> **Subjects:** [`../../`](file:///home/sugeethjsa/GitHub/AmazeCC) → `AmazeCC` (v3.1.0, branch `fix/october`, some FFCS files WIP-uncommitted) and `../FFCSketch` (v0.2.1, 19 commits, HEAD `7c705ec`).
+> **Subjects:** [`../../`](../../) → `AmazeCC` (v3.1.0, branch `fix/october`, some FFCS files WIP-uncommitted) and `../FFCSketch` (v0.2.1, 19 commits, HEAD `7c705ec`).
 > **Scope:** only the FFCS (Fully Flexible Credit System) timetable planner/generator surface of each repo. LOC figures are `wc -l` counts taken during the scan and are approximate (±small deltas).
 
 **One-line summary:** FFCSketch is a focused, standalone, zero-backend FFCS planner (~18k LOC of app code, zero tests); AmazeCC's FFCS is the same domain problem solved inside a production app at ~8× the size, with a web-worker solver, a 1,873-test CI suite, and social / faculty-review depth neither of which FFCSketch attempts.

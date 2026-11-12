@@ -151,7 +151,7 @@ except removing/redirecting the classmates entry points.
 
 ## 5. Related documents
 
-- [../ffcs-friend-finder/README.md](../ffcs-friend-finder/README.md) — feature
+- [../../05-friend-finder/design-note.md](../../05-friend-finder/design-note.md) — feature
   design being moved (update in Phase 4)
-- [../ffcs-workings/README.md](../ffcs-workings/README.md) — report CSV shape
+- [../../05-ffcs-planner/notes/README.md](../../05-ffcs-planner/notes/README.md) — report CSV shape
 - `../social-tt/README.md` — retired sharing feature (context for D5)

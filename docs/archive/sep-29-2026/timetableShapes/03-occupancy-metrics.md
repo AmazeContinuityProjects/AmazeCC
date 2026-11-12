@@ -44,7 +44,7 @@ formatHours(minutes): string
 ```
 
 `dayOccupancy` is the only place the walk exists. `freeHalfDays` is five lines on top of
-it, and `timetableMetrics` is the gap and dash derivation on top of *that*.
+it, and `timetableMetrics` is the gap and dash derivation on top of _that_.
 
 ## The minutes decision
 
@@ -52,11 +52,11 @@ it, and `timetableMetrics` is the gap and dash derivation on top of *that*.
 since at least the dead worker: the same field name carried minutes in one copy and hours
 in another, and the sort read whichever it was handed.
 
-| Field | Unit | Note |
-|---|---|---|
-| `metrics.gaps` | minutes | was hours in both live inline copies |
-| `metrics.gapsPerDay` | minutes | was hours in both live inline copies |
-| `gapDetails[].durationMins` | minutes | already correct everywhere |
+| Field                       | Unit    | Note                                 |
+| --------------------------- | ------- | ------------------------------------ |
+| `metrics.gaps`              | minutes | was hours in both live inline copies |
+| `metrics.gapsPerDay`        | minutes | was hours in both live inline copies |
+| `gapDetails[].durationMins` | minutes | already correct everywhere           |
 
 ### The compactness sort
 
@@ -80,17 +80,17 @@ return type was inferred.
 
 `types.ts` will derive from `TimetableMetrics`, and every field becomes **required**:
 
-| Field | Filled by every producer after Phase 2 |
-|---|---|
-| `halfDays` | yes |
-| `gaps` | yes |
-| `gapsPerDay` | yes |
-| `gapDetails` | yes |
-| `buildingDashes` | yes |
-| `dashDetails` | yes |
-| `socialScore` | yes |
-| `bestFriendMatches` | yes |
-| `isLongWeekend` | yes |
+| Field               | Filled by every producer after Phase 2 |
+| ------------------- | -------------------------------------- |
+| `halfDays`          | yes                                    |
+| `gaps`              | yes                                    |
+| `gapsPerDay`        | yes                                    |
+| `gapDetails`        | yes                                    |
+| `buildingDashes`    | yes                                    |
+| `dashDetails`       | yes                                    |
+| `socialScore`       | yes                                    |
+| `bestFriendMatches` | yes                                    |
+| `isLongWeekend`     | yes                                    |
 
 Optionality goes away so that a partial producer is a type error rather than an
 `undefined` that renders as a blank. A completeness test backs this up — see
@@ -123,16 +123,16 @@ is the only place minutes become hours for display.
 
 ## Rewiring
 
-| Caller | Change |
-|---|---|
-| `FFCSTimetableTab.tsx:124` `getFreeHalfDaysList` | deleted, delegates to `freeHalfDays` |
-| `FFCSTimetableTab.tsx:159` `calculatePairwiseSocialScore` | replaced by the shared one |
-| `FFCSTimetableTab.tsx:1225` sort comparator | replaced by `sortTimetables` |
-| `FFCSTimetableTab.tsx:~1030-1230` metrics loop | replaced by `timetableMetrics` (Phase 3) |
-| `AutoGeneratorModal.tsx:528` sort comparator | replaced by `sortTimetables` |
-| `AutoGeneratorModal.tsx:~340-530` metrics loop | replaced by `timetableMetrics` (Phase 3) |
-| `AutoGeneratorModal.tsx:684, :950, :1063, :687, :1066` | use `formatHours` |
-| `types.ts:56-66` | derived from `TimetableMetrics`, all required |
-| `metrics.ts`, `socialScoring.ts` | deleted in Phase 4 |
+| Caller                                                    | Change                                        |
+| --------------------------------------------------------- | --------------------------------------------- |
+| `FFCSTimetableTab.tsx:124` `getFreeHalfDaysList`          | deleted, delegates to `freeHalfDays`          |
+| `FFCSTimetableTab.tsx:159` `calculatePairwiseSocialScore` | replaced by the shared one                    |
+| `FFCSTimetableTab.tsx:1225` sort comparator               | replaced by `sortTimetables`                  |
+| `FFCSTimetableTab.tsx:~1030-1230` metrics loop            | replaced by `timetableMetrics` (Phase 3)      |
+| `AutoGeneratorModal.tsx:528` sort comparator              | replaced by `sortTimetables`                  |
+| `AutoGeneratorModal.tsx:~340-530` metrics loop            | replaced by `timetableMetrics` (Phase 3)      |
+| `AutoGeneratorModal.tsx:684, :950, :1063, :687, :1066`    | use `formatHours`                             |
+| `types.ts:56-66`                                          | derived from `TimetableMetrics`, all required |
+| `metrics.ts`, `socialScoring.ts`                          | deleted in Phase 4                            |
 
 Next: [04 — One generator, in a worker](./04-generator-worker.md)

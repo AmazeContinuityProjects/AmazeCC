@@ -1,4 +1,8 @@
 # Marks Predictor — Storage & State
 
-`predictor_mocks_v1`, `predictor_custom_courses`, `predictor_tour_seen`
-Data: `marksDataAtom` (enrolled courses), `marksStatsAtom` (cohort stats — needs opt-in for live μ/σ).
+> State is local, ephemeral, honest — nothing in this feature is pushed anywhere.
+
+`predictor_custom_courses` (what-if courses) · `predictor_mocks_v1` (named snapshots) ·
+`predictor_tour_seen` (tour gate)
+
+Read from atoms: current marks + cohort stats (if synced). Nothing writes anywhere but `localStorage`.

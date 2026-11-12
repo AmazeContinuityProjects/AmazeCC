@@ -173,5 +173,5 @@ SUBMITTED → PENDING_WARDEN → APPROVED/REJECTED
 
 ## Related Documentation
 
-- [API Overview](../overview.md)
+- [API Overview](overview.md)
 - [Authentication](./auth.md)

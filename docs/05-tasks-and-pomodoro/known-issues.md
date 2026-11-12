@@ -1,4 +1,7 @@
-# Tasks — Known Issues
+# Tasks & Pomodoro — Known Issues (full)
 
-1. Reminders don't survive app close — push reminders are notification-category-specific; pomodoro toast works only with the app running.
-2. Pomodoro state on reload resumes from stored start time — if the clock is changed mid-session, the timer drifts; sessions are logged by actual elapsed time.
+1. **Reminders die with the tab** — closed browser tabs never fire reminders; the screen still shows badge counts at boot.
+2. **Pomodoro clock drift** — wall clock leaps (sleep/hibernate) miscalculate session length; session auto-caps at estimated upper bound.
+3. **Edit conflicts** — two windows editing tasks_v1 — last writer wins; we never merge field-by-field; close one window.
+4. **Kanban drag loss** — Kanban re-sorts only locally until tasks write; refresh mid-drag loses position (rare).
+5. **Pomodoro + breaks are not synced** — your friend's 25-minute countdown never appears; this is single-device focus, not shared sessions.

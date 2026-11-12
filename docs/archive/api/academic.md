@@ -288,6 +288,6 @@ Get academic calendar events.
 
 ## Related Documentation
 
-- [API Overview](../overview.md)
+- [API Overview](overview.md)
 - [Authentication](./auth.md)
-- [Architecture: Academic Data Flow](../../architecture/backend.md#data-fetching-flow)
+- [Architecture: Academic Data Flow](../../06-sync-engine/14-api-route-contracts.md)

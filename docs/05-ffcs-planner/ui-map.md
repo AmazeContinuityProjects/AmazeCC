@@ -1,55 +1,38 @@
-# FFCS Planner — Component Map (the ~90-file atlas)
+# FFCS Planner — UI Map (annotated, with sizes)
 
-> **Entry files**
->
-> - `exams/FFCSTimetableTab.tsx` (~4.4k) — the planner tab itself
-> - `exams/FFCS/FFCSGuidedSelector.tsx` (~5.1k) — guided wizard
-> - `exams/FFCS/FFCSGeneratorSubpage.tsx` (~3.7k) — the generator UI
+> **Entry files:** `exams/FFCSTimetableTab.tsx` (~4,436 lines) · `exams/FFCS/FFCSGeneratorSubpage.tsx` (~3,665) ·
+> `exams/FFCS/components/FFCSGuidedSelector.tsx` (~5,126). Everything else is a satellite.
 
-## Layout & header
+## The tab's mount map (dynamic imports → screens)
 
-`FFCSDashboardHeader.tsx` (stats, timetable switcher) · `FFCSDashboardDetails.tsx` (sheets) ·
-`SelectedCoursesList.tsx` · `TargetCoursesModal.tsx` · `TargetCourseLocker.tsx` ·
-`TargetCourseLockCard.tsx` · `SlotFacultySwapSheet.tsx`
+| Lines   | Imports (representative)                                                                                                                                                                                                                   | Lines |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----- |
+| 158–163 | FFCSGeneratorSubpage, FFCSFriendsSubpage, FFCSDossierSubpage, FFCSGuidedSelector                                                                                                                                                           | lazy  |
+| 164–192 | SlotFacultySwapSheet, FFCSLayoutModeModal, FacultyPriorityModal, TargetCoursesModal, PasteRegisteredCoursesModal, FacultyScheduleModal, SocialMatrixModal, FFCSGuideModal, FacultyReviewSheetHost, SelectedCoursesList, PdfGenerationBadge | lazy  |
+| 200–203 | notice key + component entry                                                                                                                                                                                                               | —     |
 
-## Pickers & filters
+## State clusters (approximate line ranges)
 
-`CourseCatalogFilters.tsx` · `CourseListImportSection.tsx` · `CourseImportPanel.tsx` ·
-`PasteRegisteredCoursesModal.tsx` · `CourseTypeChips.tsx` · `FFCSResultsFilterBar.tsx` ·
-`GeneratorTargetCoursesWidget.tsx`
+| Range     | Cluster                                                                                                             |
+| --------- | ------------------------------------------------------------------------------------------------------------------- |
+| 216–320   | raw/semester/master courses, grouping toggle, blocked slots, timetables, locks, sheet editing                       |
+| 340–475   | layout mode (guided/modern/classic), guided fullscreen, final list notice, vitfac hydration ref, tour wiring        |
+| 604–672   | friends/groups/social-matrix, social target                                                                         |
+| 672–700   | `loadSemesterReport` — CSV fetch + parse path                                                                       |
+| 731–760   | `handleSemesterChange` — semester broadcast → reload                                                                |
+| 830–960   | overlays: final list notice, report catalog changed, faculty groups hydration                                       |
+| 1020–1190 | `catalogSlotIndex`, `uniqueCourses`, curriculum-only, search filter memo                                            |
+| 1289–1650 | export hub: image, share plan, share JSON, AmazeCC share, dossier HTML, clash report, print dossier, detached print |
+| 1683–1835 | slot catalog (theory/lab filtered), `handleAddGuidedCourse`                                                         |
+| 1831–1960 | guided mount, close handlers, generator preview holder                                                              |
+| 4101      | paste mapping line — power users dumping CSV lines one per row                                                      |
 
-## Guided mode
+## Satellite components (name → job)
 
-`components/guided/`: MobilePreflightCard · SetupModeCard · SetupStrategyCard · AutoBlockingCard ·
-AutoTimetableViewCard · AutoTimingsCard · AutoSocialCard — each = one wizard step.
+Friends management (GroupMembersSheet, AddPeerSheet…). Export dialogs (ExportDossierWidget, PdfGenerationBadge…).
+Catalog pickers (CourseCatalogFilters, CourseTypeChips, FFCSResultsFilterBar…). Faculty rating (FacultyAvatar,
+FacultyReviewSheet, GuidedFacultyStats…). Modals (FacultyPriorityModal, FacultyScheduleModal, SocialMatrixModal,
+TargetCoursesModal, PasteRegisteredCoursesModal, FFCSLayoutModeModal, FFCSSettingsModal, FFCSShortcutsModal? (via assembled)).
 
-## Generator internals
-
-`components/GeneratorStatParts.tsx` · `TargetCourseLocker.tsx` · `logic/generator.ts` ·
-`logic/dropPolicy.ts` · `logic/groupSelectedCourses.ts` · `logic/facultyGroups.ts` ·
-`workers/generator.worker.ts`
-
-## Views
-
-`components/TimetableGrid.tsx` · `timetable/TimetableView.tsx` (canonical) ·
-`ClassicHorizontalTimetableGrid.tsx` · `HorizontalTimetableGrid.tsx` · `ModernHorizontalTimetableGrid.tsx` ·
-`VerticalTimetableGrid.tsx` · `TimetableGridShell.tsx` · `TimeperiodSkeleton…`
-
-## Ranking & social
-
-`ffcsRanking.ts` · `ffcsFacultyRanking.ts` · `ffcsFacultyPriority.ts` · `components/FacultyAvatar.tsx` ·
-`FacultyReviewSheet(Host).tsx` · `GuidedFacultyStats.tsx` · `FFCSFriendsSubpage.tsx`
-
-## Exports & dossier
-
-`ExportDossierWidget.tsx` · `FFCSDossierSubpage.tsx` · `PdfGenerationBadge.tsx` ·
-`lib/exportTimetable.ts` · `lib/exportTimetableHtml.ts` · `lib/portraitDossier.ts` ·
-`lib/formDossier.ts` · `lib/exportIcal.ts` · `lib/exportClashReport.ts` · `imageDownload.ts`
-
-## Modals & sheets
-
-Settings/Shortcuts/View-mode/Layout-mode/Faculty-Priority/Faculty-Schedule/Social-Matrix/
-Paste-courses/Guide/Run-Summary sheets live under `components/modals/` + `features/tour/`.
-
-Line-count guidance for handoff: the three ~4–5k-line files are intentionally monolithic for
-inline commenting; do not split without the test net green.
+Presentational mass: `components/guided/*` (7 files) owns the wizard's cards; `components/modals/*` owns the
+10 modal sheets; `logic/*` (imports never run in render path except drops), `hooks/*` (React-state leaves).

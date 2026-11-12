@@ -7,14 +7,14 @@
 
 ## What already exists and must keep passing
 
-| File | Covers |
-|---|---|
-| `src/__tests__/slots.test.ts` | the two spellings, both directions, every exclusion |
-| `src/__tests__/freeClassrooms.test.ts` | the free-room model, incl. the real-schema `S11`/`S15` cases |
-| `src/__tests__/ffcs-metrics.test.ts` | half-days, gaps, long weekend, law equivalence |
-| `src/__tests__/timetable-vertical.test.ts` | the vertical grid projection, incl. law courses |
-| `src/__tests__/timetable-horizontal-law.test.tsx` | the amazeui adapter, incl. the block spelling |
-| `src/__tests__/timetable-vertical-render.test.tsx` | vertical grid markup, rowSpan geometry |
+| File                                               | Covers                                                       |
+| -------------------------------------------------- | ------------------------------------------------------------ |
+| `src/__tests__/slots.test.ts`                      | the two spellings, both directions, every exclusion          |
+| `src/__tests__/freeClassrooms.test.ts`             | the free-room model, incl. the real-schema `S11`/`S15` cases |
+| `src/__tests__/ffcs-metrics.test.ts`               | half-days, gaps, long weekend, law equivalence               |
+| `src/__tests__/timetable-vertical.test.ts`         | the vertical grid projection, incl. law courses              |
+| `src/__tests__/timetable-horizontal-law.test.tsx`  | the amazeui adapter, incl. the block spelling                |
+| `src/__tests__/timetable-vertical-render.test.tsx` | vertical grid markup, rowSpan geometry                       |
 
 ## New tests
 
@@ -39,8 +39,7 @@ is now a compile error, and this test is the runtime backstop.
 
 ```ts
 it("fills every field the TimetableState.metrics contract declares", () => {
-  expect(Object.keys(calculateTimetableMetrics(courses, schema)).sort())
-    .toEqual(Object.keys(EXPECTED_CONTRACT).sort());
+  expect(Object.keys(calculateTimetableMetrics(courses, schema)).sort()).toEqual(Object.keys(EXPECTED_CONTRACT).sort());
 });
 ```
 
@@ -85,7 +84,7 @@ written to pin the law-slot behaviour:
 ## Reading the numbers in tests
 
 A slot id names one period **on one day**, and some ids recur across days — `A1` is
-Monday 8:00 *and* Wednesday 8:55, so it costs two half-days, not one. Every expected
+Monday 8:00 _and_ Wednesday 8:55, so it costs two half-days, not one. Every expected
 value in these tests is written out from `chennai.json` rather than counted by hand; four
 were wrong on first draft during the law fix because of exactly this.
 

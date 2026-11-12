@@ -188,5 +188,5 @@ Get research project details.
 
 ## Related Documentation
 
-- [API Overview](../overview.md)
+- [API Overview](overview.md)
 - [Authentication](./auth.md)

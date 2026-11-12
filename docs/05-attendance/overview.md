@@ -1,13 +1,27 @@
-# Attendance — Overview
+# Attendance — Overview (walkthrough)
 
-Open **Attendance**. The tab has one job: tell the student where they stand, per course, per month, with one authoritative number everywhere — `attendanceSummary.ts`: unweighted sum of `attendedClasses / totalClasses` across all courses. OD requests score against the same odds.
+> **In one line:** open **Attendance**, see exactly how many classes you can skip this week
+> without breaching 75% — or whatever threshold you set.
+> **Screen order:** tab → month → course → sheet.
 
-## Screens
+## The path a student takes
 
-1. **Calendar view** — month grid with working days, instructional days, CAT/FAT dates (`calendarDay.ts` classifies)
-2. **Course detail** — per-course rates, skip math (`attendancePredictor.ts`), embedded-lab weight
-3. **OD tracker** — earned vs "to-date" remaining, semester crossing
-4. **Upcoming classes** — this-week strip with lock dates
-5. **Overall predictor** — "which class is the safest skip this week?"
+1. **Attendance tab opens** — month view. Colors are `TEACHING_DAYS` classes: instructional = solid dot,
+   CAT/FAT = exam-colored chip, holiday = red dashed. Past = green/red eco-dot depending on whether all
+   held classes that day were attended (inferred).
+2. **Click a day** → `DayDetailSheet` slides up: classes held, marks earned, exams nearby, ICS export button.
+3. **Click a course** → `DesktopCourseDetail` — every number VTOP exposes + local notes —
+   with the **Skip simulator** at the bottom showing
+   _"You can skip N more this semester and stay ≥ 75%"_ — recomputed live.
+4. **Overdue?** → OD tracker lists official vs inferred OD — green/red split by whether VIT has approved them.
+5. **Predictor** card lets you ask "what if I miss two Lab sessions and one TH?" — answers with numbers.
 
-Tap anything to drill in; export the month as `.ics` via DayDetailSheet.
+## The math students actually learn
+
+`(attended so far) ÷ (held so far + remaining after skips) ≥ 0.75` — solved per course, shown bold.
+OD sits on the plus side just like attended classes — every OD is a class attended, academically.
+
+## The one rule of this screen
+
+**Never show a stale number without a "last synced" stamp.**
+The badge at the top is fed by sync session state; tapping it re-runs the `attendanceMarks` op.

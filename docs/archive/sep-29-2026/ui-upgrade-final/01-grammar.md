@@ -5,15 +5,15 @@ rule cites the file that defines it and the file that already obeys it.
 
 ## Where the grammar lives
 
-| Layer | Location | Role |
-|---|---|---|
-| Class-string tokens | `src/lib/uiTokens.ts` (112 lines) | Surfaces, controls, tone maps |
-| React primitives | `src/components/custom/shared/primitives/` (14 files) | Structure and behaviour |
-| Design intent | `design/DESIGN_LANGUAGE.md` | Radius, spacing, motion, icons |
-| Reference impl | `exams/CourseDetailSubpage.tsx` L1388-1550 | The overview block |
+| Layer               | Location                                              | Role                           |
+| ------------------- | ----------------------------------------------------- | ------------------------------ |
+| Class-string tokens | `src/lib/uiTokens.ts` (112 lines)                     | Surfaces, controls, tone maps  |
+| React primitives    | `src/components/custom/shared/primitives/` (14 files) | Structure and behaviour        |
+| Design intent       | `design/DESIGN_LANGUAGE.md`                           | Radius, spacing, motion, icons |
+| Reference impl      | `exams/CourseDetailSubpage.tsx` L1388-1550            | The overview block             |
 
-The primitives' own barrel says the right thing (`primitives/index.ts:15`): *"Migrating a page
-is a mechanical swap; nothing here is required."* That is the intent, and it holds for phases
+The primitives' own barrel says the right thing (`primitives/index.ts:15`): _"Migrating a page
+is a mechanical swap; nothing here is required."_ That is the intent, and it holds for phases
 1-4.
 
 ## Rules
@@ -22,11 +22,11 @@ is a mechanical swap; nothing here is required."* That is the intent, and it hol
 
 `uiTokens.ts:16-37` defines one `TILE_SURFACE` and three derivations:
 
-| Token | Use |
-|---|---|
-| `TILE` | A surface that pushes its children apart (`flex flex-col justify-between`) |
-| `TILE_CARD` | A surface that stacks children in normal flow |
-| `TILE_INTERACTIVE` | `TILE` plus the hover/active affordance |
+| Token              | Use                                                                        |
+| ------------------ | -------------------------------------------------------------------------- |
+| `TILE`             | A surface that pushes its children apart (`flex flex-col justify-between`) |
+| `TILE_CARD`        | A surface that stacks children in normal flow                              |
+| `TILE_INTERACTIVE` | `TILE` plus the hover/active affordance                                    |
 
 The surface is `rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border
 border-zinc-200/70 dark:border-zinc-800/80 shadow-xs`. That exact string, retyped by hand, is
@@ -68,10 +68,10 @@ is an **accepted exception** — it is already on-grammar visually and the data 
 
 ### R5 — A tile is constant; a rotating value is an `InsightCarousel`
 
-`Surfaces.tsx:43-54` states this and gives the reason: *"A tile is a measurement that does not
+`Surfaces.tsx:43-54` states this and gives the reason: _"A tile is a measurement that does not
 change under the reader. A set of values worth rotating through is an `InsightCarousel`, and
 something that navigates belongs in a section header as an action, not here. The calendar page
-tried all three in one row and none of them read."*
+tried all three in one row and none of them read."_
 
 `StatTile` pins `height` rather than using a min-height on purpose (`Surfaces.tsx:47-48`): with
 three stacked lines a min-height lets content grow into the padding and collide.
@@ -82,7 +82,7 @@ three stacked lines a min-height lets content grow into the padding and collide.
 `type Screen = "landing" | ...`, a `back()` that pops to landing, and a root-exit escape hatch.
 148 hits of this pattern exist across 22 files.
 
-`libraries/LibrariesTab.tsx:67,340,836` is the shape — and note it is *older* than
+`libraries/LibrariesTab.tsx:67,340,836` is the shape — and note it is _older_ than
 `useSubpageStack`. Copy its tone discipline, not its state machine.
 
 ### R7 — Colour appears in four places only
@@ -109,14 +109,14 @@ Note the token recipe: `bg-<c>-500/10 border-<c>-500/20 text-<c>-600 dark:text-<
 
 Shipped values, which is what `DESIGN_LANGUAGE.md` is being updated to match:
 
-| Value | Where |
-|---|---|
-| 8 | `rounded-lg` — segmented segments, inner chips |
-| 12 | `rounded-xl` — icon buttons (`ICON_BUTTON`), tone tiles |
-| 16 | `rounded-2xl` — `LIST_SHELL`, `CHIP`, most content cards |
-| 24 | `rounded-[24px]` — `TILE` surface, `InsightCarousel`, `BottomSheet` (28) |
-| 28 | `BottomSheet.tsx:226,244`, `EMPTY_STATE` (`uiTokens.ts:105`) |
-| 32 | `EmptyPanel` card variant (`Feedback.tsx:228`) |
+| Value | Where                                                                    |
+| ----- | ------------------------------------------------------------------------ |
+| 8     | `rounded-lg` — segmented segments, inner chips                           |
+| 12    | `rounded-xl` — icon buttons (`ICON_BUTTON`), tone tiles                  |
+| 16    | `rounded-2xl` — `LIST_SHELL`, `CHIP`, most content cards                 |
+| 24    | `rounded-[24px]` — `TILE` surface, `InsightCarousel`, `BottomSheet` (28) |
+| 28    | `BottomSheet.tsx:226,244`, `EMPTY_STATE` (`uiTokens.ts:105`)             |
+| 32    | `EmptyPanel` card variant (`Feedback.tsx:228`)                           |
 
 The doc currently says "12 / 16 / 24 / 32, no arbitrary values". 8, 28 and 32-in-practice
 disagree. Phase 0 resolves this in the doc's favour of the code.

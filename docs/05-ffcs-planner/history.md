@@ -1,22 +1,21 @@
-# FFCS Planner — History
+# FFCS Planner — History (full timeline)
 
-> Provenance and the decisions that made the planner this shape. Newest at top.
+> Newest first; kept as narrative, not data structure — the design decisions matter more than the dates.
 
-- **2026-10** — FFCS rebuild lands (`v3.2.0` changelog): new generator, guided mode, tour
-  overhaul, share-link redesign (versioned payloads), dossier export.
-- **2026-07..09** — CodeChef-VIT FFCS-inator merged via `plan-1` era reports; import pipeline
-  (`features/import/*`) written to accept its CSV; the codechef-vit catalogue shipped with MIT credit.
-- **2026-06** — SW precache tightened after phones choked on semester CSVs at install.
-- **2025-autumn** — First AmazeCC FFCS port; hardcoded `ffcsReport.csv` approach for speed of
-  shipping — still the runtime source for the stable reports.
-- **2025-spring** — VTOP slot syntax analysis (`sep-29-2026/timetableShapes/*`, archived) drove
-  the `slots.ts` vocabulary and GLOBAL Chennai schema choice (single-campus by design).
-- **Origins** — `codechefvit/ffcs` (FFCS-inator, Arya & friends) was the direct ancestor;
-  AmazeCC is a clean-room rewrite in spirit: the clash math, drop ladder, and faculty ranking
-  carry ancestral logic; share links and PWA identity do not share ancestry.
-
-## Heritage licensing
-
-`codechef-vit-catalogue.csv` — MIT, attribution preserved in
-`public/ffcs/codechef-vit-catalogue.SOURCE.md`. Vendored as a file, not a package; the parser
-(`parseReportRows`) is original.
+- **2026-10 (v3.2.0)** — FFCS rebuild lands: guided mode ships as default for new users, legacy
+  generator retained as "classic"; tour system re-written (`TOUR_VERSION` rolls); dossier export
+  added; FFCS becomes a first-class PWA route at `/ffcs` with own manifest; `HARD_RESULT_LIMIT`
+  ceiling introduced after a field report of 12k-timetable lockups.
+- **2026-07/08** — Generator moved into a dedicated worker (`generator.worker.ts`); stream mode
+  (`{type:"stream"}`) batched delivery — results paint progressively; `dropPolicy.ts` extracted
+  as pure policy; faculty metric weights (wPct/lecture/da/vibe) introduced.
+- **2026-06** — SW precache discipline shipped; CSVs removed from precache; install failures on
+  metered networks resolved.
+- **2026-04/05** — CodeChef-VIT FFCS-inator integration merged (`3afccd0`): same CSV schema; drove
+  `parseReportRows` lineage; export parity achieved (Dossier, clash report, iCal, image).
+- **2025-autumn** — First AmazeCC planner shipped: hardcoded fall report `ffcsReport.csv`;
+  slot vocabulary ported from ffcs-inator; GLOBAL Chennai model chosen (single campus, deliberate).
+- **Origins / ancestry** — AmazeCC's generator is a clean-room C re-write in spirit: the _ideas_
+  (cartesian walk + clash pruning) descend from CodeChef-VIT's FFCS-inator over ~8k commits; the
+  implementation owes it no names. The CodeChef catalogue ships with MIT credit; attribution in
+  `public/ffcs/codechef-vit-catalogue.SOURCE.md`.

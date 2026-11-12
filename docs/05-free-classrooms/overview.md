@@ -1,8 +1,12 @@
-# Free Classrooms — Overview
+# Free Classrooms — Overview (walkthrough)
 
-Find a place to nap/study at a specific period — computed **on-device**, no server endpoint,
-purely from the installed slot tables, with an honest story about which rooms are actually occupied.
+> **In one line:** "I have an hour between classes — where do I go?" Answered from the app, offline, in seconds.
 
-## Screens
+Flow:
 
-1. **Now** (this period) · 2. **By period** · 3. Drill into a room: who's occupying it (load-in)
+1. **Tools → Free Classrooms** — opens "Now" for the current period (or picker for any period today)
+2. Select **building** (M/AB/MB/TT/SLR/TT/…), **type** (classroom/lab), **capacity** — list filters live
+3. Tap a room → occupant detail sheet: who's in it (theory/lab session, class) — never names, just slots
+4. Empty rooms get a green stripe; the three known unreliable slots get a striped hatch + "can't verify" tag
+
+No sign-in required for read; the VTOP cross-check requires it only for server-verified badges.

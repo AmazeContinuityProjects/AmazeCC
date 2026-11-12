@@ -16,7 +16,7 @@ The legacy timetable download mechanism captured the live DOM element directly:
 
 ### The Modern Off-Screen Builder Pattern
 
-Adopting the strategy proven in the **Faculty Slots Swapper** ([`SlotFacultySwapSheet.tsx`](file:///C:/Users/sugee/Github/AmazeContinuityProjects/AmazeCC/src/components/custom/exams/FFCS/components/SlotFacultySwapSheet.tsx)):
+Adopting the strategy proven in the **Faculty Slots Swapper** ([`SlotFacultySwapSheet.tsx`](../../../src/components/custom/exams/FFCS/components/SlotFacultySwapSheet.tsx)):
 
 1. Generates a standalone, pixel-perfect HTML card tree in an off-screen container (`position: fixed; left: -9999px; top: 0; z-index: -1000`).
 2. Renders with fixed, optimal desktop widths (`1280px` for Vertical, `1540px` for Horizontal) using high-contrast dark aesthetic styling (`#090d16` canvas, neon badges, translucent surfaces).
@@ -32,7 +32,7 @@ The export automatically detects the user's active timetable view mode via `useT
 ### A. Vertical Timetable Heatmap (`viewMode === 'vertical'`)
 
 - **Structure**: Columns for Days (`MON`, `TUE`, `WED`, `THU`, `FRI`) and rows for Time Bands (`8:00 AM – 8:50 AM`, etc.).
-- **Merged Runs**: Uses the pure projection logic from [`buildVerticalGrid`](file:///C:/Users/sugee/Github/AmazeContinuityProjects/AmazeCC/src/components/custom/timetable/buildBands.ts) to merge continuous multi-hour lab sessions (e.g. `L31+L32`) into unified cells using HTML `rowspan`.
+- **Merged Runs**: Uses the pure projection logic from [`buildVerticalGrid`](../../../src/lib/buildBands.ts) to merge continuous multi-hour lab sessions (e.g. `L31+L32`) into unified cells using HTML `rowspan`.
 - **Lunch Spacer**: Features a distinct full-width `🍽️ LUNCH BREAK (1:20 PM – 2:00 PM)` separator.
 - **Card Styling**: Each occupied block displays the Course Code, Slot Token pill, Course Title, Room Venue, and Instructor.
 
@@ -50,7 +50,7 @@ Underneath the timetable grid, the exported image includes an **Enrolled Courses
 
 ### Vitfac Sentiment Integration
 
-For every enrolled course, the generator queries `getFacultyReview({ employeeId: c.employeeId, name: c.faculty })` from [`src/lib/vitfacService.ts`](file:///C:/Users/sugee/Github/AmazeContinuityProjects/AmazeCC/src/lib/vitfacService.ts):
+For every enrolled course, the generator queries `getFacultyReview({ employeeId: c.employeeId, name: c.faculty })` from [`src/lib/vitfacService.ts`](../../../src/lib/vitfacService.ts):
 
 1. **Win-Percentage Badge (`% W`)**:
    - $\ge 70\%$ W: Emerald Green pill (`#34d399` on `rgba(16,185,129,0.18)`).
@@ -68,7 +68,7 @@ For every enrolled course, the generator queries `getFacultyReview({ employeeId:
 
 ## 4. UI Controls & Format Selection
 
-In [`FFCSTimetableTab.tsx`](file:///C:/Users/sugee/Github/AmazeContinuityProjects/AmazeCC/src/components/custom/exams/FFCSTimetableTab.tsx):
+In [`FFCSTimetableTab.tsx`](../../../src/components/custom/exams/FFCSTimetableTab.tsx):
 
 - The primary action button dynamically reflects the active view mode:
   `Download JPG (Vertical)` or `Download JPG (Horizontal)`.

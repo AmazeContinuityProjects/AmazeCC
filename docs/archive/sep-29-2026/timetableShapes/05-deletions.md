@@ -7,12 +7,12 @@ them. [08 — What actually shipped](./08-what-shipped.md) records what else wen
 
 Each confirmed by exhaustive grep across `src/`, not by inspection.
 
-| File | Lines | Only referenced by |
-|---|---|---|
-| `FFCS/logic/courseProcessor.ts` | 274 | nothing — `FFCSTimetableTab.tsx:269` has its own `processParsedCourses` |
-| `FFCS/logic/metrics.ts` | 142 | `generator.worker.ts:2` — itself dead |
-| `FFCS/logic/socialScoring.ts` | 88 | `generator.worker.ts:3` — itself dead |
-| `FFCS/utils.ts` → `timeToMinutes` | ~10 | `metrics.ts` and `socialScoring.ts` only — both dead |
+| File                              | Lines | Only referenced by                                                      |
+| --------------------------------- | ----- | ----------------------------------------------------------------------- |
+| `FFCS/logic/courseProcessor.ts`   | 274   | nothing — `FFCSTimetableTab.tsx:269` has its own `processParsedCourses` |
+| `FFCS/logic/metrics.ts`           | 142   | `generator.worker.ts:2` — itself dead                                   |
+| `FFCS/logic/socialScoring.ts`     | 88    | `generator.worker.ts:3` — itself dead                                   |
+| `FFCS/utils.ts` → `timeToMinutes` | ~10   | `metrics.ts` and `socialScoring.ts` only — both dead                    |
 
 `FFCS/utils.ts` keeps `isCourseFullyAdded`, which is live at
 `FFCSTimetableTab.tsx:2634`. Only the `timeToMinutes` export goes; `src/lib/slots.ts` has
@@ -20,10 +20,10 @@ a stricter version that rejects unreadable input rather than returning `0`.
 
 ## Retained and rewritten
 
-| File | From | To |
-|---|---|---|
-| `FFCS/workers/generator.worker.ts` | 142 | ~10 — a bridge over the pure function |
-| `FFCS/logic/generator.ts` | 39 | the single entry point, both UIs call it |
+| File                               | From | To                                       |
+| ---------------------------------- | ---- | ---------------------------------------- |
+| `FFCS/workers/generator.worker.ts` | 142  | ~10 — a bridge over the pure function    |
+| `FFCS/logic/generator.ts`          | 39   | the single entry point, both UIs call it |
 
 ## Also removed from the live code
 
@@ -54,7 +54,7 @@ The same applies to the other four divergences catalogued in
 `longWeekend` vs `isLongWeekend`, the missing `bestFriendMatches`, the minutes-vs-hours
 split on `metrics.gaps`, and the `MON` vs `Monday` day string. All real, all unreachable.
 
-What the duplication *did* cost, and what was real to users:
+What the duplication _did_ cost, and what was real to users:
 
 - All 20 rooms in AB5 reported free at 8:00 on every weekday while law classes were
   sitting in them.

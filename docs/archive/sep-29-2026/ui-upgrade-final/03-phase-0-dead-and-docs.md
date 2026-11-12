@@ -6,10 +6,10 @@ radii start getting copied around.
 
 ## 0.1 Delete the confirmed dead
 
-| File | loc | Evidence | Superseded by |
-|---|---|---|---|
-| `attendance/PopupCard.tsx` | 535 | 0 importers, 0 render sites | `attendance/DayDetailSheet.tsx` (619, already on-grammar) |
-| `exams/AllGradesDisplay.tsx` | 457 | 0 importers, 0 render sites | — |
+| File                         | loc | Evidence                    | Superseded by                                             |
+| ---------------------------- | --- | --------------------------- | --------------------------------------------------------- |
+| `attendance/PopupCard.tsx`   | 535 | 0 importers, 0 render sites | `attendance/DayDetailSheet.tsx` (619, already on-grammar) |
+| `exams/AllGradesDisplay.tsx` | 457 | 0 importers, 0 render sites | —                                                         |
 
 Evidence is a repo-wide grep over `.tsx`/`.ts` for both an import statement and a JSX render
 site. Both files return zero for both.
@@ -20,16 +20,16 @@ from three places. `AllGradesDisplay.tsx` has no clear replacement — confirm g
 via `exams/AcademicsHub.tsx` sub-tabs before deleting, and if grades are currently unreachable,
 that is a **bug to report, not a migration to schedule**.
 
-**Also verify before deleting** (candidates that are *not* dead, listed so nobody re-audits them):
+**Also verify before deleting** (candidates that are _not_ dead, listed so nobody re-audits them):
 
-| File | Why it looks dead | Actually |
-|---|---|---|
-| `AttendanceCalendarView.tsx` | older calendar, next to `CalendarSubpage` | **live at 3 sites** — `AttendanceSubpage:551`, `OverallTrackerSubpage:230`, `CourseDetailSubpage:1126` |
-| `exams/VitolDisplay.tsx` | 1 importer | live (1 importer, 1 render) |
-| `exams/MoodleDisplay.tsx` | imported once | live |
-| `exams/TestGradesContainer.tsx` | 40 loc shim | live |
-| `attendance/TimetableGrid.tsx` | 346 loc | live; delegates to `TimetableView:256` |
-| `exams/CourseDashboard.tsx` | 94 loc router | live; `AcademicsHub` renders it |
+| File                            | Why it looks dead                         | Actually                                                                                               |
+| ------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `AttendanceCalendarView.tsx`    | older calendar, next to `CalendarSubpage` | **live at 3 sites** — `AttendanceSubpage:551`, `OverallTrackerSubpage:230`, `CourseDetailSubpage:1126` |
+| `exams/VitolDisplay.tsx`        | 1 importer                                | live (1 importer, 1 render)                                                                            |
+| `exams/MoodleDisplay.tsx`       | imported once                             | live                                                                                                   |
+| `exams/TestGradesContainer.tsx` | 40 loc shim                               | live                                                                                                   |
+| `attendance/TimetableGrid.tsx`  | 346 loc                                   | live; delegates to `TimetableView:256`                                                                 |
+| `exams/CourseDashboard.tsx`     | 94 loc router                             | live; `AcademicsHub` renders it                                                                        |
 
 ## 0.2 Update `design/DESIGN_LANGUAGE.md` §5
 
@@ -46,7 +46,7 @@ No arbitrary radius values.
 
 That is wrong on two counts. The code ships **8** (`rounded-lg`, segmented segments) and **28**
 (`BottomSheet.tsx:226,244`, `EMPTY_STATE` at `uiTokens.ts:105`). And several of the "arbitrary"
-values are not arbitrary at all — they are the *scale*, written in Tailwind arbitrary syntax
+values are not arbitrary at all — they are the _scale_, written in Tailwind arbitrary syntax
 because the named steps do not cover 24 or 28.
 
 `rounded-[24px]` is not a violation of a 24px scale. It is the 24px step, spelled out. The
@@ -59,14 +59,14 @@ Amendment to §5:
 
 Scale (Tailwind):
 
-| Step  | Class             | Used for                              |
-|-------|-------------------|---------------------------------------|
-| 8     | `rounded-lg`      | Segmented segments, inner chips        |
-| 12    | `rounded-xl`      | Icon buttons, tone icon tiles         |
-| 16    | `rounded-2xl`     | List shells, chips, content cards     |
-| 24    | `rounded-[24px]`  | Tile surfaces, insight carousels      |
-| 28    | `rounded-[28px]`  | Bottom sheets, dashed empty states    |
-| 32    | `rounded-[32px]`  | Large empty-panel variant             |
+| Step | Class            | Used for                           |
+| ---- | ---------------- | ---------------------------------- |
+| 8    | `rounded-lg`     | Segmented segments, inner chips    |
+| 12   | `rounded-xl`     | Icon buttons, tone icon tiles      |
+| 16   | `rounded-2xl`    | List shells, chips, content cards  |
+| 24   | `rounded-[24px]` | Tile surfaces, insight carousels   |
+| 28   | `rounded-[28px]` | Bottom sheets, dashed empty states |
+| 32   | `rounded-[32px]` | Large empty-panel variant          |
 
 `rounded-[24px]`, `rounded-[28px]` and `rounded-[32px]` are the named steps expressed in
 Tailwind's arbitrary-value syntax, because Tailwind's `rounded-3xl` (24px) and
@@ -78,7 +78,7 @@ surfaces that fail to dedupe.
 ```
 
 That last sentence matters. `rounded-3xl` is 53 hits across 21 files and every one of them is
-*visually correct* — they are just on a different spelling of step 24. Normalising them to
+_visually correct_ — they are just on a different spelling of step 24. Normalising them to
 `rounded-[24px]` is a no-op on screen and makes the token greppable.
 
 Also worth adding to §5, since the audit surfaced it as a real disagreement: the doc says
@@ -107,7 +107,7 @@ Then the genuinely off-scale values, 10 of them, all in `marks-predictor/`:
 `AllCoursesMatrix`, `AssessmentRegimenEditor`, `CourseSelectorStrip`, `TargetGradeSolver`,
 `WhatIfSimulator`, `MarksPredictorTab` (×2), `ProfileStatusCards` (×2).
 
-These go to the *nearest* step: 18 → 16, 22 → 24. Do not invent 20 or 26.
+These go to the _nearest_ step: 18 → 16, 22 → 24. Do not invent 20 or 26.
 
 ## 0.4 A lint guard, if it can be had cheaply
 

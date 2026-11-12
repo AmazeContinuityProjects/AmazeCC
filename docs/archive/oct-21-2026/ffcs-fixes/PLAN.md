@@ -27,9 +27,9 @@
 - ~250 replacements across 13 files (26 `bg-background`, 92 `text-foreground`,
   61 `bg-muted`, 71 `border-border`, 5 `solid-card`). `solid-card` →
   `card-surface border border-border-strong rounded-2xl shadow-xs
-  text-text-primary`, preserving the old class's radius and ink.
+text-text-primary`, preserving the old class's radius and ink.
 - The tab's last three native `<select>`s → `ChipTabs`/`SegmentedControl`:
-  OptionPicker's popup portals at z-70, *under* the tab's own fullscreen
+  OptionPicker's popup portals at z-70, _under_ the tab's own fullscreen
   `z-[100]`, so the tab body cannot host a portal picker at all — the same
   trap that converted the subpage's pickers.
 - `FFCSGuideModal` rewritten: stale "Add to Draft" flow gone; paste/CSV/XLSX
@@ -97,7 +97,7 @@
 - `closeGenerator` clears the run's notices on the way out, because they
   describe results that only exist on that screen. The run's own messages
   ("Found N… review them below!") are now rendered by the subpage itself —
-  previously they were written into the planner's banner *behind* the sheet,
+  previously they were written into the planner's banner _behind_ the sheet,
   where they were invisible until you closed it and outlived the results they
   pointed at. A save sets the planner's confirmation after closing, in the same
   tick, so the last write is the one that sticks.
@@ -158,13 +158,13 @@ Landed:
 
 **Bug found and fixed by the new tests — not introduced by this work.** Confirmed
 against `git show HEAD` that `backtrack` had the same shape. The precompute loop
-concatenated *every* offering's periods into one array per course, and the walk
+concatenated _every_ offering's periods into one array per course, and the walk
 tested that union against the week already chosen — identically for each
 offering. So for a course with slots `S1` and `S2`, if `S1` clashed with an
 already-chosen course, `S2` was rejected alongside it and the whole course was
 dropped from the search. It stayed invisible because every fixture before this
 plan gave each course exactly one offering; it is invisible in production too,
-because it produces *fewer* results rather than an error. `windowsPerCourse` is
+because it produces _fewer_ results rather than an error. `windowsPerCourse` is
 now `SlotPeriod[][][]` — per course, per offering — and the walk tests only the
 offering it is about to take. `ffcs-generate.test.ts` passes unchanged.
 
@@ -174,7 +174,7 @@ AmazeCC's FFCS engine (`slots.ts`, `timetableMetrics.ts`, `logic/generate.ts`) i
 technologically stronger than the reference "Ultimate FFCS Planner"
 (`C:\Users\sugee\Github\mrRR7\ffcsmaker`) — schema-driven slots, law/embedded
 handling, social/friends scoring, manual linking, worker verification. What it
-lacks is *implementation*: input paths, progressive results, share, settings,
+lacks is _implementation_: input paths, progressive results, share, settings,
 guidance, analytics, and tests.
 
 This plan ports ffcsmaker's implementation features onto AmazeCC's engine
@@ -301,4 +301,4 @@ testable in isolation; migration follows as a dedicated pass.
 - Semantic colour tokens from `@/lib/uiTokens`; no raw zinc/indigo steps on new
   surfaces.
 - Components from `@/components/custom/shared/primitives`.
-- Comment style: explain *why*, not *what*.
+- Comment style: explain _why_, not _what_.

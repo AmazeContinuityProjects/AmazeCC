@@ -1,5 +1,14 @@
-# Free Classrooms — Data Model
+# Free Classrooms — Data Model (precise)
 
-`Room = { id, capacity, type: "theory"|"lab"|"seminar", building }`;
-`FREE_VIOLATION = "silent" | "loud"` — which source disagrees.
-Occupancy = slot-token → room map; lab-only rooms listed in slot tables.
+```ts
+FreeRoomCourse = { roomId, slot, type: "TH"|"LAB"|"THEORY_LAB", facultyHint?: string }
+RoomOccupancy = {
+  rooms: Array<{ room: string, status: "free" | "occupied" | "unknown", source: "client"|"server" }>,
+  silentFailures: string[],
+}
+```
+
+`slot → periodBand[]` mapping via `pointsForSlot()` in slots.ts; clash semantics via `periodListsClash()`.
+
+Campus table is bundled as data — the bundle references it; no runtime fetch — but the VIT PDF snapshot
+passes through `parseCourseRows` at import time to build the internal index.

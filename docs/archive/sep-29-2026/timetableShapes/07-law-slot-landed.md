@@ -17,50 +17,50 @@ or `ETH`, all in AB5.
 
 AB5 free rooms at 8:00 AM, before and after:
 
-| Day | Before | After |
-|-----|--------|-------|
-| Mon | 20 of 20 free | 3 free |
-| Tue | 20 of 20 free | 2 free |
-| Wed | 20 of 20 free | 3 free |
+| Day | Before        | After   |
+| --- | ------------- | ------- |
+| Mon | 20 of 20 free | 3 free  |
+| Tue | 20 of 20 free | 2 free  |
+| Wed | 20 of 20 free | 3 free  |
 | Thu | 20 of 20 free | 11 free |
-| Fri | 20 of 20 free | 3 free |
+| Fri | 20 of 20 free | 3 free  |
 
 Monday 8:00 overall: 118 rooms free → 101.
 
 The 12:35 periods, once `S11`/`S15` were linked:
 
-| Day | Before | After |
-|-----|--------|-------|
-| Mon (`S11`) | 20 of 20 free | 6 free |
+| Day         | Before        | After   |
+| ----------- | ------------- | ------- |
+| Mon (`S11`) | 20 of 20 free | 6 free  |
 | Fri (`S15`) | 20 of 20 free | 12 free |
 
 ## What changed
 
 ### New
 
-| File | Purpose |
-|---|---|
-| `src/lib/slots.ts` | the two spellings and every lookup built on them |
+| File                                                          | Purpose                                                        |
+| ------------------------------------------------------------- | -------------------------------------------------------------- |
+| `src/lib/slots.ts`                                            | the two spellings and every lookup built on them               |
 | `src/components/custom/timetable/HorizontalTimetableGrid.tsx` | adapter for the amazeui grid, whose source is not in this repo |
-| `src/__tests__/slots.test.ts` | spelling tests, both directions, every exclusion |
-| `src/__tests__/ffcs-metrics.test.ts` | half-days, gaps, long weekend, law equivalence |
-| `src/__tests__/timetable-horizontal-law.test.tsx` | the horizontal grid, incl. block spelling |
+| `src/__tests__/slots.test.ts`                                 | spelling tests, both directions, every exclusion               |
+| `src/__tests__/ffcs-metrics.test.ts`                          | half-days, gaps, long weekend, law equivalence                 |
+| `src/__tests__/timetable-horizontal-law.test.tsx`             | the horizontal grid, incl. block spelling                      |
 
 ### Modified
 
-| File | Change |
-|---|---|
-| `src/lib/freeClassrooms.ts` | `buildPeriodSlots` carries both spellings; `slotSpellings` imported |
-| `src/components/custom/timetable/buildBands.ts` | `hasSlot` for cell matching; cell labels and block checks read the course's own spelling |
-| `src/components/custom/timetable/SlotDetailSheet.tsx` | `hasSlot` for the blocked chips |
-| `src/components/custom/timetable/TimetableView.tsx` | routes through the new horizontal adapter |
-| `src/components/custom/timetable/index.ts` | exports the adapter |
-| `src/components/custom/mobile/FreeClassroomsWidget.tsx` | both spellings in the target-slot set |
-| `src/lib/exportIcal.ts` | lookup keyed under both spellings |
-| `FFCSTimetableTab.tsx` | 4 lookups + free-half-days + venue lookup rewired |
-| `AutoGeneratorModal.tsx` | 3 lookups + free-half-days + venue lookup rewired |
-| `FFCS/logic/metrics.ts` | `DAYS` id mismatch fixed; `expandSlotSpellings` |
-| `FFCS/logic/socialScoring.ts` | `DAYS` id mismatch fixed; `expandSlotSpellings` |
+| File                                                    | Change                                                                                   |
+| ------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `src/lib/freeClassrooms.ts`                             | `buildPeriodSlots` carries both spellings; `slotSpellings` imported                      |
+| `src/components/custom/timetable/buildBands.ts`         | `hasSlot` for cell matching; cell labels and block checks read the course's own spelling |
+| `src/components/custom/timetable/SlotDetailSheet.tsx`   | `hasSlot` for the blocked chips                                                          |
+| `src/components/custom/timetable/TimetableView.tsx`     | routes through the new horizontal adapter                                                |
+| `src/components/custom/timetable/index.ts`              | exports the adapter                                                                      |
+| `src/components/custom/mobile/FreeClassroomsWidget.tsx` | both spellings in the target-slot set                                                    |
+| `src/lib/exportIcal.ts`                                 | lookup keyed under both spellings                                                        |
+| `FFCSTimetableTab.tsx`                                  | 4 lookups + free-half-days + venue lookup rewired                                        |
+| `AutoGeneratorModal.tsx`                                | 3 lookups + free-half-days + venue lookup rewired                                        |
+| `FFCS/logic/metrics.ts`                                 | `DAYS` id mismatch fixed; `expandSlotSpellings`                                          |
+| `FFCS/logic/socialScoring.ts`                           | `DAYS` id mismatch fixed; `expandSlotSpellings`                                          |
 
 ## The design decisions worth keeping
 
@@ -93,7 +93,7 @@ Worth recording, because both were wrong in the first draft:
   `mon`-to-`fri` order of the second slot digit. Corrected to `S15`, which removed the
   need for any schema change.
 - **Half-day counts.** Several test expectations assumed a slot id names one day. `A1` is
-  Monday 8:00 *and* Wednesday 8:55, so it costs two half-days. Expectations are now
+  Monday 8:00 _and_ Wednesday 8:55, so it costs two half-days. Expectations are now
   written out from `chennai.json`.
 
 ## Not fixed here

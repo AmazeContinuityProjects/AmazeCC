@@ -4,10 +4,10 @@
 
 Two live generators, byte-for-byte identical:
 
-| Location | Runs on | Reached by |
-|----------|---------|-----------|
-| `FFCSTimetableTab.tsx:850` | main thread | the tab's own generate button |
-| `AutoGeneratorModal.tsx:152` | main thread | the modal's generate button |
+| Location                     | Runs on     | Reached by                    |
+| ---------------------------- | ----------- | ----------------------------- |
+| `FFCSTimetableTab.tsx:850`   | main thread | the tab's own generate button |
+| `AutoGeneratorModal.tsx:152` | main thread | the modal's generate button   |
 
 Both block the UI thread for the whole solve. Both open with
 `await new Promise(r => setTimeout(r, 50))` purely to let the spinner paint before
@@ -21,17 +21,13 @@ New file `FFCS/logic/generate.ts`. No React, no `window`, no `localStorage`, no
 `next-themes` — it must load in a bare worker scope.
 
 ```ts
-type GeneratorErrorCode =
-  | "no_courses_selected"
-  | "no_valid_slots"
-  | "no_conflict_free"
-  | "below_min_half_days";
+type GeneratorErrorCode = "no_courses_selected" | "no_valid_slots" | "no_conflict_free" | "below_min_half_days";
 
 interface GenerateParams {
   schema: CampusSchema;
   masterCourses: ParsedCourse[];
   courseLocks: CourseLock[];
-  blockedSlots: string[];          // an array, not a Set — see below
+  blockedSlots: string[]; // an array, not a Set — see below
   friends: Friend[];
   preference: "none" | "morning" | "evening";
   syncFriendClasses: boolean;
@@ -43,11 +39,9 @@ interface GenerateParams {
   sortBy: "social" | "halfdays" | "compactness" | "balanced";
 }
 
-type GenerateResult =
-  | { ok: true; timetables: TimetableState[] }
-  | { ok: false; code: GeneratorErrorCode };
+type GenerateResult = { ok: true; timetables: TimetableState[] } | { ok: false; code: GeneratorErrorCode };
 
-function generateTimetables(params: GenerateParams): GenerateResult
+function generateTimetables(params: GenerateParams): GenerateResult;
 ```
 
 It absorbs, in order:
@@ -68,14 +62,14 @@ once the work is off-thread.
 
 Each surface currently owns its own `setError(...)` call with its own wording. The pure
 function returns a `code`; each call site maps it to the string it uses today, so no user-
-visible text changes and there is still one source of truth for *which* failure occurred.
+visible text changes and there is still one source of truth for _which_ failure occurred.
 
-| Code | Surfaces today |
-|---|---|
-| `no_courses_selected` | both — "Please select at least one course." |
-| `no_valid_slots` | both — "No valid slots found for {code}…" (needs the code passed alongside) |
-| `no_conflict_free` | both — "Could not generate any conflict-free timetables…" |
-| `below_min_half_days` | both — "No timetables met the minimum half-days requirement…" |
+| Code                  | Surfaces today                                                              |
+| --------------------- | --------------------------------------------------------------------------- |
+| `no_courses_selected` | both — "Please select at least one course."                                 |
+| `no_valid_slots`      | both — "No valid slots found for {code}…" (needs the code passed alongside) |
+| `no_conflict_free`    | both — "Could not generate any conflict-free timetables…"                   |
+| `below_min_half_days` | both — "No timetables met the minimum half-days requirement…"               |
 
 `no_valid_slots` currently interpolates the course code, so the result carries
 `{ code, subjectCode }`.

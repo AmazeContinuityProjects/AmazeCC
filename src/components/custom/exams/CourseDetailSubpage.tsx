@@ -75,6 +75,17 @@ import { tasksAtom, marksStatsAtom } from "@/store/dataAtoms";
 import { createTask } from "@/lib/tasksStorage";
 import TaskEditSheet from "../tasks/TaskEditSheet";
 import BottomSheet from "../shared/BottomSheet";
+import {
+  getFacultyOptions,
+  getResolvedSlot,
+  getSlotOptions,
+  invalidateClass,
+  setFacultyOptions,
+  setResolvedSlot,
+  setSlotOptions,
+  type VtopDropdownOption,
+  type VtopResolved,
+} from "@/lib/vtopCoursePage";
 import { AnimatePresence, m } from "framer-motion";
 import { useOverlayBack } from "@/lib/overlayStack";
 import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
@@ -151,8 +162,6 @@ export default function CourseDetailSubpage({
   /** DOM slot in the back-button row; the predictor page portals its controls here. */
   const courseActionsRef = useRef<HTMLDivElement>(null);
   const [innerTab, setInnerTab] = useState(initialTab || "overview");
-  const [coursePlan, setCoursePlan] = useState<any>(null);
-  const [planLoading, setPlanLoading] = useState(false);
   const [viewDetail, setViewDetail] = useState<any>(null);
   const [viewLoading, setViewLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -901,129 +910,110 @@ export default function CourseDetailSubpage({
   // VTOP's dropdowns carry numeric slotIds ("7") and erpIds ("ETHNUS"), not the
   // display strings the attendance sync stores ("B1+TB1", "ETHNUS - ETHNUS
   // (APT) - ACAD"). The portal itself resolves through the dropdowns — anything
-  // else 404s on the detail calls. Cached per class so the plan fetch and the
-  // view-detail fetch share one resolution.
-  const dropdownCacheRef = useRef<Map<string, { slotId: string; faculty: string; erpId: string }>>(new Map());
+  // else 404s on the detail calls. Option lists are persisted per semester,
+  // so a warm browser performs zero dropdown round trips; only something
+  // missing — or an explicit error invalidation — reaches the network.
+  const dropdownCacheRef = useRef<Map<string, VtopResolved>>(new Map());
 
   const normToken = (s: string) =>
     String(s ?? "")
       .toUpperCase()
       .replace(/[^A-Z0-9]/g, "");
 
-  const parseSelectOptions = (d: any, name: string) => {
+  const parseSelectOptions = (d: any, name: string): VtopDropdownOption[] => {
     const opts = d?.results?.selectOptions?.[name] ?? d?.selectOptions?.[name] ?? [];
     return Array.isArray(opts) ? opts.filter((o: any) => o && String(o.value ?? "").trim() !== "") : [];
   };
 
-  const matchOption = (opts: any[], wanted: string) => {
+  const matchOption = (opts: VtopDropdownOption[], wanted: string) => {
     const w = normToken(wanted);
     if (!w) return opts[0] ?? null;
     return (
-      opts.find((o: any) => normToken(o.text) === w) ||
-      opts.find((o: any) => {
+      opts.find((o) => normToken(o.text) === w) ||
+      opts.find((o) => {
         const t = normToken(o.text);
         return t && (t.startsWith(w) || w.startsWith(t) || t.includes(w) || w.includes(t));
       }) ||
-      opts.find((o: any) => o.selected) ||
+      opts.find((o) => o.selected) ||
       opts[0] ||
       null
     );
   };
 
   const resolveVtopDropdowns = useCallback(
-    async (comp: any, c: Creds) => {
-      const cacheKey = `${comp.classNbr ?? ""}::${comp.slot ?? ""}`;
-      const cached = dropdownCacheRef.current.get(cacheKey);
-      if (cached) return cached;
-
+    async (comp: any, c: Creds, opts?: { fresh?: boolean }): Promise<VtopResolved> => {
       const semSubId = getVtopSemesterSubId();
-
-      // 1. Slot dropdown: display label ("B1+TB1") -> numeric slotId ("7").
-      let slotId = comp.slot;
-      try {
-        const d = (await api("course-page", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: {
-            cookies: c.cookies,
-            authorizedID: c.authorizedID,
-            csrf: c.csrf,
-            formData: { semesterSubId: semSubId, courseCode: comp.classNbr },
-          },
-        })) as any;
-        const slotMatch = matchOption(parseSelectOptions(d, "slotId"), comp.slot);
-        if (slotMatch?.value) slotId = String(slotMatch.value);
-      } catch (e) {
-        console.error("slotId resolution failed (continuing with raw slot):", e);
-      }
-
-      // 2. Faculty dropdown for that slot: display string -> erpId.
-      let faculty = comp.faculty || "";
-      let erpId = faculty.split("-")[0]?.trim() || "";
-      try {
-        const d = (await api("course-page", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: {
-            cookies: c.cookies,
-            authorizedID: c.authorizedID,
-            csrf: c.csrf,
-            formData: { semesterSubId: semSubId, courseCode: comp.classNbr, slotId },
-          },
-        })) as any;
-        const facultyMatch = matchOption(parseSelectOptions(d, "faculty"), comp.faculty);
-        if (facultyMatch?.value) {
-          faculty = String(facultyMatch.value);
-          erpId = String(facultyMatch.value);
+      const classId = String(comp.classNbr ?? "");
+      const slotLabel = String(comp.slot ?? "");
+      const cacheKey = `${classId}::${slotLabel}`;
+      if (!opts?.fresh) {
+        const cached = dropdownCacheRef.current.get(cacheKey);
+        if (cached) return cached;
+        const stored = getResolvedSlot(semSubId, classId, slotLabel);
+        if (stored) {
+          dropdownCacheRef.current.set(cacheKey, stored);
+          return stored;
         }
-      } catch (e) {
-        console.error("faculty resolution failed (continuing with raw faculty):", e);
       }
 
-      const resolved = { slotId, faculty, erpId };
+      // 1. Slot options for the course — usually already saved for this semester.
+      let slotOptions = opts?.fresh ? null : getSlotOptions(semSubId, classId);
+      if (!slotOptions) {
+        try {
+          const d = (await api("course-page", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: {
+              cookies: c.cookies,
+              authorizedID: c.authorizedID,
+              csrf: c.csrf,
+              formData: { semesterSubId: semSubId, courseCode: classId },
+            },
+          })) as any;
+          slotOptions = parseSelectOptions(d, "slotId");
+          if (slotOptions.length > 0) setSlotOptions(semSubId, classId, slotOptions);
+        } catch (e) {
+          console.error("slotId resolution failed (continuing with raw slot):", e);
+          slotOptions = [];
+        }
+      }
+      const slotMatch = matchOption(slotOptions, comp.slot);
+      const slotId = slotMatch?.value ? String(slotMatch.value) : String(comp.slot ?? "");
+
+      // 2. Faculty options for that slot — also cached per semester.
+      let facultyOptions = opts?.fresh ? null : getFacultyOptions(semSubId, classId, slotId);
+      if (!facultyOptions) {
+        try {
+          const d = (await api("course-page", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: {
+              cookies: c.cookies,
+              authorizedID: c.authorizedID,
+              csrf: c.csrf,
+              formData: { semesterSubId: semSubId, courseCode: classId, slotId },
+            },
+          })) as any;
+          facultyOptions = parseSelectOptions(d, "faculty");
+          if (facultyOptions.length > 0) setFacultyOptions(semSubId, classId, slotId, facultyOptions);
+        } catch (e) {
+          console.error("faculty resolution failed (continuing with raw faculty):", e);
+          facultyOptions = [];
+        }
+      }
+      const facultyMatch = matchOption(facultyOptions, comp.faculty);
+      const faculty = facultyMatch?.value ? String(facultyMatch.value) : String(comp.faculty ?? "");
+      const erpId = facultyMatch?.value
+        ? String(facultyMatch.value)
+        : String(comp.faculty?.split("-")[0]?.trim() ?? comp.faculty ?? "");
+
+      const resolved: VtopResolved = { slotId, faculty, erpId };
       dropdownCacheRef.current.set(cacheKey, resolved);
+      setResolvedSlot(semSubId, classId, slotLabel, resolved);
       return resolved;
     },
     [getVtopSemesterSubId],
   );
-
-  const fetchCoursePlan = async () => {
-    if (!selectedGroup) return;
-    const c = await ensureCreds();
-    if (!c) return;
-    setPlanLoading(true);
-    setError(null);
-    try {
-      const components: Array<{ comp: any; scope: "theory" | "lab" }> = [];
-      if (selectedGroup.theory) components.push({ comp: selectedGroup.theory, scope: "theory" });
-      if (selectedGroup.lab) components.push({ comp: selectedGroup.lab, scope: "lab" });
-      const planData: any[] = [];
-      for (const { comp, scope } of components) {
-        const { slotId, faculty } = await resolveVtopDropdowns(comp, c);
-        const d = (await api("course-page", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: {
-            cookies: c.cookies,
-            authorizedID: c.authorizedID,
-            csrf: c.csrf,
-            formData: {
-              semesterSubId: getVtopSemesterSubId(),
-              courseCode: comp.classNbr,
-              slotId,
-              faculty,
-            },
-          },
-        })) as any;
-        if (d.success !== false && d.results) planData.push({ scope, type: comp.courseType, data: d.results });
-      }
-      setCoursePlan(planData.length > 0 ? planData : null);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setPlanLoading(false);
-    }
-  };
 
   const fetchViewDetail = async () => {
     if (!selectedGroup) return;
@@ -1037,25 +1027,47 @@ export default function CourseDetailSubpage({
       if (selectedGroup.lab) components.push({ comp: selectedGroup.lab, scope: "lab" });
       const detailData: any[] = [];
       for (const { comp, scope } of components) {
-        const { slotId, faculty, erpId } = await resolveVtopDropdowns(comp, c);
-        const d = (await api("course-page", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: {
-            cookies: c.cookies,
-            authorizedID: c.authorizedID,
-            csrf: c.csrf,
-            formData: {
-              viewDetail: "true",
-              semSubId: getVtopSemesterSubId(),
-              erpId,
-              classId: comp.classNbr,
-              slotId,
-              faculty,
+        const semSubId = getVtopSemesterSubId();
+        const classId = String(comp.classNbr ?? "");
+        const postFor = async (resolved: { slotId: string; faculty: string; erpId: string }) => {
+          const d = (await api("course-page", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: {
+              cookies: c.cookies,
+              authorizedID: c.authorizedID,
+              csrf: c.csrf,
+              formData: {
+                viewDetail: "true",
+                semSubId,
+                erpId: resolved.erpId,
+                classId,
+                slotId: resolved.slotId,
+                faculty: resolved.faculty,
+              },
             },
-          },
-        })) as any;
-        if (d.success !== false && d.results) detailData.push({ scope, type: comp.courseType, data: d.results });
+          })) as any;
+          return d;
+        };
+
+        let d: any = null;
+        try {
+          d = await postFor(await resolveVtopDropdowns(comp, c));
+        } catch (e) {
+          console.error("viewDetail call failed:", e);
+        }
+        // The server said no — the cached dropdown is likely stale, or never
+        // existed. Recompute from the live dropdown and retry once.
+        if (!d || d.success === false || d.error) {
+          invalidateClass(semSubId, classId);
+          try {
+            d = await postFor(await resolveVtopDropdowns(comp, c, { fresh: true }));
+          } catch (e) {
+            console.error("viewDetail retry failed:", e);
+            d = null;
+          }
+        }
+        if (d?.success !== false && d?.results) detailData.push({ scope, type: comp.courseType, data: d.results });
       }
       setViewDetail(detailData.length > 0 ? detailData : null);
     } catch (err: any) {
@@ -1142,11 +1154,9 @@ export default function CourseDetailSubpage({
 
   useEffect(() => {
     if (selectedCode) {
-      setCoursePlan(null);
       setViewDetail(null);
       setQcmError("");
-      fetchCoursePlan();
-      // Also pull the VTOP "Course Page View" detail (processViewStudentCourseDetail).
+      // Pull the VTOP "Course Page View" detail (processViewStudentCourseDetail).
       // It carries the teacher-uploaded reference materials rendered in this page's
       // Course Details section; without this call viewDetail stays null forever.
       fetchViewDetail();
@@ -1612,9 +1622,8 @@ export default function CourseDetailSubpage({
     (id: string) => {
       ovActiveCarousel.reset();
       setInnerTab(id);
-      if (id === "plan" && !coursePlan && !planLoading) fetchCoursePlan();
     },
-    [ovActiveCarousel.reset, setInnerTab, coursePlan, planLoading],
+    [ovActiveCarousel.reset, setInnerTab],
   );
   const ovMarksInsightSlides = useMemo<InsightSlide[]>(
     () =>
@@ -1743,12 +1752,10 @@ export default function CourseDetailSubpage({
   }, [totalWeeklyClassesCount, selectedGroup, theoryAttItem, labAttItem, isEmbedded, qcmTotalRows]);
 
   const coursePlanCarousel = useCarousel(innerTab === "plan" ? coursePlanInsightSlides.length : 0);
-  // Review-tab scope helpers: theory/lab plan + schedule stay separated.
+  // Review-tab scope helpers: theory/lab detail views stay separated.
   const reviewScopes: Array<"theory" | "lab"> = isEmbedded
     ? ["theory", "lab"]
     : [selectedGroup?.lab && !selectedGroup?.theory ? "lab" : "theory"];
-  const planEntriesByScope = (scope: "theory" | "lab") =>
-    (coursePlan || []).filter((cp: any) => (cp.scope || "theory") === scope);
   const detailEntriesByScope = (scope: "theory" | "lab") =>
     (viewDetail || []).filter((vd: any) => (vd.scope || "theory") === scope);
   // The full VTOP lecture plan ("Course Page View") rows, grouped by scope —
@@ -2964,76 +2971,9 @@ export default function CourseDetailSubpage({
             renderScopeBadge={renderScopeBadge}
           />
 
-          {/* 5 ── COURSE SYLLABUS & LECTURE PLAN */}
-          <div className="space-y-4">
-            <SectionHeader icon={FileText} title="Course syllabus & lecture plan" />
-
-            {planLoading ? (
-              <ListSkeleton rows={4} />
-            ) : coursePlan && coursePlan.length > 0 ? (
-              <div className="space-y-4">
-                {reviewScopes.map((scope) => {
-                  const entries = planEntriesByScope(scope);
-                  if (entries.length === 0) return null;
-                  const showBadge = reviewScopes.filter((s) => planEntriesByScope(s).length > 0).length > 1;
-                  return (
-                    <div key={scope} className="space-y-3">
-                      {showBadge && <div className="px-1">{renderScopeBadge(scope)}</div>}
-                      {entries.map((cp: any, ci: number) => (
-                        <div key={ci} className="space-y-3">
-                          {cp.data.tables?.map((t: any, ti: number) => (
-                            <ListShell key={ti}>
-                              {t.caption && (
-                                <div className="px-4 py-2.5 bg-surface-secondary/70 dark:bg-zinc-800/60 border-b border-border-muted dark:border-border text-xs font-black font-outfit uppercase tracking-wider text-text-muted">
-                                  {t.caption}
-                                </div>
-                              )}
-                              <div className="overflow-x-auto hide-scrollbar">
-                                <table className="w-full text-sm">
-                                  <thead>
-                                    <tr className="border-b border-border-muted dark:border-border bg-surface-secondary/40 dark:bg-zinc-900/40">
-                                      {t.headers?.map((h: string, hi: number) => (
-                                        <th
-                                          key={hi}
-                                          className="text-left py-2.5 px-4 text-[10px] font-black text-text-muted uppercase tracking-widest whitespace-nowrap"
-                                        >
-                                          {h}
-                                        </th>
-                                      ))}
-                                    </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-border-muted dark:divide-border/60">
-                                    {t.rows?.map((row: any, ri: number) => (
-                                      <tr
-                                        key={ri}
-                                        className="hover:bg-surface-secondary dark:hover:bg-surface-hover/40 transition-colors"
-                                      >
-                                        {(t.headers || []).map((h: string, hi: number) => (
-                                          <td key={hi} className="py-2.5 px-4 text-xs font-medium text-text-secondary">
-                                            {row[h] || "—"}
-                                          </td>
-                                        ))}
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
-                            </ListShell>
-                          ))}
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <EmptyPanel
-                icon={<FileText className="w-7 h-7" />}
-                title="Course plan tables are unavailable or loading"
-                description="VTOP syllabus plan tables for this course are not available at the moment."
-              />
-            )}
-          </div>
+          {/* 5 ── COURSE SYLLABUS & LECTURE PLAN (hidden: the VTOP class-group
+              table carries no student-actionable data; materials live in the
+              section above) */}
 
           {/* 6 ── QUALITY CIRCLE MEETING (QCM) — AUTOMAPPED */}
           <div className="space-y-4">

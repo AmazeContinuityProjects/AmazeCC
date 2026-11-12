@@ -188,6 +188,6 @@ Get a fresh captcha image for login.
 
 ## Related Documentation
 
-- [API Overview](../overview.md)
+- [API Overview](overview.md)
 - [Authentication Architecture](../../architecture/authentication.md)
-- [Security Overview](../../security/overview.md)
+- [Security Overview](../../11-security/README.md)

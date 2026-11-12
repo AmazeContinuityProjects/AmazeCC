@@ -31,11 +31,11 @@ union on a boolean literal in that mode — `if (result.ok)` leaves `result` as 
 union, and every property access after it is a compile error. A string discriminant
 narrows in any mode. Verified with a three-case probe before committing to it:
 
-| Discriminant | Narrows under `strict: false`? |
-|---|---|
-| `if (r.ok)` | no |
-| `if (s.kind === "ok")` | yes |
-| `if ("code" in r)` | yes |
+| Discriminant           | Narrows under `strict: false`? |
+| ---------------------- | ------------------------------ |
+| `if (r.ok)`            | no                             |
+| `if (s.kind === "ok")` | yes                            |
+| `if ("code" in r)`     | yes                            |
 
 Kept the boolean shape documented in the plan, discovered the constraint from the
 compiler, and switched. The comment in `generate.ts` says why, so the next person does
@@ -46,7 +46,7 @@ not "simplify" it back.
 **Planned:** one `syncFriendClasses` flag governing both the friend-offering filter and
 the social score.
 
-**Shipped:** `syncFriendClasses` *and* `maximizeFreeTimeFriends: string[]`, which are
+**Shipped:** `syncFriendClasses` _and_ `maximizeFreeTimeFriends: string[]`, which are
 two independent settings in the UI.
 
 They were conflated in the first draft of `generate.ts`, and a test caught it: a student
@@ -67,7 +67,7 @@ tested for and which therefore behaved exactly like `"none"`.
 
 The caller's type has carried these two values all along. Widening rather than
 rejecting preserves existing behaviour and makes the two entry points agree; the
-parameter's doc comment records that they do nothing. Deciding what they *should* do is
+parameter's doc comment records that they do nothing. Deciding what they _should_ do is
 a question about the planner's UI, not about this filter.
 
 ## Also worth recording
@@ -132,15 +132,15 @@ site if the worker ever has to be abandoned.
 
 ## What a user notices
 
-| Change | Who notices |
-|---|---|
-| Law courses render in both grid views | every law student — before, their whole timetable was blank |
-| AB5 is no longer reported free while occupied | everyone looking for a room before 9am |
-| Blocking a law slot now works | law students using the planner |
-| iCal export includes law courses | law students exporting to a calendar |
-| Generation no longer freezes the UI | everyone generating, and especially on a phone |
-| `gaps` is minutes, displayed as hours | nobody — the display is unchanged, the number is now correct |
-| A blocked slot recorded as `A1` by an older build | may need re-blocking once |
+| Change                                            | Who notices                                                  |
+| ------------------------------------------------- | ------------------------------------------------------------ |
+| Law courses render in both grid views             | every law student — before, their whole timetable was blank  |
+| AB5 is no longer reported free while occupied     | everyone looking for a room before 9am                       |
+| Blocking a law slot now works                     | law students using the planner                               |
+| iCal export includes law courses                  | law students exporting to a calendar                         |
+| Generation no longer freezes the UI               | everyone generating, and especially on a phone               |
+| `gaps` is minutes, displayed as hours             | nobody — the display is unchanged, the number is now correct |
+| A blocked slot recorded as `A1` by an older build | may need re-blocking once                                    |
 
 That last row is the only backwards-incompatible change, and it is cosmetic: a blocked
 slot stored in localStorage under the schema's spelling will not hatch a cell that now

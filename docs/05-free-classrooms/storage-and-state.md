@@ -1,5 +1,8 @@
 # Free Classrooms — Storage & State
 
-No atoms; fetches via `roomAvailability` op on demand.
-Caches: `cache_free_classrooms` (TTL ≈ semester lifetime; slot tables don't change per semester).
-The client-side tables ship in /data/campus/*.json — no network at all for the math.
+> Nothing persisted; every open is a fresh read.
+
+Slot tables live in the bundle. Server occupancy is requested op-on-demand via the `roomAvailability` op
+(auth: vtop) — result kept in component memory for the tab's lifetime. No atoms, no localStorage keys,
+no sync participation. Deliberately: occupancy changes by the minute; yesterday's cached answer is worse
+than no answer.

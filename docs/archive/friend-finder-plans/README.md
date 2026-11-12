@@ -14,7 +14,7 @@ the two groupings (by class / by friend).
 - **Date:** 2026-11-09
 - **Repos involved:** AmazeCC (this repo, static-export frontend) and the
   sibling checkout `../AmazeCC-API` (backend; no `docs/` folder there)
-- **Upstream docs:** [../ffcs-friend-finder/README.md](../ffcs-friend-finder/README.md)
+- **Upstream docs:** [../../05-friend-finder/design-note.md](../../05-friend-finder/design-note.md)
   (current design of the feature being moved — must be repointed in Phase 4)
 
 ## Files

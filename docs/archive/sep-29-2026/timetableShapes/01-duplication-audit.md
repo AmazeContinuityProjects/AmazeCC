@@ -12,56 +12,56 @@ they agree, so they don't.
 
 ## Operation: `slot → periods`
 
-| # | Location | Shape returned | Live |
-|---|----------|----------------|------|
-| 1 | `FFCSTimetableTab.tsx:204` `getPeriodsForSlotOuter` | `{day, startMin, endMin}` | yes |
-| 2 | `FFCSTimetableTab.tsx:747` `getPeriodsForSlot` | `{day, startMin, endMin, type, pIdx}` | yes |
-| 3 | `AutoGeneratorModal.tsx:79` `getPeriodsForSlot` | `{day, startMin, endMin}` | yes |
-| 4 | `courseProcessor.ts:3` `getPeriodsForSlotOuter` | `{day, startMin, endMin}` | **no — dead file** |
-| 5 | `exportIcal.ts:74` `slotLookup` | `Map<slot, {day, start, end}[]>` | yes |
+| #   | Location                                            | Shape returned                        | Live               |
+| --- | --------------------------------------------------- | ------------------------------------- | ------------------ |
+| 1   | `FFCSTimetableTab.tsx:204` `getPeriodsForSlotOuter` | `{day, startMin, endMin}`             | yes                |
+| 2   | `FFCSTimetableTab.tsx:747` `getPeriodsForSlot`      | `{day, startMin, endMin, type, pIdx}` | yes                |
+| 3   | `AutoGeneratorModal.tsx:79` `getPeriodsForSlot`     | `{day, startMin, endMin}`             | yes                |
+| 4   | `courseProcessor.ts:3` `getPeriodsForSlotOuter`     | `{day, startMin, endMin}`             | **no — dead file** |
+| 5   | `exportIcal.ts:74` `slotLookup`                     | `Map<slot, {day, start, end}[]>`      | yes                |
 
 Five copies, three return shapes. Number 5 keeps raw clock strings where the others
 convert to minutes; number 2 carries the period index the others do not.
 
 ## Operation: `period → course`
 
-| # | Location | Live |
-|---|----------|------|
-| 1 | `buildBands.ts:462` | yes |
-| 2 | `FFCSTimetableTab.tsx:802` | yes |
-| 3 | amazeui `TimetableGrid` (compiled, another repo) | yes — see [02](./02-slot-vocabulary.md) |
+| #   | Location                                         | Live                                    |
+| --- | ------------------------------------------------ | --------------------------------------- |
+| 1   | `buildBands.ts:462`                              | yes                                     |
+| 2   | `FFCSTimetableTab.tsx:802`                       | yes                                     |
+| 3   | amazeui `TimetableGrid` (compiled, another repo) | yes — see [02](./02-slot-vocabulary.md) |
 
 ## Operation: day occupancy + metrics
 
-| # | Location | Runs on | Live |
-|---|----------|---------|------|
-| 1 | `FFCS/logic/metrics.ts:6` `calculateTimetableMetrics` | web worker | **no — dead file** |
-| 2 | `FFCSTimetableTab.tsx:~1030-1230` (inline in `generateTimetables`) | main thread | yes |
-| 3 | `AutoGeneratorModal.tsx:~340-530` (inline in `generateTimetables`) | main thread | yes |
+| #   | Location                                                           | Runs on     | Live               |
+| --- | ------------------------------------------------------------------ | ----------- | ------------------ |
+| 1   | `FFCS/logic/metrics.ts:6` `calculateTimetableMetrics`              | web worker  | **no — dead file** |
+| 2   | `FFCSTimetableTab.tsx:~1030-1230` (inline in `generateTimetables`) | main thread | yes                |
+| 3   | `AutoGeneratorModal.tsx:~340-530` (inline in `generateTimetables`) | main thread | yes                |
 
 Copies 2 and 3 are **byte-for-byte identical** from the metrics loop through to the
 variant grouping: `FFCSTimetableTab.tsx:1232-1267` ≡ `AutoGeneratorModal.tsx:535-570`.
 
 ## Operation: `getFreeHalfDaysList`
 
-| # | Location | Live |
-|---|----------|------|
-| 1 | `socialScoring.ts:6` (takes `schema` as a parameter) | **no — dead file** |
-| 2 | `FFCSTimetableTab.tsx:124` (reads `getTimetableSchema()` internally) | yes |
+| #   | Location                                                             | Live               |
+| --- | -------------------------------------------------------------------- | ------------------ |
+| 1   | `socialScoring.ts:6` (takes `schema` as a parameter)                 | **no — dead file** |
+| 2   | `FFCSTimetableTab.tsx:124` (reads `getTimetableSchema()` internally) | yes                |
 
 ## Operation: `calculatePairwiseSocialScore`
 
-| # | Location | Live |
-|---|----------|------|
-| 1 | `socialScoring.ts:40` `(mine, theirs, schema)` | **no — dead file** |
-| 2 | `FFCSTimetableTab.tsx:159` `(mine, theirs)` | yes — 4 call sites |
+| #   | Location                                       | Live               |
+| --- | ---------------------------------------------- | ------------------ |
+| 1   | `socialScoring.ts:40` `(mine, theirs, schema)` | **no — dead file** |
+| 2   | `FFCSTimetableTab.tsx:159` `(mine, theirs)`    | yes — 4 call sites |
 
 ## Operation: `isOverlap`
 
-| # | Location | Live |
-|---|----------|------|
-| 1 | `FFCSTimetableTab.tsx:252` | yes |
-| 2 | `courseProcessor.ts:24` | **no — dead file** |
+| #   | Location                   | Live               |
+| --- | -------------------------- | ------------------ |
+| 1   | `FFCSTimetableTab.tsx:252` | yes                |
+| 2   | `courseProcessor.ts:24`    | **no — dead file** |
 
 ## Operation: sort comparators
 
@@ -70,18 +70,18 @@ variant grouping: `FFCSTimetableTab.tsx:1232-1267` ≡ `AutoGeneratorModal.tsx:5
 
 ## Operation: `processParsedCourses`
 
-| # | Location | Live |
-|---|----------|------|
-| 1 | `FFCSTimetableTab.tsx:269` | yes |
-| 2 | `courseProcessor.ts:41` | **no — 274 dead lines** |
+| #   | Location                   | Live                    |
+| --- | -------------------------- | ----------------------- |
+| 1   | `FFCSTimetableTab.tsx:269` | yes                     |
+| 2   | `courseProcessor.ts:41`    | **no — 274 dead lines** |
 
 ## The generators
 
-| # | Location | Runs on | Live |
-|---|----------|---------|------|
-| 1 | `FFCSTimetableTab.tsx:850` `generateTimetables` | main thread | yes |
-| 2 | `AutoGeneratorModal.tsx:152` `generateTimetables` | main thread | yes |
-| 3 | `workers/generator.worker.ts` | worker | **no — never invoked** |
+| #   | Location                                          | Runs on     | Live                   |
+| --- | ------------------------------------------------- | ----------- | ---------------------- |
+| 1   | `FFCSTimetableTab.tsx:850` `generateTimetables`   | main thread | yes                    |
+| 2   | `AutoGeneratorModal.tsx:152` `generateTimetables` | main thread | yes                    |
+| 3   | `workers/generator.worker.ts`                     | worker      | **no — never invoked** |
 
 Number 3 is reached only through `logic/generator.ts:14`, which
 `AutoGeneratorModal.tsx:6` imports and **never calls**. So there are two generators, not

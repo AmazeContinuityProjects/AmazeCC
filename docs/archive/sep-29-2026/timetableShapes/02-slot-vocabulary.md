@@ -3,17 +3,17 @@
 ## The two spellings of one period
 
 The engineering grid suffixes a `1` for morning and a `2` for evening. `A1` is Monday
-8:00 *and* Wednesday 8:55; `A2` is Monday 2:00 and Wednesday 2:55. Two of the 12:35
+8:00 _and_ Wednesday 8:55; `A2` is Monday 2:00 and Wednesday 2:55. Two of the 12:35
 periods are spelled with an `S` id instead — `S11` Monday, `S15` Friday.
 
 The law school books those same morning periods with the number left off entirely:
 
-| Report | Means |
-|--------|-------|
+| Report     | Means         |
+| ---------- | ------------- |
 | `A+TA+TAA` | `A1+TA1+TAA1` |
 | `C+TC+TCC` | `C1+TC1+TCC1` |
-| `E+TE+TEE` | `E1+TE1+S11` |
-| `F+TF+TFF` | `F1+TF1+S15` |
+| `E+TE+TEE` | `E1+TE1+S11`  |
+| `F+TF+TFF` | `F1+TF1+S15`  |
 
 The law school has **no evening timetable at all**, so a law slot only ever names a
 morning period. That asymmetry is load-bearing — see the exclusions below.
@@ -29,11 +29,11 @@ arrives depends on the caller — the free-classroom page holds a period and ask
 it, while the generator holds a course and asks when it runs.
 
 ```ts
-lawSlotFor(schemaSlot)      // "A1" -> "A",  "S11" -> "TEE"
-schemaSlotFor(lawSlot)      // "A"  -> "A1", "TEE" -> "S11"
-slotSpellings(slot)         // every id naming the same period, including itself
-expandSlotSpellings(slots)  // a Set where one `has` answers for both spellings
-hasSlot(slots, slot)        // does a course holding `slots` run in `slot`?
+lawSlotFor(schemaSlot); // "A1" -> "A",  "S11" -> "TEE"
+schemaSlotFor(lawSlot); // "A"  -> "A1", "TEE" -> "S11"
+slotSpellings(slot); // every id naming the same period, including itself
+expandSlotSpellings(slots); // a Set where one `has` answers for both spellings
+hasSlot(slots, slot); // does a course holding `slots` run in `slot`?
 ```
 
 `LAW_SLOT_BY_S_SLOT` (`S11`→`TEE`, `S15`→`TFF`) is **stated, not derived**. There is
@@ -42,14 +42,14 @@ link to the law timetable is knowledge from outside the data.
 
 ### The exclusions, and why each is needed
 
-| Guard | Prevents |
-|-------|----------|
-| only a **lone** trailing `1` is stripped | `A2` is 2:00 PM. Aliasing it would make a law course busy every evening, in every room it occupies, on the strength of a morning class. |
-| base `S` excluded | `S1` is a **real** 6:35 PM theory slot that happens to fit the letters-plus-1 shape. Aliasing it would invent an `S` that collides with it. |
-| base `L` excluded | `L1`–`L60` are labs and have no law equivalent. |
-| `NIL` excluded | VTOP's "no slot" placeholder. It is all letters, so a naive reading hands it an `NIL1`. |
-| `S11`/`S15` handled by table, not regex | They carry two digits and would not match the shape; the table is what makes them `TEE`/`TFF` rather than nothing. |
-| labs never spell-checked | Only a **theory** slot is ever passed in, so `buildPeriodSlots` cannot lend out a bare `L`. |
+| Guard                                    | Prevents                                                                                                                                    |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| only a **lone** trailing `1` is stripped | `A2` is 2:00 PM. Aliasing it would make a law course busy every evening, in every room it occupies, on the strength of a morning class.     |
+| base `S` excluded                        | `S1` is a **real** 6:35 PM theory slot that happens to fit the letters-plus-1 shape. Aliasing it would invent an `S` that collides with it. |
+| base `L` excluded                        | `L1`–`L60` are labs and have no law equivalent.                                                                                             |
+| `NIL` excluded                           | VTOP's "no slot" placeholder. It is all letters, so a naive reading hands it an `NIL1`.                                                     |
+| `S11`/`S15` handled by table, not regex  | They carry two digits and would not match the shape; the table is what makes them `TEE`/`TFF` rather than nothing.                          |
+| labs never spell-checked                 | Only a **theory** slot is ever passed in, so `buildPeriodSlots` cannot lend out a bare `L`.                                                 |
 
 ## Phase 1 work
 
@@ -57,19 +57,19 @@ link to the law timetable is knowledge from outside the data.
 
 From `freeClassrooms.ts`, which is the current home of all three:
 
-| Symbol | From |
-|--------|------|
-| `DayId` | `freeClassrooms.ts:67` |
-| `CampusSchema` | `freeClassrooms.ts:61` |
-| `SchemaPeriod` | `freeClassrooms.ts:54` |
+| Symbol          | From                    |
+| --------------- | ----------------------- |
+| `DayId`         | `freeClassrooms.ts:67`  |
+| `CampusSchema`  | `freeClassrooms.ts:61`  |
+| `SchemaPeriod`  | `freeClassrooms.ts:54`  |
 | `timeToMinutes` | `freeClassrooms.ts:167` |
-| `periodKey` | `freeClassrooms.ts:204` |
+| `periodKey`     | `freeClassrooms.ts:204` |
 
 `freeClassrooms.ts` re-exports them, so `FreeClassroomsTab.tsx:35-40` and both test
 files are untouched.
 
 **`resolvePeriods` and `buildDayIndex` stay in `freeClassrooms.ts`.** They are not
-duplicates: they *merge overlapping periods* — Monday's lab block at 08:50–09:40 overlaps
+duplicates: they _merge overlapping periods_ — Monday's lab block at 08:50–09:40 overlaps
 the 08:55 lecture for 45 of its 50 minutes, so the two collapse into one window carrying
 the union of their slots. The other call sites do not do this and must not start to.
 
@@ -101,8 +101,8 @@ Replaces:
 ### 1c. Add the inverse, for the grid direction
 
 ```ts
-courseInPeriod(courses, schemaSlot)   // buildBands.ts:462, FFCSTimetableTab.tsx:802
-ownSlotSpelling(courses, schemaSlot)  // HorizontalTimetableGrid
+courseInPeriod(courses, schemaSlot); // buildBands.ts:462, FFCSTimetableTab.tsx:802
+ownSlotSpelling(courses, schemaSlot); // HorizontalTimetableGrid
 ```
 
 The grid asks the opposite question — it is holding a period and asking who is in it —
@@ -120,10 +120,10 @@ course carries:
 1. `courses.find(c => c.slots.includes(period.days[day]))` — so a course booked `A` is
    never found at the `A1` period, and the cell renders as a free period. Indistinguishable
    from a genuinely free one, which is how a whole law timetable came back blank.
-2. It *prints* `period.days[day]` — so even once matched, the cell would read `A1` for a
+2. It _prints_ `period.days[day]` — so even once matched, the cell would read `A1` for a
    course the student's own timetable calls `A`.
 3. It blocks by that printed id — so tapping records `A1`, and the generator filters
-   options by the slot on the *course*, so the block silently does nothing.
+   options by the slot on the _course_, so the block silently does nothing.
 
 `HorizontalTimetableGrid.tsx` was added as a local adapter that fixes all three with one
 substitution: for every (day, period) a course occupies, hand the grid that course's own
@@ -133,7 +133,7 @@ are untouched because they read `period.start`/`end`.
 
 `blockedSlots` is expanded too, so an id blocked from either spelling hatches the cell.
 
-The vertical renderer has the same three problems and *is* editable, which is why
+The vertical renderer has the same three problems and _is_ editable, which is why
 `buildBands.ts` spells them out at the call site instead of routing through the adapter.
 
 ## Dependency discipline

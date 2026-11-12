@@ -15,13 +15,13 @@ into `@/lib/uiTokens` and `shared/primitives/` and then used by about a dozen sc
 
 Everything else rolled its own.
 
-| Measure | Count |
-|---|---|
-| `.tsx` files in `src/` | 215 |
-| Import `shared/primitives` | 27 |
-| Import `@/lib/uiTokens` | 22 |
-| Import **both** | **16** |
-| Import **neither** | **182** |
+| Measure                    | Count   |
+| -------------------------- | ------- |
+| `.tsx` files in `src/`     | 215     |
+| Import `shared/primitives` | 27      |
+| Import `@/lib/uiTokens`    | 22      |
+| Import **both**            | **16**  |
+| Import **neither**         | **182** |
 
 So the primitives are a minority position, and the old dialect is not a memory — it is a live
 dependency. 77 files import `@amazecontinuityprojects/amazeui` directly, and 20 files in
@@ -32,31 +32,31 @@ This plan converts the remaining 182 files, in six phases, cheapest first.
 
 ## Locked decisions
 
-| Question | Decision |
-|---|---|
-| Scope | All 182 files, in 6 phases |
-| Reference implementation | `CourseDetailSubpage` overview block (L1388-1550) |
-| Second reference | `attendance/CalendarSubpage.tsx` — 0 violations, 15 primitives |
-| Third reference | `events/EventHubTab.tsx` — 1 violation |
-| Best tone discipline | `libraries/LibrariesTab.tsx` — the only file with no local tone map |
-| amazeui shims | Migrate the ~60 call sites, then **delete all 20 shim files** |
-| Foreign dialects | Converted too, in Phase 5 — not left behind |
-| Radius | **Code wins.** `DESIGN_LANGUAGE.md` is updated to match what ships |
-| Suspected dead code | Verify reachability first; delete if confirmed dead, never migrate |
-| Home screens | Excluded. Already on-grammar |
-| amazeui package itself | Never edited — it is a published dependency |
+| Question                 | Decision                                                            |
+| ------------------------ | ------------------------------------------------------------------- |
+| Scope                    | All 182 files, in 6 phases                                          |
+| Reference implementation | `CourseDetailSubpage` overview block (L1388-1550)                   |
+| Second reference         | `attendance/CalendarSubpage.tsx` — 0 violations, 15 primitives      |
+| Third reference          | `events/EventHubTab.tsx` — 1 violation                              |
+| Best tone discipline     | `libraries/LibrariesTab.tsx` — the only file with no local tone map |
+| amazeui shims            | Migrate the ~60 call sites, then **delete all 20 shim files**       |
+| Foreign dialects         | Converted too, in Phase 5 — not left behind                         |
+| Radius                   | **Code wins.** `DESIGN_LANGUAGE.md` is updated to match what ships  |
+| Suspected dead code      | Verify reachability first; delete if confirmed dead, never migrate  |
+| Home screens             | Excluded. Already on-grammar                                        |
+| amazeui package itself   | Never edited — it is a published dependency                         |
 
 ## Phases
 
-| Phase | Work | Independently testable |
-|-------|------|------------------------|
-| 0 | Reachability check, delete dead code, sync `DESIGN_LANGUAGE.md` radius scale | yes |
-| 1 | Prove the grammar: ~5 near-clean files, 1-3 swaps each | yes |
-| 2 | The big zinc offenders: `OverallAttendancePredictor`, `SimplifiedAcademicsPage`, both qbank tabs | yes |
-| 3 | Kill tone-map shadowing and duplicate token homes | yes |
-| 4 | Shim migration, then delete the 20 re-export files | yes |
-| 5 | The four foreign-dialect rewrites (FFCS, hostel, dayscholar, CabShare) | yes |
-| 6 | Convert the reference implementation itself | yes |
+| Phase | Work                                                                                             | Independently testable |
+| ----- | ------------------------------------------------------------------------------------------------ | ---------------------- |
+| 0     | Reachability check, delete dead code, sync `DESIGN_LANGUAGE.md` radius scale                     | yes                    |
+| 1     | Prove the grammar: ~5 near-clean files, 1-3 swaps each                                           | yes                    |
+| 2     | The big zinc offenders: `OverallAttendancePredictor`, `SimplifiedAcademicsPage`, both qbank tabs | yes                    |
+| 3     | Kill tone-map shadowing and duplicate token homes                                                | yes                    |
+| 4     | Shim migration, then delete the 20 re-export files                                               | yes                    |
+| 5     | The four foreign-dialect rewrites (FFCS, hostel, dayscholar, CabShare)                           | yes                    |
+| 6     | Convert the reference implementation itself                                                      | yes                    |
 
 Each phase typechecks, lints and tests on its own, so a failure is always attributable to the
 phase it landed in. Phases 1-4 are mechanical. Phase 5 is not — see the note below.
@@ -66,12 +66,12 @@ phase it landed in. Phases 1-4 are mechanical. Phase 5 is not — see the note b
 Not every off-grammar file is a token swap. Four areas speak class languages the tokens do not
 cover, and these need a surface rewrite:
 
-| Dialect | Signature | Files | Example |
-|---|---|---|---|
-| **zinc** (target) | `bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl` | the 16 already-clean files | `CalendarSubpage` |
-| **gray/slate** | `bg-white/50 dark:bg-slate-900/50 border-gray-200/80` | 3 core, 6+ shared | `hostel/HostelOverview.tsx` L120 |
-| **white-alpha** | `bg-white/40 dark:bg-white/5 border-white/50` | 2 core, 8+ shared | `dayscholar/BusFinder.tsx` (7 hits) |
-| **semantic** | `bg-background` / `border-border` / `text-muted-foreground` | 6 | `FFCSTimetableTab.tsx` (**139 hits**) |
+| Dialect           | Signature                                                   | Files                      | Example                               |
+| ----------------- | ----------------------------------------------------------- | -------------------------- | ------------------------------------- |
+| **zinc** (target) | `bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl`          | the 16 already-clean files | `CalendarSubpage`                     |
+| **gray/slate**    | `bg-white/50 dark:bg-slate-900/50 border-gray-200/80`       | 3 core, 6+ shared          | `hostel/HostelOverview.tsx` L120      |
+| **white-alpha**   | `bg-white/40 dark:bg-white/5 border-white/50`               | 2 core, 8+ shared          | `dayscholar/BusFinder.tsx` (7 hits)   |
+| **semantic**      | `bg-background` / `border-border` / `text-muted-foreground` | 6                          | `FFCSTimetableTab.tsx` (**139 hits**) |
 
 `FFCSTimetableTab.tsx` alone is 2,612 lines with 139 semantic-token hits, and
 `AutoGeneratorModal.tsx` has 97. That is Phase 5, and it is the honest reason this plan is
@@ -96,7 +96,7 @@ anywhere. That is the discipline Phase 3 spreads.
 
 **AmazeUI internals.** The primitives live in this repo precisely because amazeui's
 `PageHeader` / `SectionHeader` / `SubpageLayout` are the older gray+blue dialect. If a Phase 4
-conversion appears to require changing a component *inside* `node_modules/@amazecontinuityprojects/amazeui`,
+conversion appears to require changing a component _inside_ `node_modules/@amazecontinuityprojects/amazeui`,
 **stop and report.** The fix is always a local primitive, never a patch to the package.
 
 **Radius.** We decided code wins, so `DESIGN_LANGUAGE.md` gets updated rather than the code
@@ -125,5 +125,5 @@ An earlier read of the audit treated `AttendanceCalendarView.tsx` as superseded 
 It has three live call sites: `AttendanceSubpage.tsx:551`, `OverallTrackerSubpage.tsx:230` and
 `CourseDetailSubpage.tsx:1126`. It gets migrated, not deleted.
 
-Two files *are* confirmed dead: `attendance/PopupCard.tsx` and `exams/AllGradesDisplay.tsx`
+Two files _are_ confirmed dead: `attendance/PopupCard.tsx` and `exams/AllGradesDisplay.tsx`
 each have zero importers and zero render sites. See [03-phase-0-dead-and-docs.md](./03-phase-0-dead-and-docs.md).

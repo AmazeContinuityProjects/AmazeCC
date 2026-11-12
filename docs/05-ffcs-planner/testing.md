@@ -1,30 +1,36 @@
-# FFCS Planner — Testing Map
+# FFCS Planner — Testing (exhaustive map)
 
-> **Run:** `pnpm run test -- ffcs` (or any narrower filename filter). ~37 suites, the largest
-> the repo owns. The share-link round-trip is the most important invariant in the whole suite.
+> **Rule zero:** the share round-trip is the religion here. Never patch a mismatch; fix the bug.
 
-## What each family pins
+## Suite families (all in `src/__tests__/`)
 
-| Suites                                                                                  | Invariant                                                                              |
-| --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `ffcsGenerate*.test.ts`, `ffcsGenerate.facultyPriority`, `ffcsGenerationRun.dropLadder` | deterministic cartesian search; half-days floor; faculty ranking; drop ladder policies |
-| `ffcsShare*.test.ts` / `ffcsShareInput*.test.tsx`                                       | compress→encode→decode round-trip; version gate; raw-code parsing                      |
-| `ffcsSettings.test.ts`                                                                  | sanitization of corrupt stored JSON; defaults merge                                    |
-| `ffcs-embedded.test.ts`                                                                 | CSV parsing correctness for all shipped semesters                                      |
-| `ffcsCatalogFilters`, `buildCurriculumIndex`, `slotIndex`                               | catalog chip behaviors; slot classification                                            |
-| `ffcsTab.render`, `ffcsTab.render.test.tsx`                                             | the planner tab mounts; semester switch paths                                          |
-| `ffcsGeneratorSubpage.render`                                                           | generator screen; drop-ladder UX states                                                |
-| `ffcsFriends*`, `ffcsClassmates`                                                        | social pairing behavior (see `05-ffcs-friends/`)                                       |
-| `ffcsDossierSubpage`, `exportTimetable*`, `exportClashReport`                           | exports produce parseable artifacts (deterministic snapshots avoided — asserts shape)  |
-| `ffcsCatalogCurriculum.hook` / `ffcsCatalogFilters.render`                              | curriculum backfill effect behavior                                                    |
+| Suite                                                                                                     | Count | Pins                                                                             |
+| --------------------------------------------------------------------------------------------------------- | ----- | -------------------------------------------------------------------------------- |
+| `ffcsGenerate*` (generate, generate-stream, facultyPriority, dropLadder)                                  | 4     | deterministic cartesian, batch protocol, faculty ordering, drop ladder reporting |
+| `ffcsShare*` / `ffcsShareInput*` / `ffcsShareView.render*`                                                | 4     | round-trip, version gate, input parsing, read-only render                        |
+| `ffcsSettings.test.ts`                                                                                    | 1     | sanitization, corrupt-JSON recovery, defaults merge                              |
+| `ffcs-embedded.test.ts`                                                                                   | 1     | all four shipped CSVs parse to valid courses                                     |
+| `ffcsReports.test.ts`                                                                                     | 1     | semester mapping, `getSelectedFinalReportPath`                                   |
+| `ffcsCodechefCatalogue.test.ts`                                                                           | 1     | catalogue itself (dry parse of 200k rows)                                        |
+| `ffcsCatalogFilters*`, `ffcsCatalogCurriculum.hook`                                                       | 3     | slot index, curriculum mapping, OPEN_ELECTIVE rules                              |
+| `ffcsTab.render`, `ffcsGeneratorSubpage.render`, `ffcsFriendsSubpage.render`, `ffcsGuidedSelector.render` | 4     | mount/pathology smoke + key flows                                                |
+| `ffcsDossierSubpage.render`, `ffcsClassmates*`                                                            | 2     | export surface + friend-finder call shape                                        |
+| `exportTimetable*`, `exportClashReport*`                                                                  | 3     | artifacts' exact text structure                                                  |
+| `ffcsGeneratorTargets.test.ts`                                                                            | 1     | target pruning/lock persistence                                                  |
 
-## When you touch the generator
+## How to debug a failing FFCS suite
 
-Run `pnpm run test -- ffcs` **and** `pnpm run test -- timetable`. The ranking-profile suite
-(`ffcsRanking`) is the most fragile — expect to update fixture orders deliberately, never by
-snapshot-reject.
+1. Read the assertion text — half of these suites assert exact order because order is the API.
+2. If it's a CSV-parse failure: check the file wasn't regenerated by `catalogue:build`.
+3. If share round-trip broke: print `FFCS_SHARE_VERSION` vs your payload's prefix — mismatch = version trip, not encoder bug, until proven.
+4. Guided render flakes = polling races in the assertions — use `findBy` over `getBy`.
 
-## Quiz
+## One-shot verification checklist (changed the generator?)
 
-1. Student reports: "my shared link opens to an empty week on their phone". Name the three
-   test files most likely to catch the regression.
+```
+pnpm run test -- ffcs
+pnpm run test -- timetable
+pnpm run test -- export
+```
+
+If any of those three lines goes red, the planner is probably _also_ functionally broken for a number of students; do not paper it.

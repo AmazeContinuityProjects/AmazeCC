@@ -1,10 +1,28 @@
-# Academics — UI Map
+# Academics — UI Map (annotated, with line counts)
 
-- `exams/MarksHistoryTab` / `MarksPredictorTab` — historical analytics + what-if ladder
-- `exams/SimplifiedAcademicsPage.tsx` — flattened marks by course type
-- `exams/CurriculumPage.tsx` — catalog browser + branch computation
-- `exams/ScheduleDisplay.tsx` + `examSchedule.ts` — exam schedule, export to PDF/iCal
-- `exams/CourseDashboard.tsx` + `CourseDetailSubpage.tsx` — per-course deep dive (2,900 lines)
-- `exams/GradesModal.tsx` — the grade sheet from anywhere
-- `exams/CircularsTab.tsx`, `CourseQBankTab.tsx` (see 05-qbank/)
-- `exams/MoodleDisplay.tsx` (assignments; see 05-tasks-and-pomodoro/)
+| File                                | ~Lines | Job                                                                                          |
+| ----------------------------------- | ------ | -------------------------------------------------------------------------------------------- |
+| `exams/CourseDetailSubpage.tsx`     | ~2,881 | per-course deep-dive: hero, marks breakdown, attendance overlap, FAT predictor, faculty card |
+| `exams/CurriculumPage.tsx`          | ~1,578 | degree catalog browser + credit math                                                         |
+| `exams/ScheduleDisplay.tsx`         | ~1,000 | exam schedule: view, export PDF/image/iCal                                                   |
+| `exams/MarksHistoryTab.tsx`         | ~900   | historical analytics, per-semester table + trend                                             |
+| `exams/MarksPredictorTab.tsx`       | ~700   | predictor UI (see 05-marks-predictor/)                                                       |
+| `exams/SimplifiedAcademicsPage.tsx` | ~600   | marks list by course type                                                                    |
+| `exams/GradesModal.tsx`             | ~500   | grade breakdown sheet                                                                        |
+| `exams/CourseDashboard.tsx`         | ~200   | screen switcher with course-dashboard hand-off                                               |
+| `exams/VitolDisplay.tsx`            | ~300   | Vitol portal assignments                                                                     |
+| `exams/MoodleDisplay.tsx`           | ~700   | Moodle/LMS assignments list (switches to Tasks import)                                       |
+| `exams/CircularsTab.tsx`            | ~600   | circulars tree viewer                                                                        |
+| `exams/CourseQBankTab.tsx`          | ~700   | papers & questions (see 05-qbank/)                                                           |
+| `exams/CourseFacultyCard.tsx`       | ~400   | faculty info card for any course                                                             |
+
+## The course-dashboard hand-off (this is load-bearing)
+
+```ts
+// producer (SimplifiedMobileHome, attendance, OD):
+setCourseDashboardTarget({ courseCode, targetTab: "overview" }); setActiveSubTab("academics");
+// consumer (CourseDashboard):
+const { target, clear } = useCourseDashboardTarget(); useEffect(() => { if (target) ... }, [target]);
+```
+
+Targets older than one semester are discarded — do not persist deliberately.
