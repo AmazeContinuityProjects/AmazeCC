@@ -1,15 +1,7 @@
 import { useState, useEffect } from "react";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
-import { api } from "@/lib/sync-engine";
-import {
-  GraduationCap,
-  ClipboardCheck,
-  Landmark,
-  Building,
-  Trophy,
-  IdCard,
-  ChevronRight,
-} from "lucide-react";
+import { syncEngine } from "@/lib/sync-engine";
+import { GraduationCap, ClipboardCheck, Landmark, Building, Trophy, IdCard, ChevronRight } from "lucide-react";
 
 export default function ProfileStatusCards({
   creds,
@@ -20,117 +12,92 @@ export default function ProfileStatusCards({
   refreshKey: number;
   onCardClick: (id: string) => void;
 }) {
-  const [ept, setEpt] = useState<any>(null);
+  const [whoami, setWhoami] = useState<any>(null);
   const [reg, setReg] = useState<any>(null);
-  const [bank, setBank] = useState<any>(null);
-  const [day, setDay] = useState<any>(null);
-  const [rank, setRank] = useState<string | null>(null);
-  const [apaar, setApaar] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!creds) return;
+    let cancelled = false;
 
-    if (refreshKey === 0) {
-      const cachedEpt = localStorage.getItem("cache_ept_schedule");
-      const cachedReg = localStorage.getItem("cache_registration_schedule");
-      const cachedBank = localStorage.getItem("cache_bank_info");
-      const cachedDay = localStorage.getItem("cache_dayboarder");
-      const cachedCred = localStorage.getItem("cache_credentials");
-      const cachedApaar = localStorage.getItem("cache_apaarid");
-      if (cachedEpt && cachedReg && cachedBank && cachedDay && cachedCred) {
-        try {
-          const eptRes = JSON.parse(cachedEpt);
-          const regRes = JSON.parse(cachedReg);
-          const bankRes = JSON.parse(cachedBank);
-          const dayRes = JSON.parse(cachedDay);
-          const credRes = JSON.parse(cachedCred);
-          setEpt(eptRes);
-          setReg(regRes);
-          setBank(bankRes);
-          setDay(dayRes);
-          const rankVal = credRes?.ranks?.[0]?.rank;
-          if (rankVal) setRank(String(rankVal));
-          if (cachedApaar)
+    const load = async () => {
+      setLoading(true);
+      try {
+        let w: any = null;
+        if (refreshKey === 0) {
+          try {
+            const cached = localStorage.getItem("cache_whoami") || localStorage.getItem("uni_cc_generic_whoami:{}");
+            if (cached) w = JSON.parse(cached);
+          } catch {}
+        }
+        if (!w || refreshKey > 0) {
+          try {
+            w = await syncEngine.sync("whoami");
+          } catch {
+            w = null;
+          }
+          if (w && !w.error) {
             try {
-              setApaar(JSON.parse(cachedApaar));
-            } catch (e) {}
-          setLoading(false);
-          return;
-        } catch (e) {}
-      }
-    }
+              localStorage.setItem("cache_whoami", JSON.stringify(w));
+            } catch {}
+          }
+        }
+        if (cancelled) return;
+        setWhoami(w);
 
-    setLoading(true);
-    const { cookies, authorizedID, csrf } = creds;
-    Promise.all([
-      api("ept-schedule", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cookies, authorizedID, csrf }),
-      }),
-      api("registration-schedule", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cookies, authorizedID, csrf }),
-      }),
-      api("bank-info", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cookies, authorizedID, csrf }),
-      }),
-      api("dayboarder", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cookies, authorizedID, csrf }),
-      }),
-      api("credentials", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cookies, authorizedID, csrf }),
-      }),
-      api("apaarid", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cookies, authorizedID, csrf }),
-      })
-        .catch(() => ({ success: false })),
-    ])
-      .then(([eptRes, regRes, bankRes, dayRes, credRes, apaarRes]: any[]) => {
-        setEpt(eptRes);
-        setReg(regRes);
-        setBank(bankRes);
-        setDay(dayRes);
-        setApaar(apaarRes);
-        const rankVal = credRes?.ranks?.[0]?.rank;
-        if (rankVal) setRank(String(rankVal));
-        localStorage.setItem("cache_apaarid", JSON.stringify(apaarRes));
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+        // registration schedule comes from unified FFCS op (single ffcs all call + adapters/distribution)
+        let regRes: any = null;
+        if (refreshKey === 0) {
+          try {
+            const cachedReg =
+              localStorage.getItem("cache_registration_schedule") ||
+              localStorage.getItem("cache_registration-schedule");
+            if (cachedReg) regRes = JSON.parse(cachedReg);
+          } catch {}
+        }
+        if (!regRes || refreshKey > 0) {
+          try {
+            const ffcsRes: any = await syncEngine.sync("ffcs", {});
+            regRes = ffcsRes?.registrationSchedule || ffcsRes;
+          } catch {
+            regRes = null;
+          }
+        }
+        if (!cancelled) setReg(regRes);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, [refreshKey, creds]);
+
+  const ept = whoami?.eptSchedule ?? null;
+  const day = whoami?.dayboarder ?? null;
+  const rank = whoami?.ranks?.[0]?.rank != null ? String(whoami.ranks[0].rank) : null;
+  const apaar = whoami?.apaar ?? null;
+  const bank = whoami?.bank ?? null;
 
   const hasEpt = ept?.tables?.length > 0 && ept.tables.some((t: any) => t.rows?.length > 0);
   const hasReg = reg?.tables?.length > 0 && reg.tables.some((t: any) => t.rows?.length > 0);
-  const hasBank =
-    bank?.bankDetails !== null ||
-    (bank?.fields && Object.values(bank.fields).some((f: any) => f.value && f.value.length > 0));
-  const hasDay =
-    day?.fields && Object.values(day.fields).some((f: any) => f.value && f.value.length > 0);
-  const apaarFormFilled = apaar?.formFields
-    ? Object.values(apaar.formFields).some(
-        (v: any) => v && v.length > 4 && v !== "-" && !String(v).startsWith("0")
-      )
-    : false;
+  const hasBank = !!(
+    bank?.name ||
+    bank?.branch ||
+    bank?.address ||
+    (Array.isArray(bank?.fields) && bank.fields.some((f: any) => f?.value && String(f.value).trim().length > 0))
+  );
+  const hasDay = !!(
+    day?.fields && Object.values(day.fields).some((f: any) => f?.value && String(f.value).trim().length > 0)
+  );
   const hasApaar =
     apaar?.hasApaar === true ||
-    (apaar?.keyValuePairs && Object.keys(apaar.keyValuePairs).length > 0) ||
-    (apaar?.tables && apaar.tables.some((t: any) => t.rows.length > 0)) ||
-    apaarFormFilled;
+    (Array.isArray(apaar?.fields) && apaar.fields.length > 0) ||
+    (Array.isArray(apaar?.tables) && apaar.tables.some((t: any) => t.rows?.length > 0));
 
-  const eptCount = hasEpt
-    ? ept.tables.reduce((sum: number, t: any) => sum + (t.rows?.length || 0), 0)
-    : 0;
+  const eptCount = hasEpt ? ept.tables.reduce((sum: number, t: any) => sum + (t.rows?.length || 0), 0) : 0;
 
   if (loading) {
     return (
@@ -247,18 +214,12 @@ export default function ProfileStatusCards({
             }`}
           >
             <div className="flex items-center gap-3.5 min-w-0">
-              <div
-                className={`w-11 h-11 rounded-2xl ${card.iconBg} flex items-center justify-center shrink-0 border`}
-              >
+              <div className={`w-11 h-11 rounded-2xl ${card.iconBg} flex items-center justify-center shrink-0 border`}>
                 <Icon className="w-5 h-5" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-black font-outfit text-zinc-900 dark:text-white truncate">
-                  {card.label}
-                </p>
-                <p className="text-[10px] text-zinc-400 dark:text-zinc-500 truncate mt-0.5">
-                  {card.subtitle}
-                </p>
+                <p className="text-xs font-black font-outfit text-zinc-900 dark:text-white truncate">{card.label}</p>
+                <p className="text-[10px] text-zinc-400 dark:text-zinc-500 truncate mt-0.5">{card.subtitle}</p>
                 <div className="mt-2">
                   <span
                     className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-extrabold border ${card.badgeColor}`}

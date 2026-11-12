@@ -2,8 +2,63 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { AnimatePresence } from "framer-motion";
-import { api } from "@/lib/sync-engine";
-import { runPageSync } from "@/lib/sync-engine/single-sync";
+import { syncEngine } from "@/lib/sync-engine";
+import { storage } from "@/lib/storage";
+
+const DEMO_FINANCE_ALL = {
+  dues: {
+    studentInfo: {
+      registerNumber: "22BCE1234",
+      studentName: "Demo Student",
+      programme: "B.Tech Computer Science & Engineering",
+      campus: "Vellore Institute of Technology, Chennai",
+    },
+    hasDues: false,
+    message: "No pending tuition fees or hostel dues are registered for your account.",
+  },
+  receipts: {
+    receipts: [
+      { receiptNumber: "FEE-2026-90210", date: "2026-05-15", campusCode: "VITC", amount: "198000" },
+      { receiptNumber: "HSTL-2026-10492", date: "2026-06-02", campusCode: "VITC", amount: "145000" },
+    ],
+  },
+  wallet: {
+    ledgerINR: [
+      {
+        amount: "5000",
+        refundAmount: "0",
+        transactionType: "CR",
+        refundDate: null,
+        particulars: "Security Deposit Refund",
+        transactionDate: "2026-06-01",
+        bookBalanceAmount: "5000",
+      },
+    ],
+    ledgerUSD: [],
+  },
+  library: { books: [] },
+  bank: {},
+};
+
+function applyFinanceAll(res: any) {
+  const dues = res?.dues ?? null;
+  const receipts = res?.receipts ?? null;
+  const wallet = res?.wallet ?? null;
+  const library = res?.library ?? null;
+  const bank = res?.bank ?? null;
+  try {
+    if (dues) localStorage.setItem(PAYMENTS_KEYS.dues, JSON.stringify(dues));
+    if (receipts) localStorage.setItem(PAYMENTS_KEYS.receipts, JSON.stringify(receipts));
+    if (wallet) localStorage.setItem(PAYMENTS_KEYS.wallet, JSON.stringify(wallet));
+    if (library) storage.cache.set("library-due", { success: true, ...library });
+    if (bank) storage.cache.set("bank-info", bank);
+  } catch {}
+  return {
+    dues: dues as PaymentsDuesData | null,
+    receipts: receipts as PaymentReceiptsData | null,
+    wallet: wallet as PaymentWalletData | null,
+  };
+}
 import {
   Wallet,
   Receipt,
@@ -52,56 +107,7 @@ import type {
 const SUB_TABS = ["dues", "receipts", "wallet"] as const;
 type SubTab = (typeof SUB_TABS)[number];
 
-const ENDPOINT: Record<SubTab, string> = {
-  dues: "payments",
-  receipts: "payment-receipts",
-  wallet: "wallet",
-};
-
-/** Fixtures used when VTOP hands back the demo authorised ID. */
-const DEMO_FIXTURES: Record<SubTab, unknown> = {
-  dues: {
-    studentInfo: {
-      registerNumber: "22BCE1234",
-      studentName: "Demo Student",
-      programme: "B.Tech Computer Science & Engineering",
-      campus: "Vellore Institute of Technology, Chennai",
-    },
-    hasDues: false,
-    message:
-      "No pending tuition fees or hostel dues are registered for your account.",
-  },
-  receipts: {
-    receipts: [
-      {
-        receiptNumber: "FEE-2026-90210",
-        date: "2026-05-15",
-        campusCode: "VITC",
-        amount: "198000",
-      },
-      {
-        receiptNumber: "HSTL-2026-10492",
-        date: "2026-06-02",
-        campusCode: "VITC",
-        amount: "145000",
-      },
-    ],
-  },
-  wallet: {
-    ledgerINR: [
-      {
-        amount: "5000",
-        refundAmount: "0",
-        transactionType: "CR",
-        refundDate: null,
-        particulars: "Security Deposit Refund",
-        transactionDate: "2026-06-01",
-        bookBalanceAmount: "5000",
-      },
-    ],
-    ledgerUSD: [],
-  },
-};
+/* demo fixtures are provided via unified DEMO_FINANCE_ALL above */
 
 const TONE_TEXT: Record<string, string> = {
   red: "text-red-600 dark:text-red-400",
@@ -122,12 +128,10 @@ const TONE_BADGE: Record<string, string> = {
   zinc: "bg-zinc-500/10 text-zinc-500 dark:text-zinc-400 border-zinc-500/20",
 };
 
-  // Hero cards use the OD-hours sizing (a touch shorter than the course page)
-  const CARD_BASE = `${TILE} min-h-32 sm:min-h-36`;
+// Hero cards use the OD-hours sizing (a touch shorter than the course page)
+const CARD_BASE = `${TILE} min-h-32 sm:min-h-36`;
 
-  const LIST_ROW =
-    "w-full flex items-center justify-between gap-3 py-3 px-4 text-left";
-
+const LIST_ROW = "w-full flex items-center justify-between gap-3 py-3 px-4 text-left";
 
 function readStored<T>(key: string, legacyKey: string): T | null {
   if (typeof window === "undefined") return null;
@@ -149,13 +153,13 @@ type ListMode = "wallet" | "receipts";
 
 export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
   const [duesData, setDuesData] = useState<PaymentsDuesData | null>(() =>
-    readStored<PaymentsDuesData>(PAYMENTS_KEYS.dues, "payments")
+    readStored<PaymentsDuesData>(PAYMENTS_KEYS.dues, "payments"),
   );
   const [receiptsData, setReceiptsData] = useState<PaymentReceiptsData | null>(() =>
-    readStored<PaymentReceiptsData>(PAYMENTS_KEYS.receipts, "payment-receipts")
+    readStored<PaymentReceiptsData>(PAYMENTS_KEYS.receipts, "payment-receipts"),
   );
   const [walletData, setWalletData] = useState<PaymentWalletData | null>(() =>
-    readStored<PaymentWalletData>(PAYMENTS_KEYS.wallet, "wallet")
+    readStored<PaymentWalletData>(PAYMENTS_KEYS.wallet, "wallet"),
   );
 
   const [loading, setLoading] = useState<Record<SubTab, boolean>>({
@@ -170,9 +174,7 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
   });
 
   // Per-receipt detail cache so reopening a sheet never refetches
-  const [receiptDetails, setReceiptDetails] = useState<
-    Record<string, PaymentReceiptTable[]>
-  >({});
+  const [receiptDetails, setReceiptDetails] = useState<Record<string, PaymentReceiptTable[]>>({});
   const [detailLoading, setDetailLoading] = useState<Record<string, boolean>>({});
   const [openReceipt, setOpenReceipt] = useState<PaymentReceipt | null>(null);
 
@@ -194,121 +196,50 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
     return credsRef.current;
   }, [loginToVTOP]);
 
-  /** One network round-trip; returns the payload (or null on failure). */
-  const requestPayments = useCallback(
-    async (tab: SubTab, extra?: Record<string, string>): Promise<unknown | null> => {
-      try {
-        const { cookies, authorizedID, csrf } = await getCreds();
-
-        if (authorizedID === "DEMO123") {
-          await new Promise((resolve) => setTimeout(resolve, 300));
-          return DEMO_FIXTURES[tab];
-        }
-
-        const body: Record<string, unknown> = { cookies, authorizedID, csrf };
-        if (extra) Object.assign(body, extra);
-
-        return await api(ENDPOINT[tab], {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-      } catch (err: any) {
-        setError((prev) => ({ ...prev, [tab]: err?.message || "Fetch failed" }));
-        return null;
+  /** Single call: fetch all finance data and distribute to legacy stores/UI state. */
+  const fetchAllFinance = useCallback(async () => {
+    setLoading({ dues: true, receipts: true, wallet: true });
+    setError({ dues: null, receipts: null, wallet: null });
+    try {
+      const { authorizedID } = await getCreds();
+      let res: any;
+      if (
+        authorizedID === "DEMO123" ||
+        (typeof window !== "undefined" && localStorage.getItem("demoMode") === "true")
+      ) {
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        res = DEMO_FINANCE_ALL;
+      } else {
+        res = await syncEngine.sync("finance", { section: "all" });
       }
-    },
-    [getCreds]
-  );
-
-  /** Fetch a section, persist it, and mirror it into state. */
-  const loadSection = useCallback(
-    async (tab: SubTab) => {
-      setLoading((prev) => ({ ...prev, [tab]: true }));
-      setError((prev) => ({ ...prev, [tab]: null }));
-      try {
-        const data = await requestPayments(tab);
-        if (data) {
-          try {
-            localStorage.setItem(PAYMENTS_KEYS[tab], JSON.stringify(data));
-          } catch {}
-          if (tab === "dues") setDuesData(data as PaymentsDuesData);
-          else if (tab === "receipts") setReceiptsData(data as PaymentReceiptsData);
-          else setWalletData(data as PaymentWalletData);
-        }
-      } finally {
-        setLoading((prev) => ({ ...prev, [tab]: false }));
+      const { dues, receipts, wallet } = applyFinanceAll(res);
+      if (dues) setDuesData(dues);
+      if (receipts) setReceiptsData(receipts);
+      if (wallet) setWalletData(wallet);
+      if (res?.errors && typeof res.errors === "object") {
+        const msg = (k: string) => (res.errors as Record<string, string>)[k] || null;
+        setError({ dues: msg("dues"), receipts: msg("receipts"), wallet: msg("wallet") });
       }
-    },
-    [requestPayments]
-  );
+      return res;
+    } catch (err: any) {
+      const msg = err?.message || "Fetch failed";
+      setError({ dues: msg, receipts: msg, wallet: msg });
+      return null;
+    } finally {
+      setLoading({ dues: false, receipts: false, wallet: false });
+    }
+  }, [getCreds]);
 
-  // Sequential on purpose: the three endpoints are cheap, and serialising keeps
-  // VTOP from seeing a burst of concurrent requests.
-  const loadSections = useCallback(
-    async (tabs: SubTab[]) => {
-      for (const tab of tabs) {
-        await loadSection(tab);
-      }
-    },
-    [loadSection]
-  );
-
-  // The page shows every section at once, so warm whatever is missing
-  const hasSection = useMemo(
-    () => ({ dues: Boolean(duesData), receipts: Boolean(receiptsData), wallet: Boolean(walletData) }),
-    [duesData, receiptsData, walletData]
-  );
-  const missingOnMount = useMemo(
-    () => SUB_TABS.filter((tab) => !hasSection[tab]) as SubTab[],
-    [hasSection]
-  );
+  // One call on mount to load all finance data (instead of separate per-section calls).
   useEffect(() => {
-    if (missingOnMount.length > 0) void loadSections(missingOnMount);
+    const missing = !duesData || !receiptsData || !walletData;
+    if (missing) void fetchAllFinance();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const refreshAll = useCallback(() => {
-    void (async () => {
-      // Demo has no VTOP session: fixtures come from the per-section path.
-      if (typeof window !== "undefined" && localStorage.getItem("demoMode") === "true") {
-        await loadSections([...SUB_TABS]);
-        return;
-      }
-      // One engine `bulk` sweep for exactly this page's three endpoints. The
-      // op writes the same `payments_*` keys this page reads, so apply just
-      // re-reads them; the sheet always reaches 100 and closes.
-      setLoading({ dues: true, receipts: true, wallet: true });
-      setError({ dues: null, receipts: null, wallet: null });
-      try {
-        const res = await runPageSync({
-          title: "Payments",
-          steps: [{ op: "bulk", args: { only: ["payments", "payment-receipts", "wallet"] } }],
-          doneLine: "Payments reloaded successfully",
-        });
-        if (!res) return;
-        const read = (key: string) => {
-          try {
-            const raw = localStorage.getItem(key);
-            return raw ? JSON.parse(raw) : null;
-          } catch {
-            return null;
-          }
-        };
-        const dues = read(PAYMENTS_KEYS.dues);
-        const receipts = read(PAYMENTS_KEYS.receipts);
-        const wallet = read(PAYMENTS_KEYS.wallet);
-        if (dues) setDuesData(dues as PaymentsDuesData);
-        if (receipts) setReceiptsData(receipts as PaymentReceiptsData);
-        if (wallet) setWalletData(wallet as PaymentWalletData);
-      } catch (err: any) {
-        const msg = err?.message || "Fetch failed";
-        setError({ dues: msg, receipts: msg, wallet: msg });
-      } finally {
-        setLoading({ dues: false, receipts: false, wallet: false });
-      }
-    })();
-  }, [loadSections]);
+    void fetchAllFinance();
+  }, [fetchAllFinance]);
 
   const anyLoading = loading.dues || loading.receipts || loading.wallet;
 
@@ -362,14 +293,8 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
       list.push({
         id: "txn",
         title: "Last transaction",
-        headline: `${debit ? "−" : "+"}${fmtAmt(
-          String(Math.abs(safeNum(lastTxn.entry.amount))),
-          lastTxn.symbol
-        )}`,
-        subline:
-          lastTxn.entry.particulars ||
-          lastTxn.entry.transactionDate ||
-          (debit ? "Debit" : "Credit"),
+        headline: `${debit ? "−" : "+"}${fmtAmt(String(Math.abs(safeNum(lastTxn.entry.amount))), lastTxn.symbol)}`,
+        subline: lastTxn.entry.particulars || lastTxn.entry.transactionDate || (debit ? "Debit" : "Credit"),
         badge: debit ? "Debit" : "Credit",
         tone: debit ? "red" : "emerald",
         onClick: () => setListMode("wallet"),
@@ -379,10 +304,7 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
       id: "receipts",
       title: "Receipts",
       headline: String(receiptList.length),
-      subline:
-        receiptList.length === 1
-          ? "1 fee receipt logged"
-          : `${receiptList.length} fee receipts logged`,
+      subline: receiptList.length === 1 ? "1 fee receipt logged" : `${receiptList.length} fee receipts logged`,
       badge: "Receipts",
       tone: "indigo",
       onClick: () => setListMode("receipts"),
@@ -403,7 +325,7 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
         tone: s.tone,
         onClick: s.onClick,
       })),
-    [slides]
+    [slides],
   );
 
   // ── Receipt detail sheet ────────────────────────────────────────────────
@@ -414,16 +336,19 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
       if (!key || receiptDetails[key] || detailLoading[key]) return;
       setDetailLoading((prev) => ({ ...prev, [key]: true }));
       void (async () => {
-        const data = (await requestPayments("receipts", { applNo: key })) as
-          | PaymentReceiptsData
-          | null;
-        if (data?.tables) {
-          setReceiptDetails((prev) => ({ ...prev, [key]: data.tables || [] }));
+        try {
+          await getCreds();
+          const res = await syncEngine.sync<any>("finance", { section: "receipt", applNo: key });
+          const tables = (res?.receiptDetail?.tables || res?.tables || []) as PaymentReceiptTable[];
+          if (tables.length) {
+            setReceiptDetails((prev) => ({ ...prev, [key]: tables }));
+          }
+        } finally {
+          setDetailLoading((prev) => ({ ...prev, [key]: false }));
         }
-        setDetailLoading((prev) => ({ ...prev, [key]: false }));
       })();
     },
-    [receiptDetails, detailLoading, requestPayments]
+    [receiptDetails, detailLoading, getCreds],
   );
 
   const detailKey = receiptDetailKey(openReceipt);
@@ -469,11 +394,7 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
       subtitle="Dues, wallet ledger and official fee receipts"
       onBack={onBack}
       actions={
-        <IconButton
-          onClick={refreshAll}
-          title="Refresh payments from VTOP"
-          disabled={anyLoading}
-        >
+        <IconButton onClick={refreshAll} title="Refresh payments from VTOP" disabled={anyLoading}>
           <RefreshCcw className={`w-4 h-4 ${anyLoading ? "animate-spin text-indigo-500" : ""}`} />
         </IconButton>
       }
@@ -507,9 +428,7 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
               <Skeleton className="h-8 w-24 rounded-xl" />
             </div>
           ) : error.dues && !duesData ? (
-            <p className="my-auto py-1 text-xs font-bold text-red-600 dark:text-red-400 line-clamp-3">
-              {error.dues}
-            </p>
+            <p className="my-auto py-1 text-xs font-bold text-red-600 dark:text-red-400 line-clamp-3">{error.dues}</p>
           ) : (
             <div className="my-auto py-1 flex items-center gap-2.5 min-w-0">
               <div
@@ -517,11 +436,7 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
                   hasPendingDues ? "bg-red-500" : "bg-emerald-500"
                 }`}
               >
-                {hasPendingDues ? (
-                  <Ban className="w-4.5 h-4.5" />
-                ) : (
-                  <ShieldCheck className="w-4.5 h-4.5" />
-                )}
+                {hasPendingDues ? <Ban className="w-4.5 h-4.5" /> : <ShieldCheck className="w-4.5 h-4.5" />}
               </div>
               <span
                 className={`text-2xl sm:text-3xl font-black font-outfit tracking-tight leading-tight truncate ${TONE_TEXT[duesToneKey]}`}
@@ -533,9 +448,7 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
 
           <div className="flex items-center justify-between gap-2">
             <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">
-              {hasPendingDues
-                ? "Outstanding payments pending on VTOP"
-                : duesData?.message || "No outstanding fee dues"}
+              {hasPendingDues ? "Outstanding payments pending on VTOP" : duesData?.message || "No outstanding fee dues"}
             </p>
             {hasPendingDues && (
               <a
@@ -553,12 +466,7 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
         </div>
 
         {/* CARD 2: ROTATING CAROUSEL */}
-        <InsightCarousel
-          slides={insightSlides}
-          carousel={carousel}
-          height="min-h-32 sm:min-h-36"
-          interactiveDots
-        />
+        <InsightCarousel slides={insightSlides} carousel={carousel} height="min-h-32 sm:min-h-36" interactiveDots />
       </div>
 
       {/* ── LEDGER: one list, two sources (attendance-log composition) ── */}
@@ -573,9 +481,7 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
             <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">
               {listMode === "wallet" ? "Wallet" : "Receipts"}
             </h2>
-            <span className={SECTION_CHIP}>
-              {listMode === "wallet" ? walletRows.length : receiptList.length}
-            </span>
+            <span className={SECTION_CHIP}>{listMode === "wallet" ? walletRows.length : receiptList.length}</span>
           </div>
 
           <div className="flex items-center gap-1 mt-2.5 p-0.5 bg-zinc-100 dark:bg-zinc-800/80 rounded-xl border border-zinc-200/60 dark:border-zinc-700/60 text-xs">
@@ -601,117 +507,108 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
           </div>
         </div>
 
-        {listMode === "wallet"
-          ? loading.wallet && !walletData
-            ? renderListSkeleton(3)
-            : error.wallet && !walletData
-            ? renderError(error.wallet)
-            : walletRows.length === 0
-            ? renderEmpty(
-                <Wallet className="w-7 h-7" />,
-                "No wallet activity",
-                "Ledger credits, debits and security refunds appear here once your data syncs from VTOP."
-              )
-            : (
-              <div className={LIST_SHELL}>
-                {walletRows.map(({ entry, symbol, ledger }, idx) => {
-                  const amt = safeNum(entry.amount);
-                  const refundAmt = safeNum(entry.refundAmount);
-                  const isDebit = isDebitEntry(entry);
-                  const isRefunded = refundAmt > 0 || Boolean(entry.refundDate);
+        {listMode === "wallet" ? (
+          loading.wallet && !walletData ? (
+            renderListSkeleton(3)
+          ) : error.wallet && !walletData ? (
+            renderError(error.wallet)
+          ) : walletRows.length === 0 ? (
+            renderEmpty(
+              <Wallet className="w-7 h-7" />,
+              "No wallet activity",
+              "Ledger credits, debits and security refunds appear here once your data syncs from VTOP.",
+            )
+          ) : (
+            <div className={LIST_SHELL}>
+              {walletRows.map(({ entry, symbol, ledger }, idx) => {
+                const amt = safeNum(entry.amount);
+                const refundAmt = safeNum(entry.refundAmount);
+                const isDebit = isDebitEntry(entry);
+                const isRefunded = refundAmt > 0 || Boolean(entry.refundDate);
 
-                  return (
-                    <div key={`${ledger}-${idx}`} className={LIST_ROW}>
-                      <span
-                        className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                          isDebit ? "bg-rose-500" : "bg-emerald-500"
-                        }`}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <p className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight">
-                            {entry.particulars ||
-                              (isDebit ? "Debit transaction" : "Credit deposit")}
-                          </p>
-                          {isRefunded && (
-                            <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md border shrink-0 bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">
-                              Refund
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5 truncate">
-                          {[
-                            entry.transactionDate,
-                            entry.receiptNumber,
-                            ledger === "USD" ? "USD" : null,
-                          ]
-                            .filter(Boolean)
-                            .join(" · ")}
+                return (
+                  <div key={`${ledger}-${idx}`} className={LIST_ROW}>
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full shrink-0 ${isDebit ? "bg-rose-500" : "bg-emerald-500"}`}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <p className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight">
+                          {entry.particulars || (isDebit ? "Debit transaction" : "Credit deposit")}
                         </p>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p
-                          data-private
-                          className={`font-black text-sm font-outfit leading-tight ${
-                            isDebit
-                              ? "text-rose-600 dark:text-rose-400"
-                              : "text-emerald-600 dark:text-emerald-400"
-                          }`}
-                        >
-                          {isDebit ? "−" : "+"}
-                          {fmtAmt(String(Math.abs(amt)), symbol)}
-                        </p>
-                        {entry.bookBalanceAmount && (
-                          <p data-private className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">
-                            Bal {fmtAmt(entry.bookBalanceAmount, symbol)}
-                          </p>
+                        {isRefunded && (
+                          <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md border shrink-0 bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">
+                            Refund
+                          </span>
                         )}
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )
-          : loading.receipts && !receiptsData
-          ? renderListSkeleton(3)
-          : error.receipts && !receiptsData
-          ? renderError(error.receipts)
-          : receiptList.length === 0
-          ? renderEmpty(
-              <Receipt className="w-7 h-7" />,
-              "No receipts yet",
-              "Official semester payment receipts logged on your student account show up here."
-            )
-          : (
-            <div className={LIST_SHELL}>
-              {receiptList.map((r, i) => (
-                <button
-                  key={r.receiptNumber || i}
-                  type="button"
-                  onClick={() => openReceiptDetail(r)}
-                  className={`${LIST_ROW} hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors cursor-pointer group`}
-                >
-                  <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-emerald-500" />
-                <ListRowText
-                  title={r.receiptNumber}
-                  subtitle={[r.date, r.campusCode].filter(Boolean).join(" · ")}
-                />
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    <div className="text-right">
-                      <p data-private className="font-black text-sm font-outfit text-zinc-900 dark:text-white leading-tight">
-                        {fmtAmt(r.amount)}
-                      </p>
-                      <p className="text-[9px] font-extrabold uppercase text-emerald-600 dark:text-emerald-400 mt-0.5">
-                        Settled
+                      <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5 truncate">
+                        {[entry.transactionDate, entry.receiptNumber, ledger === "USD" ? "USD" : null]
+                          .filter(Boolean)
+                          .join(" · ")}
                       </p>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-zinc-400 group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-all" />
+                    <div className="text-right shrink-0">
+                      <p
+                        data-private
+                        className={`font-black text-sm font-outfit leading-tight ${
+                          isDebit ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"
+                        }`}
+                      >
+                        {isDebit ? "−" : "+"}
+                        {fmtAmt(String(Math.abs(amt)), symbol)}
+                      </p>
+                      {entry.bookBalanceAmount && (
+                        <p data-private className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">
+                          Bal {fmtAmt(entry.bookBalanceAmount, symbol)}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </button>
-              ))}
+                );
+              })}
             </div>
-          )}
+          )
+        ) : loading.receipts && !receiptsData ? (
+          renderListSkeleton(3)
+        ) : error.receipts && !receiptsData ? (
+          renderError(error.receipts)
+        ) : receiptList.length === 0 ? (
+          renderEmpty(
+            <Receipt className="w-7 h-7" />,
+            "No receipts yet",
+            "Official semester payment receipts logged on your student account show up here.",
+          )
+        ) : (
+          <div className={LIST_SHELL}>
+            {receiptList.map((r, i) => (
+              <button
+                key={r.receiptNumber || i}
+                type="button"
+                onClick={() => openReceiptDetail(r)}
+                className={`${LIST_ROW} hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors cursor-pointer group`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-emerald-500" />
+                <ListRowText title={r.receiptNumber} subtitle={[r.date, r.campusCode].filter(Boolean).join(" · ")} />
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <div className="text-right">
+                    <p
+                      data-private
+                      className="font-black text-sm font-outfit text-zinc-900 dark:text-white leading-tight"
+                    >
+                      {fmtAmt(r.amount)}
+                    </p>
+                    <p className="text-[9px] font-extrabold uppercase text-emerald-600 dark:text-emerald-400 mt-0.5">
+                      Settled
+                    </p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-zinc-400 group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-all" />
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ── RECEIPT DETAIL SHEET ── */}
@@ -741,11 +638,7 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
                     </>
                   }
                 />
-                <KeyValue
-                  label="Status"
-                  valueClassName="text-emerald-600 dark:text-emerald-400"
-                  value="Settled"
-                />
+                <KeyValue label="Status" valueClassName="text-emerald-600 dark:text-emerald-400" value="Settled" />
               </div>
 
               {openDetailLoading && (
@@ -765,7 +658,10 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
                         </h4>
                       )}
                       {table.rows?.map((row, ri) => (
-                        <div key={ri} className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-950/40 border border-zinc-200/60 dark:border-zinc-800 space-y-3">
+                        <div
+                          key={ri}
+                          className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-950/40 border border-zinc-200/60 dark:border-zinc-800 space-y-3"
+                        >
                           <div className="flex items-center gap-2">
                             <div className="p-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400">
                               <FileText className="w-4 h-4" />

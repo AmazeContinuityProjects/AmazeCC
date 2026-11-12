@@ -1,3 +1,5 @@
+import { installLocalStorage } from "./helpers/localStorage";
+installLocalStorage();
 import { beforeEach, describe, expect, it } from "vitest";
 import { formatSyncAge, getSyncTimes, lastSyncedAt, recordSyncTime } from "../lib/syncTimes";
 

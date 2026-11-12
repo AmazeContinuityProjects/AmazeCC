@@ -1,14 +1,8 @@
 "use client";
 
-import { api } from "@/lib/sync-engine";
+import { syncEngine } from "@/lib/sync-engine";
 import { updatePostHogPersonName } from "@/lib/posthog";
-import {
-  switchApiHost,
-  hasBackupApi,
-  getActiveApiUrl,
-  BACKUP_API_URL,
-  type ApiHostChoice,
-} from "@/lib/fetch-utils";
+import { switchApiHost, hasBackupApi, getActiveApiUrl, BACKUP_API_URL, type ApiHostChoice } from "@/lib/fetch-utils";
 import {
   X,
   Save,
@@ -75,7 +69,7 @@ import BottomSheet from "../shared/BottomSheet";
 import { effectiveCellDensity } from "../timetable/useTimetableViewMode";
 import SyncModeEditor, { SyncModeEditorContent } from "../shared/SyncModeEditor";
 import { listModes, loadCustomModes, resolveMode, type SyncMode } from "@/lib/sync-engine/sync-modes";
-import GenericApiView, { clearApiCache } from "../exams/GenericApiView";
+import { clearApiCache } from "../exams/GenericApiView";
 import { useTheme } from "next-themes";
 
 export type SectionId =
@@ -557,7 +551,7 @@ export default function ProfilePage({
       setRefreshingCreds(false);
       return;
     }
-    const { cookies, authorizedID, csrf } = creds;
+    const { authorizedID } = creds;
     if (authorizedID === "DEMO123" || username === "demo") {
       await new Promise((resolve) => setTimeout(resolve, 300));
       setCredData({
@@ -584,11 +578,11 @@ export default function ProfilePage({
       return;
     }
     try {
-      const fresh = (await api("credentials", {
-        method: "POST",
-        body: { cookies, authorizedID, csrf },
-      })) as any;
-      setCredData(fresh);
+      const w = (await syncEngine.sync("whoami")) as any;
+      if (w && !w.error) {
+        localStorage.setItem("cache_whoami", JSON.stringify(w));
+        setCredData({ credentials: w.credentials || [], ranks: w.ranks || [] });
+      }
     } catch (e) {
       console.error("Refresh failed", e);
     } finally {
@@ -606,7 +600,7 @@ export default function ProfilePage({
       return;
     }
 
-    const { cookies, authorizedID, csrf } = creds;
+    const { authorizedID } = creds;
     if (authorizedID === "DEMO123" || username === "demo") {
       setCredData({
         credentials: [
@@ -632,28 +626,41 @@ export default function ProfilePage({
       return;
     }
 
-    if (refreshKey === 0) {
-      const cached = localStorage.getItem("cache_credentials");
-      if (cached) {
-        try {
-          setCredData(JSON.parse(cached));
-          setCredLoading(false);
-          return;
-        } catch (e) {}
+    const applyWhoami = (w: any) => {
+      if (w?.credentials || w?.ranks) {
+        setCredData({ credentials: w.credentials || [], ranks: w.ranks || [] });
       }
+    };
+
+    if (refreshKey === 0) {
+      try {
+        const cached = localStorage.getItem("cache_whoami") || localStorage.getItem("cache_credentials");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed?.credentials || parsed?.ranks) {
+            applyWhoami(parsed);
+            setCredLoading(false);
+            return;
+          }
+        }
+      } catch {}
     }
 
-    api("credentials", {
-      method: "POST",
-      body: { cookies, authorizedID, csrf },
-    })
-      .then((data: any) => {
-        if (data?.credentials || data?.ranks || data?.tables) {
-          setCredData(data);
+    (async () => {
+      try {
+        const w = (await syncEngine.sync("whoami")) as any;
+        if (w && !w.error) {
+          localStorage.setItem("cache_whoami", JSON.stringify(w));
+          applyWhoami(w);
+          return;
         }
-      })
-      .catch((e) => console.error("Credentials fetch error:", e))
-      .finally(() => setCredLoading(false));
+      } catch (e) {
+        console.error("Credentials fetch error:", e);
+      } finally {
+        setCredLoading(false);
+      }
+      setCredLoading(false);
+    })();
   }, [refreshKey, creds, username, password]);
 
   useEffect(() => {
@@ -724,20 +731,48 @@ export default function ProfilePage({
     if (!creds || !creds.cookies) return;
     (async () => {
       try {
-        const data = (await api("student", {
-          method: "POST",
-          body: {
-            cookies: creds.cookies,
-            authorizedID: creds.authorizedID,
-            csrf: creds.csrf,
-          },
-        })) as any;
-        if (data?.profile) {
-          setProfileData(data.profile);
-          localStorage.setItem("profile", JSON.stringify(data.profile));
-          // The identify pass may already have run with no name to send (the
-          // blob arrives without touching anything that pass depends on), so
-          // label the person now that the VTOP name is in storage.
+        let w: any = null;
+        try {
+          w = JSON.parse(localStorage.getItem("cache_whoami") || "null");
+        } catch {}
+        if (!w) {
+          try {
+            w = await syncEngine.sync("whoami");
+          } catch {
+            w = null;
+          }
+        }
+        if (w && !w.error) {
+          localStorage.setItem("cache_whoami", JSON.stringify(w));
+          const profile = {
+            regNo: w.regNo,
+            name: w.name,
+            email: w.email,
+            mobile: w.mobile,
+            dob: w.dob,
+            gender: w.gender,
+            bloodGroup: w.bloodGroup,
+            photoBase64: w.photoBase64,
+            isHosteller: w.isHosteller,
+            program: w.program,
+            nationality: w.nationality,
+            nativeLanguage: w.nativeLanguage,
+            nativeState: w.nativeState,
+            community: w.community,
+            religion: w.religion,
+            caste: w.caste,
+            physicallyChallenged: w.physicallyChallenged,
+            aadharNumber: w.aadharNumber,
+            currentAddress: w.currentAddress,
+            permanentAddress: w.permanentAddress,
+            father: w.father,
+            mother: w.mother,
+            guardian: w.guardian,
+            proctor: w.proctor,
+            hodDean: w.hodDean,
+          };
+          setProfileData(profile as any);
+          localStorage.setItem("profile", JSON.stringify(profile));
           updatePostHogPersonName();
         }
       } catch (e) {
@@ -1404,8 +1439,8 @@ export default function ProfilePage({
             <div className="min-w-0 flex-1">
               <p className="text-sm font-bold text-text-heading font-outfit tracking-tight">Forget my logins</p>
               <p className="text-[11px] text-text-secondary dark:text-text-muted font-medium mt-0.5">
-                Removes your VTOP, Moodle, library and VITOL logins from this device. Your tasks, FFCS plans,
-                friends and settings stay here for next time.
+                Removes your VTOP, Moodle, library and VITOL logins from this device. Your tasks, FFCS plans, friends
+                and settings stay here for next time.
               </p>
             </div>
           </div>
@@ -1428,10 +1463,12 @@ export default function ProfilePage({
               <LogOut className="w-5 h-5" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold text-text-heading font-outfit tracking-tight">Sign out and clear everything</p>
+              <p className="text-sm font-bold text-text-heading font-outfit tracking-tight">
+                Sign out and clear everything
+              </p>
               <p className="text-[11px] text-text-secondary dark:text-text-muted font-medium mt-0.5">
-                Removes your logins and everything AmazeCC has stored on this device, including tasks and FFCS
-                plans. Only your theme is kept.
+                Removes your logins and everything AmazeCC has stored on this device, including tasks and FFCS plans.
+                Only your theme is kept.
               </p>
             </div>
           </div>
@@ -1577,8 +1614,8 @@ export default function ProfilePage({
             <div>
               <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Privacy Mode</p>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                Blur grades, attendance, marks and fees everywhere, for screen sharing or showing your phone. Hover
-                or tap a value to peek. Shortcut: Alt/Option + P
+                Blur grades, attendance, marks and fees everywhere, for screen sharing or showing your phone. Hover or
+                tap a value to peek. Shortcut: Alt/Option + P
               </p>
             </div>
             <Switch
@@ -2574,7 +2611,78 @@ export default function ProfilePage({
           closeLabel="Close EPT schedule"
         >
           <div className="space-y-4 pb-2">
-            <GenericApiView endpoint="ept-schedule" title="" creds={creds} refreshKey={refreshKey} />
+            {(() => {
+              let w: any = null;
+              try {
+                w = JSON.parse(localStorage.getItem("cache_whoami") || "null");
+              } catch {}
+              const ept = w?.eptSchedule;
+              if (!ept)
+                return <p className="text-sm text-zinc-500 dark:text-zinc-400">No EPT schedule data available.</p>;
+              const msg = ept.message || ept.messages?.warning || ept.messages?.success;
+              const tables = Array.isArray(ept.tables) ? ept.tables : [];
+              if (tables.length === 0 && msg) {
+                return (
+                  <div className="p-4 rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 text-sm font-medium">
+                    {msg}
+                  </div>
+                );
+              }
+              return (
+                <div className="space-y-4">
+                  {msg && (
+                    <div className="p-3 rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 text-sm">
+                      {msg}
+                    </div>
+                  )}
+                  {tables.map((t: any, ti: number) => {
+                    const headers = t.headers || (t.rows?.[0] ? Object.keys(t.rows[0]) : []);
+                    return (
+                      <div
+                        key={ti}
+                        className="rounded-xl border border-zinc-200/80 dark:border-zinc-800 overflow-hidden"
+                      >
+                        {t.caption && (
+                          <div className="px-3 py-2 text-xs font-semibold bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-200/80 dark:border-zinc-800">
+                            {t.caption}
+                          </div>
+                        )}
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="bg-zinc-50 dark:bg-zinc-950/50">
+                                {headers.map((h: string, i: number) => (
+                                  <th
+                                    key={i}
+                                    className="px-3 py-2 text-left font-bold text-zinc-500 uppercase tracking-wider"
+                                  >
+                                    {h}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-zinc-200/60 dark:divide-zinc-800/60">
+                              {(t.rows || []).map((row: any, ri: number) => (
+                                <tr key={ri}>
+                                  {headers.map((h: string, ci: number) => (
+                                    <td
+                                      key={ci}
+                                      className="px-3 py-2 text-zinc-800 dark:text-zinc-200 whitespace-nowrap"
+                                    >
+                                      {row?.[h] ?? row?.[String(ci)] ?? "-"}
+                                    </td>
+                                  ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
         </BottomSheet>
       )}

@@ -194,10 +194,12 @@ describe("granular op subsets", () => {
     expect(calls).toEqual(["grades"]);
   });
 
-  it("core without `only` keeps the full six-module bundle", async () => {
+  it("core without `only` keeps the full bundle", async () => {
     const calls: string[] = [];
     await getOp("core")!.run(fakeCtx(calls), { semesterId: "S1", isHosteller: true });
-    expect(calls.sort()).toEqual(["grades", "schedule", "hostel", "calendar", "all-grades", "profile-images"].sort());
+    // Grades and all-grades share the unified /api/grades call; the exam
+    // schedule is extracted from /api/ffcs.
+    expect(calls.sort()).toEqual(["grades", "ffcs", "hostel", "calendar", "profile-images"].sort());
   });
 
   it("bulk `only` caches a subset of endpoints", async () => {
@@ -207,17 +209,19 @@ describe("granular op subsets", () => {
       only: ["library-due", "bogus-endpoint"],
     })) as { endpoints: string[] };
     expect(res.endpoints).toEqual(["library-due"]);
-    // library-due is batchable, so it rides in one /api/bulk call.
-    expect(calls).toEqual(["bulk"]);
+    // library-due is a finance section, so it rides in one /api/finance call.
+    expect(calls).toEqual(["finance"]);
   });
 
   it("bulk sends batchable endpoints to /api/bulk in a single call", async () => {
     const calls: string[] = [];
     await getOp("bulk")!.run(fakeCtx(calls), { settings: {} });
-    // 12 of the 13 endpoints are batchable; only minor-honour stays direct.
+    // Finance sections ride in one /api/finance call, the remaining batchable
+    // endpoints in one /api/bulk call, and only minor-honour stays direct.
+    expect(calls.filter((c) => c === "finance").length).toBe(1);
     expect(calls.filter((c) => c === "bulk").length).toBe(1);
     expect(calls).toContain("minor-honour");
-    expect(calls.length).toBe(2);
+    expect(calls.length).toBe(3);
   });
 
   it("standalone child ops persist individually", async () => {
@@ -225,9 +229,13 @@ describe("granular op subsets", () => {
     await getOp("grades")!.run(fakeCtx(calls), { semesterId: "S1" });
     await getOp("calendar")!.run(fakeCtx(calls), { semesterId: "S1" });
     expect(calls).toEqual(["grades", "calendar"]);
+    // The grades op adapts the unified /api/grades payload into the legacy
+    // summary shape before persisting it.
     expect(JSON.parse(localStorage.getItem("grades") || "null")).toEqual({
+      effectiveGrades: [],
+      curriculum: [],
+      cgpa: {},
       success: true,
-      grades: {},
     });
   });
 });

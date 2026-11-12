@@ -18,7 +18,7 @@
  * `rewriteUrlIfNeeded` rewrites the origin of **any** request to the active API
  * host, and `fetchWithFailover` flips `activeApiUrl` globally on failure. UniCC
  * is not a mirror of AmazeCC, it is a different service with a different surface.
- * A global swap sends student, transport, buses, wallet, social sync and the
+ * A global swap sends whoami, transport, buses, finance, social sync and the
  * EventHub endpoints to a host that 404s every one of them, and the app looks
  * healthy while returning nothing.
  *
@@ -34,13 +34,13 @@
  * | We need | UniCC has | |
  * |---|---|---|
  * | `POST /api/login` → `{success, cookies, csrf, authorizedID}` | identical | ✅ drop-in |
- * | `POST /api/grades`, `/api/all-grades`, `/api/attendance` | identical | ✅ drop-in |
+ * | `POST /api/grades`, `/api/attendance` | identical | ✅ drop-in |
  * | `POST /api/calendar`, `/api/schedule`, `/api/hostel` | identical | ✅ drop-in |
  * | `POST /api/lms-data`, `/api/vitol-data` | identical | ✅ drop-in |
  * | `GET /api/health` | `GET /api/status` → `{text}` | ⚠️ different path |
  * | `POST /api/events/*` → `jsessionid` | — | ❌ EventHub has no fallback |
  * | `POST /api/social/*` | — | ❌ |
- * | `/api/student`, `/api/buses`, `/api/transport`, `/api/wallet`, `/api/payments`, `/api/od`, `/api/acknowledgement`, `/api/ept-schedule`, `/api/registration-schedule`, `/api/library-due`, `/api/bank-info`, `/api/course-completion`, `/api/credentials`, `/api/hostel-counselling`, `/api/dayboarder`, `/api/exc-registration`, `/api/minor-honour`, `/api/payment-receipts`, `/api/profile-images` | — | ❌ |
+ * | `/api/whoami`, `/api/buses`, `/api/transport`, `/api/finance`, `/api/od`, `/api/ffcs` (registration/feedback/wishlist/schedule/qcm) | — | ❌ |
  *
  * The drop-in rows are drop-in because the two projects share the same
  * `types/data/*.ts`: `login`, `schedule`, `grades`, `hostel`, `marks` and
@@ -72,9 +72,10 @@ import type { VtopCreds } from "./sync-engine/types";
  * to send a plain-HTTP request from a secure page, so an `http://` value here
  * would simply never fire.
  */
-export const UNICC_API_URL = (
-  process.env.NEXT_PUBLIC_UNICC_API_URL || "https://api-unicc.arya22.dev"
-).replace(/\/+$/, "");
+export const UNICC_API_URL = (process.env.NEXT_PUBLIC_UNICC_API_URL || "https://api-unicc.arya22.dev").replace(
+  /\/+$/,
+  "",
+);
 
 /**
  * Whether the fallback is used at all.
@@ -131,7 +132,10 @@ export function uniccPathFor(urlOrPath: string): string | null {
   } catch {
     return null;
   }
-  const clean = pathname.replace(/^\/+/, "").replace(/^api\//, "").replace(/\/+$/, "");
+  const clean = pathname
+    .replace(/^\/+/, "")
+    .replace(/^api\//, "")
+    .replace(/\/+$/, "");
   return UNICC_SUPPORTED_PATHS.has(clean) ? clean : null;
 }
 
@@ -164,8 +168,8 @@ export function uniccUrlFor(original: string): string | null {
  * But the easiest way to break it is to put UniCC in `NEXT_PUBLIC_BACKUP_API_URL`,
  * which looks like exactly the right knob to reach for. That slot is the one
  * place the origin of *every* request is swapped, so it bypasses the allowlist
- * entirely: the app then asks UniCC for `/api/student`, `/api/transport`,
- * `/api/buses`, `/api/wallet` and the rest, and every one comes back 404. Worse,
+ * entirely: the app then asks UniCC for `/api/whoami`, `/api/transport`,
+ * `/api/buses`, `/api/finance` and the rest, and every one comes back 404. Worse,
  * the swap is persisted to `localStorage`, so it keeps happening after the config
  * is fixed, until the stored value is cleared.
  *
@@ -312,11 +316,7 @@ export function subscribeUniccActivity(listener: () => void): () => void {
   return () => void activityListeners.delete(listener);
 }
 
-function record(
-  path: string,
-  outcome: UniccActivity["lastOutcome"],
-  server: "amazecc" | "unicc"
-): void {
+function record(path: string, outcome: UniccActivity["lastOutcome"], server: "amazecc" | "unicc"): void {
   activity = {
     ...activity,
     served: activity.served + (outcome === "served" ? 1 : 0),
@@ -399,7 +399,10 @@ export function resetUniccActivity(): void {
 
 /** The bare route name, for display. `"all-grades"`, not the full URL. */
 export function uniccRouteName(urlOrPath: string): string {
-  return uniccPathFor(urlOrPath) ?? new URL(urlOrPath, "https://api-unicc.arya22.dev").pathname.replace(/^\/+/, "").replace(/^api\//, "");
+  return (
+    uniccPathFor(urlOrPath) ??
+    new URL(urlOrPath, "https://api-unicc.arya22.dev").pathname.replace(/^\/+/, "").replace(/^api\//, "")
+  );
 }
 
 /**
@@ -412,7 +415,6 @@ export function uniccRouteName(urlOrPath: string): string {
  * already failed.
  */
 const UNICC_TIMEOUT_MS = 60_000;
-
 
 /**
  * `GET /api/status` result cache lifetime.
@@ -504,10 +506,7 @@ interface UniccLoginBody {
  * with the original error. Throwing would mean inventing a failure mode the
  * caller has to handle separately.
  */
-export async function loginViaUnicc(
-  username: string,
-  password: string
-): Promise<UniccLoginOutcome> {
+export async function loginViaUnicc(username: string, password: string): Promise<UniccLoginOutcome> {
   if (!isUniccFallbackEnabled()) {
     return { kind: "unavailable", reason: "disabled by configuration" };
   }

@@ -1,3 +1,5 @@
+import { installLocalStorage } from "./helpers/localStorage";
+installLocalStorage();
 import { describe, expect, it, vi } from "vitest";
 import {
   ABSOLUTE_GRADE_BOUNDARIES,
@@ -13,11 +15,7 @@ import {
   type ClassStats,
   type GradedBoundary,
 } from "../lib/gradeBoundaries";
-import {
-  computeCoursePrediction,
-  solveTargetFAT,
-  type PredictorAssessment,
-} from "../lib/marksPredictor";
+import { computeCoursePrediction, solveTargetFAT, type PredictorAssessment } from "../lib/marksPredictor";
 
 vi.mock("@/lib/sync-engine", () => ({ api: vi.fn() }));
 import { api } from "@/lib/sync-engine";
@@ -168,7 +166,7 @@ describe("Table 5 — relative grading against the literal oracle", () => {
     for (let i = 0; i < 500; i++) {
       const ladder = buildGradeBoundaries(
         { count: 11 + Math.floor(r() * 100), mean: r() * 100, sd: 0.5 + r() * 30 },
-        true
+        true,
       );
       let prev = ORDER.indexOf("F");
       for (let x = 0; x <= 100; x += 0.5) {
@@ -196,7 +194,11 @@ describe("Table 5 — relative grading against the literal oracle", () => {
   });
 
   it("puts the class average at the middle of B", () => {
-    for (const [mean, sd] of [[55, 12], [62.4, 9.3], [70, 15]]) {
+    for (const [mean, sd] of [
+      [55, 12],
+      [62.4, 9.3],
+      [70, 15],
+    ]) {
       const ladder = buildGradeBoundaries({ count: 40, mean, sd }, true);
       expect(gradeAt(mean, ladder)).toBe("B");
     }
@@ -288,7 +290,11 @@ describe("S boundary above 100 — the top 5% / at least 3 rule (§9.5)", () => 
   });
 
   it("never sets the S cutoff below 80 ('students who have scored ≥ 80')", () => {
-    for (const [m, s] of [[70, 40], [80, 30], [85, 25]]) {
+    for (const [m, s] of [
+      [70, 40],
+      [80, 30],
+      [85, 25],
+    ]) {
       expect(estimateTopShareCutoff(m, s)).toBeGreaterThanOrEqual(80);
     }
   });
@@ -317,7 +323,15 @@ describe("S boundary above 100 — the top 5% / at least 3 rule (§9.5)", () => 
 /* ── which courses curve ─────────────────────────────────────────────────── */
 
 describe("which courses are relatively graded (§9.5)", () => {
-  const curved = ["Theory Only", "Embedded Theory", "Embedded Lab", "Embedded", "Embedded Theory and Lab", "Embedded Theory and Project", "embedded  theory"];
+  const curved = [
+    "Theory Only",
+    "Embedded Theory",
+    "Embedded Lab",
+    "Embedded",
+    "Embedded Theory and Lab",
+    "Embedded Theory and Project",
+    "embedded  theory",
+  ];
   const fixed = ["Lab Only", "Project", "Soft Skill", "Online Course", "Embedded Lab and Project", "", null, undefined];
 
   it("curves every theory-carrying course, in ACE and CBCS alike", () => {
@@ -394,9 +408,20 @@ describe("a simulated class, through the real contribution path", () => {
       const contributed = await contributedOverall(m);
       const exact = (m[0] / 50) * 15 + (m[1] / 50) * 15 + m[2] + m[3] + m[4] + (m[5] / 100) * 40;
       // VTOP's weightageMark is posted to 2 decimals; the total is rounded up.
-      expect(contributed).toBe(Math.min(100, Math.ceil(
-        ((+((m[0] / 50) * 15).toFixed(2) + +((m[1] / 50) * 15).toFixed(2) + +m[2].toFixed(2) + +m[3].toFixed(2) + +m[4].toFixed(2) + +((m[5] / 100) * 40).toFixed(2))) - 1e-9
-      )));
+      expect(contributed).toBe(
+        Math.min(
+          100,
+          Math.ceil(
+            +((m[0] / 50) * 15).toFixed(2) +
+              +((m[1] / 50) * 15).toFixed(2) +
+              +m[2].toFixed(2) +
+              +m[3].toFixed(2) +
+              +m[4].toFixed(2) +
+              +((m[5] / 100) * 40).toFixed(2) -
+              1e-9,
+          ),
+        ),
+      );
       expect(Number.isInteger(contributed)).toBe(true);
       expect(Math.abs((contributed as number) - exact)).toBeLessThanOrEqual(1.01);
       finals.push(contributed as number);
@@ -435,7 +460,14 @@ describe("predicting with partial marks", () => {
     { title: "FAT", maxMark: 100, weightagePercent: 40 },
   ];
   const rows = (marks: Array<number | null>, component: "theory" | "lab" = "theory"): PredictorAssessment[] =>
-    plan.map((p, i) => ({ id: `${component}${i}`, title: p.title, maxMark: p.maxMark, weightagePercent: p.weightagePercent, scoredMark: marks[i] ?? null, component }));
+    plan.map((p, i) => ({
+      id: `${component}${i}`,
+      title: p.title,
+      maxMark: p.maxMark,
+      weightagePercent: p.weightagePercent,
+      scoredMark: marks[i] ?? null,
+      component,
+    }));
 
   const predict = (marks: Array<number | null>, classStats: ClassStats | null = null) =>
     computeCoursePrediction({
@@ -457,7 +489,13 @@ describe("predicting with partial marks", () => {
       const p = predict(marks, CLASS);
       expect(p.currentScoredScaled + p.pointsLostScaled + p.potentialPendingScaled).toBeCloseTo(100, 1);
       expect(p.maxPossibleScaled).toBeCloseTo(100 - p.pointsLostScaled, 6);
-      for (const v of [p.currentScoredScaled, p.pointsLostScaled, p.maxPossibleScaled, p.pacePct, p.currentStandingPct]) {
+      for (const v of [
+        p.currentScoredScaled,
+        p.pointsLostScaled,
+        p.maxPossibleScaled,
+        p.pacePct,
+        p.currentStandingPct,
+      ]) {
         expect(fin(v)).toBe(true);
       }
     }
@@ -504,7 +542,10 @@ describe("predicting with partial marks", () => {
       let prevCeiling = Infinity;
       let prevBest = -1;
       for (let k = 0; k <= full.length; k++) {
-        const p = predict(full.map((m, i) => (i < k ? m : null)), CLASS);
+        const p = predict(
+          full.map((m, i) => (i < k ? m : null)),
+          CLASS,
+        );
         expect(p.maxPossibleScaled).toBeLessThanOrEqual(prevCeiling + 1e-9);
         const best = ORDER.indexOf(p.maximisableGrade.letter);
         expect(best).toBeGreaterThanOrEqual(prevBest); // never a better best case
@@ -525,7 +566,7 @@ describe("predicting with partial marks", () => {
       const fatFails = full[5] / 100 < 0.4;
       expect(p.optimalGrade?.letter).toBe(p.maximisableGrade.letter);
       expect(p.maximisableGrade.letter).toBe(
-        fatFails ? "F" : officialGrade(p.maxPossibleScaled, effectiveClassStats(CLASS)!)
+        fatFails ? "F" : officialGrade(p.maxPossibleScaled, effectiveClassStats(CLASS)!),
       );
       expect(predict(full).maximisableGrade.letter).toBe(fatFails ? "F" : officialAbsolute(p.maxPossibleScaled));
     }
@@ -600,7 +641,13 @@ describe("theory FAT minimum — 40% in the FAT alone (§9.4 a)", () => {
   });
 
   it("does not apply to a lab FAT", () => {
-    const res = solveTargetFAT({ targetScore: 50, currentScoredScaled: 55, fatWeightagePercent: 40, fatMaxMark: 50, component: "lab" });
+    const res = solveTargetFAT({
+      targetScore: 50,
+      currentScoredScaled: 55,
+      fatWeightagePercent: 40,
+      fatMaxMark: 50,
+      component: "lab",
+    });
     expect(res.meetsVITMinimumCutoff).toBe(true);
   });
 });

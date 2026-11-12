@@ -1,3 +1,5 @@
+import { installLocalStorage } from "./helpers/localStorage";
+installLocalStorage();
 import "fake-indexeddb/auto"; // the production IndexedDB adapter, against a real fake
 
 import { Blob as NodeBlob } from "node:buffer";

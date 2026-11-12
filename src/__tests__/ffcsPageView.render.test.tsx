@@ -1,6 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import FFCSPageView from "../app/ffcs/FFCSPageView";
+
+// The planner tab calls `useRouter().replace(...)`; no app router is mounted in
+// this environment, so supply one.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: vi.fn(), push: vi.fn(), refresh: vi.fn() }),
+}));
 
 function setLayoutMode(mode?: "guided" | "modern") {
   const values = new Map<string, string>();
@@ -47,13 +53,14 @@ describe("FFCSPageView", () => {
     const nav = container.querySelector("nav");
     expect(nav).toBeDefined();
     expect(nav?.className).not.toContain("sticky");
-  });
+    // Heavy module graph — same convention as the ffcsTab tests.
+  }, 30_000);
 
   it("does not offer a separate FFCS app install action", () => {
     setLayoutMode("guided");
     render(<FFCSPageView />);
     expect(screen.queryByRole("button", { name: /Install App/i })).toBeNull();
-  });
+  }, 30_000);
 
   it("defaults to Modern on mobile when no planner layout has been saved", () => {
     setLayoutMode();
@@ -68,7 +75,7 @@ describe("FFCSPageView", () => {
         value: originalWidth,
       });
     }
-  });
+  }, 30_000);
 
   it("combines the page headers in Modern mode", async () => {
     setLayoutMode("modern");
@@ -91,5 +98,5 @@ describe("FFCSPageView", () => {
     );
     expect(screen.getByText("Amaze")).toBeDefined();
     expect(screen.getByText("CC")).toBeDefined();
-  });
+  }, 30_000);
 });

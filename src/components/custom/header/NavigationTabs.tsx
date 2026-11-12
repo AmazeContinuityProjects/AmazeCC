@@ -6,7 +6,7 @@ import AppLibraryPortal from "./AppLibraryPortal";
 
 import { getAssetPath } from "@/lib/utils";
 import { formatSemesterName } from "@/lib/formatSemesterName";
-import { navigateToFFCSPlanner } from "@/lib/ffcsNavigation";
+
 import { createTapTracker, hasSectionHome, sectionHomeFor } from "@/lib/sectionHome";
 import { useOverlayBack } from "@/lib/overlayStack";
 import { animateThemeCircularExpansion } from "../ThemeToggle";
@@ -14,7 +14,6 @@ import {
   BookOpen,
   Building,
   CalendarCheck,
-  CheckSquare,
   ChevronRight,
   Command,
   CreditCard,
@@ -29,23 +28,16 @@ import {
   Wrench,
   WifiOff,
   Calendar,
-  Compass,
   Key,
   ArrowLeft,
   Bus,
   Search,
-  Coffee,
-  Info,
   LogOut,
   CarTaxiFront,
   MoreHorizontal,
   Rss,
   Layers,
-  Sparkles,
-  Database,
-  UserCheck,
   DoorOpen,
-  Users,
   UsersRound,
   UserSearch,
   ScanLine,
@@ -69,6 +61,7 @@ import {
 import { useSyncTrigger } from "../shared/useSyncTrigger";
 import config from "../../../../config.json";
 import { shouldShowGpa, shouldShowProfilePhoto } from "@/lib/settingsVisibility";
+import { activateEntry, getModuleRegistry, type ModuleEntry } from "@/lib/navigation/registry";
 
 type NavItem = {
   id: string;
@@ -478,203 +471,104 @@ export default function NavigationTabs({
   }, []);
 
   // Navigation Items Memoization
-  const studyItems = useMemo<NavItem[]>(
-    () => [
-      {
-        id: "home",
-        label: "Home",
-        icon: Home,
-        isActive: activeTab === "home",
-        onSelect: () => selectTab("home"),
-      },
-      {
-        id: "calendar",
-        label: "Timetable Calendar",
-        icon: Calendar,
-        isActive: activeTab === "attendance",
-        onSelect: () => {
-          selectTab("attendance");
-          setActiveAttendanceSubTab("calendar");
-        },
-      },
-      {
-        id: "academics",
-        label: "Academics",
-        icon: GraduationCap,
-        isActive: activeTab === "academics",
-        isExpandable: true,
-        onSelect: () => {
+  const navCtx = useMemo(
+    () => ({
+      selectTab,
+      setActiveSubTab,
+      setActiveAttendanceSubTab,
+      setActiveToolsSubTab,
+      setHostelActiveSubTab,
+      setActiveMoreSubTab,
+      setActiveProfileSubTab,
+      handleLogOutRequest,
+      isHosteller,
+      residentialStatus,
+    }),
+    [
+      selectTab,
+      setActiveSubTab,
+      setActiveAttendanceSubTab,
+      setActiveToolsSubTab,
+      setHostelActiveSubTab,
+      setActiveMoreSubTab,
+      setActiveProfileSubTab,
+      handleLogOutRequest,
+      isHosteller,
+      residentialStatus,
+    ],
+  );
+  const registry = useMemo(() => getModuleRegistry(navCtx), [navCtx]);
+
+  const toNavItem = (entry: ModuleEntry): NavItem => {
+    let isActive = false;
+    const t = entry.target;
+    if (t.kind === "tab") isActive = activeTab === t.tab;
+    else if (t.kind === "tabSub") {
+      isActive = activeTab === t.tab;
+      if (isActive) {
+        if (t.subtabKey === "academics") isActive = activeTab === "academics";
+        if (t.subtabKey === "tools")
+          isActive = activeTab === "tools" && (!activeToolsSubTab || activeToolsSubTab === "overview");
+        if (t.subtabKey === "hostel") isActive = activeTab === "hostel";
+        if (t.subtabKey === "attendance") isActive = activeTab === "attendance";
+        if (t.subtabKey === "profile") isActive = activeTab === "profile";
+      }
+    } else if (t.kind === "external") {
+      isActive = false;
+    }
+    return {
+      id: entry.id,
+      label: entry.label,
+      icon: entry.icon as any,
+      isActive,
+      isExpandable: entry.isExpandable,
+      onSelect: () => {
+        if (entry.id === "academics") {
           selectTab("academics");
           if (!activeSubTab || activeSubTab === "overview") setActiveSubTab("courses-simplified");
           setShowAcademicsPanel(true);
-        },
-      },
-    ],
-    [activeTab, activeSubTab, selectTab, setActiveAttendanceSubTab, setActiveSubTab],
-  );
-
-  const campusItems = useMemo<NavItem[]>(() => {
-    const items: NavItem[] = [
-      {
-        id: "payments",
-        label: "Payments",
-        icon: CreditCard,
-        isActive: activeTab === "payments",
-        onSelect: () => selectTab("payments"),
-      },
-      {
-        id: "libraries",
-        label: "Libraries",
-        icon: Library,
-        isActive: activeTab === "libraries",
-        onSelect: () => selectTab("libraries"),
-      },
-      {
-        id: "transport",
-        label: "Transport",
-        icon: Bus,
-        isActive: activeTab === "transport",
-        onSelect: () => selectTab("transport"),
-      },
-      {
-        id: "events",
-        label: "Event Hub",
-        icon: Calendar,
-        isActive: activeTab === "events",
-        onSelect: () => selectTab("events"),
-      },
-      {
-        id: "clubs",
-        label: "Club Hub",
-        icon: LayoutGrid,
-        isActive: activeTab === "clubs",
-        onSelect: () => selectTab("clubs"),
-      },
-      {
-        id: "community",
-        label: "Announcements",
-        icon: Rss,
-        isActive: activeTab === "community",
-        onSelect: () => selectTab("community"),
-      },
-      {
-        id: "free-class",
-        label: "Free Classrooms",
-        icon: DoorOpen,
-        // Preserve highlighting for older saved navigation state.
-        isActive: activeTab === "free-class" || (activeTab === "tools" && activeToolsSubTab === "free-class"),
-        onSelect: () => selectTab("free-class"),
-      },
-      {
-        id: "faculty-schedule",
-        label: "Faculty Schedule",
-        icon: UserSearch,
-        isActive: activeTab === "faculty-schedule",
-        onSelect: () => selectTab("faculty-schedule"),
-      },
-      {
-        id: "friend-finder",
-        label: "Find Classmates",
-        icon: UsersRound,
-        isActive: activeTab === "friend-finder",
-        onSelect: () => selectTab("friend-finder"),
-      },
-    ];
-
-    if (isHosteller === true || residentialStatus === "hosteller") {
-      items.push({
-        id: "hostel",
-        label: "Hostel Hub",
-        icon: Home,
-        isActive: activeTab === "hostel",
-        isExpandable: true,
-        onSelect: () => {
-          selectTab("hostel");
-          if (!HostelActiveSubTab) setHostelActiveSubTab("overview");
-          setShowHostelPanel(true);
-        },
-      });
-    }
-
-    return items;
-  }, [
-    activeTab,
-    activeToolsSubTab,
-    isHosteller,
-    residentialStatus,
-    selectTab,
-    setActiveToolsSubTab,
-    HostelActiveSubTab,
-    setHostelActiveSubTab,
-  ]);
-
-  const toolsItems = useMemo<NavItem[]>(
-    () => [
-      {
-        id: "ffcs",
-        label: "FFCS Planner",
-        icon: Compass,
-        isActive:
-          (activeTab === "more" && activeMoreSubTab === "ffcs") ||
-          (activeTab === "tools" && activeToolsSubTab === "ffcs"),
-        onSelect: navigateToFFCSPlanner,
-      },
-      {
-        id: "paper-scanner",
-        label: "Paper Scanner",
-        icon: ScanLine,
-        isActive: activeTab === "paper-scanner",
-        onSelect: () => selectTab("paper-scanner"),
-      },
-      {
-        id: "student-report",
-        label: "Student Report",
-        icon: GraduationCap,
-        isActive: activeTab === "student-report",
-        onSelect: () => selectTab("student-report"),
-      },
-      {
-        id: "tools",
-        label: "Tools & Utilities Hub",
-        icon: Layers,
-        isActive: activeTab === "tools" && (!activeToolsSubTab || activeToolsSubTab === "overview"),
-        isExpandable: true,
-        onSelect: () => {
+          return;
+        }
+        if (entry.id === "tools") {
           selectTab("tools");
           setActiveToolsSubTab?.("overview");
           setShowToolsPanel(true);
-        },
+          return;
+        }
+        if (entry.id === "hostel") {
+          selectTab("hostel");
+          if (!HostelActiveSubTab) setHostelActiveSubTab("overview");
+          setShowHostelPanel(true);
+          return;
+        }
+        if (entry.id === "profile") {
+          selectTab("profile");
+          setActiveProfileSubTab("settings");
+          return;
+        }
+        activateEntry(entry, navCtx);
       },
-    ],
-    [activeTab, activeToolsSubTab, selectTab, setActiveToolsSubTab],
+    };
+  };
+
+  const studyItems = useMemo<NavItem[]>(
+    () => registry.filter((e) => e.surfaces.sidebar === true && e.surfaces.sidebarGroup === "study").map(toNavItem),
+    [registry, activeTab, activeSubTab, activeToolsSubTab, HostelActiveSubTab, navCtx],
+  );
+
+  const campusItems = useMemo<NavItem[]>(
+    () => registry.filter((e) => e.surfaces.sidebar === true && e.surfaces.sidebarGroup === "campus").map(toNavItem),
+    [registry, activeTab, activeSubTab, activeToolsSubTab, HostelActiveSubTab, navCtx],
+  );
+
+  const toolsItems = useMemo<NavItem[]>(
+    () => registry.filter((e) => e.surfaces.sidebar === true && e.surfaces.sidebarGroup === "tools").map(toNavItem),
+    [registry, activeTab, activeSubTab, activeToolsSubTab, HostelActiveSubTab, navCtx],
   );
 
   const accountItems = useMemo<NavItem[]>(
-    () => [
-      {
-        id: "profile",
-        label: "Settings & Profile",
-        icon: User,
-        isActive: activeTab === "profile",
-        onSelect: () => {
-          // "settings" is the category hub. Without this the sidebar inherited
-          // whatever section was last open and could re-open mid-section on a
-          // return visit, or land on Student Profile on a cold start.
-          selectTab("profile");
-          setActiveProfileSubTab("settings");
-        },
-      },
-      {
-        id: "about",
-        label: "About & Resources",
-        icon: Info,
-        isActive: activeTab === "about",
-        onSelect: () => {
-          selectTab("about");
-        },
-      },
-    ],
-    [activeTab, selectTab, setActiveProfileSubTab],
+    () => registry.filter((e) => e.surfaces.sidebar === true && e.surfaces.sidebarGroup === "account").map(toNavItem),
+    [registry, activeTab, activeSubTab, activeToolsSubTab, HostelActiveSubTab, navCtx],
   );
 
   const groups = useMemo<Group[]>(
@@ -823,176 +717,86 @@ export default function NavigationTabs({
   }, [settings?.pinnedNavTabs, activeTab, selectTab]);
 
   const academicsItems = useMemo(
-    () => [
-      {
-        id: "courses-simplified",
-        label: "My Courses & Marks",
-        icon: Sparkles,
-        isActive:
-          activeTab === "academics" &&
-          (activeSubTab === "courses-simplified" ||
-            activeSubTab === "simplified-academics" ||
-            activeSubTab === "overview" ||
-            activeSubTab === "course-dashboard"),
-        onSelect: () => {
-          selectTab("academics");
-          setActiveSubTab("courses-simplified");
-        },
-      },
-      {
-        id: "schedule",
-        label: "Exam Schedule",
-        icon: Calendar,
-        isActive: activeTab === "academics" && activeSubTab === "schedule",
-        onSelect: () => {
-          selectTab("academics");
-          setActiveSubTab("schedule");
-        },
-      },
-      {
-        id: "grades",
-        label: "Grade History",
-        icon: GraduationCap,
-        isActive: activeTab === "academics" && activeSubTab === "grades",
-        onSelect: () => {
-          selectTab("academics");
-          setActiveSubTab("grades");
-        },
-      },
-      {
-        id: "curriculum",
-        label: "Curriculum",
-        icon: BookOpen,
-        isActive: activeTab === "academics" && activeSubTab === "curriculum",
-        onSelect: () => {
-          selectTab("academics");
-          setActiveSubTab("curriculum");
-        },
-      },
-    ],
-    [activeTab, activeSubTab, selectTab, setActiveSubTab],
+    () =>
+      registry
+        .filter((e) => e.surfaces.sidebar === "drill-in" && e.group === "Academics")
+        .map((e) => {
+          const item = toNavItem(e);
+          const t = e.target as any;
+          let isActive = activeTab === "academics";
+          if (isActive && t.kind === "tabSub") {
+            if (t.subtab === "courses-simplified") {
+              isActive = ["courses-simplified", "simplified-academics", "overview", "course-dashboard"].includes(
+                activeSubTab,
+              );
+            } else isActive = activeSubTab === t.subtab;
+          }
+          return {
+            ...item,
+            isActive,
+            onSelect: () => {
+              activateEntry(e, navCtx);
+              if (t.kind === "tabSub") {
+                selectTab("academics");
+                setActiveSubTab(t.subtab);
+              }
+            },
+          };
+        }),
+    [registry, activeTab, activeSubTab, navCtx, selectTab, setActiveSubTab],
   );
 
   const toolsSubItems = useMemo(
-    () => [
-      {
-        id: "overview",
-        label: "Overview",
-        icon: Layers,
-        isActive: activeTab === "tools" && (activeToolsSubTab === "overview" || !activeToolsSubTab),
-        onSelect: () => {
-          selectTab("tools");
-          setActiveToolsSubTab?.("overview");
-        },
-      },
-      {
-        id: "qbank",
-        label: "Question Bank",
-        icon: Database,
-        isActive: activeTab === "tools" && activeToolsSubTab === "qbank",
-        onSelect: () => {
-          selectTab("tools");
-          setActiveToolsSubTab?.("qbank");
-        },
-      },
-      {
-        id: "faculty-info",
-        label: "Faculty Explorer",
-        icon: UserCheck,
-        isActive: activeTab === "tools" && activeToolsSubTab === "faculty-info",
-        onSelect: () => {
-          selectTab("tools");
-          setActiveToolsSubTab?.("faculty-info");
-        },
-      },
-      {
-        id: "social",
-        label: "Timetable Sharing",
-        icon: Users,
-        isActive: activeTab === "tools" && activeToolsSubTab === "social",
-        onSelect: () => {
-          selectTab("tools");
-          setActiveToolsSubTab?.("social");
-        },
-      },
-      {
-        id: "cabshare",
-        label: "Cab Share",
-        icon: CarTaxiFront,
-        isActive: activeTab === "cabshare" || (activeTab === "tools" && activeToolsSubTab === "cabshare"),
-        onSelect: () => {
-          selectTab("tools");
-          setActiveToolsSubTab?.("cabshare");
-        },
-      },
-      {
-        id: "tasks",
-        label: "Tasks & Schedule",
-        icon: CheckSquare,
-        isActive: activeTab === "tools" && activeToolsSubTab === "tasks",
-        onSelect: () => {
-          selectTab("tools");
-          setActiveToolsSubTab?.("tasks");
-        },
-      },
-    ],
-    [activeTab, activeToolsSubTab, selectTab, setActiveToolsSubTab],
+    () =>
+      registry
+        .filter((e) => e.surfaces.sidebar === "drill-in" && (e.group === "Tools" || e.id.startsWith("tools-")))
+        .map((e) => {
+          const item = toNavItem(e);
+          const t = e.target as any;
+          let isActive = activeTab === "tools";
+          if (isActive && t.kind === "tabSub" && t.subtabKey === "tools") {
+            if (t.subtab === "overview") isActive = activeToolsSubTab === "overview" || !activeToolsSubTab;
+            else isActive = activeToolsSubTab === t.subtab;
+          }
+          if (e.id === "tools-cabshare")
+            isActive = activeTab === "cabshare" || (activeTab === "tools" && activeToolsSubTab === "cabshare");
+          return {
+            ...item,
+            isActive,
+            onSelect: () => {
+              activateEntry(e, navCtx);
+              if (t.kind === "tabSub" && t.subtabKey === "tools") {
+                selectTab("tools");
+                setActiveToolsSubTab?.(t.subtab);
+              }
+            },
+          };
+        }),
+    [registry, activeTab, activeToolsSubTab, navCtx, selectTab, setActiveToolsSubTab],
   );
 
   const hostelSubItems = useMemo(
-    () => [
-      {
-        id: "overview",
-        label: "Overview",
-        icon: Building,
-        isActive: activeTab === "hostel" && HostelActiveSubTab === "overview",
-        onSelect: () => {
-          selectTab("hostel");
-          setHostelActiveSubTab("overview");
-        },
-      },
-      {
-        id: "mess",
-        label: "Mess Menu",
-        icon: Coffee,
-        isActive: activeTab === "hostel" && HostelActiveSubTab === "mess",
-        onSelect: () => {
-          selectTab("hostel");
-          setHostelActiveSubTab("mess");
-        },
-      },
-      {
-        id: "laundry",
-        label: "Laundry",
-        icon: Wrench,
-        isActive: activeTab === "hostel" && HostelActiveSubTab === "laundry",
-        onSelect: () => {
-          selectTab("hostel");
-          setHostelActiveSubTab("laundry");
-        },
-      },
-      {
-        id: "leave",
-        label: "Leave Management",
-        icon: Compass,
-        isActive: activeTab === "hostel" && HostelActiveSubTab === "leave",
-        onSelect: () => {
-          selectTab("hostel");
-          setHostelActiveSubTab("leave");
-        },
-      },
-      {
-        id: "counselling",
-        label: "Counselling",
-        icon: User,
-        isActive: activeTab === "hostel" && HostelActiveSubTab === "counselling",
-        onSelect: () => {
-          selectTab("hostel");
-          setHostelActiveSubTab("counselling");
-        },
-      },
-    ],
-    [activeTab, HostelActiveSubTab, selectTab, setHostelActiveSubTab],
+    () =>
+      registry
+        .filter((e) => e.surfaces.sidebar === "drill-in" && e.group === "Hostel")
+        .map((e) => {
+          const item = toNavItem(e);
+          const t = e.target as any;
+          let isActive = activeTab === "hostel";
+          if (isActive && t.kind === "tabSub" && t.subtabKey === "hostel") isActive = HostelActiveSubTab === t.subtab;
+          return {
+            ...item,
+            isActive,
+            onSelect: () => {
+              activateEntry(e, navCtx);
+              if (t.kind === "tabSub" && t.subtabKey === "hostel") {
+                selectTab("hostel");
+                setHostelActiveSubTab(t.subtab);
+              }
+            },
+          };
+        }),
+    [registry, activeTab, HostelActiveSubTab, navCtx, selectTab, setHostelActiveSubTab],
   );
 
   /**
@@ -1245,7 +1049,9 @@ export default function NavigationTabs({
                       title="Click to view credits & grades details"
                     >
                       <span className="text-sidebar-foreground/">Credits</span>
-                      <span data-private className="font-semibold text-sidebar-foreground">{credits}</span>
+                      <span data-private className="font-semibold text-sidebar-foreground">
+                        {credits}
+                      </span>
                     </button>
 
                     <button

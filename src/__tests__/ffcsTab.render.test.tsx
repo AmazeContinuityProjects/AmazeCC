@@ -9,6 +9,12 @@ import { isLoggedInAtom } from "../store";
 import { defaultSettings, settingsAtom } from "../store/settingsAtoms";
 import { installLocalStorage, stubScrollIntoView } from "./helpers/localStorage";
 
+// The tab calls `useRouter().replace(...)` for its friend-finder hand-off; the
+// jsdom environment has no app router mounted, so supply one.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: vi.fn(), push: vi.fn(), refresh: vi.fn() }),
+}));
+
 // The tab persists its lists through `safeStorage`; this jsdom environment
 // ships without a localStorage, so the repo stub fills it in — the same shape
 // the generator subpage's tests use.
@@ -671,11 +677,11 @@ describe("FFCSTimetableTab", () => {
     // The settings modal is a lazy chunk now — wait for its distinctive
     // content before counting the headings (findAll* resolves at ≥1 match,
     // which is not enough here).
-    expect(await screen.findByText("Ranking profile", {}, { timeout: 10000 })).toBeDefined();
+    expect(await screen.findByText("Ranking profile", {}, { timeout: 30_000 })).toBeDefined();
     expect(screen.getAllByRole("heading", { name: "Planner Settings" })).toHaveLength(2);
 
     fireEvent.click(screen.getByRole("button", { name: /Target Courses/ }));
-    expect(await screen.findByText(/Select the courses you intend to take/, {}, { timeout: 10000 })).toBeDefined();
+    expect(await screen.findByText(/Select the courses you intend to take/, {}, { timeout: 30_000 })).toBeDefined();
   }, 30_000);
 
   it("opens view and course-list switching from Modern menu rows", async () => {

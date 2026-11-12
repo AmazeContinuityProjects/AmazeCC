@@ -1,3 +1,5 @@
+import { installLocalStorage } from "./helpers/localStorage";
+installLocalStorage();
 import { webcrypto } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {

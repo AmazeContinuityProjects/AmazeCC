@@ -7,8 +7,9 @@ import config from "../../../../config.json";
 import LibrarySearchPalette from "../palette/LibrarySearchPalette";
 import EventSearchPalette from "../palette/EventSearchPalette";
 import { useDashboardNavigator } from "../dashboard/DashboardNavigator";
-import { navigateToFFCSPlanner } from "@/lib/ffcsNavigation";
+
 import type { Settings } from "@/store/settingsAtoms";
+import { getRegistryPaletteCommands } from "@/lib/navigation/registry";
 import {
   allGradesDataAtom,
   attendanceDataAtom,
@@ -69,6 +70,7 @@ export function useAppCommands(input: AppCommandInputs) {
     setActiveDayscholarSubTab,
     setActiveMoreSubTab,
     setActiveToolsSubTab,
+    setActiveProfileSubTab,
   } = useDashboardNavigator();
   const cmds = useMemo(() => {
     const result: any[] = [];
@@ -325,401 +327,21 @@ export function useAppCommands(input: AppCommandInputs) {
       );
     };
 
-    // ── Navigation (main tabs) ──
-    const nav = [
-      {
-        id: "nav-profile",
-        label: "Profile",
-        description: "View your profile and personal info",
-        icon: "👤",
-        category: "Navigation",
-      },
-      {
-        id: "nav-attendance",
-        label: "Attendance",
-        description: "Track your attendance records",
-        icon: "📋",
-        category: "Navigation",
-      },
-      {
-        id: "nav-academics",
-        label: "Academics",
-        description: "My courses, marks, curriculum & grades",
-        icon: "📚",
-        category: "Navigation",
-      },
-      {
-        id: "nav-tools",
-        label: "Tools & Utilities",
-        description: "Question bank, faculty, CGPA predictor, social & cab share",
-        icon: "🛠️",
-        category: "Navigation",
-      },
-      {
-        id: "nav-payments",
-        label: "Payments",
-        description: "Dues, receipts & wallet",
-        icon: "💳",
-        category: "Navigation",
-      },
-      {
-        id: "nav-cabshare",
-        label: "Cab Share",
-        description: "Find & share cab rides",
-        icon: "🚕",
-        category: "Navigation",
-      },
-      {
-        id: "nav-libraries",
-        label: "Libraries",
-        description: "Search books & library account",
-        icon: "📖",
-        category: "Navigation",
-      },
-      { id: "nav-hostel", label: "Hostel", description: "Mess, laundry & leave", icon: "🏠", category: "Navigation" },
-      {
-        id: "nav-transport",
-        label: "Transport",
-        description: "Bus routes, stops & placements",
-        icon: "🚏",
-        category: "Navigation",
-      },
-      { id: "nav-more", label: "More", description: "Events, social & schedules", icon: "➕", category: "Navigation" },
-    ];
-    nav.forEach((c) => result.push({ ...c, onSelect: () => setActiveTab(c.id.replace("nav-", "")) }));
-
-    // ── All sub-tab navigation ──
+    // Navigation/page commands generated from unified registry (src/lib/navigation/registry.tsx)
     result.push(
-      {
-        id: "acad-marks",
-        label: "My Courses & Marks",
-        description: "Course marks & assessments overview",
-        icon: "📊",
-        category: "Academics",
-        onSelect: () => {
-          setActiveTab("academics");
-          setActiveSubTab("overview");
-        },
-      },
-      {
-        id: "acad-exam-schedule",
-        label: "Exam Schedule",
-        description: "CAT, FAT & lab exam timetables & venues",
-        icon: "📅",
-        category: "Academics",
-        onSelect: () => {
-          setActiveTab("academics");
-          setActiveSubTab("schedule");
-        },
-      },
-      {
-        id: "acad-curriculum",
-        label: "Curriculum",
-        description: "Course curriculum & structure",
-        icon: "📜",
-        category: "Academics",
-        onSelect: () => {
-          setActiveTab("academics");
-          setActiveSubTab("curriculum");
-        },
-      },
-      {
-        id: "acad-timetable",
-        label: "Timetable & Schedule",
-        description: "Exam schedule & timetable",
-        icon: "🗓️",
-        category: "Academics",
-        onSelect: () => {
-          setActiveTab("academics");
-          setActiveSubTab("course-dashboard");
-        },
-      },
-      {
-        id: "acad-grades",
-        label: "Grade History",
-        description: "All semester grades & CGPA",
-        icon: "🎓",
-        category: "Academics",
-        onSelect: () => {
-          setActiveTab("academics");
-          setActiveSubTab("grades");
-        },
-      },
-      {
-        id: "acad-circulars",
-        label: "Academic Circulars",
-        description: "View academic circulars & notices",
-        icon: "📢",
-        category: "Academics",
-        onSelect: () => {
-          setActiveTab("attendance");
-          setActiveAttendanceSubTab("circulars");
-        },
-      },
-      {
-        id: "attendance-calendar",
-        label: "Calendar View",
-        description: "Academic calendar & timetable events",
-        icon: "📅",
-        category: "Attendance",
-        onSelect: () => {
-          setActiveTab("attendance");
-          setActiveAttendanceSubTab("calendar");
-        },
-      },
-      {
-        id: "attendance-circulars",
-        label: "Attendance Circulars",
-        description: "Circulars related to attendance",
-        icon: "📢",
-        category: "Attendance",
-        onSelect: () => {
-          setActiveTab("attendance");
-          setActiveAttendanceSubTab("circulars");
-        },
-      },
-      {
-        id: "profile-info",
-        label: "Profile Info",
-        description: "View profile information",
-        icon: "👤",
-        category: "Profile",
-        onSelect: () => {
-          setActiveTab("profile");
-        },
-      },
-      {
-        id: "profile-settings",
-        label: "Profile Settings",
-        description: "App settings & preferences",
-        icon: "⚙️",
-        category: "Profile",
-        onSelect: () => {
-          setActiveTab("profile");
-        },
-      },
-      {
-        id: "help-feedback",
-        label: "Send Feedback",
-        description: "Share thoughts, report bugs, or request features",
-        icon: "💬",
-        category: "Help & Feedback",
-        onSelect: () => {
-          setIsFeedbackOpen(true);
-        },
-      },
-      {
-        id: "help-feedback-page",
-        label: "Feedback and Bug Report Page",
-        description: "Open dedicated PostHog support page with DOM session replay and ticket history",
-        icon: "⚡",
-        category: "Help & Feedback",
-        onSelect: () => {
-          setActiveTab("feedback");
-        },
-      },
-      {
-        id: "help-bug",
-        label: "Report a Bug",
-        description: "Report an issue, broken button, or glitch",
-        icon: "🐞",
-        category: "Help & Feedback",
-        onSelect: () => {
-          setIsFeedbackOpen(true);
-        },
-      },
-    );
-
-    // ── Tabs that depend on residential status ──
-    result.push(
-      {
-        id: "hostel-mess",
-        label: "Hostel Mess",
-        description: "Mess menu, feedback & details",
-        icon: "🍽️",
-        category: "Hostel",
-        onSelect: () => {
-          setActiveTab("hostel");
-          setHostelActiveSubTab("mess");
-        },
-      },
-      {
-        id: "hostel-laundry",
-        label: "Laundry",
-        description: "Laundry service status",
-        icon: "👕",
-        category: "Hostel",
-        onSelect: () => {
-          setActiveTab("hostel");
-          setHostelActiveSubTab("laundry");
-        },
-      },
-      {
-        id: "hostel-leave",
-        label: "Leave",
-        description: "Leave applications & history",
-        icon: "✈️",
-        category: "Hostel",
-        onSelect: () => {
-          setActiveTab("hostel");
-          setHostelActiveSubTab("leave");
-        },
-      },
-      {
-        id: "hostel-counselling",
-        label: "Hostel Counselling",
-        description: "Hostel counselling sessions",
-        icon: "🤝",
-        category: "Hostel",
-        onSelect: () => {
-          setActiveTab("hostel");
-          setHostelActiveSubTab("counselling");
-        },
-      },
-      {
-        id: "ds-bus-finder",
-        label: "Bus Finder",
-        description: "Find your bus route & stops",
-        icon: "🚍",
-        category: "Transport",
-        onSelect: () => setActiveTab("transport"),
-      },
-      {
-        id: "ds-transport",
-        label: "Transport Registration",
-        description: "Register for transport services",
-        icon: "🚏",
-        category: "Transport",
-        onSelect: () => setActiveTab("transport"),
-      },
-      {
-        id: "tr-bus-routes",
-        label: "Bus Routes",
-        description: "Browse all bus routes, stops & contacts",
-        icon: "🚌",
-        category: "Transport",
-        onSelect: () => setActiveTab("transport"),
-      },
-      {
-        id: "tr-placements",
-        label: "Vehicle Placements",
-        description: "5 PM & 6 PM vehicle placement info",
-        icon: "🚍",
-        category: "Transport",
-        onSelect: () => setActiveTab("transport"),
-      },
-      {
-        id: "qbank",
-        label: "Question Bank",
-        description: "Previous year papers & extracted questions",
-        icon: "??",
-        category: "Tools",
-        onSelect: () => {
-          setActiveTab("tools");
-          setActiveToolsSubTab("qbank");
-        },
-      },
-      {
-        id: "tool-faculty",
-        label: "Search Faculty Directory",
-        description: "Search for faculty contact & information",
-        icon: "👨‍🏫",
-        category: "Tools",
-        onSelect: () => {
-          setActiveTab("tools");
-          setActiveToolsSubTab("faculty-info");
-        },
-      },
-      {
-        id: "tool-social",
-        label: "Social Timetable Sharing",
-        description: "Events, friends & timetables",
-        icon: "👥",
-        category: "Tools",
-        onSelect: () => {
-          setActiveTab("tools");
-          setActiveToolsSubTab("social");
-        },
-      },
-      {
-        id: "tool-cabshare",
-        label: "Cab Share",
-        description: "Find & share cab rides",
-        icon: "🚕",
-        category: "Tools",
-        onSelect: () => {
-          setActiveTab("tools");
-          setActiveToolsSubTab("cabshare");
-        },
-      },
-      {
-        id: "tool-free-class",
-        label: "Search Free Classrooms",
-        description: "Find an empty classroom or lab",
-        icon: "🏫",
-        category: "Campus",
-        onSelect: () => {
-          setActiveTab("free-class");
-        },
-      },
-      {
-        id: "tool-faculty-schedule",
-        label: "Find Faculty Schedule",
-        description: "See any faculty member's full weekly classes",
-        icon: "📅",
-        category: "Campus",
-        onSelect: () => {
-          setActiveTab("faculty-schedule");
-        },
-      },
-      {
-        id: "tool-paper-scanner",
-        label: "Paper Scanner",
-        description: "Scan pages to PDF and extract their text",
-        icon: "📷",
-        category: "Tools",
-        onSelect: () => {
-          setActiveTab("paper-scanner");
-        },
-      },
-      {
-        id: "events",
-        label: "Event Hub",
-        description: "Registered events & campus activities",
-        icon: "🎉",
-        category: "Campus",
-        onSelect: () => {
-          setActiveTab("events");
-        },
-      },
-      {
-        id: "clubs",
-        label: "Club Hub",
-        description: "Discover student clubs & chapters",
-        icon: "🏛️",
-        category: "Campus",
-        onSelect: () => {
-          setActiveTab("clubs");
-        },
-      },
-      {
-        id: "community",
-        label: "Community Feed",
-        description: "Announcements from clubs & chapters",
-        icon: "📣",
-        category: "Campus",
-        onSelect: () => {
-          setActiveTab("community");
-        },
-      },
-      {
-        id: "more-schedules",
-        label: "FFCS Planner",
-        description: "Plan and compare schedules",
-        icon: "🗓️",
-        category: "Tools",
-        onSelect: navigateToFFCSPlanner,
-      },
+      ...getRegistryPaletteCommands({
+        selectTab: setActiveTab,
+        setActiveSubTab,
+        setActiveAttendanceSubTab,
+        setActiveToolsSubTab,
+        setHostelActiveSubTab,
+        setActiveProfileSubTab,
+        setActiveMoreSubTab,
+        setActiveDayscholarSubTab,
+        handleLogOutRequest,
+        setIsFeedbackOpen,
+        setGradesDisplayIsOpen,
+      } as any),
     );
 
     // ── Tools & Modals ──
@@ -1993,7 +1615,7 @@ export function useAppCommands(input: AppCommandInputs) {
       const profileRaw = localStorage.getItem("profile");
       if (profileRaw) {
         const p = JSON.parse(profileRaw);
-        // The live profile (from /api/student → parseStudentProfile) uses
+        // The live profile (from /api/whoami identity/profile data) uses
         // `registerNo`; the demo profile uses `registerNumber`. This command
         // used to read `p.regNo`, which is neither, so it never matched.
         const profileReg = p?.registerNo || p?.registerNumber || p?.regNo || p?.regNumber;

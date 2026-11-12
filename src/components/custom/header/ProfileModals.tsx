@@ -1,9 +1,26 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { api } from "@/lib/sync-engine";
+import { syncEngine } from "@/lib/sync-engine";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import { AlertCircle, CheckCircle, Clock } from "lucide-react";
+
+async function getWhoami(_creds?: any): Promise<any> {
+  try {
+    const cached = localStorage.getItem("cache_whoami");
+    if (cached) return JSON.parse(cached);
+  } catch {}
+  try {
+    const w = (await syncEngine.sync("whoami")) as any;
+    if (w && !w.error) {
+      try {
+        localStorage.setItem("cache_whoami", JSON.stringify(w));
+      } catch {}
+      return w;
+    }
+  } catch {}
+  return null;
+}
 
 /**
  * The two read-status modals ProfilePage opens over a section: the registration
@@ -20,12 +37,10 @@ export function RegistrationModalContent({ creds, onClose }: { creds: any; onClo
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    const { cookies, authorizedID, csrf } = creds;
-    api("registration-schedule", {
-      method: "POST",
-      body: { cookies, authorizedID, csrf },
-    })
-      .then((res: any) => {
+    syncEngine
+      .sync("ffcs", {})
+      .then((raw: any) => {
+        const res = raw?.registrationSchedule || raw;
         const hasContent = res?.tables?.length > 0 && res.tables.some((t: any) => t.rows?.length > 0);
         setHasData(hasContent);
         if (hasContent) {
@@ -128,50 +143,112 @@ export function RegistrationModalContent({ creds, onClose }: { creds: any; onClo
   );
 }
 
+function hasWhoamiBank(bank: any) {
+  return !!(
+    bank?.name ||
+    bank?.branch ||
+    bank?.address ||
+    (Array.isArray(bank?.fields) && bank.fields.some((f: any) => f?.value && String(f.value).trim()))
+  );
+}
+
+function hasWhoamiDayboarder(day: any) {
+  return !!(
+    day?.fields && Object.values(day.fields).some((f: any) => (f as any)?.value && String((f as any).value).trim())
+  );
+}
+
 export function BankDayStatusModal({ endpoint, title, creds }: { endpoint: string; title: string; creds: any }) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
-    const { cookies, authorizedID, csrf } = creds;
-    api(endpoint, {
-      method: "POST",
-      body: { cookies, authorizedID, csrf },
-    })
-      .then((data: any) => setData(data))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    (async () => {
+      try {
+        if (endpoint === "bank-info" || endpoint === "dayboarder") {
+          const w = await getWhoami(creds);
+          if (!cancelled) setData(w);
+          return;
+        }
+        // Other endpoints must be fetched via sync ops; no direct UI API calls.
+        if (!cancelled) setData(null);
+      } catch {
+        if (!cancelled) setData(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [creds, endpoint]);
 
   if (loading) return <Skeleton className="h-24 w-full rounded-2xl" />;
 
-  const hasContent = data?.tables?.length > 0 || (data?.keyValuePairs && Object.keys(data.keyValuePairs).length > 0);
+  let hasContent = false;
+  let details: Array<{ label: string; value: string }> = [];
+  if (endpoint === "bank-info") {
+    const bank = data?.bank;
+    hasContent = hasWhoamiBank(bank);
+    if (hasContent) {
+      if (bank.name) details.push({ label: "Bank", value: String(bank.name) });
+      if (bank.branch) details.push({ label: "Branch", value: String(bank.branch) });
+      if (bank.address) details.push({ label: "Address", value: String(bank.address) });
+      if (Array.isArray(bank.fields)) {
+        for (const f of bank.fields)
+          if (f?.label && f?.value) details.push({ label: String(f.label), value: String(f.value) });
+      }
+    }
+  } else if (endpoint === "dayboarder") {
+    const day = data?.dayboarder;
+    hasContent = hasWhoamiDayboarder(day);
+    if (hasContent && day?.fields) {
+      for (const v of Object.values(day.fields) as any[]) {
+        if (v?.label && v?.value) details.push({ label: String(v.label), value: String(v.selectedText || v.value) });
+      }
+    }
+  } else {
+    hasContent = data?.tables?.length > 0 || (data?.keyValuePairs && Object.keys(data.keyValuePairs).length > 0);
+  }
 
   return (
-    <div className="flex items-center gap-4 p-4 rounded-xl">
-      {hasContent ? (
-        <>
-          <div className="p-3 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">
-            <CheckCircle className="w-8 h-8" />
-          </div>
-          <div>
-            <p className="font-semibold text-emerald-700 dark:text-emerald-300 text-lg">{title} Filled</p>
-            <p className="text-sm text-emerald-600/70 dark:text-emerald-400/70">
-              Your {title.toLowerCase()} has been submitted successfully
-            </p>
-          </div>
-        </>
-      ) : (
-        <>
-          <div className="p-3 rounded-full bg-zinc-100 dark:bg-zinc-700 text-zinc-400">
-            <AlertCircle className="w-8 h-8" />
-          </div>
-          <div>
-            <p className="font-semibold text-zinc-700 dark:text-zinc-300 text-lg">{title} Not Filled</p>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">No {title.toLowerCase()} found in the system</p>
-          </div>
-        </>
+    <div className="space-y-3">
+      <div className="flex items-center gap-4 p-4 rounded-xl">
+        {hasContent ? (
+          <>
+            <div className="p-3 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">
+              <CheckCircle className="w-8 h-8" />
+            </div>
+            <div>
+              <p className="font-semibold text-emerald-700 dark:text-emerald-300 text-lg">{title} Filled</p>
+              <p className="text-sm text-emerald-600/70 dark:text-emerald-400/70">
+                Your {title.toLowerCase()} has been submitted successfully
+              </p>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="p-3 rounded-full bg-zinc-100 dark:bg-zinc-700 text-zinc-400">
+              <AlertCircle className="w-8 h-8" />
+            </div>
+            <div>
+              <p className="font-semibold text-zinc-700 dark:text-zinc-300 text-lg">{title} Not Filled</p>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">No {title.toLowerCase()} found in the system</p>
+            </div>
+          </>
+        )}
+      </div>
+      {details.length > 0 && (
+        <div className="rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 divide-y divide-zinc-200/60 dark:divide-zinc-800/60 overflow-hidden">
+          {details.map((d, i) => (
+            <div key={i} className="flex items-start justify-between gap-4 px-4 py-2.5 text-sm">
+              <span className="text-zinc-500 dark:text-zinc-400 shrink-0">{d.label}</span>
+              <span className="text-zinc-900 dark:text-zinc-100 font-medium text-right break-words">{d.value}</span>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

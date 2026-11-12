@@ -41,13 +41,13 @@ AmazeCC is a comprehensive student dashboard for **VIT University**, replacing t
 
 ## Features
 
-| Area | Features |
-|------|----------|
-| **Academics** | Attendance tracking with color-coded percentages, marks & assessment breakdown, semester-wise grades with CGPA tracking, GPA predictor & what-if simulations, exam schedule (CAT/FAT) with venue info, course curriculum & syllabus viewer |
+| Area             | Features                                                                                                                                                                                                                                                                                                                                                                                         |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Academics**    | Attendance tracking with color-coded percentages, marks & assessment breakdown, semester-wise grades with CGPA tracking, GPA predictor & what-if simulations, exam schedule (CAT/FAT) with venue info, course curriculum & syllabus viewer                                                                                                                                                       |
 | **FFCS Planner** | Visual clash-free timetable builder, an Advanced Generator that streams conflict-free weeks and ranks them under five opinions (Balanced, Half Days, Minimize Gaps, Early Finish, Late Start), paste/CSV/XLSX course import, friend alignment with Social Matrix scoring, swipe-down sheets, a first-visit guided tour, saved defaults, and share links that carry the whole plan inside the URL |
-| **Campus Life** | Hostel mess menu, laundry & leave management, day scholar transport & bus route finder, library catalog search (KOHA integration), fee dues, payment history & receipts, event discovery & registration (EventHub), cab sharing platform |
-| **Productivity** | Command palette (Ctrl+K) with fuzzy search, real-time attendance predictor, Moodle/LMS assignment deadlines, academic calendar with event overlay, on-duty (OD) hours tracker, course dashboard with deep analytics |
-| **Experience** | Light / Dark / Midnight themes, custom accent colors & palettes, PWA with offline support, push notifications, touch gesture navigation, export to PDF, iCal & images |
+| **Campus Life**  | Hostel mess menu, laundry & leave management, day scholar transport & bus route finder, library catalog search (KOHA integration), fee dues, payment history & receipts, event discovery & registration (EventHub), cab sharing platform                                                                                                                                                         |
+| **Productivity** | Command palette (Ctrl+K) with fuzzy search, real-time attendance predictor, Moodle/LMS assignment deadlines, academic calendar with event overlay, on-duty (OD) hours tracker, course dashboard with deep analytics                                                                                                                                                                              |
+| **Experience**   | Light / Dark / Midnight themes, custom accent colors & palettes, PWA with offline support, push notifications, touch gesture navigation, export to PDF, iCal & images                                                                                                                                                                                                                            |
 
 ---
 
@@ -102,20 +102,17 @@ AmazeCC is a comprehensive student dashboard for **VIT University**, replacing t
 
 ## API Endpoints
 
-| Category | Endpoints |
-|----------|-----------|
-| **Auth** | `/api/login`, `/api/status` |
+| Category     | Endpoints                                                                                           |
+| ------------ | --------------------------------------------------------------------------------------------------- |
+| **Auth**     | `/api/login`, `/api/status`                                                                         |
 | **Academic** | `/api/attendance`, `/api/marks`, `/api/grades`, `/api/all-grades`, `/api/schedule`, `/api/calendar` |
-| **Hostel** | `/api/hostel`, `/api/hostel-leave`, `/api/mess-menu`, `/api/mess-feedback` |
-| **Profile** | `/api/student`, `/api/profile-image`, `/api/bank-info` |
-| **Payments** | `/api/payments`, `/api/payment-receipts`, `/api/wallet`, `/api/online-transfer` |
-| **Library** | `/api/koha/search`, `/api/koha/login`, `/api/koha/patron`, `/api/library-due` |
-| **Transport** | `/api/buses`, `/api/transport`, `/api/dayboarder` |
-| **Events** | `/api/events`, `/api/events/profile`, `/api/clubs/details` |
-| **LMS** | `/api/lms-data`, `/api/lms-data/assignments` |
-| **Exams** | `/api/arrear-details`, `/api/makeup-exam`, `/api/compre-exam`, `/api/reexam` |
-| **Research** | `/api/faculty-info`, `/api/research-profile`, `/api/project` |
-| **Admin** | `/api/admin/auth`, `/api/admin/fresher-resources`, `/api/admin/buses`, `/api/admin/migrate` |
+| **Profile**  | `/api/whoami`, `/api/whoami`, `/api/finance`                                                        |
+| **Payments** | `/api/finance`, `/api/finance`, `/api/finance`, `/api/finance`                                      |
+| **Library**  | `/api/koha/search`, `/api/koha/login`, `/api/koha/patron`, `/api/finance`                           |
+| **Events**   | `/api/events`, `/api/events/profile`, `/api/clubs/details`                                          |
+| **LMS**      | `/api/lms-data`, `/api/lms-data/assignments`                                                        |
+| **Research** | `/api/faculty-info`, `/api/research-profile`, `/api/project`                                        |
+| **Admin**    | `/api/admin/auth`, `/api/admin/fresher-resources`, `/api/admin/buses`, `/api/admin/migrate`         |
 
 > Full API documentation is available at [api.amazecc.com](https://api.amazecc.com).
 
@@ -155,22 +152,23 @@ pnpm run api-start
 ```
 
 Override the API URL via `NEXT_PUBLIC_API_URL` env var or in `src/components/custom/Main.tsx`:
+
 ```ts
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://api.amazecc.com";
 ```
 
 ### Scripts
 
-| Command | Description |
-|---------|-------------|
-| `pnpm dev` | Start Next.js dev server (:3001, HTTPS) |
-| `pnpm build` | Production build |
-| `pnpm start` | Start production server |
-| `pnpm test` | Run Vitest tests |
-| `pnpm lint` | Run ESLint |
-| `pnpm api-dev` | Start backend in dev mode |
-| `pnpm api-build` | Build backend |
-| `pnpm api-start` | Start backend production |
+| Command          | Description                             |
+| ---------------- | --------------------------------------- |
+| `pnpm dev`       | Start Next.js dev server (:3001, HTTPS) |
+| `pnpm build`     | Production build                        |
+| `pnpm start`     | Start production server                 |
+| `pnpm test`      | Run Vitest tests                        |
+| `pnpm lint`      | Run ESLint                              |
+| `pnpm api-dev`   | Start backend in dev mode               |
+| `pnpm api-build` | Build backend                           |
+| `pnpm api-start` | Start backend production                |
 
 ---
 

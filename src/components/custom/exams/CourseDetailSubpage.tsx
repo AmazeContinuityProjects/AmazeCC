@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { downloadCourseMaterialProxy } from "@/lib/courseMaterials";
 import { api } from "@/lib/sync-engine";
 import { getFrozenKeys, remapCohortStats } from "@/lib/marksSync";
 import { BackButton } from "../shared";
@@ -190,6 +191,7 @@ export default function CourseDetailSubpage({
   // Curriculum & Syllabus Download States
   const [downloadingSyllabus, setDownloadingSyllabus] = useState(false);
   const [downloadingCurriculum, setDownloadingCurriculum] = useState(false);
+  const [downloadingMaterial, setDownloadingMaterial] = useState<string | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
 
@@ -243,6 +245,49 @@ export default function CourseDetailSubpage({
       setDownloadError(err.message || "Failed to download course syllabus.");
     } finally {
       setDownloadingSyllabus(false);
+    }
+  };
+
+  const handleDownloadMaterial = async (action: "course-plan" | "all-materials" | "general-materials") => {
+    setDownloadingMaterial(action);
+    setDownloadError(null);
+    setDownloadSuccess(null);
+    try {
+      let c = creds;
+      if (!c) {
+        c = await loginToVTOP();
+        setCreds(c);
+      }
+      if (!c) throw new Error("Please log in to VTOP first.");
+      const semSubId = getVtopSemesterSubId();
+      const classId = getVtopClassId();
+      if (!classId) throw new Error("No class is selected for this course yet.");
+      if (!semSubId) throw new Error("Course materials are only available for specific semesters.");
+
+      await downloadCourseMaterialProxy({
+        cookies: c.cookies,
+        authorizedID: c.authorizedID,
+        csrf: c.csrf,
+        action,
+        semesterId: semSubId,
+        semesterSubId: semSubId,
+        semSubId,
+        classId,
+      });
+
+      setDownloadSuccess(
+        action === "course-plan"
+          ? "Course plan download started"
+          : action === "general-materials"
+            ? "General materials download started"
+            : "All materials download started",
+      );
+      setTimeout(() => setDownloadSuccess(null), 3500);
+    } catch (err: any) {
+      console.error("Course materials download error:", err);
+      setDownloadError(err?.message || "Failed to download course materials.");
+    } finally {
+      setDownloadingMaterial(null);
     }
   };
 
@@ -611,6 +656,21 @@ export default function CourseDetailSubpage({
     [selectedCode, uniqueCourses],
   );
   const mainCourse = selectedGroup?.theory || selectedGroup?.lab;
+
+  // Declared after `selectedGroup`/`mainCourse`: the two callbacks read them,
+  // and a dependency array evaluated before them throws a TDZ ReferenceError.
+  const getVtopSemesterSubId = useCallback(() => {
+    return selectedGroup?.semesterSubId && selectedGroup.semesterSubId !== "Current" ? selectedGroup.semesterSubId : "";
+  }, [selectedGroup?.semesterSubId]);
+
+  const getVtopClassId = useCallback(() => {
+    return (
+      (selectedGroup?.theory?.classNbr as string) ||
+      (selectedGroup?.lab?.classNbr as string) ||
+      (mainCourse?.classNbr as string) ||
+      ""
+    );
+  }, [selectedGroup?.theory?.classNbr, selectedGroup?.lab?.classNbr, mainCourse?.classNbr]);
 
   useEffect(() => {
     if (!marksData?.courses) return;
@@ -2482,6 +2542,85 @@ export default function CourseDetailSubpage({
                 <span>{downloadSuccess}</span>
               </div>
             )}
+          </div>
+
+          {/* 2.5 · COURSE MATERIALS DOWNLOAD */}
+          <div className="space-y-4">
+            <SectionHeader icon={FileDown} title="Course Materials" count={3} />
+
+            <ListShell>
+              <div className={`${LIST_ROW} py-3.5`}>
+                <span
+                  className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.amber}`}
+                >
+                  <Calendar className="w-5 h-5" />
+                </span>
+                <ListRowText
+                  title="Course Plan"
+                  subtitle={`Official lecture plan and topic schedule for ${selectedCode}`}
+                />
+                <button
+                  type="button"
+                  onClick={() => handleDownloadMaterial("course-plan")}
+                  disabled={downloadingMaterial !== null}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0"
+                  title="Download course plan Excel"
+                >
+                  {downloadingMaterial === "course-plan" ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5" />
+                  )}
+                  <span>{downloadingMaterial === "course-plan" ? "Downloading." : "Course plan"}</span>
+                </button>
+              </div>
+
+              <div className={`${LIST_ROW} py-3.5`}>
+                <span
+                  className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.violet}`}
+                >
+                  <FileDown className="w-5 h-5" />
+                </span>
+                <ListRowText title="All Materials" subtitle="Complete ZIP archive of uploaded reference materials" />
+                <button
+                  type="button"
+                  onClick={() => handleDownloadMaterial("all-materials")}
+                  disabled={downloadingMaterial !== null}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-violet-500/10 hover:bg-violet-500/20 text-violet-600 dark:text-violet-400 border border-violet-500/20 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0"
+                  title="Download all course materials ZIP"
+                >
+                  {downloadingMaterial === "all-materials" ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5" />
+                  )}
+                  <span>{downloadingMaterial === "all-materials" ? "Downloading." : "All materials"}</span>
+                </button>
+              </div>
+
+              <div className={`${LIST_ROW} py-3.5`}>
+                <span
+                  className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.emerald}`}
+                >
+                  <FileText className="w-5 h-5" />
+                </span>
+                <ListRowText title="General Materials" subtitle="General/shared materials for the course" />
+                <button
+                  type="button"
+                  onClick={() => handleDownloadMaterial("general-materials")}
+                  disabled={downloadingMaterial !== null}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0"
+                  title="Download general materials ZIP"
+                >
+                  {downloadingMaterial === "general-materials" ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5" />
+                  )}
+                  <span>{downloadingMaterial === "general-materials" ? "Downloading." : "General materials"}</span>
+                </button>
+              </div>
+            </ListShell>
           </div>
 
           {/* 3 ── FACULTY & INSTRUCTION WITH VITFAC REVIEWS & SCHEDULE */}

@@ -416,9 +416,264 @@ describe("FriendFinderTab", () => {
     expect(screen.getByText("ETH only · Lab differs")).toBeTruthy();
     expect(screen.getByText("ELA only · Theory differs")).toBeTruthy();
 
+    // Since both ETH and ELA are taught by Dr Alice, it renders as one unified teacher entry
+    expect(screen.getByText("+")).toBeTruthy();
+    expect(screen.getByText(/ETH: F1\+TF1/i)).toBeTruthy();
+    expect(screen.getByText(/ELA: L23\+L24/i)).toBeTruthy();
+    expect(screen.getByText("Class Numbers")).toBeTruthy();
+    expect(screen.getByText("ETH_001, ELA_002")).toBeTruthy();
+
     // Clicking on Rahul in the class subpage opens his bottom sheet modal showing the mark
     fireEvent.click(screen.getAllByText("Rahul M")[0]);
     expect(await screen.findByText("Classes in common (tap to view details)")).toBeTruthy();
     expect(screen.getAllByText("ETH only · Lab differs").length).toBeGreaterThan(0);
+  });
+
+  it("shows two separate teacher cards for embedded course when theory and lab teachers differ", async () => {
+    const diffFacultyState = stateWith(
+      { joined: true, discoverable: true, source: "registered", classIds: ["ETH_DIFF", "ELA_DIFF"] },
+      {
+        sections: [
+          {
+            classId: "ETH_DIFF",
+            offering: {
+              classId: "ETH_DIFF",
+              code: "BCSE301L",
+              title: "Operating Systems",
+              type: "ETH",
+              credits: "3",
+              room: "AB1",
+              slot: "A1+TA1",
+              faculty: "PROF CHEN",
+              facultyId: "11111",
+            },
+            people: [{ handle: "AMZ-1", name: "Student One", source: "registered", regNo: "22BCE0001" }],
+          },
+          {
+            classId: "ELA_DIFF",
+            offering: {
+              classId: "ELA_DIFF",
+              code: "BCSE301L",
+              title: "Operating Systems",
+              type: "ELA",
+              credits: "1",
+              room: "AB2",
+              slot: "L1+L2",
+              faculty: "PROF DAVIS",
+              facultyId: "22222",
+            },
+            people: [{ handle: "AMZ-1", name: "Student One", source: "registered", regNo: "22BCE0001" }],
+          },
+        ],
+        overlaps: [
+          {
+            handle: "AMZ-1",
+            name: "Student One",
+            source: "registered",
+            regNo: "22BCE0001",
+            shared: 2,
+            sharedClassIds: ["ETH_DIFF", "ELA_DIFF"],
+            identical: true,
+            updatedAt: "2026-11-09",
+          },
+        ],
+      },
+    );
+
+    apiMock.mockResolvedValueOnce(diffFacultyState);
+    await renderTab();
+
+    fireEvent.click(screen.getByText("Operating Systems"));
+    // Since professors differ, separate ETH and ELA cards are rendered
+    expect(screen.getByText("Prof Chen")).toBeTruthy();
+    expect(screen.getByText("Prof Davis")).toBeTruthy();
+  });
+
+  it("lists all friends including those in only 1 class, ordered by shared count with hero numbers", async () => {
+    const multiFriendState = stateWith(
+      { joined: true, discoverable: true, source: "registered", classIds: ["CLS_1", "CLS_2", "CLS_3"] },
+      {
+        sections: [
+          {
+            classId: "CLS_1",
+            offering: { ...OFFERING, classId: "CLS_1", code: "MAT101", title: "Calculus" },
+            people: [
+              { handle: "USER_ALICE", name: "Alice Green", source: "registered", regNo: "24BCE0001" },
+              { handle: "USER_BOB", name: "Bob Builder", source: "registered", regNo: "24BCE0002" },
+              { handle: "USER_CHARLIE", name: "Charlie OneClass", source: "registered", regNo: "24BCE0003" },
+            ],
+          },
+          {
+            classId: "CLS_2",
+            offering: { ...OFFERING, classId: "CLS_2", code: "PHY101", title: "Physics" },
+            people: [
+              { handle: "USER_ALICE", name: "Alice Green", source: "registered", regNo: "24BCE0001" },
+              { handle: "USER_BOB", name: "Bob Builder", source: "registered", regNo: "24BCE0002" },
+            ],
+          },
+          {
+            classId: "CLS_3",
+            offering: { ...OFFERING, classId: "CLS_3", code: "CSE101", title: "Computer Science" },
+            people: [{ handle: "USER_ALICE", name: "Alice Green", source: "registered", regNo: "24BCE0001" }],
+          },
+        ],
+        overlaps: [
+          {
+            handle: "USER_ALICE",
+            name: "Alice Green",
+            source: "registered",
+            regNo: "24BCE0001",
+            shared: 3,
+            sharedClassIds: ["CLS_1", "CLS_2", "CLS_3"],
+            identical: true,
+            updatedAt: "2026-11-10",
+          },
+          {
+            handle: "USER_BOB",
+            name: "Bob Builder",
+            source: "registered",
+            regNo: "24BCE0002",
+            shared: 2,
+            sharedClassIds: ["CLS_1", "CLS_2"],
+            identical: false,
+            updatedAt: "2026-11-10",
+          },
+        ],
+      },
+    );
+
+    apiMock.mockResolvedValueOnce(multiFriendState);
+    await renderTab();
+
+    // Switch to Friends grouping
+    fireEvent.click(screen.getByRole("button", { name: "Friends" }));
+    expect(screen.getByText("Friends with common classes")).toBeTruthy();
+
+    // Alice (3 classes, identical), Bob (2 classes), Charlie (1 class - included even though not in overlaps!)
+    expect(screen.getByText("Alice Green")).toBeTruthy();
+    expect(screen.getByText("Bob Builder")).toBeTruthy();
+    expect(screen.getByText(/Charlie OneClass/i)).toBeTruthy();
+
+    // Check hero numbers: Alice has 3, Bob has 2, Charlie has 1
+    expect(screen.getByLabelText("3 classes shared")).toBeTruthy();
+    expect(screen.getByLabelText("2 classes shared")).toBeTruthy();
+    expect(screen.getByLabelText("1 class shared")).toBeTruthy();
+
+    // Alice is identical
+    expect(screen.getByText("Identical")).toBeTruthy();
+  });
+
+  it("filters friends list by search query and supports clear", async () => {
+    const searchState = stateWith(
+      { joined: true, discoverable: true, source: "registered", classIds: ["CLS_1", "CLS_2"] },
+      {
+        sections: [
+          {
+            classId: "CLS_1",
+            offering: { ...OFFERING, classId: "CLS_1", code: "MAT201", title: "Differential Equations" },
+            people: [
+              { handle: "USER_DEV", name: "Devansh Sharma", source: "registered", regNo: "23BCE1001" },
+              { handle: "USER_PRIYA", name: "Priya Nair", source: "registered", regNo: "24BCS2002" },
+            ],
+          },
+        ],
+        overlaps: [
+          {
+            handle: "USER_DEV",
+            name: "Devansh Sharma",
+            source: "registered",
+            regNo: "23BCE1001",
+            shared: 1,
+            sharedClassIds: ["CLS_1"],
+            identical: false,
+            updatedAt: "2026-11-10",
+          },
+          {
+            handle: "USER_PRIYA",
+            name: "Priya Nair",
+            source: "registered",
+            regNo: "24BCS2002",
+            shared: 1,
+            sharedClassIds: ["CLS_1"],
+            identical: false,
+            updatedAt: "2026-11-10",
+          },
+        ],
+      },
+    );
+
+    apiMock.mockResolvedValueOnce(searchState);
+    await renderTab();
+
+    fireEvent.click(screen.getByRole("button", { name: "Friends" }));
+    const searchInput = screen.getByPlaceholderText(/Search friends by name/i);
+
+    // Search by name
+    fireEvent.change(searchInput, { target: { value: "Devansh" } });
+    expect(screen.getByText("Devansh Sharma")).toBeTruthy();
+    expect(screen.queryByText("Priya Nair")).toBeNull();
+
+    // Search by regNo
+    fireEvent.change(searchInput, { target: { value: "24BCS" } });
+    expect(screen.getByText("Priya Nair")).toBeTruthy();
+    expect(screen.queryByText("Devansh Sharma")).toBeNull();
+
+    // Search with no results
+    fireEvent.change(searchInput, { target: { value: "NonExistent" } });
+    expect(screen.getByText(/No friends matching/i)).toBeTruthy();
+
+    // Clear search using the empty-state button
+    fireEvent.click(screen.getByRole("button", { name: /^Clear search$/i }));
+    expect(screen.getByText("Devansh Sharma")).toBeTruthy();
+    expect(screen.getByText("Priya Nair")).toBeTruthy();
+
+    // Search again and clear using the search input clear icon button
+    fireEvent.change(searchInput, { target: { value: "Devansh" } });
+    expect(screen.queryByText("Priya Nair")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Clear search input" }));
+    expect(screen.getByText("Priya Nair")).toBeTruthy();
+  });
+
+  it("persists friend finder state in localStorage for offline availability", async () => {
+    const cachedData = stateWith(
+      { joined: true, discoverable: true, source: "registered", classIds: ["CLS_CACHE"] },
+      {
+        sections: [
+          {
+            classId: "CLS_CACHE",
+            offering: { ...OFFERING, classId: "CLS_CACHE", code: "SWE201", title: "Software Engineering" },
+            people: [{ handle: "USER_OFFLINE", name: "Offline Student", source: "registered", regNo: "22BCE9999" }],
+          },
+        ],
+        overlaps: [
+          {
+            handle: "USER_OFFLINE",
+            name: "Offline Student",
+            source: "registered",
+            regNo: "22BCE9999",
+            shared: 1,
+            sharedClassIds: ["CLS_CACHE"],
+            identical: true,
+            updatedAt: "2026-11-10",
+          },
+        ],
+      },
+    );
+
+    // Seed localStorage cache before tab render
+    window.localStorage.setItem("amaze_friend_finder_cache_CH20262705", JSON.stringify(cachedData));
+
+    // Even if network fails (offline), cached state renders immediately
+    apiMock.mockRejectedValueOnce(new Error("Network offline"));
+    await renderTab();
+
+    // Cached data is visible
+    expect(screen.getByText("Your sections")).toBeTruthy();
+    expect(screen.getByText("SWE201")).toBeTruthy();
+
+    // Friends mode renders from cache and is searchable
+    fireEvent.click(screen.getByRole("button", { name: "Friends" }));
+    expect(screen.getByText("Offline Student")).toBeTruthy();
+    expect(screen.getByLabelText("1 class shared")).toBeTruthy();
   });
 });

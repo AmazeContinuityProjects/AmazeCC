@@ -38,6 +38,7 @@ export type ClassmateOffering = {
   room: string;
   slot: string;
   faculty: string;
+  facultyId?: string;
 };
 
 export type ClassmateSection = {

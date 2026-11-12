@@ -35,15 +35,7 @@ import {
   X,
 } from "lucide-react";
 import { AnimatePresence, m } from "framer-motion";
-import {
-  PageShell,
-  ToneBadge,
-  Switch,
-  SectionHeader,
-  ListShell,
-  ListRowText,
-  StatTile,
-} from "../shared/primitives";
+import { PageShell, ToneBadge, Switch, SectionHeader, ListShell, ListRowText, StatTile } from "../shared/primitives";
 import { TILE_CARD, SEARCH_FIELD, LIST_ROW, TONE_ICON_TILE } from "@/lib/uiTokens";
 import { useOverlayBack } from "@/lib/overlayStack";
 import { acquireBodyScrollLock } from "@/lib/bodyScrollLock";
@@ -858,7 +850,7 @@ export default function FeedbackReportPage({
                 <button
                   type="button"
                   onClick={handleResetForm}
-                  className="px-5 py-2.5 rounded-xl border border-zinc-800 hover:bg-zinc-850 text-xs font-bold text-zinc-200 transition-colors cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl border border-zinc-800 hover:bg-zinc-800 text-xs font-bold text-zinc-200 transition-colors cursor-pointer"
                 >
                   Submit Another Note
                 </button>
@@ -879,7 +871,7 @@ export default function FeedbackReportPage({
                     handleResetForm();
                     setActiveSubpage("overview");
                   }}
-                  className="px-5 py-2.5 rounded-xl border border-zinc-800 hover:bg-zinc-850 text-xs font-bold text-zinc-200 transition-colors cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl border border-zinc-800 hover:bg-zinc-800 text-xs font-bold text-zinc-200 transition-colors cursor-pointer"
                 >
                   Back to Support Sections
                 </button>
@@ -1150,7 +1142,7 @@ export default function FeedbackReportPage({
                       <button
                         type="button"
                         onClick={() => setGuidedStep(3)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-zinc-800 text-xs font-bold text-zinc-400 hover:text-white hover:bg-zinc-850 transition-colors cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-zinc-800 text-xs font-bold text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
                       >
                         <ChevronLeft className="w-4 h-4" />
                         <span>Back to Contact</span>
@@ -1354,7 +1346,7 @@ export default function FeedbackReportPage({
               <button
                 type="button"
                 onClick={() => setGuidedStep((prev) => (prev > 1 ? ((prev - 1) as any) : 1))}
-                className="flex items-center gap-1.5 text-xs font-bold text-zinc-400 hover:text-white transition-colors cursor-pointer py-3 px-4 rounded-2xl bg-zinc-900/80 border border-zinc-800 hover:bg-zinc-850 active:scale-95"
+                className="flex items-center gap-1.5 text-xs font-bold text-zinc-400 hover:text-white transition-colors cursor-pointer py-3 px-4 rounded-2xl bg-zinc-900/80 border border-zinc-800 hover:bg-zinc-800 active:scale-95"
               >
                 <ChevronLeft className="w-4 h-4" />
                 <span>Back</span>

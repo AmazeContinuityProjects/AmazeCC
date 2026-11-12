@@ -17,9 +17,6 @@ const eslintConfig = [
       "react-hooks/rules-of-hooks": "warn",
       "react/no-unescaped-entities": "warn",
       "@next/next/no-img-element": "warn",
-      // Typing debt ratchet (docs/todo/typing-issues/01-quick-wins.md §1.3):
-      // a warning for now so the build stays green; watch the count fall.
-      "@typescript-eslint/no-explicit-any": "warn",
       // Guardrail for the unified SyncEngine: NO component may import the raw
       // network primitive (fetchWithTimeout / API_BASE) — every app-API call
       // must go through `api` from src/lib/sync-engine. Non-network helpers in
@@ -33,6 +30,8 @@ const eslintConfig = [
             {
               name: "@/lib/fetch-utils",
               importNames: ["fetchWithTimeout", "API_BASE"],
+              // Type-only imports carry no network call; allow them.
+              allowTypeImports: true,
               message:
                 "Network calls must go through the SyncEngine (src/lib/sync-engine). Use `api` instead of fetchWithTimeout/API_BASE.",
             },
@@ -44,6 +43,8 @@ const eslintConfig = [
             {
               group: ["**/fetch-utils", "./fetch-utils"],
               importNames: ["fetchWithTimeout", "API_BASE"],
+              // Type-only imports carry no network call; allow them.
+              allowTypeImports: true,
               message:
                 "Network calls must go through the SyncEngine (src/lib/sync-engine). Use `api` instead of fetchWithTimeout/API_BASE.",
             },
@@ -51,13 +52,19 @@ const eslintConfig = [
         },
       ],
     },
-    ignores: [
-      "node_modules/**",
-      ".next/**",
-      "out/**",
-      "build/**",
-      "next-env.d.ts",
-    ],
+    ignores: ["node_modules/**", ".next/**", "out/**", "build/**", "next-env.d.ts"],
+  },
+  // `@typescript-eslint` is registered by next's `next/typescript` config for
+  // ts/tsx files only, so this rule must be scoped the same way — a plain
+  // .js/.mjs file does not otherwise get the plugin, and linting it fails
+  // with "could not find plugin '@typescript-eslint'".
+  {
+    files: ["**/*.ts", "**/*.tsx"],
+    // Typing debt ratchet (docs/todo/typing-issues/01-quick-wins.md §1.3):
+    // a warning for now so the build stays green; watch the count fall.
+    rules: {
+      "@typescript-eslint/no-explicit-any": "warn",
+    },
   },
   {
     // The engine owns the network. `workerBase.ts` is part of it: its
@@ -98,8 +105,7 @@ const eslintConfig = [
             "Don't read NEXT_PUBLIC_API_URL directly. Call the API through `api` from src/lib/sync-engine, or use getActiveApiUrl() for display.",
         },
         {
-          selector:
-            "Literal[value=/\\brounded-3xl\\b/]",
+          selector: "Literal[value=/\\brounded-3xl\\b/]",
           message:
             "Use rounded-[24px] (the 24px step). `rounded-3xl` is the same size but a second spelling of it — see design/DESIGN_LANGUAGE.md §5.",
         },
@@ -109,10 +115,7 @@ const eslintConfig = [
   {
     // The primitives and the token module are the definition of the dialect, so
     // they are exempt from the token rules that everything else must follow.
-    files: [
-      "src/components/custom/shared/primitives/**",
-      "src/lib/uiTokens.ts",
-    ],
+    files: ["src/components/custom/shared/primitives/**", "src/lib/uiTokens.ts"],
     rules: {
       "no-restricted-syntax": "off",
     },

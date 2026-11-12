@@ -2,15 +2,16 @@
 
 ## Base URL
 
-| Environment | URL |
-|-------------|-----|
-| Production | `https://api.amazecc.com` |
-| Development | `http://localhost:3001` |
+| Environment | URL                                 |
+| ----------- | ----------------------------------- |
+| Production  | `https://api.amazecc.com`           |
+| Development | `http://localhost:3001`             |
 | Self-hosted | Configure via `NEXT_PUBLIC_API_URL` |
 
 ## Conventions
 
 ### HTTP Methods
+
 - `GET` - Retrieve data
 - `POST` - Create/trigger actions
 - `PUT` - Full update
@@ -18,6 +19,7 @@
 - `DELETE` - Remove resource
 
 ### Headers
+
 ```
 Content-Type: application/json
 Authorization: Bearer <token>        # For authenticated endpoints
@@ -28,6 +30,7 @@ Accept: application/json
 ### Response Format
 
 **Success:**
+
 ```json
 {
   "data": { ... },
@@ -36,6 +39,7 @@ Accept: application/json
 ```
 
 **Error:**
+
 ```json
 {
   "error": "ERROR_CODE",
@@ -45,6 +49,7 @@ Accept: application/json
 ```
 
 ### Pagination
+
 ```json
 {
   "data": [...],
@@ -58,6 +63,7 @@ Accept: application/json
 ```
 
 ### Rate Limiting
+
 - **Authenticated**: 60 requests/minute per user
 - **Public**: 20 requests/minute per IP
 - **Admin**: 200 requests/minute
@@ -68,6 +74,7 @@ Accept: application/json
 All endpoints except public ones require authentication via HMAC token.
 
 ### Token Acquisition
+
 ```bash
 POST /api/auth/login
 Content-Type: application/json
@@ -80,6 +87,7 @@ Content-Type: application/json
 ```
 
 ### Using Token
+
 ```bash
 curl -H "Authorization: Bearer <token>" \
   https://api.amazecc.com/api/attendance
@@ -87,31 +95,31 @@ curl -H "Authorization: Bearer <token>" \
 
 ## Endpoint Categories
 
-| Category | Prefix | Auth Required | Description |
-|----------|--------|---------------|-------------|
-| Auth | `/api/auth/*` | No | Login, status, refresh |
-| Academic | `/api/attendance`, `/api/marks`, `/api/grades`, `/api/schedule`, `/api/calendar` | Yes | Core academic data |
-| Hostel | `/api/hostel/*` | Yes | Hostel info, leave, mess |
-| Payments | `/api/payments/*` | Yes | Fee dues, receipts, wallet |
-| Library | `/api/library/*` | Yes | KOHA search, dues |
-| Transport | `/api/transport/*` | Yes | Bus routes, day boarder |
-| Events | `/api/events/*` | Yes | EventHub, clubs |
-| LMS | `/api/lms/*` | Yes | Moodle assignments |
-| Exams | `/api/exams/*` | Yes | Arrear, makeup, reexam |
-| Research | `/api/research/*` | Yes | Faculty, projects |
-| Profile | `/api/profile/*` | Yes | Student profile, images |
-| Admin | `/api/admin/*` | Admin | Management endpoints |
+| Category  | Prefix                                                                           | Auth Required | Description                                          |
+| --------- | -------------------------------------------------------------------------------- | ------------- | ---------------------------------------------------- |
+| Auth      | `/api/auth/*`                                                                    | No            | Login, status, refresh                               |
+| Academic  | `/api/attendance`, `/api/marks`, `/api/grades`, `/api/schedule`, `/api/calendar` | Yes           | Core academic data                                   |
+| Hostel    | `/api/hostel/*`                                                                  | Yes           | Hostel info, leave, mess                             |
+| Finance   | `/api/finance`                                                                   | Yes           | Dues, receipts, wallet, bank, library (consolidated) |
+| Library   | `/api/library/*`                                                                 | Yes           | KOHA search, dues                                    |
+| Transport | `/api/transport/*`                                                               | Yes           | Bus routes, day boarder                              |
+| Events    | `/api/events/*`                                                                  | Yes           | EventHub, clubs                                      |
+| LMS       | `/api/lms/*`                                                                     | Yes           | Moodle assignments                                   |
+| Exams     | `/api/exams/*`                                                                   | Yes           | Arrear, makeup, reexam                               |
+| Research  | `/api/research/*`                                                                | Yes           | Faculty, projects                                    |
+| Profile   | `/api/profile/*`                                                                 | Yes           | Student profile, images                              |
+| Admin     | `/api/admin/*`                                                                   | Admin         | Management endpoints                                 |
 
 ## Common Query Parameters
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `semester` | string | Filter by semester (e.g., "2024-25 Odd") |
-| `force_refresh` | boolean | Bypass cache, scrape fresh |
-| `limit` | integer | Pagination limit (default 20, max 100) |
-| `offset` | integer | Pagination offset |
-| `sort` | string | Sort field |
-| `order` | string | `asc` or `desc` |
+| Parameter       | Type    | Description                              |
+| --------------- | ------- | ---------------------------------------- |
+| `semester`      | string  | Filter by semester (e.g., "2024-25 Odd") |
+| `force_refresh` | boolean | Bypass cache, scrape fresh               |
+| `limit`         | integer | Pagination limit (default 20, max 100)   |
+| `offset`        | integer | Pagination offset                        |
+| `sort`          | string  | Sort field                               |
+| `order`         | string  | `asc` or `desc`                          |
 
 ## Caching
 
@@ -129,6 +137,7 @@ curl -H "Authorization: Bearer <token>" \
 ## Webhooks (Planned)
 
 For real-time updates:
+
 - Attendance changes
 - Marks published
 - Event registrations
@@ -137,18 +146,20 @@ For real-time updates:
 ## SDKs & Clients
 
 ### TypeScript/JavaScript
+
 ```typescript
-import { AmazeCCClient } from '@amazecc/api-client'
+import { AmazeCCClient } from "@amazecc/api-client";
 
 const client = new AmazeCCClient({
-  baseUrl: 'https://api.amazecc.com',
-  token: 'your_token'
-})
+  baseUrl: "https://api.amazecc.com",
+  token: "your_token",
+});
 
-const attendance = await client.academic.getAttendance()
+const attendance = await client.academic.getAttendance();
 ```
 
 ### Python
+
 ```python
 from amazecc import AmazeCCClient
 
@@ -159,15 +170,18 @@ attendance = client.academic.get_attendance()
 ## Testing
 
 ### Health Check
+
 ```bash
 GET /api/health
 # Returns 200 OK with version info
 ```
 
 ### Postman Collection
+
 Available at: `https://api.amazecc.com/docs/postman.json`
 
 ### OpenAPI/Swagger
+
 Available at: `https://api.amazecc.com/docs` (Swagger UI)
 
 ## Related Documentation
@@ -175,7 +189,7 @@ Available at: `https://api.amazecc.com/docs` (Swagger UI)
 - [Auth Endpoints](./auth.md)
 - [Academic Endpoints](./academic.md)
 - [Hostel Endpoints](./hostel.md)
-- [Payment Endpoints](./payments.md)
+- [Finance Endpoint](./payments.md)
 - [Library Endpoints](./library.md)
 - [Transport Endpoints](./transport.md)
 - [Events Endpoints](./events.md)

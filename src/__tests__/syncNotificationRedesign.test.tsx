@@ -137,9 +137,10 @@ describe("SyncNotification Redesign", () => {
     const expandBtn = screen.getByTitle(/expand sync view/i);
     expect(expandBtn).toBeDefined();
 
-    // Click expand
+    // Click expand — the exiting pill may linger in the DOM during its exit
+    // animation, so target the expanded sheet's Cancel Sync button by text.
     fireEvent.click(expandBtn);
-    expect(screen.getByRole("button", { name: /cancel sync/i })).toBeDefined();
+    expect(screen.getByText("Cancel Sync")).toBeDefined();
   });
 
   it("occupies full screen of the bottom sheet modal on error like offline notice", async () => {

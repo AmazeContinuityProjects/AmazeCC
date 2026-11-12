@@ -20,11 +20,7 @@ import {
   writePeerTimetable,
   _resetForTests,
 } from "../lib/social/storage";
-import {
-  getActiveDisplayName,
-  getActiveRegNumber,
-  hasIdentity,
-} from "../lib/social/identity";
+import { getActiveDisplayName, getActiveRegNumber, hasIdentity } from "../lib/social/identity";
 import { toCoarse } from "../lib/social/types";
 
 /**
@@ -74,7 +70,7 @@ describe("getActiveRegNumber", () => {
   });
 
   it("reads the live profile shape (registerNo)", () => {
-    // What /api/student → parseStudentProfile actually writes.
+    // What /api/whoami identity/profile data actually writes.
     setProfile({ registerNo: "22BCE1102", name: "Aarav Sharma" });
     expect(getActiveRegNumber()).toBe("22BCE1102");
   });
@@ -86,13 +82,7 @@ describe("getActiveRegNumber", () => {
   });
 
   it("tries every spelling rather than betting on one", () => {
-    const spellings = [
-      "registerNo",
-      "registerNumber",
-      "regNo",
-      "regNumber",
-      "applicationNumber",
-    ];
+    const spellings = ["registerNo", "registerNumber", "regNo", "regNumber", "applicationNumber"];
     for (const key of spellings) {
       setProfile({ [key]: `V-${key}` });
       expect(getActiveRegNumber()).toBe(`V-${key}`);
@@ -132,10 +122,7 @@ describe("getActiveRegNumber", () => {
 
   it("falls back to attendance.studentInfo when present", () => {
     // Not declared on `attendanceRes`, so this path is defensive only.
-    window.localStorage.setItem(
-      "attendance",
-      JSON.stringify({ studentInfo: { regNumber: "22BCE9999" } })
-    );
+    window.localStorage.setItem("attendance", JSON.stringify({ studentInfo: { regNumber: "22BCE9999" } }));
     expect(getActiveRegNumber()).toBe("22BCE9999");
   });
 
@@ -192,18 +179,12 @@ describe("social storage", () => {
     it("carries an existing list into the namespaced key", () => {
       // This is the real state of a returning user: reg resolution always
       // failed, so everything was written to the bare global key.
-      window.localStorage.setItem(
-        LEGACY_FRIENDS_KEY,
-        JSON.stringify([{ id: "22BCE1102" }, { id: "22BCE1140" }])
-      );
+      window.localStorage.setItem(LEGACY_FRIENDS_KEY, JSON.stringify([{ id: "22BCE1102" }, { id: "22BCE1140" }]));
       window.localStorage.setItem(LEGACY_GROUPS_KEY, JSON.stringify([{ id: "group-01" }]));
 
       expect(migrateLegacyStore(REG)).toBe(true);
 
-      expect(readList("friends", REG)).toEqual([
-        { id: "22BCE1102" },
-        { id: "22BCE1140" },
-      ]);
+      expect(readList("friends", REG)).toEqual([{ id: "22BCE1102" }, { id: "22BCE1140" }]);
       expect(readList("groups", REG)).toEqual([{ id: "group-01" }]);
     });
 
@@ -279,17 +260,12 @@ describe("slot vocabulary invariants", () => {
   const slotMap = config.slotMap as Record<string, Record<string, { time: string }>>;
 
   it("has 164 slots", () => {
-    const total = Object.values(slotMap).reduce(
-      (sum, day) => sum + Object.keys(day).length,
-      0
-    );
+    const total = Object.values(slotMap).reduce((sum, day) => sum + Object.keys(day).length, 0);
     expect(total).toBe(164);
   });
 
   it("has a stable per-day shape", () => {
-    const counts = Object.fromEntries(
-      Object.entries(slotMap).map(([d, slots]) => [d, Object.keys(slots).length])
-    );
+    const counts = Object.fromEntries(Object.entries(slotMap).map(([d, slots]) => [d, Object.keys(slots).length]));
     expect(counts).toEqual({
       MON: 24,
       TUE: 23,
@@ -342,9 +318,7 @@ describe("server-derived storage", () => {
 
   it("never writes a grant secret to a global key", () => {
     writeGrants([{ grantId: "gr_1", secret: "topsecret" }], REG);
-    const bare = Object.keys(window.localStorage).filter(
-      (k) => !k.includes(REG) && k.startsWith("social_")
-    );
+    const bare = Object.keys(window.localStorage).filter((k) => !k.includes(REG) && k.startsWith("social_"));
     expect(bare).toEqual([]);
   });
 

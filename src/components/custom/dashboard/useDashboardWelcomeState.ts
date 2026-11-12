@@ -35,20 +35,45 @@ export function useDashboardWelcomeState({ demoMode, interfaceChosen }: Dashboar
     }
 
     try {
-      const ept = localStorage.getItem("cache_ept_schedule");
-      const ack = localStorage.getItem("cache_acknowledgement");
       const dismissed = localStorage.getItem("fresherWelcomeDismissed");
+      let eptData: any = null;
+      let ackData: any = null;
       let hasFresherData = false;
 
-      if (ept) {
-        const parsedEpt = JSON.parse(ept);
-        setFresherEptData(parsedEpt);
-        if (parsedEpt.tables?.[0]?.rows?.length > 0) hasFresherData = true;
+      const whoamiRaw = localStorage.getItem("cache_whoami");
+      if (whoamiRaw) {
+        try {
+          const w = JSON.parse(whoamiRaw);
+          eptData = w?.eptSchedule ?? null;
+          ackData = w?.acknowledgement ?? null;
+        } catch {}
       }
-      if (ack) {
-        const parsedAck = JSON.parse(ack);
-        setFresherAckData(parsedAck);
-        if (parsedAck.tables?.[1]?.rows?.length > 0) hasFresherData = true;
+
+      // Backward compat with old caches
+      if (!eptData) {
+        const ept = localStorage.getItem("cache_ept_schedule");
+        if (ept)
+          try {
+            eptData = JSON.parse(ept);
+          } catch {}
+      }
+      if (!ackData) {
+        const ack = localStorage.getItem("cache_acknowledgement");
+        if (ack)
+          try {
+            ackData = JSON.parse(ack);
+          } catch {}
+      }
+
+      if (eptData) {
+        setFresherEptData(eptData);
+        if (eptData.tables?.[0]?.rows?.length > 0 || eptData.message) hasFresherData = true;
+      }
+      if (ackData) {
+        setFresherAckData(ackData);
+        if (Array.isArray(ackData.documents) ? ackData.documents.length > 0 : ackData.tables?.[1]?.rows?.length > 0) {
+          hasFresherData = true;
+        }
       }
 
       if (hasFresherData && dismissed !== "true") setShowFresherWelcome(true);

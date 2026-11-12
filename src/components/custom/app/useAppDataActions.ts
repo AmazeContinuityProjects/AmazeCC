@@ -662,18 +662,18 @@ export function useAppDataActions({
         appendSyncLine("Starting background sync…", "info");
         const runBackgroundSync = async () => {
           try {
-            // Fresher / EPT data
-            const [eptRes, ackRes] = await Promise.all([
-              api("ept-schedule", { method: "POST", body: { cookies, authorizedID, csrf } }) as any,
-              api("acknowledgement", { method: "POST", body: { cookies, authorizedID, csrf } }) as any,
-            ]);
-            if (eptRes?.success) {
-              localStorage.setItem("cache_ept_schedule", JSON.stringify(eptRes));
-              appendSyncLine("Fresher / EPT data fetched", "success");
-            } else {
-              appendSyncLine("Fresher / EPT data unavailable (server error)", "error");
+            // Fresher / EPT / identity data via whoami
+            try {
+              const whoamiRes = (await api("whoami", { method: "POST", body: { cookies, authorizedID, csrf } })) as any;
+              if (whoamiRes && !whoamiRes.error) {
+                localStorage.setItem("cache_whoami", JSON.stringify(whoamiRes));
+                appendSyncLine("Identity / fresher data fetched", "success");
+              } else {
+                appendSyncLine("Identity / fresher data unavailable (server error)", "error");
+              }
+            } catch {
+              appendSyncLine("Identity / fresher data unavailable (server error)", "error");
             }
-            if (ackRes?.success) localStorage.setItem("cache_acknowledgement", JSON.stringify(ackRes));
 
             // Bus routes
             const busesRes = (await api("buses")) as any;
@@ -731,15 +731,27 @@ export function useAppDataActions({
               "minor-honour",
               "course-completion",
               "hostel-counselling",
-              "credentials",
               "registration-schedule",
-              "dayboarder",
-              "bank-info",
             ];
             let bulkFailed = 0;
             await Promise.allSettled(
-              bulkEndpoints.map((path) =>
-                api(path, { method: "POST", body: { cookies, authorizedID, csrf } })
+              bulkEndpoints.map((path) => {
+                if (path === "registration-schedule") {
+                  return api("ffcs", { method: "POST", body: { cookies, authorizedID, csrf, section: "registration" } })
+                    .then((res: any) => {
+                      const data = res?.registrationSchedule || res;
+                      if (data && data.success !== false) {
+                        localStorage.setItem("cache_registration-schedule", JSON.stringify(data));
+                        localStorage.setItem("cache_registration_schedule", JSON.stringify(data));
+                      } else {
+                        bulkFailed++;
+                      }
+                    })
+                    .catch(() => {
+                      bulkFailed++;
+                    });
+                }
+                return api(path, { method: "POST", body: { cookies, authorizedID, csrf } })
                   .then((data: any) => {
                     if (data && data.success !== false) {
                       localStorage.setItem("cache_" + path, JSON.stringify(data));
@@ -749,8 +761,8 @@ export function useAppDataActions({
                   })
                   .catch(() => {
                     bulkFailed++;
-                  }),
-              ),
+                  });
+              }),
             );
             if (bulkFailed > 0) {
               appendSyncLine(

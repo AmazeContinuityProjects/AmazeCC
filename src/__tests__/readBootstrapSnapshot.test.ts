@@ -1,3 +1,5 @@
+import { installLocalStorage } from "./helpers/localStorage";
+installLocalStorage();
 import { describe, it, expect, beforeEach } from "vitest";
 import { hasStoredAppSession, hasStoredVtopCredentials } from "@/components/custom/app/readBootstrapSnapshot";
 import { storage } from "@/lib/storage";

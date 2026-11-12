@@ -6,12 +6,12 @@ Every claim below was verified against the working tree. Paths are relative to e
 
 ## 1. Backend: the endpoint does not exist
 
-| Check | Result |
-|---|---|
-| `AmazeCC-API/src/app/api/social/` | Does not exist |
-| Any `route.ts` with "social" in its path | None (135 route directories, 222 `route.ts` files) |
-| Any table holding friends or groups | None. All 21 `CREATE TABLE` statements enumerated; nearest are `cabshare_users`, `club_representatives`, `push_subscriptions` |
-| `ROUTE_TRACKER.md` / `README.md` mention of `/api/social/*` | None |
+| Check                                                       | Result                                                                                                                        |
+| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `AmazeCC-API/src/app/api/social/`                           | Does not exist                                                                                                                |
+| Any `route.ts` with "social" in its path                    | None (135 route directories, 222 `route.ts` files)                                                                            |
+| Any table holding friends or groups                         | None. All 21 `CREATE TABLE` statements enumerated; nearest are `cabshare_users`, `club_representatives`, `push_subscriptions` |
+| `ROUTE_TRACKER.md` / `README.md` mention of `/api/social/*` | None                                                                                                                          |
 
 Both client calls therefore return **404**, and because both wrap everything in a bare `catch {}` (`socialUtils.ts:526, 567`) the failure is invisible in the UI, the console, and the server log.
 
@@ -21,7 +21,7 @@ The one trace of this feature in the backend is `AmazeCC-API/src/lib/socialUtils
 
 `AmazeCC-API/src/lib/fetchTimeTable.ts` scrapes `POST /vtop/processViewTimeTable` and returns `courseItem[]`. It imports only `cheerio`, `VTOPClient`, `URLSearchParams` and a type — **it does not import `@/lib/db`**, so it is structurally incapable of writing. Its two callers pass the result straight through:
 
-- `src/app/api/timetable/route.ts:57-60` → `NextResponse.json({ success: true, semesterId, courseInfo })`
+- `src/app/api/schedule/route.ts:57-60` → `NextResponse.json({ success: true, semesterId, courseInfo })`
 - `src/app/api/attendance/route.ts:176-185` → builds a `courseCreditMap` and discards the rest
 
 There is no cron or background job that stores timetables. `src/app/api/cron/` contains exactly one file, `reminders/route.ts`, which is a VITOL web-push notifier.
@@ -40,16 +40,16 @@ The copies are now synced and `src/lib/socialVocabulary.ts` is the single place 
 
 There is no students table. 43 tables were enumerated; none is a registry.
 
-| Table | Column | Reality |
-|---|---|---|
-| `cabshare_users` | `reg_number` | Misnamed. `cabshare/auth/route.ts:93` binds `authorizedID` (the VTOP login id) into it, not the Register No. Its own comment at `:98` reads *"In a real app we'd sign a JWT here. For this implementation, the frontend will pass reg_number as auth."* Every subsequent cabshare route reads identity from a query parameter. **Do not copy this pattern.** |
-| `club_representatives` | `vtop_id` | Plaintext VTOP id, but only for club reps |
-| `push_subscriptions` | `user_id` | Untyped client string, no FK |
-| `bus_students` | `registration_number` | Real reg numbers, but an admin-uploaded bus manifest with no name, program or semester |
+| Table                  | Column                | Reality                                                                                                                                                                                                                                                                                                                                                      |
+| ---------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `cabshare_users`       | `reg_number`          | Misnamed. `cabshare/auth/route.ts:93` binds `authorizedID` (the VTOP login id) into it, not the Register No. Its own comment at `:98` reads _"In a real app we'd sign a JWT here. For this implementation, the frontend will pass reg_number as auth."_ Every subsequent cabshare route reads identity from a query parameter. **Do not copy this pattern.** |
+| `club_representatives` | `vtop_id`             | Plaintext VTOP id, but only for club reps                                                                                                                                                                                                                                                                                                                    |
+| `push_subscriptions`   | `user_id`             | Untyped client string, no FK                                                                                                                                                                                                                                                                                                                                 |
+| `bus_students`         | `registration_number` | Real reg numbers, but an admin-uploaded bus manifest with no name, program or semester                                                                                                                                                                                                                                                                       |
 
 `class_user_hashes` is the only table with a per-student key, and it is not a registry: `marksSync.ts:91-97` computes **unsalted SHA-256 in the browser** over the raw login id, and `marks/sync/route.ts:34-45` accepts it from the body with **no auth call at all**.
 
-`class_data.class_id` is keyed on the VTOP class number. **Correction to an earlier reading of this file:** those class ids are *not* scoped to a semester. The probe returned `CH2026270102069`, `CH2026270102407` and `CH2026270102460` for semester `CH20262701`, so the id is the semester code followed by a sequence number and is globally unique. The `PRIMARY KEY` is therefore safe, and `marks/sync` rows for one semester will not collide with another.
+`class_data.class_id` is keyed on the VTOP class number. **Correction to an earlier reading of this file:** those class ids are _not_ scoped to a semester. The probe returned `CH2026270102069`, `CH2026270102407` and `CH2026270102460` for semester `CH20262701`, so the id is the semester code followed by a sequence number and is globally unique. The `PRIMARY KEY` is therefore safe, and `marks/sync` rows for one semester will not collide with another.
 
 ## 4. Backend: `class_data` is dead, and it reveals the intended design
 
@@ -65,7 +65,7 @@ Its only live consumer, `GET /api/attendance?classId=`, therefore always 404s. T
 
 - Every semester-scoped route destructures `semesterId` from the request body. `/api/od/route.ts:87-94` is the strictest and simply 400s without it.
 - `config.json` contains a `semesterIDs` array, but **no server code reads it** — it is dead on the backend. The array is also a flat, unordered list of 9 codes with no dates and no "current" flag.
-- `/api/all-grades/route.ts:75-88` *guesses* codes by parsing a 2-digit year out of the authorized id.
+- `/api/all-grades/route.ts:75-88` _guesses_ codes by parsing a 2-digit year out of the authorized id.
 - `/api/calendar/route.ts:61-100` hardcodes a suffix→months academic calendar inline, defaulting `startYear` to the magic string `"2024"`.
 - **No table has a `semesterId` column anywhere.**
 
@@ -81,8 +81,10 @@ Note that `/api/od/route.ts:36-37` labels `CH20262701` as "Fall Semester 2026-27
 
 ```ts
 let authorizedID: string =
-    (String($('#authorizedID').val() ?? "") || String($('input[name="authorizedid"]').val() ?? ""));
-if (!authorizedID) { authorizedID = username.toUpperCase(); }
+  String($("#authorizedID").val() ?? "") || String($('input[name="authorizedid"]').val() ?? "");
+if (!authorizedID) {
+  authorizedID = username.toUpperCase();
+}
 ```
 
 The closest structural precedent to the new route is `cabshare/auth/route.ts`: authenticate against VTOP, derive identity, upsert to Postgres. Its one flaw is the `reg_number` misnaming described in §3.
@@ -115,11 +117,25 @@ The same scrape pattern for semester selection exists at `qcm-view/route.ts:185-
 Types (`socialUtils.ts:14-40`):
 
 ```ts
-export type FriendClassSlot = { day: string; timeSlot: string; courseCode: string;
-                                courseTitle: string; venue: string; slotId: string };
-export type Friend = { id: string /* === regNumber */; name: string; nickname: string;
-                       regNumber: string; classSlots: FriendClassSlot[]; color: string;
-                       addedAt: string; showInFriendsSchedule: boolean; showInHomePage: boolean };
+export type FriendClassSlot = {
+  day: string;
+  timeSlot: string;
+  courseCode: string;
+  courseTitle: string;
+  venue: string;
+  slotId: string;
+};
+export type Friend = {
+  id: string /* === regNumber */;
+  name: string;
+  nickname: string;
+  regNumber: string;
+  classSlots: FriendClassSlot[];
+  color: string;
+  addedAt: string;
+  showInFriendsSchedule: boolean;
+  showInHomePage: boolean;
+};
 export type FriendGroup = { id: string; name: string; friendIds: string[]; createdAt: string };
 ```
 
@@ -147,17 +163,17 @@ The global mirror leaks the last-touched student's friends to any other account 
 
 `saveFriend`/`removeFriend`/`saveFriendGroup`/`removeFriendGroup` also have **no SSR guard**, unlike the getters, so they would throw in a server component.
 
-A parallel, unrelated friend store exists for FFCS: `ffcs_friends`/`ffcs_friendGroups` (`storage.ts:57-58`) with a *different* `Friend` shape (`{ id, name, timetables: TimetableState[] }`). Watch for name collisions.
+A parallel, unrelated friend store exists for FFCS: `ffcs_friends`/`ffcs_friendGroups` (`storage.ts:57-58`) with a _different_ `Friend` shape (`{ id, name, timetables: TimetableState[] }`). Watch for name collisions.
 
 ## 9. Frontend: the share-code codec, and two latent bugs
 
 `v6|<expiresAtSec>|<name>|<regNumber>|<titles ";">|<assignments>`. Assignments are 3-char chunks — a 2-char base36 index into a 164-entry slot list, then a 1-char base36 course index.
 
-**Bug 1 — the wire format is only decodable by a byte-identical `slotMap`.** The 164-entry list is built by iterating days in order and sorting slot ids *lexicographically* within each day. Any rename, addition or removal shifts every subsequent index, so a `config.json` edit silently re-maps every code ever minted. The new model's `(day, slotId)` keys remove this class of bug entirely.
+**Bug 1 — the wire format is only decodable by a byte-identical `slotMap`.** The 164-entry list is built by iterating days in order and sorting slot ids _lexicographically_ within each day. Any rename, addition or removal shifts every subsequent index, so a `config.json` edit silently re-maps every code ever minted. The new model's `(day, slotId)` keys remove this class of bug entirely.
 
 **Bug 2 — course indices break at 36.** `courseIdx.toString(36).substring(0, 1)` (`socialUtils.ts:101`) truncates, so a 37-course student gets two courses mapped to the same index on import.
 
-Also: `compressScheduleCode` is base64url, not compression, and *lengthens* the payload (103 → 138 chars). A handle is 11 characters.
+Also: `compressScheduleCode` is base64url, not compression, and _lengthens_ the payload (103 → 138 chars). A handle is 11 characters.
 
 Six import formats are accepted: `v6|`, `v5|`, `amz-profile-`, `v3|`, `v2|`, and a v1 pipe branch. Only v1 and v2 carry venue; v5/v6 push `courseCode: ""` and `venue: ""`.
 
@@ -187,7 +203,7 @@ For v5/v6 friends this is harmless because the importer already emitted one entr
 
 - `SocialTab` is mounted twice, by `MoreTab.tsx:33` and `ToolsTab.tsx:134`, so two independent copies of the state exist and the sub-tab resets when switching between them.
 - `SocialTab.tsx:56-57` reads `attendanceData?.studentInfo?.*`, but `attendanceRes` (`src/types/data/attendance.d.ts:36-40`) has no `studentInfo` field. `studentName` is always `"Student"` and `studentReg` always `"VIT Student"`.
-- The profile object has two live shapes: `/api/student` → `registerNo` + `name`; `src/data/demoData.json` → `registerNumber` + `studentName`. `Main.tsx:2158` reads `p?.regNo`, which is neither.
+- The profile object has two live shapes: `/api/whoami` → `registerNo` + `name`; `src/data/demoData.json` → `registerNumber` + `studentName`. `Main.tsx:2158` reads `p?.regNo`, which is neither.
 - `SocialTab.tsx:230-240` fabricates the "% match" and "free hrs" figures shown on every friend row from a character hash of the reg number, with `totalPossibleSlots = 35` hardcoded.
 - `SocialTab.tsx:596-645` nests `<span role="button">` inside a `<button>`, which is invalid HTML; the surrounding `e.stopPropagation()` calls are the symptom.
 - Eight `alert()` calls and two `confirm()` calls stand in for validation and confirmation.

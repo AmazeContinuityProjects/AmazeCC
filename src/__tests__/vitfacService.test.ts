@@ -1,3 +1,5 @@
+import { installLocalStorage } from "./helpers/localStorage";
+installLocalStorage();
 import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import {

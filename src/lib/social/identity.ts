@@ -4,7 +4,7 @@
  * There are two live shapes for the `profile` localStorage blob and three
  * readers in the app, all of which were wrong:
  *
- *   - Live, written by `ProfilePage` from `/api/student` → `parseStudentProfile`:
+ *   - Live, written by `ProfilePage` from `/api/whoami` (identity/profile data):
  *     `{ registerNo, name }`
  *   - Demo, from `src/data/demoData.json`: `{ registerNumber, studentName }`
  *

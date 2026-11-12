@@ -1,6 +1,6 @@
 # Identity and Semester Resolution
 
-How the server learns *who you are* without ever being told, and how "the current semester" is resolved.
+How the server learns _who you are_ without ever being told, and how "the current semester" is resolved.
 
 ---
 
@@ -25,12 +25,12 @@ How the server learns *who you are* without ever being told, and how "the curren
 
 ### Why the response, not the request
 
-The client sends `cookies`, `csrf` and `authorizedID`. **All three are client-controlled and none of them is an identity assertion.** A caller can put any `regNumber` in the body. What it cannot do is make VTOP return a *different* student's profile:
+The client sends `cookies`, `csrf` and `authorizedID`. **All three are client-controlled and none of them is an identity assertion.** A caller can put any `regNumber` in the body. What it cannot do is make VTOP return a _different_ student's profile:
 
 - cookies are valid → VTOP returns that session's own profile
 - cookies are forged, expired, or borrowed → VTOP returns an error page, `parseStudentProfile` finds no `REGISTER NO` row, and the route 401s
 
-So the owner key is derived from a value the *server* obtained from VTOP. This is the whole reason the IDOR is closed: there is no parameter through which a caller can name someone else's row.
+So the owner key is derived from a value the _server_ obtained from VTOP. This is the whole reason the IDOR is closed: there is no parameter through which a caller can name someone else's row.
 
 This mirrors `cabshare/auth/route.ts`, which authenticates against VTOP before upserting, rather than `marks/sync/route.ts`, which trusts a client-supplied hash.
 
@@ -54,15 +54,15 @@ Consequences, stated plainly:
 
 The profile object has two live shapes and the frontend currently has three wrong readers:
 
-| Source | Reg field | Name field |
-|---|---|---|
-| Live, from `/api/student` → `parseStudentProfile` | `registerNo` | `name` |
-| Demo, from `src/data/demoData.json` | `registerNumber` | `studentName` |
+| Source                                           | Reg field        | Name field    |
+| ------------------------------------------------ | ---------------- | ------------- |
+| Live, from `/api/whoami` → `parseStudentProfile` | `registerNo`     | `name`        |
+| Demo, from `src/data/demoData.json`              | `registerNumber` | `studentName` |
 
 Server-side normalisation mirrors `identity.ts:175`:
 
 ```ts
-regNo: profile.registerNo || profile.applicationNumber || null
+regNo: profile.registerNo || profile.applicationNumber || null;
 ```
 
 On the client, `getActiveRegNumber()` in `src/lib/social/identity.ts` must try `registerNo` → `registerNumber` → `regNo` → `regNumber` → `applicationNumber`, and `name` → `studentName`. All three of today's readers are wrong: `Main.tsx:2158` (`p?.regNo`), `socialUtils.ts:494` (`parsed?.regNumber`), `SocialTab.tsx:56-57` (`attendanceData?.studentInfo?.regNumber` on a type with no `studentInfo`).
@@ -115,7 +115,7 @@ This was the open question, and the answer is the negative one. Reading a `selec
   CH2019201        Fall Semester 2019-20
 ```
 
-The list runs to 2019 and the option **text carries the term name**, which settles a question [02-current-state-audit.md](./02-current-state-audit.md) §5 flagged as inconsistent: `CH20262701` is "Fall Semester 2026-27", so `/api/od/route.ts`'s labelling is right and `/api/calendar`'s suffix→months mapping is the suspect one. Suffix `26` marks the Industry variant, which is why the *first* entry is not the answer for a regular student.
+The list runs to 2019 and the option **text carries the term name**, which settles a question [02-current-state-audit.md](./02-current-state-audit.md) §5 flagged as inconsistent: `CH20262701` is "Fall Semester 2026-27", so `/api/od/route.ts`'s labelling is right and `/api/calendar`'s suffix→months mapping is the suspect one. Suffix `26` marks the Industry variant, which is why the _first_ entry is not the answer for a regular student.
 
 For the probed account the first option that returned a non-empty timetable was `CH20262701` (15 rows), which matches the current date. So "newest first" plus "first one with rows" is a reliable heuristic — but a heuristic, not a contract.
 
@@ -123,13 +123,13 @@ For the probed account the first option that returned a non-empty timetable was 
 
 Client-proposed, server-validated. Not a fallback — the primary and only path.
 
-| Step | Behaviour |
-|---|---|
-| 1 | Scrape the 41-option list from `StudentCoursePage`. If it is empty or unparseable, `502 semester_list_unavailable`. Never guess. |
-| 2 | Take the client's `settings.currSemesterId` and **validate it against the list**. Accept only on exact membership. |
-| 3 | If the client sent nothing, take the first option with a non-empty value. Record which rule fired. |
-| 4 | If validation fails, `422 semester_not_offered`. Do not fall back to anything else. |
-| 5 | **After fetching the timetable, assert every returned `Class Id` starts with the resolved `semesterId`** (verified: `CH2026270102069` for `CH20262701`). A mismatch means the semester was wrong — discard rather than store. |
+| Step | Behaviour                                                                                                                                                                                                                     |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | Scrape the 41-option list from `StudentCoursePage`. If it is empty or unparseable, `502 semester_list_unavailable`. Never guess.                                                                                              |
+| 2    | Take the client's `settings.currSemesterId` and **validate it against the list**. Accept only on exact membership.                                                                                                            |
+| 3    | If the client sent nothing, take the first option with a non-empty value. Record which rule fired.                                                                                                                            |
+| 4    | If validation fails, `422 semester_not_offered`. Do not fall back to anything else.                                                                                                                                           |
+| 5    | **After fetching the timetable, assert every returned `Class Id` starts with the resolved `semesterId`** (verified: `CH2026270102069` for `CH20262701`). A mismatch means the semester was wrong — discard rather than store. |
 
 The last step matters because the semester now comes from the client. Step 5 is the server's independent confirmation, and it is free: `processViewTimeTable` returns class ids that embed the term, so a wrong semester produces a detectable mismatch instead of a plausible-looking wrong record.
 
