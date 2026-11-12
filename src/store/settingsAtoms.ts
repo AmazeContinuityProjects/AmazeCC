@@ -126,7 +126,7 @@ export const defaultSettings: Settings = {
   syncExcRegistration: true,
   syncMinorHonour: true,
   syncCourseCompletion: true,
-  defaultSyncMode: "quick",
+  defaultSyncMode: "quarterly",
   pinnedNavTabs: ["academics", "attendance"],
   defaultAcademicsTab: "overview",
   autoSyncInterval: "manual",
@@ -177,7 +177,9 @@ const settingsStorage = {
     try {
       const raw = localStorage.getItem("settings");
       if (!raw) return initialValue;
-      return { ...initialValue, ...JSON.parse(raw) };
+      const merged = { ...initialValue, ...JSON.parse(raw) } as Settings;
+      merged.defaultSyncMode = normalizeDefaultSyncMode(merged.defaultSyncMode) as Settings["defaultSyncMode"];
+      return merged;
     } catch {
       return initialValue;
     }
@@ -216,8 +218,34 @@ export const settingsAtom = atomWithStorage<Settings>("settings", defaultSetting
  * `localStorage.getItem("settings")` + `JSON.parse` — a dozen components used
  * to carry their own copy of that block and they drift.
  */
+/**
+ * Normalize a persisted `defaultSyncMode` to a mode this build knows. Old
+ * installs carry quick/balanced/full/academics/campus, which no longer exist —
+ * everything maps onto the tiered system.
+ */
+export function normalizeDefaultSyncMode(id: unknown): string {
+  const raw = String(id ?? "");
+  switch (raw) {
+    case "quick":
+      return "daily";
+    case "balanced": // was: attendance + core-ish bundle in the background
+      return "monthly";
+    case "academics": // attendance-leaning preset
+      return "weekly";
+    case "full":
+    case "campus":
+      return "quarterly";
+    default:
+      return raw || "quarterly";
+  }
+}
+
 export function readSettings(): Partial<Settings> {
-  return (storage.settings.get() || {}) as Partial<Settings>;
+  const parsed = (storage.settings.get() || {}) as Partial<Settings>;
+  if (typeof parsed.defaultSyncMode === "string") {
+    parsed.defaultSyncMode = normalizeDefaultSyncMode(parsed.defaultSyncMode) as Settings["defaultSyncMode"];
+  }
+  return parsed;
 }
 
 /**

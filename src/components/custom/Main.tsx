@@ -148,8 +148,8 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
   const [customModes, setCustomModes] = useState<SyncMode[]>(() => loadCustomModes());
   const [modeEditorOpen, setModeEditorOpen] = useState(false);
   const allModes = useMemo(() => listModes(customModes), [customModes]);
-  const activeModeId = settings.defaultSyncMode ?? "quick";
-  const activeMode = resolveMode(activeModeId, customModes) ?? BUILT_IN_MODES[1];
+  const activeModeId = settings.defaultSyncMode ?? "quarterly";
+  const activeMode = resolveMode(activeModeId, customModes) ?? BUILT_IN_MODES.find((m) => m.id === "quarterly")!;
 
   // Overlays dismiss via system back before screen navigation does
   useOverlayBack("command-palette", commandPaletteOpen, () => setCommandPaletteOpen(false));

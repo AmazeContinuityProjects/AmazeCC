@@ -299,7 +299,7 @@ export default function SyncNotification({
         username: cleanUsername,
         authorizedID: creds?.authorizedID,
         extraProperties: {
-          sync_mode: isNewStudent ? "full" : "quick",
+          sync_mode: isNewStudent ? "quarterly" : "daily",
           login_source: "sync_bottom_sheet",
         },
       });

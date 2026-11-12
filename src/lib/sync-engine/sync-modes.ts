@@ -18,6 +18,12 @@ export interface SyncModeStep {
   args?: Record<string, unknown>;
   /** Background steps run concurrently after the foreground chain settles. */
   background?: boolean;
+  /**
+   * Staleness window in days. The runner skips this step when the op's last
+   * success is younger than the window, unless the run was forced. Built-in
+   * tiers use it to encode their cadence; custom steps may set it too.
+   */
+  every?: number;
 }
 
 export interface SyncMode {
@@ -36,93 +42,188 @@ const step = (op: string, extra?: Partial<SyncModeStep>): SyncModeStep => ({
   ...extra,
 });
 
-/** The three primary presets, plus two focused sweeps. All reference real ops. */
+/**
+ * Tiered sync presets.
+ *
+ * Everyday data is split into four cumulative tiers by how often VTOP actually
+ * changes: `daily` for what moves class-period to class-period, `quarterly`
+ * for identity/profile data that is effectively static. Each deeper tier
+ * includes every shallower one — the `steps` lists below are built on top of
+ * each other deliberately.
+ *
+ * Every `every` on a step is a staleness window in days: the runner skips the
+ * step when it last succeeded within the window (unless `args.force`). An
+ * explicit pick of a tier therefore only pays for what is actually stale.
+ */
+export interface CadenceTierMeta {
+  id: "daily" | "weekly" | "monthly" | "quarterly";
+  label: string;
+  cadence: string;
+  description: string;
+}
+
+const DAILY_STEPS: SyncModeStep[] = [
+  step("attendanceMarks"),
+  step("marksStats", { background: true }),
+  step("hostel", { background: true }),
+];
+
+const WEEKLY_STEPS: SyncModeStep[] = [
+  ...DAILY_STEPS,
+  step("ffcs", { background: true, every: 7 }),
+  step("coursePage", { background: true, every: 7 }),
+];
+
+const MONTHLY_STEPS: SyncModeStep[] = [
+  step("attendanceMarks"),
+  step("marksStats", { background: true }),
+  step("hostel", { background: true }),
+  step("ffcs", { background: true, every: 7 }),
+  step("coursePage", { background: true, every: 7 }),
+  step("grades", { every: 30 }),
+  step("all-grades", { every: 30 }),
+  step("calendar", { every: 30 }),
+  step("bulk", { background: true, every: 30 }),
+  step("transport", { background: true, every: 30 }),
+  step("events", { background: true, every: 30 }),
+  step("buses", { background: true, every: 30 }),
+  step("lms", { background: true, every: 30 }),
+  step("circulars", { background: true, every: 30 }),
+  step("officialOd", { background: true, every: 30 }),
+  step("curriculum", { background: true, every: 30 }),
+  step("fresher", { background: true, every: 30 }),
+  step("pastAttendance", { background: true, every: 30 }),
+  step("social", { background: true, every: 30 }),
+];
+
+const QUARTERLY_STEPS: SyncModeStep[] = [
+  step("attendanceMarks"),
+  step("marksStats", { background: true }),
+  step("hostel", { background: true }),
+  step("ffcs", { background: true, every: 7 }),
+  step("coursePage", { background: true, every: 7 }),
+  step("grades", { every: 30 }),
+  step("all-grades", { every: 30 }),
+  step("calendar", { every: 30 }),
+  step("bulk", { background: true, every: 30 }),
+  step("transport", { background: true, every: 30 }),
+  step("events", { background: true, every: 30 }),
+  step("buses", { background: true, every: 30 }),
+  step("lms", { background: true, every: 30 }),
+  step("circulars", { background: true, every: 30 }),
+  step("officialOd", { background: true, every: 30 }),
+  step("curriculum", { background: true, every: 30 }),
+  step("fresher", { background: true, every: 30 }),
+  step("pastAttendance", { background: true, every: 30 }),
+  step("social", { background: true, every: 30 }),
+  step("whoami", { every: 90 }),
+];
+
+/** The four built-in tiers, shallow to deep. */
+export const BUILT_IN_TIERS: readonly CadenceTierMeta[] = [
+  {
+    id: "daily",
+    label: "Daily Sync",
+    cadence: "Every day",
+    description: "Attendance and marks — the per-class check, hostellers' hostel folded in.",
+  },
+  {
+    id: "weekly",
+    label: "Weekly Sync",
+    cadence: "Once a week",
+    description: "Daily + FFCS (exam schedule, feedback, wishlist, QCM) and course-page details.",
+  },
+  {
+    id: "monthly",
+    label: "Monthly Sync",
+    cadence: "Once a month",
+    description: "Weekly + curriculum, calendar, finance, transport, grades and the rest.",
+  },
+  {
+    id: "quarterly",
+    label: "Quarterly Sync",
+    cadence: "Every 3 months",
+    description: "Monthly + identity & profile (whoami). Everything the app can pull.",
+  },
+];
+
 export const BUILT_IN_MODES: SyncMode[] = [
   {
-    id: "quick",
-    label: "Quick Sync",
-    description: "Attendance & marks only — the daily check.",
+    id: "daily",
+    label: "Daily Sync",
+    description: "Attendance and marks — the per-class check, hostellers' hostel folded in.",
     builtIn: true,
-    steps: [step("attendanceMarks"), step("marksStats", { background: true })],
+    steps: DAILY_STEPS,
   },
   {
-    id: "balanced",
-    label: "Balanced Sync",
-    description: "Core bundle up front, everything else in the background.",
+    id: "weekly",
+    label: "Weekly Sync",
+    description: "Daily + FFCS (exam schedule, feedback, wishlist, QCM) and course-page details.",
     builtIn: true,
-    steps: [
-      step("attendanceMarks"),
-      step("marksStats"),
-      step("core"),
-      step("studentProfile"),
-      step("pastAttendance", { background: true }),
-      step("fresher", { background: true }),
-      step("buses", { background: true }),
-      step("transport", { background: true }),
-      step("events", { background: true }),
-      step("curriculum", { background: true }),
-      step("qcm", { background: true }),
-      step("bulk", { background: true }),
-      step("lms", { background: true }),
-      step("officialOd", { background: true }),
-    ],
+    steps: WEEKLY_STEPS,
   },
   {
-    id: "full",
-    label: "Full Sync",
-    description: "Every module, awaited — first login, semester change, fix-my-data.",
+    id: "monthly",
+    label: "Monthly Sync",
+    description: "Weekly + curriculum, calendar, finance, transport, grades and the rest.",
     builtIn: true,
-    steps: [
-      step("attendanceMarks"),
-      step("marksStats"),
-      step("core"),
-      step("studentProfile"),
-      step("pastAttendance", { background: true }),
-      step("fresher", { background: true }),
-      step("buses", { background: true }),
-      step("transport", { background: true }),
-      step("events", { background: true }),
-      step("curriculum", { background: true }),
-      step("qcm", { background: true }),
-      step("bulk", { background: true }),
-      step("lms", { background: true }),
-      step("officialOd", { background: true }),
-      step("social", { background: true }),
-    ],
+    steps: MONTHLY_STEPS,
   },
   {
-    id: "academics",
-    label: "Academics Only",
-    description: "Attendance, marks, grades, schedule, curriculum, calendar and history.",
+    id: "quarterly",
+    label: "Quarterly Sync",
+    description: "Monthly + identity & profile (whoami). Everything the app can pull.",
     builtIn: true,
-    steps: [
-      step("attendanceMarks"),
-      step("marksStats"),
-      step("grades"),
-      step("schedule"),
-      step("calendar"),
-      step("all-grades"),
-      step("curriculum", { background: true }),
-      step("qcm", { background: true }),
-    ],
-  },
-  {
-    id: "campus",
-    label: "Campus Life",
-    description: "Events, buses, transport, hostel and social.",
-    builtIn: true,
-    steps: [
-      step("events"),
-      step("buses"),
-      step("transport"),
-      step("hostel"),
-      step("social", { background: true }),
-      step("officialOd", { background: true }),
-    ],
+    steps: QUARTERLY_STEPS,
   },
 ];
 
 export const BUILT_IN_MODE_IDS = new Set(BUILT_IN_MODES.map((m) => m.id));
+
+// ── Cadence overrides ────────────────────────────────────────────────────
+/**
+ * Per-op enable/disable for the built-in tiers, persisted by the cadence
+ * guide. A `false` here means "never run this op from a tiered preset" —
+ * the user explicitly turned it off. Shallow ops are always run.
+ */
+export const CADENCE_OVERRIDES_KEY = "sync_cadence_overrides_v1";
+
+export function loadCadenceOverrides(): Record<string, boolean> {
+  try {
+    const raw = localStorage.getItem(CADENCE_OVERRIDES_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? Object.fromEntries(Object.entries(parsed).map(([k, v]) => [k, v !== false]))
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+export function setCadenceOverride(op: string, enabled: boolean): void {
+  try {
+    const overrides = loadCadenceOverrides();
+    const next = { ...overrides, [op]: enabled };
+    localStorage.setItem(CADENCE_OVERRIDES_KEY, JSON.stringify(next));
+  } catch {
+    /* persistence is best-effort */
+  }
+}
+
+export function resetCadenceOverrides(): void {
+  try {
+    localStorage.removeItem(CADENCE_OVERRIDES_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** A built-in tier with the user's disabled ops removed. */
+function applyCadenceOverrides(mode: SyncMode): SyncMode {
+  const overrides = loadCadenceOverrides();
+  const enabled = (op: string) => overrides[op] !== false;
+  return { ...mode, steps: mode.steps.filter((s) => enabled(s.op)) };
+}
 
 /**
  * Every cache endpoint the `bulk` op can fetch, with the words the advanced
@@ -137,7 +238,6 @@ export interface BulkEndpointMeta {
 
 export const BULK_ENDPOINT_META: BulkEndpointMeta[] = [
   { endpoint: "exc-registration", label: "EXC registration", description: "Extra-curricular registrations" },
-  { endpoint: "minor-honour", label: "Minor & honour", description: "Minor and honour registrations" },
   { endpoint: "course-completion", label: "Course completion", description: "Completed coursework records" },
   { endpoint: "registration-schedule", label: "Registration schedule", description: "Course registration windows" },
   { endpoint: "library-due", label: "Library dues", description: "Borrowed books and fines" },
@@ -249,29 +349,31 @@ export function validateMode(
 
 /** Built-in or custom mode by id. Customs override nothing — ids must differ. */
 export function resolveMode(id: string, customModes: SyncMode[] = []): SyncMode | undefined {
-  return customModes.find((m) => m.id === id) ?? BUILT_IN_MODES.find((m) => m.id === id);
+  const found = customModes.find((m) => m.id === id) ?? BUILT_IN_MODES.find((m) => m.id === id);
+  if (!found) return undefined;
+  return found.builtIn ? applyCadenceOverrides(found) : found;
 }
 
 /**
- * Which mode a reload runs when the user may have switched semester.
+ * Which mode an open/reload runs when the user may have switched semester.
  *
  * A semester change invalidates every cached module — attendance, marks and
- * grades are all keyed to the term just left — so a switch forces the `full`
- * sweep, whatever the caller asked for and whatever the saved default says.
- * Everything else keeps the explicit mode, then the user's default, then
- * `quick`.
+ * grades are all keyed to the term just left — so a switch forces the deepest
+ * tier, whatever the caller asked for. Everything else keeps the explicit
+ * mode, then the user's default, then the auto sweep (everything that is
+ * due, cadence-pruned).
  */
 export function resolveReloadModeId(opts: {
   switchedSemester: boolean;
   modeId?: string;
   defaultSyncMode?: string;
 }): string {
-  if (opts.switchedSemester) return "full";
-  return opts.modeId ?? opts.defaultSyncMode ?? "quick";
+  if (opts.switchedSemester) return "quarterly";
+  return opts.modeId ?? opts.defaultSyncMode ?? "quarterly";
 }
 
 export function listModes(customModes: SyncMode[] = []): SyncMode[] {
-  return [...BUILT_IN_MODES, ...customModes];
+  return [...BUILT_IN_MODES.map(applyCadenceOverrides), ...customModes];
 }
 
 export function foregroundSteps(mode: SyncMode): SyncModeStep[] {

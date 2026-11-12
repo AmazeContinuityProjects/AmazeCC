@@ -76,16 +76,11 @@ import { createTask } from "@/lib/tasksStorage";
 import TaskEditSheet from "../tasks/TaskEditSheet";
 import BottomSheet from "../shared/BottomSheet";
 import {
-  getFacultyOptions,
-  getResolvedSlot,
-  getSlotOptions,
-  invalidateClass,
-  setFacultyOptions,
-  setResolvedSlot,
-  setSlotOptions,
-  type VtopDropdownOption,
-  type VtopResolved,
-} from "@/lib/vtopCoursePage";
+  fetchViewDetailForComp,
+  readCoursePageViewCache,
+  writeCoursePageViewCache,
+  type CoursePageViewCache,
+} from "@/lib/vtopCourseDetail";
 import { AnimatePresence, m } from "framer-motion";
 import { useOverlayBack } from "@/lib/overlayStack";
 import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
@@ -907,168 +902,57 @@ export default function CourseDetailSubpage({
     }
   }, [creds, loginToVTOP]);
 
-  // VTOP's dropdowns carry numeric slotIds ("7") and erpIds ("ETHNUS"), not the
-  // display strings the attendance sync stores ("B1+TB1", "ETHNUS - ETHNUS
-  // (APT) - ACAD"). The portal itself resolves through the dropdowns — anything
-  // else 404s on the detail calls. Option lists are persisted per semester,
-  // so a warm browser performs zero dropdown round trips; only something
-  // missing — or an explicit error invalidation — reaches the network.
-  const dropdownCacheRef = useRef<Map<string, VtopResolved>>(new Map());
+  // The VTOP course-page dropdown resolution + viewDetail retry lives in
+  // `@/lib/vtopCourseDetail` so the sync engine (coursePage op) and this page
+  // share one implementation and one persistent per-semester cache.
 
-  const normToken = (s: string) =>
-    String(s ?? "")
-      .toUpperCase()
-      .replace(/[^A-Z0-9]/g, "");
-
-  const parseSelectOptions = (d: any, name: string): VtopDropdownOption[] => {
-    const opts = d?.results?.selectOptions?.[name] ?? d?.selectOptions?.[name] ?? [];
-    return Array.isArray(opts) ? opts.filter((o: any) => o && String(o.value ?? "").trim() !== "") : [];
-  };
-
-  const matchOption = (opts: VtopDropdownOption[], wanted: string) => {
-    const w = normToken(wanted);
-    if (!w) return opts[0] ?? null;
-    return (
-      opts.find((o) => normToken(o.text) === w) ||
-      opts.find((o) => {
-        const t = normToken(o.text);
-        return t && (t.startsWith(w) || w.startsWith(t) || t.includes(w) || w.includes(t));
-      }) ||
-      opts.find((o) => o.selected) ||
-      opts[0] ||
-      null
-    );
-  };
-
-  const resolveVtopDropdowns = useCallback(
-    async (comp: any, c: Creds, opts?: { fresh?: boolean }): Promise<VtopResolved> => {
-      const semSubId = getVtopSemesterSubId();
-      const classId = String(comp.classNbr ?? "");
-      const slotLabel = String(comp.slot ?? "");
-      const cacheKey = `${classId}::${slotLabel}`;
-      if (!opts?.fresh) {
-        const cached = dropdownCacheRef.current.get(cacheKey);
-        if (cached) return cached;
-        const stored = getResolvedSlot(semSubId, classId, slotLabel);
-        if (stored) {
-          dropdownCacheRef.current.set(cacheKey, stored);
-          return stored;
-        }
-      }
-
-      // 1. Slot options for the course — usually already saved for this semester.
-      let slotOptions = opts?.fresh ? null : getSlotOptions(semSubId, classId);
-      if (!slotOptions) {
-        try {
-          const d = (await api("course-page", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: {
-              cookies: c.cookies,
-              authorizedID: c.authorizedID,
-              csrf: c.csrf,
-              formData: { semesterSubId: semSubId, courseCode: classId },
-            },
-          })) as any;
-          slotOptions = parseSelectOptions(d, "slotId");
-          if (slotOptions.length > 0) setSlotOptions(semSubId, classId, slotOptions);
-        } catch (e) {
-          console.error("slotId resolution failed (continuing with raw slot):", e);
-          slotOptions = [];
-        }
-      }
-      const slotMatch = matchOption(slotOptions, comp.slot);
-      const slotId = slotMatch?.value ? String(slotMatch.value) : String(comp.slot ?? "");
-
-      // 2. Faculty options for that slot — also cached per semester.
-      let facultyOptions = opts?.fresh ? null : getFacultyOptions(semSubId, classId, slotId);
-      if (!facultyOptions) {
-        try {
-          const d = (await api("course-page", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: {
-              cookies: c.cookies,
-              authorizedID: c.authorizedID,
-              csrf: c.csrf,
-              formData: { semesterSubId: semSubId, courseCode: classId, slotId },
-            },
-          })) as any;
-          facultyOptions = parseSelectOptions(d, "faculty");
-          if (facultyOptions.length > 0) setFacultyOptions(semSubId, classId, slotId, facultyOptions);
-        } catch (e) {
-          console.error("faculty resolution failed (continuing with raw faculty):", e);
-          facultyOptions = [];
-        }
-      }
-      const facultyMatch = matchOption(facultyOptions, comp.faculty);
-      const faculty = facultyMatch?.value ? String(facultyMatch.value) : String(comp.faculty ?? "");
-      const erpId = facultyMatch?.value
-        ? String(facultyMatch.value)
-        : String(comp.faculty?.split("-")[0]?.trim() ?? comp.faculty ?? "");
-
-      const resolved: VtopResolved = { slotId, faculty, erpId };
-      dropdownCacheRef.current.set(cacheKey, resolved);
-      setResolvedSlot(semSubId, classId, slotLabel, resolved);
-      return resolved;
-    },
-    [getVtopSemesterSubId],
-  );
-
-  const fetchViewDetail = async () => {
+  const fetchViewDetail = async (opts?: { force?: boolean }) => {
     if (!selectedGroup) return;
     const c = await ensureCreds();
     if (!c) return;
     setViewLoading(true);
     setError(null);
     try {
+      const semSubId = getVtopSemesterSubId();
       const components: Array<{ comp: any; scope: "theory" | "lab" }> = [];
       if (selectedGroup.theory) components.push({ comp: selectedGroup.theory, scope: "theory" });
       if (selectedGroup.lab) components.push({ comp: selectedGroup.lab, scope: "lab" });
-      const detailData: any[] = [];
-      for (const { comp, scope } of components) {
-        const semSubId = getVtopSemesterSubId();
-        const classId = String(comp.classNbr ?? "");
-        const postFor = async (resolved: { slotId: string; faculty: string; erpId: string }) => {
-          const d = (await api("course-page", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: {
-              cookies: c.cookies,
-              authorizedID: c.authorizedID,
-              csrf: c.csrf,
-              formData: {
-                viewDetail: "true",
-                semSubId,
-                erpId: resolved.erpId,
-                classId,
-                slotId: resolved.slotId,
-                faculty: resolved.faculty,
-              },
-            },
-          })) as any;
-          return d;
-        };
 
-        let d: any = null;
-        try {
-          d = await postFor(await resolveVtopDropdowns(comp, c));
-        } catch (e) {
-          console.error("viewDetail call failed:", e);
-        }
-        // The server said no — the cached dropdown is likely stale, or never
-        // existed. Recompute from the live dropdown and retry once.
-        if (!d || d.success === false || d.error) {
-          invalidateClass(semSubId, classId);
-          try {
-            d = await postFor(await resolveVtopDropdowns(comp, c, { fresh: true }));
-          } catch (e) {
-            console.error("viewDetail retry failed:", e);
-            d = null;
+      if (!opts?.force) {
+        const cache = readCoursePageViewCache(semSubId);
+        if (cache) {
+          const detailData = components.flatMap(({ comp, scope }) => {
+            const data = (cache as CoursePageViewCache).courses[String(comp.classNbr ?? "")];
+            return data ? [{ scope, type: comp.courseType, data }] : [];
+          });
+          if (detailData.length === components.length && detailData.length > 0) {
+            setViewDetail(detailData);
+            setViewLoading(false);
+            return;
           }
         }
-        if (d?.success !== false && d?.results) detailData.push({ scope, type: comp.courseType, data: d.results });
       }
+
+      const call = (formData: Record<string, unknown>) =>
+        api("course-page", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: { cookies: c.cookies, authorizedID: c.authorizedID, csrf: c.csrf, formData },
+        });
+
+      const detailData: any[] = [];
+      // Start from whatever is already cached so one fresh class doesn't force
+      // re-fetching the others on the next mount.
+      const cacheNow = readCoursePageViewCache(semSubId);
+      const merged: Record<string, unknown> = { ...(cacheNow?.courses ?? {}) };
+      for (const { comp, scope } of components) {
+        const data = await fetchViewDetailForComp(call, semSubId, comp, { fresh: Boolean(opts?.force) });
+        if (data) {
+          detailData.push({ scope, type: comp.courseType, data });
+          merged[String(comp.classNbr ?? "")] = data;
+        }
+      }
+      if (Object.keys(merged).length > 0) writeCoursePageViewCache(semSubId, merged);
       setViewDetail(detailData.length > 0 ? detailData : null);
     } catch (err: any) {
       setError(err.message);
@@ -2744,6 +2628,18 @@ export default function CourseDetailSubpage({
               icon={Paperclip}
               title="VTOP Course Page · Course Plan & Materials"
               count={totalUploaded > 0 ? totalUploaded : undefined}
+              right={
+                <button
+                  type="button"
+                  onClick={() => fetchViewDetail({ force: true })}
+                  disabled={viewLoading}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider text-text-secondary dark:text-text-muted border border-border-muted dark:border-border bg-surface-secondary dark:bg-zinc-800 hover:bg-border-muted dark:hover:bg-zinc-700 transition-colors disabled:opacity-50 cursor-pointer"
+                  title="Re-fetch this course's VTOP page (slow; 4-6 requests)"
+                >
+                  <RefreshCw className={`w-3 h-3 ${viewLoading ? "animate-spin" : ""}`} />
+                  <span>Reload</span>
+                </button>
+              }
             />
 
             {viewLoading ? (

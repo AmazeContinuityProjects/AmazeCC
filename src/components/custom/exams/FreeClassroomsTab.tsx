@@ -38,9 +38,7 @@ import {
   type FreeRooms,
   type PeriodOption,
 } from "@/lib/freeClassrooms";
-import { fetchLiveDay, type LiveDay } from "@/lib/roomAvailability";
 import { mergeDay, type MergedDay, type MergedOccupant } from "@/lib/roomMerge";
-import { getCurrentSemesterId } from "@/lib/officialOd";
 import BottomSheet from "../shared/BottomSheet";
 import ClassDetailsModal from "./ClassDetailsModal";
 import {
@@ -351,16 +349,6 @@ export default function FreeClassroomsTab({
     dayLabel: string;
   } | null>(null);
 
-  /**
-   * The server's answer, per day.
-   *
-   * It is merged with the report rather than replacing it — see
-   * `lib/roomMerge.ts` — so a day with no server data still answers, and a
-   * day with server data does not make the report's rooms disappear.
-   */
-  const [liveDays, setLiveDays] = useState<Partial<Record<DayId, LiveDay>>>({});
-  const [livePending, setLivePending] = useState(false);
-
   // Ticks so "Free right now" cannot sit there claiming to be live hours after
   // the fact. A minute is the finest granularity that means anything here.
   const [tick, setTick] = useState(() => new Date());
@@ -454,63 +442,7 @@ export default function FreeClassroomsTab({
   const periods = shown.periods;
   const index = shown.index;
 
-  /* ── the server's half ─────────────────────────────────────────────────── */
-
-  /**
-   * The slots running in each period of a day, as the server is told about it.
-   *
-   * The client owns the period schema, so it is the one that says which VTOP
-   * slot each period is — including the law school's second spelling of the
-   * morning slots, which is what stops every law room reading as free.
-   */
-  const livePlan = useMemo(() => {
-    const plan = week.get(day);
-    if (!plan) return [];
-    return plan.periods.map((p) => ({
-      key: p.key,
-      slots: [...(plan.slots.get(p.key) ?? [])],
-    }));
-  }, [week, day]);
-
-  /**
-   * Ask the server about the day on screen.
-   *
-   * One request per day, because the answer covers every period of that day —
-   * so moving between periods is a lookup rather than another round trip.
-   *
-   * A failure is not an error state: the report is still loaded, and the
-   * answer is the report's. The page says which answer it is showing.
-   */
-  useEffect(() => {
-    const semesterId = getCurrentSemesterId();
-    if (!semesterId || livePlan.length === 0) return;
-
-    let cancelled = false;
-    setLivePending(true);
-
-    fetchLiveDay({
-      semesterId,
-      day,
-      periods: livePlan,
-      runLength: RUN_LENGTH,
-    })
-      .then((live) => {
-        if (cancelled) return;
-        setLiveDays((prev) => {
-          const next = { ...prev };
-          if (live) next[day] = live;
-          else delete next[day];
-          return next;
-        });
-      })
-      .finally(() => {
-        if (!cancelled) setLivePending(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [day, livePlan]);
+  /* ── merged answer (report only — the live endpoint is gone) ────────────── */
 
   const now = useMemo(() => resolveNow(periods, tick), [periods, tick]);
 
@@ -580,13 +512,13 @@ export default function FreeClassroomsTab({
         mergeDay({
           index: plan.index,
           periodKeys: plan.periods.map((p) => p.key),
-          live: liveDays[d] ?? null,
+          live: null,
           runLength: RUN_LENGTH,
         }),
       );
     }
     return map;
-  }, [week, liveDays]);
+  }, [week]);
 
   const merged = mergedWeek.get(day) ?? mergedWeek.get("mon")!;
 
@@ -1074,12 +1006,9 @@ export default function FreeClassroomsTab({
           {/* ── FOOTNOTE / ATTRIBUTION ── */}
           <div className="flex items-center justify-between text-[11px] text-zinc-400 dark:text-zinc-500 pt-1 px-1">
             <span className="inline-flex items-center gap-1.5">
-              <span className={cn("w-1.5 h-1.5 rounded-full", liveDays[day] ? "bg-emerald-500" : "bg-zinc-400")} />
-              {liveDays[day]
-                ? "Rooms merged from live synced timetable and official FFCS course catalog"
-                : "Rooms based on official campus FFCS course catalog"}
+              <span className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
+              Rooms based on official campus FFCS course catalog
             </span>
-            {livePending && <span className="animate-pulse text-indigo-500 font-medium">Checking live updates…</span>}
           </div>
         </div>
       )}

@@ -1,34 +1,13 @@
 /**
- * The server's answer about which rooms are free.
+ * Room availability types shared by the free-classrooms page and the room
+ * merge.
  *
- * ## Why the finding moved to the server
- *
- * The free-classroom page used to answer "which rooms are free?" by scanning
- * every row of a hand-maintained FFCS spreadsheet on every day and period
- * change. That file records what was booked during registration, so a
- * rescheduled lab, a room changed by the admin or a cancelled section never
- * reached it — and it was stale between registration cycles.
- *
- * The server holds the class details every student contributes during their
- * sync, so it can answer from what the campus actually looks like this term.
- * The union of a few thousand students' timetables is the campus timetable.
- *
- * ## What the client still owns
- *
- * The periods. The campus schema — which periods run on which day, and which
- * VTOP slot each one is — lives here, and the server asks for it rather than
- * keeping a second copy that could drift. So the client sends the slots
- * running in each period it is showing, and the server sends back the answer.
- *
- * ## The fallback
- *
- * The server has nothing for a term until students have synced, and it can be
- * unreachable. So this module never throws and never blocks the page: a
- * failure is a null, and the page falls back to the spreadsheet it has always
- * used. The page says which answer it is showing.
+ * `/api/rooms/free` no longer exists on the server, so the live fetch is gone
+ * entirely and the page always falls back to the FFCS report it has always
+ * had. The types stay because the merge code paths and their tests are
+ * written against them.
  */
 
-import { api } from "@/lib/sync-engine";
 import type { BlockAvailability, DayId, FreeRooms } from "@/lib/freeClassrooms";
 
 export type LiveRoom = {
@@ -73,74 +52,13 @@ export type LiveDay = {
   runs: LiveRun[];
 };
 
-type LivePayload = {
-  success?: boolean;
-  noData?: boolean;
-  semesterId?: string;
-  day?: string;
-  rooms?: LiveRoom[];
-  periods?: LivePeriod[];
-  runs?: LiveRun[];
-};
-
-/** `"mon"` → `"MON"`, the spelling the slot vocabulary uses. */
+/** `"mon"` → `"MON"`, kept for the shared type signatures (unused now). */
 export function dayToServerDay(day: DayId): string {
   return String(day).toUpperCase();
 }
 
-/**
- * Ask the server about one day.
- *
- * One request answers everything the page needs for that day: the free rooms
- * in every period, the classroom and laboratory split, the per-block counts,
- * the occupants of every taken room, and the runs starting at every period.
- * Changing the selected period is therefore a lookup rather than a request.
- *
- * Returns null for "no answer" — the server has nothing for this term, the
- * request failed, or the payload was not what it should be. The caller falls
- * back to its own timetable.
- */
-export async function fetchLiveDay(input: {
-  semesterId: string;
-  day: DayId;
-  periods: { key: string; slots: string[] }[];
-  runLength: number;
-}): Promise<LiveDay | null> {
-  if (!input.semesterId || input.periods.length === 0) return null;
-
-  try {
-    const res = (await api("rooms/free", {
-      method: "POST",
-      body: {
-        semesterId: input.semesterId,
-        day: dayToServerDay(input.day),
-        periods: input.periods,
-        runLength: input.runLength,
-      },
-    })) as LivePayload | null;
-
-    if (!res || res.success === false) return null;
-    if (res.noData) return null;
-    if (!Array.isArray(res.periods) || res.periods.length === 0) return null;
-
-    return {
-      semesterId: res.semesterId ?? input.semesterId,
-      day: res.day ?? dayToServerDay(input.day),
-      rooms: Array.isArray(res.rooms) ? res.rooms : [],
-      periods: res.periods,
-      runs: Array.isArray(res.runs) ? res.runs : [],
-    };
-  } catch {
-    // A network failure is a missing answer, not a broken page.
-    return null;
-  }
-}
-
 /** The server's answer for one period, or null when it does not know it. */
-export function livePeriodFor(
-  live: LiveDay | null,
-  periodKey: string
-): LivePeriod | null {
+export function livePeriodFor(live: LiveDay | null, periodKey: string): LivePeriod | null {
   if (!live) return null;
   return live.periods.find((p) => p.key === periodKey) ?? null;
 }
@@ -168,10 +86,7 @@ export function toFreeRooms(period: LivePeriod): FreeRooms {
  * the inventory, because a run is a set of rooms and the split is a property
  * of the room rather than of the run.
  */
-export function toRunRooms(
-  run: LiveRun,
-  kinds: Map<string, "theory" | "lab">
-): FreeRooms {
+export function toRunRooms(run: LiveRun, kinds: Map<string, "theory" | "lab">): FreeRooms {
   const rooms = run.rooms ?? [];
   const runLength = new Map<string, number>();
   for (const code of Object.keys(run.runLength ?? {})) {
@@ -195,11 +110,7 @@ export function liveRoomKinds(live: LiveDay | null): Map<string, "theory" | "lab
 }
 
 /** What is sitting in a room in a period, or null when it is free. */
-export function occupantFor(
-  live: LiveDay | null,
-  roomCode: string,
-  periodKey: string
-): LiveOccupant | null {
+export function occupantFor(live: LiveDay | null, roomCode: string, periodKey: string): LiveOccupant | null {
   const period = livePeriodFor(live, periodKey);
   if (!period) return null;
   return period.occupied?.find((o) => o.code === roomCode) ?? null;

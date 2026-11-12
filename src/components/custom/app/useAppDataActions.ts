@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import config from "../../../../config.json";
-import { syncEngine, api, clearEventHubSession, eventHubRequest, cancelAllRequests } from "@/lib/sync-engine";
+import { syncEngine, cancelAllRequests } from "@/lib/sync-engine";
 import { storage } from "@/lib/storage";
 import { syncMarksDiff } from "@/lib/marksSync";
 import { syncPastSemesters } from "@/lib/pastDataSync";
@@ -11,13 +11,7 @@ import { reportError } from "@/lib/error-utils";
 import { DEMO_OFFICIAL_OD } from "@/lib/officialOd";
 import { pingVtopDirectly } from "@/lib/vtopHealth";
 import { BUILT_IN_MODES, resolveMode, resolveReloadModeId, type SyncMode } from "@/lib/sync-engine/sync-modes";
-import {
-  openSyncSession,
-  appendSyncLine,
-  setSyncProgress,
-  closeSyncSession,
-  bumpSyncProgress,
-} from "@/lib/sync-engine/sync-session";
+import { openSyncSession, appendSyncLine, setSyncProgress, closeSyncSession } from "@/lib/sync-engine/sync-session";
 import type { Ids } from "@/lib/sync-engine/types";
 import { broadcastGlobalSemesterChange, mapToFinalSemesterId } from "@/lib/ffcsReports";
 import { broadcastFriendFinderRefresh } from "@/lib/ffcsClassmates";
@@ -330,7 +324,7 @@ export function useAppDataActions({
             defaultSyncMode: settings.defaultSyncMode,
           }),
           customModes,
-        ) ?? BUILT_IN_MODES[1];
+        ) ?? BUILT_IN_MODES.find((m) => m.id === "quarterly")!;
 
       if (demoMode) {
         const demoData = await (await fetch("/data/demoData.json")).json();
@@ -405,7 +399,7 @@ export function useAppDataActions({
           return;
         }
 
-        const { cookies, authorizedID, csrf } = await syncEngine.login(IDs, demoMode);
+        await syncEngine.login(IDs, demoMode);
 
         // The FFCS pickers match catalogue codes against the student's
         // curriculum, so fetch it at least once even when the chosen mode
@@ -443,8 +437,8 @@ export function useAppDataActions({
           localStorage.setItem("marks", JSON.stringify(marksRes));
         };
 
-        // Quick Sync: attendance + marks only, nothing else.
-        if (mode.id === "quick") {
+        // Daily Sync: attendance + marks only, nothing else.
+        if (mode.id === "daily") {
           try {
             const { attRes, marksRes } = await syncEngine.sync<any>("attendanceMarks", {
               semesterId: activeSem,
@@ -469,10 +463,11 @@ export function useAppDataActions({
           return;
         }
 
-        // Focused built-ins (academics, campus) and all custom modes run
-        // generically: the engine writes atoms + caches per op, and only the
-        // attendance-derived UI state needs applying here.
-        if (mode.id !== "balanced" && mode.id !== "full") {
+        // Weekly / Monthly / Quarterly and every custom mode run through the
+        // engine; the cadence gate in its runner decides which ops are due.
+        // Attendance-derived UI state gets applied here; everything else is
+        // written by the ops themselves (atoms + caches).
+        {
           try {
             // setAttendanceAndOD diffs against the stored copy, so snapshot it
             // before the engine overwrites it below.
@@ -512,279 +507,6 @@ export function useAppDataActions({
             closeSyncSession(4000, "error");
           }
           return;
-        }
-
-        // Unified through the engine op so start/done/error emit into the
-        // session log (same shape as the raw call, plus retry semantics).
-        const attendanceTask = syncEngine
-          .sync<any>("attendanceMarks", { semesterId: activeSem })
-          .then(({ attRes, marksRes }: any) => {
-            setAttendanceAndOD(attRes);
-            setMarksData(marksRes as object);
-            // Read before write — same reason as the login path.
-            const oldMarks = JSON.parse(localStorage.getItem("marks") || "{}");
-            syncMarksDiff(oldMarks, marksRes).then((r) => {
-              if (r.mismatches.length > 0) {
-                appendSyncLine(
-                  `${r.mismatches.length} cohort receipt(s) changed unexpectedly — server state moved`,
-                  "error",
-                );
-              }
-              if (r.frozen.length > 0) {
-                appendSyncLine(`${r.frozen.length} contribution(s) pinned to an older sync (no local history)`, "info");
-              }
-            });
-            localStorage.setItem("attendance", JSON.stringify(attRes));
-            localStorage.setItem("marks", JSON.stringify(marksRes));
-          });
-
-        const tasks: Promise<void>[] = [attendanceTask];
-
-        // Cohort statistics for every enrolled class, current and frozen past terms.
-        // Non-fatal by design — same reason as the core bundle below: a failed fetch
-        // keeps the last good cache instead of failing the reload.
-        //
-        // Chained AFTER attendance, not alongside it: the stats read verifies each class
-        // against the enrollment `/api/attendance` records, so firing both at once is a
-        // read-your-writes race — the check runs before the enrollment lands and comes
-        // back empty. (`syncAll` already orders them sequentially; this matches it.)
-        tasks.push(
-          attendanceTask
-            .catch(() => {})
-            .then(() => syncEngine.sync<void>("marksStats", {}))
-            .catch(() => {
-              appendSyncLine("Cohort statistics unavailable, keeping last synced records", "error");
-            }),
-        );
-
-        // Core bundle: grades / exam schedule / hostel / calendar / all-grades.
-        // The exam schedule is only ever fetched as part of this op, so a reload
-        // that skips it leaves the schedule widgets on their boot-time cache.
-        // Each module settles on its own and writes its own atom + cache, so
-        // there is nothing to set here — and a failing module keeps the last
-        // good data instead of being overwritten with null.
-        const cachedProfile = storage.profile.get() as any;
-        tasks.push(
-          syncEngine
-            .sync<void>("core", {
-              semesterId: activeSem,
-              calendarType: settings.calendarType,
-              isHosteller: cachedProfile?.isHosteller ?? false,
-            })
-            .catch(() => {
-              appendSyncLine("Core data unavailable, keeping last synced records", "error");
-            }),
-        );
-
-        tasks.push(
-          // Same contract as EventHubTab: username/password + session, with
-          // expiry retry. A raw `api(..., { auth: "eventhub" })` with no body
-          // sends an empty POST and the route 500s.
-          eventHubRequest(IDs, "events/profile", {
-            username: IDs.VtopUsername,
-            password: IDs.VtopPassword,
-          })
-            .then((data: any) => {
-              if (data?.events) {
-                setRegisteredEvents(data.events);
-                storage.registeredEvents.set(data.events);
-                appendSyncLine("Registered events fetched", "success");
-              } else {
-                appendSyncLine("Registered events unavailable (server error)", "error");
-              }
-            })
-            .catch((err: any) => {
-              if (err?.reason === "session_expired" || err?.reason === "invalid_credentials") {
-                clearEventHubSession();
-              }
-              appendSyncLine("Registered events unavailable (server error)", "error");
-            }),
-        );
-
-        tasks.push(
-          api("events")
-            .then((events: any) => {
-              if (Array.isArray(events) && events.length) {
-                setEventHubEvents(events);
-                appendSyncLine(`${events.length} EventHub events loaded`, "success");
-              } else if ((events as any)?.success === false) {
-                appendSyncLine("EventHub events unavailable (server error)", "error");
-              }
-            })
-            .catch(() => {
-              appendSyncLine("EventHub events unavailable (server error)", "error");
-            }),
-        );
-
-        const moodleUsername = IDs.MoodleUsername;
-        const moodlePassword = IDs.MoodlePassword;
-
-        tasks.push(fetchTransportData());
-
-        if (moodleUsername && moodlePassword) {
-          tasks.push(
-            (async () => {
-              const moodleData = (await api("lms-data", {
-                method: "POST",
-                body: { username: moodleUsername, pass: moodlePassword },
-              })) as any;
-              const prevData = JSON.parse(localStorage.getItem("moodleData") || "[]");
-
-              const merged = moodleData.map((item) => {
-                const prevItem = prevData.find((p) => p.url === item.url);
-                return {
-                  ...item,
-                  hidden: prevItem?.hidden ?? false,
-                };
-              });
-
-              setMoodleData(merged);
-              localStorage.setItem("moodleData", JSON.stringify(merged));
-              appendSyncLine("Moodle data fetched", "success");
-              bumpSyncProgress(20);
-            })(),
-          );
-        }
-
-        await Promise.all(tasks);
-
-        // Primary data is ready — make the app interactive immediately (P2-15).
-        // Secondary/cache-only data is fetched in the background so it no longer
-        // blocks the reload spinner. The session stays open so these lines land
-        // in the visible log instead of nowhere.
-        setSyncProgress(100);
-        appendSyncLine("Primary data ready", "success");
-        setIsLoggedIn(true);
-        setIsReloading(false);
-        // Quick-sync friend finder refresh (decision D5)
-        broadcastFriendFinderRefresh();
-
-        appendSyncLine("Starting background sync…", "info");
-        const runBackgroundSync = async () => {
-          try {
-            // Fresher / EPT / identity data via whoami
-            try {
-              const whoamiRes = (await api("whoami", { method: "POST", body: { cookies, authorizedID, csrf } })) as any;
-              if (whoamiRes && !whoamiRes.error) {
-                localStorage.setItem("cache_whoami", JSON.stringify(whoamiRes));
-                appendSyncLine("Identity / fresher data fetched", "success");
-              } else {
-                appendSyncLine("Identity / fresher data unavailable (server error)", "error");
-              }
-            } catch {
-              appendSyncLine("Identity / fresher data unavailable (server error)", "error");
-            }
-
-            // Bus routes
-            const busesRes = (await api("buses")) as any;
-            if (busesRes?.success) {
-              localStorage.setItem("cache_buses", JSON.stringify(busesRes.buses));
-              appendSyncLine("Bus routes fetched", "success");
-            } else {
-              appendSyncLine("Bus routes unavailable (server error)", "error");
-            }
-
-            // Library data
-            const dueData = (await api("library-due", {
-              method: "POST",
-              body: { cookies, authorizedID, csrf },
-            })) as any;
-            if (dueData?.success) {
-              localStorage.setItem("cache_library_due", JSON.stringify(dueData));
-              appendSyncLine("Library data fetched", "success");
-            } else {
-              appendSyncLine("Library data unavailable (server error)", "error");
-            }
-
-            // Official OD records (unified sync engine — atom + local storage,
-            // logged automatically via the engine op feed)
-            try {
-              await syncEngine.sync("officialOd", { semesterId: activeSem });
-            } catch {
-              console.warn("Official OD sync failed");
-            }
-
-            // Degree credit baskets / catalog (FFCS curriculum match). Its own
-            // try/catch so a failure cannot skip social or the bulk endpoints.
-            try {
-              await syncEngine.sync("curriculum");
-            } catch {
-              console.warn("Curriculum sync failed");
-            }
-
-            // Friends & groups. Server-derived: this pushes our own timetable
-            // and pulls peers + the grant secrets needed to read them. The op
-            // never throws, and it gets its own try/catch so a social failure
-            // cannot skip the bulk endpoints below or leave the sheet open.
-            try {
-              await syncEngine.sync("social", {
-                proposedSemesterId: activeSem,
-                demoMode,
-              });
-            } catch {
-              console.warn("Social sync failed");
-            }
-
-            // All other VTOP-scoped endpoints (cached for GenericApiView)
-            const bulkEndpoints = [
-              "exc-registration",
-              "minor-honour",
-              "course-completion",
-              "hostel-counselling",
-              "registration-schedule",
-            ];
-            let bulkFailed = 0;
-            await Promise.allSettled(
-              bulkEndpoints.map((path) => {
-                if (path === "registration-schedule") {
-                  return api("ffcs", { method: "POST", body: { cookies, authorizedID, csrf, section: "registration" } })
-                    .then((res: any) => {
-                      const data = res?.registrationSchedule || res;
-                      if (data && data.success !== false) {
-                        localStorage.setItem("cache_registration-schedule", JSON.stringify(data));
-                        localStorage.setItem("cache_registration_schedule", JSON.stringify(data));
-                      } else {
-                        bulkFailed++;
-                      }
-                    })
-                    .catch(() => {
-                      bulkFailed++;
-                    });
-                }
-                return api(path, { method: "POST", body: { cookies, authorizedID, csrf } })
-                  .then((data: any) => {
-                    if (data && data.success !== false) {
-                      localStorage.setItem("cache_" + path, JSON.stringify(data));
-                    } else {
-                      bulkFailed++;
-                    }
-                  })
-                  .catch(() => {
-                    bulkFailed++;
-                  });
-              }),
-            );
-            if (bulkFailed > 0) {
-              appendSyncLine(
-                `${bulkFailed} background record${bulkFailed === 1 ? "" : "s"} failed to cache (server error)`,
-                "error",
-              );
-            } else {
-              appendSyncLine("All tab data cached", "success");
-            }
-            closeSyncSession();
-          } catch (bgErr) {
-            console.warn("Background data sync failed:", bgErr);
-            appendSyncLine("Background sync had errors, continuing", "error");
-            closeSyncSession();
-          }
-        };
-        // Full Sync awaits the background tail so progress is honest; every
-        // other mode parks it in the background behind the open sheet.
-        if (mode.id === "full") {
-          await runBackgroundSync();
-        } else {
-          void runBackgroundSync();
         }
       } catch (err: any) {
         if (err?.name === "AbortError" || /aborted/i.test(err?.message)) {

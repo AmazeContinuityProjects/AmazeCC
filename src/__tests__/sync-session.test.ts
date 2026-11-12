@@ -231,7 +231,7 @@ describe("engine progress feed", () => {
 
   it("logs per-request child ops inside core", () => {
     openSyncSession("VTOP Sync");
-    for (const op of ["grades", "schedule", "hostel", "calendar", "all-grades", "profile-images"]) {
+    for (const op of ["grades", "schedule", "hostel", "calendar", "all-grades", "coursePage"]) {
       handleEngineProgressEvent({ op, phase: "done" });
     }
     const texts = getSyncSessionSnapshot().lines.map((l) => l.text);
@@ -240,7 +240,7 @@ describe("engine progress feed", () => {
     expect(texts).toContain("Hostel details fetched");
     expect(texts).toContain("Academic calendar fetched");
     expect(texts).toContain("All grades history fetched");
-    expect(texts).toContain("Profile images fetched");
+    expect(texts).toContain("Course details fetched");
   });
 
   it("logs failures with the engine error message", () => {
