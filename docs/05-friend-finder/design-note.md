@@ -1,3 +1,5 @@
+> 🕰️ **Historical design note** — superseded by the reference pages in this folder (`overview.md`, `architecture.md`), kept for provenance.
+
 # FFCS friend finder ("Find classmates")
 
 Our version of [ffcs-finder.web.app](https://ffcs-finder.web.app/): see who

@@ -58,6 +58,9 @@ export async function downloadCourseMaterialProxy(params: CourseMaterialParams):
   }
 
   const blob = await res.blob();
+  if (blob.size === 0) {
+    throw new Error("VTOP returned an empty archive — nothing has been bulk-uploaded to this bucket yet.");
+  }
   const disposition = res.headers.get("content-disposition") || "";
   const filenameMatch = /filename="?([^";]+)"?/i.exec(disposition);
   const filename = filenameMatch?.[1] || `vtop-${params.action}`;

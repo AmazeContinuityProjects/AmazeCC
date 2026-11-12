@@ -1086,15 +1086,16 @@ registerOp({
     needsSemester: true,
   },
   async run(ctx, args) {
+    // QCM view was folded into /api/ffcs (section: "qcm"); there is no /api/qcm-view anymore.
     const res = await ctx.request(
-      "qcm-view",
-      { semesterId: args?.semesterId || "" },
+      "ffcs",
+      { section: "qcm", ...(args?.semesterId ? { semesterId: args.semesterId } : {}) },
       { auth: "vtop", retry: { max: 1 } },
     );
     assertApiSuccess(res, "Quality Circle Meeting (QCM)");
     if (res && typeof res === "object") {
       try {
-        const payload = (res as any).data || res;
+        const payload = (res as any).qcmView?.data ?? (res as any).qcmView ?? res;
         storage.qcmData.set(payload);
       } catch {}
     }

@@ -707,9 +707,13 @@ export default function CourseDetailSubpage({
     }
     // Current semester: the course group is tagged with the synthetic "Current"
     // marker, so resolve the real VTOP semester id. The attendance sync stores
-    // it on attendanceData.semester; as a fallback, the fetched course detail
-    // page carries it in its hidden inputs.
+    // it on attendanceData.semester; on hydration the atom is still empty, so
+    // fall back to the persisted sync payload, then to the fetched detail page.
     if (attendanceData?.semester && attendanceData.semester !== "Current") return attendanceData.semester;
+    try {
+      const stored = storage.attendance.get() as any;
+      if (stored?.semester && stored.semester !== "Current") return stored.semester;
+    } catch {}
     const fromDetail = (viewDetail || [])
       .map((e: any) => e?.data?.materials?.semesterSubId || e?.data?.semesterSubId)
       .find(Boolean);
@@ -877,43 +881,114 @@ export default function CourseDetailSubpage({
     });
   };
 
-  const resolveFacultyForComp = async (comp: any) => {
-    // If it already looks like a valid VTOP faculty ID string (e.g. "12345 - NAME" or "12345-NAME")
-    if (comp.faculty && /^\w+\s*-/.test(comp.faculty.trim())) return comp.faculty;
-
+  // The mount effects fire in the same flush as the login effect, so on a cold
+  // start the `creds` state is still null when the auto-fetchers run. Resolve
+  // creds imperatively (same as the download buttons) instead of bailing and
+  // leaving the page empty forever.
+  const ensureCreds = useCallback(async (): Promise<Creds | null> => {
+    if (creds) return creds;
     try {
-      const d = (await api("course-page", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: {
-          cookies: creds?.cookies,
-          authorizedID: creds?.authorizedID,
-          csrf: creds?.csrf,
-          formData: {
-            semesterSubId: selectedGroup?.semesterSubId === "Current" ? "" : selectedGroup?.semesterSubId || "",
-            courseCode: comp.classNbr,
-            slotId: comp.slot,
-          },
-        },
-      })) as any;
-      if (d.success !== false && d.results?.selectOptions?.faculty?.length > 1) {
-        const options = d.results.selectOptions.faculty.slice(1);
-        let selectedOpt = options[0];
-        if (comp.faculty && comp.faculty.trim() !== "") {
-          const match = options.find((opt: any) => opt.text.toLowerCase().includes(comp.faculty.toLowerCase()));
-          if (match) selectedOpt = match;
-        }
-        comp.faculty = selectedOpt.value;
-        return comp.faculty;
-      }
-    } catch (e) {
-      console.error(e);
+      const c = await loginToVTOP();
+      if (c) setCreds(c);
+      return c || null;
+    } catch {
+      return null;
     }
-    return "";
+  }, [creds, loginToVTOP]);
+
+  // VTOP's dropdowns carry numeric slotIds ("7") and erpIds ("ETHNUS"), not the
+  // display strings the attendance sync stores ("B1+TB1", "ETHNUS - ETHNUS
+  // (APT) - ACAD"). The portal itself resolves through the dropdowns — anything
+  // else 404s on the detail calls. Cached per class so the plan fetch and the
+  // view-detail fetch share one resolution.
+  const dropdownCacheRef = useRef<Map<string, { slotId: string; faculty: string; erpId: string }>>(new Map());
+
+  const normToken = (s: string) =>
+    String(s ?? "")
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, "");
+
+  const parseSelectOptions = (d: any, name: string) => {
+    const opts = d?.results?.selectOptions?.[name] ?? d?.selectOptions?.[name] ?? [];
+    return Array.isArray(opts) ? opts.filter((o: any) => o && String(o.value ?? "").trim() !== "") : [];
   };
 
+  const matchOption = (opts: any[], wanted: string) => {
+    const w = normToken(wanted);
+    if (!w) return opts[0] ?? null;
+    return (
+      opts.find((o: any) => normToken(o.text) === w) ||
+      opts.find((o: any) => {
+        const t = normToken(o.text);
+        return t && (t.startsWith(w) || w.startsWith(t) || t.includes(w) || w.includes(t));
+      }) ||
+      opts.find((o: any) => o.selected) ||
+      opts[0] ||
+      null
+    );
+  };
+
+  const resolveVtopDropdowns = useCallback(
+    async (comp: any, c: Creds) => {
+      const cacheKey = `${comp.classNbr ?? ""}::${comp.slot ?? ""}`;
+      const cached = dropdownCacheRef.current.get(cacheKey);
+      if (cached) return cached;
+
+      const semSubId = getVtopSemesterSubId();
+
+      // 1. Slot dropdown: display label ("B1+TB1") -> numeric slotId ("7").
+      let slotId = comp.slot;
+      try {
+        const d = (await api("course-page", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: {
+            cookies: c.cookies,
+            authorizedID: c.authorizedID,
+            csrf: c.csrf,
+            formData: { semesterSubId: semSubId, courseCode: comp.classNbr },
+          },
+        })) as any;
+        const slotMatch = matchOption(parseSelectOptions(d, "slotId"), comp.slot);
+        if (slotMatch?.value) slotId = String(slotMatch.value);
+      } catch (e) {
+        console.error("slotId resolution failed (continuing with raw slot):", e);
+      }
+
+      // 2. Faculty dropdown for that slot: display string -> erpId.
+      let faculty = comp.faculty || "";
+      let erpId = faculty.split("-")[0]?.trim() || "";
+      try {
+        const d = (await api("course-page", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: {
+            cookies: c.cookies,
+            authorizedID: c.authorizedID,
+            csrf: c.csrf,
+            formData: { semesterSubId: semSubId, courseCode: comp.classNbr, slotId },
+          },
+        })) as any;
+        const facultyMatch = matchOption(parseSelectOptions(d, "faculty"), comp.faculty);
+        if (facultyMatch?.value) {
+          faculty = String(facultyMatch.value);
+          erpId = String(facultyMatch.value);
+        }
+      } catch (e) {
+        console.error("faculty resolution failed (continuing with raw faculty):", e);
+      }
+
+      const resolved = { slotId, faculty, erpId };
+      dropdownCacheRef.current.set(cacheKey, resolved);
+      return resolved;
+    },
+    [getVtopSemesterSubId],
+  );
+
   const fetchCoursePlan = async () => {
-    if (!selectedGroup || !creds) return;
+    if (!selectedGroup) return;
+    const c = await ensureCreds();
+    if (!c) return;
     setPlanLoading(true);
     setError(null);
     try {
@@ -922,19 +997,19 @@ export default function CourseDetailSubpage({
       if (selectedGroup.lab) components.push({ comp: selectedGroup.lab, scope: "lab" });
       const planData: any[] = [];
       for (const { comp, scope } of components) {
-        const resolvedFaculty = await resolveFacultyForComp(comp);
+        const { slotId, faculty } = await resolveVtopDropdowns(comp, c);
         const d = (await api("course-page", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: {
-            cookies: creds.cookies,
-            authorizedID: creds.authorizedID,
-            csrf: creds.csrf,
+            cookies: c.cookies,
+            authorizedID: c.authorizedID,
+            csrf: c.csrf,
             formData: {
-              semesterSubId: selectedGroup.semesterSubId === "Current" ? "" : selectedGroup.semesterSubId || "",
+              semesterSubId: getVtopSemesterSubId(),
               courseCode: comp.classNbr,
-              slotId: comp.slot,
-              faculty: resolvedFaculty,
+              slotId,
+              faculty,
             },
           },
         })) as any;
@@ -960,22 +1035,21 @@ export default function CourseDetailSubpage({
       if (selectedGroup.lab) components.push({ comp: selectedGroup.lab, scope: "lab" });
       const detailData: any[] = [];
       for (const { comp, scope } of components) {
-        const resolvedFaculty = await resolveFacultyForComp(comp);
-        const erpId = resolvedFaculty?.split("-")[0]?.trim() || "";
+        const { slotId, faculty, erpId } = await resolveVtopDropdowns(comp, c);
         const d = (await api("course-page", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: {
-            cookies: creds.cookies,
-            authorizedID: creds.authorizedID,
-            csrf: creds.csrf,
+            cookies: c.cookies,
+            authorizedID: c.authorizedID,
+            csrf: c.csrf,
             formData: {
               viewDetail: "true",
-              semSubId: selectedGroup.semesterSubId === "Current" ? "" : selectedGroup.semesterSubId || "",
+              semSubId: getVtopSemesterSubId(),
               erpId,
               classId: comp.classNbr,
-              slotId: comp.slot,
-              faculty: resolvedFaculty,
+              slotId,
+              faculty,
             },
           },
         })) as any;
@@ -1031,22 +1105,29 @@ export default function CourseDetailSubpage({
         }
         if (!c) return;
 
-        const semId = selectedGroup.semesterSubId === "Current" ? "" : selectedGroup.semesterSubId || "";
-        const d = (await api("qcm-view", {
+        const semId = getVtopSemesterSubId();
+        const d = (await api("ffcs", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: { cookies: c.cookies, authorizedID: c.authorizedID, csrf: c.csrf, semesterId: semId },
+          body: {
+            cookies: c.cookies,
+            authorizedID: c.authorizedID,
+            csrf: c.csrf,
+            section: "qcm",
+            ...(semId ? { semesterId: semId } : {}),
+          },
         })) as any;
 
-        if (d.success && d.data) {
+        const payload = d?.qcmView?.data ?? d?.qcmView ?? null;
+        if (d?.success && payload) {
           try {
-            storage.qcmData.set(d.data);
+            storage.qcmData.set(payload);
           } catch {}
           const targetCode = codeToMap || selectedCode;
-          const mapped = mapQcmForCourse(d.data, targetCode);
+          const mapped = mapQcmForCourse(payload, targetCode);
           setQcmData(mapped);
         } else {
-          setQcmError(d.error || "No QCM recorded yet for this semester");
+          setQcmError(d?.error || "No QCM recorded yet for this semester");
         }
       } catch (e: any) {
         setQcmError(e.message);
@@ -1054,7 +1135,7 @@ export default function CourseDetailSubpage({
         setQcmLoading(false);
       }
     },
-    [selectedGroup, creds, loginToVTOP, selectedCode, mapQcmForCourse],
+    [selectedGroup, creds, loginToVTOP, selectedCode, mapQcmForCourse, getVtopSemesterSubId],
   );
 
   useEffect(() => {
@@ -1668,20 +1749,25 @@ export default function CourseDetailSubpage({
     (coursePlan || []).filter((cp: any) => (cp.scope || "theory") === scope);
   const detailEntriesByScope = (scope: "theory" | "lab") =>
     (viewDetail || []).filter((vd: any) => (vd.scope || "theory") === scope);
-  // Teacher-uploaded reference materials from the VTOP course page detail
-  // (processViewStudentCourseDetail), grouped by scope for the Course Details
-  // section. Only rows that actually carry a file are kept.
-  const uploadedByScope = reviewScopes
+  // The full VTOP lecture plan ("Course Page View") rows, grouped by scope —
+  // including rows with no uploaded file yet (future sessions), like VTOP
+  // shows them. Rows missing date AND topic AND files are dropped.
+  const planRowsByScope = reviewScopes
     .map((scope) => ({
       scope,
       rows: detailEntriesByScope(scope).flatMap((entry: any) =>
         (entry?.data?.materials?.rows ?? [])
-          .filter((r: any) => Array.isArray(r?.materials) && r.materials.length > 0)
+          .filter(
+            (r: any) =>
+              String(r?.date ?? "").trim() !== "" ||
+              String(r?.topic ?? "").trim() !== "" ||
+              (Array.isArray(r?.materials) && r.materials.length > 0),
+          )
           .map((row: any) => ({ entry, row })),
       ),
     }))
     .filter((s) => s.rows.length > 0);
-  const totalUploaded = uploadedByScope.reduce(
+  const totalUploaded = planRowsByScope.reduce(
     (n, s) => n + s.rows.reduce((m: number, x: any) => m + (x.row?.materials?.length ?? 0), 0),
     0,
   );
@@ -2643,61 +2729,75 @@ export default function CourseDetailSubpage({
             )}
           </div>
 
-          {/* 2.6 · VTOP COURSE PAGE — TEACHER-UPLOADED FILES */}
+          {/* 2.6 · VTOP COURSE PAGE — COURSE PLAN & MATERIALS (MENU LIST) */}
           <div className="space-y-4">
             <SectionHeader
               icon={Paperclip}
-              title="VTOP Course Page · Uploaded Files"
+              title="VTOP Course Page · Course Plan & Materials"
               count={totalUploaded > 0 ? totalUploaded : undefined}
             />
 
             {viewLoading ? (
-              <ListSkeleton rows={4} />
-            ) : totalUploaded === 0 ? (
+              <ListSkeleton rows={6} />
+            ) : planRowsByScope.length === 0 ? (
               <EmptyPanel
                 variant="dashed"
-                title="No files on the VTOP course page yet"
-                description="Files your faculty uploads on VTOP's course page will appear here with a download option."
+                title="Course page unavailable"
+                description="VTOP hasn't returned the course page for this selection, or no lecture plan exists yet."
               />
             ) : (
               <div className="space-y-4">
-                {uploadedByScope.map(({ scope, rows }) => (
+                {planRowsByScope.map(({ scope, rows }) => (
                   <div key={scope} className="space-y-3">
-                    {uploadedByScope.length > 1 && <div className="px-1">{renderScopeBadge(scope)}</div>}
+                    {planRowsByScope.length > 1 && <div className="px-1">{renderScopeBadge(scope)}</div>}
                     <ListShell>
-                      {rows.flatMap(({ entry, row }: any) =>
-                        (row.materials as any[]).map((mat: any) => {
-                          const key = `${scope}-${row.slNo}-${row.date}-${mat.materialId}-${mat.materialDate}-${mat.label}`;
-                          return (
-                            <div key={key} className={`${LIST_ROW} py-3.5`}>
-                              <span
-                                className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.blue}`}
-                              >
-                                <FileText className="w-5 h-5" />
-                              </span>
-                              <ListRowText
-                                title={mat.label}
-                                titleTooltip={row.topic || undefined}
-                                subtitle={`${row.date}${row.slot ? ` · ${row.slot}` : ""}${row.topic ? ` · ${row.topic}` : ""}`}
-                              />
-                              <button
-                                type="button"
-                                onClick={() => handleDownloadReferenceMaterial(key, entry, row, mat)}
-                                disabled={downloadingRef !== null}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0"
-                                title={`Download ${mat.label} (${row.date}) from VTOP`}
-                              >
-                                {downloadingRef === key ? (
-                                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                                ) : (
-                                  <Download className="w-3.5 h-3.5" />
-                                )}
-                                <span>{downloadingRef === key ? "Downloading." : "Download"}</span>
-                              </button>
-                            </div>
-                          );
-                        }),
-                      )}
+                      {rows.map(({ entry, row }: any, ri: number) => {
+                        const hasFiles = Array.isArray(row.materials) && row.materials.length > 0;
+                        return (
+                          <div key={`${row.slNo}-${row.date}-${ri}`} className={`${LIST_ROW} py-3.5`}>
+                            <span
+                              className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${
+                                hasFiles
+                                  ? TONE_ICON_TILE.blue
+                                  : "border-border-muted bg-surface-secondary text-text-muted"
+                              }`}
+                            >
+                              <FileText className="w-5 h-5" />
+                            </span>
+                            <ListRowText
+                              title={row.topic || `Session ${row.slNo || ri + 1}`}
+                              titleTooltip={row.topic || undefined}
+                              subtitle={`${row.date || "—"}${row.slot ? ` · ${row.slot}` : ""}`}
+                            />
+                            {hasFiles ? (
+                              <div className="flex flex-wrap items-center justify-end gap-1.5 shrink-0 max-w-56 sm:max-w-none">
+                                {row.materials.map((mat: any) => {
+                                  const key = `${scope}-${row.slNo}-${row.date}-${mat.materialId}-${mat.materialDate}-${mat.label}`;
+                                  return (
+                                    <button
+                                      key={key}
+                                      type="button"
+                                      onClick={() => handleDownloadReferenceMaterial(key, entry, row, mat)}
+                                      disabled={downloadingRef !== null}
+                                      className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-lg text-[10px] sm:text-[11px] font-bold bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 whitespace-nowrap"
+                                      title={`Download ${mat.label} (${row.date}) from VTOP`}
+                                    >
+                                      {downloadingRef === key ? (
+                                        <RefreshCw className="w-3 h-3 animate-spin" />
+                                      ) : (
+                                        <Download className="w-3 h-3" />
+                                      )}
+                                      <span>{downloadingRef === key ? "…" : mat.label}</span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-text-muted font-medium shrink-0">—</span>
+                            )}
+                          </div>
+                        );
+                      })}
                     </ListShell>
                   </div>
                 ))}
@@ -2742,7 +2842,10 @@ export default function CourseDetailSubpage({
                 >
                   <FileDown className="w-5 h-5" />
                 </span>
-                <ListRowText title="All Materials" subtitle="Complete ZIP archive of uploaded reference materials" />
+                <ListRowText
+                  title="All Materials"
+                  subtitle="VTOP's bulk archive for this course (empty until faculty bulk-uploads something)"
+                />
                 <button
                   type="button"
                   onClick={() => handleDownloadMaterial("all-materials")}
@@ -2765,7 +2868,10 @@ export default function CourseDetailSubpage({
                 >
                   <FileText className="w-5 h-5" />
                 </span>
-                <ListRowText title="General Materials" subtitle="General/shared materials for the course" />
+                <ListRowText
+                  title="General Materials"
+                  subtitle="General/shared materials uploaded for this course (descriptor ZIP)"
+                />
                 <button
                   type="button"
                   onClick={() => handleDownloadMaterial("general-materials")}
