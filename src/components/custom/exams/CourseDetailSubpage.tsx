@@ -74,6 +74,7 @@ import { cn } from "@amazecontinuityprojects/amazeui";
 import { tasksAtom, marksStatsAtom } from "@/store/dataAtoms";
 import { createTask } from "@/lib/tasksStorage";
 import TaskEditSheet from "../tasks/TaskEditSheet";
+import BottomSheet from "../shared/BottomSheet";
 import { AnimatePresence, m } from "framer-motion";
 import { useOverlayBack } from "@/lib/overlayStack";
 import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
@@ -194,6 +195,7 @@ export default function CourseDetailSubpage({
   const [downloadingCurriculum, setDownloadingCurriculum] = useState(false);
   const [downloadingMaterial, setDownloadingMaterial] = useState<string | null>(null);
   const [downloadingRef, setDownloadingRef] = useState<string | null>(null);
+  const [materialSheet, setMaterialSheet] = useState<{ entry: any; row: any; scope: "theory" | "lab" } | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
 
@@ -2770,28 +2772,41 @@ export default function CourseDetailSubpage({
                               subtitle={`${row.date || "—"}${row.slot ? ` · ${row.slot}` : ""}`}
                             />
                             {hasFiles ? (
-                              <div className="flex flex-wrap items-center justify-end gap-1.5 shrink-0 max-w-56 sm:max-w-none">
-                                {row.materials.map((mat: any) => {
+                              row.materials.length === 1 ? (
+                                (() => {
+                                  const mat = row.materials[0];
                                   const key = `${scope}-${row.slNo}-${row.date}-${mat.materialId}-${mat.materialDate}-${mat.label}`;
                                   return (
                                     <button
-                                      key={key}
                                       type="button"
                                       onClick={() => handleDownloadReferenceMaterial(key, entry, row, mat)}
                                       disabled={downloadingRef !== null}
-                                      className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-lg text-[10px] sm:text-[11px] font-bold bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 whitespace-nowrap"
+                                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0"
                                       title={`Download ${mat.label} (${row.date}) from VTOP`}
+                                      aria-label={`Download ${mat.label} for session on ${row.date}`}
                                     >
                                       {downloadingRef === key ? (
-                                        <RefreshCw className="w-3 h-3 animate-spin" />
+                                        <RefreshCw className="w-4 h-4 animate-spin" />
                                       ) : (
-                                        <Download className="w-3 h-3" />
+                                        <Download className="w-4 h-4" />
                                       )}
-                                      <span>{downloadingRef === key ? "…" : mat.label}</span>
+                                      <span>{downloadingRef === key ? "Downloading" : "Download"}</span>
                                     </button>
                                   );
-                                })}
-                              </div>
+                                })()
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => setMaterialSheet({ entry, row, scope })}
+                                  disabled={downloadingRef !== null}
+                                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0"
+                                  title={`${row.materials.length} reference files for this session`}
+                                >
+                                  <Paperclip className="w-4 h-4" />
+                                  <span>{row.materials.length} files</span>
+                                  <ChevronRight className="w-3.5 h-3.5" />
+                                </button>
+                              )
                             ) : (
                               <span className="text-xs text-text-muted font-medium shrink-0">—</span>
                             )}
@@ -3299,6 +3314,58 @@ export default function CourseDetailSubpage({
           )}
         </div>
       )}
+
+      {/* Reference Materials Sheet (multiple files in one session) */}
+      <AnimatePresence>
+        {materialSheet && (
+          <BottomSheet
+            overlayId="vtop-session-materials"
+            onClose={() => setMaterialSheet(null)}
+            maxWidth="max-w-md"
+            placement="bottom-center"
+            icon={<Paperclip className="w-5 h-5" />}
+            accent="bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400"
+            title="Reference materials"
+            subtitle={`${materialSheet.row?.date ?? ""}${materialSheet.row?.slot ? ` · ${materialSheet.row.slot}` : ""}${
+              materialSheet.row?.topic ? ` · ${materialSheet.row.topic}` : ""
+            }`}
+            closeLabel="Close reference materials"
+          >
+            <ListShell>
+              {(materialSheet.row?.materials ?? []).map((mat: any) => {
+                const key = `${materialSheet.scope}-${materialSheet.row?.slNo}-${materialSheet.row?.date}-${mat.materialId}-${mat.materialDate}-${mat.label}`;
+                const isDownloading = downloadingRef === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => {
+                      handleDownloadReferenceMaterial(key, materialSheet.entry, materialSheet.row, mat);
+                      setMaterialSheet(null);
+                    }}
+                    disabled={downloadingRef !== null}
+                    className={`${LIST_ROW} py-3.5 disabled:opacity-60`}
+                    title={`Download ${mat.label} (${mat.materialDate})`}
+                  >
+                    <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400">
+                      <FileText className="w-5 h-5" />
+                    </span>
+                    <ListRowText
+                      title={mat.label}
+                      subtitle={`${materialSheet.row?.date ?? ""} · Ref ${mat.materialId}`}
+                    />
+                    {isDownloading ? (
+                      <RefreshCw className="w-4 h-4 animate-spin text-blue-500 shrink-0" />
+                    ) : (
+                      <Download className="w-4 h-4 text-text-muted shrink-0" />
+                    )}
+                  </button>
+                );
+              })}
+            </ListShell>
+          </BottomSheet>
+        )}
+      </AnimatePresence>
 
       {/* Task Edit Sheet */}
       <TaskEditSheet

@@ -1,3 +1,8 @@
+> ⚠️ **ARCHIVED — historical context, not authoritative.**
+> This file was moved to `docs/archive/` during the handoff docs rebuild. It may describe
+> a previous architecture. If it contradicts the code in `src/` or the live `docs/`, the code wins.
+> See `docs/README.md` for current documentation.
+
 # Data inventory and source coverage
 
 This inventory is based on AmazeCC sync operations, local storage abstractions, data types, and the connected screens/features. Sync success and field availability vary by student, campus, VTOP response, and selected sync mode. Report generation must collect only the active student's data.

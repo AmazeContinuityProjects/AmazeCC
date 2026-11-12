@@ -1,3 +1,8 @@
+> ⚠️ **ARCHIVED — historical context, not authoritative.**
+> This file was moved to `docs/archive/` during the handoff docs rebuild. It may describe
+> a previous architecture. If it contradicts the code in `src/` or the live `docs/`, the code wins.
+> See `docs/README.md` for current documentation.
+
 # Sync Engine — Migration Plan
 
 Goal: zero behavior change for users; every network call moves behind the engine; no component fetches directly. Done in phases so the app stays shippable.

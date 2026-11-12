@@ -1,3 +1,8 @@
+> ⚠️ **ARCHIVED — historical context, not authoritative.**
+> This file was moved to `docs/archive/` during the handoff docs rebuild. It may describe
+> a previous architecture. If it contradicts the code in `src/` or the live `docs/`, the code wins.
+> See `docs/README.md` for current documentation.
+
 # Report contents and order
 
 The main report is a complete academic and student-services dossier. Put the active/current semester first in semester-oriented sections, followed by prior semesters in reverse chronological order. Retain original semester labels and source order metadata where ordering is ambiguous.

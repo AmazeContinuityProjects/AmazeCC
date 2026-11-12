@@ -1,3 +1,8 @@
+> ⚠️ **ARCHIVED — historical context, not authoritative.**
+> This file was moved to `docs/archive/` during the handoff docs rebuild. It may describe
+> a previous architecture. If it contradicts the code in `src/` or the live `docs/`, the code wins.
+> See `docs/README.md` for current documentation.
+
 # Privacy and inclusion controls
 
 The report consolidates sensitive academic, financial, identity, residential, and activity data into a portable file. Make section inclusion deliberate and visible before export.
