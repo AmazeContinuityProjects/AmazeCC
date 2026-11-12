@@ -129,7 +129,7 @@ export const defaultSettings: Settings = {
   defaultSyncMode: "quarterly",
   pinnedNavTabs: ["academics", "attendance"],
   defaultAcademicsTab: "overview",
-  autoSyncInterval: "manual",
+  autoSyncInterval: "off",
   lowDataMode: false,
   soundEnabled: true,
   smartMessFilter: false,
@@ -179,6 +179,10 @@ const settingsStorage = {
       if (!raw) return initialValue;
       const merged = { ...initialValue, ...JSON.parse(raw) } as Settings;
       merged.defaultSyncMode = normalizeDefaultSyncMode(merged.defaultSyncMode) as Settings["defaultSyncMode"];
+      // Legacy pickers stored "manual" for what is now "off".
+      if ((merged.autoSyncInterval as string) === "manual") {
+        merged.autoSyncInterval = "off" as Settings["autoSyncInterval"];
+      }
       return merged;
     } catch {
       return initialValue;
@@ -244,6 +248,10 @@ export function readSettings(): Partial<Settings> {
   const parsed = (storage.settings.get() || {}) as Partial<Settings>;
   if (typeof parsed.defaultSyncMode === "string") {
     parsed.defaultSyncMode = normalizeDefaultSyncMode(parsed.defaultSyncMode) as Settings["defaultSyncMode"];
+  }
+  // Legacy pickers stored "manual" for what is now "off".
+  if ((parsed.autoSyncInterval as string) === "manual") {
+    parsed.autoSyncInterval = "off" as Settings["autoSyncInterval"];
   }
   return parsed;
 }

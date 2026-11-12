@@ -2084,19 +2084,20 @@ export default function ProfilePage({
         {/* Background Sync Frequency */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
           <div>
-            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Background Auto-Refresh Frequency</p>
+            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Background Auto-Refresh</p>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              Periodic timetable and marks check in the background
+              When off, syncing only happens when you tap Sync — nothing hits the server otherwise. When a cadence is
+              set, the sweep runs on that timer and pulls only what has come due (attendance at most once a day).
             </p>
           </div>
           <SelectField
             value={(settings?.autoSyncInterval as string) || "off"}
             onChange={(val) => updateSetting("autoSyncInterval", val)}
             options={[
-              { value: "off", label: "Off (Manual Refresh Only)" },
-              { value: "15m", label: "Every 15 Minutes" },
-              { value: "30m", label: "Every 30 Minutes" },
-              { value: "1h", label: "Every 1 Hour" },
+              { value: "off", label: "Off (Sync Only When You Press It)" },
+              { value: "15m", label: "Every 15 Minutes (Gated)" },
+              { value: "30m", label: "Every 30 Minutes (Gated)" },
+              { value: "1h", label: "Every 1 Hour (Gated)" },
             ]}
             className="shrink-0"
           />
@@ -2107,8 +2108,8 @@ export default function ProfilePage({
           <div>
             <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Default Sync Mode</p>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              Quick for daily checks, Balanced for routine reloads, Full for a complete sweep — or one of your custom
-              modes
+              Daily for attendance-only, Weekly for /ffcs, Monthly for the full monthly set, Quarterly for everything,
+              or one of your custom modes. Manual sync always refreshes the daily tier; deeper tiers fire only when due.
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">

@@ -32,6 +32,8 @@ export interface SyncModeOptions {
   demoMode?: boolean;
   /** Run every step regardless of its cadence window. */
   force?: boolean;
+  /** Force just these steps past the cadence gate; everything else stays gated. */
+  forceOps?: string[];
   /** When false, background steps are fired without awaiting (legacy sweep). */
   awaitBackground?: boolean;
   signal?: AbortSignal;
@@ -242,11 +244,13 @@ class SyncEngine {
     const mode = resolveMode(modeId, loadCustomModes());
     if (!mode) throw new Error(`Unknown sync mode: ${modeId}`);
     const { signal, awaitBackground = modeId === "quarterly" } = { ...baseArgs, ...opts };
-    const { semesterId, calendarType, isHosteller, settings, demoMode, force } = baseArgs;
+    const { semesterId, calendarType, isHosteller, settings, demoMode, force, forceOps } = baseArgs;
     const syncTimes = getSyncTimes();
     /** Cadence gate: a step is fresh when its last success is inside its window. */
     const isFresh = (s: { every?: number; op: string }) => {
-      if (!s.every || s.every <= 0 || force) return false;
+      if (force) return false;
+      if (forceOps?.includes(s.op)) return false;
+      if (!s.every || s.every <= 0) return false;
       const t = syncTimes[s.op];
       return typeof t === "number" && Date.now() - t < s.every * 86_400_000;
     };

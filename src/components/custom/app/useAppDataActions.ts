@@ -16,6 +16,9 @@ import type { Ids } from "@/lib/sync-engine/types";
 import { broadcastGlobalSemesterChange, mapToFinalSemesterId } from "@/lib/ffcsReports";
 import { broadcastFriendFinderRefresh } from "@/lib/ffcsClassmates";
 
+/** The daily tier — a manual sync always refreshes these, the gate never applies. */
+const DAILY_OPS = ["attendanceMarks", "marksStats", "hostel"];
+
 interface AppDataActionOptions {
   IDs: any;
   demoMode: boolean;
@@ -466,7 +469,9 @@ export function useAppDataActions({
         // Weekly / Monthly / Quarterly and every custom mode run through the
         // engine; the cadence gate in its runner decides which ops are due.
         // Attendance-derived UI state gets applied here; everything else is
-        // written by the ops themselves (atoms + caches).
+        // written by the ops themselves (atoms + caches). The daily-tier ops
+        // are forced past the gate so a manual sync always refreshes them;
+        // weekly / monthly / quarterly only fire when their window lapsed.
         {
           try {
             // setAttendanceAndOD diffs against the stored copy, so snapshot it
@@ -479,6 +484,8 @@ export function useAppDataActions({
               isHosteller: cachedProfile?.isHosteller ?? false,
               settings: settings as unknown as Record<string, unknown>,
               demoMode,
+              // Manual syncs always run the daily tier; deeper tiers wait for their cadence.
+              forceOps: DAILY_OPS,
             });
             const att = res.results.find((r) => r.op === "attendanceMarks")?.value as any;
             if (att?.attRes) {

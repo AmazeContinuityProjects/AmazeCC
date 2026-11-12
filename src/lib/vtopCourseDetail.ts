@@ -128,9 +128,9 @@ export async function resolveVtopDropdowns(
   semSubId: string,
   comp: CourseCompInput,
   opts?: { fresh?: boolean },
-): Promise<ResolvedDropdowns> {
+): Promise<ResolvedDropdowns | null> {
   const classId = String(comp.classNbr ?? "");
-  const slotLabel = String(comp.slot ?? "");
+  const slotLabel = String(comp.slot ?? "").trim();
 
   if (!opts?.fresh) {
     const stored = getResolvedSlot(semSubId, classId, slotLabel);
@@ -150,7 +150,13 @@ export async function resolveVtopDropdowns(
     }
   }
   const slotMatch = matchOption(slotOptions, slotLabel);
-  const slotId = slotMatch?.value ? String(slotMatch.value) : slotLabel;
+  // Fallback chain: exact/fuzzy label match → `selected` option → whatever is
+  // listed for this class. VTOP's dropdown for one classId normally holds
+  // exactly the options the student has, so the first is usable.
+  const resolvedSlot = slotMatch ?? slotOptions.find((o) => o.selected) ?? slotOptions[0] ?? null;
+  const slotId = resolvedSlot?.value ? String(resolvedSlot.value) : slotLabel;
+  // Nothing to work with — this class cannot answer /processViewStudentCourseDetail.
+  if (!slotId) return null;
 
   // 2. Faculty options for the resolved slot.
   let facultyOptions = opts?.fresh ? null : getFacultyOptions(semSubId, classId, slotId);
@@ -165,9 +171,10 @@ export async function resolveVtopDropdowns(
     }
   }
   const facultyMatch = matchOption(facultyOptions, comp.faculty ?? "");
-  const faculty = facultyMatch?.value ? String(facultyMatch.value) : String(comp.faculty ?? "");
-  const erpId = facultyMatch?.value
-    ? String(facultyMatch.value)
+  const resolvedFaculty = facultyMatch ?? facultyOptions.find((o) => o.selected) ?? facultyOptions[0] ?? null;
+  const faculty = resolvedFaculty?.value ? String(resolvedFaculty.value) : String(comp.faculty ?? "");
+  const erpId = resolvedFaculty?.value
+    ? String(resolvedFaculty.value)
     : String(
         String(comp.faculty ?? "")
           .split("-")[0]
@@ -175,6 +182,11 @@ export async function resolveVtopDropdowns(
           comp.faculty ??
           "",
       );
+
+  // Faculty unresolved and nothing raw to fall back on — VTOP only serves the
+  // course page for a recognised (erpId, classId) pair, so skip instead of
+  // firing a guaranteed 404.
+  if (!erpId) return null;
 
   const resolved: ResolvedDropdowns = { slotId, faculty, erpId };
   setResolvedSlot(semSubId, classId, slotLabel, resolved);
@@ -197,6 +209,7 @@ export async function fetchViewDetailForComp(
   let d: any = null;
   try {
     const resolved = await resolveVtopDropdowns(call, semSubId, comp, opts);
+    if (!resolved) return null;
     d = await call({
       viewDetail: "true",
       semSubId,
@@ -213,6 +226,7 @@ export async function fetchViewDetailForComp(
     invalidateClass(semSubId, classId);
     try {
       const resolved = await resolveVtopDropdowns(call, semSubId, comp, { fresh: true });
+      if (!resolved) return null;
       d = await call({
         viewDetail: "true",
         semSubId,

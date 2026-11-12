@@ -63,9 +63,9 @@ export interface CadenceTierMeta {
 }
 
 const DAILY_STEPS: SyncModeStep[] = [
-  step("attendanceMarks"),
-  step("marksStats", { background: true }),
-  step("hostel", { background: true }),
+  step("attendanceMarks", { every: 1 }),
+  step("marksStats", { background: true, every: 1 }),
+  step("hostel", { background: true, every: 1 }),
 ];
 
 const WEEKLY_STEPS: SyncModeStep[] = [

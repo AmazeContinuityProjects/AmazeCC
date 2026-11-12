@@ -592,6 +592,15 @@ registerOp({
       for (const c of list) {
         const id = String(kind === "marks" ? (c?.classNbr ?? "") : (c?.classId ?? "")).trim();
         if (!id || seen.has(id)) continue;
+        const rawSlot = String(kind === "marks" ? (c?.slot ?? "") : (c?.slotName ?? ""))
+          .trim()
+          .toUpperCase();
+        // No slot = not a regular VTOP course (online/MOOC buckets) — there is
+        // no Course Page View to fetch, so skip without touching VTOP.
+        if (!rawSlot || rawSlot === "NIL" || rawSlot === "NA" || rawSlot === "N/A") {
+          seen.add(id);
+          continue;
+        }
         seen.add(id);
         comps.push({
           classNbr: id,
