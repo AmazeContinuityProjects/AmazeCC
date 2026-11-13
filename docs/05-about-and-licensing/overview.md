@@ -1,3 +1,8 @@
+---
+title: "About & Licensing — Overview (walkthrough)"
+description: "MIT, attributions live, and the license is yours to copy — take it and fork it if you want."
+---
+
 # About & Licensing — Overview (walkthrough)
 
 > **In one line:** MIT, attributions live, and the license is yours to copy — take it and fork it if you want.

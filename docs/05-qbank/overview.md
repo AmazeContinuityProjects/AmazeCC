@@ -1,3 +1,8 @@
+---
+title: "QBank — Overview (walkthrough)"
+description: "every past paper VIT publishes, searchable, with model answers — one place, inside the app."
+---
+
 # QBank — Overview (walkthrough)
 
 > **In one line:** every past paper VIT publishes, searchable, with model answers — one place, inside the app.

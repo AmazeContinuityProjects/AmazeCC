@@ -1,3 +1,8 @@
+---
+title: "Cab Share — Architecture (deep)"
+description: "post your ride → campus peers see it → accept/decline happens privately → identity disclosed only to the fellow rider — nothing else leaks."
+---
+
 # Cab Share — Architecture (deep)
 
 > **In one line:** post your ride → campus peers see it → accept/decline happens privately → identity disclosed only to the fellow rider — nothing else leaks.

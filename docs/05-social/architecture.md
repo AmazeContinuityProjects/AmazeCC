@@ -1,3 +1,8 @@
+---
+title: "Social — Architecture (deep)"
+description: 'VTOP stays the source of truth for "who is in my class"; the server derives shared classes on pairing; the client renders from cached busy maps — nothing else.'
+---
+
 # Social — Architecture (deep)
 
 > **In one line:** VTOP stays the source of truth for "who is in my class"; the server derives shared classes on pairing; the client renders from cached busy maps — nothing else.

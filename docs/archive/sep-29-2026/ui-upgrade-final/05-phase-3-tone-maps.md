@@ -1,3 +1,7 @@
+---
+title: "Phase 3 — tone maps and token homes"
+---
+
 # Phase 3 — tone maps and token homes
 
 Ten files. Small diffs, disproportionate effect: five of them already look correct on screen and

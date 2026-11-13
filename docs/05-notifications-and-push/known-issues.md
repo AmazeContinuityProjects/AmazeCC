@@ -1,3 +1,7 @@
+---
+title: "Notifications & Push — Known Issues (full)"
+---
+
 # Notifications & Push — Known Issues (full)
 
 1. **iOS quirk** — Safari web push needs 16.4+; category list still shows on iOS; no requests ever fire — docs say so.

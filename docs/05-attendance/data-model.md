@@ -1,3 +1,7 @@
+---
+title: "Attendance — Data Model (precise shapes)"
+---
+
 # Attendance — Data Model (precise shapes)
 
 ## VTOP payload (as the API ships it)

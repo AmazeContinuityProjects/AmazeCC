@@ -1,3 +1,8 @@
+---
+title: "FFCS Friends — Overview (walkthrough)"
+description: "pick courses knowing whose in-section buddy you are — before you finalize."
+---
+
 # FFCS Friends — Overview (walkthrough)
 
 > **In one line:** pick courses knowing whose in-section buddy you are — before you finalize.

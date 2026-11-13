@@ -1,3 +1,8 @@
+---
+title: "Attendance — Architecture (full model)"
+description: "VTOP payload → unweighted sum → predictor arithmetic — the pipeline is short because attendance math is easy and impossible to game."
+---
+
 # Attendance — Architecture (full model)
 
 > **In one line:** VTOP payload → unweighted sum → predictor arithmetic — the pipeline is short

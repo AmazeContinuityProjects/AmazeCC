@@ -1,3 +1,8 @@
+---
+title: "Error Handling & Failure Taxonomy"
+description: 'errors are classified first (auth vs transient vs bug) and only then rendered — because "your password is wrong" and "VTOP''s captcha broke" need different UI.'
+---
+
 # 06 — Error Handling & Failure Taxonomy
 
 > **In one line:** errors are classified first (auth vs transient vs bug) and only then

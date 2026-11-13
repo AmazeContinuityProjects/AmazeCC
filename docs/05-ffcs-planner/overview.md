@@ -1,3 +1,8 @@
+---
+title: "FFCS Planner — The 10-Minute Tour (as a student sees it)"
+description: "pick courses → get conflict-free timetables, ranked by what you care about."
+---
+
 # FFCS Planner — The 10-Minute Tour (as a student sees it)
 
 > **In one line:** pick courses → get conflict-free timetables, ranked by what you care about.

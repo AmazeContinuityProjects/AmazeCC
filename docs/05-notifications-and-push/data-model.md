@@ -1,3 +1,7 @@
+---
+title: "Notifications — Data Model"
+---
+
 # Notifications — Data Model
 
 `PushSubscription = { endpoint, keys: { p256dh, auth }, userId? }` (server-side; never shipped client-side).

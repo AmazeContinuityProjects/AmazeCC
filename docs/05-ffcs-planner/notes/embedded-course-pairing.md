@@ -1,3 +1,7 @@
+---
+title: "Embedded Course Pairing & Priorities"
+---
+
 # Embedded Course Pairing & Priorities
 
 ## Overview

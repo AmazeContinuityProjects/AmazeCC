@@ -1,3 +1,8 @@
+---
+title: "Tasks & Pomodoro — Architecture (deep)"
+description: "the task board is a local-first planner wired into the ambient app — Moodle feeds it, Pomodoro runs against it, reminders fire while the app is open."
+---
+
 # Tasks & Pomodoro — Architecture (deep)
 
 > **In one line:** the task board is a local-first planner wired into the ambient app —

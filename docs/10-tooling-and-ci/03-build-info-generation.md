@@ -1,3 +1,8 @@
+---
+title: "Build-Info Generation (buildInfo.json)"
+description: 'every build stamps {sha, date, subjects, buildNumber} into a committed JSON that UI reads for "version" surfaces.'
+---
+
 # 03 — Build-Info Generation (`buildInfo.json`)
 
 > **In one line:** every build stamps `{sha, date, subjects, buildNumber}` into a committed JSON that UI reads for "version" surfaces.

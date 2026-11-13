@@ -1,3 +1,8 @@
+---
+title: "Paper Scanner — Overview (walkthrough)"
+description: "photograph your exam paper, walk away with a clean, searchable, correctly-oriented PDF on your phone — no upload."
+---
+
 # Paper Scanner — Overview (walkthrough)
 
 > **In one line:** photograph your exam paper, walk away with a clean, searchable, correctly-oriented PDF on your phone — no upload.

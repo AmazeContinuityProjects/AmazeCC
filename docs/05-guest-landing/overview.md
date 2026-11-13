@@ -1,3 +1,8 @@
+---
+title: "Guest Landing — Overview (walkthrough)"
+description: "the page your friend sent you a link to — five seconds in, you know what this is."
+---
+
 # Guest Landing — Overview (walkthrough)
 
 > **In one line:** the page your friend sent you a link to — five seconds in, you know what this is.

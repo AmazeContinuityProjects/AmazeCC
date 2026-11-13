@@ -1,3 +1,7 @@
+---
+title: "Slot vocabulary & lookups (Phase 1)"
+---
+
 # 02 — Slot vocabulary & lookups (Phase 1)
 
 ## The two spellings of one period

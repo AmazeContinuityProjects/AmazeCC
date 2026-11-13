@@ -1,3 +1,7 @@
+---
+title: "The grammar, restated"
+---
+
 # The grammar, restated
 
 The target dialect, written as rules so a conversion can be checked rather than judged. Every

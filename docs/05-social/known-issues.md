@@ -1,3 +1,7 @@
+---
+title: "Social — Known Issues (full)"
+---
+
 # Social — Known Issues (full)
 
 1. **Coarse-only peers look empty** — their grid is busy-only; full detail requires explicit full upgrade.

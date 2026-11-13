@@ -1,3 +1,8 @@
+---
+title: "Release Checklist"
+description: 'the five minutes before you hit "deploy".'
+---
+
 # 06 — Release Checklist
 
 > **In one line:** the five minutes before you hit "deploy".

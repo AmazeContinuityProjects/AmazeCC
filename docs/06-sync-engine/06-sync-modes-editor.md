@@ -1,3 +1,8 @@
+---
+title: "The Sync Modes Editor (UI)"
+description: "reorder, toggle and compose ops into a personal sync profile, persisted client-side, validated against the live registry."
+---
+
 # 06 — The Sync Modes Editor (UI)
 
 > **In one line:** reorder, toggle and compose ops into a personal sync profile, persisted

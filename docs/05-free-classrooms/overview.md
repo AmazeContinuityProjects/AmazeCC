@@ -1,3 +1,8 @@
+---
+title: "Free Classrooms — Overview (walkthrough)"
+description: '"I have an hour between classes — where do I go?" Answered from the app, offline, in seconds.'
+---
+
 # Free Classrooms — Overview (walkthrough)
 
 > **In one line:** "I have an hour between classes — where do I go?" Answered from the app, offline, in seconds.

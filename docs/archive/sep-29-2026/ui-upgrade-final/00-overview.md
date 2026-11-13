@@ -1,3 +1,7 @@
+---
+title: "UI upgrade — final: adopting the course-subpage primitives everywhere"
+---
+
 # UI upgrade — final: adopting the course-subpage primitives everywhere
 
 **Date:** 2026-09-29

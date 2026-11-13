@@ -1,3 +1,8 @@
+---
+title: "Settings & Profile — Overview (walkthrough)"
+description: "the entire app's knobs in one place — personalize once, never touch again."
+---
+
 # Settings & Profile — Overview (walkthrough)
 
 > **In one line:** the entire app's knobs in one place — personalize once, never touch again.

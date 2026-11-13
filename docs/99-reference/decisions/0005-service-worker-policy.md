@@ -1,3 +1,7 @@
+---
+title: "ADR-0005: Service Worker Policy (no asset precache)"
+---
+
 # ADR-0005: Service Worker Policy (no asset precache)
 
 **Status:** accepted

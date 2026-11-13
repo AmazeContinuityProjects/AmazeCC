@@ -1,3 +1,7 @@
+---
+title: "Marks Predictor — Known Issues (full)"
+---
+
 # Marks Predictor — Known Issues (full)
 
 1. **Relative grading pre-results is speculative.** VIT doesn't publish class σ until FAT closes —

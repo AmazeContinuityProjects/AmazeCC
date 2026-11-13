@@ -1,3 +1,8 @@
+---
+title: "Next.js App Router (how folders become pages)"
+description: "in the app/ directory, folders are URLs, page.tsx is what renders, and layout.tsx wraps everything beneath it."
+---
+
 # 06 — Next.js App Router (how folders become pages)
 
 > **In one line:** in the `app/` directory, folders are URLs, `page.tsx` is what renders, and

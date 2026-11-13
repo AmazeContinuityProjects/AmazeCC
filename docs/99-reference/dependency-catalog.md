@@ -1,3 +1,7 @@
+---
+title: "Dependency Catalog (top, by why-not-just-ship-it)"
+---
+
 # Dependency Catalog (top, by why-not-just-ship-it)
 
 > **Method:** `package.json` runtime deps ranked by size/importance; the rest noted at the end.

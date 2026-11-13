@@ -1,3 +1,8 @@
+---
+title: "Feedback & Report Uploads (what leaves the device)"
+description: "feedback is a form the student fills — it sends exactly what's typed, optionally with a session replay blob; nothing auto-enriches it."
+---
+
 # 05 — Feedback & Report Uploads (what leaves the device)
 
 > **In one line:** feedback is a form the student fills — it sends exactly what's typed,

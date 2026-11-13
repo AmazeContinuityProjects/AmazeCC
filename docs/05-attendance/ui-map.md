@@ -1,3 +1,7 @@
+---
+title: "Attendance — UI Map (annotated, with line counts)"
+---
+
 # Attendance — UI Map (annotated, with line counts)
 
 | File                                                      | Lines       | Job                                                        |

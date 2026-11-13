@@ -1,3 +1,8 @@
+---
+title: "Payments — Architecture (deep)"
+description: "VIT's fee portal scraped on your behalf — dues, receipts, wallet — read-only; we never initiate a payment."
+---
+
 # Payments — Architecture (deep)
 
 > **In one line:** VIT's fee portal scraped on your behalf — dues, receipts, wallet — read-only; we never initiate a payment.

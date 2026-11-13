@@ -1,3 +1,8 @@
+---
+title: "Events & Clubs — Overview (walkthrough)"
+description: "what's happening on campus, what you're eligible for, and how to register — from inside the app."
+---
+
 # Events & Clubs — Overview (walkthrough)
 
 > **In one line:** what's happening on campus, what you're eligible for, and how to register — from inside the app.

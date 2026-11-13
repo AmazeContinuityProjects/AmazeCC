@@ -1,3 +1,8 @@
+---
+title: "Notifications & Push — Overview (walkthrough)"
+description: "you choose exactly which pings; silence is the default."
+---
+
 # Notifications & Push — Overview (walkthrough)
 
 > **In one line:** you choose exactly which pings; silence is the default.

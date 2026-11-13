@@ -1,3 +1,8 @@
+---
+title: "FFCS Friends — Architecture (deep)"
+description: "VTOP knows who picked which sections; AmazeCC only tells your phone the people you explicitly asked about — nothing else."
+---
+
 # FFCS Friends — Architecture (deep)
 
 > **In one line:** VTOP knows who picked which sections; AmazeCC only tells your phone the people you explicitly asked about — nothing else.

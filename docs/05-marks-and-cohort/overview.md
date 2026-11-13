@@ -1,3 +1,8 @@
+---
+title: "Marks & Cohort — Overview (in plain language)"
+description: "donate your anonymized scores so the app can tell you the class curve — never without your click."
+---
+
 # Marks & Cohort — Overview (in plain language)
 
 > **In one line:** donate your anonymized scores so the app can tell you the class curve — never without your click.

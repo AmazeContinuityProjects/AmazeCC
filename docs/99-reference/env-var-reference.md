@@ -1,3 +1,7 @@
+---
+title: "Environment Variable Reference"
+---
+
 # Environment Variable Reference
 
 > Every `NEXT_PUBLIC_*` referenced anywhere in `src/` + `.env.example`. Regenerate:

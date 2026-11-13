@@ -1,3 +1,8 @@
+---
+title: "Free Classrooms — Architecture (deep)"
+description: "a two-source truth — on-device slot math over VIT's printed section tables plus a server cross-check — merged honestly, never silently."
+---
+
 # Free Classrooms — Architecture (deep)
 
 > **In one line:** a two-source truth — on-device slot math over VIT's printed section tables

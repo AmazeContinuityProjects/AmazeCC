@@ -1,3 +1,8 @@
+---
+title: "Environment Variables"
+description: ".env.example lists every knob; for local demo work you need none of them; anything that ships to students is compiled in at build time with the defaults in src/lib/fetch-utils.ts et al."
+---
+
 # 03 — Environment Variables
 
 > **In one line:** `.env.example` lists every knob; for local demo work you need none of them;

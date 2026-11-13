@@ -1,3 +1,8 @@
+---
+title: "FFCS Planner — Architecture (the full pipeline)"
+description: "a deterministic cartesian walk over a cartesian product, pruned by slot algebra, greedy-clash-checks, an optional SAT-like faculty-priority ordering — running in a Web Worker, streamed to the UI in…"
+---
+
 # FFCS Planner — Architecture (the full pipeline)
 
 > **In one line:** a deterministic cartesian walk over a cartesian product, pruned by slot

@@ -1,3 +1,8 @@
+---
+title: "Home Entry Controller"
+description: "src/components/custom/app/HomeEntryController.tsx decides in milliseconds — landing hero or the app — before React ever commits to either."
+---
+
 # 02 — Home Entry Controller
 
 > **In one line:** `src/components/custom/app/HomeEntryController.tsx` decides in milliseconds —

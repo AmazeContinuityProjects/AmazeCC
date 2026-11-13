@@ -1,3 +1,7 @@
+---
+title: "Academics — Known Issues (full catalog)"
+---
+
 # Academics — Known Issues (full catalog)
 
 1. **CAT numbering ambiguity.** "CAT 1", "CAT-I", "CAT - 1" all appear in VTOP depending on

@@ -1,3 +1,8 @@
+---
+title: "Your First Run: Demo Mode"
+description: "one click → the entire app populated with a fictional student's life — no VTOP account required."
+---
+
 # 04 — Your First Run: Demo Mode
 
 > **In one line:** one click → the entire app populated with a fictional student's life —

@@ -1,3 +1,8 @@
+---
+title: "Onboarding — Architecture (deep)"
+description: "the first-run experience: theme pick → sign-in or demo → full sync — three beats, skippable, resumable — never blocks the app from working."
+---
+
 # Onboarding — Architecture (deep)
 
 > **In one line:** the first-run experience: theme pick → sign-in or demo → full sync — three beats, skippable, resumable — never blocks the app from working.

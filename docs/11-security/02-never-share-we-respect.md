@@ -1,3 +1,7 @@
+---
+title: "What the App Refuses to Share"
+---
+
 # 02 — What the App Refuses to Share
 
 > **The short list of data flows that are OFF by default, by design, with a switch.**

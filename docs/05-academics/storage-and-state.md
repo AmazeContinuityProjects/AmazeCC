@@ -1,3 +1,7 @@
+---
+title: "Academics — Storage & State"
+---
+
 # Academics — Storage & State
 
 ## Atoms (all written by the engine; read everywhere)

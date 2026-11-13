@@ -1,3 +1,7 @@
+---
+title: "Attendance — Storage & State"
+---
+
 # Attendance — Storage & State
 
 > No atom lives without its boot rehydration or an honest "empty state".

@@ -1,3 +1,7 @@
+---
+title: "Marks & Grading Mechanics"
+---
+
 # Marks & Grading Mechanics
 
 > **Cheat sheet for how VIT grades land in AmazeCC.**

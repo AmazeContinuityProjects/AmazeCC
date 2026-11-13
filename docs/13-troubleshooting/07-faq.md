@@ -1,3 +1,7 @@
+---
+title: "FAQ (week-1 questions)"
+---
+
 # 07 — FAQ (week-1 questions)
 
 **Q: Do I need a VIT account?** A: No. Demo mode (from the landing page) is fully functional mock data — develop there entirely.

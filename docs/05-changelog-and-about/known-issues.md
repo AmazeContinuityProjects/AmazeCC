@@ -1,3 +1,7 @@
+---
+title: "Changelog & About — Known Issues (full)"
+---
+
 # Changelog & About — Known Issues (full)
 
 1. **Version shown = GitHub sha, not CDN** — check "build #" with Settings → About if in doubt; assets the CDN hasn't propagated yet can lag by minutes.

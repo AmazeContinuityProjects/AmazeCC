@@ -1,3 +1,8 @@
+---
+title: "FFCS Planner — Deep Dive: The Guided Selector"
+description: "~5,126 lines of stateful wizard UI built directly over the same engine the modern grid uses — two experiences, one truth source."
+---
+
 # FFCS Planner — Deep Dive: The Guided Selector
 
 > **In one line:** ~5,126 lines of stateful wizard UI built directly over the same engine the

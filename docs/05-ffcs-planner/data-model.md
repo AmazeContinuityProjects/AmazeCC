@@ -1,3 +1,7 @@
+---
+title: "FFCS Planner — Data Model"
+---
+
 # FFCS Planner — Data Model
 
 > Types live in `src/lib/ffcsTypes.ts`; fields below are the exact ones you'll touch.

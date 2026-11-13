@@ -1,3 +1,7 @@
+---
+title: "Friend Finder — Data Model"
+---
+
 # Friend Finder — Data Model
 
 `FinderCandidate = { handle?, regNo?, branch, semester, sharedCourses }`

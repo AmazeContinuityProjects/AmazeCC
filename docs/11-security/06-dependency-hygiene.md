@@ -1,3 +1,8 @@
+---
+title: "Dependency Hygiene"
+description: "~110 runtime deps, mostly UI — scanned, minimally trusted, and pinned by the lockfile."
+---
+
 # 06 — Dependency Hygiene
 
 > **In one line:** ~110 runtime deps, mostly UI — scanned, minimally trusted, and pinned by the lockfile.

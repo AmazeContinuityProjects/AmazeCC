@@ -1,7 +1,11 @@
+---
+title: "Overview: friend finder on the Simplified Mobile Home"
+---
+
 > ⚠️ **ARCHIVED — historical context, not authoritative.**
 > This file was moved to `docs/archive/` during the handoff docs rebuild. It may describe
 > a previous architecture. If it contradicts the code in `src/` or the live `docs/`, the code wins.
-> See `docs/README.md` for current documentation.
+> See `docs/index.md` for current documentation.
 
 # 00 — Overview: friend finder on the Simplified Mobile Home
 
@@ -77,7 +81,7 @@ rosters (`sections[].people`) stay `{handle, name, source}`.
 
 Four documented invariants must be updated in the same change (see
 01-api-changes.md §6): `ffcsMatchDb.ts:10-11`, `socialDb.ts:13-14`,
-`ffcsMatch.ts:145`, `docs/ffcs-friend-finder/README.md:48`. Precedent for
+`ffcsMatch.ts:145`, `docs/ffcs-friend-finder/index.md:48`. Precedent for
 plaintext reg no elsewhere in the API: `cabshare_users.reg_number`.
 
 ### D4 — "People in her class" = discoverable sharers
@@ -153,5 +157,5 @@ except removing/redirecting the classmates entry points.
 
 - [../../05-friend-finder/design-note.md](../../05-friend-finder/design-note.md) — feature
   design being moved (update in Phase 4)
-- [../../05-ffcs-planner/notes/README.md](../../05-ffcs-planner/notes/README.md) — report CSV shape
-- `../social-tt/README.md` — retired sharing feature (context for D5)
+- [../../05-ffcs-planner/notes/index.md](../../05-ffcs-planner/notes/index.md) — report CSV shape
+- `../social-tt/index.md` — retired sharing feature (context for D5)

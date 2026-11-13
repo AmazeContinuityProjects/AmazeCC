@@ -1,3 +1,7 @@
+---
+title: "Clash Detection & Campus Schema Engine"
+---
+
 # Clash Detection & Campus Schema Engine
 
 This document explains how the **FFCS Timetable Tab** and the **Timetable Generator** detect and prevent course schedule clashes according to the campus schema.

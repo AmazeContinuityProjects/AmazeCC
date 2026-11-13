@@ -1,3 +1,8 @@
+---
+title: "Tasks & Pomodoro — Overview (walkthrough)"
+description: "everything on your plate this week, plus a timer that doesn't let you escape it."
+---
+
 # Tasks & Pomodoro — Overview (walkthrough)
 
 > **In one line:** everything on your plate this week, plus a timer that doesn't let you escape it.

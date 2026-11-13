@@ -1,3 +1,8 @@
+---
+title: "QBank — Architecture (deep)"
+description: "question bank of past papers — searchable, filterable by course/component — served from a curated static corpus, rendered with KaTeX math."
+---
+
 # QBank — Architecture (deep)
 
 > **In one line:** question bank of past papers — searchable, filterable by course/component — served from a curated static corpus, rendered with KaTeX math.

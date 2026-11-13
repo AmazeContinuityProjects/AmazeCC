@@ -1,3 +1,7 @@
+---
+title: "Atoms Catalog (all 59)"
+---
+
 # 04 — Atoms Catalog (all 59)
 
 > **Method:** count of `export const …Atom` under `src/store/*.ts(x)` at snapshot time — re-count

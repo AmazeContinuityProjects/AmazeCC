@@ -1,3 +1,8 @@
+---
+title: "The Credential Vault (Details)"
+description: "AES-256-GCM with a non-extractable key held only in IndexedDB — the page can _use_ stored credentials but cannot export them."
+---
+
 # 01 — The Credential Vault (Details)
 
 > **In one line:** AES-256-GCM with a non-extractable key held only in IndexedDB — the page can

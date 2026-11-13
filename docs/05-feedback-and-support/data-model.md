@@ -1,3 +1,7 @@
+---
+title: "Feedback — Data Model"
+---
+
 # Feedback — Data Model
 
 `FeedbackPayload = { category, summary, details, severity?, contact?, buildSha, replay? }`

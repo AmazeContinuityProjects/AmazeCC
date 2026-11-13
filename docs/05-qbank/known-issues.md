@@ -1,3 +1,7 @@
+---
+title: "QBank — Known Issues (full)"
+---
+
 # QBank — Known Issues (full)
 
 1. **Corpus lag** — new questions appear only in releases; "missing latest semester" is normal, not broken — check the release tag.

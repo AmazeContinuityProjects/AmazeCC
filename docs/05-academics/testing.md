@@ -1,3 +1,7 @@
+---
+title: "Academics — Testing"
+---
+
 # Academics — Testing
 
 > The intensity of testing is proportional to the financial anxiety of students on exam day.

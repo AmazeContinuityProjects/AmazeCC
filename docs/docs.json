@@ -5,7 +5,7 @@
     "groups": [
       {
         "group": "Start here · Web Foundation",
-        "root": "00-web-foundation/README",
+        "root": "00-web-foundation/index",
         "pages": [
           "00-web-foundation/01-what-a-web-app-is",
           "00-web-foundation/02-html-css-js",
@@ -24,7 +24,7 @@
       },
       {
         "group": "Start here · Getting Started",
-        "root": "01-getting-started/README",
+        "root": "01-getting-started/index",
         "pages": [
           "01-getting-started/01-prerequisites",
           "01-getting-started/02-clone-and-install",
@@ -39,7 +39,7 @@
       },
       {
         "group": "Start here · Architecture",
-        "root": "02-architecture/README",
+        "root": "02-architecture/index",
         "pages": [
           "02-architecture/01-runtime-topology",
           "02-architecture/02-the-one-page-app",
@@ -55,7 +55,7 @@
       },
       {
         "group": "Start here · Routing & Navigation",
-        "root": "03-routing/README",
+        "root": "03-routing/index",
         "pages": [
           "03-routing/01-next-routes",
           "03-routing/02-tab-router",
@@ -69,7 +69,7 @@
       },
       {
         "group": "Start here · App Shell",
-        "root": "04-app-shell/README",
+        "root": "04-app-shell/index",
         "pages": [
           "04-app-shell/01-main-tsx",
           "04-app-shell/02-home-entry-controller",
@@ -86,16 +86,16 @@
       },
       {
         "group": "Features · FFCS Planner",
-        "root": "05-ffcs-planner/README",
+        "root": "05-ffcs-planner/index",
         "pages": [
           "05-ffcs-planner/architecture",
           "05-ffcs-planner/data-model",
           "05-ffcs-planner/deep-dive-guided-selector",
           "05-ffcs-planner/history",
           "05-ffcs-planner/known-issues",
-          "05-ffcs-planner/notes/README",
           "05-ffcs-planner/notes/clash-detection-and-schema",
           "05-ffcs-planner/notes/embedded-course-pairing",
+          "05-ffcs-planner/notes/index",
           "05-ffcs-planner/notes/timetable-export-and-reviews",
           "05-ffcs-planner/overview",
           "05-ffcs-planner/storage-and-state",
@@ -105,7 +105,7 @@
       },
       {
         "group": "Features · Attendance",
-        "root": "05-attendance/README",
+        "root": "05-attendance/index",
         "pages": [
           "05-attendance/architecture",
           "05-attendance/data-model",
@@ -119,7 +119,7 @@
       },
       {
         "group": "Features · Academics",
-        "root": "05-academics/README",
+        "root": "05-academics/index",
         "pages": [
           "05-academics/architecture",
           "05-academics/data-model",
@@ -133,7 +133,7 @@
       },
       {
         "group": "Features · Marks Predictor",
-        "root": "05-marks-predictor/README",
+        "root": "05-marks-predictor/index",
         "pages": [
           "05-marks-predictor/architecture",
           "05-marks-predictor/data-model",
@@ -147,7 +147,7 @@
       },
       {
         "group": "Features · Free Classrooms",
-        "root": "05-free-classrooms/README",
+        "root": "05-free-classrooms/index",
         "pages": [
           "05-free-classrooms/architecture",
           "05-free-classrooms/data-model",
@@ -161,7 +161,7 @@
       },
       {
         "group": "Features · Marks & Cohort Stats",
-        "root": "05-marks-and-cohort/README",
+        "root": "05-marks-and-cohort/index",
         "pages": [
           "05-marks-and-cohort/architecture",
           "05-marks-and-cohort/data-model",
@@ -175,7 +175,7 @@
       },
       {
         "group": "Features · Timetable UI",
-        "root": "05-timetable-ui/README",
+        "root": "05-timetable-ui/index",
         "pages": [
           "05-timetable-ui/architecture",
           "05-timetable-ui/data-model",
@@ -189,7 +189,7 @@
       },
       {
         "group": "Features · FFCS Friends",
-        "root": "05-ffcs-friends/README",
+        "root": "05-ffcs-friends/index",
         "pages": [
           "05-ffcs-friends/architecture",
           "05-ffcs-friends/data-model",
@@ -203,7 +203,7 @@
       },
       {
         "group": "Features · Social",
-        "root": "05-social/README",
+        "root": "05-social/index",
         "pages": [
           "05-social/architecture",
           "05-social/data-model",
@@ -217,7 +217,7 @@
       },
       {
         "group": "Features · Friend Finder",
-        "root": "05-friend-finder/README",
+        "root": "05-friend-finder/index",
         "pages": [
           "05-friend-finder/architecture",
           "05-friend-finder/data-model",
@@ -232,7 +232,7 @@
       },
       {
         "group": "Features · Hostel",
-        "root": "05-hostel/README",
+        "root": "05-hostel/index",
         "pages": [
           "05-hostel/architecture",
           "05-hostel/data-model",
@@ -246,7 +246,7 @@
       },
       {
         "group": "Features · Libraries",
-        "root": "05-libraries/README",
+        "root": "05-libraries/index",
         "pages": [
           "05-libraries/architecture",
           "05-libraries/data-model",
@@ -260,7 +260,7 @@
       },
       {
         "group": "Features · Payments",
-        "root": "05-payments/README",
+        "root": "05-payments/index",
         "pages": [
           "05-payments/architecture",
           "05-payments/data-model",
@@ -274,7 +274,7 @@
       },
       {
         "group": "Features · Events & Clubs",
-        "root": "05-events-and-clubs/README",
+        "root": "05-events-and-clubs/index",
         "pages": [
           "05-events-and-clubs/architecture",
           "05-events-and-clubs/data-model",
@@ -288,7 +288,7 @@
       },
       {
         "group": "Features · Cab Share",
-        "root": "05-cab-share/README",
+        "root": "05-cab-share/index",
         "pages": [
           "05-cab-share/architecture",
           "05-cab-share/data-model",
@@ -302,7 +302,7 @@
       },
       {
         "group": "Features · Tasks & Pomodoro",
-        "root": "05-tasks-and-pomodoro/README",
+        "root": "05-tasks-and-pomodoro/index",
         "pages": [
           "05-tasks-and-pomodoro/architecture",
           "05-tasks-and-pomodoro/data-model",
@@ -316,7 +316,7 @@
       },
       {
         "group": "Features · QBank",
-        "root": "05-qbank/README",
+        "root": "05-qbank/index",
         "pages": [
           "05-qbank/architecture",
           "05-qbank/data-model",
@@ -330,7 +330,7 @@
       },
       {
         "group": "Features · Paper Scanner",
-        "root": "05-paper-scanner/README",
+        "root": "05-paper-scanner/index",
         "pages": [
           "05-paper-scanner/architecture",
           "05-paper-scanner/data-model",
@@ -344,7 +344,7 @@
       },
       {
         "group": "Features · Student Report",
-        "root": "05-student-report/README",
+        "root": "05-student-report/index",
         "pages": [
           "05-student-report/architecture",
           "05-student-report/data-model",
@@ -358,7 +358,7 @@
       },
       {
         "group": "Features · Settings & Profile",
-        "root": "05-settings-and-profile/README",
+        "root": "05-settings-and-profile/index",
         "pages": [
           "05-settings-and-profile/architecture",
           "05-settings-and-profile/data-model",
@@ -372,7 +372,7 @@
       },
       {
         "group": "Features · Notifications & Push",
-        "root": "05-notifications-and-push/README",
+        "root": "05-notifications-and-push/index",
         "pages": [
           "05-notifications-and-push/architecture",
           "05-notifications-and-push/data-model",
@@ -386,7 +386,7 @@
       },
       {
         "group": "Features · Feedback & Support",
-        "root": "05-feedback-and-support/README",
+        "root": "05-feedback-and-support/index",
         "pages": [
           "05-feedback-and-support/architecture",
           "05-feedback-and-support/data-model",
@@ -400,7 +400,7 @@
       },
       {
         "group": "Features · Changelog & About",
-        "root": "05-changelog-and-about/README",
+        "root": "05-changelog-and-about/index",
         "pages": [
           "05-changelog-and-about/architecture",
           "05-changelog-and-about/data-model",
@@ -414,7 +414,7 @@
       },
       {
         "group": "Features · About & Licensing",
-        "root": "05-about-and-licensing/README",
+        "root": "05-about-and-licensing/index",
         "pages": [
           "05-about-and-licensing/architecture",
           "05-about-and-licensing/data-model",
@@ -428,7 +428,7 @@
       },
       {
         "group": "Features · Onboarding",
-        "root": "05-onboarding/README",
+        "root": "05-onboarding/index",
         "pages": [
           "05-onboarding/architecture",
           "05-onboarding/data-model",
@@ -442,7 +442,7 @@
       },
       {
         "group": "Features · Guest Landing",
-        "root": "05-guest-landing/README",
+        "root": "05-guest-landing/index",
         "pages": [
           "05-guest-landing/architecture",
           "05-guest-landing/data-model",
@@ -456,7 +456,7 @@
       },
       {
         "group": "Systems · Sync Engine",
-        "root": "06-sync-engine/README",
+        "root": "06-sync-engine/index",
         "pages": [
           "06-sync-engine/01-overview",
           "06-sync-engine/02-request-layer",
@@ -478,7 +478,7 @@
       },
       {
         "group": "Systems · Data Layer",
-        "root": "07-data-layer/README",
+        "root": "07-data-layer/index",
         "pages": [
           "07-data-layer/01-storage-overview",
           "07-data-layer/02-storage.ts-catalog",
@@ -495,7 +495,7 @@
       },
       {
         "group": "Systems · PWA Platform",
-        "root": "08-pwa-platform/README",
+        "root": "08-pwa-platform/index",
         "pages": [
           "08-pwa-platform/01-service-worker",
           "08-pwa-platform/02-manifests",
@@ -511,7 +511,7 @@
       },
       {
         "group": "Systems · Testing",
-        "root": "09-testing/README",
+        "root": "09-testing/index",
         "pages": [
           "09-testing/01-vitest-config",
           "09-testing/02-running-suites",
@@ -527,7 +527,7 @@
       },
       {
         "group": "Operations · Tooling & CI",
-        "root": "10-tooling-and-ci/README",
+        "root": "10-tooling-and-ci/index",
         "pages": [
           "10-tooling-and-ci/01-pnpm-and-workspace",
           "10-tooling-and-ci/02-scripts",
@@ -542,7 +542,7 @@
       },
       {
         "group": "Operations · Security",
-        "root": "11-security/README",
+        "root": "11-security/index",
         "pages": [
           "11-security/01-credential-vault-details",
           "11-security/02-never-share-we-respect",
@@ -555,7 +555,7 @@
       },
       {
         "group": "Operations · Operations",
-        "root": "12-operations/README",
+        "root": "12-operations/index",
         "pages": [
           "12-operations/01-github-pages-operations",
           "12-operations/02-changelog-flow",
@@ -567,7 +567,7 @@
       },
       {
         "group": "Operations · Troubleshooting",
-        "root": "13-troubleshooting/README",
+        "root": "13-troubleshooting/index",
         "pages": [
           "13-troubleshooting/01-sync-fails",
           "13-troubleshooting/02-blank-or-stale-app",
@@ -580,16 +580,14 @@
       },
       {
         "group": "Reference · Design Notes",
-        "root": "20-design-notes/README",
-        "pages": [
-          "20-design-notes/naming-and-history"
-        ]
+        "root": "20-design-notes/index",
+        "pages": ["20-design-notes/naming-and-history"]
       },
       {
         "group": "Reference · Reference",
-        "root": "99-reference/README",
+        "root": "99-reference/index",
         "pages": [
-          "99-reference/academy/README",
+          "99-reference/academy/index",
           "99-reference/academy/marks-grading-mechanics",
           "99-reference/academy/timetable-slot-algebra",
           "99-reference/academy/vtop-scraping-primer",
@@ -599,7 +597,7 @@
           "99-reference/decisions/0004-marks-sync-model",
           "99-reference/decisions/0005-service-worker-policy",
           "99-reference/decisions/0006-unicc-fallback",
-          "99-reference/decisions/README",
+          "99-reference/decisions/index",
           "99-reference/dependency-catalog",
           "99-reference/env-var-reference",
           "99-reference/glossary",
@@ -609,15 +607,11 @@
       },
       {
         "group": "Reference · Contributing",
-        "pages": [
-          "contributing/code-of-conduct",
-          "contributing/pull-request-guide",
-          "contributing/style-guide"
-        ]
+        "pages": ["contributing/code-of-conduct", "contributing/pull-request-guide", "contributing/style-guide"]
       },
       {
         "group": "Archive (historical)",
-        "root": "archive/FFCSketch-Comparison/README",
+        "root": "archive/index",
         "pages": [
           "archive/FFCSketch-Comparison/00-summary",
           "archive/FFCSketch-Comparison/01-architecture",
@@ -627,7 +621,7 @@
           "archive/FFCSketch-Comparison/05-share-export-import",
           "archive/FFCSketch-Comparison/06-quality-and-testing",
           "archive/FFCSketch-Comparison/07-strengths-gaps-porting",
-          "archive/README",
+          "archive/FFCSketch-Comparison/index",
           "archive/api/academic",
           "archive/api/admin",
           "archive/api/auth",
@@ -650,7 +644,7 @@
           "archive/friend-finder-plans/01-api-changes",
           "archive/friend-finder-plans/02-app-changes",
           "archive/friend-finder-plans/03-build-phases",
-          "archive/friend-finder-plans/README",
+          "archive/friend-finder-plans/index",
           "archive/mobile-friendliness-plan",
           "archive/oct-21-2026/ffcs-fixes/PLAN",
           "archive/plan-1/attendance-overview",
@@ -688,13 +682,13 @@
           "archive/social-tt/11-ui-redesign",
           "archive/social-tt/12-migration-plan",
           "archive/social-tt/13-open-questions",
-          "archive/social-tt/README",
+          "archive/social-tt/index",
           "archive/student-report/01-data-inventory",
           "archive/student-report/02-report-contents",
           "archive/student-report/03-visual-and-export",
           "archive/student-report/04-calculations-and-provenance",
           "archive/student-report/05-privacy-and-inclusion",
-          "archive/student-report/README",
+          "archive/student-report/index",
           "archive/sync-engine/00-overview",
           "archive/sync-engine/01-current-state",
           "archive/sync-engine/02-architecture",

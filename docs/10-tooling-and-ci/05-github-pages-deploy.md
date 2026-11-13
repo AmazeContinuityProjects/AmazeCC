@@ -1,3 +1,8 @@
+---
+title: "Deploying to GitHub Pages (nextjs.yml)"
+description: "on every push to main, build → upload artifact → deploy to Pages; the site is static files, there is no server to restart."
+---
+
 # 05 — Deploying to GitHub Pages (nextjs.yml)
 
 > **In one line:** on every push to main, build → upload artifact → deploy to Pages; the site is static files, there is no server to restart.

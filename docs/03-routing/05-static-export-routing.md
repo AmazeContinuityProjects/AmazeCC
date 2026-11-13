@@ -1,3 +1,8 @@
+---
+title: "Static-Export Routing Quirks"
+description: "GitHub Pages can't redirect or rewrite — so every URL in this app ends in / and every route ships as index.html inside a folder."
+---
+
 # 05 — Static-Export Routing Quirks
 
 > **In one line:** GitHub Pages can't redirect or rewrite — so every URL in this app ends in `/`

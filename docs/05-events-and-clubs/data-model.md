@@ -1,3 +1,7 @@
+---
+title: "Events & Clubs — Data Model"
+---
+
 # Events & Clubs — Data Model
 
 `EventHubEvent = { id, title, club, venue, date, tags[], certificateEligible, registered, receipt? }`

@@ -1,3 +1,7 @@
+---
+title: "Suite Map (all 205 test files)"
+---
+
 # 07 — Suite Map (all 205 test files)
 
 > One line per suite, grouped by family. Regenerate with `node grounding/suite-map.mjs`.

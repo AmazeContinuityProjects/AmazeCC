@@ -1,11 +1,15 @@
+---
+title: "Feature inventory"
+---
+
 > ⚠️ **ARCHIVED — historical context, not authoritative.**
 > This file was moved to `docs/archive/` during the handoff docs rebuild. It may describe
 > a previous architecture. If it contradicts the code in `src/` or the live `docs/`, the code wins.
-> See `docs/README.md` for current documentation.
+> See `docs/index.md` for current documentation.
 
 # 04 — Feature inventory
 
-> Part of the [FFCSketch vs AmazeCC FFCS comparison](./README.md). Scan date 2026-10-30.
+> Part of the [FFCSketch vs AmazeCC FFCS comparison](./index.md). Scan date 2026-10-30.
 > Legend: ✅ full · ⚠️ partial/limited · ❌ absent · — not applicable
 
 ## 1. Manual planning

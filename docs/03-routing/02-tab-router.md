@@ -1,3 +1,8 @@
+---
+title: "The Tab Router (client-side screens)"
+description: "jotai atoms decide which feature screen is mounted; DashboardRoute gates them; nothing here is a URL — the whole signed-in app lives behind /."
+---
+
 # 02 — The Tab Router (client-side screens)
 
 > **In one line:** jotai atoms decide which feature screen is mounted; `DashboardRoute` gates

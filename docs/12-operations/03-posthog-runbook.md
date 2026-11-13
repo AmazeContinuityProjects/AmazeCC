@@ -1,3 +1,8 @@
+---
+title: "PostHog Runbook"
+description: "errors and crashes land in PostHog — find the fire or confirm the peace."
+---
+
 # 03 — PostHog Runbook
 
 > **In one line:** errors and crashes land in PostHog — find the fire or confirm the peace.

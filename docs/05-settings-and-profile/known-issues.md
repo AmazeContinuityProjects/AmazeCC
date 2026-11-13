@@ -1,3 +1,7 @@
+---
+title: "Settings & Profile — Known Issues (full)"
+---
+
 # Settings & Profile — Known Issues (full)
 
 1. **Forget credentials doesn't forget data** (by design) — users expecting a nuke are surprised; the sheet says so.

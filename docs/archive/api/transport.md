@@ -1,7 +1,11 @@
+---
+title: "Transport Endpoints"
+---
+
 > ⚠️ **ARCHIVED — historical context, not authoritative.**
 > This file was moved to `docs/archive/` during the handoff docs rebuild. It may describe
 > a previous architecture. If it contradicts the code in `src/` or the live `docs/`, the code wins.
-> See `docs/README.md` for current documentation.
+> See `docs/index.md` for current documentation.
 
 # Transport Endpoints
 

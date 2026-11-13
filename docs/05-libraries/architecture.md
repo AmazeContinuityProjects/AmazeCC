@@ -1,3 +1,8 @@
+---
+title: "Libraries — Architecture (deep)"
+description: "OPAC via Koha — public catalog search anyone can use; patron account only with VTOP — both readable, neither writable."
+---
+
 # Libraries — Architecture (deep)
 
 > **In one line:** OPAC via Koha — public catalog search anyone can use; patron account only with VTOP — both readable, neither writable.

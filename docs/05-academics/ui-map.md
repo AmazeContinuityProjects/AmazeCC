@@ -1,3 +1,7 @@
+---
+title: "Academics — UI Map (annotated, with line counts)"
+---
+
 # Academics — UI Map (annotated, with line counts)
 
 | File                                | ~Lines | Job                                                                                          |

@@ -1,3 +1,8 @@
+---
+title: "Caches & Their TTLs"
+description: "every cache_* key has exactly one owner and one refresh trigger — this is the table. If a key isn't here, it's not a cache, it's state (see 04-atoms-catalog.md)."
+---
+
 # 08 — Caches & Their TTLs
 
 > **In one line:** every `cache_*` key has exactly one owner and one refresh trigger — this is

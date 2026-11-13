@@ -1,3 +1,7 @@
+---
+title: "Startup, storage & data fetching"
+---
+
 # Startup, storage & data fetching
 
 **Severity: MEDIUM-HIGH** — blocks the main thread on cold start and on every login/reload.
@@ -14,6 +18,7 @@ the critical startup window, delaying first paint/interactivity.
 Frequent `JSON.parse`/`JSON.stringify` of big objects inside render paths is a measurable cost.
 
 Recommendations:
+
 - Read storage **once** during a single hydration pass and feed Jotai atoms; avoid per-component
   `localStorage.getItem` in render.
 - Debounce writes; avoid writing large objects on every keystroke (e.g. `notesTracker`,
@@ -34,6 +39,7 @@ primary path `await Promise.all(tasks)` blocks the reload banner from clearing u
 settles. Combined with the artificial 2.4 s splash, the **perceived** reload time is long.
 
 Recommendations:
+
 - Prioritize the data needed for the visible tab; defer the rest (already partially done via the
   background IIFE at `Main.tsx:477-494`). Extend that pattern to the bulk endpoints.
 - Show progressive UI as each dataset arrives instead of one spinner.

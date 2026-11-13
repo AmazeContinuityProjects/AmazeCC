@@ -1,3 +1,8 @@
+---
+title: "Settings & Profile — Architecture (deep)"
+description: "~70 settings fields migrated forward per release — settingsAtom is the single mutable store; every screen reads its slice; no field deletes."
+---
+
 # Settings & Profile — Architecture (deep)
 
 > **In one line:** ~70 settings fields migrated forward per release — settingsAtom is the single mutable store; every screen reads its slice; no field deletes.

@@ -1,3 +1,7 @@
+---
+title: "ADR-0002: Client-Side VTOP Authentication"
+---
+
 # ADR-0002: Client-Side VTOP Authentication
 
 **Status:** accepted

@@ -1,3 +1,8 @@
+---
+title: "Writing a Unit Test"
+description: "test behavior and values, not mocks of internals."
+---
+
 # 03 — Writing a Unit Test
 
 > **In one line:** test behavior and values, not mocks of internals.

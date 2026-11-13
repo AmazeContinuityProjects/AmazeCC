@@ -1,3 +1,7 @@
+---
+title: "Caching strategy (cache every route after the initial load)"
+---
+
 # Caching strategy (cache every route after the initial load)
 
 Companion to `routing-architecture.md`. Assumes tabs become real routes and we want every route's
@@ -8,12 +12,12 @@ Serwist (`next.config.mjs:18-23`, `src/app/sw.ts`).
 
 ## 1. Two caching layers
 
-| Layer | What | Mechanism |
-|---|---|---|
-| **Build-time precache** | App shell + home route chunks | Serwist `self.__SW_MANIFEST` (automatic) |
+| Layer                               | What                                    | Mechanism                                                               |
+| ----------------------------------- | --------------------------------------- | ----------------------------------------------------------------------- |
+| **Build-time precache**             | App shell + home route chunks           | Serwist `self.__SW_MANIFEST` (automatic)                                |
 | **Runtime cache (warm after init)** | Every other route's JS/CSS + their data | `router.prefetch()` during idle + Serwist `defaultCache` (`cacheFirst`) |
 
-We deliberately do **not** precache every route's HTML at SW *install* time (would bloat install and
+We deliberately do **not** precache every route's HTML at SW _install_ time (would bloat install and
 delay activation). Instead we precache the shell, then **warm** the rest in the background.
 
 ---
@@ -28,15 +32,28 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 const ROUTES = [
-  "/", "/attendance", "/academics", "/tools", "/hostel", "/cabshare",
-  "/dayscholar", "/transport", "/payments", "/libraries", "/more",
-  "/profile", "/about",
+  "/",
+  "/attendance",
+  "/academics",
+  "/tools",
+  "/hostel",
+  "/cabshare",
+  "/dayscholar",
+  "/transport",
+  "/payments",
+  "/libraries",
+  "/more",
+  "/profile",
+  "/about",
 ];
 
 function warmRoutes(router: ReturnType<typeof useRouter>) {
-  const run = () => ROUTES.forEach((r) => {
-    try { router.prefetch(r); } catch {}
-  });
+  const run = () =>
+    ROUTES.forEach((r) => {
+      try {
+        router.prefetch(r);
+      } catch {}
+    });
   // Prefetch after first idle; don't compete with initial render.
   if ("requestIdleCallback" in window) (window as any).requestIdleCallback(run, { timeout: 5000 });
   else setTimeout(run, 3000);
@@ -44,12 +61,15 @@ function warmRoutes(router: ReturnType<typeof useRouter>) {
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  useEffect(() => { warmRoutes(router); }, [router]);
+  useEffect(() => {
+    warmRoutes(router);
+  }, [router]);
   // ...
 }
 ```
 
 Why this works:
+
 - `router.prefetch(route)` downloads that route's JS chunk (and its RSC payload). With `output: 'export'`
   the payload is tiny; it's the JS chunk that matters.
 - Serwist's `defaultCache` (`src/app/sw.ts:30`, from `@serwist/next/worker`) caches `_next/static/*`
@@ -72,14 +92,14 @@ Recommended changes:
    with the `fetch` event → faster FCP on repeat visits. Requires the server to send
    `Service-Worker-Navigation-Preload` aware responses (static export does; safe to enable).
 
-2. **Keep `cacheOnNavigation: false`** in `next.config.mjs`. We do *not* want every route HTML in the
+2. **Keep `cacheOnNavigation: false`** in `next.config.mjs`. We do _not_ want every route HTML in the
    precache list at install. The idle `router.prefetch` + runtime cache covers it. (If you prefer true
-   offline deep-linking of *every* route from a cold start, flip this to `true` — but accept a larger
+   offline deep-linking of _every_ route from a cold start, flip this to `true` — but accept a larger
    SW install.)
 
 3. **Add a navigation fallback that serves cached HTML when offline.** Extend `fallbacks.entries`
    (`sw.ts:31-40`) with a matcher that returns the cached route HTML for `request.destination ===
-   "document"` when the network fails — so a deep-linked `/attendance` opened offline still renders
+"document"` when the network fails — so a deep-linked `/attendance` opened offline still renders
    from cache. Serwist already caches navigations at runtime via `defaultCache`; this just guarantees a
    document fallback instead of the generic `/~offline/`.
 
@@ -96,13 +116,13 @@ Recommended changes:
 
 ## 4. Data caching (so routes are useful offline)
 
-Route chunks being cached is only half the story — the *data* must also be available. It already is:
+Route chunks being cached is only half the story — the _data_ must also be available. It already is:
 data lives in global Jotai atoms hydrated from `localStorage` (`Main.tsx:316-376`, `storage.ts`). So a
 prefetched, cached `/attendance` route, opened offline, will render from the `localStorage` cache just
 like today. No extra work needed beyond what `startup.md` already recommends (centralize hydration,
 debounce writes).
 
-Optional: also cache API responses in the SW (they are `POST` to `API_BASE`, currently *not* cached by
+Optional: also cache API responses in the SW (they are `POST` to `API_BASE`, currently _not_ cached by
 `defaultCache` which targets GET). Not required for the "feels fast" goal — login/reload is inherently
 online; only the cached view needs to be instant.
 
@@ -123,5 +143,5 @@ online; only the cached view needs to be instant.
 - **Stale chunks after deploy:** mitigated by `clientsClaim/skipWaiting` (§3.4) + Serwist's content-hashed
   filenames (new hash ⇒ new cache entry; old evicted).
 - **Prefetch competing with first interaction:** guarded by `requestIdleCallback` + `timeout`.
-- **Larger SW install if `cacheOnNavigation` flipped:** only if you choose offline deep-link of *all*
+- **Larger SW install if `cacheOnNavigation` flipped:** only if you choose offline deep-link of _all_
   routes from cold start; default recommendation keeps it `false`.

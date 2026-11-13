@@ -1,3 +1,7 @@
+---
+title: "Timetable UI — Known Issues (full)"
+---
+
 # Timetable UI — Known Issues (full)
 
 1. **Classic mode is a time capsule.** The export PDFs depend on its exact pixel layout — do not modernize.

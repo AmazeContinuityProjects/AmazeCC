@@ -1,3 +1,7 @@
+---
+title: "Payments — Known Issues (full)"
+---
+
 # Payments — Known Issues (full)
 
 1. **Portal downtime during fee windows** — finance tab must say "portal busy" with retry, never blank totals or $0 due.

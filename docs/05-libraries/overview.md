@@ -1,3 +1,8 @@
+---
+title: "Libraries — Overview (walkthrough)"
+description: "your library life — search, find, check what you owe — without opening the library portal."
+---
+
 # Libraries — Overview (walkthrough)
 
 > **In one line:** your library life — search, find, check what you owe — without opening the library portal.

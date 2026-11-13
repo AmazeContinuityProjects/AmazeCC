@@ -1,3 +1,7 @@
+---
+title: "FFCS Planner — Storage & State (complete)"
+---
+
 # FFCS Planner — Storage & State (complete)
 
 > Every `ffcs_*` key this feature reads or writes, plus the two families that hold FFCS data

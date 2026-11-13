@@ -1,3 +1,8 @@
+---
+title: "Reporting a Security Issue"
+description: "email the maintainers, not the issue tracker; we fix silently before we announce."
+---
+
 # 07 — Reporting a Security Issue
 
 > **In one line:** email the maintainers, not the issue tracker; we fix silently before we announce.

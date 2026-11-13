@@ -1,3 +1,7 @@
+---
+title: "FFCS Friends — Known Issues (full)"
+---
+
 # FFCS Friends — Known Issues (full)
 
 1. **Handle collision banner** — if a peer changes their handle, old pairs silently stop refreshing; manual re-add required.

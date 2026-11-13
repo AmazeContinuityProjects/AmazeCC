@@ -1,8 +1,13 @@
+---
+title: "Style Guide"
+---
+
 # Style Guide
 
 ## TypeScript
 
 ### General
+
 - Use TypeScript strict mode
 - Prefer `interface` over `type` for object shapes
 - Use `type` for unions, primitives, and complex types
@@ -12,80 +17,84 @@
 ```typescript
 // Good
 interface User {
-  id: string
-  name: string
-  email?: string
+  id: string;
+  name: string;
+  email?: string;
 }
 
-type Status = 'loading' | 'success' | 'error'
+type Status = "loading" | "success" | "error";
 
-const COLORS = ['red', 'blue', 'green'] as const
+const COLORS = ["red", "blue", "green"] as const;
 
 // Avoid
-const data: any = fetchData()
+const data: any = fetchData();
 ```
 
 ### Naming Conventions
-| Entity | Convention | Example |
-|--------|------------|---------|
-| Variables/Functions | camelCase | `userName`, `getUserData` |
-| Classes/Interfaces | PascalCase | `User`, `ApiClient` |
-| Types | PascalCase | `UserData`, `ApiResponse` |
-| Constants | UPPER_SNAKE_CASE | `MAX_RETRIES`, `API_BASE_URL` |
-| Files | kebab-case | `api-client.ts`, `user-profile.tsx` |
-| Components | PascalCase | `UserProfile.tsx` |
-| Hooks | camelCase + use | `useUserData`, `useAuth` |
+
+| Entity              | Convention       | Example                             |
+| ------------------- | ---------------- | ----------------------------------- |
+| Variables/Functions | camelCase        | `userName`, `getUserData`           |
+| Classes/Interfaces  | PascalCase       | `User`, `ApiClient`                 |
+| Types               | PascalCase       | `UserData`, `ApiResponse`           |
+| Constants           | UPPER_SNAKE_CASE | `MAX_RETRIES`, `API_BASE_URL`       |
+| Files               | kebab-case       | `api-client.ts`, `user-profile.tsx` |
+| Components          | PascalCase       | `UserProfile.tsx`                   |
+| Hooks               | camelCase + use  | `useUserData`, `useAuth`            |
 
 ### Imports
+
 ```typescript
 // External first
-import { useState, useEffect } from 'react'
-import { z } from 'zod'
+import { useState, useEffect } from "react";
+import { z } from "zod";
 
 // Internal with @/ alias
-import { apiClient } from '@/lib/api-client'
-import { User } from '@/types/user'
+import { apiClient } from "@/lib/api-client";
+import { User } from "@/types/user";
 
 // Relative last
-import { Button } from './Button'
-import { utils } from '../lib/utils'
+import { Button } from "./Button";
+import { utils } from "../lib/utils";
 ```
 
 ### Type Definitions
+
 ```typescript
 // API Responses
 interface ApiResponse<T> {
-  data: T
+  data: T;
   meta: {
-    cached: boolean
-    timestamp: string
-  }
+    cached: boolean;
+    timestamp: string;
+  };
 }
 
 // Component Props
 interface ButtonProps {
-  variant?: 'primary' | 'secondary' | 'outline'
-  size?: 'sm' | 'md' | 'lg'
-  onClick?: () => void
-  children: React.ReactNode
-  className?: string
+  variant?: "primary" | "secondary" | "outline";
+  size?: "sm" | "md" | "lg";
+  onClick?: () => void;
+  children: React.ReactNode;
+  className?: string;
 }
 
 // Use generics for reusable types
 interface PaginatedResponse<T> {
-  data: T[]
+  data: T[];
   pagination: {
-    page: number
-    limit: number
-    total: number
-    totalPages: number
-  }
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 }
 ```
 
 ## React
 
 ### Component Structure
+
 ```typescript
 'use client'
 
@@ -96,11 +105,11 @@ interface ComponentNameProps {
   // Required props first
   title: string
   data: DataItem[]
-  
+
   // Optional props with defaults
   variant?: 'default' | 'compact'
   onAction?: (id: string) => void
-  
+
   // Standard props last
   className?: string
   children?: React.ReactNode
@@ -115,11 +124,11 @@ export const ComponentName = memo(function ComponentName({
   children
 }: ComponentNameProps) {
   const [localState, setLocalState] = useState(initialValue)
-  
+
   const handleClick = useCallback((id: string) => {
     onAction?.(id)
   }, [onAction])
-  
+
   return (
     <div className={cn('base-styles', variantStyles[variant], className)}>
       <h2>{title}</h2>
@@ -137,6 +146,7 @@ ComponentName.displayName = 'ComponentName'
 ```
 
 ### Client vs Server Components
+
 - **Default**: Server Components (no `'use client'`)
 - **Add `'use client'`** when using:
   - Hooks (`useState`, `useEffect`, `useContext`)
@@ -145,6 +155,7 @@ ComponentName.displayName = 'ComponentName'
   - Custom hooks that use the above
 
 ### Hooks
+
 ```typescript
 // Custom hook naming
 function useAttendance(semester?: string) {
@@ -157,11 +168,12 @@ return {
   isLoading,
   isError,
   error,
-  refresh: mutate
-}
+  refresh: mutate,
+};
 ```
 
 ### State Management
+
 - **Local state**: `useState`, `useReducer`
 - **Context**: For global state (auth, theme, data)
 - **Server state**: SWR/React Query via custom hooks
@@ -170,6 +182,7 @@ return {
 ## Styling (Tailwind CSS v4)
 
 ### Class Organization
+
 ```typescript
 // Logical grouping
 <div className={cn(
@@ -195,7 +208,9 @@ return {
 ```
 
 ### Design Tokens
+
 Use CSS variables from `globals.css`:
+
 ```css
 /* Available variables */
 --color-primary
@@ -213,6 +228,7 @@ Use CSS variables from `globals.css`:
 ```
 
 ### Dark Mode
+
 ```typescript
 // Automatic via class strategy
 <div className="bg-background text-foreground">
@@ -224,6 +240,7 @@ Use CSS variables from `globals.css`:
 ```
 
 ### Responsive
+
 ```typescript
 // Mobile-first
 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -232,6 +249,7 @@ Use CSS variables from `globals.css`:
 ## API Design
 
 ### Endpoint Structure
+
 ```
 GET    /api/resource           # List
 POST   /api/resource           # Create
@@ -242,27 +260,26 @@ DELETE /api/resource/:id       # Delete
 ```
 
 ### Request Validation
+
 ```typescript
 // Zod schemas
 const createResourceSchema = z.object({
   name: z.string().min(1).max(100),
   description: z.string().optional(),
-  category: z.enum(['A', 'B', 'C']),
-  tags: z.array(z.string()).optional()
-})
+  category: z.enum(["A", "B", "C"]),
+  tags: z.array(z.string()).optional(),
+});
 
 // In route handler
-const body = await request.json()
-const result = createResourceSchema.safeParse(body)
+const body = await request.json();
+const result = createResourceSchema.safeParse(body);
 if (!result.success) {
-  return NextResponse.json(
-    { error: 'VALIDATION_ERROR', details: result.error.flatten() },
-    { status: 400 }
-  )
+  return NextResponse.json({ error: "VALIDATION_ERROR", details: result.error.flatten() }, { status: 400 });
 }
 ```
 
 ### Response Format
+
 ```typescript
 // Success
 {
@@ -290,20 +307,22 @@ if (!result.success) {
 ```
 
 ### Error Codes
-| Code | HTTP | Description |
-|------|------|-------------|
-| `VALIDATION_ERROR` | 400 | Invalid request body/query |
-| `UNAUTHORIZED` | 401 | Missing/invalid token |
-| `FORBIDDEN` | 403 | Insufficient permissions |
-| `NOT_FOUND` | 404 | Resource doesn't exist |
-| `CONFLICT` | 409 | Resource conflict |
-| `RATE_LIMITED` | 429 | Too many requests |
-| `VTOP_UNAVAILABLE` | 503 | VTOP portal down |
-| `INTERNAL_ERROR` | 500 | Unexpected server error |
+
+| Code               | HTTP | Description                |
+| ------------------ | ---- | -------------------------- |
+| `VALIDATION_ERROR` | 400  | Invalid request body/query |
+| `UNAUTHORIZED`     | 401  | Missing/invalid token      |
+| `FORBIDDEN`        | 403  | Insufficient permissions   |
+| `NOT_FOUND`        | 404  | Resource doesn't exist     |
+| `CONFLICT`         | 409  | Resource conflict          |
+| `RATE_LIMITED`     | 429  | Too many requests          |
+| `VTOP_UNAVAILABLE` | 503  | VTOP portal down           |
+| `INTERNAL_ERROR`   | 500  | Unexpected server error    |
 
 ## File Organization
 
 ### Component Files
+
 ```
 ComponentName/
 ├── ComponentName.tsx       # Main component
@@ -315,12 +334,14 @@ ComponentName/
 ```
 
 ### Hook Files
+
 ```
 useHookName.ts              # Hook implementation
 useHookName.test.ts         # Tests
 ```
 
 ### Utility Files
+
 ```
 utils.ts                    # General utilities
 api-client.ts               # API client
@@ -331,6 +352,7 @@ string-utils.ts             # String helpers
 ## Git
 
 ### Branches
+
 ```
 main                    # Production
 develop                 # Development (if used)
@@ -345,7 +367,9 @@ release/v1.2.0
 ```
 
 ### Commits
+
 Follow [Conventional Commits](https://www.conventionalcommits.org/):
+
 ```
 <type>[optional scope]: <description>
 
@@ -359,6 +383,7 @@ Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`, `bui
 ## Documentation
 
 ### Code Comments
+
 - **Don't** comment obvious code
 - **Do** comment complex logic, business rules, workarounds
 - Use JSDoc for public APIs
@@ -371,12 +396,13 @@ Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`, `bui
  * @returns Percentage (0-100)
  */
 function calculatePercentage(attended: number, total: number): number {
-  if (total === 0) return 100
-  return Math.round((attended / total) * 100)
+  if (total === 0) return 100;
+  return Math.round((attended / total) * 100);
 }
 ```
 
 ### README/MD Files
+
 - Clear headings
 - Code blocks with language
 - Tables for structured data
@@ -385,16 +411,19 @@ function calculatePercentage(attended: number, total: number): number {
 ## Linting & Formatting
 
 ### ESLint
+
 ```bash
 pnpm lint          # Check
 pnpm lint:fix      # Auto-fix
 ```
 
 ### Prettier
+
 - Runs via ESLint (prettier plugin)
 - Configured in `eslint.config.mjs`
 
 ### TypeScript
+
 ```bash
 pnpm typecheck     # tsc --noEmit
 ```
@@ -402,6 +431,7 @@ pnpm typecheck     # tsc --noEmit
 ## Performance
 
 ### Do
+
 - Use `memo` for components
 - Use `useMemo`/`useCallback` for expensive computations
 - Lazy load heavy components
@@ -409,6 +439,7 @@ pnpm typecheck     # tsc --noEmit
 - Use proper cache headers
 
 ### Don't
+
 - Inline object creation in render
 - Anonymous functions in JSX props
 - Unnecessary re-renders
@@ -417,6 +448,7 @@ pnpm typecheck     # tsc --noEmit
 ## Accessibility
 
 ### Required
+
 - Semantic HTML
 - Alt text for images
 - Focus indicators
@@ -425,6 +457,7 @@ pnpm typecheck     # tsc --noEmit
 - ARIA labels where needed
 
 ### Testing
+
 ```bash
 # Test with screen reader
 # Tab through all interactive elements

@@ -1,3 +1,7 @@
+---
+title: "ADR-0003: jotai Atoms + localStorage Cache (not one global store)"
+---
+
 # ADR-0003: jotai Atoms + localStorage Cache (not one global store)
 
 **Status:** accepted

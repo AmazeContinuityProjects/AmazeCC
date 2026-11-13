@@ -1,3 +1,8 @@
+---
+title: "Sync Modes"
+description: "named, ordered lists of ops — Quick (attendance only) … Balanced … Full — and everything in between, including user-built customs."
+---
+
 # 05 — Sync Modes
 
 > **In one line:** named, ordered lists of ops — Quick (attendance only) … Balanced … Full — and

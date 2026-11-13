@@ -1,3 +1,7 @@
+---
+title: "Network, fonts & images"
+---
+
 # Network, fonts & images
 
 **Severity: MEDIUM** — render-blocking resources delay first paint; images are unoptimized.
@@ -5,11 +9,13 @@
 ## 1. Render-blocking Google Fonts via `<link>`
 
 `src/app/layout.tsx:53-55`:
+
 ```tsx
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:...&family=Geist:...&family=Geist+Mono:...&display=swap" rel="stylesheet" />
 ```
+
 Three font families (DM Sans, Geist, Geist Mono) are loaded synchronously in `<head>` with a blocking
 stylesheet. This delays First Contentful Paint and causes a flash of invisible text (FOIT) until the
 CSS + woff2 files arrive. There is `preconnect` but **no `preload`** for the actual font files.
@@ -26,6 +32,7 @@ Only two components use `next/image` (`exams/MarksDisplay.tsx:6`, `NoContentFoun
 else relies on plain `<img>`. With `unoptimized: true`, even those get no resizing/format conversion.
 Large remote images (avatar/logo) are served at full size. Because this is a static export there is
 no Next image server, but you can still:
+
 - Use `next/image` with a CDN that supports on-the-fly optimization, or
 - Pre-compress/resize assets in `public/` and reference sized variants.
 

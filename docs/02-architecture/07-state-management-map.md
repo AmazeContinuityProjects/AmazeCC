@@ -1,3 +1,8 @@
+---
+title: "State Management Map (jotai atoms, catalog style)"
+description: "59 atoms in five files, written mostly by the sync engine, read by every screen, rehydrated from localStorage on boot."
+---
+
 # 07 — State Management Map (jotai atoms, catalog style)
 
 > **In one line:** 59 atoms in five files, written mostly by the sync engine, read by every

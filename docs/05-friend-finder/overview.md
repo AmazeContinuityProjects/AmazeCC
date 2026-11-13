@@ -1,3 +1,8 @@
+---
+title: "Friend Finder — Overview (walkthrough)"
+description: '"find other students in my course" — verified, class-id matched, privacy-first.'
+---
+
 # Friend Finder — Overview (walkthrough)
 
 > **In one line:** "find other students in my course" — verified, class-id matched, privacy-first.

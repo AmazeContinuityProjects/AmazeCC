@@ -1,3 +1,7 @@
+---
+title: "Marks & Cohort — Known Issues (full)"
+---
+
 # Marks & Cohort — Known Issues (full)
 
 1. **σ is "learned at the seams".** Until ~8 receipts exist the server returns "not enough data" and the UI honestly says so.

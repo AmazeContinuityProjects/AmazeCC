@@ -1,3 +1,8 @@
+---
+title: "Offline Strategy"
+description: "the app _opens_ offline; it just doesn't know anything new happened. That's the honest contract."
+---
+
 # 03 — Offline Strategy
 
 > **In one line:** the app _opens_ offline; it just doesn't know anything new happened. That's the honest contract.

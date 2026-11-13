@@ -1,3 +1,8 @@
+---
+title: "Writing a Component Test"
+description: "render with Testing Library, fire events, waitFor async paint — asserting what a student would _see_."
+---
+
 # 04 — Writing a Component Test
 
 > **In one line:** render with Testing Library, fire events, `waitFor` async paint — asserting

@@ -1,3 +1,8 @@
+---
+title: "Changelog & About — Overview (walkthrough)"
+description: "who built this, what does it do, what changed — all visible, never hidden."
+---
+
 # Changelog & About — Overview (walkthrough)
 
 > **In one line:** who built this, what does it do, what changed — all visible, never hidden.

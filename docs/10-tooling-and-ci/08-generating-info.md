@@ -1,3 +1,8 @@
+---
+title: "Changelog & Release Information"
+description: "changelog.json is the user-facing narrative; buildInfo.json is the build identity; git tag connects the two."
+---
+
 # 08 — Changelog & Release Information
 
 > **In one line:** `changelog.json` is the user-facing narrative; `buildInfo.json` is the build identity; `git tag` connects the two.

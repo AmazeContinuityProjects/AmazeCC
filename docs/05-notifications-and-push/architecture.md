@@ -1,3 +1,8 @@
+---
+title: "Notifications & Push — Architecture (deep)"
+description: "web push over VAPID — every category opt-in, quiet hours honoured, service worker routes clicks to the right tab — nothing without your tap."
+---
+
 # Notifications & Push — Architecture (deep)
 
 > **In one line:** web push over VAPID — every category opt-in, quiet hours honoured, service worker routes clicks to the right tab — nothing without your tap.

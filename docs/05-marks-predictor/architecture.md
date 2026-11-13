@@ -1,3 +1,8 @@
+---
+title: "Marks Predictor — Architecture (deep)"
+description: 'a grade-boundary solver for what VIT hasn''t graded yet — two parallel ladders (absolute / relative) and a solver that inverts them to "what do you need on FAT".'
+---
+
 # Marks Predictor — Architecture (deep)
 
 > **In one line:** a grade-boundary solver for what VIT hasn't graded yet — two parallel ladders

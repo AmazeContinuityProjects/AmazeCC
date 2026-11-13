@@ -1,3 +1,7 @@
+---
+title: "Network Calls Catalog"
+---
+
 # Network Calls Catalog
 
 > **Method:** every call through `api(`, `apiRequest(`, `eventHubRequest(`, `fetch(` in `src/` — counted by `git grep -n -E "apiRequest\(|api\(\"|fetch\(" src/`.

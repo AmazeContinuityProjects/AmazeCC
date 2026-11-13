@@ -1,3 +1,8 @@
+---
+title: "Deep Linking & Return Paths"
+description: "the URL carries ?tab= and return paths; the app reads it once at boot and never again, so deep links are bookmarks, not live state."
+---
+
 # 08 — Deep Linking & Return Paths
 
 > **In one line:** the URL carries `?tab=` and return paths; the app reads it once at boot and

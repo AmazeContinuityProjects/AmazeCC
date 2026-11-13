@@ -1,3 +1,8 @@
+---
+title: "Route & File Index"
+description: "mega-index from user-facing surface → every file that implements/tests it — grep-driven, regenerated per release."
+---
+
 # Route & File Index
 
 > **In one line:** mega-index from user-facing surface → every file that implements/tests it —

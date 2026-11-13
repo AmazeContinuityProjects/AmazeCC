@@ -1,3 +1,7 @@
+---
+title: "Law-slot fix: landed"
+---
+
 # 07 — Law-slot fix: landed
 
 Implemented and tested in the working tree, **not yet committed**. This is the context

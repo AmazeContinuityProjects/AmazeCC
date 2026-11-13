@@ -1,3 +1,8 @@
+---
+title: "Scripts (every pnpm run verb)"
+description: "dev for the workshop, test for truth, build for production — the rest are plumbing."
+---
+
 # 06 — Scripts (every `pnpm run` verb)
 
 > **In one line:** `dev` for the workshop, `test` for truth, `build` for production — the rest

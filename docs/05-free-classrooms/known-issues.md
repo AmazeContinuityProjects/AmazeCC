@@ -1,3 +1,7 @@
+---
+title: "Free Classrooms — Known Issues (full)"
+---
+
 # Free Classrooms — Known Issues (full)
 
 1. **8:30 vs 8:30S** — VIT's slot table has two mutually-exclusive mappings that the parser can't
