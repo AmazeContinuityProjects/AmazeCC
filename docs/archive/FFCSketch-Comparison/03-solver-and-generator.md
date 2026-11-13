@@ -1,11 +1,15 @@
+---
+title: "Solver & generator"
+---
+
 > ⚠️ **ARCHIVED — historical context, not authoritative.**
 > This file was moved to `docs/archive/` during the handoff docs rebuild. It may describe
 > a previous architecture. If it contradicts the code in `src/` or the live `docs/`, the code wins.
-> See `docs/README.md` for current documentation.
+> See `docs/index.md` for current documentation.
 
 # 03 — Solver & generator
 
-> Part of the [FFCSketch vs AmazeCC FFCS comparison](./README.md). Scan date 2026-10-30.
+> Part of the [FFCSketch vs AmazeCC FFCS comparison](./index.md). Scan date 2026-10-30.
 
 This is the heart of both apps: everything else exists to feed or display the result of a constraint search over course offerings.
 

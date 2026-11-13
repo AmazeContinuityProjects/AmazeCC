@@ -1,3 +1,7 @@
+---
+title: "Tasks & Pomodoro — Known Issues (full)"
+---
+
 # Tasks & Pomodoro — Known Issues (full)
 
 1. **Reminders die with the tab** — closed browser tabs never fire reminders; the screen still shows badge counts at boot.

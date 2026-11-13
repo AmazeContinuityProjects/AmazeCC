@@ -1,3 +1,8 @@
+---
+title: "Error Taxonomy"
+description: "three shapes carry every failure through the engine — AuthError, TransientError, and everything-else — and the UI treats them differently on purpose."
+---
+
 # 09 — Error Taxonomy
 
 > **In one line:** three shapes carry every failure through the engine — `AuthError`,

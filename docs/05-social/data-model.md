@@ -1,3 +1,7 @@
+---
+title: "Social — Data Model (precise)"
+---
+
 # Social — Data Model (precise)
 
 ```ts

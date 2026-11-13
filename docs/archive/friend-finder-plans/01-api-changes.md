@@ -1,7 +1,11 @@
+---
+title: "API changes (../AmazeCC-API)"
+---
+
 > ⚠️ **ARCHIVED — historical context, not authoritative.**
 > This file was moved to `docs/archive/` during the handoff docs rebuild. It may describe
 > a previous architecture. If it contradicts the code in `src/` or the live `docs/`, the code wins.
-> See `docs/README.md` for current documentation.
+> See `docs/index.md` for current documentation.
 
 # 01 — API changes (`../AmazeCC-API`)
 
@@ -116,12 +120,12 @@ Inside `ensureFfcsMatchSchema()` (`:20-47`), after the `CREATE TABLE`:
 
 ## 6. Privacy-invariant comment/doc updates (same change, not follow-up)
 
-| Where                                  | Says today                                              | Becomes                                                                                   |
-| -------------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `ffcsMatchDb.ts:10-11`                 | "no plaintext registration number is stored here"       | …except `register_no`, shown only to reciprocal overlap sharers (decision D3)             |
-| `socialDb.ts:13-14`                    | "no plaintext reg no in any table this feature creates" | qualify: the friend finder's `ffcs_match_entries.register_no` is the documented exception |
-| `ffcsMatch.ts:145`                     | "nothing that identifies them beyond the name"          | name + reg no **in overlaps only**; section people stay name/handle                       |
-| `docs/ffcs-friend-finder/README.md:48` | "No reg no, no owner key, no other classes"             | reg no shared with people who share ≥2 classes (reciprocal); never in section rosters     |
+| Where                                 | Says today                                              | Becomes                                                                                   |
+| ------------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `ffcsMatchDb.ts:10-11`                | "no plaintext registration number is stored here"       | …except `register_no`, shown only to reciprocal overlap sharers (decision D3)             |
+| `socialDb.ts:13-14`                   | "no plaintext reg no in any table this feature creates" | qualify: the friend finder's `ffcs_match_entries.register_no` is the documented exception |
+| `ffcsMatch.ts:145`                    | "nothing that identifies them beyond the name"          | name + reg no **in overlaps only**; section people stay name/handle                       |
+| `docs/ffcs-friend-finder/index.md:48` | "No reg no, no owner key, no other classes"             | reg no shared with people who share ≥2 classes (reciprocal); never in section rosters     |
 
 ## 7. Deploy notes
 

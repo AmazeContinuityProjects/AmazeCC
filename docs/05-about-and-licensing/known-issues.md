@@ -1,3 +1,7 @@
+---
+title: "About & Licensing — Known Issues (full)"
+---
+
 # About & Licensing — Known Issues (full)
 
 1. **MIT isn't "public domain"** — attribution must stay — don't strip the Copyright header on amazeui.

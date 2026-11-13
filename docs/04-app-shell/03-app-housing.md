@@ -1,3 +1,8 @@
+---
+title: "AppHousing (the shared housing pattern)"
+description: "one component that every entry route shares to get session hydration, sync-event bridging, PostHog identity, and the sync sheet — without duplicating wiring."
+---
+
 # 03 — AppHousing (the shared housing pattern)
 
 > **In one line:** one component that every entry route shares to get session hydration,

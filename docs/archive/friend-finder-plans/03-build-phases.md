@@ -1,7 +1,11 @@
+---
+title: "Build phases, deploy order, verification"
+---
+
 > ⚠️ **ARCHIVED — historical context, not authoritative.**
 > This file was moved to `docs/archive/` during the handoff docs rebuild. It may describe
 > a previous architecture. If it contradicts the code in `src/` or the live `docs/`, the code wins.
-> See `docs/README.md` for current documentation.
+> See `docs/index.md` for current documentation.
 
 # 03 — Build phases, deploy order, verification
 
@@ -75,7 +79,7 @@ tests (01 §5).
 
 ## Phase 4 — Docs
 
-- `docs/ffcs-friend-finder/README.md`: `:4` "lives in the planner" → new home
+- `docs/ffcs-friend-finder/index.md`: `:4` "lives in the planner" → new home
   tab; `:48` privacy line (reg no in overlaps); verified-only publish;
   quick-sync refresh; keep the deploy/semester sections accurate.
 - `FEATURES.md`: update the finder entry if listed.

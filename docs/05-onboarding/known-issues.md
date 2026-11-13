@@ -1,3 +1,7 @@
+---
+title: "Onboarding — Known Issues (full)"
+---
+
 # Onboarding — Known Issues (full)
 
 1. **Cancel mid-sync** — offers "continue without attendance" — the app never hard-blocks refresh paths after that choice is made (safety net).

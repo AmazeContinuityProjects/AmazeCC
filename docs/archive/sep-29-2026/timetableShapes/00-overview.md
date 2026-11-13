@@ -1,3 +1,7 @@
+---
+title: "Timetable shapes — unification plan"
+---
+
 # Timetable shapes — unification plan
 
 **Date:** 2026-09-29

@@ -1,3 +1,7 @@
+---
+title: "ADR-0001: Ship a Static Export, Not a Server"
+---
+
 # ADR-0001: Ship a Static Export, Not a Server
 
 **Status:** accepted (since first deploy)

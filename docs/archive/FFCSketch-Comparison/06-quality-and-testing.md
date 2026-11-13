@@ -1,11 +1,15 @@
+---
+title: "Quality: tests, lint, CI, docs"
+---
+
 > ⚠️ **ARCHIVED — historical context, not authoritative.**
 > This file was moved to `docs/archive/` during the handoff docs rebuild. It may describe
 > a previous architecture. If it contradicts the code in `src/` or the live `docs/`, the code wins.
-> See `docs/README.md` for current documentation.
+> See `docs/index.md` for current documentation.
 
 # 06 — Quality: tests, lint, CI, docs
 
-> Part of the [FFCSketch vs AmazeCC FFCS comparison](./README.md). Scan date 2026-10-30.
+> Part of the [FFCSketch vs AmazeCC FFCS comparison](./index.md). Scan date 2026-10-30.
 
 This axis is where the two projects differ most sharply.
 
@@ -59,7 +63,7 @@ This axis is where the two projects differ most sharply.
 
 | Doc                                                  |      Lines | Contents                                                                       |
 | ---------------------------------------------------- | ---------: | ------------------------------------------------------------------------------ |
-| `docs/ffcs-workings/README.md`                       |          — | index of engine architecture                                                   |
+| `docs/ffcs-workings/index.md`                        |          — | index of engine architecture                                                   |
 | `docs/ffcs-workings/clash-detection-and-schema.md`   |          — | schema, interval math, tab vs generator responsibilities table                 |
 | `docs/ffcs-workings/embedded-course-pairing.md`      |         99 | 4-tier branch-and-bound walkthrough                                            |
 | `docs/ffcs-workings/timetable-export-and-reviews.md` |          — | off-screen export + Vitfac integration                                         |

@@ -1,3 +1,7 @@
+---
+title: "Feedback & Support — Known Issues (full)"
+---
+
 # Feedback & Support — Known Issues (full)
 
 1. **Console noise leaks** — 30-line console tail may include reg-number strings embedded in warnings; regex should blank most shapes; report suspects via email, not public thread.

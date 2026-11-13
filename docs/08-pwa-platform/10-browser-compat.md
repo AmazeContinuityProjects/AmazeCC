@@ -1,3 +1,8 @@
+---
+title: "Browser Compatibility"
+description: "modern Chromium, Safari 15+ and Firefox all work — with documented iOS install quirks and a no-plugin stance."
+---
+
 # 10 — Browser Compatibility
 
 > **In one line:** modern Chromium, Safari 15+ and Firefox all work — with documented iOS install quirks and a no-plugin stance.

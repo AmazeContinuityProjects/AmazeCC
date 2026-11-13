@@ -1,3 +1,7 @@
+---
+title: "Hostel — Data Model"
+---
+
 # Hostel — Data Model
 
 `MessMenu = { canteen, day, meals: { breakfast, lunch, snacks, dinner } }`

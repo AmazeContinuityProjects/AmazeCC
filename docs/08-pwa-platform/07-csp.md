@@ -1,3 +1,8 @@
+---
+title: "The Content Security Policy (decoded)"
+description: 'a <meta httpEquiv="Content-Security-Policy"> because there is no server to set headers — with every directive explained in plain words.'
+---
+
 # 07 — The Content Security Policy (decoded)
 
 > **In one line:** a `<meta httpEquiv="Content-Security-Policy">` because **there is no server to set headers** — with every directive explained in plain words.

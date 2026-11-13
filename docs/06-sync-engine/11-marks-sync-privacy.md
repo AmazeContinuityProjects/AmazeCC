@@ -1,3 +1,8 @@
+---
+title: "Marks Sync & Privacy Architecture"
+description: "students can _contribute_ anonymized class-averages for free — computed server-side, keyed by a one-way hash, whose receipts the client freezes forever."
+---
+
 # 11 — Marks Sync & Privacy Architecture
 
 > **In one line:** students can _contribute_ anonymized class-averages for free — computed

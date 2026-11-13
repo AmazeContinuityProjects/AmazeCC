@@ -1,3 +1,8 @@
+---
+title: "Mocking Guide"
+description: 'mock the boundary you own — the engine barrel, the CDN, the worker — never "fetch with arbitrary return values".'
+---
+
 # 05 — Mocking Guide
 
 > **In one line:** mock the boundary you own — the engine barrel, the CDN, the worker — never

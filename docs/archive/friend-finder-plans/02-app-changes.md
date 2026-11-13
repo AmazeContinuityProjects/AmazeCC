@@ -1,7 +1,11 @@
+---
+title: "App changes (AmazeCC)"
+---
+
 > ⚠️ **ARCHIVED — historical context, not authoritative.**
 > This file was moved to `docs/archive/` during the handoff docs rebuild. It may describe
 > a previous architecture. If it contradicts the code in `src/` or the live `docs/`, the code wins.
-> See `docs/README.md` for current documentation.
+> See `docs/index.md` for current documentation.
 
 # 02 — App changes (AmazeCC)
 
@@ -186,6 +190,6 @@ API's 30 req/min/IP limit.
   Next.js code — this repo's Next version may not match training data.
 - Static export: no server components doing data fetches, no API routes added
   in this repo.
-- Docs to touch in Phase 4: `docs/ffcs-friend-finder/README.md` (`:4` entry
+- Docs to touch in Phase 4: `docs/ffcs-friend-finder/index.md` (`:4` entry
   point, `:48` privacy line, verified-only + sync sections),
   `FEATURES.md` if it lists the finder.

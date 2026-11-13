@@ -1,3 +1,7 @@
+---
+title: "Cab Share — Known Issues (full)"
+---
+
 # Cab Share — Known Issues (full)
 
 1. **Poster disappears** — VIT sessions expire during the drive; riders see a stale "X.XX credits" badge — refresh button pulls live status.

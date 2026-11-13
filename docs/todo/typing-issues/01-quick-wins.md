@@ -1,3 +1,7 @@
+---
+title: "Tier 1 — Quick wins (no behaviour change)"
+---
+
 # Tier 1 — Quick wins (no behaviour change)
 
 ## 1.1 Enable the unused-symbol checks
@@ -12,14 +16,14 @@
 **Why it matters** — every recent redesign had to hunt dead code by hand because
 nothing flagged it:
 
-| Dead code | Where |
-|---|---|
-| 10 unused `lucide-react` imports | `CurriculumPage.tsx` (`BarChart`, `XAxis`, `YAxis`, `Tooltip`, `Layers`, `Sparkles`, `Filter`, `AlertCircle`, `Sliders`, `ListFilter`, `BookMarked`) |
-| `GRADE_POINTS` constant | `CurriculumPage.tsx` |
-| `typeFilter` state (declared, never read) | `CurriculumPage.tsx` |
-| `Card`, `EmptyState`, `Badge`, `Button` imports | `PaymentsTab.tsx` |
-| `countLedgerEntries` import | `PaymentsTab.tsx` |
-| `academicsToolRedirects`-era `AcademicsHub` import | `Dashboard.tsx:7` |
+| Dead code                                          | Where                                                                                                                                                |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 10 unused `lucide-react` imports                   | `CurriculumPage.tsx` (`BarChart`, `XAxis`, `YAxis`, `Tooltip`, `Layers`, `Sparkles`, `Filter`, `AlertCircle`, `Sliders`, `ListFilter`, `BookMarked`) |
+| `GRADE_POINTS` constant                            | `CurriculumPage.tsx`                                                                                                                                 |
+| `typeFilter` state (declared, never read)          | `CurriculumPage.tsx`                                                                                                                                 |
+| `Card`, `EmptyState`, `Badge`, `Button` imports    | `PaymentsTab.tsx`                                                                                                                                    |
+| `countLedgerEntries` import                        | `PaymentsTab.tsx`                                                                                                                                    |
+| `academicsToolRedirects`-era `AcademicsHub` import | `Dashboard.tsx:7`                                                                                                                                    |
 
 **Change**
 
@@ -49,10 +53,10 @@ are destructured but unused; `_`-prefix those.
 
 Both are verified dead (zero references outside their own definition):
 
-| File | Evidence |
-|---|---|
-| `src/components/custom/exams/CurriculumCategoriesTab.tsx` | Only self-references. Also holds a **third** copy of the `Category` / `BasketItem` / `Basket` / `CategoryDetail` interfaces. |
-| `src/components/custom/exams/AcademicsHub.tsx` | Imported once at `Dashboard.tsx:7`, never rendered. 449 lines of hub UI (CGPA quick stats, degree-progress panel) that no user can reach. |
+| File                                                      | Evidence                                                                                                                                  |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/components/custom/exams/CurriculumCategoriesTab.tsx` | Only self-references. Also holds a **third** copy of the `Category` / `BasketItem` / `Basket` / `CategoryDetail` interfaces.              |
+| `src/components/custom/exams/AcademicsHub.tsx`            | Imported once at `Dashboard.tsx:7`, never rendered. 449 lines of hub UI (CGPA quick stats, degree-progress panel) that no user can reach. |
 
 **Change**
 

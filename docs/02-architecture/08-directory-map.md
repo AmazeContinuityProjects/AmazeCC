@@ -1,3 +1,8 @@
+---
+title: "Directory Map (annotated, with sizes)"
+description: 'a guided stroll through the tree — biggest objects first, smallest shavings last. Line counts are approximate (snapshot 2026-11-12); re-verify with git grep -c "" <file> or your editor''s status bar.'
+---
+
 # 08 — Directory Map (annotated, with sizes)
 
 > **In one line:** a guided stroll through the tree — biggest objects first, smallest shavings

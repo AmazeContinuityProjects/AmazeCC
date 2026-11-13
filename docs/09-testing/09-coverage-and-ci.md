@@ -1,3 +1,8 @@
+---
+title: "Coverage & CI"
+description: "there is no coverage gate — we pin contracts, not lines; CI fails on lint, type, tests, or build, never on coverage."
+---
+
 # 09 — Coverage & CI
 
 > **In one line:** there is no coverage gate — we pin contracts, not lines; CI fails on lint,

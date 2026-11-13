@@ -1,3 +1,7 @@
+---
+title: "Free Classrooms — Storage & State"
+---
+
 # Free Classrooms — Storage & State
 
 > Nothing persisted; every open is a fresh read.

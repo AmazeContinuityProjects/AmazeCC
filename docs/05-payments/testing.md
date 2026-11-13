@@ -1,3 +1,7 @@
+---
+title: "Payments — Testing"
+---
+
 # Payments — Testing
 
 > No dedicated suite exists today — an honest registered gap.

@@ -1,3 +1,8 @@
+---
+title: "Postinstall Oddities & Build Hooks"
+description: "two files run on every build/install before you see any UI — generate-build-info.js and the Serwist bundle step."
+---
+
 # 09 — Postinstall Oddities & Build Hooks
 
 > **In one line:** two files run on every build/install before you see any UI — `generate-build-info.js` and the Serwist bundle step.

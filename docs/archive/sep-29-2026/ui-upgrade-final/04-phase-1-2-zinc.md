@@ -1,3 +1,7 @@
+---
+title: "Phases 1-2 — the zinc conversions"
+---
+
 # Phases 1-2 — the zinc conversions
 
 The mechanical work. Phases 1-4 are all token swaps and component substitutions; Phase 5 is

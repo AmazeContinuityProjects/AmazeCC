@@ -1,3 +1,8 @@
+---
+title: "Academics — Architecture (the full model)"
+description: "grades are fetched once per login (unified /grades), marks per assessment are fetched alongside attendance, and everything derived is computed client-side so the numbers add up."
+---
+
 # Academics — Architecture (the full model)
 
 > **In one line:** grades are fetched once per login (unified `/grades`), marks per assessment

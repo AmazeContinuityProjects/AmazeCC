@@ -1,3 +1,8 @@
+---
+title: "Events & Clubs — Architecture (honest boundaries)"
+description: "two systems (EventHub public + clubs) bridged through AmazeCC-API, with eligibility math done server-side and rendered client-side."
+---
+
 # Events & Clubs — Architecture (honest boundaries)
 
 > **In one line:** two systems (EventHub public + clubs) bridged through AmazeCC-API, with

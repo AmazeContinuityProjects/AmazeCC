@@ -1,3 +1,7 @@
+---
+title: "Timetable Export & Vitfac Reviews"
+---
+
 # Timetable Export & Vitfac Reviews
 
 This document describes how the FFCS timetable export view was modernized to leverage high-fidelity off-screen rendering, showcase Vitfac faculty reviews, and adapt dynamically to the user's active view mode (Vertical Heatmap vs. Horizontal University Grid).

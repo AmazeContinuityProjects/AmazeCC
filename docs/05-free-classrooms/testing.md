@@ -1,3 +1,7 @@
+---
+title: "Free Classrooms — Testing"
+---
+
 # Free Classrooms — Testing
 
 - `freeClassrooms.test.ts` — table round-trip (parse 2,357 rows, zero loss), silent-failure pinning,

@@ -1,3 +1,8 @@
+---
+title: "VTOP Scraping Primer (how AmazeCC-API reads the portal)"
+description: "VTOP serves HTML, not JSON — the API is a patient browser that reads pages on your behalf."
+---
+
 # VTOP Scraping Primer (how AmazeCC-API reads the portal)
 
 > **In one line:** VTOP serves HTML, not JSON — the API is a patient browser that reads pages on your behalf.

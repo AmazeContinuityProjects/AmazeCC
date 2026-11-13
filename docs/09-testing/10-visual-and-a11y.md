@@ -1,3 +1,8 @@
+---
+title: "Visual & Accessibility Assertions"
+description: "we assert roles, accessible names, and aria attrs — not pixels and not CSS classes."
+---
+
 # 10 — Visual & Accessibility Assertions
 
 > **In one line:** we assert roles, accessible names, and aria attrs — not pixels and not CSS classes.

@@ -1,3 +1,7 @@
+---
+title: "Tier 3 — API responses, then strict: true"
+---
+
 # Tier 3 — API responses, then `strict: true`
 
 Both are scheduled last on purpose: they are the two changes most likely to
@@ -46,7 +50,7 @@ const curriculumSchema = z.object({
 
 **Why boundary validation beats per-call typing** — a typed `api<T>()` with no
 runtime check still lies when the server disagrees. Validating at the funnel
-means every consumer gets a correct type *and* a correct value.
+means every consumer gets a correct type _and_ a correct value.
 
 **Risk** — medium. A strict schema will reject responses that "work today" via
 lenient access (extra/missing optional fields). Start with everything
@@ -67,11 +71,11 @@ matches jotai's **read-only** atom overload instead of the writable one, and
 `setOfficialOdData(x)` becomes a type error. The repo works around it in three
 places with casts and an explanatory comment:
 
-| File | Line | Cast |
-|---|---|---|
-| `src/store/dataAtoms.ts` | 20 | `null as unknown as OfficialOdResponse` |
-| `src/store/dataAtoms.ts` | 28 | `atom<string \| null>(null as unknown as string \| null)` |
-| `src/store/uiAtoms.ts` | 22 | `null as unknown as { title: string; nonce: number }` |
+| File                     | Line | Cast                                                      |
+| ------------------------ | ---- | --------------------------------------------------------- |
+| `src/store/dataAtoms.ts` | 20   | `null as unknown as OfficialOdResponse`                   |
+| `src/store/dataAtoms.ts` | 28   | `atom<string \| null>(null as unknown as string \| null)` |
+| `src/store/uiAtoms.ts`   | 22   | `null as unknown as { title: string; nonce: number }`     |
 
 With `strictNullChecks` on, all three are unnecessary and the comments can go.
 

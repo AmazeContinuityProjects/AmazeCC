@@ -1,3 +1,7 @@
+---
+title: "Timetable UI — Data Model"
+---
+
 # Timetable UI — Data Model
 
 `TimetablePeriod { day, band, type, courseCode, title, slot }`

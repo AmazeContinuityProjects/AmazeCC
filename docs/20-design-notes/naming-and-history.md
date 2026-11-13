@@ -1,3 +1,7 @@
+---
+title: "Design Notes — Naming and History"
+---
+
 # Design Notes — Naming and History
 
 > A field guide to the fossils of AmazeCC — each one was a real decision, often under deadline.

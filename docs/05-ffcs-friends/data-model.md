@@ -1,3 +1,7 @@
+---
+title: "Friend Finder — Data Model"
+---
+
 # Friend Finder — Data Model
 
 `ClassId = per-section id string`

@@ -1,3 +1,7 @@
+---
+title: "ADR-0004: Marks-Sync Privacy Model (hashed keys, frozen receipts, opt-in)"
+---
+
 # ADR-0004: Marks-Sync Privacy Model (hashed keys, frozen receipts, opt-in)
 
 **Status:** accepted, production

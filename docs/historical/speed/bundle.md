@@ -1,3 +1,7 @@
+---
+title: "Bundle size & code splitting"
+---
+
 # Bundle size & code splitting
 
 **Severity: CRITICAL** — this is the #1 cause of "insanely slow" first load.

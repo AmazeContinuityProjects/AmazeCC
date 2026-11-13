@@ -1,3 +1,8 @@
+---
+title: "Hostel — Architecture (deep)"
+description: "three sources — static Worker JSON (mess/laundry, read-only), VTOP (leave/counselling), and a peer table (cab-share) — never merged, always labeled."
+---
+
 # Hostel — Architecture (deep)
 
 > **In one line:** three sources — static Worker JSON (mess/laundry, read-only), VTOP (leave/counselling), and a peer table (cab-share) — never merged, always labeled.

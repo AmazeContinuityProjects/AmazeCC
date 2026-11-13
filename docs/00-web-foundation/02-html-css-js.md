@@ -1,3 +1,8 @@
+---
+title: "HTML, CSS and JavaScript"
+description: "the browser renders HTML (structure) styled by CSS (appearance) made interactive by JavaScript (behavior); React/Next are JavaScript that generate the first two."
+---
+
 # 02 — HTML, CSS and JavaScript
 
 > **In one line:** the browser renders HTML (structure) styled by CSS (appearance) made

@@ -1,3 +1,8 @@
+---
+title: "Web Push (VAPID)"
+description: "opt-in, category-scoped, quiet-hours-respecting notifications delivered by the service worker."
+---
+
 # 04 — Web Push (VAPID)
 
 > **In one line:** opt-in, category-scoped, quiet-hours-respecting notifications delivered by the service worker.

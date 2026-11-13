@@ -1,3 +1,8 @@
+---
+title: "Friend Finder — Architecture (deep)"
+description: "a public funnel — anyone hits the page; only verified VTOP students enter the finder; no data leaves without pair intent."
+---
+
 # Friend Finder — Architecture (deep)
 
 > **In one line:** a public funnel — anyone hits the page; only verified VTOP students enter the finder; no data leaves without pair intent.

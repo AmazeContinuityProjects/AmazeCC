@@ -1,3 +1,8 @@
+---
+title: "Sync Keeps Failing"
+description: "90% of the time it's the wrong password, expired session, or VTOP having a bad day, in that order."
+---
+
 # 01 — Sync Keeps Failing
 
 > **In one line:** 90% of the time it's the wrong password, expired session, or VTOP having a bad day, in that order.

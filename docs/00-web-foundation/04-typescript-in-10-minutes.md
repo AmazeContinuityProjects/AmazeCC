@@ -1,3 +1,8 @@
+---
+title: "TypeScript in Ten Minutes"
+description: "JavaScript with a spellchecker that catches wrong _shapes_ of data before the browser ever sees them."
+---
+
 # 04 — TypeScript in Ten Minutes
 
 > **In one line:** JavaScript with a spellchecker that catches wrong _shapes_ of data before

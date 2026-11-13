@@ -1,3 +1,8 @@
+---
+title: "Social — Overview (walkthrough)"
+description: "see who's in your sections, pair up, form groups, find common free hours — without exposing your timetable until you opt in."
+---
+
 # Social — Overview (walkthrough)
 
 > **In one line:** see who's in your sections, pair up, form groups, find common free hours — without exposing your timetable until you opt in.

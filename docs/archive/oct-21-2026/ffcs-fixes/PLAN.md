@@ -1,3 +1,7 @@
+---
+title: "FFCS Planner — Implementation Hardening Plan"
+---
+
 # FFCS Planner — Implementation Hardening Plan
 
 **Date:** Oct 21, 2026

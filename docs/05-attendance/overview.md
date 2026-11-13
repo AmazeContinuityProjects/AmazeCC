@@ -1,3 +1,8 @@
+---
+title: "Attendance — Overview (walkthrough)"
+description: "open Attendance, see exactly how many classes you can skip this week without breaching 75% — or whatever threshold you set."
+---
+
 # Attendance — Overview (walkthrough)
 
 > **In one line:** open **Attendance**, see exactly how many classes you can skip this week

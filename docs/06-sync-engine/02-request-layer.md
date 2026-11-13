@@ -1,3 +1,8 @@
+---
+title: "The Request Layer (apiRequest)"
+description: "one fetch wrapper for the whole app — JSON in/out, credentials attached, identical across every feature."
+---
+
 # 02 — The Request Layer (`apiRequest`)
 
 > **In one line:** one fetch wrapper for the whole app — JSON in/out, credentials attached,

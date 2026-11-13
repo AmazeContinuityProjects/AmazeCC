@@ -1,3 +1,8 @@
+---
+title: "Hostel — Overview (walkthrough)"
+description: "every hostel night's answer in one tab — what's for dinner, when's laundry, what's your leave status, where's your ride."
+---
+
 # Hostel — Overview (walkthrough)
 
 > **In one line:** every hostel night's answer in one tab — what's for dinner, when's laundry, what's your leave status, where's your ride.

@@ -1,3 +1,7 @@
+---
+title: "FFCS Planner — History (full timeline)"
+---
+
 # FFCS Planner — History (full timeline)
 
 > Newest first; kept as narrative, not data structure — the design decisions matter more than the dates.

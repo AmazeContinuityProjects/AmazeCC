@@ -1,3 +1,7 @@
+---
+title: "Phase 6 and verification"
+---
+
 # Phase 6 and verification
 
 Phase 6 converts the reference implementation itself. This file covers that, and the

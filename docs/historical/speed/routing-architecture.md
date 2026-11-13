@@ -1,3 +1,7 @@
+---
+title: "Routing architecture analysis (what-if: split tabs into real routes)"
+---
+
 # Routing architecture analysis (what-if: split tabs into real routes)
 
 **Context:** Today the app is a single-route SPA. `src/app/page.tsx` → `Main` → `Dashboard`, and every
@@ -21,13 +25,13 @@ even though the user only sees one tab.
 
 Two ways to fix that:
 
-| Approach | How | Pros | Cons |
-|---|---|---|---|
-| **A. `next/dynamic` per tab** (P1 in `action-plan.md`) | Wrap each heavy tab in `dynamic(() => import(...))` | Small, localized change; keeps SPA UX | Easy to forget a tab; home chunk still bundles `Dashboard` + light tabs + all the effect/redirect logic; no deep-linking; cache granularity = one big app |
-| **B. Real routes** (this doc) | Each tab = its own `app/<tab>/page.tsx` | Next gives **per-route code splitting for free**; deep-linking; back/forward; framework-native `router.prefetch` to warm cache; finer SW caching | Larger refactor; history/UX behavior changes |
+| Approach                                               | How                                                 | Pros                                                                                                                                             | Cons                                                                                                                                                      |
+| ------------------------------------------------------ | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A. `next/dynamic` per tab** (P1 in `action-plan.md`) | Wrap each heavy tab in `dynamic(() => import(...))` | Small, localized change; keeps SPA UX                                                                                                            | Easy to forget a tab; home chunk still bundles `Dashboard` + light tabs + all the effect/redirect logic; no deep-linking; cache granularity = one big app |
+| **B. Real routes** (this doc)                          | Each tab = its own `app/<tab>/page.tsx`             | Next gives **per-route code splitting for free**; deep-linking; back/forward; framework-native `router.prefetch` to warm cache; finer SW caching | Larger refactor; history/UX behavior changes                                                                                                              |
 
-**Recommendation: do B, and keep A for heavy *sub*-views.** Route-splitting is the only approach that
-makes the *initial* download tiny by construction (the home route simply cannot reference the
+**Recommendation: do B, and keep A for heavy _sub_-views.** Route-splitting is the only approach that
+makes the _initial_ download tiny by construction (the home route simply cannot reference the
 `/academics` recharts code), and it gives you a clean, supported way to "cache all routes after init"
 via `router.prefetch` (see `caching-strategy.md`).
 
@@ -59,6 +63,7 @@ app/
 ```
 
 Notes:
+
 - The route group `(app)` keeps URLs clean (`/attendance`, not `/(app)/attendance`).
 - `privacy/`, `terms/`, `~offline/` already exist as separate routes — consistent with this model.
 - Gated tabs (hostel only for hostellers, dayscholar only for dayscholars) just don't get a nav entry;
@@ -110,12 +115,12 @@ home chunk is small, and the rest is fetched in the background and cached.
 
 ## 5. Expected impact (estimates)
 
-| Metric | Today | After route-split + warm |
-|---|---|---|
-| Initial JS for `/` | ~2.2 MB raw (page 1.52 MB + fw/main/poly + needed vendor) | ~0.7–0.9 MB raw (home tab + chrome + provider only) |
-| Time-to-Interactive | blocked by 1.52 MB parse + 2.4 s splash | small home chunk + no forced splash (fix `runtime.md` P0) |
-| Tab switch | already client-side, but whole app already in memory | client-side + chunk pre-cached → instant; memory lower per route |
-| Offline deep-link | only `/` cached (navigation precache off) | every visited/prefetched route cached |
+| Metric              | Today                                                     | After route-split + warm                                         |
+| ------------------- | --------------------------------------------------------- | ---------------------------------------------------------------- |
+| Initial JS for `/`  | ~2.2 MB raw (page 1.52 MB + fw/main/poly + needed vendor) | ~0.7–0.9 MB raw (home tab + chrome + provider only)              |
+| Time-to-Interactive | blocked by 1.52 MB parse + 2.4 s splash                   | small home chunk + no forced splash (fix `runtime.md` P0)        |
+| Tab switch          | already client-side, but whole app already in memory      | client-side + chunk pre-cached → instant; memory lower per route |
+| Offline deep-link   | only `/` cached (navigation precache off)                 | every visited/prefetched route cached                            |
 
 (Re-run `next build` after the split to confirm the home `page` chunk drops below ~600 KB raw.)
 
@@ -162,6 +167,7 @@ home chunk is small, and the rest is fetched in the background and cached.
 
 Route-splitting is the **strategically correct** fix for the bundle problem: it makes the initial
 download small by construction, adds deep-linking, and gives a first-class mechanism (`router.prefetch`
-+ Serwist) to cache every route after init. The main cost is a medium-large but mechanical refactor of
-`Main`/`Dashboard` into a provider + route pages. Combined with the P0 runtime fixes, it should make
-the app feel dramatically faster on first load and on every tab switch.
+
+- Serwist) to cache every route after init. The main cost is a medium-large but mechanical refactor of
+  `Main`/`Dashboard` into a provider + route pages. Combined with the P0 runtime fixes, it should make
+  the app feel dramatically faster on first load and on every tab switch.

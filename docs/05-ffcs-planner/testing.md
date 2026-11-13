@@ -1,3 +1,7 @@
+---
+title: "FFCS Planner — Testing (exhaustive map)"
+---
+
 # FFCS Planner — Testing (exhaustive map)
 
 > **Rule zero:** the share round-trip is the religion here. Never patch a mismatch; fix the bug.

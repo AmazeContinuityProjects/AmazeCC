@@ -1,3 +1,8 @@
+---
+title: "Changelog & About — Architecture (deep)"
+description: "version history for people, sha-based build identity for humans who want proof."
+---
+
 # Changelog & About — Architecture (deep)
 
 > **In one line:** version history for people, sha-based build identity for humans who want proof.

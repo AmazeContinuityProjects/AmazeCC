@@ -1,3 +1,8 @@
+---
+title: "Cookies, Sessions & the Vault"
+description: "VTOP proves you logged in with cookies; this app keeps them in memory, and at rest they're AES-256-GCM encrypted by the browser — nothing leaves the device."
+---
+
 # 09 — Cookies, Sessions & the Vault
 
 > **In one line:** VTOP proves you logged in with cookies; this app keeps them in memory,

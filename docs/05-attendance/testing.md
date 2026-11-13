@@ -1,3 +1,7 @@
+---
+title: "Attendance — Testing"
+---
+
 # Attendance — Testing
 
 > The invariant suite in miniature: **one percentage function, one calendar model, one predictor.**

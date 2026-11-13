@@ -1,3 +1,8 @@
+---
+title: "Onboarding — Overview (walkthrough)"
+description: '<2 minutes from "never heard of AmazeCC" to a populated dashboard.'
+---
+
 # Onboarding — Overview (walkthrough)
 
 > **In one line:** <2 minutes from "never heard of AmazeCC" to a populated dashboard.

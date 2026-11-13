@@ -1,3 +1,7 @@
+---
+title: "Occupancy & metrics (Phase 2)"
+---
+
 # 03 — Occupancy & metrics (Phase 2)
 
 ## What the day walk has to answer

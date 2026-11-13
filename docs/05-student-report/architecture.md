@@ -1,3 +1,8 @@
+---
+title: "Student Report — Architecture (deep)"
+description: "a personal academic report — attendance, marks, grades, predictions, timetable — generated into a single PDF entirely on-device."
+---
+
 # Student Report — Architecture (deep)
 
 > **In one line:** a personal academic report — attendance, marks, grades, predictions, timetable — generated into a single PDF entirely on-device.

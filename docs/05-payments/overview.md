@@ -1,3 +1,8 @@
+---
+title: "Payments — Overview (walkthrough)"
+description: "every paisa VIT owes or owes you — receipts, dues, fines — one screen, zero math guesswork."
+---
+
 # Payments — Overview (walkthrough)
 
 > **In one line:** every paisa VIT owes or owes you — receipts, dues, fines — one screen, zero math guesswork.

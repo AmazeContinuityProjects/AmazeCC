@@ -1,3 +1,7 @@
+---
+title: "Phase 4 — retire the amazeui shims"
+---
+
 # Phase 4 — retire the amazeui shims
 
 The old dialect is currently reachable by import. This phase closes that path.

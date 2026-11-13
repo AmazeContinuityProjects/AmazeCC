@@ -1,3 +1,7 @@
+---
+title: "Paper Scanner — Known Issues (full)"
+---
+
 # Paper Scanner — Known Issues (full)
 
 1. **OCR on colored paper** — red/cream paper yields weaker OCR; grayscale binarization works, dark sepia doesn't — pre-fill lamp with gray filter

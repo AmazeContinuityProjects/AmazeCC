@@ -1,3 +1,8 @@
+---
+title: "About & Licensing — Architecture (deep)"
+description: "every line of AmazeCC is MIT; attributions to upstream projects are intact and audited at release time."
+---
+
 # About & Licensing — Architecture (deep)
 
 > **In one line:** every line of AmazeCC is MIT; attributions to upstream projects are intact and audited at release time.

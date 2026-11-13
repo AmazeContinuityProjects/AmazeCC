@@ -1,3 +1,7 @@
+---
+title: "Known Limits (enumerate them, won't surprise you later)"
+---
+
 # 05 — Known Limits (enumerate them, won't surprise you later)
 
 1. **Single-campus** — Chennai slot model (`GLOBAL`) is the only supported timetable schema; AP/Bhopal JSON present but not wired UI

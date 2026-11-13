@@ -1,3 +1,8 @@
+---
+title: "Marks & Cohort Statistics — Architecture (deep)"
+description: "opt-in contribution → one-way SHA-256 assessment keys → server pools → HMAC receipts return → client freezes them forever — drift is surfaced, not merged."
+---
+
 # Marks & Cohort Statistics — Architecture (deep)
 
 > **In one line:** opt-in contribution → one-way SHA-256 assessment keys → server pools →

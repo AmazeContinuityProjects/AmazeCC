@@ -1,3 +1,8 @@
+---
+title: "Feedback & Support — Architecture (deep)"
+description: "bug reports carry everything the maintainer needs to reproduce — except what you're not asked for."
+---
+
 # Feedback & Support — Architecture (deep)
 
 > **In one line:** bug reports carry everything the maintainer needs to reproduce — except what you're not asked for.

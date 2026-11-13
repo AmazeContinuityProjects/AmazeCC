@@ -1,3 +1,8 @@
+---
+title: "IconUpdater (per-route identity)"
+description: "the document head is swapped at runtime — /ffcs shows the FFCS icon and manifest; everywhere else, AmazeCC's own."
+---
+
 # 11 — IconUpdater (per-route identity)
 
 > **In one line:** the document head is swapped at runtime — `/ffcs` shows the FFCS icon and

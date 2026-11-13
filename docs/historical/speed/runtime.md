@@ -1,3 +1,7 @@
+---
+title: "Runtime rendering & React performance"
+---
+
 # Runtime rendering & React performance
 
 **Severity: HIGH** — affects interactivity, tab switches and typing.
@@ -5,12 +9,14 @@
 ## 1. `cmds` useMemo has no dependency array (definite bug)
 
 `Main.tsx:985`:
+
 ```ts
 const cmds = useMemo(() => {
   const result: any[] = [];
   ...
 });
 ```
+
 A `useMemo` **without a dependency array recomputes on every single render**. The body builds large
 JSX detail components (`attDetail`, `markDetail`, `gradeDetail`) for attendance/marks/grades. Any atom
 update in `Main` (and there are ~30 subscribed atoms, see `Main.tsx:58-94`) re-runs this whole
@@ -23,6 +29,7 @@ separately), or move command building into the `CommandPalette` component which 
 `Main`, which re-renders `Dashboard` and forwards ~50 props. Although `Dashboard` only mounts the
 active tab (`activeTab === "..." && <Tab/>`, `Dashboard.tsx:771-1156`), `Main` itself re-renders
 frequently. Recommendations:
+
 - Use **atom selectors** (`useAtomValue(atom)`) closer to where each value is consumed instead of
   funneling everything through `Main`/`Dashboard` props.
 - Wrap expensive children in `React.memo` and pass primitive props (not new object/array literals).
@@ -30,11 +37,13 @@ frequently. Recommendations:
 ## 3. Full page reload on theme change
 
 `Main.tsx:51-53`:
+
 ```ts
 const reloadAfterThemeChange = () => {
   window.setTimeout(() => window.location.reload(), 80);
 };
 ```
+
 Bound to the theme keyboard shortcut (Alt+T) at `Main.tsx:974-978`. A full `location.reload()`
 re-downloads/parses the entire app and re-runs the 2.4 s splash. Theme is already applied via CSS
 variables (`Main.tsx:111-228`), so the reload is unnecessary — remove it and let the class swap
@@ -43,9 +52,11 @@ re-render in place.
 ## 4. Artificial 2.4 s loading screen
 
 `Main.tsx:375`:
+
 ```ts
 setTimeout(() => setIsLoading(false), 2400);
 ```
+
 The app shows a loading spinner for a hard-coded 2.4 seconds on every cold start regardless of how
 fast data is ready. Drive `isLoading` off actual readiness (all `storage.*.get()` resolved / hydration
 done) instead of a timer.

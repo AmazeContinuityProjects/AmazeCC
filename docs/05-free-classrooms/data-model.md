@@ -1,3 +1,7 @@
+---
+title: "Free Classrooms — Data Model (precise)"
+---
+
 # Free Classrooms — Data Model (precise)
 
 ```ts

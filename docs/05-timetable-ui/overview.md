@@ -1,3 +1,8 @@
+---
+title: "Timetable UI — Overview (walkthrough)"
+description: "every grid in the app descends from this one component — change the grid, and the app's face follows."
+---
+
 # Timetable UI — Overview (walkthrough)
 
 > **In one line:** every grid in the app descends from this one component — change the grid, and the app's face follows.

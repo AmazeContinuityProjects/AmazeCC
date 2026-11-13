@@ -1,3 +1,8 @@
+---
+title: "Paper Scanner — Architecture (deep)"
+description: "camera → detect → crop → enhance → OCR → classify — every stage on-device; no paper ever touches the network unless you explicitly share it."
+---
+
 # Paper Scanner — Architecture (deep)
 
 > **In one line:** camera → detect → crop → enhance → OCR → classify — every stage on-device; no paper ever touches the network unless you explicitly share it.

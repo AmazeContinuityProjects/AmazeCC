@@ -1,3 +1,8 @@
+---
+title: "Rate Limits, Backoff & the Captcha Budget"
+description: "every login costs a human-captcha solve; the engine is choreographed so that cost is paid as rarely as possible — never twice for the same tap, never for app boot."
+---
+
 # 15 — Rate Limits, Backoff & the Captcha Budget
 
 > **In one line:** every login costs a human-captcha solve; the engine is choreographed so that

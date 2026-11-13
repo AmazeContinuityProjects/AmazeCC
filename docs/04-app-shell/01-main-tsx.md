@@ -1,3 +1,8 @@
+---
+title: "Main.tsx: The Runtime Root"
+description: "the 1,280-line client component that owns session bootstrap, tab orchestration, command palette, shortcuts, and where the authenticated shell begins. Read it in one sitting once …"
+---
+
 # 01 — Main.tsx: The Runtime Root
 
 > **In one line:** the 1,280-line client component that owns session bootstrap, tab

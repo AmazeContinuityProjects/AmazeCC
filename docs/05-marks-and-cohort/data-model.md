@@ -1,3 +1,7 @@
+---
+title: "Marks & Cohort — Data Model"
+---
+
 # Marks & Cohort — Data Model
 
 `AssessmentKey = sha256(classId::component::normalizedTitle)`

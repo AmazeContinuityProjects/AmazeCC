@@ -1,3 +1,8 @@
+---
+title: "Adapters (payload-shaping)"
+description: "all cross-version payload adaptation lives in sync-engine/operations.ts adapters — everything downstream may assume normalized shapes."
+---
+
 # 16 — Adapters (payload-shaping)
 
 > **In one line:** all cross-version payload adaptation lives in `sync-engine/operations.ts`

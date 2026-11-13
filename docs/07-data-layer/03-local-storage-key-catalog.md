@@ -1,3 +1,8 @@
+---
+title: "Complete localStorage Key Catalog"
+description: 'every raw key this app writes anywhere, grouped by owner, with "who writes it" and "who reads it".'
+---
+
 # 03 — Complete localStorage Key Catalog
 
 > **In one line:** every raw key this app writes anywhere, grouped by owner, with "who writes it" and "who reads it".

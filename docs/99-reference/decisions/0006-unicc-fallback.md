@@ -1,3 +1,7 @@
+---
+title: "ADR-0006: UniCC Fallback (scoped, opt-out-able)"
+---
+
 # ADR-0006: UniCC Fallback (scoped, opt-out-able)
 
 **Status:** accepted

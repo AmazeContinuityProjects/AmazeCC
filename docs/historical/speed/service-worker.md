@@ -1,3 +1,7 @@
+---
+title: "Service worker & caching"
+---
+
 # Service worker & caching
 
 **Severity: LOW-MEDIUM** — affects repeat-visit speed and offline behavior.

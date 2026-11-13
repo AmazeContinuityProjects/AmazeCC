@@ -1,3 +1,8 @@
+---
+title: "The Credential Manager"
+description: "the only module allowed to know VTOP's 10-minute session exists — it logs in, remembers the cookies, and refuses to burn captchas when it shouldn't."
+---
+
 # 03 — The Credential Manager
 
 > **In one line:** the only module allowed to know VTOP's 10-minute session exists — it logs in,

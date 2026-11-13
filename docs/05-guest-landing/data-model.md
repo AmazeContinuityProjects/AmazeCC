@@ -1,3 +1,7 @@
+---
+title: "Guest Landing — Data Model"
+---
+
 # Guest Landing — Data Model
 
 None — pure static copy + fake screenshots baked into images.

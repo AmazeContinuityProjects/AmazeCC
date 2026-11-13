@@ -1,3 +1,7 @@
+---
+title: "Console Errors, Decoded"
+---
+
 # 06 — Console Errors, Decoded
 
 | Message                                           | Meaning                               | What to do                                                                        |

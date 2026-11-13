@@ -1,3 +1,7 @@
+---
+title: "Events & Clubs — Known Issues (full)"
+---
+
 # Events & Clubs — Known Issues (full)
 
 1. **Eligibility flip lag** — a student who completes the prerequisite quiz at 10 PM may still show "ineligible" at 10:01; VTOP caches eligibility — expect next-day sync.

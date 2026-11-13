@@ -1,3 +1,8 @@
+---
+title: "Student Report — Overview (walkthrough)"
+description: 'one tap — "everything VIT knows about my academics, in a PDF you can email your parents".'
+---
+
 # Student Report — Overview (walkthrough)
 
 > **In one line:** one tap — "everything VIT knows about my academics, in a PDF you can email your parents".

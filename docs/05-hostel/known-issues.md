@@ -1,3 +1,7 @@
+---
+title: "Hostel — Known Issues (full)"
+---
+
 # Hostel — Known Issues (full)
 
 1. **Mess JSON freshness** — VIT issues menu PDFs late; sometimes today's menu ships at 10:30 am. App says so ("updated …") when stale beyond 36 h.

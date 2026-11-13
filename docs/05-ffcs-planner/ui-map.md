@@ -1,3 +1,7 @@
+---
+title: "FFCS Planner — UI Map (annotated, with sizes)"
+---
+
 # FFCS Planner — UI Map (annotated, with sizes)
 
 > **Entry files:** `exams/FFCSTimetableTab.tsx` (~4,436 lines) · `exams/FFCS/FFCSGeneratorSubpage.tsx` (~3,665) ·

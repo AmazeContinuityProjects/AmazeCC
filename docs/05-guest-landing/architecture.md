@@ -1,3 +1,8 @@
+---
+title: "Guest Landing — Architecture (deep)"
+description: "a public marketing page — static HTML, no login, no JS dependency beyond React — sells the app to strangers in 8 seconds."
+---
+
 # Guest Landing — Architecture (deep)
 
 > **In one line:** a public marketing page — static HTML, no login, no JS dependency beyond React — sells the app to strangers in 8 seconds.

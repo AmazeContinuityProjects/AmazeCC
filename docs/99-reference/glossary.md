@@ -1,3 +1,7 @@
+---
+title: "Glossary"
+---
+
 # Glossary
 
 > Every acronym and term used anywhere in the live `docs/` tree, one line each.

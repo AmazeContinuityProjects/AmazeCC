@@ -1,3 +1,8 @@
+---
+title: "The UniCC Fallback (scoped, opt-out-able)"
+description: 'a third-party "better VTOP" API receives the student''s real credentials for a small allowlist of reads — only when the primary API is unavailable, never on rejected passwords — and can be killed…'
+---
+
 # 12 — The UniCC Fallback (scoped, opt-out-able)
 
 > **In one line:** a third-party "better VTOP" API receives the student's **real credentials**

@@ -1,3 +1,7 @@
+---
+title: "Social — Storage & State"
+---
+
 # Social — Storage & State
 
 Atoms (8): socialIdentity, socialPeers, socialGrants, socialOwnBusyMap, socialOwnCourses, activeRegNumber, socialSyncState, pendingInviteHandle.

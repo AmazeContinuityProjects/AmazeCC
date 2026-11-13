@@ -1,3 +1,7 @@
+---
+title: "Timetable Slot Algebra"
+---
+
 # Timetable Slot Algebra
 
 > Slot vocabulary is the load-bearing concept of the timetable engine.

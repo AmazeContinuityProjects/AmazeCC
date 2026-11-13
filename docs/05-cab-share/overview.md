@@ -1,3 +1,8 @@
+---
+title: "Cab Share — Overview (walkthrough)"
+description: "split a cab with classmates who actually need to go the same route, at the same time."
+---
+
 # Cab Share — Overview (walkthrough)
 
 > **In one line:** split a cab with classmates who actually need to go the same route, at the same time.

@@ -1,3 +1,7 @@
+---
+title: "FFCS Planner — Known Issues & Sharp Edges (complete catalog)"
+---
+
 # FFCS Planner — Known Issues & Sharp Edges (complete catalog)
 
 > Read before filing; half of these are load-bearing weirdness.

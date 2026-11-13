@@ -1,3 +1,8 @@
+---
+title: "The Media CDN (cdn.amazecc.com)"
+description: "Cloudflare in front of real file storage — faculty photos, posters, static marketing art — migrated URLs so VTOP- and Supabase-hosted images load sanely everywhere."
+---
+
 # 11 — The Media CDN (cdn.amazecc.com)
 
 > **In one line:** Cloudflare in front of real file storage — faculty photos, posters,

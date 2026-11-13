@@ -1,3 +1,7 @@
+---
+title: "AmazeCC Performance Optimization — Recommended Action Plan"
+---
+
 # AmazeCC Performance Optimization — Recommended Action Plan
 
 ## Executive Summary
@@ -803,7 +807,7 @@ This is not a major performance concern because it happens only once per logout.
 However, as the cache grows, a namespaced deletion strategy is architecturally cleaner than:
 
 ```ts
-localStorage.clear()
+localStorage.clear();
 ```
 
 Consider removing only AmazeCC-owned keys.

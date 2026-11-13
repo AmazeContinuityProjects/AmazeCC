@@ -1,3 +1,8 @@
+---
+title: "The State Bridge"
+description: "the single seam between the engine and jotai/localStorage — every result lands there, nowhere else."
+---
+
 # 07 — The State Bridge
 
 > **In one line:** the single seam between the engine and jotai/localStorage — every result

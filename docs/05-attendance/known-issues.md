@@ -1,3 +1,7 @@
+---
+title: "Attendance — Known Issues (extended)"
+---
+
 # Attendance — Known Issues (extended)
 
 1. **Ambiguous slots** — VTOP occasionally ships a class with both `TH` and `LO` in one row;

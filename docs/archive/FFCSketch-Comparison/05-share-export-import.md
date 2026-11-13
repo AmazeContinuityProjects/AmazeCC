@@ -1,11 +1,15 @@
+---
+title: "Share, export & import"
+---
+
 > ⚠️ **ARCHIVED — historical context, not authoritative.**
 > This file was moved to `docs/archive/` during the handoff docs rebuild. It may describe
 > a previous architecture. If it contradicts the code in `src/` or the live `docs/`, the code wins.
-> See `docs/README.md` for current documentation.
+> See `docs/index.md` for current documentation.
 
 # 05 — Share, export & import
 
-> Part of the [FFCSketch vs AmazeCC FFCS comparison](./README.md). Scan date 2026-10-30.
+> Part of the [FFCSketch vs AmazeCC FFCS comparison](./index.md). Scan date 2026-10-30.
 
 Both are backend-free: sharing means encoding a plan into a URL, exporting means rendering off-screen HTML, importing means parsing a file or paste on the client.
 

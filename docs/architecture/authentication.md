@@ -1,3 +1,7 @@
+---
+title: "Moved"
+---
+
 # Moved
 
 > ⚠️ Pointer page - this content lives in the new docs tree.

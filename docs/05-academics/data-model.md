@@ -1,3 +1,7 @@
+---
+title: "Academics — Data Model (precise shapes)"
+---
+
 # Academics — Data Model (precise shapes)
 
 ## `allGradesDataAtom` (permanent — survives refresh)

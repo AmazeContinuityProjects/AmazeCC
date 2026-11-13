@@ -1,3 +1,8 @@
+---
+title: "pnpm & the Workspace"
+description: "pnpm 10, strict peers, content-addressed store; don't let npm touch this repo."
+---
+
 # 01 — pnpm & the Workspace
 
 > **In one line:** pnpm 10, strict peers, content-addressed store; don't let npm touch this repo.

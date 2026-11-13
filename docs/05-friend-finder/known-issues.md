@@ -1,3 +1,7 @@
+---
+title: "Friend Finder — Known Issues (full)"
+---
+
 # Friend Finder — Known Issues (full)
 
 1. **Stale registrations** — a student who dropped the course still can appear until next VTOP sync

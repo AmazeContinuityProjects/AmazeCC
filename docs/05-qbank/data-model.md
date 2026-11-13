@@ -1,3 +1,7 @@
+---
+title: "QBank — Data Model"
+---
+
 # QBank — Data Model
 
 `QBankCourse = { code, title, branch, counts }`

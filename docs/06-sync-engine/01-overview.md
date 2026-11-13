@@ -1,3 +1,8 @@
+---
+title: "Sync Engine Overview"
+description: 'a small engine (src/lib/sync-engine/) that turns "fetch VTOP stuff" into typed, retryable, observable operations with one output shape: atoms + localStorage.'
+---
+
 # 01 — Sync Engine Overview
 
 > **In one line:** a small engine (`src/lib/sync-engine/`) that turns "fetch VTOP stuff" into

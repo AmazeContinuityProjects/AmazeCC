@@ -1,3 +1,8 @@
+---
+title: "What a Web App Is"
+description: "a web app is a program downloaded from the internet and run by your browser."
+---
+
 # 01 — What a Web App Is
 
 > **In one line:** a web app is a program downloaded from the internet and run by your browser.

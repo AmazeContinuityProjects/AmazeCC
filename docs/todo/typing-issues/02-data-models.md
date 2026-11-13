@@ -1,3 +1,7 @@
+---
+title: "Tier 2 — Model the data properly"
+---
+
 # Tier 2 — Model the data properly
 
 This is the tier that actually pays rent: it deletes runtime guesswork and makes
@@ -9,9 +13,9 @@ a backend shape change fail loudly instead of rendering an empty page.
 
 ```ts
 export type AllGradesRes = {
-    semesterId?: string;
-    grades?: GradeResultsMap;
-    error?: string;
+  semesterId?: string;
+  grades?: GradeResultsMap;
+  error?: string;
 };
 ```
 
@@ -25,8 +29,11 @@ the two arrays, because it can't know which of its three `any` props holds them:
 ```ts
 const findCurriculum = (): CurriculumItem[] => {
   const sources = [
-    allGradesData?.curriculum, allGradesData?.cgpa?.curriculum, allGradesData?.grades?.curriculum,
-    allGradesData?.data?.curriculum, gradesData?.curriculum, /* …11 total… */
+    allGradesData?.curriculum,
+    allGradesData?.cgpa?.curriculum,
+    allGradesData?.grades?.curriculum,
+    allGradesData?.data?.curriculum,
+    gradesData?.curriculum /* …11 total… */,
   ];
   for (const src of sources) if (Array.isArray(src) && src.length > 0) return src;
   return [];
@@ -40,14 +47,13 @@ symptom of code nobody dares delete, because nobody knows which path is live.
 
 ```ts
 export type AllGradesRes = {
-    semesterId?: string;
-    grades?: GradeResultsMap;
-    error?: string;
-    // added
-    cgpa?: { cgpa?: string | number; creditsEarned?: string; creditsRequired?: string;
-             nonGradedRequirement?: string };
-    curriculum?: CurriculumItem[];
-    effectiveGrades?: EffectiveGradeItem[];
+  semesterId?: string;
+  grades?: GradeResultsMap;
+  error?: string;
+  // added
+  cgpa?: { cgpa?: string | number; creditsEarned?: string; creditsRequired?: string; nonGradedRequirement?: string };
+  curriculum?: CurriculumItem[];
+  effectiveGrades?: EffectiveGradeItem[];
 };
 ```
 
@@ -55,7 +61,7 @@ Then collapse the probing to the paths that are actually populated. **Verify
 which those are before deleting anything** — log the resolved path once in demo
 mode, or grep the sync engine's `operations.ts` for where these are written.
 
-**Risk** — medium-low. Deleting a path that *was* live shows an empty page. Gate
+**Risk** — medium-low. Deleting a path that _was_ live shows an empty page. Gate
 it: keep the probe temporarily, assert the new direct path returns the same
 array, then delete.
 
@@ -72,14 +78,40 @@ copy of four of them (now deleted per [01](./01-quick-wins.md)).
 established by `src/types/payments.ts` (added with the payments redesign):
 
 ```ts
-export interface CurriculumItem { basketTitle: string; creditsRequired: string; creditsEarned: string }
-export interface EffectiveGradeItem { basketTitle: string; distributionType: string;
-                                       creditsEarned: string; grade: string; courseCode?: string }
-export interface BasketItem { code: string; name: string; credits: number; type?: string }
-export interface Basket { title: string; credits: number; items: BasketItem[] }
-export interface CategoryDetail { code: string; name: string; baskets: Basket[] }
-export interface CurriculumCache { details?: CategoryDetail[]; categories?: unknown[];
-                                   totalCredits?: number; pageCsrf?: string }
+export interface CurriculumItem {
+  basketTitle: string;
+  creditsRequired: string;
+  creditsEarned: string;
+}
+export interface EffectiveGradeItem {
+  basketTitle: string;
+  distributionType: string;
+  creditsEarned: string;
+  grade: string;
+  courseCode?: string;
+}
+export interface BasketItem {
+  code: string;
+  name: string;
+  credits: number;
+  type?: string;
+}
+export interface Basket {
+  title: string;
+  credits: number;
+  items: BasketItem[];
+}
+export interface CategoryDetail {
+  code: string;
+  name: string;
+  baskets: Basket[];
+}
+export interface CurriculumCache {
+  details?: CategoryDetail[];
+  categories?: unknown[];
+  totalCredits?: number;
+  pageCsrf?: string;
+}
 ```
 
 Import from `@/types/curriculum` in every consumer. One definition, one home.
@@ -122,9 +154,9 @@ types at the call site:
 
 ```tsx
 <CurriculumPage
-  marksData={marksData}            // atom is object, prop is `any`
-  allGradesData={allGradesData}    // AllGradesRes, prop is `any`
-  gradesData={GradesData}          // prop is `any`
+  marksData={marksData} // atom is object, prop is `any`
+  allGradesData={allGradesData} // AllGradesRes, prop is `any`
+  gradesData={GradesData} // prop is `any`
   attendance={attendanceData.attendance} // attendanceItem[], prop is `any`
 />
 ```

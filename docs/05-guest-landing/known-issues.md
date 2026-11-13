@@ -1,3 +1,7 @@
+---
+title: "Guest Landing — Known Issues (full)"
+---
+
 # Guest Landing — Known Issues (full)
 
 1. **Hero image weight** — 84 KB `campus-twilight.webp` — lazy loaded; Lighthouse happy

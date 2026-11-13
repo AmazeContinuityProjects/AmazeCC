@@ -1,3 +1,7 @@
+---
+title: "Marks Predictor — Data Model (precise)"
+---
+
 # Marks Predictor — Data Model (precise)
 
 ## Component schema

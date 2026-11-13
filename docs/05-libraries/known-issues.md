@@ -1,3 +1,7 @@
+---
+title: "Libraries — Known Issues (full)"
+---
+
 # Libraries — Known Issues (full)
 
 1. **Koha outage = zero catalog** — the whole tab depends on the library's uptime; timeouts render "catalog unavailable" with retry.

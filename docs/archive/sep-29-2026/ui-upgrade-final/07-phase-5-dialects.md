@@ -1,3 +1,7 @@
+---
+title: "Phase 5 — the four dialects"
+---
+
 # Phase 5 — the four dialects
 
 The only phase in this plan that is not a token swap. Everything here is a **surface rewrite**:

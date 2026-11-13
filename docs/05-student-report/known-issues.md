@@ -1,3 +1,7 @@
+---
+title: "Student Report — Known Issues (full)"
+---
+
 # Student Report — Known Issues (full)
 
 1. **CGPA rounding** — we round per-step vs final-sum; VIT official CGPA may differ by ±0.01 — the report says "AmazeCC-computed, VIT is authoritative"

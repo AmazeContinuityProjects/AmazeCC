@@ -1,3 +1,8 @@
+---
+title: "Offline & the PWA Shell"
+description: "the service worker is the bouncer — it serves yesterday's shell instantly and apologizes with /~offline/ when there's nothing to serve."
+---
+
 # 04 — Offline & the PWA Shell
 
 > **In one line:** the service worker is the bouncer — it serves yesterday's shell instantly

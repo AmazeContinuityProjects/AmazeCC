@@ -1,3 +1,8 @@
+---
+title: "The One-Page App"
+description: "the signed-in app does not navigate URLs; it swaps feature screens behind one URL, driven by jotai atoms and a navigator context."
+---
+
 # 02 — The One-Page App
 
 > **In one line:** the signed-in app does not navigate URLs; it swaps feature screens behind

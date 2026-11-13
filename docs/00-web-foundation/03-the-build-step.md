@@ -1,3 +1,8 @@
+---
+title: "The Build Step (node, pnpm, next build)"
+description: "you never ship the code you write; you ship its optimized output, produced by a build pipeline that type-checks, bundles, minifies and precaches."
+---
+
 # 03 — The Build Step (node, pnpm, next build)
 
 > **In one line:** you never ship the code you write; you ship its optimized output, produced

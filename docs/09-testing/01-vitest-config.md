@@ -1,3 +1,8 @@
+---
+title: "Vitest Configuration"
+description: "jsdom + globals + explicit imports (no setup files on purpose) + 4 workers - 30 s timeout."
+---
+
 # 01 — Vitest Configuration
 
 > **In one line:** jsdom + globals + explicit imports (no setup files on purpose) + 4 workers

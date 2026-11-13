@@ -1,3 +1,8 @@
+---
+title: "Academics — Overview (the walking tour)"
+description: "everything about your degree performance — past, present and a probabilistic future — in one tab."
+---
+
 # Academics — Overview (the walking tour)
 
 > **In one line:** everything about your degree performance — past, present and a probabilistic future — in one tab.

@@ -1,3 +1,8 @@
+---
+title: "Timetable UI — Architecture (deep)"
+description: "three grid dialects — vertical (phone), horizontal (desktop), classic (legacy) — unified under one entry point and one density model."
+---
+
 # Timetable UI — Architecture (deep)
 
 > **In one line:** three grid dialects — vertical (phone), horizontal (desktop), classic (legacy) — unified under one entry point and one density model.
