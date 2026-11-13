@@ -4,705 +4,747 @@
   "navigation": {
     "groups": [
       {
-        "group": "Start here · Web Foundation",
-        "root": "00-web-foundation/index",
+        "group": "Start here",
+        "icon": "rocket",
+        "expanded": true,
         "pages": [
-          "00-web-foundation/01-what-a-web-app-is",
-          "00-web-foundation/02-html-css-js",
-          "00-web-foundation/03-the-build-step",
-          "00-web-foundation/04-typescript-in-10-minutes",
-          "00-web-foundation/05-react-mental-model",
-          "00-web-foundation/06-next-app-router",
-          "00-web-foundation/07-static-export",
-          "00-web-foundation/08-state-vs-server-state",
-          "00-web-foundation/09-cookies-sessions-tokens",
-          "00-web-foundation/10-pwa-and-service-workers",
-          "00-web-foundation/11-http-and-apis",
-          "00-web-foundation/12-the-repo-layout",
-          "00-web-foundation/13-common-footguns"
+          {
+            "group": "Web Foundation",
+            "root": "00-web-foundation/index",
+            "pages": [
+              "00-web-foundation/01-what-a-web-app-is",
+              "00-web-foundation/02-html-css-js",
+              "00-web-foundation/03-the-build-step",
+              "00-web-foundation/04-typescript-in-10-minutes",
+              "00-web-foundation/05-react-mental-model",
+              "00-web-foundation/06-next-app-router",
+              "00-web-foundation/07-static-export",
+              "00-web-foundation/08-state-vs-server-state",
+              "00-web-foundation/09-cookies-sessions-tokens",
+              "00-web-foundation/10-pwa-and-service-workers",
+              "00-web-foundation/11-http-and-apis",
+              "00-web-foundation/12-the-repo-layout",
+              "00-web-foundation/13-common-footguns"
+            ]
+          },
+          {
+            "group": "Getting Started",
+            "root": "01-getting-started/index",
+            "pages": [
+              "01-getting-started/01-prerequisites",
+              "01-getting-started/02-clone-and-install",
+              "01-getting-started/03-env-vars",
+              "01-getting-started/04-run-in-demo-mode",
+              "01-getting-started/05-your-first-change",
+              "01-getting-started/06-scripts",
+              "01-getting-started/07-running-tests",
+              "01-getting-started/08-building-for-production",
+              "01-getting-started/09-handoff-checklist"
+            ]
+          },
+          {
+            "group": "Architecture",
+            "root": "02-architecture/index",
+            "pages": [
+              "02-architecture/01-runtime-topology",
+              "02-architecture/02-the-one-page-app",
+              "02-architecture/03-data-flow-end-to-end",
+              "02-architecture/04-offline-and-the-pwa",
+              "02-architecture/05-build-pipeline",
+              "02-architecture/06-error-handling",
+              "02-architecture/07-state-management-map",
+              "02-architecture/08-directory-map",
+              "02-architecture/09-design-system",
+              "02-architecture/10-configuration-catalog"
+            ]
+          },
+          {
+            "group": "Routing & Navigation",
+            "root": "03-routing/index",
+            "pages": [
+              "03-routing/01-next-routes",
+              "03-routing/02-tab-router",
+              "03-routing/03-navigation-registry",
+              "03-routing/04-the-share-routes",
+              "03-routing/05-static-export-routing",
+              "03-routing/06-command-palette-and-shortcuts",
+              "03-routing/07-screen-locking-nav",
+              "03-routing/08-deep-linking"
+            ]
+          },
+          {
+            "group": "App Shell",
+            "root": "04-app-shell/index",
+            "pages": [
+              "04-app-shell/01-main-tsx",
+              "04-app-shell/02-home-entry-controller",
+              "04-app-shell/03-app-housing",
+              "04-app-shell/04-authenticated-workspace",
+              "04-app-shell/05-dashboard",
+              "04-app-shell/06-navigation-tabs",
+              "04-app-shell/07-sync-session-sheet",
+              "04-app-shell/08-command-palette-host",
+              "04-app-shell/09-connection-banner",
+              "04-app-shell/10-notifications-and-toasts",
+              "04-app-shell/11-icon-updater"
+            ]
+          }
         ]
       },
       {
-        "group": "Start here · Getting Started",
-        "root": "01-getting-started/index",
+        "group": "Features",
+        "icon": "sparkles",
+        "expanded": true,
         "pages": [
-          "01-getting-started/01-prerequisites",
-          "01-getting-started/02-clone-and-install",
-          "01-getting-started/03-env-vars",
-          "01-getting-started/04-run-in-demo-mode",
-          "01-getting-started/05-your-first-change",
-          "01-getting-started/06-scripts",
-          "01-getting-started/07-running-tests",
-          "01-getting-started/08-building-for-production",
-          "01-getting-started/09-handoff-checklist"
+          {
+            "group": "FFCS Planner",
+            "root": "05-ffcs-planner/index",
+            "pages": [
+              "05-ffcs-planner/architecture",
+              "05-ffcs-planner/data-model",
+              "05-ffcs-planner/deep-dive-guided-selector",
+              "05-ffcs-planner/history",
+              "05-ffcs-planner/known-issues",
+              "05-ffcs-planner/notes/clash-detection-and-schema",
+              "05-ffcs-planner/notes/embedded-course-pairing",
+              "05-ffcs-planner/notes/index",
+              "05-ffcs-planner/notes/timetable-export-and-reviews",
+              "05-ffcs-planner/overview",
+              "05-ffcs-planner/storage-and-state",
+              "05-ffcs-planner/testing",
+              "05-ffcs-planner/ui-map"
+            ]
+          },
+          {
+            "group": "Attendance",
+            "root": "05-attendance/index",
+            "pages": [
+              "05-attendance/architecture",
+              "05-attendance/data-model",
+              "05-attendance/history",
+              "05-attendance/known-issues",
+              "05-attendance/overview",
+              "05-attendance/storage-and-state",
+              "05-attendance/testing",
+              "05-attendance/ui-map"
+            ]
+          },
+          {
+            "group": "Academics",
+            "root": "05-academics/index",
+            "pages": [
+              "05-academics/architecture",
+              "05-academics/data-model",
+              "05-academics/history",
+              "05-academics/known-issues",
+              "05-academics/overview",
+              "05-academics/storage-and-state",
+              "05-academics/testing",
+              "05-academics/ui-map"
+            ]
+          },
+          {
+            "group": "Marks Predictor",
+            "root": "05-marks-predictor/index",
+            "pages": [
+              "05-marks-predictor/architecture",
+              "05-marks-predictor/data-model",
+              "05-marks-predictor/history",
+              "05-marks-predictor/known-issues",
+              "05-marks-predictor/overview",
+              "05-marks-predictor/storage-and-state",
+              "05-marks-predictor/testing",
+              "05-marks-predictor/ui-map"
+            ]
+          },
+          {
+            "group": "Free Classrooms",
+            "root": "05-free-classrooms/index",
+            "pages": [
+              "05-free-classrooms/architecture",
+              "05-free-classrooms/data-model",
+              "05-free-classrooms/history",
+              "05-free-classrooms/known-issues",
+              "05-free-classrooms/overview",
+              "05-free-classrooms/storage-and-state",
+              "05-free-classrooms/testing",
+              "05-free-classrooms/ui-map"
+            ]
+          },
+          {
+            "group": "Marks & Cohort Stats",
+            "root": "05-marks-and-cohort/index",
+            "pages": [
+              "05-marks-and-cohort/architecture",
+              "05-marks-and-cohort/data-model",
+              "05-marks-and-cohort/history",
+              "05-marks-and-cohort/known-issues",
+              "05-marks-and-cohort/overview",
+              "05-marks-and-cohort/storage-and-state",
+              "05-marks-and-cohort/testing",
+              "05-marks-and-cohort/ui-map"
+            ]
+          },
+          {
+            "group": "Timetable UI",
+            "root": "05-timetable-ui/index",
+            "pages": [
+              "05-timetable-ui/architecture",
+              "05-timetable-ui/data-model",
+              "05-timetable-ui/history",
+              "05-timetable-ui/known-issues",
+              "05-timetable-ui/overview",
+              "05-timetable-ui/storage-and-state",
+              "05-timetable-ui/testing",
+              "05-timetable-ui/ui-map"
+            ]
+          },
+          {
+            "group": "FFCS Friends",
+            "root": "05-ffcs-friends/index",
+            "pages": [
+              "05-ffcs-friends/architecture",
+              "05-ffcs-friends/data-model",
+              "05-ffcs-friends/history",
+              "05-ffcs-friends/known-issues",
+              "05-ffcs-friends/overview",
+              "05-ffcs-friends/storage-and-state",
+              "05-ffcs-friends/testing",
+              "05-ffcs-friends/ui-map"
+            ]
+          },
+          {
+            "group": "Social",
+            "root": "05-social/index",
+            "pages": [
+              "05-social/architecture",
+              "05-social/data-model",
+              "05-social/history",
+              "05-social/known-issues",
+              "05-social/overview",
+              "05-social/storage-and-state",
+              "05-social/testing",
+              "05-social/ui-map"
+            ]
+          },
+          {
+            "group": "Friend Finder",
+            "root": "05-friend-finder/index",
+            "pages": [
+              "05-friend-finder/architecture",
+              "05-friend-finder/data-model",
+              "05-friend-finder/design-note",
+              "05-friend-finder/history",
+              "05-friend-finder/known-issues",
+              "05-friend-finder/overview",
+              "05-friend-finder/storage-and-state",
+              "05-friend-finder/testing",
+              "05-friend-finder/ui-map"
+            ]
+          },
+          {
+            "group": "Hostel",
+            "root": "05-hostel/index",
+            "pages": [
+              "05-hostel/architecture",
+              "05-hostel/data-model",
+              "05-hostel/history",
+              "05-hostel/known-issues",
+              "05-hostel/overview",
+              "05-hostel/storage-and-state",
+              "05-hostel/testing",
+              "05-hostel/ui-map"
+            ]
+          },
+          {
+            "group": "Libraries",
+            "root": "05-libraries/index",
+            "pages": [
+              "05-libraries/architecture",
+              "05-libraries/data-model",
+              "05-libraries/history",
+              "05-libraries/known-issues",
+              "05-libraries/overview",
+              "05-libraries/storage-and-state",
+              "05-libraries/testing",
+              "05-libraries/ui-map"
+            ]
+          },
+          {
+            "group": "Payments",
+            "root": "05-payments/index",
+            "pages": [
+              "05-payments/architecture",
+              "05-payments/data-model",
+              "05-payments/history",
+              "05-payments/known-issues",
+              "05-payments/overview",
+              "05-payments/storage-and-state",
+              "05-payments/testing",
+              "05-payments/ui-map"
+            ]
+          },
+          {
+            "group": "Events & Clubs",
+            "root": "05-events-and-clubs/index",
+            "pages": [
+              "05-events-and-clubs/architecture",
+              "05-events-and-clubs/data-model",
+              "05-events-and-clubs/history",
+              "05-events-and-clubs/known-issues",
+              "05-events-and-clubs/overview",
+              "05-events-and-clubs/storage-and-state",
+              "05-events-and-clubs/testing",
+              "05-events-and-clubs/ui-map"
+            ]
+          },
+          {
+            "group": "Cab Share",
+            "root": "05-cab-share/index",
+            "pages": [
+              "05-cab-share/architecture",
+              "05-cab-share/data-model",
+              "05-cab-share/history",
+              "05-cab-share/known-issues",
+              "05-cab-share/overview",
+              "05-cab-share/storage-and-state",
+              "05-cab-share/testing",
+              "05-cab-share/ui-map"
+            ]
+          },
+          {
+            "group": "Tasks & Pomodoro",
+            "root": "05-tasks-and-pomodoro/index",
+            "pages": [
+              "05-tasks-and-pomodoro/architecture",
+              "05-tasks-and-pomodoro/data-model",
+              "05-tasks-and-pomodoro/history",
+              "05-tasks-and-pomodoro/known-issues",
+              "05-tasks-and-pomodoro/overview",
+              "05-tasks-and-pomodoro/storage-and-state",
+              "05-tasks-and-pomodoro/testing",
+              "05-tasks-and-pomodoro/ui-map"
+            ]
+          },
+          {
+            "group": "QBank",
+            "root": "05-qbank/index",
+            "pages": [
+              "05-qbank/architecture",
+              "05-qbank/data-model",
+              "05-qbank/history",
+              "05-qbank/known-issues",
+              "05-qbank/overview",
+              "05-qbank/storage-and-state",
+              "05-qbank/testing",
+              "05-qbank/ui-map"
+            ]
+          },
+          {
+            "group": "Paper Scanner",
+            "root": "05-paper-scanner/index",
+            "pages": [
+              "05-paper-scanner/architecture",
+              "05-paper-scanner/data-model",
+              "05-paper-scanner/history",
+              "05-paper-scanner/known-issues",
+              "05-paper-scanner/overview",
+              "05-paper-scanner/storage-and-state",
+              "05-paper-scanner/testing",
+              "05-paper-scanner/ui-map"
+            ]
+          },
+          {
+            "group": "Student Report",
+            "root": "05-student-report/index",
+            "pages": [
+              "05-student-report/architecture",
+              "05-student-report/data-model",
+              "05-student-report/history",
+              "05-student-report/known-issues",
+              "05-student-report/overview",
+              "05-student-report/storage-and-state",
+              "05-student-report/testing",
+              "05-student-report/ui-map"
+            ]
+          },
+          {
+            "group": "Settings & Profile",
+            "root": "05-settings-and-profile/index",
+            "pages": [
+              "05-settings-and-profile/architecture",
+              "05-settings-and-profile/data-model",
+              "05-settings-and-profile/history",
+              "05-settings-and-profile/known-issues",
+              "05-settings-and-profile/overview",
+              "05-settings-and-profile/storage-and-state",
+              "05-settings-and-profile/testing",
+              "05-settings-and-profile/ui-map"
+            ]
+          },
+          {
+            "group": "Notifications & Push",
+            "root": "05-notifications-and-push/index",
+            "pages": [
+              "05-notifications-and-push/architecture",
+              "05-notifications-and-push/data-model",
+              "05-notifications-and-push/history",
+              "05-notifications-and-push/known-issues",
+              "05-notifications-and-push/overview",
+              "05-notifications-and-push/storage-and-state",
+              "05-notifications-and-push/testing",
+              "05-notifications-and-push/ui-map"
+            ]
+          },
+          {
+            "group": "Feedback & Support",
+            "root": "05-feedback-and-support/index",
+            "pages": [
+              "05-feedback-and-support/architecture",
+              "05-feedback-and-support/data-model",
+              "05-feedback-and-support/history",
+              "05-feedback-and-support/known-issues",
+              "05-feedback-and-support/overview",
+              "05-feedback-and-support/storage-and-state",
+              "05-feedback-and-support/testing",
+              "05-feedback-and-support/ui-map"
+            ]
+          },
+          {
+            "group": "Changelog & About",
+            "root": "05-changelog-and-about/index",
+            "pages": [
+              "05-changelog-and-about/architecture",
+              "05-changelog-and-about/data-model",
+              "05-changelog-and-about/history",
+              "05-changelog-and-about/known-issues",
+              "05-changelog-and-about/overview",
+              "05-changelog-and-about/storage-and-state",
+              "05-changelog-and-about/testing",
+              "05-changelog-and-about/ui-map"
+            ]
+          },
+          {
+            "group": "About & Licensing",
+            "root": "05-about-and-licensing/index",
+            "pages": [
+              "05-about-and-licensing/architecture",
+              "05-about-and-licensing/data-model",
+              "05-about-and-licensing/history",
+              "05-about-and-licensing/known-issues",
+              "05-about-and-licensing/overview",
+              "05-about-and-licensing/storage-and-state",
+              "05-about-and-licensing/testing",
+              "05-about-and-licensing/ui-map"
+            ]
+          },
+          {
+            "group": "Onboarding",
+            "root": "05-onboarding/index",
+            "pages": [
+              "05-onboarding/architecture",
+              "05-onboarding/data-model",
+              "05-onboarding/history",
+              "05-onboarding/known-issues",
+              "05-onboarding/overview",
+              "05-onboarding/storage-and-state",
+              "05-onboarding/testing",
+              "05-onboarding/ui-map"
+            ]
+          },
+          {
+            "group": "Guest Landing",
+            "root": "05-guest-landing/index",
+            "pages": [
+              "05-guest-landing/architecture",
+              "05-guest-landing/data-model",
+              "05-guest-landing/history",
+              "05-guest-landing/known-issues",
+              "05-guest-landing/overview",
+              "05-guest-landing/storage-and-state",
+              "05-guest-landing/testing",
+              "05-guest-landing/ui-map"
+            ]
+          }
         ]
       },
       {
-        "group": "Start here · Architecture",
-        "root": "02-architecture/index",
+        "group": "Systems",
+        "icon": "server",
+        "expanded": true,
         "pages": [
-          "02-architecture/01-runtime-topology",
-          "02-architecture/02-the-one-page-app",
-          "02-architecture/03-data-flow-end-to-end",
-          "02-architecture/04-offline-and-the-pwa",
-          "02-architecture/05-build-pipeline",
-          "02-architecture/06-error-handling",
-          "02-architecture/07-state-management-map",
-          "02-architecture/08-directory-map",
-          "02-architecture/09-design-system",
-          "02-architecture/10-configuration-catalog"
+          {
+            "group": "Sync Engine",
+            "root": "06-sync-engine/index",
+            "pages": [
+              "06-sync-engine/01-overview",
+              "06-sync-engine/02-request-layer",
+              "06-sync-engine/03-credential-manager",
+              "06-sync-engine/04-operations-catalog",
+              "06-sync-engine/05-sync-modes",
+              "06-sync-engine/06-sync-modes-editor",
+              "06-sync-engine/07-state-bridge",
+              "06-sync-engine/08-progress-bus-and-useSync",
+              "06-sync-engine/09-error-taxonomy",
+              "06-sync-engine/10-demo-mode",
+              "06-sync-engine/11-marks-sync-privacy",
+              "06-sync-engine/12-unicc-fallback",
+              "06-sync-engine/13-failover-and-backup-api",
+              "06-sync-engine/14-api-route-contracts",
+              "06-sync-engine/15-rate-limit-and-captcha",
+              "06-sync-engine/16-adapters"
+            ]
+          },
+          {
+            "group": "Data Layer",
+            "root": "07-data-layer/index",
+            "pages": [
+              "07-data-layer/01-storage-overview",
+              "07-data-layer/02-storage.ts-catalog",
+              "07-data-layer/03-local-storage-key-catalog",
+              "07-data-layer/04-atoms-catalog",
+              "07-data-layer/05-settings-atom",
+              "07-data-layer/06-credential-vault",
+              "07-data-layer/07-session-snapshot",
+              "07-data-layer/08-caches-and-ttl",
+              "07-data-layer/09-demo-data",
+              "07-data-layer/10-worker-data",
+              "07-data-layer/11-cdn"
+            ]
+          },
+          {
+            "group": "PWA Platform",
+            "root": "08-pwa-platform/index",
+            "pages": [
+              "08-pwa-platform/01-service-worker",
+              "08-pwa-platform/02-manifests",
+              "08-pwa-platform/03-offline-strategy",
+              "08-pwa-platform/04-web-push",
+              "08-pwa-platform/05-installing",
+              "08-pwa-platform/06-icon-updater",
+              "08-pwa-platform/07-csp",
+              "08-pwa-platform/08-bundle-and-workers",
+              "08-pwa-platform/09-chunk-recovery",
+              "08-pwa-platform/10-browser-compat"
+            ]
+          },
+          {
+            "group": "Testing",
+            "root": "09-testing/index",
+            "pages": [
+              "09-testing/01-vitest-config",
+              "09-testing/02-running-suites",
+              "09-testing/03-writing-a-unit-test",
+              "09-testing/04-writing-a-component-test",
+              "09-testing/05-mocking-guide",
+              "09-testing/06-localstorage-helper",
+              "09-testing/07-suite-map",
+              "09-testing/08-testing-what-matters",
+              "09-testing/09-coverage-and-ci",
+              "09-testing/10-visual-and-a11y"
+            ]
+          }
         ]
       },
       {
-        "group": "Start here · Routing & Navigation",
-        "root": "03-routing/index",
+        "group": "Operations",
+        "icon": "wrench",
+        "expanded": true,
         "pages": [
-          "03-routing/01-next-routes",
-          "03-routing/02-tab-router",
-          "03-routing/03-navigation-registry",
-          "03-routing/04-the-share-routes",
-          "03-routing/05-static-export-routing",
-          "03-routing/06-command-palette-and-shortcuts",
-          "03-routing/07-screen-locking-nav",
-          "03-routing/08-deep-linking"
+          {
+            "group": "Tooling & CI",
+            "root": "10-tooling-and-ci/index",
+            "pages": [
+              "10-tooling-and-ci/01-pnpm-and-workspace",
+              "10-tooling-and-ci/02-scripts",
+              "10-tooling-and-ci/03-build-info-generation",
+              "10-tooling-and-ci/04-ci-pipeline",
+              "10-tooling-and-ci/05-github-pages-deploy",
+              "10-tooling-and-ci/06-lint-format-hooks",
+              "10-tooling-and-ci/07-typecheck-and-tiers",
+              "10-tooling-and-ci/08-generating-info",
+              "10-tooling-and-ci/09-postinstall-oddities"
+            ]
+          },
+          {
+            "group": "Security",
+            "root": "11-security/index",
+            "pages": [
+              "11-security/01-credential-vault-details",
+              "11-security/02-never-share-we-respect",
+              "11-security/03-unicc-third-party-data-flow",
+              "11-security/04-identity-verification",
+              "11-security/05-feedback-uploads",
+              "11-security/06-dependency-hygiene",
+              "11-security/07-reporting-security-issues"
+            ]
+          },
+          {
+            "group": "Production Runbook",
+            "root": "12-operations/index",
+            "pages": [
+              "12-operations/01-github-pages-operations",
+              "12-operations/02-changelog-flow",
+              "12-operations/03-posthog-runbook",
+              "12-operations/04-capacity-and-costs",
+              "12-operations/05-known-limits",
+              "12-operations/06-release-checklist"
+            ]
+          },
+          {
+            "group": "Troubleshooting",
+            "root": "13-troubleshooting/index",
+            "pages": [
+              "13-troubleshooting/01-sync-fails",
+              "13-troubleshooting/02-blank-or-stale-app",
+              "13-troubleshooting/03-it-half-works",
+              "13-troubleshooting/04-marks-sync-trouble",
+              "13-troubleshooting/05-ffcs-planner-issues",
+              "13-troubleshooting/06-common-console-errors",
+              "13-troubleshooting/07-faq"
+            ]
+          }
         ]
       },
       {
-        "group": "Start here · App Shell",
-        "root": "04-app-shell/index",
+        "group": "Reference",
+        "icon": "book-open",
+        "expanded": true,
         "pages": [
-          "04-app-shell/01-main-tsx",
-          "04-app-shell/02-home-entry-controller",
-          "04-app-shell/03-app-housing",
-          "04-app-shell/04-authenticated-workspace",
-          "04-app-shell/05-dashboard",
-          "04-app-shell/06-navigation-tabs",
-          "04-app-shell/07-sync-session-sheet",
-          "04-app-shell/08-command-palette-host",
-          "04-app-shell/09-connection-banner",
-          "04-app-shell/10-notifications-and-toasts",
-          "04-app-shell/11-icon-updater"
+          {
+            "group": "Design Notes",
+            "root": "20-design-notes/index",
+            "pages": ["20-design-notes/naming-and-history"]
+          },
+          {
+            "group": "Reference",
+            "root": "99-reference/index",
+            "pages": [
+              "99-reference/academy/index",
+              "99-reference/academy/marks-grading-mechanics",
+              "99-reference/academy/timetable-slot-algebra",
+              "99-reference/academy/vtop-scraping-primer",
+              "99-reference/decisions/0001-static-export",
+              "99-reference/decisions/0002-client-side-vtop-auth",
+              "99-reference/decisions/0003-jotai-and-localstorage",
+              "99-reference/decisions/0004-marks-sync-model",
+              "99-reference/decisions/0005-service-worker-policy",
+              "99-reference/decisions/0006-unicc-fallback",
+              "99-reference/decisions/index",
+              "99-reference/dependency-catalog",
+              "99-reference/env-var-reference",
+              "99-reference/glossary",
+              "99-reference/network-calls-catalog",
+              "99-reference/route-and-file-index"
+            ]
+          },
+          {
+            "group": "Contributing",
+            "pages": ["contributing/code-of-conduct", "contributing/pull-request-guide", "contributing/style-guide"]
+          }
         ]
       },
       {
-        "group": "Features · FFCS Planner",
-        "root": "05-ffcs-planner/index",
+        "group": "Archive",
+        "icon": "archive",
+        "expanded": false,
         "pages": [
-          "05-ffcs-planner/architecture",
-          "05-ffcs-planner/data-model",
-          "05-ffcs-planner/deep-dive-guided-selector",
-          "05-ffcs-planner/history",
-          "05-ffcs-planner/known-issues",
-          "05-ffcs-planner/notes/clash-detection-and-schema",
-          "05-ffcs-planner/notes/embedded-course-pairing",
-          "05-ffcs-planner/notes/index",
-          "05-ffcs-planner/notes/timetable-export-and-reviews",
-          "05-ffcs-planner/overview",
-          "05-ffcs-planner/storage-and-state",
-          "05-ffcs-planner/testing",
-          "05-ffcs-planner/ui-map"
-        ]
-      },
-      {
-        "group": "Features · Attendance",
-        "root": "05-attendance/index",
-        "pages": [
-          "05-attendance/architecture",
-          "05-attendance/data-model",
-          "05-attendance/history",
-          "05-attendance/known-issues",
-          "05-attendance/overview",
-          "05-attendance/storage-and-state",
-          "05-attendance/testing",
-          "05-attendance/ui-map"
-        ]
-      },
-      {
-        "group": "Features · Academics",
-        "root": "05-academics/index",
-        "pages": [
-          "05-academics/architecture",
-          "05-academics/data-model",
-          "05-academics/history",
-          "05-academics/known-issues",
-          "05-academics/overview",
-          "05-academics/storage-and-state",
-          "05-academics/testing",
-          "05-academics/ui-map"
-        ]
-      },
-      {
-        "group": "Features · Marks Predictor",
-        "root": "05-marks-predictor/index",
-        "pages": [
-          "05-marks-predictor/architecture",
-          "05-marks-predictor/data-model",
-          "05-marks-predictor/history",
-          "05-marks-predictor/known-issues",
-          "05-marks-predictor/overview",
-          "05-marks-predictor/storage-and-state",
-          "05-marks-predictor/testing",
-          "05-marks-predictor/ui-map"
-        ]
-      },
-      {
-        "group": "Features · Free Classrooms",
-        "root": "05-free-classrooms/index",
-        "pages": [
-          "05-free-classrooms/architecture",
-          "05-free-classrooms/data-model",
-          "05-free-classrooms/history",
-          "05-free-classrooms/known-issues",
-          "05-free-classrooms/overview",
-          "05-free-classrooms/storage-and-state",
-          "05-free-classrooms/testing",
-          "05-free-classrooms/ui-map"
-        ]
-      },
-      {
-        "group": "Features · Marks & Cohort Stats",
-        "root": "05-marks-and-cohort/index",
-        "pages": [
-          "05-marks-and-cohort/architecture",
-          "05-marks-and-cohort/data-model",
-          "05-marks-and-cohort/history",
-          "05-marks-and-cohort/known-issues",
-          "05-marks-and-cohort/overview",
-          "05-marks-and-cohort/storage-and-state",
-          "05-marks-and-cohort/testing",
-          "05-marks-and-cohort/ui-map"
-        ]
-      },
-      {
-        "group": "Features · Timetable UI",
-        "root": "05-timetable-ui/index",
-        "pages": [
-          "05-timetable-ui/architecture",
-          "05-timetable-ui/data-model",
-          "05-timetable-ui/history",
-          "05-timetable-ui/known-issues",
-          "05-timetable-ui/overview",
-          "05-timetable-ui/storage-and-state",
-          "05-timetable-ui/testing",
-          "05-timetable-ui/ui-map"
-        ]
-      },
-      {
-        "group": "Features · FFCS Friends",
-        "root": "05-ffcs-friends/index",
-        "pages": [
-          "05-ffcs-friends/architecture",
-          "05-ffcs-friends/data-model",
-          "05-ffcs-friends/history",
-          "05-ffcs-friends/known-issues",
-          "05-ffcs-friends/overview",
-          "05-ffcs-friends/storage-and-state",
-          "05-ffcs-friends/testing",
-          "05-ffcs-friends/ui-map"
-        ]
-      },
-      {
-        "group": "Features · Social",
-        "root": "05-social/index",
-        "pages": [
-          "05-social/architecture",
-          "05-social/data-model",
-          "05-social/history",
-          "05-social/known-issues",
-          "05-social/overview",
-          "05-social/storage-and-state",
-          "05-social/testing",
-          "05-social/ui-map"
-        ]
-      },
-      {
-        "group": "Features · Friend Finder",
-        "root": "05-friend-finder/index",
-        "pages": [
-          "05-friend-finder/architecture",
-          "05-friend-finder/data-model",
-          "05-friend-finder/design-note",
-          "05-friend-finder/history",
-          "05-friend-finder/known-issues",
-          "05-friend-finder/overview",
-          "05-friend-finder/storage-and-state",
-          "05-friend-finder/testing",
-          "05-friend-finder/ui-map"
-        ]
-      },
-      {
-        "group": "Features · Hostel",
-        "root": "05-hostel/index",
-        "pages": [
-          "05-hostel/architecture",
-          "05-hostel/data-model",
-          "05-hostel/history",
-          "05-hostel/known-issues",
-          "05-hostel/overview",
-          "05-hostel/storage-and-state",
-          "05-hostel/testing",
-          "05-hostel/ui-map"
-        ]
-      },
-      {
-        "group": "Features · Libraries",
-        "root": "05-libraries/index",
-        "pages": [
-          "05-libraries/architecture",
-          "05-libraries/data-model",
-          "05-libraries/history",
-          "05-libraries/known-issues",
-          "05-libraries/overview",
-          "05-libraries/storage-and-state",
-          "05-libraries/testing",
-          "05-libraries/ui-map"
-        ]
-      },
-      {
-        "group": "Features · Payments",
-        "root": "05-payments/index",
-        "pages": [
-          "05-payments/architecture",
-          "05-payments/data-model",
-          "05-payments/history",
-          "05-payments/known-issues",
-          "05-payments/overview",
-          "05-payments/storage-and-state",
-          "05-payments/testing",
-          "05-payments/ui-map"
-        ]
-      },
-      {
-        "group": "Features · Events & Clubs",
-        "root": "05-events-and-clubs/index",
-        "pages": [
-          "05-events-and-clubs/architecture",
-          "05-events-and-clubs/data-model",
-          "05-events-and-clubs/history",
-          "05-events-and-clubs/known-issues",
-          "05-events-and-clubs/overview",
-          "05-events-and-clubs/storage-and-state",
-          "05-events-and-clubs/testing",
-          "05-events-and-clubs/ui-map"
-        ]
-      },
-      {
-        "group": "Features · Cab Share",
-        "root": "05-cab-share/index",
-        "pages": [
-          "05-cab-share/architecture",
-          "05-cab-share/data-model",
-          "05-cab-share/history",
-          "05-cab-share/known-issues",
-          "05-cab-share/overview",
-          "05-cab-share/storage-and-state",
-          "05-cab-share/testing",
-          "05-cab-share/ui-map"
-        ]
-      },
-      {
-        "group": "Features · Tasks & Pomodoro",
-        "root": "05-tasks-and-pomodoro/index",
-        "pages": [
-          "05-tasks-and-pomodoro/architecture",
-          "05-tasks-and-pomodoro/data-model",
-          "05-tasks-and-pomodoro/history",
-          "05-tasks-and-pomodoro/known-issues",
-          "05-tasks-and-pomodoro/overview",
-          "05-tasks-and-pomodoro/storage-and-state",
-          "05-tasks-and-pomodoro/testing",
-          "05-tasks-and-pomodoro/ui-map"
-        ]
-      },
-      {
-        "group": "Features · QBank",
-        "root": "05-qbank/index",
-        "pages": [
-          "05-qbank/architecture",
-          "05-qbank/data-model",
-          "05-qbank/history",
-          "05-qbank/known-issues",
-          "05-qbank/overview",
-          "05-qbank/storage-and-state",
-          "05-qbank/testing",
-          "05-qbank/ui-map"
-        ]
-      },
-      {
-        "group": "Features · Paper Scanner",
-        "root": "05-paper-scanner/index",
-        "pages": [
-          "05-paper-scanner/architecture",
-          "05-paper-scanner/data-model",
-          "05-paper-scanner/history",
-          "05-paper-scanner/known-issues",
-          "05-paper-scanner/overview",
-          "05-paper-scanner/storage-and-state",
-          "05-paper-scanner/testing",
-          "05-paper-scanner/ui-map"
-        ]
-      },
-      {
-        "group": "Features · Student Report",
-        "root": "05-student-report/index",
-        "pages": [
-          "05-student-report/architecture",
-          "05-student-report/data-model",
-          "05-student-report/history",
-          "05-student-report/known-issues",
-          "05-student-report/overview",
-          "05-student-report/storage-and-state",
-          "05-student-report/testing",
-          "05-student-report/ui-map"
-        ]
-      },
-      {
-        "group": "Features · Settings & Profile",
-        "root": "05-settings-and-profile/index",
-        "pages": [
-          "05-settings-and-profile/architecture",
-          "05-settings-and-profile/data-model",
-          "05-settings-and-profile/history",
-          "05-settings-and-profile/known-issues",
-          "05-settings-and-profile/overview",
-          "05-settings-and-profile/storage-and-state",
-          "05-settings-and-profile/testing",
-          "05-settings-and-profile/ui-map"
-        ]
-      },
-      {
-        "group": "Features · Notifications & Push",
-        "root": "05-notifications-and-push/index",
-        "pages": [
-          "05-notifications-and-push/architecture",
-          "05-notifications-and-push/data-model",
-          "05-notifications-and-push/history",
-          "05-notifications-and-push/known-issues",
-          "05-notifications-and-push/overview",
-          "05-notifications-and-push/storage-and-state",
-          "05-notifications-and-push/testing",
-          "05-notifications-and-push/ui-map"
-        ]
-      },
-      {
-        "group": "Features · Feedback & Support",
-        "root": "05-feedback-and-support/index",
-        "pages": [
-          "05-feedback-and-support/architecture",
-          "05-feedback-and-support/data-model",
-          "05-feedback-and-support/history",
-          "05-feedback-and-support/known-issues",
-          "05-feedback-and-support/overview",
-          "05-feedback-and-support/storage-and-state",
-          "05-feedback-and-support/testing",
-          "05-feedback-and-support/ui-map"
-        ]
-      },
-      {
-        "group": "Features · Changelog & About",
-        "root": "05-changelog-and-about/index",
-        "pages": [
-          "05-changelog-and-about/architecture",
-          "05-changelog-and-about/data-model",
-          "05-changelog-and-about/history",
-          "05-changelog-and-about/known-issues",
-          "05-changelog-and-about/overview",
-          "05-changelog-and-about/storage-and-state",
-          "05-changelog-and-about/testing",
-          "05-changelog-and-about/ui-map"
-        ]
-      },
-      {
-        "group": "Features · About & Licensing",
-        "root": "05-about-and-licensing/index",
-        "pages": [
-          "05-about-and-licensing/architecture",
-          "05-about-and-licensing/data-model",
-          "05-about-and-licensing/history",
-          "05-about-and-licensing/known-issues",
-          "05-about-and-licensing/overview",
-          "05-about-and-licensing/storage-and-state",
-          "05-about-and-licensing/testing",
-          "05-about-and-licensing/ui-map"
-        ]
-      },
-      {
-        "group": "Features · Onboarding",
-        "root": "05-onboarding/index",
-        "pages": [
-          "05-onboarding/architecture",
-          "05-onboarding/data-model",
-          "05-onboarding/history",
-          "05-onboarding/known-issues",
-          "05-onboarding/overview",
-          "05-onboarding/storage-and-state",
-          "05-onboarding/testing",
-          "05-onboarding/ui-map"
-        ]
-      },
-      {
-        "group": "Features · Guest Landing",
-        "root": "05-guest-landing/index",
-        "pages": [
-          "05-guest-landing/architecture",
-          "05-guest-landing/data-model",
-          "05-guest-landing/history",
-          "05-guest-landing/known-issues",
-          "05-guest-landing/overview",
-          "05-guest-landing/storage-and-state",
-          "05-guest-landing/testing",
-          "05-guest-landing/ui-map"
-        ]
-      },
-      {
-        "group": "Systems · Sync Engine",
-        "root": "06-sync-engine/index",
-        "pages": [
-          "06-sync-engine/01-overview",
-          "06-sync-engine/02-request-layer",
-          "06-sync-engine/03-credential-manager",
-          "06-sync-engine/04-operations-catalog",
-          "06-sync-engine/05-sync-modes",
-          "06-sync-engine/06-sync-modes-editor",
-          "06-sync-engine/07-state-bridge",
-          "06-sync-engine/08-progress-bus-and-useSync",
-          "06-sync-engine/09-error-taxonomy",
-          "06-sync-engine/10-demo-mode",
-          "06-sync-engine/11-marks-sync-privacy",
-          "06-sync-engine/12-unicc-fallback",
-          "06-sync-engine/13-failover-and-backup-api",
-          "06-sync-engine/14-api-route-contracts",
-          "06-sync-engine/15-rate-limit-and-captcha",
-          "06-sync-engine/16-adapters"
-        ]
-      },
-      {
-        "group": "Systems · Data Layer",
-        "root": "07-data-layer/index",
-        "pages": [
-          "07-data-layer/01-storage-overview",
-          "07-data-layer/02-storage.ts-catalog",
-          "07-data-layer/03-local-storage-key-catalog",
-          "07-data-layer/04-atoms-catalog",
-          "07-data-layer/05-settings-atom",
-          "07-data-layer/06-credential-vault",
-          "07-data-layer/07-session-snapshot",
-          "07-data-layer/08-caches-and-ttl",
-          "07-data-layer/09-demo-data",
-          "07-data-layer/10-worker-data",
-          "07-data-layer/11-cdn"
-        ]
-      },
-      {
-        "group": "Systems · PWA Platform",
-        "root": "08-pwa-platform/index",
-        "pages": [
-          "08-pwa-platform/01-service-worker",
-          "08-pwa-platform/02-manifests",
-          "08-pwa-platform/03-offline-strategy",
-          "08-pwa-platform/04-web-push",
-          "08-pwa-platform/05-installing",
-          "08-pwa-platform/06-icon-updater",
-          "08-pwa-platform/07-csp",
-          "08-pwa-platform/08-bundle-and-workers",
-          "08-pwa-platform/09-chunk-recovery",
-          "08-pwa-platform/10-browser-compat"
-        ]
-      },
-      {
-        "group": "Systems · Testing",
-        "root": "09-testing/index",
-        "pages": [
-          "09-testing/01-vitest-config",
-          "09-testing/02-running-suites",
-          "09-testing/03-writing-a-unit-test",
-          "09-testing/04-writing-a-component-test",
-          "09-testing/05-mocking-guide",
-          "09-testing/06-localstorage-helper",
-          "09-testing/07-suite-map",
-          "09-testing/08-testing-what-matters",
-          "09-testing/09-coverage-and-ci",
-          "09-testing/10-visual-and-a11y"
-        ]
-      },
-      {
-        "group": "Operations · Tooling & CI",
-        "root": "10-tooling-and-ci/index",
-        "pages": [
-          "10-tooling-and-ci/01-pnpm-and-workspace",
-          "10-tooling-and-ci/02-scripts",
-          "10-tooling-and-ci/03-build-info-generation",
-          "10-tooling-and-ci/04-ci-pipeline",
-          "10-tooling-and-ci/05-github-pages-deploy",
-          "10-tooling-and-ci/06-lint-format-hooks",
-          "10-tooling-and-ci/07-typecheck-and-tiers",
-          "10-tooling-and-ci/08-generating-info",
-          "10-tooling-and-ci/09-postinstall-oddities"
-        ]
-      },
-      {
-        "group": "Operations · Security",
-        "root": "11-security/index",
-        "pages": [
-          "11-security/01-credential-vault-details",
-          "11-security/02-never-share-we-respect",
-          "11-security/03-unicc-third-party-data-flow",
-          "11-security/04-identity-verification",
-          "11-security/05-feedback-uploads",
-          "11-security/06-dependency-hygiene",
-          "11-security/07-reporting-security-issues"
-        ]
-      },
-      {
-        "group": "Operations · Operations",
-        "root": "12-operations/index",
-        "pages": [
-          "12-operations/01-github-pages-operations",
-          "12-operations/02-changelog-flow",
-          "12-operations/03-posthog-runbook",
-          "12-operations/04-capacity-and-costs",
-          "12-operations/05-known-limits",
-          "12-operations/06-release-checklist"
-        ]
-      },
-      {
-        "group": "Operations · Troubleshooting",
-        "root": "13-troubleshooting/index",
-        "pages": [
-          "13-troubleshooting/01-sync-fails",
-          "13-troubleshooting/02-blank-or-stale-app",
-          "13-troubleshooting/03-it-half-works",
-          "13-troubleshooting/04-marks-sync-trouble",
-          "13-troubleshooting/05-ffcs-planner-issues",
-          "13-troubleshooting/06-common-console-errors",
-          "13-troubleshooting/07-faq"
-        ]
-      },
-      {
-        "group": "Reference · Design Notes",
-        "root": "20-design-notes/index",
-        "pages": ["20-design-notes/naming-and-history"]
-      },
-      {
-        "group": "Reference · Reference",
-        "root": "99-reference/index",
-        "pages": [
-          "99-reference/academy/index",
-          "99-reference/academy/marks-grading-mechanics",
-          "99-reference/academy/timetable-slot-algebra",
-          "99-reference/academy/vtop-scraping-primer",
-          "99-reference/decisions/0001-static-export",
-          "99-reference/decisions/0002-client-side-vtop-auth",
-          "99-reference/decisions/0003-jotai-and-localstorage",
-          "99-reference/decisions/0004-marks-sync-model",
-          "99-reference/decisions/0005-service-worker-policy",
-          "99-reference/decisions/0006-unicc-fallback",
-          "99-reference/decisions/index",
-          "99-reference/dependency-catalog",
-          "99-reference/env-var-reference",
-          "99-reference/glossary",
-          "99-reference/network-calls-catalog",
-          "99-reference/route-and-file-index"
-        ]
-      },
-      {
-        "group": "Reference · Contributing",
-        "pages": ["contributing/code-of-conduct", "contributing/pull-request-guide", "contributing/style-guide"]
-      },
-      {
-        "group": "Archive (historical)",
-        "root": "archive/index",
-        "pages": [
-          "archive/FFCSketch-Comparison/00-summary",
-          "archive/FFCSketch-Comparison/01-architecture",
-          "archive/FFCSketch-Comparison/02-data-model",
-          "archive/FFCSketch-Comparison/03-solver-and-generator",
-          "archive/FFCSketch-Comparison/04-feature-inventory",
-          "archive/FFCSketch-Comparison/05-share-export-import",
-          "archive/FFCSketch-Comparison/06-quality-and-testing",
-          "archive/FFCSketch-Comparison/07-strengths-gaps-porting",
-          "archive/FFCSketch-Comparison/index",
-          "archive/api/academic",
-          "archive/api/admin",
-          "archive/api/auth",
-          "archive/api/events",
-          "archive/api/exams",
-          "archive/api/hostel",
-          "archive/api/library",
-          "archive/api/lms",
-          "archive/api/overview",
-          "archive/api/payments",
-          "archive/api/research",
-          "archive/api/transport",
-          "archive/ffcs-ccv/00-scan-overview",
-          "archive/ffcs-ccv/01-theirs-not-yours",
-          "archive/ffcs-ccv/02-yours-not-theirs",
-          "archive/ffcs-ccv/03-implementation-plan",
-          "archive/ffcs-ccv/04-implementation-log",
-          "archive/ffcs-generator-target-courses-locker-plan",
-          "archive/friend-finder-plans/00-overview",
-          "archive/friend-finder-plans/01-api-changes",
-          "archive/friend-finder-plans/02-app-changes",
-          "archive/friend-finder-plans/03-build-phases",
-          "archive/friend-finder-plans/index",
-          "archive/mobile-friendliness-plan",
-          "archive/oct-21-2026/ffcs-fixes/PLAN",
-          "archive/plan-1/attendance-overview",
-          "archive/prf-encryption-plan",
-          "archive/reports/posthog-error-tracking-report",
-          "archive/reports/posthog-warehouse-report",
-          "archive/sep-29-2026/timetableShapes/00-overview",
-          "archive/sep-29-2026/timetableShapes/01-duplication-audit",
-          "archive/sep-29-2026/timetableShapes/02-slot-vocabulary",
-          "archive/sep-29-2026/timetableShapes/03-occupancy-metrics",
-          "archive/sep-29-2026/timetableShapes/04-generator-worker",
-          "archive/sep-29-2026/timetableShapes/05-deletions",
-          "archive/sep-29-2026/timetableShapes/06-tests",
-          "archive/sep-29-2026/timetableShapes/07-law-slot-landed",
-          "archive/sep-29-2026/timetableShapes/08-what-shipped",
-          "archive/sep-29-2026/ui-upgrade-final/00-overview",
-          "archive/sep-29-2026/ui-upgrade-final/01-grammar",
-          "archive/sep-29-2026/ui-upgrade-final/02-audit",
-          "archive/sep-29-2026/ui-upgrade-final/03-phase-0-dead-and-docs",
-          "archive/sep-29-2026/ui-upgrade-final/04-phase-1-2-zinc",
-          "archive/sep-29-2026/ui-upgrade-final/05-phase-3-tone-maps",
-          "archive/sep-29-2026/ui-upgrade-final/06-phase-4-shims",
-          "archive/sep-29-2026/ui-upgrade-final/07-phase-5-dialects",
-          "archive/sep-29-2026/ui-upgrade-final/08-verification",
-          "archive/social-tt/01-overview",
-          "archive/social-tt/02-current-state-audit",
-          "archive/social-tt/03-identity-and-semester",
-          "archive/social-tt/04-data-model",
-          "archive/social-tt/05-server-derivation",
-          "archive/social-tt/06-grants-and-pairing",
-          "archive/social-tt/07-api-contract",
-          "archive/social-tt/08-security-and-privacy",
-          "archive/social-tt/09-schedule-math",
-          "archive/social-tt/10-frontend-integration",
-          "archive/social-tt/11-ui-redesign",
-          "archive/social-tt/12-migration-plan",
-          "archive/social-tt/13-open-questions",
-          "archive/social-tt/index",
-          "archive/student-report/01-data-inventory",
-          "archive/student-report/02-report-contents",
-          "archive/student-report/03-visual-and-export",
-          "archive/student-report/04-calculations-and-provenance",
-          "archive/student-report/05-privacy-and-inclusion",
-          "archive/student-report/index",
-          "archive/sync-engine/00-overview",
-          "archive/sync-engine/01-current-state",
-          "archive/sync-engine/02-architecture",
-          "archive/sync-engine/03-api-reference",
-          "archive/sync-engine/04-migration-plan",
-          "archive/sync-engine/05-credential-editor",
-          "archive/tasks-feature/01-overview",
-          "archive/tasks-feature/02-data-model",
-          "archive/tasks-feature/03-views",
-          "archive/tasks-feature/04-scheduling-home",
-          "archive/tasks-feature/05-pomodoro-focus",
-          "archive/tasks-feature/06-reminders",
-          "archive/tasks-feature/07-moodle-import",
-          "archive/tasks-feature/08-build-plan"
+          {
+            "group": "Archive (historical)",
+            "root": "archive/index",
+            "pages": [
+              "archive/FFCSketch-Comparison/00-summary",
+              "archive/FFCSketch-Comparison/01-architecture",
+              "archive/FFCSketch-Comparison/02-data-model",
+              "archive/FFCSketch-Comparison/03-solver-and-generator",
+              "archive/FFCSketch-Comparison/04-feature-inventory",
+              "archive/FFCSketch-Comparison/05-share-export-import",
+              "archive/FFCSketch-Comparison/06-quality-and-testing",
+              "archive/FFCSketch-Comparison/07-strengths-gaps-porting",
+              "archive/FFCSketch-Comparison/index",
+              "archive/api/academic",
+              "archive/api/admin",
+              "archive/api/auth",
+              "archive/api/events",
+              "archive/api/exams",
+              "archive/api/hostel",
+              "archive/api/library",
+              "archive/api/lms",
+              "archive/api/overview",
+              "archive/api/payments",
+              "archive/api/research",
+              "archive/api/transport",
+              "archive/ffcs-ccv/00-scan-overview",
+              "archive/ffcs-ccv/01-theirs-not-yours",
+              "archive/ffcs-ccv/02-yours-not-theirs",
+              "archive/ffcs-ccv/03-implementation-plan",
+              "archive/ffcs-ccv/04-implementation-log",
+              "archive/ffcs-generator-target-courses-locker-plan",
+              "archive/friend-finder-plans/00-overview",
+              "archive/friend-finder-plans/01-api-changes",
+              "archive/friend-finder-plans/02-app-changes",
+              "archive/friend-finder-plans/03-build-phases",
+              "archive/friend-finder-plans/index",
+              "archive/mobile-friendliness-plan",
+              "archive/oct-21-2026/ffcs-fixes/PLAN",
+              "archive/plan-1/attendance-overview",
+              "archive/prf-encryption-plan",
+              "archive/reports/posthog-error-tracking-report",
+              "archive/reports/posthog-warehouse-report",
+              "archive/sep-29-2026/timetableShapes/00-overview",
+              "archive/sep-29-2026/timetableShapes/01-duplication-audit",
+              "archive/sep-29-2026/timetableShapes/02-slot-vocabulary",
+              "archive/sep-29-2026/timetableShapes/03-occupancy-metrics",
+              "archive/sep-29-2026/timetableShapes/04-generator-worker",
+              "archive/sep-29-2026/timetableShapes/05-deletions",
+              "archive/sep-29-2026/timetableShapes/06-tests",
+              "archive/sep-29-2026/timetableShapes/07-law-slot-landed",
+              "archive/sep-29-2026/timetableShapes/08-what-shipped",
+              "archive/sep-29-2026/ui-upgrade-final/00-overview",
+              "archive/sep-29-2026/ui-upgrade-final/01-grammar",
+              "archive/sep-29-2026/ui-upgrade-final/02-audit",
+              "archive/sep-29-2026/ui-upgrade-final/03-phase-0-dead-and-docs",
+              "archive/sep-29-2026/ui-upgrade-final/04-phase-1-2-zinc",
+              "archive/sep-29-2026/ui-upgrade-final/05-phase-3-tone-maps",
+              "archive/sep-29-2026/ui-upgrade-final/06-phase-4-shims",
+              "archive/sep-29-2026/ui-upgrade-final/07-phase-5-dialects",
+              "archive/sep-29-2026/ui-upgrade-final/08-verification",
+              "archive/social-tt/01-overview",
+              "archive/social-tt/02-current-state-audit",
+              "archive/social-tt/03-identity-and-semester",
+              "archive/social-tt/04-data-model",
+              "archive/social-tt/05-server-derivation",
+              "archive/social-tt/06-grants-and-pairing",
+              "archive/social-tt/07-api-contract",
+              "archive/social-tt/08-security-and-privacy",
+              "archive/social-tt/09-schedule-math",
+              "archive/social-tt/10-frontend-integration",
+              "archive/social-tt/11-ui-redesign",
+              "archive/social-tt/12-migration-plan",
+              "archive/social-tt/13-open-questions",
+              "archive/social-tt/index",
+              "archive/student-report/01-data-inventory",
+              "archive/student-report/02-report-contents",
+              "archive/student-report/03-visual-and-export",
+              "archive/student-report/04-calculations-and-provenance",
+              "archive/student-report/05-privacy-and-inclusion",
+              "archive/student-report/index",
+              "archive/sync-engine/00-overview",
+              "archive/sync-engine/01-current-state",
+              "archive/sync-engine/02-architecture",
+              "archive/sync-engine/03-api-reference",
+              "archive/sync-engine/04-migration-plan",
+              "archive/sync-engine/05-credential-editor",
+              "archive/tasks-feature/01-overview",
+              "archive/tasks-feature/02-data-model",
+              "archive/tasks-feature/03-views",
+              "archive/tasks-feature/04-scheduling-home",
+              "archive/tasks-feature/05-pomodoro-focus",
+              "archive/tasks-feature/06-reminders",
+              "archive/tasks-feature/07-moodle-import",
+              "archive/tasks-feature/08-build-plan"
+            ]
+          }
         ]
       }
     ]
