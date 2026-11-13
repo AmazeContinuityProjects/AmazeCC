@@ -14,7 +14,7 @@ complete: **items 4, 5, 6, 8, 9**, **GitHub issue templates**, and **Prettier + 
 **136 test files, 1973 passed / 2 skipped**, `pnpm typecheck` clean, `pnpm lint` 0 errors.
 
 > **Credit:** the bundled catalogue data (item 4) originates from **FFCS-inator by CodeChef VIT** —
-> <https://ffcs.codechefvit.com> · <https://github.com/CodeChefVIT/ffcs> · **MIT © 2025 CodeChef-VIT**.
+> [https://ffcs.codechefvit.com](https://ffcs.codechefvit.com) · [https://github.com/CodeChefVIT/ffcs](https://github.com/CodeChefVIT/ffcs) · **MIT © 2025 CodeChef-VIT**.
 > It is shipped **offline only** as a same-origin static asset under `/ffcs/`; AmazeCC never fetches it (or any
 > catalogue data) from `api.amazecc.com`. Provenance lives in `public/ffcs/codechef-vit-catalogue.SOURCE.md`, the
 > report registry's `attribution` field, the converter script header, and a visible credit line in the UI.

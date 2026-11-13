@@ -12,7 +12,7 @@ description: "the only module allowed to know VTOP's 10-minute session exists �
 ## The seven invariants
 
 1. **Restore on load** — constructor reads `storage.vtopSession` (persisted on each login) and
-   adopts it if fresh (<10 min); missing `fetchedAt` ⇒ stale ⇒ one re-login.
+   adopts it if fresh (`&lt;10 min`); missing `fetchedAt` ⇒ stale ⇒ one re-login.
 2. **Single-flight refresh** — `refreshingVtop` promise shared by all callers; N parallel
    fetches trigger **one** captcha solve, not N.
 3. **Missing session ≠ auto-fix** — `getCreds("vtop")` returns null rather than solving a
