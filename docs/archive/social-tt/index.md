@@ -1,5 +1,6 @@
 ---
 title: "Social Timetable Sharing — Design Docs"
+description: "Archived design docs for social timetable sharing - kept for provenance."
 ---
 
 > ⚠️ **ARCHIVED — historical context, not authoritative.**

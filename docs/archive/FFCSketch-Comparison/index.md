@@ -1,5 +1,6 @@
 ---
 title: "FFCSketch vs AmazeCC FFCS — Comparison"
+description: "Archived comparison of the FFCSketch and AmazeCC FFCS planners - kept for provenance."
 ---
 
 > ⚠️ **ARCHIVED — historical context, not authoritative.**

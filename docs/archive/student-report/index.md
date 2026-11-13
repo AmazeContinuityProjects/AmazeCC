@@ -1,5 +1,6 @@
 ---
 title: "AmazeCC Student Report"
+description: "Archived design for a printable student report assembled from AmazeCC data."
 ---
 
 > ⚠️ **ARCHIVED — historical context, not authoritative.**
