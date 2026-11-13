@@ -7,7 +7,7 @@ title: "Quality: tests, lint, CI, docs"
 > a previous architecture. If it contradicts the code in `src/` or the live `docs/`, the code wins.
 > See `docs/index.md` for current documentation.
 
-# 06 — Quality: tests, lint, CI, docs
+# Quality: tests, lint, CI, docs
 
 > Part of the [FFCSketch vs AmazeCC FFCS comparison](./index.md). Scan date 2026-10-30.
 

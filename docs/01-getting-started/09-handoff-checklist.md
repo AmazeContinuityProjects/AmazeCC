@@ -3,7 +3,7 @@ title: "Handoff Checklist (what you now own)"
 description: "a named surface → its source area → its tests → its docs — tick them off as you get comfortable."
 ---
 
-# 09 — Handoff Checklist (what you now own)
+# Handoff Checklist (what you now own)
 
 > **In one line:** a named surface → its source area → its tests → its docs — tick them off as
 > you get comfortable.

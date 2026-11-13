@@ -2,7 +2,7 @@
 title: "Every Script, Decoded"
 ---
 
-# 02 — Every Script, Decoded
+# Every Script, Decoded
 
 | script                              | does                                                                  | used by                         |
 | ----------------------------------- | --------------------------------------------------------------------- | ------------------------------- |

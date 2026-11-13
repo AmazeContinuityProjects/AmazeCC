@@ -3,7 +3,7 @@ title: "What Actually Matters to Test Here"
 description: "the contracts that make this app trustworthy — share links, slot math, frozen receipts, deletion of data on logout."
 ---
 
-# 08 — What Actually Matters to Test Here
+# What Actually Matters to Test Here
 
 > **In one line:** the contracts that make this app trustworthy — share links, slot math,
 > frozen receipts, deletion of data on logout.

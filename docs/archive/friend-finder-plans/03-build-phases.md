@@ -7,7 +7,7 @@ title: "Build phases, deploy order, verification"
 > a previous architecture. If it contradicts the code in `src/` or the live `docs/`, the code wins.
 > See `docs/index.md` for current documentation.
 
-# 03 — Build phases, deploy order, verification
+# Build phases, deploy order, verification
 
 - **Date:** 2026-11-09
 - **Status:** planned

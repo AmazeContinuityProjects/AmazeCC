@@ -3,7 +3,7 @@ title: "Notifications & Push"
 description: "opt-in reminders, quiet hours, per-category."
 ---
 
-# 05 — Notifications & Push
+# Notifications & Push
 
 > **In one line:** opt-in reminders, quiet hours, per-category.
 

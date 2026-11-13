@@ -3,7 +3,7 @@ title: "Architecture"
 description: "a static PWA shell in your browser, a plain-files host on the internet, and a separate scraping backend that does all the dangerous reading of VIT's systems."
 ---
 
-# 02 — Architecture
+# Architecture
 
 > **In one line:** a static PWA shell in your browser, a plain-files host on the internet, and a
 > separate scraping backend that does all the dangerous reading of VIT's systems.

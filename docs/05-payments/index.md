@@ -3,7 +3,7 @@ title: "Payments"
 description: "VIT fee dues, receipts, wallet."
 ---
 
-# 05 — Payments
+# Payments
 
 > **In one line:** VIT fee dues, receipts, wallet.
 

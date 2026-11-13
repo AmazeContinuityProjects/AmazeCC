@@ -3,7 +3,7 @@ title: "The React Mental Model"
 description: "build UI from functions that turn state into HTML; never mutate the page by hand — describe _what it should look like_ and let React figure out the minimal updates."
 ---
 
-# 05 — The React Mental Model
+# The React Mental Model
 
 > **In one line:** build UI from functions that turn state into HTML; never mutate the page by
 > hand — describe _what it should look like_ and let React figure out the minimal updates.

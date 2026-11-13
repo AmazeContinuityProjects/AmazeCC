@@ -3,7 +3,7 @@ title: "Bundles & Workers (who loads what, when)"
 description: "module workers for the two heavy jobs; dynamic imports for screens; precache exclusions keep the install lean."
 ---
 
-# 08 — Bundles & Workers (who loads what, when)
+# Bundles & Workers (who loads what, when)
 
 > **In one line:** module workers for the two heavy jobs; dynamic imports for screens; precache exclusions keep the install lean.
 

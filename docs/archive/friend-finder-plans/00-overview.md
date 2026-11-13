@@ -7,7 +7,7 @@ title: "Overview: friend finder on the Simplified Mobile Home"
 > a previous architecture. If it contradicts the code in `src/` or the live `docs/`, the code wins.
 > See `docs/index.md` for current documentation.
 
-# 00 — Overview: friend finder on the Simplified Mobile Home
+# Overview: friend finder on the Simplified Mobile Home
 
 - **Date:** 2026-11-09
 - **Status:** planned (council-critiqued, revised)

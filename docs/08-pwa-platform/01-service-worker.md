@@ -3,7 +3,7 @@ title: "The Service Worker (src/app/sw.ts)"
 description: "caches the shell for offline, never precaches assets the student may never open, always yields to the network for pages."
 ---
 
-# 01 — The Service Worker (`src/app/sw.ts`)
+# The Service Worker (`src/app/sw.ts`)
 
 > **In one line:** caches the shell for offline, never precaches assets the student may never open, always yields to the network for pages.
 

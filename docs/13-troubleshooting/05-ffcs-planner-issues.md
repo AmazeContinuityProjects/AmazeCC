@@ -3,7 +3,7 @@ title: "FFCS Planner Issues"
 description: "slots vocabulary, stale CSVs, and tour state — the three usual suspects."
 ---
 
-# 05 — FFCS Planner Issues
+# FFCS Planner Issues
 
 > **In one line:** slots vocabulary, stale CSVs, and tour state — the three usual suspects.
 

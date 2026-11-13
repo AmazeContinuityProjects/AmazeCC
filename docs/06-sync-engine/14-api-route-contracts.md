@@ -3,7 +3,7 @@ title: "API Route Contracts"
 description: "the shapes the frontend expects from AmazeCC-API — cataloged here so the frontend never guesses; source of truth lives in AmazeCC-API."
 ---
 
-# 14 — API Route Contracts
+# API Route Contracts
 
 > **In one line:** the shapes the frontend expects from AmazeCC-API — cataloged here so the
 > frontend never guesses; source of truth lives in AmazeCC-API.

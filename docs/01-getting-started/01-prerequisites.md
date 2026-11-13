@@ -3,7 +3,7 @@ title: "Prerequisites"
 description: "you need git, Node.js 22, and pnpm — use whatever package manager you like, but use exactly these three tools."
 ---
 
-# 01 — Prerequisites
+# Prerequisites
 
 > **In one line:** you need git, Node.js 22, and pnpm — use whatever package manager you like,
 > but use exactly these three tools.

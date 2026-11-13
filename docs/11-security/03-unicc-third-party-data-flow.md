@@ -3,7 +3,7 @@ title: "UniCC's Third-Party Data Flow (exact path)"
 description: "the exact sequence of bytes that reaches a third party, when it happens, and how to stop it — because this is the one non-first-party path that carries credentials."
 ---
 
-# 03 — UniCC's Third-Party Data Flow (exact path)
+# UniCC's Third-Party Data Flow (exact path)
 
 > **In one line:** the exact sequence of bytes that reaches a third party, when it happens,
 > and how to stop it — because this is the one non-first-party path that carries credentials.

@@ -7,7 +7,7 @@ title: "Strengths, gaps & porting notes"
 > a previous architecture. If it contradicts the code in `src/` or the live `docs/`, the code wins.
 > See `docs/index.md` for current documentation.
 
-# 07 — Strengths, gaps & porting notes
+# Strengths, gaps & porting notes
 
 > Part of the [FFCSketch vs AmazeCC FFCS comparison](./index.md). Scan date 2026-10-30.
 

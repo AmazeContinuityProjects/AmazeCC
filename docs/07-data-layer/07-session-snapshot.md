@@ -3,7 +3,7 @@ title: "The Pre-Paint Session Snapshot"
 description: 'an inline <script> in layout.tsx reads localStorage before React exists and stamps <html class="has-stored-session"> — the CSS that hides the guest landing for returning students.'
 ---
 
-# 07 — The Pre-Paint Session Snapshot
+# The Pre-Paint Session Snapshot
 
 > **In one line:** an inline `<script>` in `layout.tsx` reads `localStorage` before React exists
 > and stamps `<html class="has-stored-session">` — the CSS that hides the guest landing for

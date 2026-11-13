@@ -3,7 +3,7 @@ title: "The FFCS Planner"
 description: "the reason the app exists — build, compare, share and export a clash-free VIT Flexible Curriculum timetable, entirely client-side."
 ---
 
-# 05 — The FFCS Planner
+# The FFCS Planner
 
 > **In one line:** the reason the app exists — build, compare, share and export a clash-free
 > VIT Flexible Curriculum timetable, entirely client-side.

@@ -3,7 +3,7 @@ title: "Free Classrooms"
 description: "find an empty room right now (on-device)."
 ---
 
-# 05 — Free Classrooms
+# Free Classrooms
 
 > **In one line:** find an empty room right now (on-device).
 

@@ -3,7 +3,7 @@ title: "Student Report"
 description: "complete personal academic report, generated on-device."
 ---
 
-# 05 — Student Report
+# Student Report
 
 > **In one line:** complete personal academic report, generated on-device.
 

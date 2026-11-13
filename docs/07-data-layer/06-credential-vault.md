@@ -3,7 +3,7 @@ title: "The Credential Vault (Data Layer)"
 description: "AES-256-GCM, IndexedDB-held non-extractable key, localStorage-intercepted values — the at-rest boundary for the 6 sensitive keys. See 11-security/01-credential-vault-details.md for threat-model…"
 ---
 
-# 06 — The Credential Vault (Data Layer)
+# The Credential Vault (Data Layer)
 
 > **In one line:** AES-256-GCM, IndexedDB-held non-extractable key, `localStorage`-intercepted
 > values — the at-rest boundary for the 6 sensitive keys.

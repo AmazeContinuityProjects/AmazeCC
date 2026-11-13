@@ -3,7 +3,7 @@ title: "Operations (running production)"
 description: 'this is a static site on GitHub Pages backed by an API — "operations" is mostly knowing who to call when it breaks.'
 ---
 
-# 12 — Operations (running production)
+# Operations (running production)
 
 > **In one line:** this is a static site on GitHub Pages backed by an API — "operations" is mostly knowing who to call when it breaks.
 

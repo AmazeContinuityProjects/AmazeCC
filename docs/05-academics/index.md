@@ -3,7 +3,7 @@ title: "Academics"
 description: "marks, grade history, curriculum, exam schedule, CGPA."
 ---
 
-# 05 — Academics
+# Academics
 
 > **In one line:** marks, grade history, curriculum, exam schedule, CGPA.
 

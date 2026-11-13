@@ -3,7 +3,7 @@ title: "Guest Landing"
 description: "the public page at /: hero, FAQ, install CTA."
 ---
 
-# 05 — Guest Landing
+# Guest Landing
 
 > **In one line:** the public page at /: hero, FAQ, install CTA.
 

@@ -3,7 +3,7 @@ title: "Notifications & Toasts (message atoms)"
 description: "a capped 60-line ring buffer of toast lines + a single progress bar — small feedback without ceremony, never a stack of stacking errors."
 ---
 
-# 10 — Notifications & Toasts (message atoms)
+# Notifications & Toasts (message atoms)
 
 > **In one line:** a capped 60-line ring buffer of toast lines + a single progress bar — small
 > feedback without ceremony, never a stack of stacking errors.

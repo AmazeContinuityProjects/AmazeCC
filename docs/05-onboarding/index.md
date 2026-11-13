@@ -3,7 +3,7 @@ title: "Onboarding"
 description: "first-run flow: sign-in → sync → welcome."
 ---
 
-# 05 — Onboarding
+# Onboarding
 
 > **In one line:** first-run flow: sign-in → sync → welcome.
 

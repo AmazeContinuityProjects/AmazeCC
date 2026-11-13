@@ -3,7 +3,7 @@ title: "Demo Mode (the no-network runtime)"
 description: "demoMode short-circuits every VTOP-specific code path and serves a fixture; the app otherwise runs exactly as if logged in — perfect for development and demos."
 ---
 
-# 10 — Demo Mode (the no-network runtime)
+# Demo Mode (the no-network runtime)
 
 > **In one line:** `demoMode` short-circuits every VTOP-specific code path and serves a fixture;
 > the app otherwise runs exactly as if logged in — perfect for development and demos.

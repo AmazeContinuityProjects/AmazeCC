@@ -2,7 +2,7 @@
 title: "One generator, in a worker (Phase 3)"
 ---
 
-# 04 — One generator, in a worker (Phase 3)
+# One generator, in a worker (Phase 3)
 
 ## Current shape
 

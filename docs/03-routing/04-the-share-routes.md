@@ -3,7 +3,7 @@ title: "Share Routes & Payloads"
 description: "a timetable fits in a URL; a friend opening the link receives an entire week, no server involved."
 ---
 
-# 04 — Share Routes & Payloads
+# Share Routes & Payloads
 
 > **In one line:** a timetable fits in a URL; a friend opening the link receives an entire week,
 > no server involved.

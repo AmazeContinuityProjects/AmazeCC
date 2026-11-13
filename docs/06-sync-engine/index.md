@@ -3,7 +3,7 @@ title: "The Sync Engine"
 description: "the only module allowed to talk to AmazeCC-API — it owns VTOP credentials, requests, retries, and the fan-out of replies into UI state."
 ---
 
-# 06 — The Sync Engine
+# The Sync Engine
 
 > **In one line:** the only module allowed to talk to AmazeCC-API — it owns VTOP credentials,
 > requests, retries, and the fan-out of replies into UI state.

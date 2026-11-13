@@ -3,7 +3,7 @@ title: "Failover & the Backup API"
 description: "if the primary API dies, the client holistically swaps origin to the backup mirror (amazecc-api-d402b5.rivendeploy.com) — UniCC is never the global backup."
 ---
 
-# 13 — Failover & the Backup API
+# Failover & the Backup API
 
 > **In one line:** if the primary API dies, the client holistically swaps origin to the backup
 > mirror (`amazecc-api-d402b5.rivendeploy.com`) — UniCC is never the global backup.

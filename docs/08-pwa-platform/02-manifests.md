@@ -3,7 +3,7 @@ title: "The Four Manifests (and why)"
 description: "manifest.json (main app) · manifest-fire.json (variants) · ffcs-manifest.json (standalone FFCS PWA) · site.webmanifest (legacy bookmark chrome)."
 ---
 
-# 02 — The Four Manifests (and why)
+# The Four Manifests (and why)
 
 > **In one line:** `manifest.json` (main app) · `manifest-fire.json` (variants) · `ffcs-manifest.json` (standalone FFCS PWA) · `site.webmanifest` (legacy bookmark chrome).
 

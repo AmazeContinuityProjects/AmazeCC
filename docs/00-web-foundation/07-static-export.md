@@ -3,7 +3,7 @@ title: "Static Export (why there's no server)"
 description: 'output: "export" means next build emits .html/.css/.js files and GitHub Pages serves them directly — every byte is baked in at build time.'
 ---
 
-# 07 — Static Export (why there's no server)
+# Static Export (why there's no server)
 
 > **In one line:** `output: "export"` means `next build` emits `.html/.css/.js` files and
 > GitHub Pages serves them directly — every byte is baked in at build time.

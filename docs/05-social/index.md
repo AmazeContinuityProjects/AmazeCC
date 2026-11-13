@@ -3,7 +3,7 @@ title: "Social"
 description: "pairing, groups, common free hours."
 ---
 
-# 05 — Social
+# Social
 
 > **In one line:** pairing, groups, common free hours.
 

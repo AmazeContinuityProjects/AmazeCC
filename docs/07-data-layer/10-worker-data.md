@@ -3,7 +3,7 @@ title: "The Cloudflare Worker (cache.amazecc.com)"
 description: "pre-computed, public, credential-free data served from the edge — buses, laundry, mess menus, changelog, faculty roster — with cache lifetimes the app never has to think about."
 ---
 
-# 10 — The Cloudflare Worker (cache.amazecc.com)
+# The Cloudflare Worker (cache.amazecc.com)
 
 > **In one line:** pre-computed, public, credential-free data served from the edge — buses,
 > laundry, mess menus, changelog, faculty roster — with cache lifetimes the app never has to think about.

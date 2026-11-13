@@ -3,7 +3,7 @@ title: "Typecheck & Strictness Tiers"
 description: "TypeScript that doesn't block shipping — strictNullChecks: false on purpose, and a staged path toward strict."
 ---
 
-# 07 — Typecheck & Strictness Tiers
+# Typecheck & Strictness Tiers
 
 > **In one line:** TypeScript that doesn't block shipping — `strictNullChecks: false` on purpose, and a staged path toward strict.
 

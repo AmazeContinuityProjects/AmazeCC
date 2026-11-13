@@ -3,7 +3,7 @@ title: "Testing"
 description: "204 suites pinning what matters — share round-trip, drop ladder, frozen receipts, credential backoff — with a deliberate against-the-grain harness (no jest-dom, no global setup)."
 ---
 
-# 09 — Testing
+# Testing
 
 > **In one line:** 204 suites pinning what matters — share round-trip, drop ladder, frozen receipts, credential backoff — with a deliberate against-the-grain harness (no jest-dom, no global setup).
 

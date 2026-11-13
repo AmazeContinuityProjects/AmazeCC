@@ -3,7 +3,7 @@ title: "Marks & Cohort"
 description: "anonymized class statistics (opt-in)."
 ---
 
-# 05 — Marks & Cohort
+# Marks & Cohort
 
 > **In one line:** anonymized class statistics (opt-in).
 

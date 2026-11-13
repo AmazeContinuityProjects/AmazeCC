@@ -3,7 +3,7 @@ title: "Clone & Install"
 description: "git clone, pnpm install, done — the repo is self-contained, with secrets filled in only on CI."
 ---
 
-# 02 — Clone & Install
+# Clone & Install
 
 > **In one line:** `git clone`, `pnpm install`, done — the repo is self-contained, with
 > secrets filled in only on CI.

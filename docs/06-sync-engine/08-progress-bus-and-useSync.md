@@ -3,7 +3,7 @@ title: "Progress Bus & useSync"
 description: "a tiny pub/sub that turns engine events into React state — the nervous system of the sync sheet."
 ---
 
-# 08 — Progress Bus & `useSync`
+# Progress Bus & `useSync`
 
 > **In one line:** a tiny pub/sub that turns engine events into React state — the nervous system
 > of the sync sheet.

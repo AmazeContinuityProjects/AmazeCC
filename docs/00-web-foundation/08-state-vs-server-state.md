@@ -3,7 +3,7 @@ title: "UI State vs Server Truth"
 description: "atoms remember _what the screen is doing_; localStorage caches _what the server said_; VTOP remains the only real source of truth for academics data."
 ---
 
-# 08 — UI State vs Server Truth
+# UI State vs Server Truth
 
 > **In one line:** atoms remember _what the screen is doing_; localStorage caches _what the
 > server said_; VTOP remains the only real source of truth for academics data.

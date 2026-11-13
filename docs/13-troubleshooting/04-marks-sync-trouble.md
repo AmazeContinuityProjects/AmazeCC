@@ -3,7 +3,7 @@ title: "Marks Sync Trouble"
 description: "receipts don't match → server state moved → client says so out loud; do not silence it."
 ---
 
-# 04 — Marks Sync Trouble
+# Marks Sync Trouble
 
 > **In one line:** receipts don't match → server state moved → client says so out loud; do not silence it.
 

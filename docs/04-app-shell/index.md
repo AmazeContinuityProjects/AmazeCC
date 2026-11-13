@@ -3,7 +3,7 @@ title: "The App Shell (signed-in chrome)"
 description: "everything visible around feature screens — the sidebar/bottom-nav, the global modals, the online/offline banner — and the thin layer that wires them together."
 ---
 
-# 04 — The App Shell (signed-in chrome)
+# The App Shell (signed-in chrome)
 
 > **In one line:** everything visible around feature screens — the sidebar/bottom-nav, the
 > global modals, the online/offline banner — and the thin layer that wires them together.

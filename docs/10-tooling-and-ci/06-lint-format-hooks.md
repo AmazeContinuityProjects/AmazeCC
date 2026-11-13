@@ -3,7 +3,7 @@ title: "Lint, Format & Pre-Commit Hooks"
 description: "ESLint flat config finds real problems; Prettier keeps diffs sane; husky enforces both pre-commit."
 ---
 
-# 06 — Lint, Format & Pre-Commit Hooks
+# Lint, Format & Pre-Commit Hooks
 
 > **In one line:** ESLint flat config finds real problems; Prettier keeps diffs sane; husky enforces both pre-commit.
 

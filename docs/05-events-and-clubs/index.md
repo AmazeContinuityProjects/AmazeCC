@@ -3,7 +3,7 @@ title: "Events & Clubs"
 description: "EventHub registration + club directory + feed."
 ---
 
-# 05 — Events & Clubs
+# Events & Clubs
 
 > **In one line:** EventHub registration + club directory + feed.
 

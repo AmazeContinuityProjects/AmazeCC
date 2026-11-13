@@ -3,7 +3,7 @@ title: "Configuration Catalog"
 description: "every root-level config file, what it configures, what breaks if you edit it wrong."
 ---
 
-# 10 — Configuration Catalog
+# Configuration Catalog
 
 > **In one line:** every root-level config file, what it configures, what breaks if you edit it wrong.
 > **Audience:** everyone shipping. **Reading time:** ~8 min.

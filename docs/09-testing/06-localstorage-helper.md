@@ -3,7 +3,7 @@ title: "The localStorage Helper (src/__tests__/helpers/localStorage.ts)"
 description: 'per-suite installation of an in-memory Storage-shaped object, because half our tests pin "localStorage is empty" and half need it seeded.'
 ---
 
-# 06 — The localStorage Helper (`src/__tests__/helpers/localStorage.ts`)
+# The localStorage Helper (`src/__tests__/helpers/localStorage.ts`)
 
 > **In one line:** per-suite installation of an in-memory `Storage`-shaped object, because
 > half our tests pin "localStorage is empty" and half need it seeded.

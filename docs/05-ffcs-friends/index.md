@@ -3,7 +3,7 @@ title: "FFCS Friends"
 description: "match your planner timetable to friends who registered the same sections."
 ---
 
-# 05 — FFCS Friends
+# FFCS Friends
 
 > **In one line:** match your planner timetable to friends who registered the same sections.
 

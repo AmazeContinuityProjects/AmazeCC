@@ -3,7 +3,7 @@ title: "The Design System"
 description: "zinc-on-black, Tailwind v4 utilities, an internal primitive dialect (PageShell / Subpage / SettingRow), and @amazecontinuityprojects/amazeui re-homed inside components/custom/shared/ as shims."
 ---
 
-# 09 — The Design System
+# The Design System
 
 > **In one line:** zinc-on-black, Tailwind v4 utilities, an internal primitive dialect
 > (PageShell / Subpage / SettingRow), and `@amazecontinuityprojects/amazeui` re-homed inside

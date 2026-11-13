@@ -3,7 +3,7 @@ title: "Routing & Navigation"
 description: "two routing systems coexist — the browser's URLs (few, public) and the app's tab state (many, instant) — plus one command palette to jump between them."
 ---
 
-# 03 — Routing & Navigation
+# Routing & Navigation
 
 > **In one line:** two routing systems coexist — the browser's URLs (few, public) and the app's
 > tab state (many, instant) — plus one command palette to jump between them.

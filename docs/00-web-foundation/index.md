@@ -3,7 +3,7 @@ title: "The Web Foundation (read this once)"
 description: "Everything you need to know about how the web works before you open a single source file in this repo."
 ---
 
-# 00 — The Web Foundation (read this once)
+# The Web Foundation (read this once)
 
 > **In one line:** Everything you need to know about how the web works before you open a
 > single source file in this repo.
