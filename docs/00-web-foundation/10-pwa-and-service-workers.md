@@ -3,7 +3,7 @@ title: "PWA & Service Workers"
 description: "a service worker is a background script that intercepts network requests and answers from cache when offline — that's how AmazeCC opens on campus Wi-Fi that hates you."
 ---
 
-# 10 — PWA & Service Workers
+# PWA & Service Workers
 
 > **In one line:** a service worker is a background script that intercepts network requests and
 > answers from cache when offline — that's how AmazeCC opens on campus Wi-Fi that hates you.

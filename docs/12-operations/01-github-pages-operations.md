@@ -3,7 +3,7 @@ title: "Operating GitHub Pages"
 description: "git push to main = production. No staging, no containers, no blue/green — the revert button is git revert."
 ---
 
-# 01 — Operating GitHub Pages
+# Operating GitHub Pages
 
 > **In one line:** git push to main = production. No staging, no containers, no blue/green — the revert button is `git revert`.
 

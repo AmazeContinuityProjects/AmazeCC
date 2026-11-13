@@ -3,7 +3,7 @@ title: "The Build Pipeline"
 description: "prebuild → next build --webpack → Serwist → prune-sw-precache.js → out/ — a static tree ready for GitHub Pages."
 ---
 
-# 05 — The Build Pipeline
+# The Build Pipeline
 
 > **In one line:** `prebuild` → `next build --webpack` → Serwist → `prune-sw-precache.js` →
 > `out/` — a static tree ready for GitHub Pages.

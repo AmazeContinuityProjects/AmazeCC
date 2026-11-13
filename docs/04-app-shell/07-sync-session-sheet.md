@@ -3,7 +3,7 @@ title: "The Sync Session Sheet"
 description: "the progress bar + log of a sync run — the only UI that tells the student what the app is _doing_ while VTOP scrapes away."
 ---
 
-# 07 — The Sync Session Sheet
+# The Sync Session Sheet
 
 > **In one line:** the progress bar + log of a sync run — the only UI that tells the student
 > what the app is _doing_ while VTOP scrapes away.

@@ -3,7 +3,7 @@ title: "QBank"
 description: "question bank per course: papers, model answers, search."
 ---
 
-# 05 — QBank
+# QBank
 
 > **In one line:** question bank per course: papers, model answers, search.
 

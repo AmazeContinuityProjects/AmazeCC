@@ -3,7 +3,7 @@ title: "Changelog Flow"
 description: "changelog.json is written by humans at release time; everything else derives from git."
 ---
 
-# 02 — Changelog Flow
+# Changelog Flow
 
 > **In one line:** changelog.json is written by humans at release time; everything else derives from git.
 

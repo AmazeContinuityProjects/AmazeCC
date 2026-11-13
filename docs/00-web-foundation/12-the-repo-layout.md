@@ -3,7 +3,7 @@ title: "The Repo Layout"
 description: "src/app = URLs; components/ = UI; lib/ = logic; store/ = jotai atoms; features/ = file import pipeline; data/ = fixtures; __tests__/ = tests."
 ---
 
-# 12 — The Repo Layout
+# The Repo Layout
 
 > **In one line:** `src/app` = URLs; `components/` = UI; `lib/` = logic; `store/` = jotai
 > atoms; `features/` = file import pipeline; `data/` = fixtures; `__tests__/` = tests.

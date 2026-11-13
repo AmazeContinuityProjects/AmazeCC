@@ -3,7 +3,7 @@ title: "storage.ts Typed Catalog"
 description: "every named accessor, what it reads/writes, and who uses it — kept here so the file never grows a mystery accessor again."
 ---
 
-# 02 — `storage.ts` Typed Catalog
+# `storage.ts` Typed Catalog
 
 > **In one line:** every named accessor, what it reads/writes, and who uses it — kept here so
 > the file never grows a mystery accessor again.

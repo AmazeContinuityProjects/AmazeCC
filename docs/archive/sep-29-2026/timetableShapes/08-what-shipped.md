@@ -2,7 +2,7 @@
 title: "What actually shipped"
 ---
 
-# 08 — What actually shipped
+# What actually shipped
 
 The plan in [00-overview.md](./00-overview.md) was written before any code moved. Four
 things went differently, all of them the code telling the plan something the plan had

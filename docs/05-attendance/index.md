@@ -3,7 +3,7 @@ title: "Attendance"
 description: "how many classes can you skip, which have you attended, and what does the OD ledger say — with the one unweighted percentage formula everywhere."
 ---
 
-# 05 — Attendance
+# Attendance
 
 > **In one line:** how many classes can you skip, which have you attended, and what does the
 > OD ledger say — with the one unweighted percentage formula everywhere.

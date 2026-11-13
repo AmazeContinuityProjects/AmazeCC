@@ -3,7 +3,7 @@ title: "Tasks & Pomodoro"
 description: "task board + pomodoro timer + Moodle import."
 ---
 
-# 05 — Tasks & Pomodoro
+# Tasks & Pomodoro
 
 > **In one line:** task board + pomodoro timer + Moodle import.
 

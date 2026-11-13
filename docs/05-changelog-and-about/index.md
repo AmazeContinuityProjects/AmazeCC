@@ -3,7 +3,7 @@ title: "Changelog & About"
 description: "version history, credits, build identity."
 ---
 
-# 05 — Changelog & About
+# Changelog & About
 
 > **In one line:** version history, credits, build identity.
 

@@ -3,7 +3,7 @@ title: "Footguns & Fumes (read before you type)"
 description: "the thirteen sharp edges this codebase carries, and how to step around each."
 ---
 
-# 13 — Footguns & Fumes (read before you type)
+# Footguns & Fumes (read before you type)
 
 > **In one line:** the thirteen sharp edges this codebase carries, and how to step around each.
 > **Audience:** everyone. **Reading time:** ~10 min.

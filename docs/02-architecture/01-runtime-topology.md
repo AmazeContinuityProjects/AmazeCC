@@ -3,7 +3,7 @@ title: "Runtime Topology"
 description: "three worlds — the browser (ours to ship), the static host (ours to deploy), and the backend (theirs to host) — connected by HTTPS and JSON."
 ---
 
-# 01 — Runtime Topology
+# Runtime Topology
 
 > **In one line:** three worlds — the browser (ours to ship), the static host (ours to deploy),
 > and the backend (theirs to host) — connected by HTTPS and JSON.

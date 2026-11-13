@@ -3,7 +3,7 @@ title: "HTTP & APIs"
 description: "every conversation between the app and AmazeCC-API is a POST with a JSON envelope: often just credentials + what you want."
 ---
 
-# 11 — HTTP & APIs
+# HTTP & APIs
 
 > **In one line:** every conversation between the app and AmazeCC-API is a POST with a JSON
 > envelope: often just credentials + what you want.

@@ -3,7 +3,7 @@ title: "The Real URL Routes"
 description: "the entire public internet surface of this app is 12 URLs — everything else is behind client-side state."
 ---
 
-# 01 — The Real URL Routes
+# The Real URL Routes
 
 > **In one line:** the entire public internet surface of this app is 12 URLs — everything else
 > is behind client-side state.

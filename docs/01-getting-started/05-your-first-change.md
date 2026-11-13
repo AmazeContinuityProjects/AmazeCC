@@ -3,7 +3,7 @@ title: "Your First Change"
 description: "edit one string on the guest hero, see it instantly, commit it."
 ---
 
-# 05 — Your First Change
+# Your First Change
 
 > **In one line:** edit one string on the guest hero, see it instantly, commit it.
 > **Reading time:** ~6 min.

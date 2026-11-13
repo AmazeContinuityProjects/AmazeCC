@@ -3,7 +3,7 @@ title: "Marks Predictor"
 description: "what-if ladders, absolute & relative grading."
 ---
 
-# 05 — Marks Predictor
+# Marks Predictor
 
 > **In one line:** what-if ladders, absolute & relative grading.
 

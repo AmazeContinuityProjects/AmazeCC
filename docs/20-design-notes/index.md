@@ -3,7 +3,7 @@ title: "Design Notes (why the codebase is weird)"
 description: 'document the scars — not as complaints, but as landmarks for the next people who wonder "why is it like this?"'
 ---
 
-# 20 — Design Notes (why the codebase is weird)
+# Design Notes (why the codebase is weird)
 
 > **In one line:** document the scars — not as complaints, but as landmarks for the next people who wonder "why is it like this?"
 

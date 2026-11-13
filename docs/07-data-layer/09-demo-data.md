@@ -3,7 +3,7 @@ title: "Demo Data (the fixture that powers the whole demo)"
 description: "src/data/demoData.json — 151 KB of fictional VIT-life — is the only reason anyone can run this app cold. Byte-identical copy lives in public/."
 ---
 
-# 09 — Demo Data (the fixture that powers the whole demo)
+# Demo Data (the fixture that powers the whole demo)
 
 > **In one line:** `src/data/demoData.json` — 151 KB of fictional VIT-life — is the only reason
 > anyone can run this app cold. Byte-identical copy lives in `public/`.

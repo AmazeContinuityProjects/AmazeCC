@@ -3,7 +3,7 @@ title: "Friend Finder"
 description: "public route with VTOP-verified login modal."
 ---
 
-# 05 — Friend Finder
+# Friend Finder
 
 > **In one line:** public route with VTOP-verified login modal.
 

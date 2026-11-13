@@ -3,7 +3,7 @@ title: "Command Palette Host"
 description: "the thin mount layer that connects useAppCommands to CommandPalette, owned by whichever shell is active."
 ---
 
-# 08 — Command Palette Host
+# Command Palette Host
 
 > **In one line:** the thin mount layer that connects `useAppCommands` to `CommandPalette`,
 > owned by whichever shell is active.

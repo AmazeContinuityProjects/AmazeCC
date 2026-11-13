@@ -3,7 +3,7 @@ title: "Libraries"
 description: "catalog search + patron account via Koha."
 ---
 
-# 05 — Libraries
+# Libraries
 
 > **In one line:** catalog search + patron account via Koha.
 

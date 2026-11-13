@@ -3,7 +3,7 @@ title: "Running Tests"
 description: "pnpm run test runs everything (204 suites, ~40k lines); scope it with a pattern when iterating."
 ---
 
-# 07 — Running Tests
+# Running Tests
 
 > **In one line:** `pnpm run test` runs everything (204 suites, ~40k lines); scope it with a
 > pattern when iterating.

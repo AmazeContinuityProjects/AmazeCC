@@ -3,7 +3,7 @@ title: "The PWA Platform"
 description: 'AmazeCC is an installable PWA — icons, manifest, service worker, install prompts, push — the difference between "a website I visit" and "an app I tap".'
 ---
 
-# 08 — The PWA Platform
+# The PWA Platform
 
 > **In one line:** AmazeCC is an installable PWA — icons, manifest, service worker, install prompts, push — the difference between "a website I visit" and "an app I tap".
 

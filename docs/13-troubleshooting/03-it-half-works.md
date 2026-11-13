@@ -3,7 +3,7 @@ title: "Half Works / One Thing Broken"
 description: "one bad cached key usually poisons one surface — find which key and delete it."
 ---
 
-# 03 — Half Works / One Thing Broken
+# Half Works / One Thing Broken
 
 > **In one line:** one bad cached key usually poisons one surface — find which key and delete it.
 

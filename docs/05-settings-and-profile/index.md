@@ -3,7 +3,7 @@ title: "Settings & Profile"
 description: "account, appearance, sync modes, API host, about."
 ---
 
-# 05 — Settings & Profile
+# Settings & Profile
 
 > **In one line:** account, appearance, sync modes, API host, about.
 

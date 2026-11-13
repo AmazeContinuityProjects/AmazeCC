@@ -3,7 +3,7 @@ title: "Timetable UI"
 description: "every timetable grid in the app."
 ---
 
-# 05 — Timetable UI
+# Timetable UI
 
 > **In one line:** every timetable grid in the app.
 

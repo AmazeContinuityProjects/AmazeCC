@@ -3,7 +3,7 @@ title: "Running Suites"
 description: "pnpm run test is the whole suite; filter with a bare substring; watch with pnpm exec vitest."
 ---
 
-# 02 — Running Suites
+# Running Suites
 
 > **In one line:** `pnpm run test` is the whole suite; filter with a bare substring; watch with `pnpm exec vitest`.
 

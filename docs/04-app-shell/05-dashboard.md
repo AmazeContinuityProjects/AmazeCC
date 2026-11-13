@@ -3,7 +3,7 @@ title: "Dashboard.tsx (the shell under the gate)"
 description: 'the app''s wiring hub — dynamic imports of every feature boundary, the global modals, semester switching, nav wiring. The word "dashboard" is a relic; it is the _shell_. Read once, with coffee…'
 ---
 
-# 05 — Dashboard.tsx (the shell under the gate)
+# Dashboard.tsx (the shell under the gate)
 
 > **In one line:** the app's wiring hub — dynamic imports of every feature boundary, the global
 > modals, semester switching, nav wiring. The word "dashboard" is a relic; it is the _shell_.

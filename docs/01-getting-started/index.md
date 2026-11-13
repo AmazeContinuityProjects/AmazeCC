@@ -2,7 +2,7 @@
 title: "Getting Started (your first hour)"
 ---
 
-# 01 — Getting Started (your first hour)
+# Getting Started (your first hour)
 
 > **Reading time:** ~5 min. **Prereqs:** none.
 

@@ -3,7 +3,7 @@ title: "Cab Share"
 description: "ride-sharing for hostellers (opt-in)."
 ---
 
-# 05 — Cab Share
+# Cab Share
 
 > **In one line:** ride-sharing for hostellers (opt-in).
 

@@ -3,7 +3,7 @@ title: "About & Licensing"
 description: "what this is, who built it, under what licenses."
 ---
 
-# 05 — About & Licensing
+# About & Licensing
 
 > **In one line:** what this is, who built it, under what licenses.
 

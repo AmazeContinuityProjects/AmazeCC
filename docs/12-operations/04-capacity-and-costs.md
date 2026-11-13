@@ -3,7 +3,7 @@ title: "Capacity & What Breaks First"
 description: "VTOP is the bottleneck, always — not our infra, not PostHog, not Pages."
 ---
 
-# 04 — Capacity & What Breaks First
+# Capacity & What Breaks First
 
 > **In one line:** VTOP is the bottleneck, always — not our infra, not PostHog, not Pages.
 

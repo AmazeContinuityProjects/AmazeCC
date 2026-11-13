@@ -3,7 +3,7 @@ title: "Blank or Stale App"
 description: "your browser is holding yesterday's service worker — force it to update."
 ---
 
-# 02 — Blank or Stale App
+# Blank or Stale App
 
 > **In one line:** your browser is holding yesterday's service worker — force it to update.
 

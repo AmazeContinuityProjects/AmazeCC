@@ -2,7 +2,7 @@
 title: "Law-slot fix: landed"
 ---
 
-# 07 — Law-slot fix: landed
+# Law-slot fix: landed
 
 Implemented and tested in the working tree, **not yet committed**. This is the context
 the unification plan grew out of, and the only part of the work that changed what a user

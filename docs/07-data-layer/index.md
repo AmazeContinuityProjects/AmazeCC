@@ -3,7 +3,7 @@ title: "The Data Layer"
 description: "one localStorage cache, one IndexedDB vault, one service-worker cache — this section is the inventory of what the app caches and why."
 ---
 
-# 07 — The Data Layer
+# The Data Layer
 
 > **In one line:** one localStorage cache, one IndexedDB vault, one service-worker cache —
 > this section is the inventory of what the app caches and why.

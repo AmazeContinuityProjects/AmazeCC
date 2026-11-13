@@ -2,7 +2,7 @@
 title: "Suite Map (all 205 test files)"
 ---
 
-# 07 — Suite Map (all 205 test files)
+# Suite Map (all 205 test files)
 
 > One line per suite, grouped by family. Regenerate with `node grounding/suite-map.mjs`.
 > Run a family: `pnpm run test -- <family>` (filename substring).

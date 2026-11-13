@@ -3,7 +3,7 @@ title: "The Three Stores"
 description: "localStorage (string k/v, public-ish) < IndexedDB (crypto material) < the SW cache (asset bytes). Pick one. Reach for the cheapest store that survives your lifetime."
 ---
 
-# 01 — The Three Stores
+# The Three Stores
 
 > **In one line:** localStorage (string k/v, public-ish) < IndexedDB (crypto material) < the SW cache (asset bytes).
 > **Pick one.** Reach for the cheapest store that survives your lifetime.

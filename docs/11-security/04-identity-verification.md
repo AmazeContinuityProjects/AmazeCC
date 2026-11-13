@@ -3,7 +3,7 @@ title: "PostHog Identity Verification (HMAC)"
 description: "analytics events are tied to a verified user without shipping the secret — the server mints a hash; the client attaches it."
 ---
 
-# 04 — PostHog Identity Verification (HMAC)
+# PostHog Identity Verification (HMAC)
 
 > **In one line:** analytics events are tied to a verified user without shipping the secret —
 > the server mints a hash; the client attaches it.

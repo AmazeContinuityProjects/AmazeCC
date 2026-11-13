@@ -3,7 +3,7 @@ title: "Operations Catalog"
 description: "every named engine operation, what it costs, what it fetches, and what it writes — the vocabulary of the sync engine."
 ---
 
-# 04 — Operations Catalog
+# Operations Catalog
 
 > **In one line:** every named engine operation, what it costs, what it fetches, and what it
 > writes — the vocabulary of the sync engine.

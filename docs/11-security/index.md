@@ -3,7 +3,7 @@ title: "Security"
 description: "the student's device is the trust boundary — this section documents what is allowed to leave the device and what is never allowed to."
 ---
 
-# 11 — Security
+# Security
 
 > **In one line:** the student's device is the trust boundary — this section documents what is
 > allowed to leave the device and what is never allowed to.

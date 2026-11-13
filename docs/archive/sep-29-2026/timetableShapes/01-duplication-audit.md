@@ -2,7 +2,7 @@
 title: "Duplication audit"
 ---
 
-# 01 — Duplication audit
+# Duplication audit
 
 Every copy, where it lives today, and what its existence has already cost. All line
 numbers are as of the working tree at 2026-09-29.

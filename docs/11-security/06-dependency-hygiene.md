@@ -3,7 +3,7 @@ title: "Dependency Hygiene"
 description: "~110 runtime deps, mostly UI — scanned, minimally trusted, and pinned by the lockfile."
 ---
 
-# 06 — Dependency Hygiene
+# Dependency Hygiene
 
 > **In one line:** ~110 runtime deps, mostly UI — scanned, minimally trusted, and pinned by the lockfile.
 > **Reading time:** ~6 min. Governance notes for the inherited app.

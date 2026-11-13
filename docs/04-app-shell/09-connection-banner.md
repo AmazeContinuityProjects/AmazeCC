@@ -3,7 +3,7 @@ title: "Connection Banner (offline / VTOP-down)"
 description: 'the one strip that says "the world is currently broken" — browser offline, API unreachable, or VTOP down — derived from a hybrid of navigator.onLine and a heartbeat.'
 ---
 
-# 09 — Connection Banner (offline / VTOP-down)
+# Connection Banner (offline / VTOP-down)
 
 > **In one line:** the one strip that says "the world is currently broken" — browser offline,
 > API unreachable, or VTOP down — derived from a hybrid of `navigator.onLine` and a heartbeat.

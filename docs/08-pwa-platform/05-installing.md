@@ -3,7 +3,7 @@ title: "Installing the App (Add to Home Screen)"
 description: "installation makes AmazeCC an app icon with no browser chrome — one tap to your timetable."
 ---
 
-# 05 — Installing the App (Add to Home Screen)
+# Installing the App (Add to Home Screen)
 
 > **In one line:** installation makes AmazeCC an app icon with no browser chrome — one tap to your timetable.
 

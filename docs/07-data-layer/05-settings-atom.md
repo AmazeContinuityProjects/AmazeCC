@@ -3,7 +3,7 @@ title: "The Settings Atom"
 description: "one localStorage-backed object with a merge-on-read migration shim — adding fields preserves old installs; deleting them silently resurrects them."
 ---
 
-# 05 — The Settings Atom
+# The Settings Atom
 
 > **In one line:** one localStorage-backed object with a merge-on-read migration shim — adding
 > fields preserves old installs; deleting them silently resurrects them.

@@ -3,7 +3,7 @@ title: "Overlays, Back Button & Screen Locking"
 description: "Back closes a sheet first, a sub-page second, a tab last — an ordered overlay stack makes that deterministic."
 ---
 
-# 07 — Overlays, Back Button & Screen Locking
+# Overlays, Back Button & Screen Locking
 
 > **In one line:** Back closes a sheet first, a sub-page second, a tab last — an ordered
 > overlay stack makes that deterministic.

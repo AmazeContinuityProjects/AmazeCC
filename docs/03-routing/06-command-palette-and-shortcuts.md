@@ -3,7 +3,7 @@ title: "Command Palette & Keyboard Shortcuts"
 description: "⌘/Ctrl-K opens a fuzzy palette of every destination & action; g-prefixed sequences jump directly; ? opens the shortcut cheat sheet."
 ---
 
-# 06 — Command Palette & Keyboard Shortcuts
+# Command Palette & Keyboard Shortcuts
 
 > **In one line:** ⌘/Ctrl-K opens a fuzzy palette of every destination & action; `g`-prefixed
 > sequences jump directly; `?` opens the shortcut cheat sheet.

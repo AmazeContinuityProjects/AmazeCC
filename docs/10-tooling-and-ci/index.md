@@ -3,7 +3,7 @@ title: "Tooling & CI"
 description: "pnpm for packages, per-commit lint-staged, GitHub Actions for gates and deploys — everything below is load-bearing, not optional."
 ---
 
-# 10 — Tooling & CI
+# Tooling & CI
 
 > **In one line:** pnpm for packages, per-commit lint-staged, GitHub Actions for gates and
 > deploys — everything below is load-bearing, not optional.

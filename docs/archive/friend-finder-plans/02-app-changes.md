@@ -7,7 +7,7 @@ title: "App changes (AmazeCC)"
 > a previous architecture. If it contradicts the code in `src/` or the live `docs/`, the code wins.
 > See `docs/index.md` for current documentation.
 
-# 02 — App changes (AmazeCC)
+# App changes (AmazeCC)
 
 ## 1. Client lib — `src/lib/ffcsClassmates.ts`
 

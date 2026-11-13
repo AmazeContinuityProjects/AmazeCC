@@ -3,7 +3,7 @@ title: "Reference"
 description: "lookup tables — terms, vars, dependencies, network calls, file locations, decisions."
 ---
 
-# 99 — Reference
+# Reference
 
 > **In one line:** lookup tables — terms, vars, dependencies, network calls, file locations, decisions.
 

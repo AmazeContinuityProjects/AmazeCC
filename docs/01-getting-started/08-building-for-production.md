@@ -3,7 +3,7 @@ title: "Building for Production"
 description: "pnpm build exports static files to out/; GitHub Pages serves them; the service worker makes them feel native."
 ---
 
-# 08 — Building for Production
+# Building for Production
 
 > **In one line:** `pnpm build` exports static files to `out/`; GitHub Pages serves them; the
 > service worker makes them feel native.

@@ -3,7 +3,7 @@ title: "The Navigation Registry"
 description: "lib/navigation/registry.tsx is a declarative list of every navigable destination in the app — icons, labels, groups, shortcuts — consumed by the sidebar, the command palette, and the deep-link…"
 ---
 
-# 03 — The Navigation Registry
+# The Navigation Registry
 
 > **In one line:** `lib/navigation/registry.tsx` is a declarative list of every navigable
 > destination in the app — icons, labels, groups, shortcuts — consumed by the sidebar, the

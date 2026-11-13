@@ -3,7 +3,7 @@ title: "Paper Scanner"
 description: "camera → crop → OCR → PDF, fully on-device."
 ---
 
-# 05 — Paper Scanner
+# Paper Scanner
 
 > **In one line:** camera → crop → OCR → PDF, fully on-device.
 

@@ -3,7 +3,7 @@ title: "AuthenticatedWorkspace (the gate + intro branches)"
 description: "decides, with no flicker, whether to show the first-run/login experience or the actual workspace."
 ---
 
-# 04 — AuthenticatedWorkspace (the gate + intro branches)
+# AuthenticatedWorkspace (the gate + intro branches)
 
 > **In one line:** decides, with no flicker, whether to show the first-run/login experience or
 > the actual workspace.

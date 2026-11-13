@@ -3,7 +3,7 @@ title: "Chunk Recovery (the post-deploy failure)"
 description: "after a deploy, a stale page can reference a JS chunk that no longer exists — this is the one-time self-healing path."
 ---
 
-# 09 — Chunk Recovery (the post-deploy failure)
+# Chunk Recovery (the post-deploy failure)
 
 > **In one line:** after a deploy, a stale page can reference a JS chunk that no longer exists — this is the one-time self-healing path.
 

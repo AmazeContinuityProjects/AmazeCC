@@ -3,7 +3,7 @@ title: "Troubleshooting"
 description: "if it feels broken, it's usually VTOP, your cache, or your network in that order — diagnostics below."
 ---
 
-# 13 — Troubleshooting
+# Troubleshooting
 
 > **In one line:** if it feels broken, it's usually VTOP, your cache, or your network in that order — diagnostics below.
 

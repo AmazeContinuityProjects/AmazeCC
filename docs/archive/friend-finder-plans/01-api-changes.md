@@ -7,7 +7,7 @@ title: "API changes (../AmazeCC-API)"
 > a previous architecture. If it contradicts the code in `src/` or the live `docs/`, the code wins.
 > See `docs/index.md` for current documentation.
 
-# 01 — API changes (`../AmazeCC-API`)
+# API changes (`../AmazeCC-API`)
 
 Everything the backend needs for: verified-only publishing, reg no in the
 friend sheet, and nothing else. Reciprocity, semester allowlist, rate limits

@@ -3,7 +3,7 @@ title: "Icon Updater (per-route identity)"
 description: '/ffcs becomes "FFCS — AmazeCC" with FFCS icons, everyone else gets AmazeCC''s — at runtime, on route mount.'
 ---
 
-# 06 — Icon Updater (per-route identity)
+# Icon Updater (per-route identity)
 
 > **In one line:** `/ffcs` becomes "FFCS — AmazeCC" with FFCS icons, everyone else gets AmazeCC's — at runtime, on route mount.
 > **Read:** `src/components/custom/IconUpdater.tsx`, `src/app/ffcs/layout.tsx`.

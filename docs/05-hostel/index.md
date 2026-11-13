@@ -3,7 +3,7 @@ title: "Hostel"
 description: "mess, laundry, leave, counselling, cab-share."
 ---
 
-# 05 — Hostel
+# Hostel
 
 > **In one line:** mess, laundry, leave, counselling, cab-share.
 

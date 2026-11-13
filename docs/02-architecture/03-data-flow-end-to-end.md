@@ -3,7 +3,7 @@ title: "Data Flow, End to End"
 description: "a button press → sync engine → AmazeCC-API → VTOP → atoms + storage → React re-render. If you can't trace this, you can't fix anything real in this app."
 ---
 
-# 03 — Data Flow, End to End
+# Data Flow, End to End
 
 > **In one line:** a button press → sync engine → AmazeCC-API → VTOP → atoms + storage →
 > React re-render. If you can't trace this, you can't fix anything real in this app.

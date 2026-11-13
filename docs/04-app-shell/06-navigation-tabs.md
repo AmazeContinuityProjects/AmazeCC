@@ -3,7 +3,7 @@ title: "NavigationTabs (sidebar & bottom bar)"
 description: "one module-registry-driven component renders the desktop sidebar, the mobile bottom bar, and the command-palette shortcuts — the most-seen UI in the app."
 ---
 
-# 06 — NavigationTabs (sidebar & bottom bar)
+# NavigationTabs (sidebar & bottom bar)
 
 > **In one line:** one module-registry-driven component renders the desktop sidebar, the mobile
 > bottom bar, and the command-palette shortcuts — the most-seen UI in the app.

@@ -3,7 +3,7 @@ title: "Feedback & Support"
 description: "in-app bug reporter with optional session replay."
 ---
 
-# 05 — Feedback & Support
+# Feedback & Support
 
 > **In one line:** in-app bug reporter with optional session replay.
 

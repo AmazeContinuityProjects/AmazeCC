@@ -3,7 +3,7 @@ title: "The CI Pipeline (ci.yaml)"
 description: "lint → typecheck → test → build — four gates; no merge without all four green."
 ---
 
-# 04 — The CI Pipeline (ci.yaml)
+# The CI Pipeline (ci.yaml)
 
 > **In one line:** lint → typecheck → test → build — four gates; no merge without all four green.
 
