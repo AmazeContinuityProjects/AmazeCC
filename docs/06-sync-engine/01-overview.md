@@ -47,3 +47,20 @@ worked. The engine centralizes:
 
 **Ops are sentences; modes are paragraphs; the sheet is the reading glasses.**
 You can't `await fetch(...)` anything VTOP-shaped — you `syncEngine.sync("attendanceMarks", …)`.
+
+## The pipeline, visualized
+
+```mermaid
+flowchart TB
+  SCREEN[Feature screen] -->|useSync(op)| ENGINE[Sync Engine]
+  ENGINE --> RL[request-layer]
+  RL --> CM[credential-manager]
+  CM -->|"VTOP login when stale"| API[AmazeCC-API]
+  RL -->|"GET/POST + cookies"| API
+  API --> OPS[operations.ts]
+  OPS --> SB[state-bridge]
+  SB --> ATOMS[(Jotai atoms)]
+  SB --> CACHE[(localStorage cache)]
+  ATOMS --> UI[Re-render]
+  CACHE --> UI
+```

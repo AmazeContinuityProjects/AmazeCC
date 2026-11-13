@@ -25,6 +25,17 @@ never global-swap traffic to UniCC.
 `fetchWithFailover` — one same-route retry against backup on network failure/5xx/timeout;
 auth failures never trigger it (they're not transient).
 
+## Failover decision, visualized
+
+```mermaid
+flowchart TD
+  A["fetch(api.amazecc.com/…)"] --> R{"network fail / 5xx / timeout?"}
+  R -->|yes| B["retry once against backup mirror"]
+  R -->|no| OK[keep going]
+  B -->|"still fails"| ERR[surface error]
+  A -.->|"auth failure"| NOTE["never fails over — it's not transient"]
+```
+
 ## The switches a student can flip
 
 - **Settings → "Use backup API"** — persists in localStorage (`amazecc_active_api_url`);
