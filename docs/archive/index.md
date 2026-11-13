@@ -1,5 +1,6 @@
 ---
 title: "Documentation archive — read first"
+description: "Index of everything archived from before the handbook rebuild - historical material, kept for provenance, never authoritative."
 ---
 
 > ⚠️ **ARCHIVED — historical context, not authoritative.**

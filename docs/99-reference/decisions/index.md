@@ -5,8 +5,7 @@ description: "short, self-contained records of _why_ the app is shaped the way i
 
 # Decisions (Architecture Decision Records)
 
-> **In one line:** short, self-contained records of _why_ the app is shaped the way it is —
-> you never re-derive them; you read them here first.
+> **In one line:** short, self-contained records of _why_ the app is shaped the way it is — you never re-derive them; you read them here first.
 
 - [0001-static-export.md](0001-static-export.md) — why the app is plain files, not a server
 - [0002-client-side-vtop-auth.md](0002-client-side-vtop-auth.md) — why credentials live on the device, encrypted

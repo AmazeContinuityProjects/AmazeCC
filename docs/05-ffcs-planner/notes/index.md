@@ -1,5 +1,6 @@
 ---
 title: "FFCS Engine Architecture & Workings"
+description: "Inside the FFCS timetable builder - embedded course pairing, priority tiers, and the generator design notes."
 ---
 
 # FFCS Engine Architecture & Workings

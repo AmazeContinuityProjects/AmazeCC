@@ -1,5 +1,6 @@
 ---
 title: "Friend finder plans"
+description: "Archived plan to move FFCS friend finder onto the Simplified Mobile Home - kept for provenance."
 ---
 
 > ⚠️ **ARCHIVED — historical context, not authoritative.**

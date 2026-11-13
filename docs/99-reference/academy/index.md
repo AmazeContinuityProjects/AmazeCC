@@ -1,9 +1,9 @@
 ---
-title: "Academy (deep dives for ambitious readers)"
+title: "Academy — deep dives for ambitious readers"
 description: "the two hard bodies of knowledge behind this app — written so you can read them without an existing campus brain."
 ---
 
-# Academy (deep dives for ambitious readers)
+# Academy — deep dives for ambitious readers
 
 > **In one line:** the two hard bodies of knowledge behind this app — written so you can read them without an existing campus brain.
 
