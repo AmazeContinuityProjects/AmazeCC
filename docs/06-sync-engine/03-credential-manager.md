@@ -37,6 +37,27 @@ isVtopStale()? yes → ensureVtopSession()
     storage.vtopSession.set(…) + dispatch VTOP_LOGIN_EVENT
 ```
 
+## The single-flight login, visualized
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant S1 as Caller 1 (attendance)
+  participant S2 as Caller 2 (marks)
+  participant CM as credential-manager
+  participant API as POST /api/login
+  participant VTOP as VTOP
+  S1->>CM: ensureVtopSession()
+  S2->>CM: ensureVtopSession()
+  CM->>CM: refreshing in-flight? join it
+  CM->>API: one login (single-flight)
+  API->>VTOP: /vtop/login + captcha
+  VTOP-->>API: 302 + cookies + csrf
+  API-->>CM: { success, cookies, csrf, authorizedID }
+  CM-->>S1: session
+  CM-->>S2: same session
+```
+
 ## The 10-minute TTL mystery (students ask every semester)
 
 VTOP itself rotates the session server-side; we mirror it _client-side_ to avoid paying

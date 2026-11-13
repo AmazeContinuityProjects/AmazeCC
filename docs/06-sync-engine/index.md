@@ -8,15 +8,22 @@ description: "the only module allowed to talk to AmazeCC-API — it owns VTOP cr
 > **In one line:** the only module allowed to talk to AmazeCC-API — it owns VTOP credentials,
 > requests, retries, and the fan-out of replies into UI state.
 
-Reading order (each page = one module; arrows are the dependency order):
+Reading order (each page = one module):
 
+```mermaid
+flowchart LR
+  USE[useSync hook / screen] --> RL[request-layer]
+  RL --> CM[credential-manager]
+  CM --> VTOP[(VTOP session cookie)]
+  RL --> OPS[operations.ts]
+  OPS --> SB[state-bridge]
+  SB --> ATOMS[(Jotai atoms)]
+  SB --> CACHE[(localStorage caches)]
+  ATOMS --> UI[screen re-renders]
+  CACHE --> UI
 ```
-01-overview → 02-request-layer → 03-credential-manager → 04-operations-catalog
-             → 05-sync-modes → 06-sync-modes-editor → 07-state-bridge → 08-progress-bus-and-useSync
-             → 09-error-taxonomy → 10-demo-mode → 11-marks-sync-privacy
-             → 12-unicc-fallback → 13-failover-and-backup-api → 14-api-route-contracts → 15-rate-limit-and-captcha
-             → 16-adapters
-```
+
+Modules in dependency order (the page list below follows the same order):
 
 - **01-overview.md** — what the engine is and why raw `fetch` doesn't exist in this repo
 - **02-request-layer.md** — `apiRequest()`: auth, dedupe, retry, cancellation
