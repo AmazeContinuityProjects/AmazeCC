@@ -25,8 +25,8 @@ interface ClassDropdowns {
   slotOptions?: VtopDropdownOption[];
   /** Keyed by the resolved slotId — faculty lists are slot-specific. */
   facultyBySlot?: Record<string, VtopDropdownOption[]>;
-  /** Keyed by the raw slot label from the attendance sync ("B1+TB1"). */
-  resolvedBySlotLabel?: Record<string, VtopResolved>;
+  /** The resolved slot/faculty/erpId for this class (VTOP's dropdown, no labels). */
+  resolved?: VtopResolved;
   updatedAt: number;
 }
 
@@ -98,16 +98,16 @@ export function setFacultyOptions(
   writeSemester(semSubId, all);
 }
 
-export function getResolvedSlot(semSubId: string, classId: string, slotLabel: string): VtopResolved | null {
-  return classEntry(semSubId, classId)?.resolvedBySlotLabel?.[slotLabel] ?? null;
+export function getResolvedSlot(semSubId: string, classId: string): VtopResolved | null {
+  return classEntry(semSubId, classId)?.resolved ?? null;
 }
 
-export function setResolvedSlot(semSubId: string, classId: string, slotLabel: string, resolved: VtopResolved): void {
+export function setResolvedSlot(semSubId: string, classId: string, resolved: VtopResolved): void {
   const all = readSemester(semSubId);
   const prev: ClassDropdowns = all[classId] ?? { updatedAt: Date.now() };
   all[classId] = {
     ...prev,
-    resolvedBySlotLabel: { ...(prev.resolvedBySlotLabel ?? {}), [slotLabel]: resolved },
+    resolved,
     updatedAt: Date.now(),
   };
   writeSemester(semSubId, all);

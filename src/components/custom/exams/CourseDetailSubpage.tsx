@@ -906,7 +906,30 @@ export default function CourseDetailSubpage({
   // `@/lib/vtopCourseDetail` so the sync engine (coursePage op) and this page
   // share one implementation and one persistent per-semester cache.
 
-  const fetchViewDetail = async (opts?: { force?: boolean }) => {
+  // Cache-only read: pull the course page from the synced cache when it's there,
+  // without hitting VTOP. The page deliberately does NOT auto-fetch — the
+  // reload button does that on demand.
+  const loadCachedCoursePage = (): boolean => {
+    if (!selectedGroup) return false;
+    const semSubId = getVtopSemesterSubId();
+    if (!semSubId) return false;
+    const components: Array<{ comp: any; scope: "theory" | "lab" }> = [];
+    if (selectedGroup.theory) components.push({ comp: selectedGroup.theory, scope: "theory" });
+    if (selectedGroup.lab) components.push({ comp: selectedGroup.lab, scope: "lab" });
+    const cache = readCoursePageViewCache(semSubId);
+    if (!cache) return false;
+    const detailData = components.flatMap(({ comp, scope }) => {
+      const data = (cache as CoursePageViewCache).courses[String(comp.classNbr ?? "")];
+      return data ? [{ scope, type: comp.courseType, data }] : [];
+    });
+    if (detailData.length !== components.length || detailData.length === 0) return false;
+    setViewDetail(detailData);
+    return true;
+  };
+
+  // Manual-only VTOP fetch — triggered by the reload button. Always bypasses
+  // both caches so a press really means "go ask VTOP right now".
+  const fetchViewDetail = async () => {
     if (!selectedGroup) return;
     const c = await ensureCreds();
     if (!c) return;
@@ -918,21 +941,6 @@ export default function CourseDetailSubpage({
       if (selectedGroup.theory) components.push({ comp: selectedGroup.theory, scope: "theory" });
       if (selectedGroup.lab) components.push({ comp: selectedGroup.lab, scope: "lab" });
 
-      if (!opts?.force) {
-        const cache = readCoursePageViewCache(semSubId);
-        if (cache) {
-          const detailData = components.flatMap(({ comp, scope }) => {
-            const data = (cache as CoursePageViewCache).courses[String(comp.classNbr ?? "")];
-            return data ? [{ scope, type: comp.courseType, data }] : [];
-          });
-          if (detailData.length === components.length && detailData.length > 0) {
-            setViewDetail(detailData);
-            setViewLoading(false);
-            return;
-          }
-        }
-      }
-
       const call = (formData: Record<string, unknown>) =>
         api("course-page", {
           method: "POST",
@@ -941,12 +949,10 @@ export default function CourseDetailSubpage({
         });
 
       const detailData: any[] = [];
-      // Start from whatever is already cached so one fresh class doesn't force
-      // re-fetching the others on the next mount.
       const cacheNow = readCoursePageViewCache(semSubId);
       const merged: Record<string, unknown> = { ...(cacheNow?.courses ?? {}) };
       for (const { comp, scope } of components) {
-        const data = await fetchViewDetailForComp(call, semSubId, comp, { fresh: Boolean(opts?.force) });
+        const data = await fetchViewDetailForComp(call, semSubId, comp, { fresh: true });
         if (data) {
           detailData.push({ scope, type: comp.courseType, data });
           merged[String(comp.classNbr ?? "")] = data;
@@ -1038,12 +1044,11 @@ export default function CourseDetailSubpage({
 
   useEffect(() => {
     if (selectedCode) {
-      setViewDetail(null);
       setQcmError("");
-      // Pull the VTOP "Course Page View" detail (processViewStudentCourseDetail).
-      // It carries the teacher-uploaded reference materials rendered in this page's
-      // Course Details section; without this call viewDetail stays null forever.
-      fetchViewDetail();
+      // Course detail is NOT fetched from VTOP on mount — only the cache is
+      // applied. The reload button fetches on demand.
+      setViewDetail(null);
+      loadCachedCoursePage();
 
       // Automatic QCM automapping from storage/cache
       const cachedRaw =
@@ -2631,7 +2636,7 @@ export default function CourseDetailSubpage({
               right={
                 <button
                   type="button"
-                  onClick={() => fetchViewDetail({ force: true })}
+                  onClick={() => fetchViewDetail()}
                   disabled={viewLoading}
                   className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider text-text-secondary dark:text-text-muted border border-border-muted dark:border-border bg-surface-secondary dark:bg-zinc-800 hover:bg-border-muted dark:hover:bg-zinc-700 transition-colors disabled:opacity-50 cursor-pointer"
                   title="Re-fetch this course's VTOP page (slow; 4-6 requests)"
@@ -2647,8 +2652,8 @@ export default function CourseDetailSubpage({
             ) : planRowsByScope.length === 0 ? (
               <EmptyPanel
                 variant="dashed"
-                title="Course page unavailable"
-                description="VTOP hasn't returned the course page for this selection, or no lecture plan exists yet."
+                title="Not fetched yet"
+                description="Tap Reload above to pull the course page from VTOP."
               />
             ) : (
               <div className="space-y-4">
@@ -2684,8 +2689,8 @@ export default function CourseDetailSubpage({
                                       type="button"
                                       onClick={() => handleDownloadReferenceMaterial(key, entry, row, mat)}
                                       disabled={downloadingRef !== null}
-                                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0"
-                                      title={`Download ${mat.label} (${row.date}) from VTOP`}
+                                      className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0"
+                                      title={`Download ${mat.label} (${row.date})`}
                                       aria-label={`Download ${mat.label} for session on ${row.date}`}
                                     >
                                       {downloadingRef === key ? (
@@ -2693,7 +2698,6 @@ export default function CourseDetailSubpage({
                                       ) : (
                                         <Download className="w-4 h-4" />
                                       )}
-                                      <span>{downloadingRef === key ? "Downloading" : "Download"}</span>
                                     </button>
                                   );
                                 })()
@@ -2702,12 +2706,11 @@ export default function CourseDetailSubpage({
                                   type="button"
                                   onClick={() => setMaterialSheet({ entry, row, scope })}
                                   disabled={downloadingRef !== null}
-                                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0"
+                                  className="inline-flex items-center justify-center w-9 h-9 rounded-xl text-blue-600 dark:text-blue-400 border border-blue-500/20 bg-blue-500/10 hover:bg-blue-500/20 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0"
                                   title={`${row.materials.length} reference files for this session`}
+                                  aria-label={`Show ${row.materials.length} reference files for session on ${row.date}`}
                                 >
-                                  <Paperclip className="w-4 h-4" />
-                                  <span>{row.materials.length} files</span>
-                                  <ChevronRight className="w-3.5 h-3.5" />
+                                  <ChevronRight className="w-5 h-5" />
                                 </button>
                               )
                             ) : (
@@ -2742,15 +2745,15 @@ export default function CourseDetailSubpage({
                   type="button"
                   onClick={() => handleDownloadMaterial("course-plan")}
                   disabled={downloadingMaterial !== null}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0"
+                  className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0"
                   title="Download course plan Excel"
+                  aria-label="Download course plan Excel"
                 >
                   {downloadingMaterial === "course-plan" ? (
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <RefreshCw className="w-4 h-4 animate-spin" />
                   ) : (
-                    <Download className="w-3.5 h-3.5" />
+                    <Download className="w-4 h-4" />
                   )}
-                  <span>{downloadingMaterial === "course-plan" ? "Downloading." : "Course plan"}</span>
                 </button>
               </div>
 
@@ -2768,15 +2771,15 @@ export default function CourseDetailSubpage({
                   type="button"
                   onClick={() => handleDownloadMaterial("all-materials")}
                   disabled={downloadingMaterial !== null}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-violet-500/10 hover:bg-violet-500/20 text-violet-600 dark:text-violet-400 border border-violet-500/20 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0"
+                  className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-violet-500/10 hover:bg-violet-500/20 text-violet-600 dark:text-violet-400 border border-violet-500/20 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0"
                   title="Download all course materials ZIP"
+                  aria-label="Download all course materials ZIP"
                 >
                   {downloadingMaterial === "all-materials" ? (
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <RefreshCw className="w-4 h-4 animate-spin" />
                   ) : (
-                    <Download className="w-3.5 h-3.5" />
+                    <Download className="w-4 h-4" />
                   )}
-                  <span>{downloadingMaterial === "all-materials" ? "Downloading." : "All materials"}</span>
                 </button>
               </div>
 
@@ -2794,15 +2797,15 @@ export default function CourseDetailSubpage({
                   type="button"
                   onClick={() => handleDownloadMaterial("general-materials")}
                   disabled={downloadingMaterial !== null}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0"
+                  className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0"
                   title="Download general materials ZIP"
+                  aria-label="Download general materials ZIP"
                 >
                   {downloadingMaterial === "general-materials" ? (
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <RefreshCw className="w-4 h-4 animate-spin" />
                   ) : (
-                    <Download className="w-3.5 h-3.5" />
+                    <Download className="w-4 h-4" />
                   )}
-                  <span>{downloadingMaterial === "general-materials" ? "Downloading." : "General materials"}</span>
                 </button>
               </div>
             </ListShell>

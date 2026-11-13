@@ -34,29 +34,9 @@ export interface CoursePageViewCache {
   courses: Record<string, unknown>;
 }
 
-export const normToken = (s: string): string =>
-  String(s ?? "")
-    .toUpperCase()
-    .replace(/[^A-Z0-9]/g, "");
-
 export function parseSelectOptions(d: any, name: string): VtopDropdownOption[] {
   const opts = d?.results?.selectOptions?.[name] ?? d?.selectOptions?.[name] ?? [];
   return Array.isArray(opts) ? opts.filter((o: any) => o && String(o.value ?? "").trim() !== "") : [];
-}
-
-export function matchOption(opts: VtopDropdownOption[], wanted: string): VtopDropdownOption | null {
-  const w = normToken(wanted);
-  if (!w) return opts[0] ?? null;
-  return (
-    opts.find((o) => normToken(o.text) === w) ||
-    opts.find((o) => {
-      const t = normToken(o.text);
-      return t && (t.startsWith(w) || w.startsWith(t) || t.includes(w) || w.includes(t));
-    }) ||
-    opts.find((o) => o.selected) ||
-    opts[0] ||
-    null
-  );
 }
 
 // --- cache helpers ----------------------------------------------------------
@@ -130,10 +110,9 @@ export async function resolveVtopDropdowns(
   opts?: { fresh?: boolean },
 ): Promise<ResolvedDropdowns | null> {
   const classId = String(comp.classNbr ?? "");
-  const slotLabel = String(comp.slot ?? "").trim();
 
   if (!opts?.fresh) {
-    const stored = getResolvedSlot(semSubId, classId, slotLabel);
+    const stored = getResolvedSlot(semSubId, classId);
     if (stored) return stored;
   }
 
@@ -149,13 +128,11 @@ export async function resolveVtopDropdowns(
       slotOptions = [];
     }
   }
-  const slotMatch = matchOption(slotOptions, slotLabel);
-  // Fallback chain: exact/fuzzy label match → `selected` option → whatever is
-  // listed for this class. VTOP's dropdown for one classId normally holds
-  // exactly the options the student has, so the first is usable.
-  const resolvedSlot = slotMatch ?? slotOptions.find((o) => o.selected) ?? slotOptions[0] ?? null;
-  const slotId = resolvedSlot?.value ? String(resolvedSlot.value) : slotLabel;
-  // Nothing to work with — this class cannot answer /processViewStudentCourseDetail.
+  // Trust VTOP's dropdown as-is: the selected option is what VTOP expects
+  // for this class; fall back to the first option it lists.
+  const resolvedSlot = slotOptions.find((o) => o.selected) ?? slotOptions[0] ?? null;
+  const slotId = resolvedSlot?.value ? String(resolvedSlot.value) : null;
+  // Nothing to work with - this class cannot answer /processViewStudentCourseDetail.
   if (!slotId) return null;
 
   // 2. Faculty options for the resolved slot.
@@ -170,8 +147,8 @@ export async function resolveVtopDropdowns(
       facultyOptions = [];
     }
   }
-  const facultyMatch = matchOption(facultyOptions, comp.faculty ?? "");
-  const resolvedFaculty = facultyMatch ?? facultyOptions.find((o) => o.selected) ?? facultyOptions[0] ?? null;
+  // Trust VTOP's faculty dropdown too — the selected option is who VTOP says teaches this class.
+  const resolvedFaculty = facultyOptions.find((o) => o.selected) ?? facultyOptions[0] ?? null;
   const faculty = resolvedFaculty?.value ? String(resolvedFaculty.value) : String(comp.faculty ?? "");
   const erpId = resolvedFaculty?.value
     ? String(resolvedFaculty.value)
@@ -189,7 +166,7 @@ export async function resolveVtopDropdowns(
   if (!erpId) return null;
 
   const resolved: ResolvedDropdowns = { slotId, faculty, erpId };
-  setResolvedSlot(semSubId, classId, slotLabel, resolved);
+  setResolvedSlot(semSubId, classId, resolved);
   return resolved;
 }
 
