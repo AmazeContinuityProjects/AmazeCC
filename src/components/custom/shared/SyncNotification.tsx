@@ -44,6 +44,10 @@ import {
   Eye,
   EyeOff,
   LogIn,
+  Zap,
+  CalendarRange,
+  CalendarDays,
+  CalendarClock,
 } from "lucide-react";
 
 interface SyncNotificationProps {
@@ -145,7 +149,7 @@ export default function SyncNotification({
   const [showBackupBtn, setShowBackupBtn] = useState(false);
   const [hasSwitched, setHasSwitched] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(true);
   const [showConsole, setShowConsole] = useState(false);
   const [showModeMenu, setShowModeMenu] = useState(false);
   const [showServerMenu, setShowServerMenu] = useState(false);
@@ -299,7 +303,7 @@ export default function SyncNotification({
         username: cleanUsername,
         authorizedID: creds?.authorizedID,
         extraProperties: {
-          sync_mode: isNewStudent ? "full" : "quick",
+          sync_mode: isNewStudent ? "quarterly" : "daily",
           login_source: "sync_bottom_sheet",
         },
       });
@@ -363,12 +367,6 @@ export default function SyncNotification({
     }
     return () => clearTimeout(timer);
   }, [active, message, isOfflineNotice]);
-
-  useEffect(() => {
-    if (active) {
-      setIsMinimized(false);
-    }
-  }, [active]);
 
   const handleSwitchToBackup = () => {
     if (!hasBackupApi()) return;
@@ -493,6 +491,16 @@ export default function SyncNotification({
 
   const effectiveOutcome = outcome || (isVtopDown ? "error" : null);
 
+  // The minimized bar is the default presentation; it only expands for fatal
+  // outcomes the user must see — a rejected password (login form) or a hard
+  // failure. Everything else waits until they tap the bar.
+  useEffect(() => {
+    if (authFailure || effectiveOutcome === "error") {
+      setIsMinimized(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authFailure, effectiveOutcome]);
+
   // Server telemetry label
   const req = (n: number) => `${n} req${n === 1 ? "" : "s"}`;
   const servingText = (() => {
@@ -562,11 +570,6 @@ export default function SyncNotification({
     },
   ];
 
-  // Circular progress SVG constants for minimized mobile pill
-  const strokeRadius = 14;
-  const strokeCircumference = 2 * Math.PI * strokeRadius;
-  const strokeOffset = strokeCircumference - (Math.min(progress, 100) / 100) * strokeCircumference;
-
   const minimizeToBackground = () => setIsMinimized(true);
   const isFinished =
     isOfflineNotice || isLoginNotice || effectiveOutcome === "success" || effectiveOutcome === "error" || hasSwitched;
@@ -580,11 +583,22 @@ export default function SyncNotification({
 
   const currentMode = modes?.find((m) => m.id === modeId);
   const activeModeTitle = currentMode?.label || modeLabel || "VTOP Sync";
+  // Mode glyph for the minimized bar — pick something per cadence tier.
+  const ModeIcon =
+    modeId === "daily"
+      ? Zap
+      : modeId === "weekly"
+        ? CalendarRange
+        : modeId === "monthly"
+          ? CalendarDays
+          : modeId === "quarterly"
+            ? CalendarClock
+            : RefreshCw;
 
   return (
     <AnimatePresence>
       {isMinimized ? (
-        /* Minimized background pill - refined mobile dock capsule */
+        /* Minimized background pill — the capsule itself fills like an energy bar */
         <motion.div
           key="sync-minimized"
           layout
@@ -592,41 +606,37 @@ export default function SyncNotification({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.94, y: 12 }}
           transition={{ type: "spring", stiffness: 450, damping: 32 }}
-          className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+5.5rem)] left-3 right-3 sm:left-auto sm:right-6 sm:w-auto sm:min-w-[320px] sm:max-w-[350px] mx-auto z-50 bg-white/92 dark:bg-zinc-950/92 backdrop-blur-2xl border border-black/[0.08] dark:border-white/[0.12] shadow-[0_12px_36px_-4px_rgba(0,0,0,0.18),0_0_1px_rgba(0,0,0,0.2)] dark:shadow-[0_16px_40px_-4px_rgba(0,0,0,0.7),0_0_1px_rgba(255,255,255,0.15)] rounded-2xl py-2.5 px-3.5 flex items-center gap-3 cursor-pointer select-none font-sans active:scale-[0.99] transition-transform"
+          className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+5.5rem)] left-3 right-3 sm:left-auto sm:right-6 sm:w-auto sm:min-w-[320px] sm:max-w-[350px] mx-auto z-50 bg-white/92 dark:bg-zinc-950/92 backdrop-blur-2xl border border-black/[0.08] dark:border-white/[0.12] shadow-[0_12px_36px_-4px_rgba(0,0,0,0.18),0_0_1px_rgba(0,0,0,0.2)] dark:shadow-[0_16px_40px_-4px_rgba(0,0,0,0.7),0_0_1px_rgba(255,255,255,0.15)] rounded-2xl py-2.5 px-3.5 cursor-pointer select-none font-sans active:scale-[0.99] transition-transform overflow-hidden"
           onClick={() => setIsMinimized(false)}
+          role="status"
+          aria-live="polite"
+          aria-label={`Syncing — ${Math.min(100, Math.round(progress))}% complete`}
         >
-          <div className="flex items-center gap-3 w-full">
-            {/* Circular progress SVG */}
-            <div className="relative flex items-center justify-center shrink-0 w-9 h-9">
-              <svg className="w-9 h-9 -rotate-90">
-                <circle
-                  cx="18"
-                  cy="18"
-                  r={strokeRadius}
-                  className="stroke-slate-200/80 dark:stroke-zinc-800/80"
-                  strokeWidth="2.5"
-                  fill="transparent"
-                />
-                <circle
-                  cx="18"
-                  cy="18"
-                  r={strokeRadius}
-                  className="stroke-blue-500 dark:stroke-blue-400 transition-all duration-300 ease-out"
-                  strokeWidth="3"
-                  fill="transparent"
-                  strokeDasharray={strokeCircumference}
-                  strokeDashoffset={strokeOffset}
-                  strokeLinecap="round"
-                />
-              </svg>
-              {progress >= 100 ? (
-                <Check className="w-4 h-4 text-emerald-500 dark:text-emerald-400 absolute" strokeWidth={3} />
-              ) : (
-                <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 absolute font-mono">
-                  {Math.min(100, Math.round(progress))}%
-                </span>
-              )}
+          {/* Energy bar fill — the capsule itself is the progress track */}
+          <div
+            aria-hidden="true"
+            className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-500/20 via-blue-500/30 to-cyan-400/35 dark:from-blue-500/30 dark:via-blue-600/35 dark:to-cyan-400/35 transition-[width] duration-500 ease-out"
+            style={{ width: `${Math.min(100, Math.max(3, progress))}%` }}
+          />
+          {/* Leading-edge glow */}
+          {progress < 100 && (
+            <div
+              aria-hidden="true"
+              className="absolute inset-y-0 transition-[left] duration-500 ease-out"
+              style={{ left: `calc(${Math.min(100, Math.max(3, progress))}% - 2px)` }}
+            >
+              <div className="h-full w-0.5 bg-blue-400/90 dark:bg-blue-400 shadow-[0_0_10px_2px_rgba(59,130,246,0.55)]" />
             </div>
+          )}
+
+          <div className="relative flex items-center gap-3 w-full">
+            {/* Mode glyph tile */}
+            <span
+              aria-hidden="true"
+              className="w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/25 text-blue-700 dark:text-blue-300 flex items-center justify-center shrink-0"
+            >
+              <ModeIcon size={16} strokeWidth={2.25} />
+            </span>
 
             {/* Pinned Labels */}
             <div className="min-w-0 flex-1">
@@ -634,7 +644,11 @@ export default function SyncNotification({
                 <h4 className="text-xs font-black text-slate-800 dark:text-white leading-none font-outfit truncate">
                   {activeModeTitle}
                 </h4>
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse shrink-0" />
+                {progress >= 100 ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400 shrink-0" strokeWidth={3} />
+                ) : (
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse shrink-0" />
+                )}
               </div>
               <p className="text-[10.5px] text-slate-500 dark:text-zinc-400 font-medium truncate mt-1 leading-tight">
                 {cleanedHeadline}

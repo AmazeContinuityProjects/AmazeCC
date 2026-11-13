@@ -63,6 +63,35 @@ const nextConfig = {
     if (isServer) {
       config.externals.push("@napi-rs/canvas");
     }
+    // Docs/markdown, design assets and repo bookkeeping are not part of the
+    // compile graph — tell the watcher to ignore them so editing docs doesn't
+    // kick off (or spam) dev-server reloads.
+    //
+    // The framework config passes a RegExp as `watchOptions.ignored[0]`,
+    // which webpack's schema validator in Next 16 rejects ("should be a
+    // non-empty string"). Keep only entries the schema accepts — non-empty
+    // strings and functions — and leave our own globs alone.
+    const baseIgnored = config.watchOptions?.ignored ? [config.watchOptions.ignored].flat() : [];
+    const safeBaseIgnored = baseIgnored.filter(
+      (entry) => (typeof entry === "string" && entry.length > 0) || typeof entry === "function",
+    );
+    config.watchOptions = {
+      ...(config.watchOptions || {}),
+      ignored: [
+        ...safeBaseIgnored,
+        "**/docs/**",
+        "**/grounding/**",
+        "**/design/**",
+        "**/data/**",
+        "**/sql/**",
+        "**/certificates/**",
+        "**/dayscholar/**",
+        "**/.github/**",
+        "**/scripts/**",
+        "**/*.md",
+        "**/*.markdown",
+      ],
+    };
     config.resolve.alias = {
       ...(config.resolve.alias || {}),
       "react-native$": require.resolve("react-native-web"),

@@ -45,22 +45,26 @@ export default function ProfileStatusCards({
         if (cancelled) return;
         setWhoami(w);
 
-        // registration schedule comes from unified FFCS op (single ffcs all call + adapters/distribution)
-        let regRes: any = null;
-        if (refreshKey === 0) {
+        // registration schedule comes from unified FFCS op (single ffcs all call + adapters/distribution).
+        // Mount reads the cache only — /api/ffcs costs a VTOP round trip, so it must never fire just
+        // because the profile page mounted. An explicit refresh (refreshKey > 0) always fetches fresh.
+        const readCachedReg = () => {
           try {
             const cachedReg =
               localStorage.getItem("cache_registration_schedule") ||
               localStorage.getItem("cache_registration-schedule");
-            if (cachedReg) regRes = JSON.parse(cachedReg);
-          } catch {}
-        }
-        if (!regRes || refreshKey > 0) {
+            return cachedReg ? JSON.parse(cachedReg) : null;
+          } catch {
+            return null;
+          }
+        };
+        let regRes: any = refreshKey === 0 ? readCachedReg() : null;
+        if (refreshKey > 0) {
           try {
             const ffcsRes: any = await syncEngine.sync("ffcs", {});
             regRes = ffcsRes?.registrationSchedule || ffcsRes;
           } catch {
-            regRes = null;
+            regRes = readCachedReg();
           }
         }
         if (!cancelled) setReg(regRes);

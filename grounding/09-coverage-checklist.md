@@ -1,0 +1,864 @@
+# 09 — Coverage Checklist (the definition of 100%)
+
+Every source file in the repo appears below with a checkbox. **Tick each box when the file is
+documented** (in its assigned section per `03-target-docs-structure.md`) or explicitly waived
+with a note written inline (e.g. `- [x] … — waived: covered by docs/05/x/… at module level`).
+
+Method of this file: generated from the working tree on 2026-11-12; regenerate any time with
+the same commands noted at the bottom, and diff to catch new files.
+
+**Waiver rules:** whole-file waiver only for (a) pure barrels/re-export shims with zero logic,
+(b) type-declaration files with ≤5 trivial lines, (c) generated artifacts (`buildInfo.json`).
+Everything else is documented or the checklist fails.
+
+Sections:
+
+1. Root configuration & meta files
+2. Build/deploy pipelines & editor config
+3. `src/app` routes & boundaries
+4. `src/components` (all)
+5. `src/lib` (all)
+6. `src/store` atoms
+7. `src/features` and `src/types`
+8. `src/data` fixtures
+9. `src/__tests__` suites
+10. `scripts/` tooling
+11. PWA artifacts (sw.ts, manifests, offline)
+12. Docs triage & verification
+13. Features ↔ docs coverage (folder-level)
+
+## 1 — Root configuration & meta
+
+- [ ] .husky/
+- [ ] .npmrc
+- [ ] .prettierignore
+- [ ] .prettierrc
+- [ ] CNAME
+- [ ] components.json
+- [ ] config.json
+- [ ] eslint.config.mjs
+- [ ] next.config.mjs
+- [ ] package.json
+- [ ] pnpm-workspace.yaml
+- [ ] postcss.config.mjs
+- [ ] tsconfig.json
+- [ ] vercel.json
+
+## 2 — Build/deploy pipelines & editor config
+
+- [ ] .github/workflows/ci.yaml
+- [ ] .github/workflows/nextjs.yml
+- [ ] eslint.config.mjs
+- [ ] pnpm-workspace.yaml
+- [ ] vitest.config.ts
+
+## 3 — src/app routes & boundaries
+
+- [ ] src/app/error.tsx
+- [ ] src/app/ffcs/FFCSPageView.tsx
+- [ ] src/app/ffcs/PreloadReportCsv.tsx
+- [ ] src/app/ffcs/layout.tsx
+- [ ] src/app/ffcs/page.tsx
+- [ ] src/app/friend-finder/FriendFinderPageView.tsx
+- [ ] src/app/friend-finder/disclaimer/FriendFinderDisclaimerView.tsx
+- [ ] src/app/friend-finder/disclaimer/page.tsx
+- [ ] src/app/friend-finder/page.tsx
+- [ ] src/app/global-error.tsx
+- [ ] src/app/globals.css
+- [ ] src/app/layout.tsx
+- [ ] src/app/not-found.tsx
+- [ ] src/app/page.tsx
+- [ ] src/app/privacy/page.tsx
+- [ ] src/app/share/ShareTargetView.tsx
+- [ ] src/app/share/ffcs/FFCSShareView.tsx
+- [ ] src/app/share/ffcs/page.tsx
+- [ ] src/app/share/page.tsx
+- [ ] src/app/sw.ts
+- [ ] src/app/terms/page.tsx
+- [ ] src/app/~offline/page.tsx
+
+## 4 — src/components
+
+- [ ] src/components/custom/AboutTab.tsx
+- [ ] src/components/custom/BackgroundPrefetch.tsx
+- [ ] src/components/custom/CredentialEditorModal.tsx
+- [ ] src/components/custom/Dashboard.tsx
+- [ ] src/components/custom/ErrorDiagnosticCard.tsx
+- [ ] src/components/custom/FresherWelcomePage.tsx
+- [ ] src/components/custom/IconUpdater.tsx
+- [ ] src/components/custom/Main.tsx
+- [ ] src/components/custom/NoContentFound.tsx
+- [ ] src/components/custom/PaymentsTab.tsx
+- [ ] src/components/custom/PushPromptModal.tsx
+- [ ] src/components/custom/ResourcesSection.tsx
+- [ ] src/components/custom/ServiceWorkerRegistrar.tsx
+- [ ] src/components/custom/StatCards.tsx
+- [ ] src/components/custom/ThemeToggle.tsx
+- [ ] src/components/custom/Toggle.tsx
+- [ ] src/components/custom/app/AppHousing.tsx
+- [ ] src/components/custom/app/AppIntroExperience.tsx
+- [ ] src/components/custom/app/AuthenticatedWorkspace.tsx
+- [ ] src/components/custom/app/CommandPaletteHost.tsx
+- [ ] src/components/custom/app/GuestExperience.tsx
+- [ ] src/components/custom/app/HomeEntryController.tsx
+- [ ] src/components/custom/app/SyncSessionHost.tsx
+- [ ] src/components/custom/app/readBootstrapSnapshot.ts
+- [ ] src/components/custom/app/useAppAppearance.ts
+- [ ] src/components/custom/app/useAppBootstrap.ts
+- [ ] src/components/custom/app/useAppCommands.tsx
+- [ ] src/components/custom/app/useAppDataActions.ts
+- [ ] src/components/custom/app/useAppNetworkStatus.ts
+- [ ] src/components/custom/app/useAttendanceState.ts
+- [ ] src/components/custom/app/useForgetCredentialsAction.ts
+- [ ] src/components/custom/app/useGlobalShortcuts.ts
+- [ ] src/components/custom/app/useLogoutAction.ts
+- [ ] src/components/custom/app/useSyncSessionBridge.ts
+- [ ] src/components/custom/attendance/AttendanceCalendarView.tsx
+- [ ] src/components/custom/attendance/AttendanceSubpage.tsx
+- [ ] src/components/custom/attendance/CalendarSubpage.tsx
+- [ ] src/components/custom/attendance/DayDetailSheet.tsx
+- [ ] src/components/custom/attendance/DesktopCourseDetail.tsx
+- [ ] src/components/custom/attendance/DesktopCourseDetailPane.tsx
+- [ ] src/components/custom/attendance/MonthGrid.tsx
+- [ ] src/components/custom/attendance/MoodleConnectSheet.tsx
+- [ ] src/components/custom/attendance/ODTrackerSubpage.tsx
+- [ ] src/components/custom/attendance/OfficialOdSection.tsx
+- [ ] src/components/custom/attendance/OverallAttendancePredictor.tsx
+- [ ] src/components/custom/attendance/TimetableGrid.tsx
+- [ ] src/components/custom/attendance/UpcomingClassesList.tsx
+- [ ] src/components/custom/attendance/calendarIcs.ts
+- [ ] src/components/custom/clubs/ClubDetailsModal.tsx
+- [ ] src/components/custom/clubs/ClubHubTab.tsx
+- [ ] src/components/custom/clubs/CommunityFeed.tsx
+- [ ] src/components/custom/dashboard/DashboardAcademicsFeature.tsx
+- [ ] src/components/custom/dashboard/DashboardAttendanceFeature.tsx
+- [ ] src/components/custom/dashboard/DashboardHomeFeature.tsx
+- [ ] src/components/custom/dashboard/DashboardHostelFeature.tsx
+- [ ] src/components/custom/dashboard/DashboardNavigator.tsx
+- [ ] src/components/custom/dashboard/DashboardProfileFeature.tsx
+- [ ] src/components/custom/dashboard/DashboardToolsFeature.tsx
+- [ ] src/components/custom/dashboard/DashboardUtilityRoutes.tsx
+- [ ] src/components/custom/dashboard/useDashboardDataActions.ts
+- [ ] src/components/custom/dashboard/useDashboardScreenHistory.ts
+- [ ] src/components/custom/dashboard/useDashboardTransportState.ts
+- [ ] src/components/custom/dashboard/useDashboardWelcomeState.ts
+- [ ] src/components/custom/dayscholar/BusFinder.tsx
+- [ ] src/components/custom/dayscholar/TransportRegistration.tsx
+- [ ] src/components/custom/dayscholar/routeParts.tsx
+- [ ] src/components/custom/events/EventHubSubpage.tsx
+- [ ] src/components/custom/events/EventHubTab.tsx
+- [ ] src/components/custom/exams/CircularsTab.tsx
+- [ ] src/components/custom/exams/ClassDetailsModal.tsx
+- [ ] src/components/custom/exams/CourseDashboard.tsx
+- [ ] src/components/custom/exams/CourseDetailSubpage.tsx
+- [ ] src/components/custom/exams/CourseFacultyCard.tsx
+- [ ] src/components/custom/exams/CourseQBankTab.tsx
+- [ ] src/components/custom/exams/CourseWeeklySchedule.tsx
+- [ ] src/components/custom/exams/CurriculumPage.tsx
+- [ ] src/components/custom/exams/FFCS/FFCSFriendsSubpage.tsx
+- [ ] src/components/custom/exams/FFCS/FFCSGeneratorSubpage.tsx
+- [ ] src/components/custom/exams/FFCS/components/CourseCatalogFilters.tsx
+- [ ] src/components/custom/exams/FFCS/components/CourseImportPanel.tsx
+- [ ] src/components/custom/exams/FFCS/components/CourseListImportSection.tsx
+- [ ] src/components/custom/exams/FFCS/components/CourseTypeChips.tsx
+- [ ] src/components/custom/exams/FFCS/components/ExportDossierWidget.tsx
+- [ ] src/components/custom/exams/FFCS/components/FFCSDashboardDetails.tsx
+- [ ] src/components/custom/exams/FFCS/components/FFCSDashboardHeader.tsx
+- [ ] src/components/custom/exams/FFCS/components/FFCSDossierSubpage.tsx
+- [ ] src/components/custom/exams/FFCS/components/FFCSGuidedSelector.tsx
+- [ ] src/components/custom/exams/FFCS/components/FFCSResultsFilterBar.tsx
+- [ ] src/components/custom/exams/FFCS/components/FFCSTimetableModals.tsx
+- [ ] src/components/custom/exams/FFCS/components/FacultyAvatar.tsx
+- [ ] src/components/custom/exams/FFCS/components/FacultyReviewSheet.tsx
+- [ ] src/components/custom/exams/FFCS/components/FacultyReviewSheetHost.tsx
+- [ ] src/components/custom/exams/FFCS/components/GeneratorStatParts.tsx
+- [ ] src/components/custom/exams/FFCS/components/GeneratorTargetCoursesWidget.tsx
+- [ ] src/components/custom/exams/FFCS/components/GuidedFacultyStats.tsx
+- [ ] src/components/custom/exams/FFCS/components/GuidedPhaseHeading.tsx
+- [ ] src/components/custom/exams/FFCS/components/GuidedStepFooter.tsx
+- [ ] src/components/custom/exams/FFCS/components/PdfGenerationBadge.tsx
+- [ ] src/components/custom/exams/FFCS/components/SelectedCoursesList.tsx
+- [ ] src/components/custom/exams/FFCS/components/SlotFacultySwapSheet.tsx
+- [ ] src/components/custom/exams/FFCS/components/TargetCourseLockCard.tsx
+- [ ] src/components/custom/exams/FFCS/components/TargetCourseLocker.tsx
+- [ ] src/components/custom/exams/FFCS/components/TimetableGrid.tsx
+- [ ] src/components/custom/exams/FFCS/components/guided/AutoBlockingCard.tsx
+- [ ] src/components/custom/exams/FFCS/components/guided/AutoSocialCard.tsx
+- [ ] src/components/custom/exams/FFCS/components/guided/AutoTimetableViewCard.tsx
+- [ ] src/components/custom/exams/FFCS/components/guided/AutoTimingsCard.tsx
+- [ ] src/components/custom/exams/FFCS/components/guided/MobilePreflightCard.tsx
+- [ ] src/components/custom/exams/FFCS/components/guided/SetupModeCard.tsx
+- [ ] src/components/custom/exams/FFCS/components/guided/SetupStrategyCard.tsx
+- [ ] src/components/custom/exams/FFCS/components/modals/FFCSGeneratorRunSummaryModal.tsx
+- [ ] src/components/custom/exams/FFCS/components/modals/FFCSGeneratorViewModeModal.tsx
+- [ ] src/components/custom/exams/FFCS/components/modals/FFCSLayoutModeModal.tsx
+- [ ] src/components/custom/exams/FFCS/components/modals/FFCSSettingsModal.tsx
+- [ ] src/components/custom/exams/FFCS/components/modals/FacultyPriorityModal.tsx
+- [ ] src/components/custom/exams/FFCS/components/modals/FacultyScheduleModal.tsx
+- [ ] src/components/custom/exams/FFCS/components/modals/FriendTimetableViewModal.tsx
+- [ ] src/components/custom/exams/FFCS/components/modals/PasteRegisteredCoursesModal.tsx
+- [ ] src/components/custom/exams/FFCS/components/modals/SocialMatrixModal.tsx
+- [ ] src/components/custom/exams/FFCS/components/modals/TargetCoursesModal.tsx
+- [ ] src/components/custom/exams/FFCS/features/tour/Tip.tsx
+- [ ] src/components/custom/exams/FFCS/features/tour/TourProvider.tsx
+- [ ] src/components/custom/exams/FFCS/features/tour/TourSpotlight.tsx
+- [ ] src/components/custom/exams/FFCS/features/tour/tourContext.ts
+- [ ] src/components/custom/exams/FFCS/features/tour/tourSteps.ts
+- [ ] src/components/custom/exams/FFCS/features/tour/useTips.ts
+- [ ] src/components/custom/exams/FFCS/generatorOptions.ts
+- [ ] src/components/custom/exams/FFCS/hooks/useCatalogCurriculum.ts
+- [ ] src/components/custom/exams/FFCS/hooks/useCatalogGrades.ts
+- [ ] src/components/custom/exams/FFCS/hooks/useFacultyReviewSheet.ts
+- [ ] src/components/custom/exams/FFCS/hooks/useGenerationRun.ts
+- [ ] src/components/custom/exams/FFCS/logic/dropPolicy.ts
+- [ ] src/components/custom/exams/FFCS/logic/facultyGroups.ts
+- [ ] src/components/custom/exams/FFCS/logic/generator.ts
+- [ ] src/components/custom/exams/FFCS/logic/groupSelectedCourses.ts
+- [ ] src/components/custom/exams/FFCS/utils.ts
+- [ ] src/components/custom/exams/FFCS/workers/generator.worker.ts
+- [ ] src/components/custom/exams/FFCS/workers/pdf.worker.ts
+- [ ] src/components/custom/exams/FFCSGuideModal.tsx
+- [ ] src/components/custom/exams/FFCSTimetableTab.tsx
+- [ ] src/components/custom/exams/FacultyInfoTab.tsx
+- [ ] src/components/custom/exams/FacultyScheduleTab.tsx
+- [ ] src/components/custom/exams/FreeClassroomsTab.tsx
+- [ ] src/components/custom/exams/GenericApiView.tsx
+- [ ] src/components/custom/exams/GradesModal.tsx
+- [ ] src/components/custom/exams/MarksHistoryTab.tsx
+- [ ] src/components/custom/exams/MarksPredictorTab.tsx
+- [ ] src/components/custom/exams/MoodleDisplay.tsx
+- [ ] src/components/custom/exams/ScheduleDisplay.tsx
+- [ ] src/components/custom/exams/SimplifiedAcademicsPage.tsx
+- [ ] src/components/custom/exams/VitolDisplay.tsx
+- [ ] src/components/custom/exams/courseDetailHelpers.ts
+- [ ] src/components/custom/exams/courseHelpers.tsx
+- [ ] src/components/custom/exams/marks-predictor/AddAssessmentSheet.tsx
+- [ ] src/components/custom/exams/marks-predictor/AddCustomCourseModal.tsx
+- [ ] src/components/custom/exams/marks-predictor/AssessmentMarkSheet.tsx
+- [ ] src/components/custom/exams/marks-predictor/AssessmentRegimenEditor.tsx
+- [ ] src/components/custom/exams/marks-predictor/ClassCurveEditor.tsx
+- [ ] src/components/custom/exams/marks-predictor/CoursePredictorPage.tsx
+- [ ] src/components/custom/exams/marks-predictor/GradeLadderChart.tsx
+- [ ] src/components/custom/exams/marks-predictor/TargetGradeSolver.tsx
+- [ ] src/components/custom/exams/marks-predictor/tour/TourProvider.tsx
+- [ ] src/components/custom/exams/marks-predictor/tour/TourSpotlight.tsx
+- [ ] src/components/custom/exams/marks-predictor/tour/tourContext.ts
+- [ ] src/components/custom/exams/marks-predictor/tour/tourSteps.ts
+- [ ] src/components/custom/exams/marks-predictor/useCoursePredictionScope.ts
+- [ ] src/components/custom/feedback/BugRecordingFloatingBar.tsx
+- [ ] src/components/custom/feedback/FeedbackModal.tsx
+- [ ] src/components/custom/feedback/FeedbackReportPage.tsx
+- [ ] src/components/custom/footer/LocalStorageSubpage.tsx
+- [ ] src/components/custom/friendfinder/FriendFinderLoginModal.tsx
+- [ ] src/components/custom/friendfinder/FriendFinderTab.tsx
+- [ ] src/components/custom/header/AboutBody.tsx
+- [ ] src/components/custom/header/AboutSection.tsx
+- [ ] src/components/custom/header/AppLibraryPortal.tsx
+- [ ] src/components/custom/header/ChangelogModal.tsx
+- [ ] src/components/custom/header/HallOfFameModal.tsx
+- [ ] src/components/custom/header/Links.tsx
+- [ ] src/components/custom/header/NavigationTabs.tsx
+- [ ] src/components/custom/header/ProfileModals.tsx
+- [ ] src/components/custom/header/ProfilePage.tsx
+- [ ] src/components/custom/header/PushNotificationManager.tsx
+- [ ] src/components/custom/header/TeamModal.tsx
+- [ ] src/components/custom/hostel/CabShare/CabShareAuthModal.tsx
+- [ ] src/components/custom/hostel/CabShare/CabShareMatchCard.tsx
+- [ ] src/components/custom/hostel/CabShare/CabShareTab.tsx
+- [ ] src/components/custom/hostel/CabShare/CreateTrip.tsx
+- [ ] src/components/custom/hostel/CabShare/MyTrips.tsx
+- [ ] src/components/custom/hostel/CabShare/SearchTrips.tsx
+- [ ] src/components/custom/hostel/CabShare/ShareTripButton.tsx
+- [ ] src/components/custom/hostel/CabShare/cabShareFallback.ts
+- [ ] src/components/custom/hostel/HostelCounsellingView.tsx
+- [ ] src/components/custom/hostel/HostelOverview.tsx
+- [ ] src/components/custom/hostel/LaundryDisplay.tsx
+- [ ] src/components/custom/hostel/LeaveDisplay.tsx
+- [ ] src/components/custom/hostel/MessDisplay.tsx
+- [ ] src/components/custom/landing/LandingSections.tsx
+- [ ] src/components/custom/libraries/BookCover.tsx
+- [ ] src/components/custom/libraries/CatalogSearch.tsx
+- [ ] src/components/custom/libraries/DuesView.tsx
+- [ ] src/components/custom/libraries/LibrariesTab.tsx
+- [ ] src/components/custom/mobile/SimplifiedMobileHome.tsx
+- [ ] src/components/custom/more/MoreSubTabs.tsx
+- [ ] src/components/custom/more/MoreTab.tsx
+- [ ] src/components/custom/onboarding/AmazeOnboardingFlow.tsx
+- [ ] src/components/custom/onboarding/OnboardingIntro.tsx
+- [ ] src/components/custom/palette/EventSearchPalette.tsx
+- [ ] src/components/custom/palette/LibrarySearchPalette.tsx
+- [ ] src/components/custom/profile/AcknowledgementCards.tsx
+- [ ] src/components/custom/profile/FeedbackStatusModal.tsx
+- [ ] src/components/custom/profile/ProfileStatusCards.tsx
+- [ ] src/components/custom/profile/ProfileTab.tsx
+- [ ] src/components/custom/qbank/ExamQuestion.tsx
+- [ ] src/components/custom/qbank/Latex.tsx
+- [ ] src/components/custom/qbank/QBankSubpage.tsx
+- [ ] src/components/custom/qbank/UploadPaperModal.tsx
+- [ ] src/components/custom/qbank/useQBankCourses.ts
+- [ ] src/components/custom/reports/StudentReportPage.tsx
+- [ ] src/components/custom/shared/BackButton.tsx
+- [ ] src/components/custom/shared/Badge.tsx
+- [ ] src/components/custom/shared/BottomSheet.tsx
+- [ ] src/components/custom/shared/Button.tsx
+- [ ] src/components/custom/shared/Card.tsx
+- [ ] src/components/custom/shared/CircularProgress.tsx
+- [ ] src/components/custom/shared/CommandPalette.tsx
+- [ ] src/components/custom/shared/ConnectionBanner.tsx
+- [ ] src/components/custom/shared/EmptyState.tsx
+- [ ] src/components/custom/shared/ErrorDisplay.tsx
+- [ ] src/components/custom/shared/ExpandableSection.tsx
+- [ ] src/components/custom/shared/FetchButton.tsx
+- [ ] src/components/custom/shared/InfoRow.tsx
+- [ ] src/components/custom/shared/Input.tsx
+- [ ] src/components/custom/shared/LastSynced.tsx
+- [ ] src/components/custom/shared/LoadingSpinner.tsx
+- [ ] src/components/custom/shared/Modal.tsx
+- [ ] src/components/custom/shared/PageHeader.tsx
+- [ ] src/components/custom/shared/PwaInstallCard.tsx
+- [ ] src/components/custom/shared/SearchInput.tsx
+- [ ] src/components/custom/shared/SectionHeader.tsx
+- [ ] src/components/custom/shared/SubTabStrip.tsx
+- [ ] src/components/custom/shared/SubpageLayout.tsx
+- [ ] src/components/custom/shared/SyncModeEditor.tsx
+- [ ] src/components/custom/shared/SyncModePicker.tsx
+- [ ] src/components/custom/shared/SyncNotification.tsx
+- [ ] src/components/custom/shared/TabHelpFooter.tsx
+- [ ] src/components/custom/shared/ViewModeToggle.tsx
+- [ ] src/components/custom/shared/index.ts
+- [ ] src/components/custom/shared/primitives/Controls.tsx
+- [ ] src/components/custom/shared/primitives/Feedback.tsx
+- [ ] src/components/custom/shared/primitives/InsightCarousel.tsx
+- [ ] src/components/custom/shared/primitives/ListSkeleton.tsx
+- [ ] src/components/custom/shared/primitives/OptionPicker.tsx
+- [ ] src/components/custom/shared/primitives/PageShell.tsx
+- [ ] src/components/custom/shared/primitives/PageSkeleton.tsx
+- [ ] src/components/custom/shared/primitives/SelectField.tsx
+- [ ] src/components/custom/shared/primitives/SettingRow.tsx
+- [ ] src/components/custom/shared/primitives/Subpage.tsx
+- [ ] src/components/custom/shared/primitives/Surfaces.tsx
+- [ ] src/components/custom/shared/primitives/Switch.tsx
+- [ ] src/components/custom/shared/primitives/TitleBlock.tsx
+- [ ] src/components/custom/shared/primitives/ToggleRow.tsx
+- [ ] src/components/custom/shared/primitives/index.ts
+- [ ] src/components/custom/shared/primitives/useCarousel.ts
+- [ ] src/components/custom/shared/primitives/useHorizontalSwipe.ts
+- [ ] src/components/custom/shared/useIsMobile.ts
+- [ ] src/components/custom/shared/useSyncTrigger.ts
+- [ ] src/components/custom/social/AddPeerSheet.tsx
+- [ ] src/components/custom/social/ClassesTogetherSubpage.tsx
+- [ ] src/components/custom/social/CommonFreeGridSubpage.tsx
+- [ ] src/components/custom/social/CommonFreeSlotsModal.tsx
+- [ ] src/components/custom/social/CommonFreeTimetableGrid.tsx
+- [ ] src/components/custom/social/FreeNowSubpage.tsx
+- [ ] src/components/custom/social/GroupMembersSheet.tsx
+- [ ] src/components/custom/social/GroupsSubpage.tsx
+- [ ] src/components/custom/social/PairsSubpage.tsx
+- [ ] src/components/custom/social/PeerTimetableSheet.tsx
+- [ ] src/components/custom/social/PeopleSubpage.tsx
+- [ ] src/components/custom/social/ScanHandleSheet.tsx
+- [ ] src/components/custom/social/ShareHandleSheet.tsx
+- [ ] src/components/custom/social/SocialTab.tsx
+- [ ] src/components/custom/social/rows.tsx
+- [ ] src/components/custom/tasks/FocusPage.tsx
+- [ ] src/components/custom/tasks/KanbanView.tsx
+- [ ] src/components/custom/tasks/MoodleImportModal.tsx
+- [ ] src/components/custom/tasks/PomodoroTimer.tsx
+- [ ] src/components/custom/tasks/TaskBadge.tsx
+- [ ] src/components/custom/tasks/TaskCard.tsx
+- [ ] src/components/custom/tasks/TaskEditSheet.tsx
+- [ ] src/components/custom/tasks/TaskListView.tsx
+- [ ] src/components/custom/tasks/TaskWeekView.tsx
+- [ ] src/components/custom/tasks/TasksTab.tsx
+- [ ] src/components/custom/tasks/useTaskReminderScheduler.ts
+- [ ] src/components/custom/timetable/ClassicHorizontalTimetableGrid.tsx
+- [ ] src/components/custom/timetable/HorizontalTimetableGrid.tsx
+- [ ] src/components/custom/timetable/ModernHorizontalTimetableGrid.tsx
+- [ ] src/components/custom/timetable/SlotDetailSheet.tsx
+- [ ] src/components/custom/timetable/TimetableGridShell.tsx
+- [ ] src/components/custom/timetable/TimetableView.tsx
+- [ ] src/components/custom/timetable/VerticalTimetableGrid.tsx
+- [ ] src/components/custom/timetable/index.ts
+- [ ] src/components/custom/timetable/periodSkeleton.ts
+- [ ] src/components/custom/timetable/useTimetableViewMode.ts
+- [ ] src/components/custom/tools/ToolsHub.tsx
+- [ ] src/components/custom/tools/ToolsTab.tsx
+- [ ] src/components/custom/tools/scanner/PaperDetailSheet.tsx
+- [ ] src/components/custom/tools/scanner/PaperScannerPage.tsx
+- [ ] src/components/custom/tools/scanner/ScannerCamera.tsx
+- [ ] src/components/custom/tools/scanner/ScannerEditor.tsx
+- [ ] src/components/custom/tools/scanner/ScannerSettingsSheet.tsx
+
+## 5 — src/lib
+
+- [ ] src/lib/a11y.ts
+- [ ] src/lib/activity-tree.ts
+- [ ] src/lib/analytics.ts
+- [ ] src/lib/analyzeCalendar.ts
+- [ ] src/lib/attendancePredictor.ts
+- [ ] src/lib/attendanceRemainingClasses.ts
+- [ ] src/lib/attendanceSummary.ts
+- [ ] src/lib/attendanceTimetable.ts
+- [ ] src/lib/bodyScrollLock.ts
+- [ ] src/lib/buildBands.ts
+- [ ] src/lib/calendarDay.ts
+- [ ] src/lib/campusSchema.ts
+- [ ] src/lib/chunkRecovery.ts
+- [ ] src/lib/courseMaterials.ts
+- [ ] src/lib/credentialVault.ts
+- [ ] src/lib/csp.ts
+- [ ] src/lib/curriculum.ts
+- [ ] src/lib/error-utils.ts
+- [ ] src/lib/eventhub.ts
+- [ ] src/lib/examSchedule.ts
+- [ ] src/lib/examSeries.ts
+- [ ] src/lib/exportClashReport.ts
+- [ ] src/lib/exportIcal.ts
+- [ ] src/lib/exportTimetable.ts
+- [ ] src/lib/exportTimetableHtml.ts
+- [ ] src/lib/fetch-utils.ts
+- [ ] src/lib/ffcsCatalogFilters.ts
+- [ ] src/lib/ffcsClashPairs.ts
+- [ ] src/lib/ffcsClassmates.ts
+- [ ] src/lib/ffcsConstants.ts
+- [ ] src/lib/ffcsCourseGrouping.ts
+- [ ] src/lib/ffcsFacultyPriority.ts
+- [ ] src/lib/ffcsFacultyRanking.ts
+- [ ] src/lib/ffcsGenerate.ts
+- [ ] src/lib/ffcsGeneratorSessionPrefs.ts
+- [ ] src/lib/ffcsGeneratorTargets.ts
+- [ ] src/lib/ffcsNavigation.ts
+- [ ] src/lib/ffcsOfferingFilters.ts
+- [ ] src/lib/ffcsPlannerGrades.ts
+- [ ] src/lib/ffcsRanking.ts
+- [ ] src/lib/ffcsReports.ts
+- [ ] src/lib/ffcsResultFilters.ts
+- [ ] src/lib/ffcsSettings.ts
+- [ ] src/lib/ffcsShare.ts
+- [ ] src/lib/ffcsShareInput.ts
+- [ ] src/lib/ffcsTypes.ts
+- [ ] src/lib/ffcsWalk.ts
+- [ ] src/lib/forgetDevice.ts
+- [ ] src/lib/formDossier.ts
+- [ ] src/lib/formatSemesterName.ts
+- [ ] src/lib/freeClassrooms.ts
+- [ ] src/lib/fullscreen.ts
+- [ ] src/lib/githubChangelog.ts
+- [ ] src/lib/gradeBoundaries.ts
+- [ ] src/lib/gradeHistory.ts
+- [ ] src/lib/gradeInsights.ts
+- [ ] src/lib/gradesEffective.ts
+- [ ] src/lib/historyStack.ts
+- [ ] src/lib/imageDownload.ts
+- [ ] src/lib/introSong/IntroSong.tsx
+- [ ] src/lib/introSong/gate.ts
+- [ ] src/lib/labFatWeek.ts
+- [ ] src/lib/libraries/demo.ts
+- [ ] src/lib/libraries/koha.ts
+- [ ] src/lib/libraries/ui.ts
+- [ ] src/lib/marksPredictor.ts
+- [ ] src/lib/marksPredictorStorage.ts
+- [ ] src/lib/marksSync.ts
+- [ ] src/lib/milestoneDates.ts
+- [ ] src/lib/moodleImport.ts
+- [ ] src/lib/navigation/registry.tsx
+- [ ] src/lib/officialOd.ts
+- [ ] src/lib/overlayStack.ts
+- [ ] src/lib/pastDataSync.ts
+- [ ] src/lib/payments.ts
+- [ ] src/lib/portraitDossier.ts
+- [ ] src/lib/posthog.ts
+- [ ] src/lib/predictorGpa.ts
+- [ ] src/lib/pwaInstall.ts
+- [ ] src/lib/roomAvailability.ts
+- [ ] src/lib/roomMerge.ts
+- [ ] src/lib/safeStorage.ts
+- [ ] src/lib/scanner/examClassifier.ts
+- [ ] src/lib/scanner/imageOps.ts
+- [ ] src/lib/scanner/nn/features.ts
+- [ ] src/lib/scanner/nn/mlp.ts
+- [ ] src/lib/scanner/nn/model.ts
+- [ ] src/lib/scanner/ocr.ts
+- [ ] src/lib/scanner/pdf.ts
+- [ ] src/lib/scanner/pipeline.ts
+- [ ] src/lib/scanner/rasterIO.ts
+- [ ] src/lib/scanner/settings.ts
+- [ ] src/lib/scanner/store.ts
+- [ ] src/lib/scanner/types.ts
+- [ ] src/lib/scanner/upload.ts
+- [ ] src/lib/sectionHome.ts
+- [ ] src/lib/serverLogger.ts
+- [ ] src/lib/settingsNav.ts
+- [ ] src/lib/settingsVisibility.ts
+- [ ] src/lib/shortcuts.ts
+- [ ] src/lib/signInReturn.ts
+- [ ] src/lib/slots.ts
+- [ ] src/lib/social/client.ts
+- [ ] src/lib/social/handle.ts
+- [ ] src/lib/social/identity.ts
+- [ ] src/lib/social/schedule.ts
+- [ ] src/lib/social/sharedClasses.ts
+- [ ] src/lib/social/storage.ts
+- [ ] src/lib/social/types.ts
+- [ ] src/lib/social/usePeerTimetables.ts
+- [ ] src/lib/social/useSocialData.ts
+- [ ] src/lib/social/useSocialGroups.ts
+- [ ] src/lib/social/visibility.ts
+- [ ] src/lib/socialUtils.ts
+- [ ] src/lib/storage.ts
+- [ ] src/lib/string-similarity.ts
+- [ ] src/lib/studentReportPdf.ts
+- [ ] src/lib/sync-engine/credential-manager.ts
+- [ ] src/lib/sync-engine/errors.ts
+- [ ] src/lib/sync-engine/index.ts
+- [ ] src/lib/sync-engine/operation-registry.ts
+- [ ] src/lib/sync-engine/operations.ts
+- [ ] src/lib/sync-engine/progress-bus.ts
+- [ ] src/lib/sync-engine/request-layer.ts
+- [ ] src/lib/sync-engine/single-sync.ts
+- [ ] src/lib/sync-engine/state-bridge.ts
+- [ ] src/lib/sync-engine/sync-modes.ts
+- [ ] src/lib/sync-engine/sync-session.ts
+- [ ] src/lib/sync-engine/types.ts
+- [ ] src/lib/sync-engine/useSync.ts
+- [ ] src/lib/syncTimes.ts
+- [ ] src/lib/taskMatch.ts
+- [ ] src/lib/taskReminders.ts
+- [ ] src/lib/tasksStorage.ts
+- [ ] src/lib/timetableMetrics.ts
+- [ ] src/lib/uiTokens.ts
+- [ ] src/lib/unicc-fallback.ts
+- [ ] src/lib/useKeyboardInset.ts
+- [ ] src/lib/useNow.ts
+- [ ] src/lib/useUniccTarget.ts
+- [ ] src/lib/utils.ts
+- [ ] src/lib/vitfacService.ts
+- [ ] src/lib/vtopHealth.ts
+- [ ] src/lib/vtopStatus.ts
+- [ ] src/lib/weekStrip.ts
+- [ ] src/lib/workerBase.ts
+
+## 6 — src/store atoms
+
+- [ ] src/store/authAtoms.ts
+- [ ] src/store/dataAtoms.ts
+- [ ] src/store/index.ts
+- [ ] src/store/settingsAtoms.ts
+- [ ] src/store/socialAtoms.ts
+- [ ] src/store/uiAtoms.ts
+
+## 7 — src/features & src/types
+
+- [ ] src/features/import/importFile.ts
+- [ ] src/features/import/normalizeColumns.ts
+- [ ] src/features/import/parsePastedText.ts
+- [ ] src/features/import/sampleCourseList.ts
+- [ ] src/types/components/props.d.ts
+- [ ] src/types/custom.d.ts
+- [ ] src/types/data/allgrades.d.ts
+- [ ] src/types/data/attendance.d.ts
+- [ ] src/types/data/eventhub.ts
+- [ ] src/types/data/grades.d.ts
+- [ ] src/types/data/hostel.d.ts
+- [ ] src/types/data/login.d.ts
+- [ ] src/types/data/marks.d.ts
+- [ ] src/types/data/od.d.ts
+- [ ] src/types/data/schedule.d.ts
+- [ ] src/types/data/semTT.d.ts
+- [ ] src/types/global.d.ts
+- [ ] src/types/payments.ts
+- [ ] src/types/qbank.types.ts
+- [ ] src/types/tasks.ts
+- [ ] src/types/transport.ts
+
+## 8 — src/data fixtures
+
+- [ ] src/data/buildInfo.json
+- [ ] src/data/campus/ap.json
+- [ ] src/data/campus/bhopal.json
+- [ ] src/data/campus/chennai.json
+- [ ] src/data/changelog.json
+- [ ] src/data/dayscholar_buses.json
+- [ ] src/data/demoData.json
+- [ ] src/data/quickLinks.json
+- [ ] src/data/team.json
+
+## 9 — src/**tests** suites
+
+- [ ] src/**tests**/a11yClickable.test.tsx
+- [ ] src/**tests**/analytics.test.ts
+- [ ] src/**tests**/analyzeCalendar.test.ts
+- [ ] src/**tests**/appHousing.test.tsx
+- [ ] src/**tests**/attendancePredictor.test.ts
+- [ ] src/**tests**/attendanceTimetable.test.ts
+- [ ] src/**tests**/bottomSheetDismiss.test.tsx
+- [ ] src/**tests**/bugRecordingFloatingBar.test.tsx
+- [ ] src/**tests**/busDetailSheet.test.tsx
+- [ ] src/**tests**/calendarDay.test.ts
+- [ ] src/**tests**/calendarVtopMonth.test.ts
+- [ ] src/**tests**/changelogModal.test.tsx
+- [ ] src/**tests**/chunkRecovery.test.ts
+- [ ] src/**tests**/classDetailsModal.test.tsx
+- [ ] src/**tests**/common-free-timetable.test.tsx
+- [ ] src/**tests**/connectionBanner.test.tsx
+- [ ] src/**tests**/courseDetailSharedDayCards.test.tsx
+- [ ] src/**tests**/courseDetailsEnhanced.test.tsx
+- [ ] src/**tests**/coursePredictorScope.test.ts
+- [ ] src/**tests**/courseTypeChips.test.tsx
+- [ ] src/**tests**/credential-manager.test.ts
+- [ ] src/**tests**/credentialVault.test.ts
+- [ ] src/**tests**/csp.test.ts
+- [ ] src/**tests**/curriculum.test.ts
+- [ ] src/**tests**/dashboardScreenHistory.test.tsx
+- [ ] src/**tests**/dayDetailSheet.test.tsx
+- [ ] src/**tests**/desktopCourseDetail.test.tsx
+- [ ] src/**tests**/errorDiagnosticCard.test.tsx
+- [ ] src/**tests**/eventhub-metrics.test.ts
+- [ ] src/**tests**/eventhub-request.test.ts
+- [ ] src/**tests**/examSchedule.test.ts
+- [ ] src/**tests**/examScheduleDisplay.filter.test.tsx
+- [ ] src/**tests**/exportClashReport.test.ts
+- [ ] src/**tests**/exportDossierWidget.render.test.tsx
+- [ ] src/**tests**/exportTimetable.test.ts
+- [ ] src/**tests**/facultyGroups.test.ts
+- [ ] src/**tests**/facultyReviewPaneZIndex.test.tsx
+- [ ] src/**tests**/facultyScheduleModal.render.test.tsx
+- [ ] src/**tests**/facultyScheduleTab.render.test.tsx
+- [ ] src/**tests**/feedbackModal.test.tsx
+- [ ] src/**tests**/feedbackReportPage.test.tsx
+- [ ] src/**tests**/fetch-utils-unicc-guard.test.ts
+- [ ] src/**tests**/fetch-utils.test.ts
+- [ ] src/**tests**/ffcs-embedded.test.ts
+- [ ] src/**tests**/ffcs-generate-stream.test.ts
+- [ ] src/**tests**/ffcs-generate.facultyPriority.test.ts
+- [ ] src/**tests**/ffcs-generate.test.ts
+- [ ] src/**tests**/ffcsCatalogCurriculum.hook.test.tsx
+- [ ] src/**tests**/ffcsCatalogFilters.test.ts
+- [ ] src/**tests**/ffcsCatalogGrades.hook.test.tsx
+- [ ] src/**tests**/ffcsClashPairs.test.ts
+- [ ] src/**tests**/ffcsClassmates.render.test.tsx
+- [ ] src/**tests**/ffcsClassmates.test.ts
+- [ ] src/**tests**/ffcsCodechefCatalogue.test.ts
+- [ ] src/**tests**/ffcsCourseCatalogFilters.render.test.tsx
+- [ ] src/**tests**/ffcsDossierSubpage.render.test.tsx
+- [ ] src/**tests**/ffcsDropPolicy.test.ts
+- [ ] src/**tests**/ffcsFacultyPriority.test.ts
+- [ ] src/**tests**/ffcsFacultyRanking.test.ts
+- [ ] src/**tests**/ffcsFriendsSubpage.render.test.tsx
+- [ ] src/**tests**/ffcsGenerationRun.dropLadder.test.ts
+- [ ] src/**tests**/ffcsGeneratorSubpage.render.test.tsx
+- [ ] src/**tests**/ffcsGeneratorTargets.test.ts
+- [ ] src/**tests**/ffcsGeneratorViewModeModal.test.tsx
+- [ ] src/**tests**/ffcsGuidedSelector.render.test.tsx
+- [ ] src/**tests**/ffcsLayoutModeModal.test.tsx
+- [ ] src/**tests**/ffcsPageView.render.test.tsx
+- [ ] src/**tests**/ffcsPlannerGrades.test.ts
+- [ ] src/**tests**/ffcsRanking.test.ts
+- [ ] src/**tests**/ffcsReports.test.ts
+- [ ] src/**tests**/ffcsResultFilters.test.ts
+- [ ] src/**tests**/ffcsSettings.test.ts
+- [ ] src/**tests**/ffcsSettingsModal.test.tsx
+- [ ] src/**tests**/ffcsShare.test.ts
+- [ ] src/**tests**/ffcsShareInput.test.ts
+- [ ] src/**tests**/ffcsShareView.render.test.tsx
+- [ ] src/**tests**/ffcsSlotFacultySwap.test.tsx
+- [ ] src/**tests**/ffcsTab.render.test.tsx
+- [ ] src/**tests**/ffcsTour.test.tsx
+- [ ] src/**tests**/ffcsUnlimitedCapWiring.test.tsx
+- [ ] src/**tests**/forgetDevice.test.ts
+- [ ] src/**tests**/formDossier.test.ts
+- [ ] src/**tests**/freeClassrooms.test.ts
+- [ ] src/**tests**/freeClassroomsTab.switch.test.tsx
+- [ ] src/**tests**/friendFinderLoginModal.test.tsx
+- [ ] src/**tests**/friendFinderRouting.test.tsx
+- [ ] src/**tests**/friendTimetableCourseList.test.tsx
+- [ ] src/**tests**/generatorTargetCoursesWidget.test.tsx
+- [ ] src/**tests**/gradeBoundaries.test.ts
+- [ ] src/**tests**/gradeHistory.test.ts
+- [ ] src/**tests**/gradeInsights.render.test.tsx
+- [ ] src/**tests**/gradeInsights.test.ts
+- [ ] src/**tests**/gradeRegulations.test.ts
+- [ ] src/**tests**/gradesEffective.test.ts
+- [ ] src/**tests**/helpers/localStorage.ts
+- [ ] src/**tests**/historyStack.test.ts
+- [ ] src/**tests**/homeEntryController.test.tsx
+- [ ] src/**tests**/imageDownload.test.ts
+- [ ] src/**tests**/importFile.test.ts
+- [ ] src/**tests**/insightCarousel.test.tsx
+- [ ] src/**tests**/intro-song-hydration.test.tsx
+- [ ] src/**tests**/intro-song.test.ts
+- [ ] src/**tests**/labFatWeek.test.ts
+- [ ] src/**tests**/latex.render.test.tsx
+- [ ] src/**tests**/libraries.test.ts
+- [ ] src/**tests**/localStorageSubpage.test.tsx
+- [ ] src/**tests**/manualClassCurve.test.tsx
+- [ ] src/**tests**/marksPredictor.test.ts
+- [ ] src/**tests**/marksPredictorStorage.test.ts
+- [ ] src/**tests**/marksStatsOp.test.ts
+- [ ] src/**tests**/marksSync.test.ts
+- [ ] src/**tests**/milestoneDates.test.ts
+- [ ] src/**tests**/mobileGlobalCss.test.ts
+- [ ] src/**tests**/mobileNavStacking.test.ts
+- [ ] src/**tests**/onboardingDualPane.render.test.tsx
+- [ ] src/**tests**/onboardingIntroAuthFailure.test.tsx
+- [ ] src/**tests**/optionPicker.test.tsx
+- [ ] src/**tests**/overlayStack.test.tsx
+- [ ] src/**tests**/page-shell-children.test.ts
+- [ ] src/**tests**/pageSkeleton.test.tsx
+- [ ] src/**tests**/paperScannerPage.render.test.tsx
+- [ ] src/**tests**/parsePastedText.test.ts
+- [ ] src/**tests**/pasteRegisteredCoursesModal.test.tsx
+- [ ] src/**tests**/payments.test.ts
+- [ ] src/**tests**/pdfGenerationBadge.render.test.tsx
+- [ ] src/**tests**/portraitDossier.test.ts
+- [ ] src/**tests**/posthog.test.ts
+- [ ] src/**tests**/predictorGates.test.tsx
+- [ ] src/**tests**/predictorGpa.test.ts
+- [ ] src/**tests**/predictorTour.test.tsx
+- [ ] src/**tests**/privacyMode.test.tsx
+- [ ] src/**tests**/profilePage.navigation.test.tsx
+- [ ] src/**tests**/readBootstrapSnapshot.test.ts
+- [ ] src/**tests**/roomMerge.test.ts
+- [ ] src/**tests**/sampleCourseList.test.ts
+- [ ] src/**tests**/scannerExamClassifier.test.ts
+- [ ] src/**tests**/scannerImageOps.test.ts
+- [ ] src/**tests**/scannerNn.test.ts
+- [ ] src/**tests**/scannerOcr.test.ts
+- [ ] src/**tests**/scannerPdf.test.ts
+- [ ] src/**tests**/scannerPipeline.test.ts
+- [ ] src/**tests**/scannerRasterIo.test.ts
+- [ ] src/**tests**/scannerSettings.test.ts
+- [ ] src/**tests**/scannerStore.test.ts
+- [ ] src/**tests**/scannerUpload.test.ts
+- [ ] src/**tests**/sectionHome.test.ts
+- [ ] src/**tests**/selectField.test.tsx
+- [ ] src/**tests**/serverLogger.test.ts
+- [ ] src/**tests**/settingsAtoms.test.ts
+- [ ] src/**tests**/settingsNav.test.ts
+- [ ] src/**tests**/settingsVisibility.test.ts
+- [ ] src/**tests**/shortcuts.test.ts
+- [ ] src/**tests**/signInReturn.test.ts
+- [ ] src/**tests**/simplifiedMobileHome.desktop.test.tsx
+- [ ] src/**tests**/simplifiedMobileHome.labFat.test.tsx
+- [ ] src/**tests**/simplifiedMobileHome.weekStrip.test.tsx
+- [ ] src/**tests**/single-sync.test.ts
+- [ ] src/**tests**/slots.test.ts
+- [ ] src/**tests**/social-classes-and-invites.test.ts
+- [ ] src/**tests**/social-client.test.ts
+- [ ] src/**tests**/social-full-visibility.test.ts
+- [ ] src/**tests**/social-grid.test.ts
+- [ ] src/**tests**/social-groups-hook.test.tsx
+- [ ] src/**tests**/social-groups.test.ts
+- [ ] src/**tests**/social-handle.test.ts
+- [ ] src/**tests**/social-persistence.test.tsx
+- [ ] src/**tests**/social-publish.test.ts
+- [ ] src/**tests**/social-scan-handle.test.ts
+- [ ] src/**tests**/social-schedule.test.ts
+- [ ] src/**tests**/social-sync-button.test.ts
+- [ ] src/**tests**/social-sync-op.test.ts
+- [ ] src/**tests**/social-sync-reliability.test.ts
+- [ ] src/**tests**/social.test.ts
+- [ ] src/**tests**/sync-engine-autologin.test.ts
+- [ ] src/**tests**/sync-modes.test.ts
+- [ ] src/**tests**/sync-session.test.ts
+- [ ] src/**tests**/syncNotificationRedesign.test.tsx
+- [ ] src/**tests**/syncTimes.test.ts
+- [ ] src/**tests**/targetCourseLockCard.curriculumBadge.test.tsx
+- [ ] src/**tests**/targetCourseLocker.rank.test.tsx
+- [ ] src/**tests**/targetCourseLocker.scrollArea.test.tsx
+- [ ] src/**tests**/tasks.test.ts
+- [ ] src/**tests**/tasks_scheduling_moodle.test.ts
+- [ ] src/**tests**/timetable-horizontal-law.test.tsx
+- [ ] src/**tests**/timetable-metrics.test.ts
+- [ ] src/**tests**/timetable-vertical-render.test.tsx
+- [ ] src/**tests**/timetable-vertical.test.ts
+- [ ] src/**tests**/timetableDensity.test.ts
+- [ ] src/**tests**/timetableGridCourseReference.test.tsx
+- [ ] src/**tests**/tipDeck.render.test.tsx
+- [ ] src/**tests**/uiTokens-layout.test.ts
+- [ ] src/**tests**/unicc-fallback-callsite.test.ts
+- [ ] src/**tests**/unicc-fallback.test.ts
+- [ ] src/**tests**/unicc-target.test.ts
+- [ ] src/**tests**/universalPaste.test.ts
+- [ ] src/**tests**/useAttendanceState.test.tsx
+- [ ] src/**tests**/useHorizontalSwipe.test.tsx
+- [ ] src/**tests**/useNow.test.ts
+- [ ] src/**tests**/utils.test.ts
+- [ ] src/**tests**/vitfacService.test.ts
+- [ ] src/**tests**/vtopPaste.test.ts
+- [ ] src/**tests**/weekStrip.test.ts
+- [ ] src/**tests**/worker-artifact.test.ts
+- [ ] src/**tests**/workerBase.test.ts
+- [ ] src/**tests**/zinc-palette-binding.test.ts
+
+## 10 — scripts/ tooling
+
+- [ ] scripts/build-scanner-dataset.mjs
+- [ ] scripts/compress-hero-artwork.mjs
+- [ ] scripts/convert-codechef-catalogue.mjs
+- [ ] scripts/fetch-vit-faculty.mjs
+- [ ] scripts/generate-build-info.js
+- [ ] scripts/prune-sw-precache.js
+- [ ] scripts/scanner-nn-dataset.jsonl
+- [ ] scripts/train-scanner-nn.mjs
+
+## 13 — Feature ↔ docs coverage (folder-level)
+
+Tick when the folder exists with the 8-file skeleton from `05-work-packages.md`:
+
+- [ ] `attendance/` — WP-06
+- [ ] `academics/` — WP-06
+- [ ] `marks-predictor/` — WP-06
+- [ ] `free-classrooms/` — WP-06
+- [ ] `marks-and-cohort/` — WP-06
+- [ ] `timetable-ui/` — WP-06/07
+- [ ] `ffcs-planner/` — WP-07
+- [ ] `ffcs-friends/` — WP-07
+- [ ] `social/` — WP-08
+- [ ] `friend-finder/` — WP-08
+- [ ] `hostel/` — WP-08
+- [ ] `libraries/` — WP-08
+- [ ] `payments/` — WP-08
+- [ ] `events-and-clubs/` — WP-08
+- [ ] `cab-share/` — WP-08
+- [ ] `tasks-and-pomodoro/` — WP-08
+- [ ] `qbank/` — WP-09
+- [ ] `paper-scanner/` — WP-09
+- [ ] `student-report/` — WP-09
+- [ ] `settings-and-profile/` — WP-09
+- [ ] `notifications-and-push/` — WP-09
+- [ ] `feedback-and-support/` — WP-09
+- [ ] `changelog-and-about/` — WP-09
+- [ ] `about-and-licensing/` — WP-09
+- [ ] `onboarding/` — WP-09
+- [ ] `guest-landing/` — WP-09
+
+## 12 — Docs triage & verification
+
+- [ ] `docs/archive/` created with stub README per archived folder/file set
+- [ ] All Class A docs in `02-existing-docs-triage.md` rewritten in their new homes
+- [ ] `docs/README.md` final index rebuilt
+- [ ] `06-verification.md` V1–V7 all pass; output pasted into WP-12 report
+- [ ] This checklist: zero unticked, or waivers written inline
+
+## 11 — PWA artifacts
+
+- [ ] `src/app/sw.ts` — annotated in `08-pwa-platform/01-service-worker.md`
+- [ ] `public/manifest.json`, `manifest-fire.json`, `ffcs-manifest.json`, `favicon/site.webmanifest` — cataloged & contrasted in `08-pwa-platform/02-manifests.md`
+- [ ] `/~offline` route — documented in runtime + offline strategy pages
+- [ ] `ShareTarget` (`/share`) — documented with manifest `share_target` config
+- [ ] Web Push (VAPID) flow — end-to-end in `08-pwa-platform/04-web-push.md`
+- [ ] `ServiceWorkerRegistrar`, `IconUpdater`, `client-init` scripts — documented
+
+## Regeneration commands (run from repo root)
+
+```powershell
+# source files
+Get-ChildItem src -Recurse -File -Include *.ts,*.tsx,*.css | ForEach-Object { $_.FullName.Replace((Get-Location).Path + '\', '') }
+# tests
+Get-ChildItem src/__tests__ -File | ForEach-Object { $_.Name }
+# root configs
+Get-ChildItem -File | Where-Object { $_.Name -match '\.(json|mjs|yaml|yml|rc|ts)$' -or $_.Name -in 'CNAME','.npmrc' } | ForEach-Object { $_.Name }
+```
+
+Diff against this file; every new file found must be added with a checkbox before merge.

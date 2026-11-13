@@ -43,6 +43,23 @@ function failoverBackupUrl(): string {
   return isUniccHost(BACKUP_API_URL) ? PRIMARY_API_URL : BACKUP_API_URL;
 }
 
+/**
+ * Whether an origin is the loopback interface. A loopback primary can only
+ * exist in local development (`NEXT_PUBLIC_API_URL=http://localhost:3000`),
+ * where the hosted backup cannot answer a cross-origin request from a dev
+ * server — its preflight is rejected before any byte of the body leaves,
+ * which surfaces as `TypeError: Failed to fetch`. Failing over anyway buys
+ * latency and a confusing error that buries the primary's real status.
+ */
+function isLoopbackOrigin(origin: string): boolean {
+  try {
+    const h = new URL(origin).hostname.replace(/^\[|\]$/g, "");
+    return h === "localhost" || h === "127.0.0.1" || h === "::1" || h.endsWith(".localhost");
+  } catch {
+    return false;
+  }
+}
+
 let customUrlFromStorage = "";
 let activeUrlFromStorage = "";
 if (typeof window !== "undefined") {
@@ -432,6 +449,15 @@ export async function fetchWithFailover(input: RequestInfo | URL, init?: Request
           console.error(`Primary API call also failed:`, primaryError);
           return attemptUnicc(urlStr, input, init, prepareInput, primaryError);
         }
+      }
+
+      // Local dev API on loopback: the hosted backup answers no CORS preflight
+      // from the browser, so the hop is guaranteed to fail and to replace the
+      // primary's real error with a network TypeError. Go straight to the
+      // UniCC hop instead, which is also the one that may legitimately answer.
+      if (isPrimaryActive && backup && !isLoopbackOrigin(backup) && isLoopbackOrigin(urlStr)) {
+        console.warn(`Skipping backup failover to ${backup} for the loopback primary ${urlStr}.`);
+        return attemptUnicc(urlStr, input, init, prepareInput, error);
       }
 
       console.warn(`Primary API call failed (${urlStr}). Failing over to backup. Error:`, error);

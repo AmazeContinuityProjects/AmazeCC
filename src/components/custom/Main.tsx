@@ -91,7 +91,7 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
   const setScheduleData = useSetAtom(scheduleDataAtom);
   const sethostelData = useSetAtom(hostelDataAtom);
   const setCalender = useSetAtom(calendarDataAtom);
-  const [, setIsReloading] = useAtom(isReloadingAtom);
+  const [isReloading, setIsReloading] = useAtom(isReloadingAtom);
   const setOfficialOdData = useSetAtom(officialOdDataAtom);
   const [isLoggedIn, setIsLoggedIn] = useAtom(isLoggedInAtom);
   const [authorizedID, setAuthorizedID] = useAtom(authorizedIDAtom);
@@ -148,8 +148,8 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
   const [customModes, setCustomModes] = useState<SyncMode[]>(() => loadCustomModes());
   const [modeEditorOpen, setModeEditorOpen] = useState(false);
   const allModes = useMemo(() => listModes(customModes), [customModes]);
-  const activeModeId = settings.defaultSyncMode ?? "quick";
-  const activeMode = resolveMode(activeModeId, customModes) ?? BUILT_IN_MODES[1];
+  const activeModeId = settings.defaultSyncMode ?? "quarterly";
+  const activeMode = resolveMode(activeModeId, customModes) ?? BUILT_IN_MODES.find((m) => m.id === "quarterly")!;
 
   // Overlays dismiss via system back before screen navigation does
   useOverlayBack("command-palette", commandPaletteOpen, () => setCommandPaletteOpen(false));
@@ -275,6 +275,22 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
   const openCommandPalette = useCallback(() => setCommandPaletteOpen(true), [setCommandPaletteOpen]);
   const openShortcutsHelp = useCallback(() => setIsShortcutsHelpOpen(true), [setIsShortcutsHelpOpen]);
 
+  // Background autosync: when enabled in settings, sweep on a timer — the
+  // engine's cadence gate decides what is actually due (Daily at most once a
+  // day, Weekly once a week, Monthly once a month, Quarterly every 3 months).
+  // Skipped steps cost the server nothing. Paused while a sync is already
+  // running.
+  useEffect(() => {
+    const auto = settings.autoSyncInterval;
+    if (auto === "manual" || auto === "off" || auto === undefined || auto === null) return;
+    const delay = auto === "15m" ? 15 * 60_000 : auto === "30m" ? 30 * 60_000 : 60 * 60_000;
+    const id = window.setInterval(() => {
+      if (isReloading) return;
+      void handleReloadRequest();
+    }, delay);
+    return () => window.clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.autoSyncInterval, handleReloadRequest, isReloading]);
   // Switching modes persists the preference AND re-runs the reload with it,
   // so the sheet switcher is one tap, not two.
   const persistDefaultSyncMode = useCallback(

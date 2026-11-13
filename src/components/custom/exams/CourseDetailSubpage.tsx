@@ -55,6 +55,7 @@ import {
   StickyNote,
   Download,
   FileDown,
+  Paperclip,
   RefreshCw,
   AlertCircle,
   Check,
@@ -73,6 +74,13 @@ import { cn } from "@amazecontinuityprojects/amazeui";
 import { tasksAtom, marksStatsAtom } from "@/store/dataAtoms";
 import { createTask } from "@/lib/tasksStorage";
 import TaskEditSheet from "../tasks/TaskEditSheet";
+import BottomSheet from "../shared/BottomSheet";
+import {
+  fetchViewDetailForComp,
+  readCoursePageViewCache,
+  writeCoursePageViewCache,
+  type CoursePageViewCache,
+} from "@/lib/vtopCourseDetail";
 import { AnimatePresence, m } from "framer-motion";
 import { useOverlayBack } from "@/lib/overlayStack";
 import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
@@ -149,8 +157,6 @@ export default function CourseDetailSubpage({
   /** DOM slot in the back-button row; the predictor page portals its controls here. */
   const courseActionsRef = useRef<HTMLDivElement>(null);
   const [innerTab, setInnerTab] = useState(initialTab || "overview");
-  const [coursePlan, setCoursePlan] = useState<any>(null);
-  const [planLoading, setPlanLoading] = useState(false);
   const [viewDetail, setViewDetail] = useState<any>(null);
   const [viewLoading, setViewLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -192,6 +198,8 @@ export default function CourseDetailSubpage({
   const [downloadingSyllabus, setDownloadingSyllabus] = useState(false);
   const [downloadingCurriculum, setDownloadingCurriculum] = useState(false);
   const [downloadingMaterial, setDownloadingMaterial] = useState<string | null>(null);
+  const [downloadingRef, setDownloadingRef] = useState<string | null>(null);
+  const [materialSheet, setMaterialSheet] = useState<{ entry: any; row: any; scope: "theory" | "lab" } | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
 
@@ -248,8 +256,14 @@ export default function CourseDetailSubpage({
     }
   };
 
-  const handleDownloadMaterial = async (action: "course-plan" | "all-materials" | "general-materials") => {
-    setDownloadingMaterial(action);
+  // Bulk downloads are per component for embedded courses — the theory and
+  // lab classIds carry their own course plan and material buckets on VTOP.
+  const handleDownloadMaterial = async (
+    action: "course-plan" | "all-materials" | "general-materials",
+    scope?: "theory" | "lab",
+  ) => {
+    const scopeKey = scope ? `${scope}:${action}` : action;
+    setDownloadingMaterial(scopeKey);
     setDownloadError(null);
     setDownloadSuccess(null);
     try {
@@ -260,7 +274,12 @@ export default function CourseDetailSubpage({
       }
       if (!c) throw new Error("Please log in to VTOP first.");
       const semSubId = getVtopSemesterSubId();
-      const classId = getVtopClassId();
+      const classId =
+        scope === "lab"
+          ? String(selectedGroup?.lab?.classNbr ?? "")
+          : scope === "theory"
+            ? String(selectedGroup?.theory?.classNbr ?? "")
+            : getVtopClassId();
       if (!classId) throw new Error("No class is selected for this course yet.");
       if (!semSubId) throw new Error("Course materials are only available for specific semesters.");
 
@@ -273,14 +292,16 @@ export default function CourseDetailSubpage({
         semesterSubId: semSubId,
         semSubId,
         classId,
+        filename: scope ? `vtop-${action}-${scope}` : undefined,
       });
 
+      const scopeLabel = scope === "lab" ? "Lab " : scope === "theory" ? "Theory " : "";
       setDownloadSuccess(
         action === "course-plan"
-          ? "Course plan download started"
+          ? `${scopeLabel}course plan download started`
           : action === "general-materials"
-            ? "General materials download started"
-            : "All materials download started",
+            ? `${scopeLabel}general materials download started`
+            : `${scopeLabel}all materials download started`,
       );
       setTimeout(() => setDownloadSuccess(null), 3500);
     } catch (err: any) {
@@ -288,6 +309,46 @@ export default function CourseDetailSubpage({
       setDownloadError(err?.message || "Failed to download course materials.");
     } finally {
       setDownloadingMaterial(null);
+    }
+  };
+
+  // Stream one teacher-uploaded file off the VTOP course page through the API
+  // proxy. `key` identifies the exact row+material so only that row spins.
+  const handleDownloadReferenceMaterial = async (key: string, entry: any, row: any, mat: any) => {
+    setDownloadingRef(key);
+    setDownloadError(null);
+    setDownloadSuccess(null);
+    try {
+      let c = creds;
+      if (!c) {
+        c = await loginToVTOP();
+        setCreds(c);
+      }
+      if (!c) throw new Error("Please log in to VTOP first.");
+
+      const filename = `${selectedCode} ${row?.date ?? ""} ${mat?.label ?? "material"}`
+        .replace(/[\\/:*?"<>|]+/g, "_")
+        .replace(/\s+/g, " ")
+        .trim();
+      await downloadCourseMaterialProxy({
+        cookies: c.cookies,
+        authorizedID: c.authorizedID,
+        csrf: c.csrf,
+        action: "reference-material",
+        semSubId: mat?.semSubId || entry?.data?.semesterSubId || "",
+        classId: mat?.classId || entry?.data?.classId || "",
+        materialId: mat?.materialId,
+        materialDate: mat?.materialDate,
+        filename,
+      });
+
+      setDownloadSuccess(`Downloading ${mat?.label ?? "Reference material"} (${row?.date ?? "VTOP course page"})`);
+      setTimeout(() => setDownloadSuccess(null), 3500);
+    } catch (err: any) {
+      console.error("Reference material download error:", err);
+      setDownloadError(err?.message || "Failed to download the reference material.");
+    } finally {
+      setDownloadingRef(null);
     }
   };
 
@@ -660,8 +721,24 @@ export default function CourseDetailSubpage({
   // Declared after `selectedGroup`/`mainCourse`: the two callbacks read them,
   // and a dependency array evaluated before them throws a TDZ ReferenceError.
   const getVtopSemesterSubId = useCallback(() => {
-    return selectedGroup?.semesterSubId && selectedGroup.semesterSubId !== "Current" ? selectedGroup.semesterSubId : "";
-  }, [selectedGroup?.semesterSubId]);
+    if (selectedGroup?.semesterSubId && selectedGroup.semesterSubId !== "Current") {
+      return selectedGroup.semesterSubId;
+    }
+    // Current semester: the course group is tagged with the synthetic "Current"
+    // marker, so resolve the real VTOP semester id. The attendance sync stores
+    // it on attendanceData.semester; on hydration the atom is still empty, so
+    // fall back to the persisted sync payload, then to the fetched detail page.
+    if (attendanceData?.semester && attendanceData.semester !== "Current") return attendanceData.semester;
+    try {
+      const stored = storage.attendance.get() as any;
+      if (stored?.semester && stored.semester !== "Current") return stored.semester;
+    } catch {}
+    const fromDetail = (viewDetail || [])
+      .map((e: any) => e?.data?.materials?.semesterSubId || e?.data?.semesterSubId)
+      .find(Boolean);
+    return fromDetail || "";
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedGroup?.semesterSubId, attendanceData?.semester, viewDetail]);
 
   const getVtopClassId = useCallback(() => {
     return (
@@ -823,108 +900,78 @@ export default function CourseDetailSubpage({
     });
   };
 
-  const resolveFacultyForComp = async (comp: any) => {
-    // If it already looks like a valid VTOP faculty ID string (e.g. "12345 - NAME" or "12345-NAME")
-    if (comp.faculty && /^\w+\s*-/.test(comp.faculty.trim())) return comp.faculty;
-
+  // The mount effects fire in the same flush as the login effect, so on a cold
+  // start the `creds` state is still null when the auto-fetchers run. Resolve
+  // creds imperatively (same as the download buttons) instead of bailing and
+  // leaving the page empty forever.
+  const ensureCreds = useCallback(async (): Promise<Creds | null> => {
+    if (creds) return creds;
     try {
-      const d = (await api("course-page", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: {
-          cookies: creds?.cookies,
-          authorizedID: creds?.authorizedID,
-          csrf: creds?.csrf,
-          formData: {
-            semesterSubId: selectedGroup?.semesterSubId === "Current" ? "" : selectedGroup?.semesterSubId || "",
-            courseCode: comp.classNbr,
-            slotId: comp.slot,
-          },
-        },
-      })) as any;
-      if (d.success !== false && d.results?.selectOptions?.faculty?.length > 1) {
-        const options = d.results.selectOptions.faculty.slice(1);
-        let selectedOpt = options[0];
-        if (comp.faculty && comp.faculty.trim() !== "") {
-          const match = options.find((opt: any) => opt.text.toLowerCase().includes(comp.faculty.toLowerCase()));
-          if (match) selectedOpt = match;
-        }
-        comp.faculty = selectedOpt.value;
-        return comp.faculty;
-      }
-    } catch (e) {
-      console.error(e);
+      const c = await loginToVTOP();
+      if (c) setCreds(c);
+      return c || null;
+    } catch {
+      return null;
     }
-    return "";
+  }, [creds, loginToVTOP]);
+
+  // The VTOP course-page dropdown resolution + viewDetail retry lives in
+  // `@/lib/vtopCourseDetail` so the sync engine (coursePage op) and this page
+  // share one implementation and one persistent per-semester cache.
+
+  // Cache-only read: pull the course page from the synced cache when it's there,
+  // without hitting VTOP. The page deliberately does NOT auto-fetch — the
+  // reload button does that on demand.
+  const loadCachedCoursePage = (): boolean => {
+    if (!selectedGroup) return false;
+    const semSubId = getVtopSemesterSubId();
+    if (!semSubId) return false;
+    const components: Array<{ comp: any; scope: "theory" | "lab" }> = [];
+    if (selectedGroup.theory) components.push({ comp: selectedGroup.theory, scope: "theory" });
+    if (selectedGroup.lab) components.push({ comp: selectedGroup.lab, scope: "lab" });
+    const cache = readCoursePageViewCache(semSubId);
+    if (!cache) return false;
+    const detailData = components.flatMap(({ comp, scope }) => {
+      const data = (cache as CoursePageViewCache).courses[String(comp.classNbr ?? "")];
+      return data ? [{ scope, type: comp.courseType, data }] : [];
+    });
+    if (detailData.length !== components.length || detailData.length === 0) return false;
+    setViewDetail(detailData);
+    return true;
   };
 
-  const fetchCoursePlan = async () => {
-    if (!selectedGroup || !creds) return;
-    setPlanLoading(true);
-    setError(null);
-    try {
-      const components: Array<{ comp: any; scope: "theory" | "lab" }> = [];
-      if (selectedGroup.theory) components.push({ comp: selectedGroup.theory, scope: "theory" });
-      if (selectedGroup.lab) components.push({ comp: selectedGroup.lab, scope: "lab" });
-      const planData: any[] = [];
-      for (const { comp, scope } of components) {
-        const resolvedFaculty = await resolveFacultyForComp(comp);
-        const d = (await api("course-page", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: {
-            cookies: creds.cookies,
-            authorizedID: creds.authorizedID,
-            csrf: creds.csrf,
-            formData: {
-              semesterSubId: selectedGroup.semesterSubId === "Current" ? "" : selectedGroup.semesterSubId || "",
-              courseCode: comp.classNbr,
-              slotId: comp.slot,
-              faculty: resolvedFaculty,
-            },
-          },
-        })) as any;
-        if (d.success !== false && d.results) planData.push({ scope, type: comp.courseType, data: d.results });
-      }
-      setCoursePlan(planData.length > 0 ? planData : null);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setPlanLoading(false);
-    }
-  };
-
+  // Manual-only VTOP fetch — triggered by the reload button. Always bypasses
+  // both caches so a press really means "go ask VTOP right now".
   const fetchViewDetail = async () => {
-    if (!selectedGroup || !creds) return;
+    if (!selectedGroup) return;
+    const c = await ensureCreds();
+    if (!c) return;
     setViewLoading(true);
     setError(null);
     try {
+      const semSubId = getVtopSemesterSubId();
       const components: Array<{ comp: any; scope: "theory" | "lab" }> = [];
       if (selectedGroup.theory) components.push({ comp: selectedGroup.theory, scope: "theory" });
       if (selectedGroup.lab) components.push({ comp: selectedGroup.lab, scope: "lab" });
-      const detailData: any[] = [];
-      for (const { comp, scope } of components) {
-        const resolvedFaculty = await resolveFacultyForComp(comp);
-        const erpId = resolvedFaculty?.split("-")[0]?.trim() || "";
-        const d = (await api("course-page", {
+
+      const call = (formData: Record<string, unknown>) =>
+        api("course-page", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: {
-            cookies: creds.cookies,
-            authorizedID: creds.authorizedID,
-            csrf: creds.csrf,
-            formData: {
-              viewDetail: "true",
-              semSubId: selectedGroup.semesterSubId === "Current" ? "" : selectedGroup.semesterSubId || "",
-              erpId,
-              classId: comp.classNbr,
-              slotId: comp.slot,
-              faculty: resolvedFaculty,
-            },
-          },
-        })) as any;
-        if (d.success !== false && d.results) detailData.push({ scope, type: comp.courseType, data: d.results });
+          body: { cookies: c.cookies, authorizedID: c.authorizedID, csrf: c.csrf, formData },
+        });
+
+      const detailData: any[] = [];
+      const cacheNow = readCoursePageViewCache(semSubId);
+      const merged: Record<string, unknown> = { ...(cacheNow?.courses ?? {}) };
+      for (const { comp, scope } of components) {
+        const data = await fetchViewDetailForComp(call, semSubId, comp, { fresh: true });
+        if (data) {
+          detailData.push({ scope, type: comp.courseType, data });
+          merged[String(comp.classNbr ?? "")] = data;
+        }
       }
+      if (Object.keys(merged).length > 0) writeCoursePageViewCache(semSubId, merged);
       setViewDetail(detailData.length > 0 ? detailData : null);
     } catch (err: any) {
       setError(err.message);
@@ -975,22 +1022,29 @@ export default function CourseDetailSubpage({
         }
         if (!c) return;
 
-        const semId = selectedGroup.semesterSubId === "Current" ? "" : selectedGroup.semesterSubId || "";
-        const d = (await api("qcm-view", {
+        const semId = getVtopSemesterSubId();
+        const d = (await api("ffcs", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: { cookies: c.cookies, authorizedID: c.authorizedID, csrf: c.csrf, semesterId: semId },
+          body: {
+            cookies: c.cookies,
+            authorizedID: c.authorizedID,
+            csrf: c.csrf,
+            section: "qcm",
+            ...(semId ? { semesterId: semId } : {}),
+          },
         })) as any;
 
-        if (d.success && d.data) {
+        const payload = d?.qcmView?.data ?? d?.qcmView ?? null;
+        if (d?.success && payload) {
           try {
-            storage.qcmData.set(d.data);
+            storage.qcmData.set(payload);
           } catch {}
           const targetCode = codeToMap || selectedCode;
-          const mapped = mapQcmForCourse(d.data, targetCode);
+          const mapped = mapQcmForCourse(payload, targetCode);
           setQcmData(mapped);
         } else {
-          setQcmError(d.error || "No QCM recorded yet for this semester");
+          setQcmError(d?.error || "No QCM recorded yet for this semester");
         }
       } catch (e: any) {
         setQcmError(e.message);
@@ -998,15 +1052,16 @@ export default function CourseDetailSubpage({
         setQcmLoading(false);
       }
     },
-    [selectedGroup, creds, loginToVTOP, selectedCode, mapQcmForCourse],
+    [selectedGroup, creds, loginToVTOP, selectedCode, mapQcmForCourse, getVtopSemesterSubId],
   );
 
   useEffect(() => {
     if (selectedCode) {
-      setCoursePlan(null);
-      setViewDetail(null);
       setQcmError("");
-      fetchCoursePlan();
+      // Course detail is NOT fetched from VTOP on mount — only the cache is
+      // applied. The reload button fetches on demand.
+      setViewDetail(null);
+      loadCachedCoursePage();
 
       // Automatic QCM automapping from storage/cache
       const cachedRaw =
@@ -1469,9 +1524,8 @@ export default function CourseDetailSubpage({
     (id: string) => {
       ovActiveCarousel.reset();
       setInnerTab(id);
-      if (id === "plan" && !coursePlan && !planLoading) fetchCoursePlan();
     },
-    [ovActiveCarousel.reset, setInnerTab, coursePlan, planLoading],
+    [ovActiveCarousel.reset, setInnerTab],
   );
   const ovMarksInsightSlides = useMemo<InsightSlide[]>(
     () =>
@@ -1600,19 +1654,132 @@ export default function CourseDetailSubpage({
   }, [totalWeeklyClassesCount, selectedGroup, theoryAttItem, labAttItem, isEmbedded, qcmTotalRows]);
 
   const coursePlanCarousel = useCarousel(innerTab === "plan" ? coursePlanInsightSlides.length : 0);
-  // Review-tab scope helpers: theory/lab plan + schedule stay separated.
+  // Review-tab scope helpers: theory/lab detail views stay separated.
   const reviewScopes: Array<"theory" | "lab"> = isEmbedded
     ? ["theory", "lab"]
     : [selectedGroup?.lab && !selectedGroup?.theory ? "lab" : "theory"];
-  const planEntriesByScope = (scope: "theory" | "lab") =>
-    (coursePlan || []).filter((cp: any) => (cp.scope || "theory") === scope);
   const detailEntriesByScope = (scope: "theory" | "lab") =>
     (viewDetail || []).filter((vd: any) => (vd.scope || "theory") === scope);
+  // The full VTOP lecture plan ("Course Page View") rows, grouped by scope —
+  // including rows with no uploaded file yet (future sessions), like VTOP
+  // shows them. Rows missing date AND topic AND files are dropped.
+  const planRowsByScope = reviewScopes
+    .map((scope) => ({
+      scope,
+      rows: detailEntriesByScope(scope).flatMap((entry: any) =>
+        (entry?.data?.materials?.rows ?? [])
+          .filter(
+            (r: any) =>
+              String(r?.date ?? "").trim() !== "" ||
+              String(r?.topic ?? "").trim() !== "" ||
+              (Array.isArray(r?.materials) && r.materials.length > 0),
+          )
+          .map((row: any) => ({ entry, row })),
+      ),
+    }))
+    .filter((s) => s.rows.length > 0);
+  const totalUploaded = planRowsByScope.reduce(
+    (n, s) => n + s.rows.reduce((m: number, x: any) => m + (x.row?.materials?.length ?? 0), 0),
+    0,
+  );
   const renderScopeBadge = (scope: "theory" | "lab") => (
     <ToneBadge tone={SCOPE_TONE[scope === "theory" ? "Theory" : "Lab"]}>
       {scope === "theory" ? "Theory" : "Lab"}
     </ToneBadge>
   );
+
+  // Bulk downloads for one component (or the whole course when not embedded).
+  // Each embedded component carries its own classId on VTOP, so the plan and
+  // the material buckets are fetched separately per scope.
+  const renderMaterialGroup = (scope: "theory" | "lab" | undefined, showBadge: boolean) => {
+    const key = (action: string) => (scope ? `${scope}:${action}` : action);
+    const busy = (action: string) => downloadingMaterial === key(action);
+    const disabled = downloadingMaterial !== null;
+    const tag = scope === "lab" ? "Lab" : scope === "theory" ? "Theory" : "";
+    const subFor = (base: string) => (tag ? `${tag} · ${base}` : base);
+    const iconBtn =
+      "inline-flex items-center justify-center w-9 h-9 rounded-xl transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0 border";
+    return (
+      <div key={scope ?? "all"} className="space-y-3">
+        {showBadge && scope && <div className="px-1">{renderScopeBadge(scope)}</div>}
+        <ListShell>
+          <div className={`${LIST_ROW} py-3.5`}>
+            <span
+              className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.amber}`}
+            >
+              <Calendar className="w-5 h-5" />
+            </span>
+            <ListRowText
+              title="Course Plan"
+              subtitle={subFor(`Official lecture plan and topic schedule for ${selectedCode}`)}
+            />
+            <button
+              type="button"
+              onClick={() => handleDownloadMaterial("course-plan", scope)}
+              disabled={disabled}
+              className={`${iconBtn} bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/20`}
+              title={`Download ${tag ? `${tag} ` : ""}course plan Excel`}
+              aria-label={`Download ${tag ? `${tag} ` : ""}course plan Excel`}
+            >
+              {busy("course-plan") ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            </button>
+          </div>
+
+          <div className={`${LIST_ROW} py-3.5`}>
+            <span
+              className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.violet}`}
+            >
+              <FileDown className="w-5 h-5" />
+            </span>
+            <ListRowText
+              title="All Materials"
+              subtitle={subFor("VTOP's bulk archive for this course (empty until faculty bulk-uploads something)")}
+            />
+            <button
+              type="button"
+              onClick={() => handleDownloadMaterial("all-materials", scope)}
+              disabled={disabled}
+              className={`${iconBtn} bg-violet-500/10 hover:bg-violet-500/20 text-violet-600 dark:text-violet-400 border-violet-500/20`}
+              title={`Download ${tag ? `${tag} ` : ""}all course materials ZIP`}
+              aria-label={`Download ${tag ? `${tag} ` : ""}all course materials ZIP`}
+            >
+              {busy("all-materials") ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+            </button>
+          </div>
+
+          <div className={`${LIST_ROW} py-3.5`}>
+            <span
+              className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.emerald}`}
+            >
+              <FileText className="w-5 h-5" />
+            </span>
+            <ListRowText
+              title="General Materials"
+              subtitle={subFor("General/shared materials uploaded for this course (descriptor ZIP)")}
+            />
+            <button
+              type="button"
+              onClick={() => handleDownloadMaterial("general-materials", scope)}
+              disabled={disabled}
+              className={`${iconBtn} bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/20`}
+              title={`Download ${tag ? `${tag} ` : ""}general materials ZIP`}
+              aria-label={`Download ${tag ? `${tag} ` : ""}general materials ZIP`}
+            >
+              {busy("general-materials") ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+            </button>
+          </div>
+        </ListShell>
+      </div>
+    );
+  };
   // Heatmap status colors, shared by the panel and the rectRender override.
   // (0 = no class, 1 = present, 2 = absent, 3 = on duty)
   const HEAT_STATUS_COLORS: Record<number, string> = {
@@ -1973,7 +2140,7 @@ export default function CourseDetailSubpage({
         <TitleBlock
           eyebrow={
             <>
-              Academics &middot;{" "}
+              {innerTab === "vtop" ? "VTOP Course Page" : innerTab === "plan" ? "Course Details" : "Academics"} &middot;{" "}
               {selectedGroup?.semesterSubId && selectedGroup.semesterSubId !== "Current"
                 ? formatSemesterName(selectedGroup.semesterSubId)
                 : "Current Semester"}
@@ -2019,7 +2186,7 @@ export default function CourseDetailSubpage({
             <SectionHeader
               icon={BookOpen}
               title="Course sections"
-              count={isEmbedded && theoryAttItem && labAttItem ? 8 : 6}
+              count={(isEmbedded && theoryAttItem && labAttItem ? 8 : 6) + 1}
             />
             {/* Joined grouped list: single shell, dividers, curves only on outer top/bottom */}
             <ListShell>
@@ -2118,6 +2285,28 @@ export default function CourseDetailSubpage({
                 <span className="flex items-center gap-2 shrink-0">
                   <span className="text-sm font-black font-outfit tracking-tight leading-none text-text-heading truncate max-w-24">
                     {mainCourse?.slot || "—"}
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-zinc-400" />
+                </span>
+              </button>
+              {/* VTOP Course Page — teacher-uploaded files */}
+              <button onClick={() => ovGo("vtop")} className={LIST_ROW}>
+                <span
+                  className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.sky}`}
+                >
+                  <Paperclip className="w-5 h-5" />
+                </span>
+                <ListRowText
+                  title="VTOP Course Page"
+                  subtitle={
+                    totalUploaded > 0
+                      ? `${totalUploaded} file${totalUploaded === 1 ? "" : "s"} uploaded by faculty on VTOP`
+                      : "Files uploaded by faculty on VTOP"
+                  }
+                />
+                <span className="flex items-center gap-2 shrink-0">
+                  <span className="text-base font-black font-outfit tracking-tight leading-none text-sky-600 dark:text-sky-400">
+                    {viewLoading ? "…" : totalUploaded > 0 ? String(totalUploaded) : "—"}
                   </span>
                   <ChevronRight className="w-4 h-4 text-zinc-400" />
                 </span>
@@ -2450,7 +2639,7 @@ export default function CourseDetailSubpage({
       {/* LAB PREDICTOR */}
       {effectiveTab === "lab-predictor" && renderPredictorPage(labAttItem, labData, "Lab")}
 
-      {/* COURSE PLAN - Full details, schedule, faculty & syllabus */}
+      {/* COURSE DETAILS — hero, official documents, faculty, weekly timetable, QCM */}
       {innerTab === "plan" && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6 mt-4">
           {/* 1 ── HERO STATS (2-up StatTile + InsightCarousel) */}
@@ -2544,85 +2733,6 @@ export default function CourseDetailSubpage({
             )}
           </div>
 
-          {/* 2.5 · COURSE MATERIALS DOWNLOAD */}
-          <div className="space-y-4">
-            <SectionHeader icon={FileDown} title="Course Materials" count={3} />
-
-            <ListShell>
-              <div className={`${LIST_ROW} py-3.5`}>
-                <span
-                  className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.amber}`}
-                >
-                  <Calendar className="w-5 h-5" />
-                </span>
-                <ListRowText
-                  title="Course Plan"
-                  subtitle={`Official lecture plan and topic schedule for ${selectedCode}`}
-                />
-                <button
-                  type="button"
-                  onClick={() => handleDownloadMaterial("course-plan")}
-                  disabled={downloadingMaterial !== null}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0"
-                  title="Download course plan Excel"
-                >
-                  {downloadingMaterial === "course-plan" ? (
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Download className="w-3.5 h-3.5" />
-                  )}
-                  <span>{downloadingMaterial === "course-plan" ? "Downloading." : "Course plan"}</span>
-                </button>
-              </div>
-
-              <div className={`${LIST_ROW} py-3.5`}>
-                <span
-                  className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.violet}`}
-                >
-                  <FileDown className="w-5 h-5" />
-                </span>
-                <ListRowText title="All Materials" subtitle="Complete ZIP archive of uploaded reference materials" />
-                <button
-                  type="button"
-                  onClick={() => handleDownloadMaterial("all-materials")}
-                  disabled={downloadingMaterial !== null}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-violet-500/10 hover:bg-violet-500/20 text-violet-600 dark:text-violet-400 border border-violet-500/20 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0"
-                  title="Download all course materials ZIP"
-                >
-                  {downloadingMaterial === "all-materials" ? (
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Download className="w-3.5 h-3.5" />
-                  )}
-                  <span>{downloadingMaterial === "all-materials" ? "Downloading." : "All materials"}</span>
-                </button>
-              </div>
-
-              <div className={`${LIST_ROW} py-3.5`}>
-                <span
-                  className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.emerald}`}
-                >
-                  <FileText className="w-5 h-5" />
-                </span>
-                <ListRowText title="General Materials" subtitle="General/shared materials for the course" />
-                <button
-                  type="button"
-                  onClick={() => handleDownloadMaterial("general-materials")}
-                  disabled={downloadingMaterial !== null}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0"
-                  title="Download general materials ZIP"
-                >
-                  {downloadingMaterial === "general-materials" ? (
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Download className="w-3.5 h-3.5" />
-                  )}
-                  <span>{downloadingMaterial === "general-materials" ? "Downloading." : "General materials"}</span>
-                </button>
-              </div>
-            </ListShell>
-          </div>
-
           {/* 3 ── FACULTY & INSTRUCTION WITH VITFAC REVIEWS & SCHEDULE */}
           <div className="space-y-4">
             <SectionHeader
@@ -2682,76 +2792,9 @@ export default function CourseDetailSubpage({
             renderScopeBadge={renderScopeBadge}
           />
 
-          {/* 5 ── COURSE SYLLABUS & LECTURE PLAN */}
-          <div className="space-y-4">
-            <SectionHeader icon={FileText} title="Course syllabus & lecture plan" />
-
-            {planLoading ? (
-              <ListSkeleton rows={4} />
-            ) : coursePlan && coursePlan.length > 0 ? (
-              <div className="space-y-4">
-                {reviewScopes.map((scope) => {
-                  const entries = planEntriesByScope(scope);
-                  if (entries.length === 0) return null;
-                  const showBadge = reviewScopes.filter((s) => planEntriesByScope(s).length > 0).length > 1;
-                  return (
-                    <div key={scope} className="space-y-3">
-                      {showBadge && <div className="px-1">{renderScopeBadge(scope)}</div>}
-                      {entries.map((cp: any, ci: number) => (
-                        <div key={ci} className="space-y-3">
-                          {cp.data.tables?.map((t: any, ti: number) => (
-                            <ListShell key={ti}>
-                              {t.caption && (
-                                <div className="px-4 py-2.5 bg-surface-secondary/70 dark:bg-zinc-800/60 border-b border-border-muted dark:border-border text-xs font-black font-outfit uppercase tracking-wider text-text-muted">
-                                  {t.caption}
-                                </div>
-                              )}
-                              <div className="overflow-x-auto hide-scrollbar">
-                                <table className="w-full text-sm">
-                                  <thead>
-                                    <tr className="border-b border-border-muted dark:border-border bg-surface-secondary/40 dark:bg-zinc-900/40">
-                                      {t.headers?.map((h: string, hi: number) => (
-                                        <th
-                                          key={hi}
-                                          className="text-left py-2.5 px-4 text-[10px] font-black text-text-muted uppercase tracking-widest whitespace-nowrap"
-                                        >
-                                          {h}
-                                        </th>
-                                      ))}
-                                    </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-border-muted dark:divide-border/60">
-                                    {t.rows?.map((row: any, ri: number) => (
-                                      <tr
-                                        key={ri}
-                                        className="hover:bg-surface-secondary dark:hover:bg-surface-hover/40 transition-colors"
-                                      >
-                                        {(t.headers || []).map((h: string, hi: number) => (
-                                          <td key={hi} className="py-2.5 px-4 text-xs font-medium text-text-secondary">
-                                            {row[h] || "—"}
-                                          </td>
-                                        ))}
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
-                            </ListShell>
-                          ))}
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <EmptyPanel
-                icon={<FileText className="w-7 h-7" />}
-                title="Course plan tables are unavailable or loading"
-                description="VTOP syllabus plan tables for this course are not available at the moment."
-              />
-            )}
-          </div>
+          {/* 5 ── COURSE SYLLABUS & LECTURE PLAN (hidden: the VTOP class-group
+              table carries no student-actionable data; materials live in the
+              section above) */}
 
           {/* 6 ── QUALITY CIRCLE MEETING (QCM) — AUTOMAPPED */}
           <div className="space-y-4">
@@ -2870,6 +2913,148 @@ export default function CourseDetailSubpage({
                 )}
               </ListShell>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* VTOP COURSE PAGE — lecture plan, teacher-uploaded materials & bulk downloads */}
+      {innerTab === "vtop" && (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6 mt-4">
+          {/* 1 ── HERO STATS */}
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+            <StatTile
+              label="Teacher Uploads"
+              value={totalUploaded > 0 ? String(totalUploaded) : "0"}
+              sub={totalUploaded === 1 ? "file on the course page" : "files on the course page"}
+              tone="sky"
+              badge={viewLoading ? "Syncing" : "VTOP"}
+            />
+            <StatTile
+              label="Lecture Plan"
+              value={`${planRowsByScope.reduce((n, s) => n + s.rows.length, 0)} sessions`}
+              sub="Scheduled lecture dates"
+              tone="amber"
+              badge="VTOP"
+            />
+          </div>
+
+          {/* 2 · VTOP COURSE PAGE — PLAN, SESSION MATERIALS & BULK DOWNLOADS */}
+          <div className="space-y-4">
+            <SectionHeader
+              icon={Paperclip}
+              title="VTOP Course Page · Course Plan & Materials"
+              count={totalUploaded > 0 ? totalUploaded : undefined}
+              right={
+                <button
+                  type="button"
+                  onClick={() => fetchViewDetail()}
+                  disabled={viewLoading}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider text-text-secondary dark:text-text-muted border border-border-muted dark:border-border bg-surface-secondary dark:bg-zinc-800 hover:bg-border-muted dark:hover:bg-zinc-700 transition-colors disabled:opacity-50 cursor-pointer"
+                  title="Re-fetch this course's VTOP page (slow; 4-6 requests)"
+                >
+                  <RefreshCw className={`w-3 h-3 ${viewLoading ? "animate-spin" : ""}`} />
+                  <span>Reload</span>
+                </button>
+              }
+            />
+
+            {viewLoading ? (
+              <ListSkeleton rows={6} />
+            ) : planRowsByScope.length === 0 ? (
+              <EmptyPanel
+                variant="dashed"
+                title="Not fetched yet"
+                description="Tap Reload above to pull the course page from VTOP."
+              />
+            ) : (
+              <div className="space-y-4">
+                {planRowsByScope.map(({ scope, rows }) => (
+                  <div key={scope} className="space-y-3">
+                    {planRowsByScope.length > 1 && <div className="px-1">{renderScopeBadge(scope)}</div>}
+                    <ListShell>
+                      {rows.map(({ entry, row }: any, ri: number) => {
+                        const hasFiles = Array.isArray(row.materials) && row.materials.length > 0;
+                        return (
+                          <div key={`${row.slNo}-${row.date}-${ri}`} className={`${LIST_ROW} py-3.5`}>
+                            <span
+                              className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${
+                                hasFiles
+                                  ? TONE_ICON_TILE.blue
+                                  : "border-border-muted bg-surface-secondary text-text-muted"
+                              }`}
+                            >
+                              <FileText className="w-5 h-5" />
+                            </span>
+                            <ListRowText
+                              title={row.topic || `Session ${row.slNo || ri + 1}`}
+                              titleTooltip={row.topic || undefined}
+                              subtitle={`${row.date || "—"}${row.slot ? ` · ${row.slot}` : ""}`}
+                            />
+                            {hasFiles ? (
+                              row.materials.length === 1 ? (
+                                (() => {
+                                  const mat = row.materials[0];
+                                  const key = `${scope}-${row.slNo}-${row.date}-${mat.materialId}-${mat.materialDate}-${mat.label}`;
+                                  return (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDownloadReferenceMaterial(key, entry, row, mat)}
+                                      disabled={downloadingRef !== null}
+                                      className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0"
+                                      title={`Download ${mat.label} (${row.date})`}
+                                      aria-label={`Download ${mat.label} for session on ${row.date}`}
+                                    >
+                                      {downloadingRef === key ? (
+                                        <RefreshCw className="w-4 h-4 animate-spin" />
+                                      ) : (
+                                        <Download className="w-4 h-4" />
+                                      )}
+                                    </button>
+                                  );
+                                })()
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => setMaterialSheet({ entry, row, scope })}
+                                  disabled={downloadingRef !== null}
+                                  className="inline-flex items-center justify-center w-9 h-9 rounded-xl text-blue-600 dark:text-blue-400 border border-blue-500/20 bg-blue-500/10 hover:bg-blue-500/20 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0"
+                                  title={`${row.materials.length} reference files for this session`}
+                                  aria-label={`Show ${row.materials.length} reference files for session on ${row.date}`}
+                                >
+                                  <ChevronRight className="w-5 h-5" />
+                                </button>
+                              )
+                            ) : (
+                              <span className="text-xs text-text-muted font-medium shrink-0">—</span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </ListShell>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Bulk downloads — per component when embedded */}
+            <div className="space-y-4">
+              <div className="px-1 flex items-center justify-between gap-2">
+                <span className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-text-muted">
+                  Course Materials
+                </span>
+                {isEmbedded && (
+                  <span className="text-[10px] font-semibold text-text-muted">Separate files for theory &amp; lab</span>
+                )}
+              </div>
+              {isEmbedded ? (
+                <>
+                  {selectedGroup?.theory && renderMaterialGroup("theory", true)}
+                  {selectedGroup?.lab && renderMaterialGroup("lab", true)}
+                </>
+              ) : (
+                renderMaterialGroup(undefined, false)
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -3032,6 +3217,58 @@ export default function CourseDetailSubpage({
           )}
         </div>
       )}
+
+      {/* Reference Materials Sheet (multiple files in one session) */}
+      <AnimatePresence>
+        {materialSheet && (
+          <BottomSheet
+            overlayId="vtop-session-materials"
+            onClose={() => setMaterialSheet(null)}
+            maxWidth="max-w-md"
+            placement="bottom-center"
+            icon={<Paperclip className="w-5 h-5" />}
+            accent="bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400"
+            title="Reference materials"
+            subtitle={`${materialSheet.row?.date ?? ""}${materialSheet.row?.slot ? ` · ${materialSheet.row.slot}` : ""}${
+              materialSheet.row?.topic ? ` · ${materialSheet.row.topic}` : ""
+            }`}
+            closeLabel="Close reference materials"
+          >
+            <ListShell>
+              {(materialSheet.row?.materials ?? []).map((mat: any) => {
+                const key = `${materialSheet.scope}-${materialSheet.row?.slNo}-${materialSheet.row?.date}-${mat.materialId}-${mat.materialDate}-${mat.label}`;
+                const isDownloading = downloadingRef === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => {
+                      handleDownloadReferenceMaterial(key, materialSheet.entry, materialSheet.row, mat);
+                      setMaterialSheet(null);
+                    }}
+                    disabled={downloadingRef !== null}
+                    className={`${LIST_ROW} py-3.5 disabled:opacity-60`}
+                    title={`Download ${mat.label} (${mat.materialDate})`}
+                  >
+                    <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400">
+                      <FileText className="w-5 h-5" />
+                    </span>
+                    <ListRowText
+                      title={mat.label}
+                      subtitle={`${materialSheet.row?.date ?? ""} · Ref ${mat.materialId}`}
+                    />
+                    {isDownloading ? (
+                      <RefreshCw className="w-4 h-4 animate-spin text-blue-500 shrink-0" />
+                    ) : (
+                      <Download className="w-4 h-4 text-text-muted shrink-0" />
+                    )}
+                  </button>
+                );
+              })}
+            </ListShell>
+          </BottomSheet>
+        )}
+      </AnimatePresence>
 
       {/* Task Edit Sheet */}
       <TaskEditSheet

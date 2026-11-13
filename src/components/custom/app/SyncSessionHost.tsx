@@ -19,7 +19,7 @@ interface SyncSessionHostProps {
 
 /** Owns sync-session notification UI and its retry/dismiss interactions. */
 export default function SyncSessionHost({
-  activeModeId = "full",
+  activeModeId = "quarterly",
   modes,
   modeLabel = "VTOP Sync",
   onSelectMode,

@@ -8,6 +8,7 @@ import { clearSyncFailure, recordSyncFailure, recordSyncTime } from "../syncTime
 import { setVtopState } from "../vtopStatus";
 import type { Ids, VtopCreds, ProgressEvent } from "./types";
 
+import { getSyncTimes } from "../syncTimes";
 import { apiRequest, cancelAllRequests, resetActiveSignal } from "./request-layer";
 
 export { apiRequest as api, cancelAllRequests, resetActiveSignal } from "./request-layer";
@@ -29,15 +30,26 @@ export interface SyncModeOptions {
   isHosteller?: boolean;
   settings?: Record<string, unknown>;
   demoMode?: boolean;
+  /** Run every step regardless of its cadence window. */
+  force?: boolean;
+  /** Force just these steps past the cadence gate; everything else stays gated. */
+  forceOps?: string[];
   /** When false, background steps are fired without awaiting (legacy sweep). */
   awaitBackground?: boolean;
   signal?: AbortSignal;
 }
 
+export interface SyncModeResults {
+  op: string;
+  value: unknown;
+  /** True when the step's cadence window was still fresh — skipped, not run. */
+  skipped?: boolean;
+}
+
 export interface SyncModeResult {
   mode: SyncMode;
   /** Per-op results for foreground steps, in order. */
-  results: { op: string; value: unknown }[];
+  results: SyncModeResults[];
   /** Ops that failed but did not abort the run. */
   errors: { op: string; message: string }[];
   aborted: boolean;
@@ -210,9 +222,9 @@ class SyncEngine {
   }
 
   async syncAll(opts: SyncAllOptions): Promise<void> {
-    // Legacy sweep, preserved exactly: the balanced preset with fire-and-forget
-    // background steps. New code should call `syncMode` directly.
-    await this.syncMode("balanced", opts, { awaitBackground: false });
+    // Legacy sweep: the quarterly tier with fire-and-forget background steps —
+    // the cadence gate decides what is actually due.
+    await this.syncMode("quarterly", opts, { awaitBackground: false });
   }
 
   /**
@@ -231,8 +243,17 @@ class SyncEngine {
     this.ensureIds();
     const mode = resolveMode(modeId, loadCustomModes());
     if (!mode) throw new Error(`Unknown sync mode: ${modeId}`);
-    const { signal, awaitBackground = modeId === "full" } = { ...baseArgs, ...opts };
-    const { semesterId, calendarType, isHosteller, settings, demoMode } = baseArgs;
+    const { signal, awaitBackground = modeId === "quarterly" } = { ...baseArgs, ...opts };
+    const { semesterId, calendarType, isHosteller, settings, demoMode, force, forceOps } = baseArgs;
+    const syncTimes = getSyncTimes();
+    /** Cadence gate: a step is fresh when its last success is inside its window. */
+    const isFresh = (s: { every?: number; op: string }) => {
+      if (force) return false;
+      if (forceOps?.includes(s.op)) return false;
+      if (!s.every || s.every <= 0) return false;
+      const t = syncTimes[s.op];
+      return typeof t === "number" && Date.now() - t < s.every * 86_400_000;
+    };
     const allGradesRes = storage.allGrades.get();
     const argsFor = (extra?: Record<string, unknown>): Record<string, unknown> => ({
       semesterId,
@@ -244,7 +265,7 @@ class SyncEngine {
       ...extra,
     });
 
-    const results: { op: string; value: unknown }[] = [];
+    const results: SyncModeResults[] = [];
     const errors: { op: string; message: string }[] = [];
     let aborted = false;
 
@@ -252,6 +273,10 @@ class SyncEngine {
       if (signal?.aborted) {
         aborted = true;
         break;
+      }
+      if (isFresh(s)) {
+        results.push({ op: s.op, value: null, skipped: true });
+        continue;
       }
       try {
         const value = await this.sync(s.op, argsFor(s.args));
@@ -266,12 +291,16 @@ class SyncEngine {
       }
     }
 
-    const bg = backgroundSteps(mode).map((s) =>
-      this.sync(s.op, argsFor(s.args)).then(
+    const bg = backgroundSteps(mode).map((s) => {
+      if (isFresh(s)) {
+        results.push({ op: s.op, value: null, skipped: true });
+        return Promise.resolve();
+      }
+      return this.sync(s.op, argsFor(s.args)).then(
         (value) => results.push({ op: s.op, value }),
         (e: unknown) => errors.push({ op: s.op, message: e instanceof Error ? e.message : String(e) }),
-      ),
-    );
+      );
+    });
     if (awaitBackground) {
       await Promise.all(bg);
     } else {

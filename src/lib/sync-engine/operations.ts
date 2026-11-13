@@ -13,6 +13,7 @@ import {
 } from "../social/storage";
 import type { SocialSyncPayload } from "../social/types";
 import { getActiveRegNumber } from "../social/identity";
+import { fetchViewDetailForComp, readCoursePageViewCache, writeCoursePageViewCache } from "../vtopCourseDetail";
 import { activeRegNumberAtom } from "../../store/socialAtoms";
 import {
   socialGrantsAtom,
@@ -74,6 +75,56 @@ function whoamiToProfile(data: any): Record<string, unknown> | null {
   return Object.keys(profile).length ? profile : null;
 }
 
+function whoamiToProfileImages(data: any): Record<string, unknown> | null {
+  if (!data || typeof data !== "object") return null;
+  const toDetails = (o: any): Record<string, unknown> => {
+    if (!o || typeof o !== "object") return {};
+    const out: Record<string, unknown> = {};
+    for (const key of [
+      "name",
+      "designation",
+      "email",
+      "phone",
+      "school",
+      "cabin",
+      "department",
+      "intercom",
+      "facultyId",
+      "organization",
+    ]) {
+      const v = o[key];
+      if (v !== undefined && v !== null && String(v).trim() !== "") out[key] = v;
+    }
+    if (Array.isArray(o.extras)) {
+      for (const e of o.extras) {
+        if (e?.label) out[String(e.label)] = e.value ?? "";
+      }
+    }
+    return out;
+  };
+  const images: Record<string, unknown> = {};
+  if (data.photoBase64) images.student = { photoBase64: data.photoBase64 };
+  if (data.proctor && typeof data.proctor === "object") {
+    images.proctor = {
+      ...data.proctor,
+      photo: data.proctor.photoBase64 ?? null,
+      photoBase64: data.proctor.photoBase64 ?? null,
+      details: toDetails(data.proctor),
+    };
+  }
+  if (Array.isArray(data.hodDean) && data.hodDean.length > 0) {
+    images.hodDean = {
+      people: data.hodDean.map((p: any) => ({
+        role: p?.role ?? "Official",
+        photo: p?.photoBase64 ?? null,
+        photoBase64: p?.photoBase64 ?? null,
+        details: toDetails(p),
+      })),
+    };
+  }
+  return Object.keys(images).length > 0 ? images : null;
+}
+
 async function fetchWhoami(ctx: OpCtx): Promise<any> {
   const data = await ctx.request("whoami", {}, { auth: "vtop", retry: { max: 1 } });
   if (!data || data.success === false) {
@@ -85,6 +136,10 @@ async function fetchWhoami(ctx: OpCtx): Promise<any> {
     persist("profile", profile);
     ctx.bridge.setAtom(activeRegNumberAtom, getActiveRegNumber());
   }
+  // /api/profile-images no longer exists; whoami already carries the photos,
+  // so rebuild the legacy profileImages shape from it.
+  const profileImages = whoamiToProfileImages(data);
+  if (profileImages) persist("profileImages", profileImages);
   return data;
 }
 
@@ -369,6 +424,10 @@ async function fetchSchedule(ctx: OpCtx, semesterId: string) {
 }
 
 async function fetchHostel(ctx: OpCtx) {
+  // Hostellers only — day-scholars have no hostel payload, and hitting VTOP
+  // for it is a wasted round trip (and a guaranteed "not a hosteller" page).
+  const profile = storage.profile.get() as { isHosteller?: boolean } | null;
+  if (profile && profile.isHosteller === false) return {};
   return trackedRequest(ctx, "hostel", () => ctx.request("hostel", {}, { auth: "vtop" }));
 }
 
@@ -389,17 +448,9 @@ async function fetchAllGrades(ctx: OpCtx, semesterId?: string) {
   );
 }
 
-async function fetchProfileImages(ctx: OpCtx) {
-  return trackedRequest(ctx, "profile-images", () =>
-    ctx
-      .request("profile-images", {}, { auth: "vtop", retry: { max: 0 } })
-      .then(async (r: any) => (r?.success ? r : null))
-      .catch(() => null),
-  );
-}
-
-/** The six modules `core` bundles, in bundle order. */
-export const CORE_CHILD_OPS = ["grades", "schedule", "hostel", "calendar", "all-grades", "profile-images"] as const;
+/** The five modules `core` bundles, in bundle order (profile-images is gone;
+ *  whoami now carries the photos). */
+export const CORE_CHILD_OPS = ["grades", "schedule", "hostel", "calendar", "all-grades"] as const;
 
 export type CoreChildOp = (typeof CORE_CHILD_OPS)[number];
 
@@ -509,18 +560,85 @@ registerOp({
 });
 
 registerOp({
-  name: "profile-images",
+  name: "coursePage",
   auth: "vtop",
   meta: {
-    label: "Profile images",
-    description: "Best-effort profile photos; never fails a sync.",
-    category: "profile",
-    cost: "light",
+    label: "Course details",
+    description: "Lecture plan and reference materials for every current-semester course.",
+    category: "academics",
+    cost: "heavy",
+    needsSemester: true,
   },
-  async run(ctx) {
-    const res = await fetchProfileImages(ctx);
-    if (res) persist("profileImages", res);
-    return res;
+  async run(ctx, args) {
+    const semesterId =
+      (args?.semesterId as string) || (storage.attendance.get() as { semester?: string } | null)?.semester || "";
+    if (!semesterId) return null;
+
+    // One component per class — attendance carries every theory/lab row;
+    // marks only needs the class numbers, and they coincide with attendance's.
+    const attendance = storage.attendance.get() as { attendance?: any[] } | null;
+    const marks = storage.marks.get() as { courses?: any[] } | null;
+    const seen = new Set<string>();
+    const comps: Array<{
+      classNbr: string;
+      slot?: string;
+      faculty?: string;
+      courseType?: string;
+      courseCode?: string;
+      courseTitle?: string;
+    }> = [];
+    const collect = (list: unknown, kind: "marks" | "attendance") => {
+      if (!Array.isArray(list)) return;
+      for (const c of list) {
+        const id = String(kind === "marks" ? (c?.classNbr ?? "") : (c?.classId ?? "")).trim();
+        if (!id || seen.has(id)) continue;
+        const rawSlot = String(kind === "marks" ? (c?.slot ?? "") : (c?.slotName ?? ""))
+          .trim()
+          .toUpperCase();
+        // No slot = not a regular VTOP course (online/MOOC buckets) — there is
+        // no Course Page View to fetch, so skip without touching VTOP.
+        if (!rawSlot || rawSlot === "NIL" || rawSlot === "NA" || rawSlot === "N/A") {
+          seen.add(id);
+          continue;
+        }
+        seen.add(id);
+        comps.push({
+          classNbr: id,
+          slot: kind === "marks" ? c?.slot : c?.slotName,
+          faculty: c?.faculty,
+          courseType: c?.courseType,
+          courseCode: c?.courseCode,
+          courseTitle: c?.courseTitle,
+        });
+      }
+    };
+    collect(attendance?.attendance, "attendance");
+    collect(marks?.courses, "marks");
+    if (comps.length === 0) return null;
+
+    // Attendance lists every class the student sits in — cap to a sane upper
+    // bound so a bad payload can't turn the sync into an unbounded fan-out.
+    const wanted = comps.slice(0, 40);
+    const call = (formData: Record<string, unknown>) =>
+      ctx.request("course-page", { formData }, { auth: "vtop", retry: { max: 0 } });
+
+    const results: Record<string, unknown> = {};
+    await Promise.allSettled(
+      wanted.map(async (comp) => {
+        try {
+          const data = await fetchViewDetailForComp(call, semesterId, comp);
+          if (data) results[comp.classNbr] = data;
+        } catch {
+          /* best-effort per class */
+        }
+      }),
+    );
+    if (Object.keys(results).length === 0) return null;
+
+    const existing = readCoursePageViewCache(semesterId)?.courses ?? {};
+    const merged = { ...existing, ...results };
+    writeCoursePageViewCache(semesterId, merged);
+    return { semesterId, fetchedAt: Date.now(), courses: merged };
   },
 });
 
@@ -562,14 +680,12 @@ registerOp({
         })
       : Promise.resolve(null);
 
-    const [unifiedGradesSettled, ffcsSettled, hostelSettled, calendarSettled, profileImagesSettled] =
-      await Promise.allSettled([
-        unifiedGradesPromise,
-        ffcsBundlePromise,
-        wanted.has("hostel") ? (isHosteller ? fetchHostel(ctx) : Promise.resolve({})) : Promise.resolve(null),
-        runOrSkip("calendar", () => fetchCalendar(ctx, semesterId, calendarType)),
-        runOrSkip("profile-images", () => fetchProfileImages(ctx)),
-      ]);
+    const [unifiedGradesSettled, ffcsSettled, hostelSettled, calendarSettled] = await Promise.allSettled([
+      unifiedGradesPromise,
+      ffcsBundlePromise,
+      wanted.has("hostel") ? (isHosteller ? fetchHostel(ctx) : Promise.resolve({})) : Promise.resolve(null),
+      runOrSkip("calendar", () => fetchCalendar(ctx, semesterId, calendarType)),
+    ]);
 
     let gradesRes: any = null;
     let allGradesRes: any = null;
@@ -602,7 +718,6 @@ registerOp({
     const scheduleRes = wanted.has("schedule") ? extractExamSchedule(ffcsVal) : null;
     const hostelRes = settledValue(hostelSettled);
     const calendarRes = settledValue(calendarSettled);
-    const profileImagesRes = settledValue(profileImagesSettled);
 
     const persistIfPresent = (key: string, value: unknown) => {
       if (value !== null && value !== undefined) persist(key, value);
@@ -610,7 +725,6 @@ registerOp({
     persistIfPresent("schedule", scheduleRes);
     persistIfPresent("hostel", hostelRes);
     persistIfPresent("calendar", calendarRes);
-    if (profileImagesRes) persist("profileImages", profileImagesRes);
 
     const setAtomIfPresent = (atom: unknown, value: unknown) => {
       if (value !== null && value !== undefined) ctx.bridge.setAtom(atom, value);
@@ -626,7 +740,7 @@ registerOp({
       allGradesRes = wanted.has("all-grades") ? adapted.allGrades : allGradesRes;
     }
 
-    return { gradesRes, scheduleRes, hostelRes, calendarRes, allGradesRes, profileImagesRes };
+    return { gradesRes, scheduleRes, hostelRes, calendarRes, allGradesRes };
   },
 });
 
@@ -844,8 +958,9 @@ registerOp({
   },
 });
 
-/** Bulk endpoints gated by `syncAdditionalData` (registrations). */
-export const BULK_ADDITIONAL_ENDPOINTS = ["exc-registration", "minor-honour", "course-completion"] as const;
+/** Bulk endpoints gated by `syncAdditionalData` (registrations). `minor-honour`
+ * is intentionally absent — the current API does not serve it. */
+export const BULK_ADDITIONAL_ENDPOINTS = ["exc-registration", "course-completion"] as const;
 
 /** Bulk endpoints gated by `syncProfileData` (profile + payments + library). */
 export const BULK_PROFILE_ENDPOINTS = [
@@ -860,9 +975,8 @@ export const BULK_PROFILE_ENDPOINTS = [
 export const ALL_BULK_ENDPOINTS: readonly string[] = [...BULK_ADDITIONAL_ENDPOINTS, ...BULK_PROFILE_ENDPOINTS];
 
 /**
- * The bulk endpoints `/api/bulk` can run inside one invocation. Everything not
- * listed here (today only `minor-honour`, which cascades over nested selects)
- * is still fetched on its own.
+ * The bulk endpoints `/api/bulk` can run inside one invocation (see the API's
+ * VTOP_PROXIES). Everything else rides the single-request path.
  */
 const BATCHABLE_BULK_ENDPOINTS: ReadonlySet<string> = new Set([
   "exc-registration",
@@ -908,7 +1022,6 @@ registerOp({
     const bulkEndpoints: string[] = [];
     if (settings.syncAdditionalData !== false) {
       if (settings.syncExcRegistration !== false) bulkEndpoints.push("exc-registration");
-      if (settings.syncMinorHonour !== false) bulkEndpoints.push("minor-honour");
       if (settings.syncCourseCompletion !== false) bulkEndpoints.push("course-completion");
     }
     if (settings.syncProfileData !== false) {
@@ -1086,15 +1199,16 @@ registerOp({
     needsSemester: true,
   },
   async run(ctx, args) {
+    // QCM view was folded into /api/ffcs (section: "qcm"); there is no /api/qcm-view anymore.
     const res = await ctx.request(
-      "qcm-view",
-      { semesterId: args?.semesterId || "" },
+      "ffcs",
+      { section: "qcm", ...(args?.semesterId ? { semesterId: args.semesterId } : {}) },
       { auth: "vtop", retry: { max: 1 } },
     );
     assertApiSuccess(res, "Quality Circle Meeting (QCM)");
     if (res && typeof res === "object") {
       try {
-        const payload = (res as any).data || res;
+        const payload = (res as any).qcmView?.data ?? (res as any).qcmView ?? res;
         storage.qcmData.set(payload);
       } catch {}
     }

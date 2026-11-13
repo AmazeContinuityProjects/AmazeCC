@@ -29,6 +29,12 @@ const sampleModes: SyncMode[] = [
 ];
 
 describe("SyncNotification Redesign", () => {
+  // The minimized bar is the default now — expand before asserting on the
+  // sheet's contents.
+  const expand = () => {
+    fireEvent.click(screen.getByTitle(/expand sync view/i));
+  };
+
   it("renders active session with hero progress and milestones", () => {
     const onDismiss = vi.fn();
     render(
@@ -42,13 +48,14 @@ describe("SyncNotification Redesign", () => {
         modes={sampleModes}
       />,
     );
+    expand();
 
     // Headline derived from latest log line
-    expect(screen.getByText(/Fetching attendance records/i)).toBeDefined();
+    expect(screen.getAllByText(/Fetching attendance records/i).length).toBeGreaterThan(0);
     expect(screen.getByText("45%")).toBeDefined();
 
-    // Mode Chip
-    expect(screen.getByText("Quick Sync")).toBeDefined();
+    // Mode Chip (the exiting minimized pill can linger in the DOM)
+    expect(screen.getAllByText("Quick Sync").length).toBeGreaterThan(0);
 
     // Milestones
     expect(screen.getByText("Authentication & Session")).toBeDefined();
@@ -56,8 +63,9 @@ describe("SyncNotification Redesign", () => {
     expect(screen.getByText("Marks & Grades")).toBeDefined();
     expect(screen.getByText("Local Storage & Finalize")).toBeDefined();
 
-    // Bottom Red Neon Cancel Button
-    const cancelBtn = screen.getByRole("button", { name: /cancel sync/i });
+    // Bottom Red Neon Cancel Button (pill + sheet both carry one)
+    const cancelBtns = screen.getAllByRole("button", { name: /cancel sync/i });
+    const cancelBtn = cancelBtns.find((b) => b.className.includes("border-rose-500"))!;
     expect(cancelBtn).toBeDefined();
     expect(cancelBtn.className).toContain("border-rose-500");
     expect(cancelBtn.className).toContain("shadow-");
@@ -67,6 +75,7 @@ describe("SyncNotification Redesign", () => {
 
   it("renders a larger, prominent minimize button in the header", () => {
     render(<SyncNotification active={true} progress={25} message="Running sync..." onDismiss={vi.fn()} />);
+    expand();
 
     const minimizeBtn = screen.getByTitle(/run in background/i);
     expect(minimizeBtn).toBeDefined();
@@ -83,6 +92,7 @@ describe("SyncNotification Redesign", () => {
         onDismiss={vi.fn()}
       />,
     );
+    expand();
 
     const diagnosticsBtn = screen.getByRole("button", { name: /diagnostics/i });
     expect(diagnosticsBtn).toBeDefined();
@@ -109,6 +119,7 @@ describe("SyncNotification Redesign", () => {
         onSelectMode={onSelectMode}
       />,
     );
+    expand();
 
     const modeChip = screen.getByRole("button", { name: /quick sync/i });
     fireEvent.click(modeChip);
@@ -129,6 +140,8 @@ describe("SyncNotification Redesign", () => {
         modeLabel="VTOP Sync"
       />,
     );
+
+    expand();
 
     const minimizeBtn = screen.getByTitle(/run in background/i);
     fireEvent.click(minimizeBtn);
@@ -238,7 +251,7 @@ describe("SyncNotification Redesign", () => {
 
     // Directly shows bold VTOP is Down
     expect(screen.getByText("VTOP is Down")).toBeDefined();
-    expect(screen.getByText(/vtopcc\.vit\.ac\.in/i)).toBeDefined();
+    expect(screen.getAllByText(/vtopcc\.vit\.ac\.in/i).length).toBeGreaterThan(0);
 
     // Diagnostics chevron and log accordion are completely omitted
     expect(screen.queryByText(/Error Log & Diagnostics/i)).toBeNull();

@@ -32,7 +32,7 @@ const KNOWN = [
   "hostel",
   "calendar",
   "all-grades",
-  "profile-images",
+  "coursePage",
   "studentProfile",
   "pastAttendance",
   "fresher",
@@ -102,26 +102,29 @@ describe("built-in modes", () => {
     }
   });
 
-  it("quick is the lightest, full covers every background op", () => {
-    const quick = BUILT_IN_MODES.find((m) => m.id === "quick")!;
-    const balanced = BUILT_IN_MODES.find((m) => m.id === "balanced")!;
-    const full = BUILT_IN_MODES.find((m) => m.id === "full")!;
-    const academics = BUILT_IN_MODES.find((m) => m.id === "academics")!;
-    expect(foregroundSteps(quick).map((s) => s.op)).toEqual(["attendanceMarks"]);
-    expect(estimateModeCost(quick).score).toBeLessThan(estimateModeCost(full).score);
-    expect(full.steps.some((s) => s.op === "social")).toBe(true);
-    // The planner's My Curriculum match reads `storage.curriculum` — every
-    // sweep broad enough to claim "everything" (and the academics sweep,
-    // which is exactly where this data belongs) has to fill it, background
-    // so it never delays the foreground bundle. Quick stays attendance-only.
-    expect(balanced.steps.some((s) => s.op === "curriculum")).toBe(true);
-    expect(full.steps.some((s) => s.op === "curriculum")).toBe(true);
-    expect(academics.steps.some((s) => s.op === "curriculum")).toBe(true);
-    expect(quick.steps.some((s) => s.op === "curriculum")).toBe(false);
+  it("daily is the lightest, quarterly covers every op, tiers are cumulative", () => {
+    const daily = BUILT_IN_MODES.find((m) => m.id === "daily")!;
+    const weekly = BUILT_IN_MODES.find((m) => m.id === "weekly")!;
+    const monthly = BUILT_IN_MODES.find((m) => m.id === "monthly")!;
+    const quarterly = BUILT_IN_MODES.find((m) => m.id === "quarterly")!;
+
+    const opsOf = (m: (typeof BUILT_IN_MODES)[number]) => m.steps.map((s) => s.op);
+    const contains = (a: string[], b: string[]) => b.every((op) => a.includes(op));
+    expect(contains(opsOf(weekly), opsOf(daily))).toBe(true);
+    expect(contains(opsOf(monthly), opsOf(weekly))).toBe(true);
+    expect(contains(opsOf(quarterly), opsOf(monthly))).toBe(true);
+
+    expect(opsOf(daily)).toEqual(["attendanceMarks", "marksStats", "hostel"]);
+    expect(estimateModeCost(daily).score).toBeLessThan(estimateModeCost(quarterly).score);
+    expect(opsOf(quarterly)).toContain("whoami");
+    // Curriculum is a monthly-tier op and must not run in the shallow tiers.
+    expect(opsOf(daily)).not.toContain("curriculum");
+    expect(opsOf(weekly)).not.toContain("curriculum");
+    expect(opsOf(monthly)).toContain("curriculum");
   });
 
   it("resolveMode finds built-ins and customs", () => {
-    expect(resolveMode("quick")?.label).toBe("Quick Sync");
+    expect(resolveMode("daily")?.label).toBe("Daily Sync");
     expect(resolveMode("nope")).toBeUndefined();
     const custom = createCustomMode({ label: "Mine", steps: [{ op: "buses" }] });
     expect(resolveMode(custom.id, [custom])?.builtIn).toBe(false);
@@ -130,30 +133,35 @@ describe("built-in modes", () => {
 });
 
 describe("resolveReloadModeId", () => {
-  it("forces full sync on a semester switch, whatever was asked for", () => {
+  it("forces the quarterly tier on a semester switch, whatever was asked for", () => {
     // Every cache — attendance, marks, grades — is keyed to the term just
     // left, so a switch outranks an explicit quick request…
-    expect(resolveReloadModeId({ switchedSemester: true, modeId: "quick" })).toBe("full");
+    expect(resolveReloadModeId({ switchedSemester: true, modeId: "daily" })).toBe("quarterly");
     // …the saved default…
-    expect(resolveReloadModeId({ switchedSemester: true, defaultSyncMode: "quick" })).toBe("full");
-    // …and even an explicit choice of another mode: the caller picked a
-    // semester, not a sweep, and "full" is the only sweep a new term can trust.
-    expect(resolveReloadModeId({ switchedSemester: true, modeId: "balanced" })).toBe("full");
-    expect(resolveReloadModeId({ switchedSemester: true, modeId: "quick", defaultSyncMode: "academics" })).toBe("full");
+    expect(resolveReloadModeId({ switchedSemester: true, defaultSyncMode: "weekly" })).toBe("quarterly");
+    // …and even an explicit choice of another tier: the caller picked a
+    // semester, not a sweep, and the quarterly tier is the only one a new
+    // term can trust.
+    expect(resolveReloadModeId({ switchedSemester: true, modeId: "weekly" })).toBe("quarterly");
+    expect(resolveReloadModeId({ switchedSemester: true, modeId: "daily", defaultSyncMode: "monthly" })).toBe(
+      "quarterly",
+    );
   });
 
-  it("keeps explicit mode, then default, then quick when no switch happened", () => {
-    expect(resolveReloadModeId({ switchedSemester: false, modeId: "balanced" })).toBe("balanced");
-    // An explicit mode also outranks the saved default (the palette's
-    // "Run quick/balanced/full now" buttons pass one on purpose).
-    expect(resolveReloadModeId({ switchedSemester: false, modeId: "quick", defaultSyncMode: "full" })).toBe("quick");
-    expect(resolveReloadModeId({ switchedSemester: false, defaultSyncMode: "academics" })).toBe("academics");
-    expect(resolveReloadModeId({ switchedSemester: false })).toBe("quick");
+  it("keeps explicit mode, then default, then the auto sweep when no switch happened", () => {
+    expect(resolveReloadModeId({ switchedSemester: false, modeId: "weekly" })).toBe("weekly");
+    // An explicit mode also outranks the saved default (the palette passes
+    // one on purpose).
+    expect(resolveReloadModeId({ switchedSemester: false, modeId: "daily", defaultSyncMode: "quarterly" })).toBe(
+      "daily",
+    );
+    expect(resolveReloadModeId({ switchedSemester: false, defaultSyncMode: "monthly" })).toBe("monthly");
+    expect(resolveReloadModeId({ switchedSemester: false })).toBe("quarterly");
   });
 
   it("resolves to a mode the engine can actually run", () => {
     const id = resolveReloadModeId({ switchedSemester: true });
-    expect(resolveMode(id)?.id).toBe("full");
+    expect(resolveMode(id)?.id).toBe("quarterly");
   });
 });
 
@@ -181,7 +189,6 @@ describe("granular op subsets", () => {
       request: async (path: string, body?: unknown) => {
         calls.push(path);
         if (path === "grades") return { success: true, grades: {} };
-        if (path === "profile-images") return { success: true };
         return { success: true };
       },
     } as any;
@@ -199,7 +206,7 @@ describe("granular op subsets", () => {
     await getOp("core")!.run(fakeCtx(calls), { semesterId: "S1", isHosteller: true });
     // Grades and all-grades share the unified /api/grades call; the exam
     // schedule is extracted from /api/ffcs.
-    expect(calls.sort()).toEqual(["grades", "ffcs", "hostel", "calendar", "profile-images"].sort());
+    expect(calls.sort()).toEqual(["grades", "ffcs", "hostel", "calendar"].sort());
   });
 
   it("bulk `only` caches a subset of endpoints", async () => {
@@ -217,11 +224,12 @@ describe("granular op subsets", () => {
     const calls: string[] = [];
     await getOp("bulk")!.run(fakeCtx(calls), { settings: {} });
     // Finance sections ride in one /api/finance call, the remaining batchable
-    // endpoints in one /api/bulk call, and only minor-honour stays direct.
+    // endpoints in one /api/bulk call. `minor-honour` is gone from the API, so
+    // it is no longer requested at all.
     expect(calls.filter((c) => c === "finance").length).toBe(1);
     expect(calls.filter((c) => c === "bulk").length).toBe(1);
-    expect(calls).toContain("minor-honour");
-    expect(calls.length).toBe(3);
+    expect(calls.sort()).toEqual(["bulk", "finance"]);
+    expect(calls).not.toContain("minor-honour");
   });
 
   it("standalone child ops persist individually", async () => {
@@ -252,17 +260,29 @@ describe("syncMode runner", () => {
       order.push(name);
       return name;
     });
-    const res = await syncEngine.syncMode("academics", { semesterId: "S1" });
+    const res = await syncEngine.syncMode("monthly", { semesterId: "S1" });
     expect(order).toEqual([
+      // Foreground, in order.
       "attendanceMarks",
-      "marksStats",
       "grades",
-      "schedule",
-      "calendar",
       "all-grades",
-      // Background step: settled after the foreground chain, still reported.
+      "calendar",
+      // Background steps follow, in declaration order.
+      "marksStats",
+      "hostel",
+      "ffcs",
+      "coursePage",
+      "bulk",
+      "transport",
+      "events",
+      "buses",
+      "lms",
+      "circulars",
+      "officialOd",
       "curriculum",
-      "qcm",
+      "fresher",
+      "pastAttendance",
+      "social",
     ]);
     expect(res.aborted).toBe(false);
     expect(res.errors).toEqual([]);
@@ -301,7 +321,7 @@ describe("syncMode runner", () => {
       if (name === "marksStats") throw new Error("stats down");
       return name;
     });
-    const res = await syncEngine.syncMode("quick", { semesterId: "S1" });
+    const res = await syncEngine.syncMode("daily", { semesterId: "S1" });
     expect(res.aborted).toBe(false);
     expect(res.errors.map((e) => e.op)).toEqual(["marksStats"]);
   });
@@ -311,7 +331,7 @@ describe("syncMode runner", () => {
     await expect(syncEngine.syncMode("nope", {})).rejects.toThrow("Unknown sync mode");
   });
 
-  it("legacy syncAll still runs the balanced sweep", async () => {
+  it("legacy syncAll runs the quarterly tier (everything due, cadence-pruned)", async () => {
     const seen: string[] = [];
     vi.spyOn(syncEngine, "sync").mockResolvedValue(null as any);
     const spy = vi.mocked(syncEngine.sync);
@@ -320,8 +340,12 @@ describe("syncMode runner", () => {
       return null;
     });
     await syncEngine.syncAll({ semesterId: "S1" });
-    expect(seen.slice(0, 4)).toEqual(["attendanceMarks", "marksStats", "core", "studentProfile"]);
+    // Foreground ops first, in order.
+    expect(seen.slice(0, 4)).toEqual(["attendanceMarks", "grades", "all-grades", "calendar"]);
     expect(seen).toContain("bulk");
+    // Quarterly tier adds identity — nothing else includes it.
+    expect(seen).toContain("whoami");
+    expect(seen.indexOf("whoami")).toBeGreaterThan(seen.indexOf("all-grades"));
   });
 });
 
@@ -406,16 +430,16 @@ describe("custom mode persistence", () => {
   it("ignores ids that collide with built-ins", () => {
     localStorage.setItem(
       CUSTOM_MODES_KEY,
-      JSON.stringify([{ id: "quick", label: "Fake", builtIn: false, steps: [{ op: "buses" }] }]),
+      JSON.stringify([{ id: "daily", label: "Fake", builtIn: false, steps: [{ op: "buses" }] }]),
     );
     expect(loadCustomModes()).toEqual([]);
-    expect(resolveMode("quick")?.builtIn).toBe(true);
+    expect(resolveMode("daily")?.builtIn).toBe(true);
   });
 
   it("backgroundSteps/foregroundSteps split correctly", () => {
-    const full = resolveMode("full")!;
-    expect(foregroundSteps(full).every((s) => !s.background)).toBe(true);
-    expect(backgroundSteps(full).length).toBeGreaterThan(0);
-    expect(foregroundSteps(full).length + backgroundSteps(full).length).toBe(full.steps.length);
+    const monthly = resolveMode("monthly")!;
+    expect(foregroundSteps(monthly).every((s) => !s.background)).toBe(true);
+    expect(backgroundSteps(monthly).length).toBeGreaterThan(0);
+    expect(foregroundSteps(monthly).length + backgroundSteps(monthly).length).toBe(monthly.steps.length);
   });
 });
