@@ -52,8 +52,9 @@ const step = (op: string, extra?: Partial<SyncModeStep>): SyncModeStep => ({
  * each other deliberately.
  *
  * Every `every` on a step is a staleness window in days: the runner skips the
- * step when it last succeeded within the window (unless `args.force`). An
- * explicit pick of a tier therefore only pays for what is actually stale.
+ * step when it last succeeded within the window (unless `args.force`). This is
+ * for unattended and default reloads only — an explicit pick of a tier (the
+ * palette or sync screen) runs the whole tier regardless of staleness.
  */
 export interface CadenceTierMeta {
   id: "daily" | "weekly" | "monthly" | "quarterly";

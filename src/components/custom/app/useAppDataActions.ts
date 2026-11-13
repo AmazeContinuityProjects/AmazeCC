@@ -297,13 +297,13 @@ export function useAppDataActions({
   }, [settings]);
 
   // --- Event Handlers ---
-  // `modeId` selects a sync mode (built-in or custom). Defaults to the user's
-  // preferred mode in settings — EXCEPT on a semester switch, which always
-  // forces the full sweep: every cache (attendance, marks, grades) is keyed to
-  // the term just left, so a quick attendance-only pass would leave the app
-  // half-old-term. Quick runs attendance only; balanced/full run the classic
-  // sweep (full awaits the background tail); anything else runs generically
-  // through the engine so custom modes stay in one code path.
+  // `modeId` selects a sync mode (built-in or custom). An explicit pick runs
+  // the whole tier, now — the cadence gate is for unattended/default reloads.
+  // A semester switch always forces the full (quarterly) sweep: every cache
+  // (attendance, marks, grades) is keyed to the term just left, so a shallow
+  // pass would leave the app half-old-term. With no `modeId` and no switch,
+  // the user's preferred mode runs, but only its stale steps — the daily tier
+  // is forced so a manual tap always refreshes attendance/marks.
   const handleReloadRequest = useCallback(
     async (targetSemesterID?: string, modeId?: string) => {
       const activeSem =
@@ -469,9 +469,12 @@ export function useAppDataActions({
         // Weekly / Monthly / Quarterly and every custom mode run through the
         // engine; the cadence gate in its runner decides which ops are due.
         // Attendance-derived UI state gets applied here; everything else is
-        // written by the ops themselves (atoms + caches). The daily-tier ops
-        // are forced past the gate so a manual sync always refreshes them;
-        // weekly / monthly / quarterly only fire when their window lapsed.
+        // written by the ops themselves (atoms + caches).
+        // An explicit pick (palette / sync screen) or a semester switch means
+        // the user wants exactly that sync, now — bypass the cadence gate
+        // entirely. Unattended/default reloads only force the daily tier;
+        // the deeper tiers wait for their cadence.
+        const explicitPick = modeId != null || switchedSemester;
         {
           try {
             // setAttendanceAndOD diffs against the stored copy, so snapshot it
@@ -484,8 +487,9 @@ export function useAppDataActions({
               isHosteller: cachedProfile?.isHosteller ?? false,
               settings: settings as unknown as Record<string, unknown>,
               demoMode,
-              // Manual syncs always run the daily tier; deeper tiers wait for their cadence.
-              forceOps: DAILY_OPS,
+              // Explicit pick → whole tier runs now (and is awaited, like the
+              // quarterly sweep); default reload → daily tier forced, deeper gated.
+              ...(explicitPick ? { force: true, awaitBackground: true } : { forceOps: DAILY_OPS }),
             });
             const att = res.results.find((r) => r.op === "attendanceMarks")?.value as any;
             if (att?.attRes) {

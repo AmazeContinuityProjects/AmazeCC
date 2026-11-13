@@ -1,40 +1,30 @@
 /**
- * VTOP course-page dropdown cache — one entry per semester.
+ * VTOP course-page resolution cache — one entry per semester.
  *
- * The VTOP "Student Course Page" forces every client through the same
- * dropdown chain: semester -> courses -> a slot for a course -> faculty for a
- * (course, slot) pair. Those lists are static for the life of a semester, so
- * we persist them under a single per-semester key and only go to the network
- * when something is missing — and when the server errors out, we drop the
- * class's entry so the next attempt rebuilds it from the live dropdown.
+ * `processViewStudentCourseDetail` needs the (erpId, classId) pair derived
+ * from the sync's own attendance payload, so "resolution" is local work —
+ * but persisting it keeps the retry path trivially simple and lets
+ * `invalidateClass` drop a poisoned entry when the server errors out.
  */
 
-export interface VtopDropdownOption {
-  value: string;
-  text: string;
-  selected?: boolean;
-}
-
 export interface VtopResolved {
+  /** Kept for shape compatibility; the view-detail AJAX ignores it. */
   slotId: string;
   faculty: string;
   erpId: string;
 }
 
-interface ClassDropdowns {
-  slotOptions?: VtopDropdownOption[];
-  /** Keyed by the resolved slotId — faculty lists are slot-specific. */
-  facultyBySlot?: Record<string, VtopDropdownOption[]>;
-  /** The resolved slot/faculty/erpId for this class (VTOP's dropdown, no labels). */
+interface ClassResolution {
+  /** The derived (slotId/faculty/erpId) triple for this class. */
   resolved?: VtopResolved;
   updatedAt: number;
 }
 
 export interface VtopSemesterCache {
-  [classId: string]: ClassDropdowns;
+  [classId: string]: ClassResolution;
 }
 
-/** Two weeks — long enough to make a semester static, short enough to self-heal. */
+/** Two weeks — long enough to make a semester's triples static, short enough to self-heal. */
 export const DROPDOWN_CACHE_TTL_MS = 14 * 24 * 60 * 60 * 1000;
 
 const keyOf = (semSubId: string) => `vtopCoursePage:${String(semSubId ?? "").trim() || "current"}`;
@@ -60,42 +50,11 @@ function writeSemester(semSubId: string, data: VtopSemesterCache): void {
   }
 }
 
-function classEntry(semSubId: string, classId: string): ClassDropdowns | undefined {
+function classEntry(semSubId: string, classId: string): ClassResolution | undefined {
   const entry = readSemester(semSubId)[classId];
   if (!entry) return undefined;
   if (entry.updatedAt && Date.now() - entry.updatedAt > DROPDOWN_CACHE_TTL_MS) return undefined;
   return entry;
-}
-
-export function getSlotOptions(semSubId: string, classId: string): VtopDropdownOption[] | null {
-  return classEntry(semSubId, classId)?.slotOptions ?? null;
-}
-
-export function setSlotOptions(semSubId: string, classId: string, slotOptions: VtopDropdownOption[]): void {
-  const all = readSemester(semSubId);
-  const prev = all[classId] ?? {};
-  all[classId] = { ...prev, slotOptions, updatedAt: Date.now() };
-  writeSemester(semSubId, all);
-}
-
-export function getFacultyOptions(semSubId: string, classId: string, slotId: string): VtopDropdownOption[] | null {
-  return classEntry(semSubId, classId)?.facultyBySlot?.[slotId] ?? null;
-}
-
-export function setFacultyOptions(
-  semSubId: string,
-  classId: string,
-  slotId: string,
-  facultyOptions: VtopDropdownOption[],
-): void {
-  const all = readSemester(semSubId);
-  const prev: ClassDropdowns = all[classId] ?? { updatedAt: Date.now() };
-  all[classId] = {
-    ...prev,
-    facultyBySlot: { ...(prev.facultyBySlot ?? {}), [slotId]: facultyOptions },
-    updatedAt: Date.now(),
-  };
-  writeSemester(semSubId, all);
 }
 
 export function getResolvedSlot(semSubId: string, classId: string): VtopResolved | null {
@@ -104,7 +63,7 @@ export function getResolvedSlot(semSubId: string, classId: string): VtopResolved
 
 export function setResolvedSlot(semSubId: string, classId: string, resolved: VtopResolved): void {
   const all = readSemester(semSubId);
-  const prev: ClassDropdowns = all[classId] ?? { updatedAt: Date.now() };
+  const prev: ClassResolution = all[classId] ?? { updatedAt: Date.now() };
   all[classId] = {
     ...prev,
     resolved,

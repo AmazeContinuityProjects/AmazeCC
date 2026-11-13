@@ -256,8 +256,14 @@ export default function CourseDetailSubpage({
     }
   };
 
-  const handleDownloadMaterial = async (action: "course-plan" | "all-materials" | "general-materials") => {
-    setDownloadingMaterial(action);
+  // Bulk downloads are per component for embedded courses — the theory and
+  // lab classIds carry their own course plan and material buckets on VTOP.
+  const handleDownloadMaterial = async (
+    action: "course-plan" | "all-materials" | "general-materials",
+    scope?: "theory" | "lab",
+  ) => {
+    const scopeKey = scope ? `${scope}:${action}` : action;
+    setDownloadingMaterial(scopeKey);
     setDownloadError(null);
     setDownloadSuccess(null);
     try {
@@ -268,7 +274,12 @@ export default function CourseDetailSubpage({
       }
       if (!c) throw new Error("Please log in to VTOP first.");
       const semSubId = getVtopSemesterSubId();
-      const classId = getVtopClassId();
+      const classId =
+        scope === "lab"
+          ? String(selectedGroup?.lab?.classNbr ?? "")
+          : scope === "theory"
+            ? String(selectedGroup?.theory?.classNbr ?? "")
+            : getVtopClassId();
       if (!classId) throw new Error("No class is selected for this course yet.");
       if (!semSubId) throw new Error("Course materials are only available for specific semesters.");
 
@@ -281,14 +292,16 @@ export default function CourseDetailSubpage({
         semesterSubId: semSubId,
         semSubId,
         classId,
+        filename: scope ? `vtop-${action}-${scope}` : undefined,
       });
 
+      const scopeLabel = scope === "lab" ? "Lab " : scope === "theory" ? "Theory " : "";
       setDownloadSuccess(
         action === "course-plan"
-          ? "Course plan download started"
+          ? `${scopeLabel}course plan download started`
           : action === "general-materials"
-            ? "General materials download started"
-            : "All materials download started",
+            ? `${scopeLabel}general materials download started`
+            : `${scopeLabel}all materials download started`,
       );
       setTimeout(() => setDownloadSuccess(null), 3500);
     } catch (err: any) {
@@ -1674,6 +1687,99 @@ export default function CourseDetailSubpage({
       {scope === "theory" ? "Theory" : "Lab"}
     </ToneBadge>
   );
+
+  // Bulk downloads for one component (or the whole course when not embedded).
+  // Each embedded component carries its own classId on VTOP, so the plan and
+  // the material buckets are fetched separately per scope.
+  const renderMaterialGroup = (scope: "theory" | "lab" | undefined, showBadge: boolean) => {
+    const key = (action: string) => (scope ? `${scope}:${action}` : action);
+    const busy = (action: string) => downloadingMaterial === key(action);
+    const disabled = downloadingMaterial !== null;
+    const tag = scope === "lab" ? "Lab" : scope === "theory" ? "Theory" : "";
+    const subFor = (base: string) => (tag ? `${tag} · ${base}` : base);
+    const iconBtn =
+      "inline-flex items-center justify-center w-9 h-9 rounded-xl transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0 border";
+    return (
+      <div key={scope ?? "all"} className="space-y-3">
+        {showBadge && scope && <div className="px-1">{renderScopeBadge(scope)}</div>}
+        <ListShell>
+          <div className={`${LIST_ROW} py-3.5`}>
+            <span
+              className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.amber}`}
+            >
+              <Calendar className="w-5 h-5" />
+            </span>
+            <ListRowText
+              title="Course Plan"
+              subtitle={subFor(`Official lecture plan and topic schedule for ${selectedCode}`)}
+            />
+            <button
+              type="button"
+              onClick={() => handleDownloadMaterial("course-plan", scope)}
+              disabled={disabled}
+              className={`${iconBtn} bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/20`}
+              title={`Download ${tag ? `${tag} ` : ""}course plan Excel`}
+              aria-label={`Download ${tag ? `${tag} ` : ""}course plan Excel`}
+            >
+              {busy("course-plan") ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            </button>
+          </div>
+
+          <div className={`${LIST_ROW} py-3.5`}>
+            <span
+              className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.violet}`}
+            >
+              <FileDown className="w-5 h-5" />
+            </span>
+            <ListRowText
+              title="All Materials"
+              subtitle={subFor("VTOP's bulk archive for this course (empty until faculty bulk-uploads something)")}
+            />
+            <button
+              type="button"
+              onClick={() => handleDownloadMaterial("all-materials", scope)}
+              disabled={disabled}
+              className={`${iconBtn} bg-violet-500/10 hover:bg-violet-500/20 text-violet-600 dark:text-violet-400 border-violet-500/20`}
+              title={`Download ${tag ? `${tag} ` : ""}all course materials ZIP`}
+              aria-label={`Download ${tag ? `${tag} ` : ""}all course materials ZIP`}
+            >
+              {busy("all-materials") ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+            </button>
+          </div>
+
+          <div className={`${LIST_ROW} py-3.5`}>
+            <span
+              className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.emerald}`}
+            >
+              <FileText className="w-5 h-5" />
+            </span>
+            <ListRowText
+              title="General Materials"
+              subtitle={subFor("General/shared materials uploaded for this course (descriptor ZIP)")}
+            />
+            <button
+              type="button"
+              onClick={() => handleDownloadMaterial("general-materials", scope)}
+              disabled={disabled}
+              className={`${iconBtn} bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/20`}
+              title={`Download ${tag ? `${tag} ` : ""}general materials ZIP`}
+              aria-label={`Download ${tag ? `${tag} ` : ""}general materials ZIP`}
+            >
+              {busy("general-materials") ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+            </button>
+          </div>
+        </ListShell>
+      </div>
+    );
+  };
   // Heatmap status colors, shared by the panel and the rectRender override.
   // (0 = no class, 1 = present, 2 = absent, 3 = on duty)
   const HEAT_STATUS_COLORS: Record<number, string> = {
@@ -2034,7 +2140,7 @@ export default function CourseDetailSubpage({
         <TitleBlock
           eyebrow={
             <>
-              Academics &middot;{" "}
+              {innerTab === "vtop" ? "VTOP Course Page" : innerTab === "plan" ? "Course Details" : "Academics"} &middot;{" "}
               {selectedGroup?.semesterSubId && selectedGroup.semesterSubId !== "Current"
                 ? formatSemesterName(selectedGroup.semesterSubId)
                 : "Current Semester"}
@@ -2184,7 +2290,7 @@ export default function CourseDetailSubpage({
                 </span>
               </button>
               {/* VTOP Course Page — teacher-uploaded files */}
-              <button onClick={() => ovGo("plan")} className={LIST_ROW}>
+              <button onClick={() => ovGo("vtop")} className={LIST_ROW}>
                 <span
                   className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.sky}`}
                 >
@@ -2533,7 +2639,7 @@ export default function CourseDetailSubpage({
       {/* LAB PREDICTOR */}
       {effectiveTab === "lab-predictor" && renderPredictorPage(labAttItem, labData, "Lab")}
 
-      {/* COURSE PLAN - Full details, schedule, faculty & syllabus */}
+      {/* COURSE DETAILS — hero, official documents, faculty, weekly timetable, QCM */}
       {innerTab === "plan" && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6 mt-4">
           {/* 1 ── HERO STATS (2-up StatTile + InsightCarousel) */}
@@ -2625,190 +2731,6 @@ export default function CourseDetailSubpage({
                 <span>{downloadSuccess}</span>
               </div>
             )}
-          </div>
-
-          {/* 2.6 · VTOP COURSE PAGE — COURSE PLAN & MATERIALS (MENU LIST) */}
-          <div className="space-y-4">
-            <SectionHeader
-              icon={Paperclip}
-              title="VTOP Course Page · Course Plan & Materials"
-              count={totalUploaded > 0 ? totalUploaded : undefined}
-              right={
-                <button
-                  type="button"
-                  onClick={() => fetchViewDetail()}
-                  disabled={viewLoading}
-                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider text-text-secondary dark:text-text-muted border border-border-muted dark:border-border bg-surface-secondary dark:bg-zinc-800 hover:bg-border-muted dark:hover:bg-zinc-700 transition-colors disabled:opacity-50 cursor-pointer"
-                  title="Re-fetch this course's VTOP page (slow; 4-6 requests)"
-                >
-                  <RefreshCw className={`w-3 h-3 ${viewLoading ? "animate-spin" : ""}`} />
-                  <span>Reload</span>
-                </button>
-              }
-            />
-
-            {viewLoading ? (
-              <ListSkeleton rows={6} />
-            ) : planRowsByScope.length === 0 ? (
-              <EmptyPanel
-                variant="dashed"
-                title="Not fetched yet"
-                description="Tap Reload above to pull the course page from VTOP."
-              />
-            ) : (
-              <div className="space-y-4">
-                {planRowsByScope.map(({ scope, rows }) => (
-                  <div key={scope} className="space-y-3">
-                    {planRowsByScope.length > 1 && <div className="px-1">{renderScopeBadge(scope)}</div>}
-                    <ListShell>
-                      {rows.map(({ entry, row }: any, ri: number) => {
-                        const hasFiles = Array.isArray(row.materials) && row.materials.length > 0;
-                        return (
-                          <div key={`${row.slNo}-${row.date}-${ri}`} className={`${LIST_ROW} py-3.5`}>
-                            <span
-                              className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${
-                                hasFiles
-                                  ? TONE_ICON_TILE.blue
-                                  : "border-border-muted bg-surface-secondary text-text-muted"
-                              }`}
-                            >
-                              <FileText className="w-5 h-5" />
-                            </span>
-                            <ListRowText
-                              title={row.topic || `Session ${row.slNo || ri + 1}`}
-                              titleTooltip={row.topic || undefined}
-                              subtitle={`${row.date || "—"}${row.slot ? ` · ${row.slot}` : ""}`}
-                            />
-                            {hasFiles ? (
-                              row.materials.length === 1 ? (
-                                (() => {
-                                  const mat = row.materials[0];
-                                  const key = `${scope}-${row.slNo}-${row.date}-${mat.materialId}-${mat.materialDate}-${mat.label}`;
-                                  return (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDownloadReferenceMaterial(key, entry, row, mat)}
-                                      disabled={downloadingRef !== null}
-                                      className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0"
-                                      title={`Download ${mat.label} (${row.date})`}
-                                      aria-label={`Download ${mat.label} for session on ${row.date}`}
-                                    >
-                                      {downloadingRef === key ? (
-                                        <RefreshCw className="w-4 h-4 animate-spin" />
-                                      ) : (
-                                        <Download className="w-4 h-4" />
-                                      )}
-                                    </button>
-                                  );
-                                })()
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => setMaterialSheet({ entry, row, scope })}
-                                  disabled={downloadingRef !== null}
-                                  className="inline-flex items-center justify-center w-9 h-9 rounded-xl text-blue-600 dark:text-blue-400 border border-blue-500/20 bg-blue-500/10 hover:bg-blue-500/20 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0"
-                                  title={`${row.materials.length} reference files for this session`}
-                                  aria-label={`Show ${row.materials.length} reference files for session on ${row.date}`}
-                                >
-                                  <ChevronRight className="w-5 h-5" />
-                                </button>
-                              )
-                            ) : (
-                              <span className="text-xs text-text-muted font-medium shrink-0">—</span>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </ListShell>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* 2.5 · COURSE MATERIALS DOWNLOAD */}
-          <div className="space-y-4">
-            <SectionHeader icon={FileDown} title="Course Materials" count={3} />
-
-            <ListShell>
-              <div className={`${LIST_ROW} py-3.5`}>
-                <span
-                  className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.amber}`}
-                >
-                  <Calendar className="w-5 h-5" />
-                </span>
-                <ListRowText
-                  title="Course Plan"
-                  subtitle={`Official lecture plan and topic schedule for ${selectedCode}`}
-                />
-                <button
-                  type="button"
-                  onClick={() => handleDownloadMaterial("course-plan")}
-                  disabled={downloadingMaterial !== null}
-                  className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0"
-                  title="Download course plan Excel"
-                  aria-label="Download course plan Excel"
-                >
-                  {downloadingMaterial === "course-plan" ? (
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Download className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
-
-              <div className={`${LIST_ROW} py-3.5`}>
-                <span
-                  className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.violet}`}
-                >
-                  <FileDown className="w-5 h-5" />
-                </span>
-                <ListRowText
-                  title="All Materials"
-                  subtitle="VTOP's bulk archive for this course (empty until faculty bulk-uploads something)"
-                />
-                <button
-                  type="button"
-                  onClick={() => handleDownloadMaterial("all-materials")}
-                  disabled={downloadingMaterial !== null}
-                  className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-violet-500/10 hover:bg-violet-500/20 text-violet-600 dark:text-violet-400 border border-violet-500/20 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0"
-                  title="Download all course materials ZIP"
-                  aria-label="Download all course materials ZIP"
-                >
-                  {downloadingMaterial === "all-materials" ? (
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Download className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
-
-              <div className={`${LIST_ROW} py-3.5`}>
-                <span
-                  className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.emerald}`}
-                >
-                  <FileText className="w-5 h-5" />
-                </span>
-                <ListRowText
-                  title="General Materials"
-                  subtitle="General/shared materials uploaded for this course (descriptor ZIP)"
-                />
-                <button
-                  type="button"
-                  onClick={() => handleDownloadMaterial("general-materials")}
-                  disabled={downloadingMaterial !== null}
-                  className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0"
-                  title="Download general materials ZIP"
-                  aria-label="Download general materials ZIP"
-                >
-                  {downloadingMaterial === "general-materials" ? (
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Download className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
-            </ListShell>
           </div>
 
           {/* 3 ── FACULTY & INSTRUCTION WITH VITFAC REVIEWS & SCHEDULE */}
@@ -2991,6 +2913,148 @@ export default function CourseDetailSubpage({
                 )}
               </ListShell>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* VTOP COURSE PAGE — lecture plan, teacher-uploaded materials & bulk downloads */}
+      {innerTab === "vtop" && (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6 mt-4">
+          {/* 1 ── HERO STATS */}
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+            <StatTile
+              label="Teacher Uploads"
+              value={totalUploaded > 0 ? String(totalUploaded) : "0"}
+              sub={totalUploaded === 1 ? "file on the course page" : "files on the course page"}
+              tone="sky"
+              badge={viewLoading ? "Syncing" : "VTOP"}
+            />
+            <StatTile
+              label="Lecture Plan"
+              value={`${planRowsByScope.reduce((n, s) => n + s.rows.length, 0)} sessions`}
+              sub="Scheduled lecture dates"
+              tone="amber"
+              badge="VTOP"
+            />
+          </div>
+
+          {/* 2 · VTOP COURSE PAGE — PLAN, SESSION MATERIALS & BULK DOWNLOADS */}
+          <div className="space-y-4">
+            <SectionHeader
+              icon={Paperclip}
+              title="VTOP Course Page · Course Plan & Materials"
+              count={totalUploaded > 0 ? totalUploaded : undefined}
+              right={
+                <button
+                  type="button"
+                  onClick={() => fetchViewDetail()}
+                  disabled={viewLoading}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider text-text-secondary dark:text-text-muted border border-border-muted dark:border-border bg-surface-secondary dark:bg-zinc-800 hover:bg-border-muted dark:hover:bg-zinc-700 transition-colors disabled:opacity-50 cursor-pointer"
+                  title="Re-fetch this course's VTOP page (slow; 4-6 requests)"
+                >
+                  <RefreshCw className={`w-3 h-3 ${viewLoading ? "animate-spin" : ""}`} />
+                  <span>Reload</span>
+                </button>
+              }
+            />
+
+            {viewLoading ? (
+              <ListSkeleton rows={6} />
+            ) : planRowsByScope.length === 0 ? (
+              <EmptyPanel
+                variant="dashed"
+                title="Not fetched yet"
+                description="Tap Reload above to pull the course page from VTOP."
+              />
+            ) : (
+              <div className="space-y-4">
+                {planRowsByScope.map(({ scope, rows }) => (
+                  <div key={scope} className="space-y-3">
+                    {planRowsByScope.length > 1 && <div className="px-1">{renderScopeBadge(scope)}</div>}
+                    <ListShell>
+                      {rows.map(({ entry, row }: any, ri: number) => {
+                        const hasFiles = Array.isArray(row.materials) && row.materials.length > 0;
+                        return (
+                          <div key={`${row.slNo}-${row.date}-${ri}`} className={`${LIST_ROW} py-3.5`}>
+                            <span
+                              className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${
+                                hasFiles
+                                  ? TONE_ICON_TILE.blue
+                                  : "border-border-muted bg-surface-secondary text-text-muted"
+                              }`}
+                            >
+                              <FileText className="w-5 h-5" />
+                            </span>
+                            <ListRowText
+                              title={row.topic || `Session ${row.slNo || ri + 1}`}
+                              titleTooltip={row.topic || undefined}
+                              subtitle={`${row.date || "—"}${row.slot ? ` · ${row.slot}` : ""}`}
+                            />
+                            {hasFiles ? (
+                              row.materials.length === 1 ? (
+                                (() => {
+                                  const mat = row.materials[0];
+                                  const key = `${scope}-${row.slNo}-${row.date}-${mat.materialId}-${mat.materialDate}-${mat.label}`;
+                                  return (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDownloadReferenceMaterial(key, entry, row, mat)}
+                                      disabled={downloadingRef !== null}
+                                      className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0"
+                                      title={`Download ${mat.label} (${row.date})`}
+                                      aria-label={`Download ${mat.label} for session on ${row.date}`}
+                                    >
+                                      {downloadingRef === key ? (
+                                        <RefreshCw className="w-4 h-4 animate-spin" />
+                                      ) : (
+                                        <Download className="w-4 h-4" />
+                                      )}
+                                    </button>
+                                  );
+                                })()
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => setMaterialSheet({ entry, row, scope })}
+                                  disabled={downloadingRef !== null}
+                                  className="inline-flex items-center justify-center w-9 h-9 rounded-xl text-blue-600 dark:text-blue-400 border border-blue-500/20 bg-blue-500/10 hover:bg-blue-500/20 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shrink-0"
+                                  title={`${row.materials.length} reference files for this session`}
+                                  aria-label={`Show ${row.materials.length} reference files for session on ${row.date}`}
+                                >
+                                  <ChevronRight className="w-5 h-5" />
+                                </button>
+                              )
+                            ) : (
+                              <span className="text-xs text-text-muted font-medium shrink-0">—</span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </ListShell>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Bulk downloads — per component when embedded */}
+            <div className="space-y-4">
+              <div className="px-1 flex items-center justify-between gap-2">
+                <span className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-text-muted">
+                  Course Materials
+                </span>
+                {isEmbedded && (
+                  <span className="text-[10px] font-semibold text-text-muted">Separate files for theory &amp; lab</span>
+                )}
+              </div>
+              {isEmbedded ? (
+                <>
+                  {selectedGroup?.theory && renderMaterialGroup("theory", true)}
+                  {selectedGroup?.lab && renderMaterialGroup("lab", true)}
+                </>
+              ) : (
+                renderMaterialGroup(undefined, false)
+              )}
+            </div>
           </div>
         </div>
       )}

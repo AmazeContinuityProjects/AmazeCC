@@ -85,8 +85,9 @@ export default function SyncCadenceGuide() {
       </div>
 
       <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-snug">
-        Everything is cumulative and staleness-gated — the app only pays for what&rsquo;s due. Turning an op off removes
-        it from every tier; it will not be fetched automatically again until you turn it back on.
+        Everything is cumulative. Windows below gate automatic/background sync — picking a tier manually (or a semester
+        switch) runs it fully, now. Turning an op off removes it from every tier; it will not be fetched automatically
+        again until you turn it back on.
       </p>
 
       <div className="space-y-2">

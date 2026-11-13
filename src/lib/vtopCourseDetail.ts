@@ -3,9 +3,17 @@
  *
  * The course subpage wants this payload (lecture plan + teacher-uploaded
  * reference materials + syllabus params) for every current-semester course.
- * Fetching it on demand costs 4-6 VTOP round trips per course, so the sync
- * sweep caches one entry per class (`coursePageView` in storage.cache) and the
- * page reads the cache; a manual reload button forces a refresh.
+ * Fetching it costs ~2 VTOP round trips via the API's priming warmers, so the
+ * sync sweep caches one entry per class and the page reads the cache; a manual
+ * reload button forces a refresh.
+ *
+ * The one (classId, erpId) pair VTOP's `processViewStudentCourseDetail`
+ * accepts is the attendance payload's teacher — live-verified for every class
+ * of Fall 2026-27: the attendance teacher's leading-digit erpId gets HTTP 200
+ * with the lecture plan, while every option of the praType="source" faculty
+ * dropdown gets HTTP 404. `slotId` never reaches the view-detail AJAX (it is
+ * only session priming, and priming is not required), so the pipeline sends
+ * nothing but `semSubId`, `erpId` and `classId`.
  *
  * The transport is injected (`CoursePageApiCall`) so both the sync engine
  * (ctx.request, `auth: "vtop"` — cookies from the credential manager) and UI
@@ -13,16 +21,7 @@
  */
 
 import { storage } from "./storage";
-import {
-  getFacultyOptions,
-  getResolvedSlot,
-  getSlotOptions,
-  invalidateClass,
-  setFacultyOptions,
-  setResolvedSlot,
-  setSlotOptions,
-  type VtopDropdownOption,
-} from "./vtopCoursePage";
+import { getResolvedSlot, invalidateClass, setResolvedSlot } from "./vtopCoursePage";
 
 export const COURSE_PAGE_VIEW_CACHE_KEY = "coursePageView";
 export const COURSE_PAGE_VIEW_TTL_MS = 14 * 24 * 60 * 60 * 1000;
@@ -32,11 +31,6 @@ export interface CoursePageViewCache {
   fetchedAt: number;
   /** Keyed by classId (the VTOP class number, e.g. CH2026270100036). */
   courses: Record<string, unknown>;
-}
-
-export function parseSelectOptions(d: any, name: string): VtopDropdownOption[] {
-  const opts = d?.results?.selectOptions?.[name] ?? d?.selectOptions?.[name] ?? [];
-  return Array.isArray(opts) ? opts.filter((o: any) => o && String(o.value ?? "").trim() !== "") : [];
 }
 
 // --- cache helpers ----------------------------------------------------------
@@ -92,89 +86,54 @@ export interface CourseCompInput {
 }
 
 export interface ResolvedDropdowns {
+  /** Empty — kept only for cache-shape compatibility; the view-detail AJAX ignores it. */
   slotId: string;
   faculty: string;
   erpId: string;
 }
 
 /**
- * Resolve the dropdown semantics for one course component.
+ * The attendance faculty label is the only identity VTOP will serve the
+ * student's own course page for: the leading digit run is the teacher's erpId
+ * (e.g. "52262 MERCY …" → "52262"). Returns null for labels with no numeric
+ * id (APT / elective buckets) — those have no course page to fetch.
+ */
+export const erpIdFromAttendanceFaculty = (s: unknown): string | null => {
+  const m = String(s ?? "").match(/\d{4,}/);
+  return m ? m[0] : null;
+};
+
+/**
+ * Derive the (semSubId, erpId, classId) triple for one component.
  *
- * Persisted per semester in `vtopCoursePage` — warm caches never see the
- * network. Pass `fresh: true` to bypass both cache tiers (the error path).
+ * Nothing hits the network here — the triple is local work from the sync's
+ * own attendance payload. Cached per semester for shape compatibility and so
+ * the retry path can invalidate cleanly.
  */
 export async function resolveVtopDropdowns(
-  call: CoursePageApiCall,
   semSubId: string,
   comp: CourseCompInput,
   opts?: { fresh?: boolean },
 ): Promise<ResolvedDropdowns | null> {
   const classId = String(comp.classNbr ?? "");
-
   if (!opts?.fresh) {
     const stored = getResolvedSlot(semSubId, classId);
     if (stored) return stored;
   }
-
-  // 1. Slot options — usually already cached for this semester.
-  let slotOptions = opts?.fresh ? null : getSlotOptions(semSubId, classId);
-  if (!slotOptions) {
-    try {
-      const d = await call({ semesterSubId: semSubId, courseCode: classId });
-      slotOptions = parseSelectOptions(d, "slotId");
-      if (slotOptions.length > 0) setSlotOptions(semSubId, classId, slotOptions);
-    } catch (e) {
-      console.error("slotId resolution failed (continuing with raw slot):", e);
-      slotOptions = [];
-    }
-  }
-  // Trust VTOP's dropdown as-is: the selected option is what VTOP expects
-  // for this class; fall back to the first option it lists.
-  const resolvedSlot = slotOptions.find((o) => o.selected) ?? slotOptions[0] ?? null;
-  const slotId = resolvedSlot?.value ? String(resolvedSlot.value) : null;
-  // Nothing to work with - this class cannot answer /processViewStudentCourseDetail.
-  if (!slotId) return null;
-
-  // 2. Faculty options for the resolved slot.
-  let facultyOptions = opts?.fresh ? null : getFacultyOptions(semSubId, classId, slotId);
-  if (!facultyOptions) {
-    try {
-      const d = await call({ semesterSubId: semSubId, courseCode: classId, slotId });
-      facultyOptions = parseSelectOptions(d, "faculty");
-      if (facultyOptions.length > 0) setFacultyOptions(semSubId, classId, slotId, facultyOptions);
-    } catch (e) {
-      console.error("faculty resolution failed (continuing with raw faculty):", e);
-      facultyOptions = [];
-    }
-  }
-  // Trust VTOP's faculty dropdown too — the selected option is who VTOP says teaches this class.
-  const resolvedFaculty = facultyOptions.find((o) => o.selected) ?? facultyOptions[0] ?? null;
-  const faculty = resolvedFaculty?.value ? String(resolvedFaculty.value) : String(comp.faculty ?? "");
-  const erpId = resolvedFaculty?.value
-    ? String(resolvedFaculty.value)
-    : String(
-        String(comp.faculty ?? "")
-          .split("-")[0]
-          ?.trim() ??
-          comp.faculty ??
-          "",
-      );
-
-  // Faculty unresolved and nothing raw to fall back on — VTOP only serves the
-  // course page for a recognised (erpId, classId) pair, so skip instead of
-  // firing a guaranteed 404.
+  const faculty = String(comp.faculty ?? "").trim();
+  const erpId = erpIdFromAttendanceFaculty(faculty);
   if (!erpId) return null;
-
-  const resolved: ResolvedDropdowns = { slotId, faculty, erpId };
+  const resolved: ResolvedDropdowns = { slotId: "", faculty, erpId };
   setResolvedSlot(semSubId, classId, resolved);
   return resolved;
 }
 
 /**
  * Fetch the view-detail payload for one course component.
- * Retries once with a freshly computed dropdown when the server errors out —
- * the cached dropdown may be stale, but this keeps one bad call from sinking
- * the whole sync.
+ * Sent as just `semSubId` + `erpId` + `classId` — live-verified to be the
+ * whole requirement for `processViewStudentCourseDetail`; the extra slotId /
+ * faculty fields only drive priming warmers (which VTOP tolerates failing).
+ * One retry keeps a transient VTOP blip from sinking the class.
  */
 export async function fetchViewDetailForComp(
   call: CoursePageApiCall,
@@ -183,36 +142,24 @@ export async function fetchViewDetailForComp(
   opts?: { fresh?: boolean },
 ): Promise<any> {
   const classId = String(comp.classNbr ?? "");
+  const attempt = async () => {
+    const resolved = await resolveVtopDropdowns(semSubId, comp, opts);
+    if (!resolved) return null;
+    return call({ viewDetail: "true", semSubId, erpId: resolved.erpId, classId });
+  };
+
   let d: any = null;
   try {
-    const resolved = await resolveVtopDropdowns(call, semSubId, comp, opts);
-    if (!resolved) return null;
-    d = await call({
-      viewDetail: "true",
-      semSubId,
-      erpId: resolved.erpId,
-      classId,
-      slotId: resolved.slotId,
-      faculty: resolved.faculty,
-    });
-  } catch (e) {
+    d = await attempt();
+  } catch {
     d = null;
   }
 
   if (!d || d.success === false || d.error) {
     invalidateClass(semSubId, classId);
     try {
-      const resolved = await resolveVtopDropdowns(call, semSubId, comp, { fresh: true });
-      if (!resolved) return null;
-      d = await call({
-        viewDetail: "true",
-        semSubId,
-        erpId: resolved.erpId,
-        classId,
-        slotId: resolved.slotId,
-        faculty: resolved.faculty,
-      });
-    } catch (e) {
+      d = await attempt();
+    } catch {
       d = null;
     }
   }
