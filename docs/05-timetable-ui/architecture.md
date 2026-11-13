@@ -13,7 +13,7 @@ description: "three grid dialects — vertical (phone), horizontal (desktop), cl
 <TimetableView periods={periods} mode={"auto"|"vertical"|"horizontal"|"classic"} density={"auto"|"compact"|"detailed"} />
 ```
 
-- `auto` mode: viewport width decides — <700 px → vertical; 700–1100 → horizontal; >1100 → horizontal detailed
+- `auto` mode: viewport width decides — `&lt;700 px` → vertical; 700–1100 → horizontal; >1100 → horizontal detailed
 - density by sub-level inside each mode (compact stacks 4+ courses per period; detailed renders full course card)
 - `useTimetableViewMode` reads `settingsAtom` override; no prop drilling for mode selection
 

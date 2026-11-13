@@ -39,7 +39,7 @@ skip the guest landing flash. That's why no flash-of-landing — and why SSR mar
 
 ## The offline contract (user-visible)
 
-1. Open the app from home screen → shell from cache in <1 s.
+1. Open the app from home screen → shell from cache in under 1 s.
 2. Any network-dependent screen shows **last synced** data with an "Updated N min ago" badge
    (`LastSynced.tsx`) or an offline banner (`ConnectionBanner`).
 3. Operations that need network are disabled/queued accordingly (sheet shows "offline").

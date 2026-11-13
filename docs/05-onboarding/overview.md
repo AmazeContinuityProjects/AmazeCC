@@ -5,7 +5,7 @@ description: '<2 minutes from "never heard of AmazeCC" to a populated dashboard.
 
 # Onboarding — Overview (walkthrough)
 
-> **In one line:** <2 minutes from "never heard of AmazeCC" to a populated dashboard.
+> **In one line:** `&lt;2 minutes` from "never heard of AmazeCC" to a populated dashboard.
 
 1. **Landing page** — what this is, campus brand hero, one line: "VIT's portal, rebuilt"
 2. **Sign in** — VTOP credentials; captcha; sync begins immediately (cookie auth handshakes)

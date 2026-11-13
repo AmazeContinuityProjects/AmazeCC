@@ -18,10 +18,10 @@ The engine resolves this in `processParsedCourses` in `src/components/custom/exa
 
 The weekly schedule is divided by the lunch boundary (2:00 PM / 840 minutes from midnight):
 
-| Half                          | Theory Timing Window                                                      | Lab Timing Window                                    | Lab Slot IDs                                                                                                                                                        |
-| ----------------------------- | ------------------------------------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Morning Shift**             | Period 1–4 (8:00 AM – 11:35 AM)<br>Late: Period 5–6 (11:40 AM – 1:25 PM)  | Core: 8:00 AM – 11:30 AM<br>Late: 11:40 AM – 1:20 PM | `L1`–`L30`<br>(`L1`–`L4`, `L7`–`L10`, `L13`–`L16`, `L19`–`L22`, `L25`–`L28` = Core)<br>(`L5`–`L6`, `L11`–`L12`, `L17`–`L18`, `L23`–`L24`, `L29`–`L30` = Late)       |
-| **Afternoon / Evening Shift** | Period 7–10 (2:00 PM – 5:35 PM)<br>Late: Period 11–12 (5:40 PM – 7:25 PM) | Core: 2:00 PM – 5:30 PM<br>Late: 5:40 PM – 7:20 PM   | `L31`–`L60`<br>(`L31`–`L34`, `L37`–`L40`, `L43`–`L46`, `L49`–`L52`, `L55`–`L58` = Core)<br>(`L35`–`L36`, `L41`–`L42`, `L47`–`L48`, `L53`–`L54`, `L59`–`L60` = Late) |
+| Half                          | Theory Timing Window                                                        | Lab Timing Window                                      | Lab Slot IDs                                                                                                                                                            |
+| ----------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Morning Shift**             | Period 1–4 (8:00 AM – 11:35 AM)<br />Late: Period 5–6 (11:40 AM – 1:25 PM)  | Core: 8:00 AM – 11:30 AM<br />Late: 11:40 AM – 1:20 PM | `L1`–`L30`<br />(`L1`–`L4`, `L7`–`L10`, `L13`–`L16`, `L19`–`L22`, `L25`–`L28` = Core)<br />(`L5`–`L6`, `L11`–`L12`, `L17`–`L18`, `L23`–`L24`, `L29`–`L30` = Late)       |
+| **Afternoon / Evening Shift** | Period 7–10 (2:00 PM – 5:35 PM)<br />Late: Period 11–12 (5:40 PM – 7:25 PM) | Core: 2:00 PM – 5:30 PM<br />Late: 5:40 PM – 7:20 PM   | `L31`–`L60`<br />(`L31`–`L34`, `L37`–`L40`, `L43`–`L46`, `L49`–`L52`, `L55`–`L58` = Core)<br />(`L35`–`L36`, `L41`–`L42`, `L47`–`L48`, `L53`–`L54`, `L59`–`L60` = Late) |
 
 ### Permissible Lab Configurations
 

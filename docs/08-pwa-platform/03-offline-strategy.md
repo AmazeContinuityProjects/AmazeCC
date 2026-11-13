@@ -34,4 +34,4 @@ description: "the app _opens_ offline; it just doesn't know anything new happene
 ## Freshness contract on resume
 
 Resume → no auto-sync ever (boot-silent rule). Student taps Refresh — or full sync on mode
-sellection — and only then network proceeds; offline app from cold start renders stale in <1s.
+sellection — and only then network proceeds; offline app from cold start renders stale in `&lt;1s`.
