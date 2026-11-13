@@ -1,7 +1,12 @@
+
 $schema: "https://api.gitbook.com/gitbook-docs.yaml"
+
 site:
   title: AmazeCC
   structure:
+    # ============================================================
+    # GETTING STARTED
+    # ============================================================
     - type: section
       key: section-start
       title: Getting Started
@@ -15,6 +20,7 @@ site:
           path: web-foundation
           content:
             directory: ./00-web-foundation
+
         - type: space
           key: space-getting-started
           title: Getting Started
@@ -22,29 +28,36 @@ site:
           default: true
           content:
             directory: ./01-getting-started
+
         - type: space
           key: space-architecture
           title: Architecture
           path: architecture
           content:
             directory: ./02-architecture
+
         - type: space
           key: space-routing
           title: Routing & Navigation
           path: routing
           content:
             directory: ./03-routing
+
         - type: space
           key: space-app-shell
           title: App Shell
           path: app-shell
           content:
             directory: ./04-app-shell
+
+    # ============================================================
+    # FEATURES
+    # ============================================================
     - type: section
       key: section-features
       title: Features
       path: features
-      icon: blocks
+      icon: book
       children:
         - type: space
           key: space-feature-about-and-licensing
@@ -52,48 +65,56 @@ site:
           path: about-and-licensing
           content:
             directory: ./05-about-and-licensing
+
         - type: space
           key: space-feature-academics
           title: Academics
           path: academics
           content:
             directory: ./05-academics
+
         - type: space
           key: space-feature-attendance
           title: Attendance
           path: attendance
           content:
             directory: ./05-attendance
+
         - type: space
           key: space-feature-cab-share
           title: Cab Share
           path: cab-share
           content:
             directory: ./05-cab-share
+
         - type: space
           key: space-feature-changelog-and-about
           title: Changelog & About
           path: changelog-and-about
           content:
             directory: ./05-changelog-and-about
+
         - type: space
           key: space-feature-events-and-clubs
           title: Events & Clubs
           path: events-and-clubs
           content:
             directory: ./05-events-and-clubs
+
         - type: space
           key: space-feature-feedback-and-support
           title: Feedback & Support
           path: feedback-and-support
           content:
             directory: ./05-feedback-and-support
+
         - type: space
           key: space-feature-ffcs-friends
           title: FFCS Friends
           path: ffcs-friends
           content:
             directory: ./05-ffcs-friends
+
         - type: space
           key: space-feature-ffcs-planner
           title: FFCS Planner
@@ -101,108 +122,129 @@ site:
           default: true
           content:
             directory: ./05-ffcs-planner
+
         - type: space
           key: space-feature-free-classrooms
           title: Free Classrooms
           path: free-classrooms
           content:
             directory: ./05-free-classrooms
+
         - type: space
           key: space-feature-friend-finder
           title: Friend Finder
           path: friend-finder
           content:
             directory: ./05-friend-finder
+
         - type: space
           key: space-feature-guest-landing
           title: Guest Landing
           path: guest-landing
           content:
             directory: ./05-guest-landing
+
         - type: space
           key: space-feature-hostel
           title: Hostel
           path: hostel
           content:
             directory: ./05-hostel
+
         - type: space
           key: space-feature-libraries
           title: Libraries
           path: libraries
           content:
             directory: ./05-libraries
+
         - type: space
           key: space-feature-marks-and-cohort
           title: Marks & Cohort
           path: marks-and-cohort
           content:
             directory: ./05-marks-and-cohort
+
         - type: space
           key: space-feature-marks-predictor
           title: Marks Predictor
           path: marks-predictor
           content:
             directory: ./05-marks-predictor
+
         - type: space
           key: space-feature-notifications-and-push
           title: Notifications & Push
           path: notifications-and-push
           content:
             directory: ./05-notifications-and-push
+
         - type: space
           key: space-feature-onboarding
           title: Onboarding
           path: onboarding
           content:
             directory: ./05-onboarding
+
         - type: space
           key: space-feature-paper-scanner
           title: Paper Scanner
           path: paper-scanner
           content:
             directory: ./05-paper-scanner
+
         - type: space
           key: space-feature-payments
           title: Payments
           path: payments
           content:
             directory: ./05-payments
+
         - type: space
           key: space-feature-qbank
           title: QBank
           path: qbank
           content:
             directory: ./05-qbank
+
         - type: space
           key: space-feature-settings-and-profile
           title: Settings & Profile
           path: settings-and-profile
           content:
             directory: ./05-settings-and-profile
+
         - type: space
           key: space-feature-social
           title: Social
           path: social
           content:
             directory: ./05-social
+
         - type: space
           key: space-feature-student-report
           title: Student Report
           path: student-report
           content:
             directory: ./05-student-report
+
         - type: space
           key: space-feature-tasks-and-pomodoro
           title: Tasks & Pomodoro
           path: tasks-and-pomodoro
           content:
             directory: ./05-tasks-and-pomodoro
+
         - type: space
           key: space-feature-timetable-ui
           title: Timetable UI
           path: timetable-ui
           content:
             directory: ./05-timetable-ui
+
+    # ============================================================
+    # SYSTEMS
+    # ============================================================
     - type: section
       key: section-systems
       title: Systems
@@ -216,24 +258,31 @@ site:
           default: true
           content:
             directory: ./06-sync-engine
+
         - type: space
           key: space-data-layer
           title: Data Layer
           path: data-layer
           content:
             directory: ./07-data-layer
+
         - type: space
           key: space-pwa-platform
           title: PWA Platform
           path: pwa-platform
           content:
             directory: ./08-pwa-platform
+
         - type: space
           key: space-testing
           title: Testing
           path: testing
           content:
             directory: ./09-testing
+
+    # ============================================================
+    # OPERATIONS
+    # ============================================================
     - type: section
       key: section-ops
       title: Operations
@@ -246,12 +295,14 @@ site:
           path: tooling-and-ci
           content:
             directory: ./10-tooling-and-ci
+
         - type: space
           key: space-security
           title: Security
           path: security
           content:
             directory: ./11-security
+
         - type: space
           key: space-operations
           title: Operations
@@ -259,12 +310,17 @@ site:
           default: true
           content:
             directory: ./12-operations
+
         - type: space
           key: space-troubleshooting
           title: Troubleshooting
           path: troubleshooting
           content:
             directory: ./13-troubleshooting
+
+    # ============================================================
+    # REFERENCE
+    # ============================================================
     - type: section
       key: section-reference
       title: Reference
@@ -278,18 +334,21 @@ site:
           default: true
           content:
             directory: ./99-reference
+
         - type: space
           key: space-design-notes
           title: Design Notes
           path: design-notes
           content:
             directory: ./20-design-notes
+
         - type: space
           key: space-contributing
           title: Contributing
           path: contributing
           content:
             directory: ./contributing
+
         - type: space
           key: space-archive
           title: "Archive (historical)"
