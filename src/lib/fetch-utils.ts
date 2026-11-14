@@ -9,6 +9,7 @@ import {
   uniccRouteName,
   uniccUrlFor,
 } from "./unicc-fallback";
+import { getAccessTokenSync } from "./oauth2";
 
 /**
  * The AmazeCC API host.
@@ -224,10 +225,42 @@ export function getRewrittenUrl(url: string): string {
 }
 
 /**
+ * Attach the Amaze ID bearer to calls addressed to AmazeCC's own API hosts.
+ * Every call the app makes carries it - first-party services (qbank, social,
+ * cabshare, gorobo, notifications) verify it, and everyone else ignores it.
+ * Never attached to UniCC/third-party hosts or loopback-custom dev servers we
+ * don't control (the allowlist is explicit).
+ */
+const AMAZEID_HOSTS = new Set(
+  [PRIMARY_API_URL, failoverBackupUrl(), "https://cache.amazecc.com"]
+    .map((u) => {
+      try {
+        return new URL(u).origin;
+      } catch {
+        return null;
+      }
+    })
+    .filter((v): v is string => v !== null),
+);
+
+function withAmazeIdAuth(init: RequestInit | undefined, urlStr: string): RequestInit | undefined {
+  try {
+    const origin = new URL(urlStr).origin;
+    if (!AMAZEID_HOSTS.has(origin)) return init;
+    const token = getAccessTokenSync();
+    if (!token) return init;
+    const headers = new Headers(init?.headers);
+    if (headers.has("Authorization")) return init; // caller already chose one
+    headers.set("Authorization", `Bearer ${token}`);
+    return { ...(init ?? {}), headers };
+  } catch {
+    return init;
+  }
+}
+/**
  * Statuses that mean "this host could not answer", as opposed to a real reply.
- *
- * Deliberately excludes 404 and other 4xx. A 404 is an answer — the route does
- * not exist there — and treating it as an outage would mask a genuine bug
+ * Deliberately excludes 404 and other 4xx. A 404 is an answer - the route does
+ * not exist there - and treating it as an outage would mask a genuine bug
  * behind a failover. It also excludes 401, which is the case that matters most:
  * both backends log in against real VTOP, and VTOP locks an account after
  * repeated failed attempts, so a rejected password must be attempted exactly
@@ -418,7 +451,7 @@ export async function fetchWithFailover(input: RequestInfo | URL, init?: Request
   }
 
   try {
-    const res = await originalFetch(prepareInput(targetUrl), init);
+    const res = await originalFetch(prepareInput(targetUrl), withAmazeIdAuth(init, targetUrl));
     if (isFailoverStatus(res.status)) {
       throw new Error(`Server error ${res.status}`);
     }
@@ -443,7 +476,7 @@ export async function fetchWithFailover(input: RequestInfo | URL, init?: Request
         console.warn(`Backup API call failed (${urlStr}). Retrying primary. Error:`, error);
         setActiveApiUrl(PRIMARY_API_URL);
         try {
-          const recovered = await originalFetch(prepareInput(urlStr), init);
+          const recovered = await originalFetch(prepareInput(urlStr), withAmazeIdAuth(init, urlStr));
           if (isFailoverStatus(recovered.status)) throw new Error(`Server error ${recovered.status}`);
           if (recovered.ok) noteAmazeccServing(uniccRouteName(urlStr));
           return recovered;
@@ -468,7 +501,7 @@ export async function fetchWithFailover(input: RequestInfo | URL, init?: Request
 
       try {
         console.log(`Retrying request with backup URL: ${backupUrl}`);
-        const backupRes = await originalFetch(prepareInput(backupUrl), init);
+        const backupRes = await originalFetch(prepareInput(backupUrl), withAmazeIdAuth(init, backupUrl));
         if (isFailoverStatus(backupRes.status)) {
           // A 5xx is a failure, not an answer. Returning it would hand the caller
           // an error page as if it were data and skip the UniCC hop.
