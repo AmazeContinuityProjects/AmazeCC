@@ -18,7 +18,11 @@ const AUTH_BASE = process.env.NEXT_PUBLIC_AUTH_URL ?? "https://auth.amazecc.com"
 
 export const OIDC = {
   clientId: "amazecc-web",
-  redirectUri: () => `${window.location.origin}/auth/callback`,
+  // NOTE: amazecc.com is GitHub Pages with trailingSlash:true, and the clean
+  // no-slash URL is 301'd to the trailing-slash URL WITHOUT the query string -
+  // the authorization code would be lost. Must be the trailing-slash URL,
+  // matching the registered redirect_uri. Verified live 2026-11-14.
+  redirectUri: () => `${window.location.origin}/auth/callback/`,
   scope: "openid profile email",
   authorizeEndpoint: `${AUTH_BASE}/api/auth/oauth2/authorize`,
   tokenEndpoint: `${AUTH_BASE}/api/auth/oauth2/token`,
