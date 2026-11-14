@@ -34,11 +34,29 @@ describe("API registry", () => {
   });
 
   it("refuses to route unauthenticated calls to authenticated mounts", () => {
-    // buses/fresher-resources are the only no-auth operations; a vtop-authed
-    // call must still be allowed (legacy serves them publicly), but a none-
-    // authed call to a vtop route must not pick one.
+    // A none-authed call to a vtop route must not pick one.
     const chain = resolveOperation("whoami", "none");
     expect(chain).toEqual([]);
+  });
+
+  it("routes the VTOP sign-in as a no-auth call to hono, then legacy", () => {
+    const chain = resolveOperation("login", "none");
+    expect(chain.map((r) => r.mount.id)).toEqual(["hono", "legacy"]);
+    expect(chain[0].url).toBe("https://hono.amazecc.com/login");
+    expect(chain[0].method).toBe("POST");
+  });
+
+  it.each(["events/login", "events/profile", "events", "notifications/subscribe"])(
+    "routes the no-auth operation %s to hono, then legacy",
+    (op) => {
+      const chain = resolveOperation(op, "none");
+      expect(chain.map((r) => r.mount.id)).toEqual(["hono", "legacy"]);
+    },
+  );
+
+  it("keeps the public events list a GET", () => {
+    const chain = resolveOperation("events", "none");
+    expect(chain.map((r) => r.method)).toEqual(["GET", "GET"]);
   });
 
   it("never puts UniCC in front of an AmazeCC host; allowlist only", () => {
