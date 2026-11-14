@@ -5,7 +5,7 @@ import type { ApiDefinition } from "./types";
  * and as the reference for shape parity with the Worker.
  *
  * Same operations as hono but with the legacy route shape (no /services
- * prefix for marks/enroll/faculty).
+ * prefix for marks/enroll/faculty - all flat /api/<op>).
  */
 export const legacyDefinition: ApiDefinition = {
   id: "legacy",
@@ -13,6 +13,6 @@ export const legacyDefinition: ApiDefinition = {
   baseUrl: (process.env.NEXT_PUBLIC_API_URL || "https://api.amazecc.com").replace(/\/+$/, ""),
   auth: ["vtop", "eventhub", "none"],
   routeFor(op) {
-    return { method: "POST", path: `/${op}` };
+    return { method: "POST", path: `/api/${op}` };
   },
 };

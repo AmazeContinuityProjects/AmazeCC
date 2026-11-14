@@ -97,7 +97,6 @@ function eligible(mount: MountedApi, op: string, auth: ApiAuth): ApiRoute | null
   if (!route) return null;
   const routeAuth = route.auth ?? "vtop";
   if (!mount.auth.includes(routeAuth)) return null;
-  if (auth === "none" && routeAuth !== "none") return null;
   return route;
 }
 

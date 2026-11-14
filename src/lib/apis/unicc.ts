@@ -3,9 +3,7 @@ import type { ApiDefinition } from "./types";
 /**
  * UniCC (api-unicc.arya22.dev) - the third-party VTOP proxy, kept ONLY as a
  * last-resort fallback for the operations it actually implements, and only
- * when every AmazeCC host has already failed. Mirrors the pre-existing
- * allowlist in `unicc-fallback.ts` - expressed as a mount so it composes with
- * the rest of the registry instead of living in its own bespoke path.
+ * when every AmazeCC host has already failed.
  */
 export const uniccDefinition: ApiDefinition = {
   id: "unicc",
@@ -24,6 +22,6 @@ export const uniccDefinition: ApiDefinition = {
       "lms-data",
       "vitol-data",
     ]);
-    return allowlist.has(op) ? { method: "POST", path: `/${op}` } : null;
+    return allowlist.has(op) ? { method: "POST", path: `/api/${op}` } : null;
   },
 };
