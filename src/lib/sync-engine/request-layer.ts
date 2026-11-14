@@ -1,5 +1,6 @@
 import { fetchWithTimeout } from "../fetch-utils";
 import { resolveApiRoute } from "../workerBase";
+import { resolveOperation } from "../apis/registry";
 import { AuthError, TransientError, sleep, backoff, isAuthFailMessage } from "./errors";
 import type { AuthDomain } from "./types";
 
@@ -69,6 +70,11 @@ export function resetActiveSignal(): AbortSignal {
 
 export async function request(path: string, body?: unknown, opts: RequestOpts = {}): Promise<any> {
   const method = opts.method ?? "POST";
+  const auth = opts.auth ?? "vtop";
+  const mountChain = resolveOperation(path, auth);
+  if (mountChain.length === 0) {
+    throw new TransientError(`No API mount serves '${path}' with auth '${auth}'`, 0);
+  }
   const dedupeKey = opts.dedupeKey ?? `${method}:${path}:${JSON.stringify(body ?? "")}`;
 
   if (!opts.bypassDedupe) {
@@ -86,7 +92,9 @@ export async function request(path: string, body?: unknown, opts: RequestOpts = 
 
   const run = async (): Promise<any> => {
     let lastErr: unknown;
+    let mountIndex = 0;
     for (let attempt = 0; attempt <= max; attempt++) {
+      const mount = mountChain[Math.min(mountIndex, mountChain.length - 1)];
       try {
         let finalBody: unknown = body;
         if (opts.auth === "vtop" || opts.auth === "eventhub") {
@@ -109,11 +117,11 @@ export async function request(path: string, body?: unknown, opts: RequestOpts = 
         }
 
         const res = await fetchWithTimeout(
-          resolveApiRoute(path, opts.auth),
+          mount.url,
           {
-            method,
+            method: mount.method,
             headers: { "Content-Type": "application/json" },
-            body: finalBody ? JSON.stringify(finalBody) : undefined,
+            body: finalBody && mount.method !== "GET" ? JSON.stringify(finalBody) : undefined,
             signal: effectiveSignal,
           },
           opts.timeoutMs ?? 60000,
@@ -131,23 +139,34 @@ export async function request(path: string, body?: unknown, opts: RequestOpts = 
       } catch (err) {
         lastErr = err;
         if (err instanceof AuthError) throw err;
-        // Caller-cancelled: never retry, never wrap — propagate the AbortError as-is
+        // Caller-cancelled: never retry, never wrap - propagate the AbortError as-is
         // so UI can silently ignore it instead of showing "TransientError: AbortError".
         if (effectiveSignal?.aborted || (err instanceof Error && err.name === "AbortError" && effectiveSignal)) {
           throw err;
         }
         if (err instanceof Error && (err.name === "AbortError" || err.name === "TimeoutError") && !effectiveSignal) {
           // No caller signal involved, so this abort came from our own timeout.
-          // Retry it like any transient failure with a clear message.
+          // Fail over to the next mount if there is one, else retry it like any
+          // transient failure with a clear message.
           const timeoutErr = new TransientError(
-            `Request to ${path} timed out after ${opts.timeoutMs ?? 60000}ms — please retry`,
+            `Request to ${path} timed out after ${opts.timeoutMs ?? 60000}ms - please retry`,
             backoff(base, attempt),
           );
+          if (mountIndex < mountChain.length - 1) {
+            mountIndex++;
+            continue;
+          }
           if (attempt < max) {
             await sleep(timeoutErr.retryAfterMs);
             continue;
           }
           throw timeoutErr;
+        }
+        // A transient failure (5xx / network): fail over to the next mount if
+        // one is left; only spend the retry budget on the last mount.
+        if (mountIndex < mountChain.length - 1) {
+          mountIndex++;
+          continue;
         }
         if (err instanceof TransientError) {
           if (attempt < max) {
