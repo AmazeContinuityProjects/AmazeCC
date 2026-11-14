@@ -5,7 +5,7 @@ import type { ApiDefinition } from "./types";
  * the primary API host.
  *
  * Native shape - NOT compatible with the legacy host for a few operations:
- *   - VTOP scrapers:  POST /api/<op>          (1:1 with legacy, incl. aliased /api/remote/<op>)
+ *   - VTOP scrapers:  POST /api/<op>          (1:1 with legacy)
  *   - services:       POST /api/services/<op> (marks/stats, marks/sync, marks/tokens,
  *                                              enroll, faculty/scrape, faculty/schools)
  *                     (legacy serves those at /api/<op> with NO /services prefix)
@@ -23,7 +23,7 @@ export const honoDefinition: ApiDefinition = {
   baseUrl: (process.env.NEXT_PUBLIC_HONO_API_URL || "https://hono.amazecc.com").replace(/\/+$/, ""),
   auth: ["vtop", "eventhub", "none"],
   routeFor(op) {
-    // Services live under /services/* on hono (legacy has them at /api/*).
+    // Services live under /api/services/* on hono (legacy has them at /api/<op>).
     const services = new Set([
       "marks/stats",
       "marks/sync",
@@ -32,8 +32,8 @@ export const honoDefinition: ApiDefinition = {
       "faculty/scrape",
       "faculty/schools",
     ]);
-    if (services.has(op)) return { method: "POST", path: `/services/${op}` };
-    // Every remote scraper is also aliased at /api/* and behaves like legacy.
-    return { method: "POST", path: `/${op}` };
+    if (services.has(op)) return { method: "POST", path: `/api/services/${op}` };
+    // Every remote scraper is also aliased at /api/<op> and behaves like legacy.
+    return { method: "POST", path: `/api/${op}` };
   },
 };
