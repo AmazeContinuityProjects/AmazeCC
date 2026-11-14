@@ -1,10 +1,13 @@
+import { dpopProof, dpopThumbprint } from "./dpop";
+
 /**
- * Amaze ID OIDC client (authorization code + PKCE, RFC 6749 §4.1 + RFC 7636).
+ * Amaze ID OIDC client (authorization code + PKCE, RFC 6749 §4.1 + RFC 7636 + DPoP RFC 9449).
  *
  * This is a static SPA (GitHub Pages), so it is a *public* OAuth client:
  * no client secret (anything shipped to the browser is public). Confidentiality
- * comes from PKCE + exact-match redirect URIs. The server side issues short-lived
- * (1h) access tokens; refresh tokens rotate on use and are revoked on sign-out.
+ * comes from PKCE + DPoP (sender-constrained access tokens via a key pair held
+ * in IndexedDB). The server issues short-lived (1h) access tokens; refresh
+ * tokens rotate on use and are revoked on sign-out.
  *
  * The ID token is intentionally NOT validated here - user identity comes from
  * the userinfo endpoint (`customUserInfoClaims` puts `role`/`permissions` on it),
@@ -23,7 +26,7 @@ export const OIDC = {
   // the authorization code would be lost. Must be the trailing-slash URL,
   // matching the registered redirect_uri. Verified live 2026-11-14.
   redirectUri: () => `${window.location.origin}/auth/callback/`,
-  scope: "openid profile email",
+  scope: "openid profile email offline_access",
   authorizeEndpoint: `${AUTH_BASE}/api/auth/oauth2/authorize`,
   tokenEndpoint: `${AUTH_BASE}/api/auth/oauth2/token`,
   userinfoEndpoint: `${AUTH_BASE}/api/auth/oauth2/userinfo`,
@@ -113,9 +116,44 @@ export function getAccessTokenSync(): string | null {
   }
 }
 
+/** Valid access token or null. Refreshes silently if the cached one expired but we have a refresh token. */
+export async function getValidAccessToken(): Promise<string | null> {
+  const fresh = getAccessTokenSync();
+  if (fresh) return fresh;
+  if (typeof window === "undefined") return null;
+  const refreshToken = localStorage.getItem(KEYS.refreshToken);
+  if (!refreshToken) return null;
+  try {
+    const dpop = await dpopProof("POST", OIDC.tokenEndpoint);
+    const res = await fetch(OIDC.tokenEndpoint, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded", dpop },
+      body: new URLSearchParams({
+        grant_type: "refresh_token",
+        refresh_token: refreshToken,
+        client_id: OIDC.clientId,
+      }).toString(),
+    });
+    if (!res.ok) {
+      clearOidcStorage();
+      return null;
+    }
+    const body = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+    if (!body || typeof body.access_token !== "string") {
+      clearOidcStorage();
+      return null;
+    }
+    storeTokens(body as { access_token: string; expires_in?: number; refresh_token?: string; id_token?: string });
+    return body.access_token as string;
+  } catch {
+    return null;
+  }
+}
+
 async function fetchUserinfo(accessToken: string): Promise<StoredUser | null> {
+  const dpop = await dpopProof("GET", OIDC.userinfoEndpoint, accessToken);
   const res = await fetch(OIDC.userinfoEndpoint, {
-    headers: { authorization: `Bearer ${accessToken}` },
+    headers: { authorization: `DPoP ${accessToken}`, dpop },
   });
   if (!res.ok) return null;
   const body = (await res.json()) as Record<string, unknown>;
@@ -164,9 +202,10 @@ export async function handleCallback(): Promise<CallbackResult> {
     return { ok: false, error: "Missing PKCE verifier - please sign in again." };
   }
 
+  const dpop = await dpopProof("POST", OIDC.tokenEndpoint);
   const res = await fetch(OIDC.tokenEndpoint, {
     method: "POST",
-    headers: { "content-type": "application/x-www-form-urlencoded" },
+    headers: { "content-type": "application/x-www-form-urlencoded", dpop },
     body: new URLSearchParams({
       grant_type: "authorization_code",
       code,
@@ -191,13 +230,14 @@ export async function handleCallback(): Promise<CallbackResult> {
 }
 
 /**
- * Renewal model: no refresh tokens. Access tokens live 1h; renewal is a
- * silent prompt=none re-authorization against the live IdP session (the
- * mount-time flow and the 401-driven `handleUnauthorized` both use it).
- * When the device-global sign-out kills the session, nothing outlives it.
+ * Renewal model: silent refresh via the refresh_token grant. Access tokens
+ * live 1h; the refresh response rotates the refresh token, so a revoked
+ * refresh token is detected on the next use. If the refresh fails (session
+ * terminated server-side), the caller has no token and falls back to the
+ * prompt=none interactive flow on the next user interaction.
  */
 export async function ensureFreshAccessToken(): Promise<string | null> {
-  return getAccessTokenSync();
+  return getValidAccessToken();
 }
 
 /**
@@ -248,15 +288,16 @@ export function signOutDevice(): void {
 }
 
 /**
- * Called on HTTP 401 from the API: silently re-authorizes through the IdP
- * (prompt=none) if the user has not explicitly signed out. The page reloads
- * with fresh tokens; if the IdP session is dead the app lands back on its
- * sign-in card instead.
+ * Called on HTTP 401 from the API: attempt a silent refresh using the stored
+ * refresh token; if that fails, re-authorize through the IdP (prompt=none).
+ * The user sees a sign-in card only when both paths dead-end.
  */
-export function handleUnauthorized(): boolean {
+export async function handleUnauthorized(): Promise<boolean> {
   if (sessionStorage.getItem(KEYS.signedOut) === "1") return false;
   if (sessionStorage.getItem(KEYS.autoAttempted) === "1") return false; // one silent hop per page life
   sessionStorage.setItem(KEYS.autoAttempted, "1");
+  const refreshed = await getValidAccessToken().catch(() => null);
+  if (refreshed) return true; // token refreshed silently, no full-page navigation
   void authorize("none");
   return true;
 }
@@ -278,6 +319,7 @@ async function revoke(token: string, hint: "refresh_token" | "access_token"): Pr
 async function authorize(prompt: "none" | "login" | null) {
   const { verifier, challenge } = await createPkcePair();
   const state = randomString(24);
+  const dpopJkt = await dpopThumbprint();
   sessionStorage.setItem(KEYS.verifier, verifier);
   sessionStorage.setItem(KEYS.state, state);
   const params = new URLSearchParams({
@@ -288,6 +330,7 @@ async function authorize(prompt: "none" | "login" | null) {
     code_challenge: challenge,
     code_challenge_method: "S256",
     state,
+    dpop_jkt: dpopJkt,
   });
   if (prompt) params.set("prompt", prompt);
   // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- external IdP navigation, not an internal route
