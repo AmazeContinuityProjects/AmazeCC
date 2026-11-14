@@ -1,4 +1,5 @@
 import type { ApiDefinition } from "./types";
+import { noAuthRoute } from "./no-auth";
 
 /**
  * api.amazecc.com - the traditional Next.js API. Kept as the first fallback
@@ -13,6 +14,6 @@ export const legacyDefinition: ApiDefinition = {
   baseUrl: (process.env.NEXT_PUBLIC_API_URL || "https://api.amazecc.com").replace(/\/+$/, ""),
   auth: ["vtop", "eventhub", "none"],
   routeFor(op) {
-    return { method: "POST", path: `/${op}` };
+    return noAuthRoute(op) ?? { method: "POST", path: `/${op}` };
   },
 };

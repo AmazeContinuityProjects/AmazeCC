@@ -1,4 +1,5 @@
 import type { ApiDefinition } from "./types";
+import { noAuthRoute } from "./no-auth";
 
 /**
  * amazecc-api-hono (https://hono.amazecc.com) - the Cloudflare Worker that is
@@ -34,6 +35,6 @@ export const honoDefinition: ApiDefinition = {
     ]);
     if (services.has(op)) return { method: "POST", path: `/services/${op}` };
     // Every remote scraper is also aliased at /api/* and behaves like legacy.
-    return { method: "POST", path: `/${op}` };
+    return noAuthRoute(op) ?? { method: "POST", path: `/${op}` };
   },
 };
