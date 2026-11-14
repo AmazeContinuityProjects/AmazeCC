@@ -13,21 +13,23 @@ import {
 /**
  * The AmazeCC API host.
  *
- * Default is the canonical production host. Overridable per build with
+ * Default is the canonical production host: the Cloudflare Worker
+ * (`amazecc-api-hono`), which natively implements the API surface and
+ * reverse-proxies the rest to the legacy host. Overridable per build with
  * `NEXT_PUBLIC_API_URL`, which the GitHub Pages workflow sets so a build is
  * pinned to a known host rather than whatever happens to be in `.env` locally.
  */
-export const PRIMARY_API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.amazecc.com";
+export const PRIMARY_API_URL = process.env.NEXT_PUBLIC_API_URL || "https://hono.amazecc.com";
 
 /**
  * The global failover host.
  *
- * Defaults to the previous deployment, kept as a mirror while DNS/traffic
- * moves to the canonical host. Per-deployment overrides still work via the
- * env var. Leave blank only if you want no distinct global failover (in
+ * The traditional `api.amazecc.com` server, kept as a fallback while the
+ * Worker implementation parity is proven out. Per-deployment overrides still
+ * work via the env var. Leave blank only if you want no distinct global failover (in
  * which case set it equal to the primary explicitly).
  */
-export const BACKUP_API_URL = process.env.NEXT_PUBLIC_BACKUP_API_URL || "https://amazecc-api-d402b5.rivendeploy.com";
+export const BACKUP_API_URL = process.env.NEXT_PUBLIC_BACKUP_API_URL || "https://api.amazecc.com";
 
 /**
  * The backup host that is actually safe to swap in globally.
