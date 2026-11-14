@@ -29,6 +29,18 @@
 
 ---
 
+## API Routing (mounts)
+
+Every API the app talks to is **mounted from a definition file** in `src/lib/apis/`. The sync engine resolves each operation through the mount order - it never hardcodes a host. Order lives in `src/lib/apis/spec.json`; a deployment can replace it wholesale with:
+
+```sh
+NEXT_PUBLIC_API_MOUNTS='{"order":["cache","hono","legacy","unicc"],"mounts":{...}}'
+```
+
+Same shape as `spec.json`. Defaults: **hono.amazecc.com** (Cloudflare Worker, native + reverse-proxied legacy) is primary, **api.amazecc.com** (traditional Render host) is the backup, **cache.amazecc.com** serves the public cacheable GETs, **UniCC** is the last-resort fallback for its nine supported operations. Failover triggers only on 5xx/timeout/network, never on a 401. The onboarding login screen shows a **Target server** picker to choose the preferred mount by name.
+
+---
+
 ## Overview
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/AmazeContinuityProjects/AmazeCC)
