@@ -37,9 +37,9 @@ import { getStoredUser, signInInteractive, signOutApp, type StoredUser } from "@
 import { isLoggedInAtom } from "@/store";
 import { useSyncSession, type SyncLogLine } from "@/lib/sync-engine/sync-session";
 import { classifyAuthFailure, type AuthFailureKind } from "@/lib/sync-engine/errors";
-import { getActiveApiUrl, setActiveApiUrl, PRIMARY_API_URL, BACKUP_API_URL, hasBackupApi } from "@/lib/fetch-utils";
-import { UNICC_API_URL } from "@/lib/unicc-fallback";
-import { useUniccTarget, setUniccTarget, isUniccFallbackEnabled } from "@/lib/useUniccTarget";
+import { getActiveApiUrl, setActiveApiUrl, PRIMARY_API_URL, BACKUP_API_URL } from "@/lib/fetch-utils";
+import { listMounts, mountServes, getPreferredMount, setPreferredMount } from "@/lib/apis/registry";
+import { useUniccTarget, setUniccTarget } from "@/lib/useUniccTarget";
 import SelectField from "../shared/primitives/SelectField";
 
 export type IntroPhase = "login" | "sync" | "welcome";
@@ -122,8 +122,16 @@ export default function OnboardingIntro({ initialPhase, login, onDone }: Onboard
 
   const [activeApi, setActiveApi] = useState("");
   const uniccTarget = useUniccTarget();
-  const uniccAvailable = isUniccFallbackEnabled();
-  const targetValue = uniccTarget === "unicc" ? UNICC_API_URL : activeApi;
+  // Only mounts that can serve the login op (vtop) are shown as sign-in targets.
+  const mountOptions = listMounts().filter((m) => mountServes(m.id, "login", "vtop"));
+  const preferredMount = getPreferredMount();
+  const targetValue = mountOptions.some((m) => m.id === preferredMount)
+    ? (preferredMount as string)
+    : uniccTarget === "unicc"
+      ? "unicc"
+      : activeApi === BACKUP_API_URL
+        ? (mountOptions.find((m) => m.id === "legacy")?.id ?? mountOptions[0]?.id ?? "hono")
+        : (mountOptions.find((m) => m.id === "hono")?.id ?? mountOptions[0]?.id ?? "hono");
   const [amazeIdUser, setAmazeIdUser] = useState<StoredUser | null>(null);
 
   const isLoggedIn = useAtomValue(isLoggedInAtom);
@@ -134,17 +142,22 @@ export default function OnboardingIntro({ initialPhase, login, onDone }: Onboard
     setAmazeIdUser(getStoredUser());
   }, []);
 
-  const handleApiChange = (newUrl: string) => {
-    if (newUrl === UNICC_API_URL) {
-      // UniCC is a routing preference, not a new host: it is tried first for the
-      // routes it implements and the AmazeCC hosts keep serving everything else.
+  const handleApiChange = (mountId: string) => {
+    // The picker selects the preferred mount for every op it serves; other ops
+    // fall through the ordered chain as usual. UniCC additionally flips the
+    // legacy failover order (its allowlisted nine first).
+    const chosen = listMounts().find((m) => m.id === mountId);
+    if (!chosen) return;
+    setPreferredMount(mountId);
+    if (mountId === "unicc") {
       setUniccTarget("unicc");
       setActiveApi(PRIMARY_API_URL);
-    } else {
-      setUniccTarget("amazecc");
-      setActiveApiUrl(newUrl);
-      setActiveApi(newUrl);
+      setActiveApiUrl(PRIMARY_API_URL);
+      return;
     }
+    setUniccTarget("amazecc");
+    setActiveApiUrl(chosen.baseUrl);
+    setActiveApi(chosen.baseUrl);
   };
 
   const submit = async (event: React.FormEvent) => {
@@ -329,11 +342,7 @@ export default function OnboardingIntro({ initialPhase, login, onDone }: Onboard
                   <SelectField
                     value={targetValue}
                     onChange={handleApiChange}
-                    options={[
-                      { value: PRIMARY_API_URL, label: "AmazeCC" },
-                      ...(hasBackupApi() ? [{ value: BACKUP_API_URL, label: "AmazeCC (Backup)" }] : []),
-                      ...(uniccAvailable ? [{ value: UNICC_API_URL, label: "UniCC" }] : []),
-                    ]}
+                    options={mountOptions.map((m) => ({ value: m.id, label: m.name }))}
                     searchable={false}
                     size="sm"
                     role="group"

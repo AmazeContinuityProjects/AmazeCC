@@ -1,0 +1,29 @@
+{
+  "order": ["cache", "hono", "legacy", "unicc"],
+  "mounts": {
+    "cache": {
+      "lib": "cache-public",
+      "baseUrl": "https://cache.amazecc.com",
+      "name": "AmazeCC Cache (Public)",
+      "enabled": true
+    },
+    "hono": {
+      "lib": "hono",
+      "baseUrl": "https://hono.amazecc.com",
+      "name": "AmazeCC",
+      "enabled": true
+    },
+    "legacy": {
+      "lib": "legacy",
+      "baseUrl": "https://api.amazecc.com",
+      "name": "AmazeCC (Backup)",
+      "enabled": true
+    },
+    "unicc": {
+      "lib": "unicc",
+      "baseUrl": "https://api-unicc.arya22.dev",
+      "name": "UniCC",
+      "enabled": true
+    }
+  }
+}
