@@ -29,9 +29,11 @@ import {
   Lock,
   Server,
   Shield,
+  ShieldCheck,
   Sparkles,
   X,
 } from "lucide-react";
+import { getStoredUser, signInInteractive, signOutApp, type StoredUser } from "@/lib/oauth2";
 import { isLoggedInAtom } from "@/store";
 import { useSyncSession, type SyncLogLine } from "@/lib/sync-engine/sync-session";
 import { classifyAuthFailure, type AuthFailureKind } from "@/lib/sync-engine/errors";
@@ -122,12 +124,14 @@ export default function OnboardingIntro({ initialPhase, login, onDone }: Onboard
   const uniccTarget = useUniccTarget();
   const uniccAvailable = isUniccFallbackEnabled();
   const targetValue = uniccTarget === "unicc" ? UNICC_API_URL : activeApi;
+  const [amazeIdUser, setAmazeIdUser] = useState<StoredUser | null>(null);
 
   const isLoggedIn = useAtomValue(isLoggedInAtom);
   const session = useSyncSession();
 
   useEffect(() => {
     setActiveApi(getActiveApiUrl());
+    setAmazeIdUser(getStoredUser());
   }, []);
 
   const handleApiChange = (newUrl: string) => {
@@ -214,6 +218,66 @@ export default function OnboardingIntro({ initialPhase, login, onDone }: Onboard
       <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center gap-6 py-2">
         {phase === "login" && (
           <div className="grid w-full animate-in fade-in slide-in-from-bottom-4 duration-300 gap-6 lg:grid-cols-2 lg:items-center lg:gap-10">
+            {/* Amaze ID — one account for every AmazeCC app */}
+            <div className="rounded-3xl border border-indigo-500/25 bg-indigo-500/[0.07] p-4 sm:p-5 backdrop-blur-xl lg:col-span-2">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-indigo-600/20 text-indigo-300">
+                    <ShieldCheck size={22} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-indigo-400 font-outfit">
+                      Amaze ID
+                    </p>
+                    <p className="text-sm font-bold text-zinc-100">One account for every AmazeCC app</p>
+                    <p className="text-[10px] text-zinc-500">
+                      Club Hub, Admin Portal, GoRoBo and more - with VTOP as an optional link.
+                    </p>
+                  </div>
+                </div>
+
+                {amazeIdUser ? (
+                  <div className="flex shrink-0 items-center gap-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-3 py-2">
+                    <CheckCircle2 size={17} className="shrink-0 text-emerald-400" />
+                    <div className="min-w-0">
+                      <p className="max-w-[190px] truncate text-[11px] font-bold text-emerald-300">
+                        {amazeIdUser.name}
+                      </p>
+                      <p className="max-w-[190px] truncate text-[9px] text-emerald-500">{amazeIdUser.email}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void signOutApp().then(() => setAmazeIdUser(null));
+                      }}
+                      className="shrink-0 text-[10px] font-bold text-zinc-500 underline underline-offset-2 transition-colors hover:text-zinc-300"
+                    >
+                      Sign out
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
+                    <button
+                      type="button"
+                      onClick={signInInteractive}
+                      className="inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2.5 text-[11px] font-black uppercase tracking-wider text-white shadow-lg shadow-indigo-600/25 transition-all hover:bg-indigo-500 active:scale-[0.98] font-outfit"
+                    >
+                      Sign in with Amaze ID
+                      <ArrowRight size={12} strokeWidth={3} />
+                    </button>
+                    <a
+                      href="https://auth.amazecc.com/sign-up"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-center text-[10px] font-bold text-amber-400/90 transition-colors hover:text-amber-300 hover:underline"
+                    >
+                      Create an Amaze ID →
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Pitch (design language of the hero pages) */}
             <div className="space-y-4 text-left">
               <Brand />
