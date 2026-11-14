@@ -1,3 +1,5 @@
+import type { ApiRoute } from "./types";
+
 /**
  * Operations the AmazeCC hosts serve without transport-attached credentials.
  *
@@ -8,10 +10,16 @@
  * The value is the HTTP method, because the mount's method wins over the
  * caller's.
  */
-export const NO_AUTH_OPERATIONS: ReadonlyMap<string, "GET" | "POST"> = new Map<string, "GET" | "POST">([
+const NO_AUTH_OPERATIONS: ReadonlyMap<string, ApiRoute["method"]> = new Map([
   ["login", "POST"],
   ["events/login", "POST"],
   ["events/profile", "POST"],
   ["events", "GET"],
   ["notifications/subscribe", "POST"],
 ]);
+
+/** The flat `/<op>` no-auth route for `op`, or null when `op` needs credentials. */
+export function noAuthRoute(op: string): ApiRoute | null {
+  const method = NO_AUTH_OPERATIONS.get(op);
+  return method ? { method, path: `/${op}`, auth: "none" } : null;
+}

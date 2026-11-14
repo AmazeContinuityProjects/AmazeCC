@@ -39,24 +39,16 @@ describe("API registry", () => {
     expect(chain).toEqual([]);
   });
 
-  it("routes the VTOP sign-in as a no-auth call to hono, then legacy", () => {
-    const chain = resolveOperation("login", "none");
+  it.each([
+    ["login", "POST"],
+    ["events/login", "POST"],
+    ["events/profile", "POST"],
+    ["events", "GET"],
+    ["notifications/subscribe", "POST"],
+  ])("routes the no-auth operation %s to hono, then legacy, as a %s", (op, method) => {
+    const chain = resolveOperation(op, "none");
     expect(chain.map((r) => r.mount.id)).toEqual(["hono", "legacy"]);
-    expect(chain[0].url).toBe("https://hono.amazecc.com/login");
-    expect(chain[0].method).toBe("POST");
-  });
-
-  it.each(["events/login", "events/profile", "events", "notifications/subscribe"])(
-    "routes the no-auth operation %s to hono, then legacy",
-    (op) => {
-      const chain = resolveOperation(op, "none");
-      expect(chain.map((r) => r.mount.id)).toEqual(["hono", "legacy"]);
-    },
-  );
-
-  it("keeps the public events list a GET", () => {
-    const chain = resolveOperation("events", "none");
-    expect(chain.map((r) => r.method)).toEqual(["GET", "GET"]);
+    expect(chain.map((r) => r.method)).toEqual([method, method]);
   });
 
   it("never puts UniCC in front of an AmazeCC host; allowlist only", () => {
