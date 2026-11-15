@@ -8,6 +8,7 @@ import {
   fetchWithFailover,
   setOriginalFetchForTest
 } from "../lib/fetch-utils";
+import { installLocalStorage } from "./helpers/localStorage";
 
 describe("API Failover Mechanism", () => {
   let originalFetch: typeof fetch;
@@ -97,5 +98,18 @@ describe("API Failover Mechanism", () => {
 
     const json = await res.json();
     expect(json.data).toBe("backup_direct");
+  });
+
+  it("sends the Amaze ID token as a plain Bearer, with no dpop header", async () => {
+    const storage = installLocalStorage();
+    storage.setItem("amaze_oidc_access_token", "tok");
+    storage.setItem("amaze_oidc_expires_at", String(Date.now() + 60_000));
+    const mockFetch = vi.fn().mockResolvedValue(new Response("{}", { status: 200 }));
+    setOriginalFetchForTest(mockFetch);
+
+    await fetchWithFailover(`${PRIMARY_API_URL}/api/data`);
+    const headers = new Headers(mockFetch.mock.calls[0][1]?.headers);
+    expect(headers.get("Authorization")).toBe("Bearer tok");
+    expect(headers.has("dpop")).toBe(false);
   });
 });
