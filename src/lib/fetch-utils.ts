@@ -10,7 +10,6 @@ import {
   uniccUrlFor,
 } from "./unicc-fallback";
 import { getAccessTokenSync } from "./oauth2";
-import { dpopProof } from "./dpop";
 
 /**
  * The AmazeCC API host.
@@ -244,16 +243,7 @@ const AMAZEID_HOSTS = new Set(
     .filter((v): v is string => v !== null),
 );
 
-/**
- * Attach Amaze ID as a DPoP-bound bearer for our own API hosts.
- * DPoP is required for the SPA because static file hosts can't hold a client secret.
- * The DPoP proof binds each request to the CryptoKey in IndexedDB.
- */
-async function withAmazeIdAuth(
-  init: RequestInit | undefined,
-  urlStr: string,
-  method = "GET",
-): Promise<RequestInit | undefined> {
+function withAmazeIdAuth(init: RequestInit | undefined, urlStr: string): RequestInit | undefined {
   try {
     const origin = new URL(urlStr).origin;
     if (!AMAZEID_HOSTS.has(origin)) return init;
@@ -261,9 +251,7 @@ async function withAmazeIdAuth(
     if (!token) return init;
     const headers = new Headers(init?.headers);
     if (headers.has("Authorization")) return init; // caller already chose one
-    const dpop = await dpopProof(method, urlStr, token).catch(() => null);
-    headers.set("Authorization", `DPoP ${token}`);
-    if (dpop) headers.set("dpop", dpop);
+    headers.set("Authorization", `Bearer ${token}`);
     return { ...(init ?? {}), headers };
   } catch {
     return init;
@@ -463,8 +451,7 @@ export async function fetchWithFailover(input: RequestInfo | URL, init?: Request
   }
 
   try {
-    const method = init?.method ?? "GET";
-    const res = await originalFetch(prepareInput(targetUrl), await withAmazeIdAuth(init, targetUrl, method));
+    const res = await originalFetch(prepareInput(targetUrl), withAmazeIdAuth(init, targetUrl));
     if (isFailoverStatus(res.status)) {
       throw new Error(`Server error ${res.status}`);
     }
@@ -489,8 +476,7 @@ export async function fetchWithFailover(input: RequestInfo | URL, init?: Request
         console.warn(`Backup API call failed (${urlStr}). Retrying primary. Error:`, error);
         setActiveApiUrl(PRIMARY_API_URL);
         try {
-          const method = init?.method ?? "GET";
-          const recovered = await originalFetch(prepareInput(urlStr), await withAmazeIdAuth(init, urlStr, method));
+          const recovered = await originalFetch(prepareInput(urlStr), withAmazeIdAuth(init, urlStr));
           if (isFailoverStatus(recovered.status)) throw new Error(`Server error ${recovered.status}`);
           if (recovered.ok) noteAmazeccServing(uniccRouteName(urlStr));
           return recovered;
@@ -515,8 +501,7 @@ export async function fetchWithFailover(input: RequestInfo | URL, init?: Request
 
       try {
         console.log(`Retrying request with backup URL: ${backupUrl}`);
-        const method = init?.method ?? "GET";
-        const backupRes = await originalFetch(prepareInput(backupUrl), await withAmazeIdAuth(init, backupUrl, method));
+        const backupRes = await originalFetch(prepareInput(backupUrl), withAmazeIdAuth(init, backupUrl));
         if (isFailoverStatus(backupRes.status)) {
           // A 5xx is a failure, not an answer. Returning it would hand the caller
           // an error page as if it were data and skip the UniCC hop.
