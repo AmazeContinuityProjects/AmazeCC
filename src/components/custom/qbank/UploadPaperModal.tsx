@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { UploadCloud, AlertCircle, Plus } from "lucide-react";
-import { api } from "@/lib/sync-engine";
+import { uploadQBankPaper } from "@/lib/qbankApi";
 import BottomSheet from "../shared/BottomSheet";
 import { Input, Select, Button } from "@amazecontinuityprojects/amazeui";
 import { QBankCourse } from "@/types/qbank.types";
@@ -54,13 +54,9 @@ export default function UploadPaperModal({
         examYear: year,
         uploaderRegNo: username,
         fileUrl,
-        isAdmin,
       };
 
-      const json = (await api("qbank/upload", {
-        method: "POST",
-        body: payload,
-      })) as any;
+      const json = await uploadQBankPaper(payload);
 
       if (!json.success) {
         throw new Error(json.error || "Upload failed");

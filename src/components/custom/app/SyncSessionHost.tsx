@@ -37,6 +37,7 @@ export default function SyncSessionHost({
           message={formatSessionMessage(session.lines)}
           progress={session.progress}
           active={session.open}
+          attentionVersion={session.attentionVersion}
           outcome={session.outcome}
           notice={session.notice}
           modeId={activeModeId}

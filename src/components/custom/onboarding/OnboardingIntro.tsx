@@ -278,14 +278,13 @@ export default function OnboardingIntro({ initialPhase, login, onDone }: Onboard
                       Sign in with Amaze ID
                       <ArrowRight size={12} strokeWidth={3} />
                     </button>
-                    <a
-                      href="https://auth.amazecc.com/sign-up"
-                      target="_blank"
-                      rel="noreferrer"
+                    <button
+                      type="button"
+                      onClick={signInInteractive}
                       className="text-center text-[10px] font-bold text-amber-400/90 transition-colors hover:text-amber-300 hover:underline"
                     >
-                      Create an Amaze ID →
-                    </a>
+                      New here? Create an Amaze ID →
+                    </button>
                   </div>
                 )}
               </div>

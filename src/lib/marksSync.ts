@@ -46,7 +46,7 @@ const getAssessmentTotals = (assessments: any[], includeUnscoredWeight = false) 
       acc.weighted += getNumericValue(asm.weightageMark);
       return acc;
     },
-    { weightPercent: 0, weighted: 0 }
+    { weightPercent: 0, weighted: 0 },
   );
 
 const getCourseCredits = (course: any) => {
@@ -55,8 +55,7 @@ const getCourseCredits = (course: any) => {
 };
 
 /** Percentage of the weightage released so far, or 0 when nothing has been released. */
-const normalisedPct = (earned: number, available: number) =>
-  available > 0 ? (earned / available) * 100 : 0;
+const normalisedPct = (earned: number, available: number) => (available > 0 ? (earned / available) * 100 : 0);
 
 /**
  * The total as the regulations feed it into the class statistics: "Before calculating
@@ -75,29 +74,17 @@ const roundUpTotal = (pct: number | null): number | null =>
  * holds; every value this client contributes goes through the current one.
  */
 const overallPct = (group: any, includeUnscoredWeight = false): number | null =>
-  includeUnscoredWeight
-    ? rawOverallPct(group, true)
-    : roundUpTotal(rawOverallPct(group, false));
+  includeUnscoredWeight ? rawOverallPct(group, true) : roundUpTotal(rawOverallPct(group, false));
 
 const rawOverallPct = (group: any, includeUnscoredWeight: boolean): number | null => {
-  const theoryTotals = getAssessmentTotals(
-    group.theory?.assessments || [],
-    includeUnscoredWeight
-  );
-  const labTotals = getAssessmentTotals(
-    group.lab?.assessments || [],
-    includeUnscoredWeight
-  );
+  const theoryTotals = getAssessmentTotals(group.theory?.assessments || [], includeUnscoredWeight);
+  const labTotals = getAssessmentTotals(group.lab?.assessments || [], includeUnscoredWeight);
 
   if (!group.lab) {
-    return theoryTotals.weightPercent > 0
-      ? normalisedPct(theoryTotals.weighted, theoryTotals.weightPercent)
-      : null;
+    return theoryTotals.weightPercent > 0 ? normalisedPct(theoryTotals.weighted, theoryTotals.weightPercent) : null;
   }
   if (!group.theory) {
-    return labTotals.weightPercent > 0
-      ? normalisedPct(labTotals.weighted, labTotals.weightPercent)
-      : null;
+    return labTotals.weightPercent > 0 ? normalisedPct(labTotals.weighted, labTotals.weightPercent) : null;
   }
 
   const theoryCredits = getCourseCredits(group.theory);
@@ -106,12 +93,9 @@ const rawOverallPct = (group: any, includeUnscoredWeight: boolean): number | nul
 
   const total = theoryCredits + labCredits;
   const earned = (theoryCredits * theoryTotals.weighted + labCredits * labTotals.weighted) / total;
-  const available =
-    (theoryCredits * theoryTotals.weightPercent + labCredits * labTotals.weightPercent) / total;
+  const available = (theoryCredits * theoryTotals.weightPercent + labCredits * labTotals.weightPercent) / total;
 
-  return available > 0 || includeUnscoredWeight
-    ? normalisedPct(earned, available)
-    : null;
+  return available > 0 || includeUnscoredWeight ? normalisedPct(earned, available) : null;
 };
 
 /** A recorded assessment's mark as a percentage of its maximum; zero is a valid mark. */
@@ -131,12 +115,17 @@ export type RemappedStats = Record<
   { overall: { count: number; mean: number; sd: number } | null; assessments: Record<string, any> }
 >;
 
+const normalizeAssessmentTitle = (title: string) => title.trim().replace(/\s+/g, " ");
+
+export const assessmentStatsKey = (component: string, title: string): string =>
+  JSON.stringify([component.trim().toLowerCase(), normalizeAssessmentTitle(title)]);
+
 /**
  * Re-key the server's cohort payload into what the course pages read.
  *
- * The server keys assessments by digest and carries the overall figure flat on the
- * entry (`{ count, mean, sd, assessments }`). The pages read `overall` plus an
- * assessment map keyed by VTOP title, so this translates between the two.
+ * Hono's assessment identifiers are keyed HMACs. It returns component/title
+ * metadata beside each statistic so the client can join without deriving a
+ * server-only key. Legacy responses without metadata still use the public digest.
  *
  * Kept as a pure, exported function — and unit-tested — because the previous version
  * of this logic lived inline and read `entry.overall`, a key the server never sends.
@@ -144,28 +133,50 @@ export type RemappedStats = Record<
  */
 export const remapCohortStats = async (
   stored: Record<string, any>,
-  uniqueCourses: CourseGroupLite[]
+  uniqueCourses: CourseGroupLite[],
 ): Promise<RemappedStats> => {
   const remapped: RemappedStats = {};
 
   for (const [classId, entry] of Object.entries<any>(stored ?? {})) {
     const assessments: Record<string, any> = {};
-    const groups = uniqueCourses.filter(
-      (g) => (g.theory || g.lab)?.classNbr === classId
-    );
-
+    const groups = uniqueCourses.filter((g) => g.theory?.classNbr === classId || g.lab?.classNbr === classId);
+    const knownAssessments: Array<{ component: "theory" | "lab"; title: string }> = [];
     for (const g of groups) {
       for (const component of ["theory", "lab"] as const) {
         const list = g[component]?.assessments;
         if (!Array.isArray(list)) continue;
         for (const asm of list) {
-          const key = await assessmentKeyFor(
-            classId,
-            component,
-            String(asm?.title ?? "")
-          );
-          const hit = entry?.assessments?.[key];
-          if (hit) assessments[asm.title] = hit;
+          const title = String(asm?.title ?? "");
+          if (normalizeAssessmentTitle(title)) knownAssessments.push({ component, title });
+        }
+      }
+    }
+
+    const metadataStats = new Map<string, any>();
+    for (const stat of Object.values<any>(entry?.assessments ?? {})) {
+      if (typeof stat?.component === "string" && typeof stat?.title === "string") {
+        metadataStats.set(assessmentStatsKey(stat.component, stat.title), stat);
+      }
+    }
+
+    const titleCounts = new Map<string, number>();
+    for (const assessment of knownAssessments) {
+      const normalizedTitle = normalizeAssessmentTitle(assessment.title);
+      titleCounts.set(normalizedTitle, (titleCounts.get(normalizedTitle) ?? 0) + 1);
+    }
+
+    for (const assessment of knownAssessments) {
+      const normalizedTitle = normalizeAssessmentTitle(assessment.title);
+      const key = assessmentStatsKey(assessment.component, assessment.title);
+      let hit = metadataStats.get(key);
+      if (!hit) {
+        const legacyKey = await assessmentKeyFor(classId, assessment.component, assessment.title);
+        hit = entry?.assessments?.[legacyKey];
+      }
+      if (hit) {
+        assessments[key] = hit;
+        if (titleCounts.get(normalizedTitle) === 1) {
+          assessments[assessment.title] = hit;
         }
       }
     }
@@ -192,23 +203,11 @@ export const remapCohortStats = async (
 };
 
 /**
- * The key an assessment's cohort statistics are stored and read back under.
- *
- * **This mirrors `assessmentKeyFor` in `AmazeCC-API/src/lib/marksStats.ts` and the two
- * must stay byte-identical** — if they drift, every read silently misses and the UI falls
- * back to "not enough data" with nothing to indicate why.
- *
- * A plain SHA-256, not an HMAC: the client cannot compute an HMAC under a server-only
- * salt, and it has to be able to derive this to join a statistic back to the assessment it
- * is rendering. The input is a course-level constant shared by everyone in the cohort, so
- * there is nothing sensitive in it.
+ * Legacy public digest used by the old marks-sync API and contribution receipts.
+ * Hono uses keyed opaque identifiers and returns metadata for joining.
  */
-export const assessmentKeyFor = async (
-  classId: string,
-  component: string,
-  title: string
-): Promise<string> => {
-  const normalised = title.trim().replace(/\s+/g, " ");
+export const assessmentKeyFor = async (classId: string, component: string, title: string): Promise<string> => {
+  const normalised = normalizeAssessmentTitle(title);
   const data = new TextEncoder().encode([classId, component, normalised].join("::"));
   const digest = await crypto.subtle.digest("SHA-256", data);
   return Array.from(new Uint8Array(digest))
@@ -258,7 +257,7 @@ function push(
   title: string,
   mark: number | null,
   prev: number | null,
-  force = false
+  force = false,
 ) {
   if (!classId || mark === null) return;
   if (!Number.isFinite(mark) || mark < 0 || mark > 100) return;
@@ -350,11 +349,10 @@ async function receiptKeyFor(
   classId: string,
   scope: "overall" | "assessment",
   component: string,
-  title: string
+  title: string,
 ): Promise<string> {
   // Must match AmazeCC-API `OVERALL_KEY`.
-  const key =
-    scope === "overall" ? "overall" : await assessmentKeyFor(classId, component, title);
+  const key = scope === "overall" ? "overall" : await assessmentKeyFor(classId, component, title);
   return `${classId}::${scope}::${key}`;
 }
 
@@ -405,10 +403,7 @@ async function bootstrapTokens(): Promise<TokenMap> {
   }
 }
 
-export const syncMarksDiff = async (
-  oldMarksData: any,
-  newMarksData: any
-): Promise<MarksSyncResult> => {
+export const syncMarksDiff = async (oldMarksData: any, newMarksData: any): Promise<MarksSyncResult> => {
   const empty: MarksSyncResult = { tally: {}, mismatches: [], frozen: [] };
   if (!newMarksData?.courses) return empty;
 
@@ -437,10 +432,8 @@ export const syncMarksDiff = async (
         "",
         "",
         overallPct(newGroup),
-        oldGroup.theory || oldGroup.lab
-          ? overallPct(oldGroup, backfill)
-          : null,
-        backfill
+        oldGroup.theory || oldGroup.lab ? overallPct(oldGroup, backfill) : null,
+        backfill,
       );
 
       for (const component of ["theory", "lab"] as const) {
@@ -448,10 +441,7 @@ export const syncMarksDiff = async (
         if (!Array.isArray(fresh)) continue;
 
         const stale = new Map<string, any>(
-          (oldGroup[component]?.assessments ?? []).map((a: any) => [
-            String(a?.title ?? ""),
-            a,
-          ])
+          (oldGroup[component]?.assessments ?? []).map((a: any) => [String(a?.title ?? ""), a]),
         );
 
         for (const asm of fresh) {
@@ -467,7 +457,7 @@ export const syncMarksDiff = async (
             title,
             assessmentPct(asm),
             previous ? assessmentPct(previous) : null,
-            backfill
+            backfill,
           );
         }
       }
@@ -512,10 +502,8 @@ export const syncMarksDiff = async (
     }
 
     const payload = await res.json().catch(() => null);
-    const tally: Record<string, number> =
-      payload && typeof payload.tally === "object" ? payload.tally : {};
-    const returned: TokenMap =
-      payload && typeof payload.tokens === "object" ? payload.tokens : {};
+    const tally: Record<string, number> = payload && typeof payload.tally === "object" ? payload.tally : {};
+    const returned: TokenMap = payload && typeof payload.tokens === "object" ? payload.tokens : {};
 
     // ── receipt check ──────────────────────────────────────────────────────
     // For contributions sent unchanged (mark == prevMark), the server must echo back
@@ -544,7 +532,7 @@ export const syncMarksDiff = async (
     if (mismatches.length > 0) {
       console.warn(
         `[marks/sync] ${mismatches.length} token(s) changed without a mark change — server state moved:`,
-        mismatches
+        mismatches,
       );
     }
 

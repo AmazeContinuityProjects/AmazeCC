@@ -54,6 +54,8 @@ interface SyncNotificationProps {
   message: string;
   progress: number;
   active: boolean;
+  /** Expands the minimized notification when a non-routine sync notice arrives. */
+  attentionVersion?: number;
   onDismiss: () => void;
   outcome?: "success" | "error" | null;
   /** Non-run reason the sheet was opened; replaces the progress UI when set. */
@@ -134,6 +136,7 @@ export default function SyncNotification({
   message,
   progress,
   active,
+  attentionVersion = 0,
   onDismiss,
   outcome = null,
   notice = null,
@@ -157,6 +160,10 @@ export default function SyncNotification({
 
   const modeMenuRef = useRef<HTMLDivElement>(null);
   const serverMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (attentionVersion > 0) setIsMinimized(false);
+  }, [attentionVersion]);
 
   // Live target + traffic
   const uniccTarget = useUniccTarget();
@@ -658,9 +665,11 @@ export default function SyncNotification({
             {/* Actions */}
             <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
               <button
+                type="button"
                 onClick={() => setIsMinimized(false)}
                 className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-                title="Expand sync view"
+                title="Open expanded sync notification"
+                aria-label="Open expanded sync notification"
               >
                 <Maximize2 size={15} />
               </button>

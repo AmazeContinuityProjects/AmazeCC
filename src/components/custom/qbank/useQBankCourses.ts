@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { api } from "@/lib/sync-engine";
+import { getQBankCourses } from "@/lib/qbankApi";
 import { QBankCourse } from "@/types/qbank.types";
 
 export function useQBankCourses(allGradesData: any, marksData: any) {
@@ -10,18 +10,18 @@ export function useQBankCourses(allGradesData: any, marksData: any) {
   // Fetch global approved courses
   useEffect(() => {
     setGlobalCoursesLoading(true);
-    api("qbank/courses")
-      .then(d => {
+    getQBankCourses()
+      .then((d) => {
         if ((d as any).success) setGlobalCourses((d as any).data);
       })
-      .catch(err => console.error("Failed to fetch global courses:", err))
+      .catch((err) => console.error("Failed to fetch global courses:", err))
       .finally(() => setGlobalCoursesLoading(false));
   }, []);
 
   // Extract courses from grades data and marks data
   useEffect(() => {
     const uniqueCourses = new Map<string, string>();
-    
+
     // Add past courses from allGradesData
     if (allGradesData && allGradesData.grades) {
       const gradesArr = Array.isArray(allGradesData.grades)
@@ -42,7 +42,7 @@ export function useQBankCourses(allGradesData: any, marksData: any) {
     // Add current semester courses from marksData
     if (marksData && marksData.courses && Array.isArray(marksData.courses)) {
       marksData.courses.forEach((course: any) => {
-        const code = course?.classId?.split('_')[0] ?? course?.courseCode ?? course?.code;
+        const code = course?.classId?.split("_")[0] ?? course?.courseCode ?? course?.code;
         const title = course?.courseTitle ?? course?.title ?? code;
         if (code && !uniqueCourses.has(code)) {
           uniqueCourses.set(code, title);
@@ -51,9 +51,7 @@ export function useQBankCourses(allGradesData: any, marksData: any) {
     }
 
     if (uniqueCourses.size > 0) {
-      setCourses(
-        Array.from(uniqueCourses).map(([code, title]) => ({ code, title }))
-      );
+      setCourses(Array.from(uniqueCourses).map(([code, title]) => ({ code, title })));
     }
   }, [allGradesData, marksData]);
 

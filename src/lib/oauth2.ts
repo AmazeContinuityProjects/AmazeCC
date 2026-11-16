@@ -26,7 +26,7 @@ export const OIDC = {
   // the authorization code would be lost. Must be the trailing-slash URL,
   // matching the registered redirect_uri. Verified live 2026-11-14.
   redirectUri: () => `${window.location.origin}/auth/callback/`,
-  scope: "openid profile email offline_access",
+  scope: "openid profile email",
   authorizeEndpoint: `${AUTH_BASE}/api/auth/oauth2/authorize`,
   tokenEndpoint: `${AUTH_BASE}/api/auth/oauth2/token`,
   userinfoEndpoint: `${AUTH_BASE}/api/auth/oauth2/userinfo`,

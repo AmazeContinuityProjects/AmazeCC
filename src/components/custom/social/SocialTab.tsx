@@ -17,33 +17,10 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import {
-  AlertTriangle,
-  BookOpen,
-  CalendarRange,
-  Clock,
-  Link2,
-  Plus,
-  RefreshCw,
-  Share2,
-  Users,
-} from "lucide-react";
-import {
-  CHIP,
-  ICON_BUTTON,
-  LIST_ROW,
-  LIST_SHELL,
-  TILE,
-  TONE_BADGE,
-  TONE_ICON_TILE,
-} from "@/lib/libraries/ui";
+import { AlertTriangle, BookOpen, CalendarRange, Clock, Link2, Plus, RefreshCw, Share2, Users } from "lucide-react";
+import { CHIP, ICON_BUTTON, LIST_ROW, LIST_SHELL, TILE, TONE_BADGE, TONE_ICON_TILE } from "@/lib/libraries/ui";
 import { SectionHeader, initials } from "./rows";
-import {
-  InsightCarousel,
-  ListRowText,
-  useCarousel,
-  type InsightSlide,
-} from "../shared/primitives";
+import { InsightCarousel, ListRowText, useCarousel, type InsightSlide } from "../shared/primitives";
 
 import PeopleSubpage from "./PeopleSubpage";
 import PairsSubpage from "./PairsSubpage";
@@ -60,6 +37,7 @@ import { useSocialData, useSocialWriters } from "@/lib/social/useSocialData";
 import { upgradeGrantsToFull } from "@/lib/social/visibility";
 import { useOverlap, usePeerTimetables, relativePublished } from "@/lib/social/usePeerTimetables";
 import { syncEngine } from "@/lib/sync-engine";
+import { signInInteractive } from "@/lib/oauth2";
 import { slotCoveringNow } from "@/lib/social/schedule";
 import { STALE_AFTER_DAYS, type BusyMap } from "@/lib/social/types";
 import { useSocialGroups } from "@/lib/social/useSocialGroups";
@@ -67,13 +45,7 @@ import GroupsSubpage from "./GroupsSubpage";
 
 type Screen = "landing" | "people" | "pairs" | "freeNow" | "grid" | "groups" | "classes";
 
-export default function SocialTab({
-  attendanceData,
-  isDemo,
-}: {
-  attendanceData: any;
-  isDemo?: boolean;
-}) {
+export default function SocialTab({ attendanceData, isDemo }: { attendanceData: any; isDemo?: boolean }) {
   const {
     identity,
     peers,
@@ -146,9 +118,7 @@ export default function SocialTab({
       if (!upgraded.length) return;
       const ids = new Set(upgraded.map((grant) => grant.grantId));
       setGrants((prev) =>
-        prev.map((grant) =>
-          ids.has(grant.grantId) ? { ...grant, visibility: "full" as const } : grant
-        )
+        prev.map((grant) => (ids.has(grant.grantId) ? { ...grant, visibility: "full" as const } : grant)),
       );
       markDirty();
     });
@@ -157,8 +127,8 @@ export default function SocialTab({
   /**
    * Log in if needed, then sync.
    *
-   * The two steps are one action for the user because the social routes are all
-   * authenticated with a VTOP session. Errors are left to the op, which records
+   * The two steps are one action for the user because social needs both an
+   * Amaze ID session and a VTOP session. Errors are left to the op, which records
    * them in `socialSyncStateAtom.lastError` and is rendered above — so this only
    * has to flip the local spinner and remember that it failed.
    */
@@ -255,10 +225,7 @@ export default function SocialTab({
       id: "groups",
       title: "Groups",
       headline: String(groupCount),
-      subline:
-        groupCount === 0
-          ? "group people you are paired with"
-          : "common free slots per group",
+      subline: groupCount === 0 ? "group people you are paired with" : "common free slots per group",
       badge: groupCount === 0 ? "None" : String(groupCount),
       tone: groupCount === 0 ? "zinc" : "indigo",
       onClick: () => setScreen("groups"),
@@ -274,16 +241,7 @@ export default function SocialTab({
     });
 
     return list;
-  }, [
-    currentSlot,
-    freeNowHandles,
-    grants.length,
-    groupCount,
-    identity,
-    relativeSync,
-    syncBadge.label,
-    myStale,
-  ]);
+  }, [currentSlot, freeNowHandles, grants.length, groupCount, identity, relativeSync, syncBadge.label, myStale]);
 
   const carousel = useCarousel(slides.length);
   const insightSlides = useMemo<InsightSlide[]>(
@@ -297,11 +255,11 @@ export default function SocialTab({
         tone: s.tone,
         onClick: s.onClick,
       })),
-    [slides]
+    [slides],
   );
 
   const openPeerSheet = useCallback((h: string) => setOpenPeer(h), []);
-  const peerForSheet = openPeer ? peerTimetables.find((p) => p.handle === openPeer) ?? null : null;
+  const peerForSheet = openPeer ? (peerTimetables.find((p) => p.handle === openPeer) ?? null) : null;
 
   /* ── chrome ──────────────────────────────────────────────────────── */
 
@@ -312,11 +270,7 @@ export default function SocialTab({
     <>
       <div className="grid grid-cols-2 gap-3 sm:gap-4 px-1">
         {/* People — pinned */}
-        <button
-          type="button"
-          onClick={() => setScreen("people")}
-          className={`${TILE} h-32 sm:h-36`}
-        >
+        <button type="button" onClick={() => setScreen("people")} className={`${TILE} h-32 sm:h-36`}>
           <div className="flex items-center justify-between gap-1">
             <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">
               People
@@ -341,13 +295,8 @@ export default function SocialTab({
         </button>
 
         {/* Carousel — rotating insight, never a duplicate nav target */}
-        <InsightCarousel
-          slides={insightSlides}
-          carousel={carousel}
-          ariaLabel="Rotating insights"
-        />
+        <InsightCarousel slides={insightSlides} carousel={carousel} ariaLabel="Rotating insights" />
       </div>
-
 
       {/* Sections */}
       <div className="space-y-3">
@@ -355,26 +304,67 @@ export default function SocialTab({
         <div className={LIST_SHELL}>
           {(
             [
-              { id: "people" as Screen, icon: Users, title: "People", desc: "Everyone you are paired with", count: peers.length, suffix: "paired", tone: "indigo" },
-              { id: "pairs" as Screen, icon: Link2, title: "Pairs", desc: "Full-detail sharing and revocation", count: grants.length, suffix: "pairs", tone: "sky" },
-              { id: "freeNow" as Screen, icon: Clock, title: "Free Right Now", desc: currentSlot ? `Free in ${currentSlot.split(":")[0]}` : "Outside class hours", count: freeNowHandles.size, suffix: "free", tone: "emerald" },
-              { id: "classes" as Screen, icon: BookOpen, title: "Classes Together", desc: "Who shares your courses and sections", count: classesTogether, suffix: "shared", tone: "violet" },
-              { id: "grid" as Screen, icon: CalendarRange, title: "Common Free Grid", desc: "Where everyone's free", count: 0, suffix: "", tone: "amber" },
+              {
+                id: "people" as Screen,
+                icon: Users,
+                title: "People",
+                desc: "Everyone you are paired with",
+                count: peers.length,
+                suffix: "paired",
+                tone: "indigo",
+              },
+              {
+                id: "pairs" as Screen,
+                icon: Link2,
+                title: "Pairs",
+                desc: "Full-detail sharing and revocation",
+                count: grants.length,
+                suffix: "pairs",
+                tone: "sky",
+              },
+              {
+                id: "freeNow" as Screen,
+                icon: Clock,
+                title: "Free Right Now",
+                desc: currentSlot ? `Free in ${currentSlot.split(":")[0]}` : "Outside class hours",
+                count: freeNowHandles.size,
+                suffix: "free",
+                tone: "emerald",
+              },
+              {
+                id: "classes" as Screen,
+                icon: BookOpen,
+                title: "Classes Together",
+                desc: "Who shares your courses and sections",
+                count: classesTogether,
+                suffix: "shared",
+                tone: "violet",
+              },
+              {
+                id: "grid" as Screen,
+                icon: CalendarRange,
+                title: "Common Free Grid",
+                desc: "Where everyone's free",
+                count: 0,
+                suffix: "",
+                tone: "amber",
+              },
             ] as const
           ).map((s) => {
             const Icon = s.icon;
             return (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => setScreen(s.id)}
-                className={`${LIST_ROW} cursor-pointer`}
-              >
-                <span className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${TONE_ICON_TILE[s.tone]}`}>
+              <button key={s.id} type="button" onClick={() => setScreen(s.id)} className={`${LIST_ROW} cursor-pointer`}>
+                <span
+                  className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${TONE_ICON_TILE[s.tone]}`}
+                >
                   <Icon className="w-4.5 h-4.5" />
                 </span>
                 <ListRowText title={s.title} subtitle={s.desc} />
-                {s.count > 0 && <span className={`${CHIP} shrink-0`}>{s.count} {s.suffix}</span>}
+                {s.count > 0 && (
+                  <span className={`${CHIP} shrink-0`}>
+                    {s.count} {s.suffix}
+                  </span>
+                )}
                 <span className="w-4 h-4 text-zinc-400 shrink-0 flex items-center justify-end">›</span>
               </button>
             );
@@ -383,8 +373,8 @@ export default function SocialTab({
       </div>
 
       <p className="px-1 -mt-3 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
-        Your timetable is derived from VTOP by the server, never uploaded from this device. Pairing is
-        mutual, and either side can end it from Pairs.
+        Your timetable is derived from VTOP by the server, never uploaded from this device. Pairing is mutual, and
+        either side can end it from Pairs.
       </p>
     </>
   );
@@ -425,6 +415,15 @@ export default function SocialTab({
           <div className="min-w-0">
             <p className="font-semibold leading-tight">Social sync failed</p>
             <p className="text-xs opacity-85 break-words mt-0.5">{syncError}</p>
+            {/amaze id/i.test(syncError) && (
+              <button
+                type="button"
+                onClick={signInInteractive}
+                className="mt-2 rounded-full bg-amber-700 px-3 py-1.5 text-xs font-bold text-white hover:bg-amber-800 dark:bg-amber-300 dark:text-amber-950 dark:hover:bg-amber-200"
+              >
+                Sign in with Amaze ID
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -438,9 +437,7 @@ export default function SocialTab({
                 {initials(name)}
               </span>
               <div className="min-w-0">
-                <p className="text-xs font-semibold text-zinc-400 dark:text-zinc-500 leading-none mb-1">
-                  Campus
-                </p>
+                <p className="text-xs font-semibold text-zinc-400 dark:text-zinc-500 leading-none mb-1">Campus</p>
                 <h1 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white tracking-tight leading-tight font-outfit truncate">
                   Social
                 </h1>
@@ -476,10 +473,10 @@ export default function SocialTab({
           </div>
 
           {/*
-            An explicit sync. Every social route is `auth: "vtop"`, so without a
-            live session the op can fail in a way that reads as "you have no
-            friends". This does the login and the sync together, and says what
-            happened either way.
+            An explicit sync. Social requires Amaze ID for the API and VTOP to
+            verify the student identity. This does the VTOP login and sync
+            together, and gives the student a sign-in action if Amaze ID is
+            missing.
           */}
           <div className="flex items-center gap-2.5 px-1">
             <button
@@ -488,10 +485,7 @@ export default function SocialTab({
               disabled={syncing}
               className="inline-flex items-center gap-1.5 rounded-full border border-zinc-300/70 dark:border-zinc-700 px-3 py-1.5 text-[11px] font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <RefreshCw
-                className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`}
-                aria-hidden="true"
-              />
+              <RefreshCw className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`} aria-hidden="true" />
               {syncing ? "Syncing…" : "Sync now"}
             </button>
             <span
@@ -513,9 +507,7 @@ export default function SocialTab({
 
       {screen === "landing" ? landing : subpage}
 
-      <AnimatePresence>
-        {shareOpen && <ShareHandleSheet onClose={() => setShareOpen(false)} />}
-      </AnimatePresence>
+      <AnimatePresence>{shareOpen && <ShareHandleSheet onClose={() => setShareOpen(false)} />}</AnimatePresence>
       <AnimatePresence>
         {addPeerOpen && (
           <AddPeerSheet
@@ -551,4 +543,3 @@ export default function SocialTab({
     </div>
   );
 }
-

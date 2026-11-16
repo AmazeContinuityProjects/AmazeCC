@@ -96,7 +96,7 @@ describe("workerBase", () => {
       // session, and the Worker has no way to create one.
       for (const route of [
         "attendance",
-        "marks/stats",
+        "curves",
         "grades",
         "schedule",
         "hostel",

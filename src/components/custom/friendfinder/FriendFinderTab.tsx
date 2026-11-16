@@ -80,6 +80,7 @@ import {
 } from "../shared/primitives";
 import BottomSheet from "../shared/BottomSheet";
 import { openLoginSyncSession } from "@/lib/sync-engine/sync-session";
+import { signInInteractive } from "@/lib/oauth2";
 import { useFacultyReviewSheet } from "../exams/FFCS/hooks/useFacultyReviewSheet";
 import FacultyReviewSheetHost from "../exams/FFCS/components/FacultyReviewSheetHost";
 
@@ -715,7 +716,12 @@ export default function FriendFinderTab({
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<{ message: string; retry: ClassmatesRequest; needsSignIn: boolean } | null>(null);
+  const [error, setError] = useState<{
+    message: string;
+    retry: ClassmatesRequest;
+    needsSignIn: boolean;
+    needsAmazeIdSignIn?: boolean;
+  } | null>(null);
   const [reauthing, setReauthing] = useState(false);
   const [editing, setEditing] = useState(false);
   const [confirmingRemove, setConfirmingRemove] = useState(false);
@@ -847,6 +853,7 @@ export default function FriendFinderTab({
           message: err instanceof ClassmatesError ? err.message : "Couldn't reach the friend finder. Try again.",
           retry: request,
           needsSignIn: err instanceof ClassmatesError && err.needsSignIn,
+          needsAmazeIdSignIn: err instanceof ClassmatesError && err.needsAmazeIdSignIn,
         });
       } finally {
         setPending(false);
@@ -1314,7 +1321,15 @@ export default function FriendFinderTab({
   };
 
   const errorAction = (e: NonNullable<typeof error>) =>
-    e.needsSignIn ? (
+    e.needsAmazeIdSignIn ? (
+      <button
+        type="button"
+        className={`${ACTION_BUTTON} !bg-indigo-500 !text-white hover:!bg-indigo-600`}
+        onClick={signInInteractive}
+      >
+        <LogIn className="w-3.5 h-3.5" /> Sign in with Amaze ID
+      </button>
+    ) : e.needsSignIn ? (
       <button
         type="button"
         className={`${ACTION_BUTTON} !bg-indigo-500 !text-white hover:!bg-indigo-600`}
@@ -1384,8 +1399,11 @@ export default function FriendFinderTab({
             </button>
           )}
           <p className="mt-3 text-center text-xs text-muted-foreground">
-            Logging in here will log you into the rest of AmazeCC.
+            Sign in with Amaze ID to return to an existing enrollment, or use VTOP to verify and enroll this semester.
           </p>
+          <button type="button" className={`${ACTION_BUTTON} w-full`} onClick={signInInteractive}>
+            <LogIn className="w-3.5 h-3.5" /> Sign up or sign in with Amaze ID
+          </button>
         </div>
       </PageShell>
     );

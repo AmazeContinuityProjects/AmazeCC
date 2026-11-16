@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "skills": {
+    "mintlify": {
+      "source": "mintlify.com",
+      "sourceUrl": "https://mintlify.com/docs",
+      "sourceType": "well-known",
+      "computedHash": "83566eabffd16efa218620644d1ea6d48095e2d63eca68d66f5f59d0191345fa",
+      "wellKnownDigest": "sha256:92daaa3875982ac416aa606522fafb54eab9af5decb1be9ffad7fa45708ba7cb"
+    }
+  }
+}

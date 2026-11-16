@@ -53,7 +53,7 @@ export async function getDpopKeys(): Promise<CryptoKeyPair> {
   if (cachedKeys) return cachedKeys;
   let pair = await readKeys();
   if (!pair) {
-    pair = await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]);
+    pair = await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, false, ["sign", "verify"]);
     await writeKeys(pair);
   }
   cachedKeys = pair;
@@ -84,11 +84,14 @@ function b64url(s: string): string {
 export async function dpopProof(method: string, url: string, accessToken?: string): Promise<string> {
   const pair = await getDpopKeys();
   const pub = (await crypto.subtle.exportKey("jwk", pair.publicKey)) as JsonWebKey;
-  const payload: Record<string, string> = {
+  // Existing browser keys were generated with only "sign", which exported key_ops: [].
+  // The verifier imports this public JWK with the "verify" usage.
+  pub.key_ops = ["verify"];
+  const payload: Record<string, string | number> = {
     jti: b64url(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(16)))),
     htm: method.toUpperCase(),
     htu: url,
-    iat: String(Math.floor(Date.now() / 1000)),
+    iat: Math.floor(Date.now() / 1000),
   };
   if (accessToken) {
     const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(accessToken));

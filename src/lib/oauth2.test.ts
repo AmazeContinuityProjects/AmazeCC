@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createPkcePair, getAccessTokenSync } from "./oauth2";
+import { createPkcePair, getAccessTokenSync, OIDC } from "./oauth2";
 import { webcrypto } from "node:crypto";
 
 // Node's test environment provides WebCrypto via globalThis.crypto in Node 20+,
@@ -25,6 +25,10 @@ describe("oauth2 PKCE helpers", () => {
     const a = await createPkcePair();
     const b = await createPkcePair();
     expect(a.verifier).not.toBe(b.verifier);
+  });
+
+  it("requests only scopes registered for the AmazeCC web client", () => {
+    expect(OIDC.scope).toBe("openid profile email");
   });
 
   it("getAccessTokenSync returns null when there is no stored token", () => {

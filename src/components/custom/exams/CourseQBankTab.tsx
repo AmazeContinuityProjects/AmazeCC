@@ -2,12 +2,12 @@ import React, { useState, useEffect } from "react";
 import { FileText, BookOpen, UploadCloud, AlertCircle } from "lucide-react";
 import { LoadingSpinner } from "../shared";
 import EmptyState from "../shared/EmptyState";
-import { api } from "@/lib/sync-engine";
+import { getQBankPapers, getQBankQuestions, uploadQBankPaper } from "@/lib/qbankApi";
 import ExamQuestion from "../qbank/ExamQuestion";
 import FetchButton from "../shared/FetchButton";
 import SelectField from "../shared/primitives/SelectField";
 
-export default function CourseQBankTab({ courseCode, username }: { courseCode: string, username: string }) {
+export default function CourseQBankTab({ courseCode, username }: { courseCode: string; username: string }) {
   const [detailTab, setDetailTab] = useState<"papers" | "questions">("papers");
   const [papers, setPapers] = useState<any[]>([]);
   const [questions, setQuestions] = useState<any[]>([]);
@@ -29,16 +29,14 @@ export default function CourseQBankTab({ courseCode, username }: { courseCode: s
     const fetchData = async () => {
       try {
         setError(null);
-        const papersRes = await api(`qbank/papers?course=${encodeURIComponent(courseCode)}`, { parse: "raw" });
-        if (!papersRes.ok) throw new Error("Failed to fetch papers");
-        const papersJson = await papersRes.json();
+        const papersJson = await getQBankPapers(courseCode);
+        if (!papersJson.success) throw new Error("Failed to fetch papers");
         const papersData = papersJson.success ? papersJson.data : [];
         if (!isMounted) return;
         setPapers(papersData);
 
-        const questionsRes = await api(`qbank/questions?course=${encodeURIComponent(courseCode)}`, { parse: "raw" });
-        if (!questionsRes.ok) throw new Error("Failed to fetch questions");
-        const questionsJson = await questionsRes.json();
+        const questionsJson = await getQBankQuestions(courseCode);
+        if (!questionsJson.success) throw new Error("Failed to fetch questions");
         if (isMounted) setQuestions(questionsJson.success ? questionsJson.data : []);
       } catch (err: any) {
         console.error("Failed to fetch QBank data:", err);
@@ -53,7 +51,9 @@ export default function CourseQBankTab({ courseCode, username }: { courseCode: s
     };
 
     fetchData();
-    return () => { isMounted = false; };
+    return () => {
+      isMounted = false;
+    };
   }, [courseCode]);
 
   const [uploadError, setUploadError] = useState("");
@@ -73,18 +73,10 @@ export default function CourseQBankTab({ courseCode, username }: { courseCode: s
         examYear: new Date().getFullYear().toString(),
         uploaderRegNo: username,
         fileUrl,
-        isAdmin: false
       };
 
-      const res = await api("qbank/upload", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: payload,
-        parse: "raw",
-      });
-
-      const json = await res.json();
-      if (!res.ok || !json.success) {
+      const json = await uploadQBankPaper(payload);
+      if (!json.success) {
         throw new Error(json.error || "Upload failed");
       }
 
@@ -112,7 +104,6 @@ export default function CourseQBankTab({ courseCode, username }: { courseCode: s
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 mt-6">
-      
       {/* Tab Navigation & Upload Button */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div className="flex bg-gray-100 dark:bg-black rounded-lg p-1 w-full sm:w-max">
@@ -162,7 +153,7 @@ export default function CourseQBankTab({ courseCode, username }: { courseCode: s
       {showUploadForm && (
         <div className="mb-8 p-5 bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-800/50 rounded-2xl shadow-sm relative overflow-hidden">
           <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
-          
+
           {uploadSuccess ? (
             <div className="py-6 text-center animate-in fade-in zoom-in duration-300">
               <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 text-green-500 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -177,7 +168,13 @@ export default function CourseQBankTab({ courseCode, username }: { courseCode: s
                 <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <UploadCloud className="w-4 h-4 text-blue-500" /> Share a Past Paper
                 </h3>
-                <button type="button" onClick={() => setShowUploadForm(false)} className="text-xs text-gray-400 hover:text-gray-600 font-semibold">Cancel</button>
+                <button
+                  type="button"
+                  onClick={() => setShowUploadForm(false)}
+                  className="text-xs text-gray-400 hover:text-gray-600 font-semibold"
+                >
+                  Cancel
+                </button>
               </div>
 
               {uploadError && (
@@ -207,22 +204,22 @@ export default function CourseQBankTab({ courseCode, username }: { courseCode: s
                   />
                 </div>
                 <div>
-                        <SelectField
-                          value={paperType}
-                          onChange={(val) => setPaperType(val)}
-                          options={[
-                            { value: "CAT 1", label: "CAT 1" },
-                            { value: "CAT 2", label: "CAT 2" },
-                            { value: "FAT", label: "FAT" },
-                            { value: "Quiz", label: "Quiz" },
-                            { value: "Assignment", label: "Assignment" },
-                          ]}
-                          searchable={false}
-                          stacked
-                          role="group"
-                          aria-label="Paper type"
-                        />
-                      </div>
+                  <SelectField
+                    value={paperType}
+                    onChange={(val) => setPaperType(val)}
+                    options={[
+                      { value: "CAT 1", label: "CAT 1" },
+                      { value: "CAT 2", label: "CAT 2" },
+                      { value: "FAT", label: "FAT" },
+                      { value: "Quiz", label: "Quiz" },
+                      { value: "Assignment", label: "Assignment" },
+                    ]}
+                    searchable={false}
+                    stacked
+                    role="group"
+                    aria-label="Paper type"
+                  />
+                </div>
               </div>
 
               <div className="flex flex-col md:flex-row gap-3 items-end">
@@ -256,7 +253,10 @@ export default function CourseQBankTab({ courseCode, username }: { courseCode: s
             icon={<FileText className="w-12 h-12" />}
             title="No papers yet"
             action={
-              <button onClick={() => setShowUploadForm(true)} className="text-blue-500 hover:underline text-sm font-semibold">
+              <button
+                onClick={() => setShowUploadForm(true)}
+                className="text-blue-500 hover:underline text-sm font-semibold"
+              >
                 Be the first to share one!
               </button>
             }

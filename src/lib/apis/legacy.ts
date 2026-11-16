@@ -13,6 +13,7 @@ export const legacyDefinition: ApiDefinition = {
   baseUrl: (process.env.NEXT_PUBLIC_API_URL || "https://api.amazecc.com").replace(/\/+$/, ""),
   auth: ["vtop", "eventhub", "none"],
   routeFor(op) {
+    if (op === "curves") return null;
     return { method: "POST", path: `/api/${op}` };
   },
 };

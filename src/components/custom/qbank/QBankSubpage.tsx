@@ -1,14 +1,6 @@
 import { useMemo, useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import {
-  AlertCircle,
-  BookOpen,
-  ChevronRight,
-  FileText,
-  GraduationCap,
-  RefreshCcw,
-  UploadCloud,
-} from "lucide-react";
+import { AlertCircle, BookOpen, ChevronRight, FileText, GraduationCap, RefreshCcw, UploadCloud } from "lucide-react";
 import {
   ChipTabs,
   EmptyPanel,
@@ -24,7 +16,7 @@ import {
 import { SEARCH_FIELD, TILE_CARD, TILE_INTERACTIVE } from "@/lib/uiTokens";
 import UploadPaperModal from "./UploadPaperModal";
 import ExamQuestion from "./ExamQuestion";
-import { api } from "@/lib/sync-engine";
+import { getQBankPapers, getQBankQuestions } from "@/lib/qbankApi";
 import { useQBankCourses } from "./useQBankCourses";
 import { QBankCourse, QBankPaper, QBankQuestion } from "@/types/qbank.types";
 
@@ -97,8 +89,8 @@ export default function QBankSubpage({
       // pages, which put a full round trip between the grid appearing and the
       // second tab having anything in it.
       const [papersJson, questionsJson] = (await Promise.all([
-        api("qbank/papers?course=" + encodeURIComponent(course.code)),
-        api("qbank/questions?course=" + encodeURIComponent(course.code)),
+        getQBankPapers(course.code),
+        getQBankQuestions(course.code),
       ])) as any[];
 
       setPapers(papersJson.success ? papersJson.data : []);
@@ -126,10 +118,10 @@ export default function QBankSubpage({
     () =>
       new Set(
         (marksData?.courses || []).map(
-          (course: any) => course?.classId?.split("_")[0] ?? course?.courseCode ?? course?.code
-        )
+          (course: any) => course?.classId?.split("_")[0] ?? course?.courseCode ?? course?.code,
+        ),
       ),
-    [marksData]
+    [marksData],
   );
 
   const filteredCourses = useMemo(() => {
@@ -140,14 +132,9 @@ export default function QBankSubpage({
     // An empty search shows only the student's own courses, matching what both
     // pages did. Typing widens it to community, because that is when you are
     // looking for a course you do not have.
-    const base = q
-      ? Array.from(new Map([...mine, ...shared].map((c) => [c.code, c])).values())
-      : mine;
+    const base = q ? Array.from(new Map([...mine, ...shared].map((c) => [c.code, c])).values()) : mine;
 
-    const matches = base.filter(
-      (c) =>
-        !q || c.code.toLowerCase().includes(q) || c.title.toLowerCase().includes(q)
-    );
+    const matches = base.filter((c) => !q || c.code.toLowerCase().includes(q) || c.title.toLowerCase().includes(q));
 
     if (courseFilter === "current") return matches.filter((c) => currentCodes.has(c.code));
     if (courseFilter === "completed") return matches.filter((c) => !currentCodes.has(c.code));
@@ -211,9 +198,7 @@ export default function QBankSubpage({
           />
         </div>
 
-        {globalCoursesLoading && (
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">Loading community courses…</p>
-        )}
+        {globalCoursesLoading && <p className="text-xs text-zinc-500 dark:text-zinc-400">Loading community courses…</p>}
 
         <SectionHeader title="Courses" count={filteredCourses.length} />
 
@@ -328,9 +313,7 @@ export default function QBankSubpage({
                       <FileText className="w-5 h-5" />
                     </div>
                     <div className="min-w-0">
-                      <h4 className="font-bold text-sm text-zinc-900 dark:text-white truncate">
-                        {p.title}
-                      </h4>
+                      <h4 className="font-bold text-sm text-zinc-900 dark:text-white truncate">{p.title}</h4>
                       <p className="text-xs text-zinc-500 dark:text-zinc-400">
                         {p.source_type} • {p.exam_semester} {p.exam_year}
                       </p>

@@ -198,9 +198,7 @@ export const storage = {
   /**
    * Cohort statistics, keyed by class id.
    *
-   * Delivered by the server in the same payload as the marks, so it is persisted and
-   * read alongside them rather than fetched on its own. It is a derived aggregate —
-   * no individual mark — so caching it costs nothing privacy-wise.
+   * Delivered by /curves as semester-scoped aggregates, with no individual marks.
    */
   marksStats: {
     get: () => getItem<Record<string, unknown>>(KEYS.MARKS_STATS),

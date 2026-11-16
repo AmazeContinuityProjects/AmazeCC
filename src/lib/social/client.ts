@@ -17,6 +17,9 @@
 // (`@/lib/sync-engine`) drags in operations → socialAtoms → this file, an
 // import cycle. The barrel re-exports this same function as `api`.
 import { apiRequest as api } from "@/lib/sync-engine/request-layer";
+import { credentialManager } from "@/lib/sync-engine/credential-manager";
+import { AuthError } from "@/lib/sync-engine/errors";
+import { getValidAccessToken } from "@/lib/oauth2";
 import type {
   BusyMap,
   SocialCourse,
@@ -106,6 +109,51 @@ export class SocialApiError extends Error {
     this.code = code;
     this.detail = detail;
   }
+
+  get needsAmazeIdSignIn(): boolean {
+    return this.code === "amazeid_signin_required" || this.code === "amazeid_session_expired";
+  }
+}
+
+/**
+ * Social routes use Amaze ID for the API boundary and VTOP credentials for
+ * VTOP identity verification. Send both explicitly so the DPoP guard and the
+ * route's VTOP session check receive their respective credentials.
+ */
+async function socialRequest(
+  path: string,
+  body?: Record<string, unknown>,
+  opts: { method?: "GET" | "POST"; needsVtop?: boolean } = {},
+) {
+  const accessToken = await getValidAccessToken();
+  if (!accessToken) {
+    throw new SocialApiError("amazeid_signin_required", "Sign in with Amaze ID to use Social.");
+  }
+
+  const method = opts.method ?? "POST";
+  let requestBody = body;
+  if (opts.needsVtop !== false) {
+    const creds = await credentialManager.ensureVtopSession();
+    requestBody = {
+      ...(body ?? {}),
+      cookies: creds.cookies,
+      authorizedID: creds.authorizedID,
+      csrf: creds.csrf,
+    };
+  }
+
+  try {
+    return await api(path, {
+      method,
+      auth: "amazeId",
+      ...(requestBody ? { body: requestBody } : {}),
+    });
+  } catch (error) {
+    if (error instanceof AuthError) {
+      throw new SocialApiError("amazeid_session_expired", "Your Amaze ID session expired. Sign in again.");
+    }
+    throw error;
+  }
 }
 
 /**
@@ -145,31 +193,19 @@ function unwrap<T>(json: unknown, require: (v: any) => boolean, what: string): T
  * invocation uses `ctx.request` so it gets retry and in-flight dedupe.
  */
 export async function syncIdentity(proposedSemesterId?: string): Promise<SyncResponse> {
-  const json = await api("social/identity/sync", {
-    method: "POST",
-    auth: "vtop",
-    body: proposedSemesterId ? { proposedSemesterId } : {},
-  });
+  const json = await socialRequest("social/identity/sync", proposedSemesterId ? { proposedSemesterId } : {});
   return unwrap<SyncResponse>(json, (v) => Boolean(v?.identity?.handle), "an identity");
 }
 
 export async function lookupPerson(handle: string): Promise<PersonResponse> {
-  const json = await api("social/people", {
-    method: "POST",
-    auth: "vtop",
-    body: { handle },
-  });
+  const json = await socialRequest("social/people", { handle });
   // The field check is the part that matters: without it a `handle_not_found`
   // body (or a proxy's HTML) resolves as a person-shaped object.
   return unwrap<PersonResponse>(json, (v) => typeof v?.person?.handle === "string", "a person");
 }
 
 export async function claimPair(handle: string, visibility: SocialVisibility = "full"): Promise<ClaimResponse> {
-  const json = await api("social/pair/claim", {
-    method: "POST",
-    auth: "vtop",
-    body: { handle, visibility },
-  });
+  const json = await socialRequest("social/pair/claim", { handle, visibility });
   return unwrap<ClaimResponse>(json, (v) => Boolean(v?.grantId && v?.secret), "a pairing");
 }
 
@@ -184,20 +220,16 @@ export async function readPeerTimetable(
   handle: string,
   semester?: string,
 ): Promise<PeerTimetableResponse> {
-  const json = await api("social/timetable", {
-    method: "POST",
-    auth: "vtop",
-    body: { secret, handle, ...(semester ? { semester } : {}) },
+  const json = await socialRequest("social/timetable", {
+    secret,
+    handle,
+    ...(semester ? { semester } : {}),
   });
   return unwrap<PeerTimetableResponse>(json, (v) => Boolean(v?.identity?.handle), "a timetable");
 }
 
 export async function revokeGrant(grantId: string, secret: string): Promise<{ success: boolean }> {
-  const json = await api("social/grant/revoke", {
-    method: "POST",
-    auth: "vtop",
-    body: { grantId, secret },
-  });
+  const json = await socialRequest("social/grant/revoke", { grantId, secret });
   return unwrap<{ success: boolean }>(json, (v) => Boolean(v?.grantId), "a revocation");
 }
 
@@ -205,11 +237,7 @@ export async function setGrantVisibility(
   grantId: string,
   visibility: SocialVisibility,
 ): Promise<{ success: boolean; visibility: SocialVisibility }> {
-  const json = await api("social/grant/visibility", {
-    method: "POST",
-    auth: "vtop",
-    body: { grantId, visibility },
-  });
+  const json = await socialRequest("social/grant/visibility", { grantId, visibility });
   return unwrap<{ success: boolean; visibility: SocialVisibility }>(
     json,
     (v) => Boolean(v?.grantId),
@@ -217,8 +245,8 @@ export async function setGrantVisibility(
   );
 }
 
-/** The only route that needs no credentials — a semester code is not private. */
+/** This route only needs Amaze ID; it does not need to log in to VTOP. */
 export async function fetchCurrentSemester(): Promise<SemesterResponse> {
-  const json = await api("social/semester", { method: "GET", auth: "none" });
+  const json = await socialRequest("social/semester", undefined, { method: "GET", needsVtop: false });
   return unwrap<SemesterResponse>(json, (v) => typeof v?.semesterId === "string", "a semester");
 }

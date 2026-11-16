@@ -58,11 +58,18 @@ vi.mock("@/lib/fetch-utils", () => ({
 
 vi.mock("@/lib/unicc-fallback", () => ({ UNICC_API_URL: "https://unicc.example" }));
 
+vi.mock("@/lib/oauth2", () => ({
+  getStoredUser: () => null,
+  signInInteractive: vi.fn(),
+  signOutApp: vi.fn(),
+}));
+
 vi.mock("../components/custom/shared/primitives/SelectField", () => ({
   default: () => <div data-testid="server-select" />,
 }));
 
 import OnboardingIntro from "../components/custom/onboarding/OnboardingIntro";
+import { signInInteractive } from "@/lib/oauth2";
 
 function failWith(text: string) {
   session.current = {
@@ -94,7 +101,7 @@ function renderIntro(onChangePassword = vi.fn()) {
         onChangePassword,
       }}
       onDone={() => {}}
-    />
+    />,
   );
 }
 
@@ -147,5 +154,13 @@ describe("intro sign-in rejection", () => {
     expect(screen.queryByText("Check your password")).toBeNull();
     expect(screen.queryByText("Sign-in rejected")).toBeNull();
     expect(screen.getByRole("alert").textContent).toContain("Login timed out");
+  });
+
+  it("starts the Amaze ID flow from the create-account link", () => {
+    renderIntro();
+
+    fireEvent.click(screen.getByRole("button", { name: /new here\? create an amaze id/i }));
+
+    expect(signInInteractive).toHaveBeenCalledTimes(1);
   });
 });
