@@ -1,101 +1,145 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { api } from "@/lib/sync-engine";
-import { AlertCircle, Car, KeyRound, Loader2, Phone, Shield, UserRound } from "lucide-react";
+import { getValidAccessToken, signInInteractive } from "@/lib/oauth2";
+import { AlertCircle, ArrowRight, Car, ExternalLink, Loader2, Phone, Shield } from "lucide-react";
 import { ListRowText, ListShell, SectionHeader } from "../../shared/primitives";
 import { FIELD_INPUT, LIST_ROW, TILE_CARD, TONE_ICON_TILE } from "@/lib/uiTokens";
 
-const FIELD_LABEL =
-  "block text-[10px] font-black uppercase tracking-wider text-text-muted";
+const FIELD_LABEL = "block text-[10px] font-black uppercase tracking-wider text-text-muted";
+const AUTH_BASE = process.env.NEXT_PUBLIC_AUTH_URL ?? "https://auth.amazecc.com";
 
 const STEPS = [
-  ["Verify", "Use your saved VTOP registration number to keep ride requests student-only."],
+  ["Verify", "Use your Amaze ID with a linked VTOP account to keep ride requests student-only."],
   ["Post or find", "Choose your hub, travel date, and preferred time."],
   ["Confirm", "Contact details unlock only after the host accepts a request."],
 ] as const;
 
-export default function CabShareAuthModal({ isOpen, onAuthSuccess }: { isOpen: boolean, onAuthSuccess: (user: any) => void }) {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+type CabShareUser = {
+  user_id: number;
+  name: string;
+  phone_number: string | null;
+  reg_number: string;
+};
+
+type CabShareAuthResponse = {
+  success?: boolean;
+  error?: string;
+  message?: string;
+  detail?: { detail?: string };
+  phone_required?: boolean;
+  user?: CabShareUser;
+};
+
+type AuthStep = "checking" | "sign-in" | "link-vtop" | "phone" | "error";
+
+async function responseBody(response: Response): Promise<CabShareAuthResponse | null> {
+  return response.json().catch(() => null) as Promise<CabShareAuthResponse | null>;
+}
+
+function responseError(body: CabShareAuthResponse | null, status: number): string {
+  return body?.detail?.detail || body?.error || body?.message || `Cab Share authentication failed (HTTP ${status}).`;
+}
+
+export default function CabShareAuthModal({
+  isOpen,
+  onAuthSuccess,
+}: {
+  isOpen: boolean;
+  onAuthSuccess: (user: CabShareUser) => void;
+}) {
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [step, setStep] = useState<AuthStep>("checking");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const onAuthSuccessRef = useRef(onAuthSuccess);
 
   useEffect(() => {
-    if (isOpen) {
-      const idsObj = localStorage.getItem("IDs");
-      if (idsObj) {
-        try {
-          const ids = JSON.parse(idsObj);
-          if (ids.VtopUsername) setUsername(ids.VtopUsername);
-          // We can optionally pre-fill password too if we want true auto-login,
-          // but the user's requirement "fetch the vtop username and password from the local storage" means we should probably just do it silently.
-          if (ids.VtopPassword) setPassword(ids.VtopPassword);
-        } catch (e) {}
-      }
-    }
-  }, [isOpen]);
+    onAuthSuccessRef.current = onAuthSuccess;
+  }, [onAuthSuccess]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!username || !password || !phoneNumber) {
-      setError("Please fill all fields.");
+  const loadCabShareUser = useCallback(async () => {
+    const token = await getValidAccessToken();
+    if (!token) {
+      setStep("sign-in");
       return;
     }
-    if (phoneNumber.length < 10) {
-      setError("Please enter a valid phone number.");
+
+    const response = (await api("cabshare/auth", {
+      method: "POST",
+      parse: "raw",
+      body: {},
+    })) as Response;
+    const data = await responseBody(response);
+
+    if (response.status === 403 && data?.error === "profile_incomplete") {
+      setStep("link-vtop");
+      return;
+    }
+    if (response.status === 401) {
+      setStep("sign-in");
+      setError("Your Amaze ID session expired. Sign in again to continue.");
+      return;
+    }
+    if (!response.ok || !data?.success || !data.user) {
+      throw new Error(responseError(data, response.status));
+    }
+    if (data.phone_required || !data.user.phone_number?.trim()) {
+      setStep("phone");
+      return;
+    }
+
+    onAuthSuccessRef.current(data.user);
+  }, []);
+
+  const authenticate = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      await loadCabShareUser();
+    } catch (cause) {
+      setStep("error");
+      setError(cause instanceof Error ? cause.message : "Could not connect to Cab Share.");
+    } finally {
+      setLoading(false);
+    }
+  }, [loadCabShareUser]);
+
+  useEffect(() => {
+    if (isOpen) void authenticate();
+  }, [authenticate, isOpen]);
+
+  const handlePhoneSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const digits = phoneNumber.replace(/\D/g, "");
+    if (!/^[6-9]\d{9}$/.test(digits)) {
+      setError("Enter a valid 10-digit Indian mobile number.");
       return;
     }
 
     setLoading(true);
     setError("");
-
     try {
-      // `parse: "raw"` is required, not stylistic. Without it `api` returns the
-      // already-parsed body instead of a `Response`, so `readJsonResponse`'s
-      // `res.headers.get(...)` threw — and because that sat inside the try, a
-      // rejected password, an unreachable server and a *successful* login all
-      // landed in the same catch and quietly produced a local-only profile. It
-      // also matters because `parse: "raw"` returns above the `AuthError` the
-      // request layer raises on an auth-failure body: a Cab Share password
-      // problem must not be able to trigger the VTOP give-up flow.
-      const res = (await api("cabshare/auth", {
-        method: "POST",
-        parse: "raw",
-        body: { username, password, phone_number: phoneNumber },
-      })) as Response;
-
-      // Read the body once, for both the OK and the rejected case: a non-OK
-      // status is exactly when the server's own explanation is most worth
-      // showing. `catch` covers an error page that is not JSON at all.
-      const data = await res.json().catch(() => null);
-
-      if (res.ok && data?.success && data.user) {
-        onAuthSuccess(data.user);
+      const token = await getValidAccessToken();
+      if (!token) {
+        setStep("sign-in");
         return;
       }
 
-      // A server that answered has judged these details. Never fall through to
-      // the local-only profile here — a wrong password that reads as a success
-      // is worse than an error, because the ride request then never reaches
-      // anyone and there is nothing to show for it.
-      setError(
-        data?.error ||
-          data?.message ||
-          `Authentication failed — the server rejected these details (HTTP ${res.status}).`
-      );
-    } catch {
-      // No response at all: offline, or the endpoint is unreachable. This is the
-      // one case where a local-only profile is a fair substitute, because there
-      // was nobody to reject the credentials.
-      onAuthSuccess({
-        reg_number: username.trim(),
-        username: username.trim(),
-        name: username.trim(),
-        phone_number: phoneNumber.trim(),
-        local_only: true,
-      });
+      const response = (await api("profile/phone", {
+        method: "PATCH",
+        parse: "raw",
+        body: { phone_number: digits },
+      })) as Response;
+      const data = await responseBody(response);
+      if (!response.ok || !data?.success) {
+        throw new Error(responseError(data, response.status));
+      }
+      await loadCabShareUser();
+    } catch (cause) {
+      setStep("error");
+      setError(cause instanceof Error ? cause.message : "Could not save your phone number.");
     } finally {
       setLoading(false);
     }
@@ -116,79 +160,106 @@ export default function CabShareAuthModal({ isOpen, onAuthSuccess }: { isOpen: b
               Start using Cab Share
             </h2>
             <p className="mt-1 text-xs font-medium leading-relaxed text-text-secondary dark:text-text-muted">
-              Verify your VTOP account and add a reachable phone number before posting or joining rides.
+              Sign in with Amaze ID, link your VTOP account, and register a reachable phone number.
             </p>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-5 grid gap-4 md:grid-cols-2">
+        <div className="mt-5 space-y-4">
           {error && (
-            <div className="flex items-center gap-2 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm font-semibold text-red-600 dark:text-red-400 md:col-span-2">
+            <div className="flex items-center gap-2 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm font-semibold text-red-600 dark:text-red-400">
               <AlertCircle className="h-5 w-5 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
-          <label className="block space-y-1">
-            <span className={FIELD_LABEL}>Registration Number</span>
-            <span className="relative block [&_input]:pl-11">
-              <UserRound className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-                autoComplete="username"
-                className={FIELD_INPUT}
-                placeholder="Enter registration number"
-              />
-            </span>
-          </label>
-
-          <label className="block space-y-1">
-            <span className={FIELD_LABEL}>VTOP Password</span>
-            <span className="relative block [&_input]:pl-11">
-              <KeyRound className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                autoComplete="current-password"
-                className={FIELD_INPUT}
-                placeholder="Enter your VTOP password"
-              />
-            </span>
-          </label>
-
-          <div className="space-y-1 md:col-span-2">
-            <label className={FIELD_LABEL}>Phone Number</label>
-            <div className="relative">
-              <Phone className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
-              <input
-                type="tel"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                required
-                autoComplete="tel"
-                inputMode="tel"
-                className={`${FIELD_INPUT} pl-11`}
-                placeholder="10-digit mobile number"
-              />
+          {loading || step === "checking" ? (
+            <div className="flex items-center gap-2 text-sm font-semibold text-text-secondary dark:text-text-muted">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              Checking your Amaze ID…
             </div>
-            <p className="mt-2 flex items-center gap-1.5 text-[11px] font-medium text-text-muted">
-              <Shield className="h-3.5 w-3.5" /> Shared only with confirmed ride matches.
-            </p>
-          </div>
+          ) : null}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-black text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-70 md:col-span-2"
-          >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Authenticate & Continue"}
-          </button>
-        </form>
+          {step === "sign-in" && !loading && (
+            <div className="space-y-3">
+              <p className="text-sm text-text-secondary dark:text-text-muted">
+                An Amaze ID is required to use Cab Share. Sign up or sign in to continue; link your VTOP account
+                afterward.
+              </p>
+              <button
+                type="button"
+                onClick={signInInteractive}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-black text-white transition-colors hover:bg-indigo-700"
+              >
+                Sign up or sign in with Amaze ID <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
+          {step === "link-vtop" && !loading && (
+            <div className="space-y-3">
+              <p className="text-sm text-text-secondary dark:text-text-muted">
+                Link a VTOP account to your Amaze ID before using Cab Share.
+              </p>
+              <a
+                href={`${AUTH_BASE}/account`}
+                target="_blank"
+                rel="noreferrer"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-black text-white transition-colors hover:bg-indigo-700"
+              >
+                Link VTOP in Amaze ID <ExternalLink className="h-4 w-4" />
+              </a>
+              <button
+                type="button"
+                onClick={() => void authenticate()}
+                className="w-full rounded-2xl border border-border-muted px-4 py-3 text-sm font-bold text-text-heading"
+              >
+                I&apos;ve linked VTOP — retry
+              </button>
+            </div>
+          )}
+
+          {step === "phone" && !loading && (
+            <form onSubmit={handlePhoneSubmit} className="space-y-3">
+              <label className="block space-y-1">
+                <span className={FIELD_LABEL}>Phone Number</span>
+                <span className="relative block [&_input]:pl-11">
+                  <Phone className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                  <input
+                    type="tel"
+                    value={phoneNumber}
+                    onChange={(event) => setPhoneNumber(event.target.value)}
+                    required
+                    autoComplete="tel"
+                    inputMode="tel"
+                    className={FIELD_INPUT}
+                    placeholder="10-digit mobile number"
+                  />
+                </span>
+              </label>
+              <p className="flex items-center gap-1.5 text-[11px] font-medium text-text-muted">
+                <Shield className="h-3.5 w-3.5" /> Shared only with confirmed ride matches.
+              </p>
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-black text-white transition-colors hover:bg-indigo-700 disabled:opacity-70"
+              >
+                {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Register phone & continue"}
+              </button>
+            </form>
+          )}
+
+          {step === "error" && !loading && (
+            <button
+              type="button"
+              onClick={() => void authenticate()}
+              className="w-full rounded-2xl border border-border-muted px-4 py-3 text-sm font-bold text-text-heading"
+            >
+              Retry Cab Share sign-in
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="space-y-3">

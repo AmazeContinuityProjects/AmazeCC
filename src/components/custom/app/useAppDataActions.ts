@@ -4,7 +4,6 @@ import { useCallback } from "react";
 import config from "../../../../config.json";
 import { syncEngine, cancelAllRequests } from "@/lib/sync-engine";
 import { storage } from "@/lib/storage";
-import { syncMarksDiff } from "@/lib/marksSync";
 import { syncPastSemesters } from "@/lib/pastDataSync";
 import { loadActivityTree, saveActivityTree } from "@/lib/activity-tree";
 import { reportError } from "@/lib/error-utils";
@@ -144,23 +143,8 @@ export function useAppDataActions({
         setAttendanceAndOD(attRes);
         setMarksData(marksRes as object);
 
-        // Read the previous marks BEFORE overwriting the cache. Doing it after meant
-        // `oldMarks` was the payload we had just written, so the diff was always empty and
-        // a mark change reached the class statistics only if the user happened to hit the
-        // reload path instead of logging in.
-        const oldMarks = storage.marks.get() || {};
-
         storage.attendance.set(attRes);
         storage.marks.set(marksRes);
-
-        syncMarksDiff(oldMarks, marksRes).then((r) => {
-          if (r.mismatches.length > 0) {
-            appendSyncLine(
-              `${r.mismatches.length} cohort receipt(s) changed unexpectedly — server state moved`,
-              "error",
-            );
-          }
-        });
 
         let profileRes = storage.profile.get();
         const fetchedProfile = await syncEngine.sync<any>("studentProfile");
@@ -202,7 +186,7 @@ export function useAppDataActions({
 
             // Cohort stats read the enrollment the foreground attendance just
             // recorded, so they run first here — same ordering as the sweeps.
-            await syncEngine.sync("marksStats", {}).catch(() => {
+            await syncEngine.sync("marksStats", { semesterId: currSemesterID }).catch(() => {
               appendSyncLine("Cohort statistics unavailable, keeping last synced records", "error");
             });
             await syncEngine.sync("events", { demoMode });
@@ -424,18 +408,6 @@ export function useAppDataActions({
         const applyAttendanceResult = (attRes: any, marksRes: any) => {
           setAttendanceAndOD(attRes);
           setMarksData(marksRes as object);
-          const oldMarks = JSON.parse(localStorage.getItem("marks") || "{}");
-          syncMarksDiff(oldMarks, marksRes).then((r) => {
-            if (r.mismatches.length > 0) {
-              appendSyncLine(
-                `${r.mismatches.length} cohort receipt(s) changed unexpectedly — server state moved`,
-                "error",
-              );
-            }
-            if (r.frozen.length > 0) {
-              appendSyncLine(`${r.frozen.length} contribution(s) pinned to an older sync (no local history)`, "info");
-            }
-          });
           localStorage.setItem("attendance", JSON.stringify(attRes));
           localStorage.setItem("marks", JSON.stringify(marksRes));
         };

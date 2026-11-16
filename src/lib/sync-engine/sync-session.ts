@@ -38,10 +38,16 @@ interface SyncSessionState {
   /** Set when the sheet was opened to report a condition, not a live run. */
   notice: SyncNotice;
   presentation: SyncPresentation;
+  /** Incremented for noteworthy info/errors so the floating notification expands. */
+  attentionVersion: number;
 }
 
 const MAX_LINES = 60;
 const DEFAULT_HOLD_MS = 2500;
+
+function isRoutineSyncInfo(text: string): boolean {
+  return /^(starting background sync|loading past semester data from cache)/i.test(text.trim());
+}
 
 let state: SyncSessionState = {
   open: false,
@@ -52,12 +58,19 @@ let state: SyncSessionState = {
   outcome: null,
   notice: null,
   presentation: "sheet",
+  attentionVersion: 0,
 };
 const listeners = new Set<() => void>();
 let closeTimer: ReturnType<typeof setTimeout> | null = null;
 // Run dismissed by the user mid-flight: later events from the same run must
 // not pop the sheet back open.
 let dismissedRunId = -1;
+// A raw `syncEngine.sync()` call can own its notification when no screen-level
+// sync flow opened one. Track concurrent operations so the auto-owned sheet
+// closes only after all of them finish.
+let engineManagedRunId = -1;
+let engineActiveOperations = 0;
+let engineRunFailed = false;
 
 function emit() {
   listeners.forEach((l) => l());
@@ -70,6 +83,9 @@ export function openSyncSession(title: string, notice: SyncNotice = null) {
   }
   resetActiveSignal();
   dismissedRunId = -1;
+  engineManagedRunId = -1;
+  engineActiveOperations = 0;
+  engineRunFailed = false;
   state = {
     open: true,
     title,
@@ -81,6 +97,7 @@ export function openSyncSession(title: string, notice: SyncNotice = null) {
     // Runs are independent of who is drawing them: flipping presentation
     // mid-run must not be undone by the next `openSyncSession`.
     presentation: state.presentation,
+    attentionVersion: notice ? 1 : 0,
   };
   emit();
 }
@@ -111,6 +128,9 @@ export function openLoginSyncSession(title: string = "Sign in with VTOP") {
   }
   resetActiveSignal();
   dismissedRunId = -1;
+  engineManagedRunId = -1;
+  engineActiveOperations = 0;
+  engineRunFailed = false;
   state = {
     open: true,
     title,
@@ -120,6 +140,7 @@ export function openLoginSyncSession(title: string = "Sign in with VTOP") {
     outcome: null,
     notice: "login",
     presentation: state.presentation,
+    attentionVersion: 1,
   };
   emit();
 }
@@ -139,7 +160,13 @@ export function ensureSyncSession(title: string) {
 
 export function appendSyncLine(text: string, status: SyncLineStatus = "info") {
   if (!state.open) return;
-  state = { ...state, lines: [...state.lines, { text, status }].slice(-MAX_LINES) };
+  const noteworthy =
+    state.presentation === "sheet" && (status === "error" || (status === "info" && !isRoutineSyncInfo(text)));
+  state = {
+    ...state,
+    lines: [...state.lines, { text, status }].slice(-MAX_LINES),
+    attentionVersion: state.attentionVersion + (noteworthy ? 1 : 0),
+  };
   emit();
 }
 
@@ -180,6 +207,9 @@ export function closeSyncSession(holdMs: number = DEFAULT_HOLD_MS, outcome: Excl
   if (signInFailure || isVtopDownFailure) return;
 
   const runId = state.runId;
+  // Keep an auto-expanded error visible long enough to read even when a caller
+  // requested an immediate close for a non-actionable failure.
+  const visibleHoldMs = Math.max(holdMs, outcome === "error" && state.attentionVersion > 0 ? DEFAULT_HOLD_MS : 0);
   if (closeTimer) clearTimeout(closeTimer);
   closeTimer = setTimeout(() => {
     if (state.runId === runId) {
@@ -187,12 +217,15 @@ export function closeSyncSession(holdMs: number = DEFAULT_HOLD_MS, outcome: Excl
       emit();
     }
     closeTimer = null;
-  }, holdMs);
+  }, visibleHoldMs);
 }
 
 /** User-dismissed mid-flight: close now, cancel in-flight requests, and suppress re-opens from this run. */
 export function dismissSyncSession() {
   dismissedRunId = state.runId;
+  engineManagedRunId = -1;
+  engineActiveOperations = 0;
+  engineRunFailed = false;
   if (closeTimer) {
     clearTimeout(closeTimer);
     closeTimer = null;
@@ -325,15 +358,35 @@ subscribeUniccLogEvents((e) => {
 export function handleEngineProgressEvent(e: ProgressEvent) {
   const meta = OP_LABELS[e.op] || { label: getOpLabel(e.op), delta: 5 };
   if (e.phase === "start") {
-    ensureSyncSession("VTOP Sync");
+    if (state.open && engineManagedRunId === state.runId && engineActiveOperations === 0 && state.outcome !== null) {
+      // A second standalone action began while the previous result was being
+      // held on screen. Give the new action its own progress lifecycle.
+      openSyncSession("VTOP Sync");
+      engineManagedRunId = state.runId;
+    } else if (!state.open && dismissedRunId !== state.runId) {
+      openSyncSession("VTOP Sync");
+      engineManagedRunId = state.runId;
+    }
+    if (engineManagedRunId === state.runId) engineActiveOperations++;
     appendSyncLine(`Fetching ${meta.label}…`, "loading");
   } else if (e.phase === "done") {
     ensureSyncSession("VTOP Sync");
     appendSyncLine(`${meta.label} fetched`, "success");
     bumpSyncProgress(meta.delta);
+    finishEngineManagedOperation(false);
   } else if (e.phase === "error") {
     ensureSyncSession("VTOP Sync");
     const detail = e.error && "message" in e.error ? ` — ${e.error.message}` : "";
     appendSyncLine(`${meta.label} failed${detail}`, "error");
+    finishEngineManagedOperation(true);
+  }
+}
+
+function finishEngineManagedOperation(failed: boolean) {
+  if (engineManagedRunId !== state.runId) return;
+  engineRunFailed ||= failed;
+  engineActiveOperations = Math.max(0, engineActiveOperations - 1);
+  if (engineActiveOperations === 0) {
+    closeSyncSession(DEFAULT_HOLD_MS, engineRunFailed ? "error" : "success");
   }
 }

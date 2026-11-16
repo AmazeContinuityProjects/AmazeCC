@@ -6,9 +6,11 @@ import type { ApiDefinition } from "./types";
  *
  * Native shape - NOT compatible with the legacy host for a few operations:
  *   - VTOP scrapers:  POST /api/<op>          (1:1 with legacy)
- *   - services:       POST /api/services/<op> (marks/stats, marks/sync, marks/tokens,
+ *   - services:       POST /api/services/<op> (curves, marks/tokens,
  *                                              enroll, faculty/scrape, faculty/schools)
  *                     (legacy serves those at /api/<op> with NO /services prefix)
+ *   - first-party apps: /api/cabshare/*, /api/social/*, /api/profile/*
+ *                     (Amaze ID / DPoP auth, shard names and envelopes changed)
  *   - admin:          /api/admin/*             (Amaze ID Bearer, section-gated)
  *   - health:         /api/health, /api/status
  *   - /api/*          reverse-PROXIES anything else to api.amazecc.com
@@ -21,18 +23,39 @@ export const honoDefinition: ApiDefinition = {
   id: "hono",
   title: "AmazeCC (Cloudflare Workers)",
   baseUrl: (process.env.NEXT_PUBLIC_HONO_API_URL || "https://hono.amazecc.com").replace(/\/+$/, ""),
-  auth: ["vtop", "eventhub", "none"],
+  auth: ["vtop", "eventhub", "amazeId", "none"],
   routeFor(op) {
     // Services live under /api/services/* on hono (legacy has them at /api/<op>).
-    const services = new Set([
-      "marks/stats",
-      "marks/sync",
-      "marks/tokens",
-      "enroll",
-      "faculty/scrape",
-      "faculty/schools",
-    ]);
+    const services = new Set(["curves", "marks/tokens", "enroll", "faculty/scrape", "faculty/schools"]);
     if (services.has(op)) return { method: "POST", path: `/api/services/${op}` };
+
+    // New first-party routes are mounted directly under /api/* and carry the
+    // DPoP/AmazeID auth contract rather than the older VTOP credential flow.
+    const amazeIdRoutes = new Set([
+      "cabshare/auth",
+      "cabshare/trips",
+      "cabshare/trips/me",
+      "cabshare/hubs",
+      "cabshare/match",
+      "cabshare/waitlist",
+      "cabshare/stats",
+      "cabshare/ratings",
+      "cabshare/notifications",
+      "cabshare/blocks",
+      "social/identity/sync",
+      "social/people",
+      "social/timetable",
+      "social/pair/claim",
+      "social/grant/revoke",
+      "social/grant/visibility",
+      "social/semester",
+      "social/ffc-match",
+      "profile/phone",
+    ]);
+    if (amazeIdRoutes.has(op) || op.startsWith("cabshare/") || op.startsWith("profile/") || op.startsWith("social/")) {
+      return { method: "POST", path: `/api/${op}`, auth: "amazeId" };
+    }
+
     // Every remote scraper is also aliased at /api/<op> and behaves like legacy.
     return { method: "POST", path: `/api/${op}` };
   },

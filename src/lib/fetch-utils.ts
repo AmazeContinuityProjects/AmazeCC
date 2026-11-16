@@ -244,6 +244,22 @@ const AMAZEID_HOSTS = new Set(
     .filter((v): v is string => v !== null),
 );
 
+class AmazeIdProofError extends Error {
+  constructor(cause: unknown) {
+    const detail = cause instanceof Error ? cause.message : String(cause);
+    super(`Could not create an Amaze ID DPoP proof: ${detail}`);
+    this.name = "AmazeIdProofError";
+  }
+}
+
+async function createAmazeIdProof(method: string, url: string, token: string): Promise<string> {
+  try {
+    return await dpopProof(method, url, token);
+  } catch (error) {
+    throw new AmazeIdProofError(error);
+  }
+}
+
 /**
  * Attach Amaze ID as a DPoP-bound bearer for our own API hosts.
  * DPoP is required for the SPA because static file hosts can't hold a client secret.
@@ -254,20 +270,29 @@ async function withAmazeIdAuth(
   urlStr: string,
   method = "GET",
 ): Promise<RequestInit | undefined> {
+  let origin: string;
   try {
-    const origin = new URL(urlStr).origin;
-    if (!AMAZEID_HOSTS.has(origin)) return init;
-    const token = getAccessTokenSync();
-    if (!token) return init;
-    const headers = new Headers(init?.headers);
-    if (headers.has("Authorization")) return init; // caller already chose one
-    const dpop = await dpopProof(method, urlStr, token).catch(() => null);
-    headers.set("Authorization", `DPoP ${token}`);
-    if (dpop) headers.set("dpop", dpop);
-    return { ...(init ?? {}), headers };
+    origin = new URL(urlStr).origin;
   } catch {
     return init;
   }
+  if (!AMAZEID_HOSTS.has(origin)) return init;
+
+  const headers = new Headers(init?.headers);
+  const existingAuthorization = headers.get("Authorization");
+  if (existingAuthorization) {
+    const token = /^DPoP\s+(\S+)$/i.exec(existingAuthorization)?.[1];
+    if (!token || headers.has("DPoP")) return init;
+    headers.set("DPoP", await createAmazeIdProof(method, urlStr, token));
+    return { ...(init ?? {}), headers };
+  }
+
+  const token = getAccessTokenSync();
+  if (!token) return init;
+  const proof = await createAmazeIdProof(method, urlStr, token);
+  headers.set("Authorization", `DPoP ${token}`);
+  headers.set("DPoP", proof);
+  return { ...(init ?? {}), headers };
 }
 /**
  * Statuses that mean "this host could not answer", as opposed to a real reply.
@@ -420,7 +445,23 @@ export async function fetchWithFailover(input: RequestInfo | URL, init?: Request
     return originalFetch(input, init);
   }
 
+  const requestAuthorization =
+    new Headers(init?.headers).get("Authorization") ??
+    (input instanceof Request ? input.headers.get("Authorization") : null);
+  const hasAmazeIdAuth = /^DPoP\s/i.test(requestAuthorization ?? "") || Boolean(getAccessTokenSync());
   let targetUrl = rewriteUrlIfNeeded(urlStr);
+  const targetOrigin = new URL(targetUrl).origin;
+  const isAmazeIdRequest = hasAmazeIdAuth && AMAZEID_HOSTS.has(targetOrigin);
+  if (isAmazeIdRequest) {
+    // DPoP-bound tokens are only supported by the primary Worker, not the legacy backup.
+    const target = new URL(targetUrl);
+    const primary = new URL(PRIMARY_API_URL);
+    target.protocol = primary.protocol;
+    target.hostname = primary.hostname;
+    target.port = primary.port;
+    targetUrl = target.toString();
+    if (activeApiUrl !== PRIMARY_API_URL) setActiveApiUrl(PRIMARY_API_URL);
+  }
 
   const prepareInput = (newUrl: string): RequestInfo | URL => {
     if (typeof input === "string") {
@@ -457,7 +498,7 @@ export async function fetchWithFailover(input: RequestInfo | URL, init?: Request
   // it implements, and carry on to the AmazeCC chain if it cannot answer. This
   // is the only thing that makes the login screen's opt-in do anything — every
   // internal request, background sync included, arrives through this function.
-  if (isUniccPreferred()) {
+  if (isUniccPreferred() && !isAmazeIdRequest) {
     const preferred = await tryPreferredUnicc(urlStr, init, prepareInput);
     if (preferred) return preferred;
   }
@@ -471,6 +512,8 @@ export async function fetchWithFailover(input: RequestInfo | URL, init?: Request
     if (res.ok) noteAmazeccServing(uniccRouteName(urlStr));
     return res;
   } catch (error: any) {
+    if (error instanceof AmazeIdProofError) throw error;
+    if (isAmazeIdRequest) throw error;
     // Whether the primary or the backup was active, a genuine failure is handled
     // the same way: try the other AmazeCC host, then the allowlisted UniCC
     // fallback. Gating this on "am I the primary" would mean that once the global

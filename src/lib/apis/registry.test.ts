@@ -14,11 +14,10 @@ describe("API registry", () => {
     expect(chain.map((r) => r.mount.id)).toEqual(["hono", "legacy"]);
   });
 
-  it("maps marks/stats onto the hono /services prefix and legacy's flat path", () => {
-    const chain = resolveOperation("marks/stats", "vtop");
-    expect(chain.map((r) => r.mount.id)).toEqual(["hono", "legacy"]);
-    expect(chain[0].route.path).toBe("/api/services/marks/stats");
-    expect(chain[1].route.path).toBe("/api/marks/stats");
+  it("maps curves to Hono only because the legacy API has no curves route", () => {
+    const chain = resolveOperation("curves", "vtop");
+    expect(chain.map((r) => r.mount.id)).toEqual(["hono"]);
+    expect(chain[0].route.path).toBe("/api/services/curves");
   });
 
   it("diverts public GETs to the cache worker, never to legacy first", () => {
@@ -36,6 +35,18 @@ describe("API registry", () => {
   it("routes login to the hono first mount (forwards creds from caller)", () => {
     const chain = resolveOperation("login", "none");
     expect(chain[0].mount.id).toBe("hono");
+  });
+
+  it("routes first-party Hono cab share and social endpoints under /api/* with Amaze ID auth", () => {
+    const cabshare = resolveOperation("cabshare/auth", "amazeId");
+    expect(cabshare[0].mount.id).toBe("hono");
+    expect(cabshare[0].route.path).toBe("/api/cabshare/auth");
+    expect(cabshare[0].route.auth).toBe("amazeId");
+
+    const social = resolveOperation("social/people", "amazeId");
+    expect(social[0].mount.id).toBe("hono");
+    expect(social[0].route.path).toBe("/api/social/people");
+    expect(social[0].route.auth).toBe("amazeId");
   });
 
   it("never puts UniCC in front of an AmazeCC host; allowlist only", () => {

@@ -26,6 +26,7 @@ import { claimPair, lookupPerson, SocialApiError } from "@/lib/social/client";
 import { handleFromInvite, isSelfHandle, isValidHandle, normaliseHandle } from "@/lib/social/handle";
 import { credentialManager } from "@/lib/sync-engine/credential-manager";
 import { AuthError } from "@/lib/sync-engine/errors";
+import { signInInteractive } from "@/lib/oauth2";
 import { useSocialData } from "@/lib/social/useSocialData";
 
 export default function AddPeerSheet({
@@ -43,6 +44,7 @@ export default function AddPeerSheet({
   const [busy, setBusy] = useState(false);
   const [stage, setStage] = useState<"idle" | "checking" | "ready" | "claimed">("idle");
   const [error, setError] = useState<string | null>(null);
+  const needsAmazeIdSignIn = Boolean(error && /amaze id/i.test(error));
   /** Right shape, but no student has it. Kept apart from a format error. */
   const [notFound, setNotFound] = useState(false);
   const [foundName, setFoundName] = useState<string>("");
@@ -93,10 +95,9 @@ export default function AddPeerSheet({
       setStage("checking");
       try {
         // A second device resolves a handle through the server, not from a local
-        // cache, so this genuinely needs a live VTOP session — and the session may
-        // have aged out since the user last synced. Without this the lookup went
-        // out unauthenticated and came back as an indistinguishable 404, which
-        // reads as "your friend does not exist".
+        // cache, so this needs Amaze ID plus a live VTOP session — and the latter
+        // may have aged out since the user last synced. Without both, the lookup
+        // used to look like an indistinguishable "friend does not exist" result.
         await credentialManager.ensureVtopSession();
         const res = await lookupPerson(candidate);
         setFoundName(res.person?.displayName || "");
@@ -112,7 +113,7 @@ export default function AddPeerSheet({
             setNotFound(true);
           } else if (err.code === "unexpected_response") {
             setError(
-              "The server did not answer properly, so this handle is unverified. If you are pointed at production, the social routes only exist on the local API."
+              "The server did not answer properly, so this handle is unverified. If you are pointed at production, the social routes only exist on the local API.",
             );
           } else {
             setError(err.detail || err.message);
@@ -122,7 +123,7 @@ export default function AddPeerSheet({
         }
       }
     },
-    [myHandle]
+    [myHandle],
   );
 
   /**
@@ -228,8 +229,7 @@ export default function AddPeerSheet({
             className={`${FIELD_INPUT} font-mono tracking-widest uppercase`}
           />
           <p className="text-[11px] text-zinc-400 dark:text-zinc-500 font-medium leading-relaxed">
-            Their handle is on their Social → Share screen. It identifies the person, not their
-            schedule.
+            Their handle is on their Social → Share screen. It identifies the person, not their schedule.
           </p>
         </div>
 
@@ -272,23 +272,37 @@ export default function AddPeerSheet({
           <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-2">
             <UserX className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-px" />
             <p className="text-xs font-bold text-amber-700 dark:text-amber-300">
-              That is your own handle. A pairing needs two people — the server rejects this too, so
-              enter someone else&apos;s.
+              That is your own handle. A pairing needs two people — the server rejects this too, so enter someone
+              else&apos;s.
             </p>
           </div>
         ) : notFound ? (
           <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-2">
             <UserX className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-px" />
             <p className="text-xs font-bold text-amber-700 dark:text-amber-300">
-              No student has the handle {normaliseHandle(handle)}. Check for a typo — it is easier to
-              read the wrong pair of characters than you would think.
+              No student has the handle {normaliseHandle(handle)}. Check for a typo — it is easier to read the wrong
+              pair of characters than you would think.
             </p>
           </div>
         ) : error ? (
-          <p className="p-3 rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 text-xs font-bold flex items-start gap-2">
+          <div
+            role="alert"
+            className="p-3 rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 text-xs font-bold flex items-start gap-2"
+          >
             <UserX className="w-4 h-4 shrink-0 mt-px" />
-            <span>{error}</span>
-          </p>
+            <div className="min-w-0">
+              <p>{error}</p>
+              {needsAmazeIdSignIn && (
+                <button
+                  type="button"
+                  onClick={signInInteractive}
+                  className="mt-2 rounded-full bg-red-600 px-3 py-1.5 text-white hover:bg-red-700 dark:bg-red-300 dark:text-red-950 dark:hover:bg-red-200"
+                >
+                  Sign in with Amaze ID
+                </button>
+              )}
+            </div>
+          </div>
         ) : null}
 
         {/* The mutuality disclosure. This is the one irreversible part. */}
@@ -297,9 +311,9 @@ export default function AddPeerSheet({
             Before you pair
           </p>
           <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed">
-            Pairing is <strong className="text-zinc-700 dark:text-zinc-200">mutual and immediate</strong>.
-            They are not asked to accept, and they will be able to read your timetable for this
-            term straight away. Either of you can end it at any time from Pairs.
+            Pairing is <strong className="text-zinc-700 dark:text-zinc-200">mutual and immediate</strong>. They are not
+            asked to accept, and they will be able to read your timetable for this term straight away. Either of you can
+            end it at any time from Pairs.
           </p>
         </div>
 
@@ -309,9 +323,8 @@ export default function AddPeerSheet({
             Full timetable detail
           </p>
           <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed">
-            Timetable sharing is always full detail: course, venue and title are visible to
-            everyone you pair with. That applies to both of you, and either side can end the
-            pairing at any time.
+            Timetable sharing is always full detail: course, venue and title are visible to everyone you pair with. That
+            applies to both of you, and either side can end the pairing at any time.
           </p>
         </div>
 

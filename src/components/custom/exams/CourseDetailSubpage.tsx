@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { downloadCourseMaterialProxy } from "@/lib/courseMaterials";
 import { api } from "@/lib/sync-engine";
-import { getFrozenKeys, remapCohortStats } from "@/lib/marksSync";
+import { assessmentStatsKey, getFrozenKeys, remapCohortStats } from "@/lib/marksSync";
 import { BackButton } from "../shared";
 import {
   EmptyPanel,
@@ -753,15 +753,8 @@ export default function CourseDetailSubpage({
     if (!marksData?.courses) return;
     let cancelled = false;
 
-    // Cohort statistics arrive with the marks, per class.
-    //
-    // There is deliberately no second request here. The server had to scrape the marks
-    // anyway, so it returns the matching cohort statistics in the same payload — no
-    // semester to negotiate, no extra VTOP round trip, and nothing for this component to
-    // authenticate. An earlier version called `/marks/stats` itself, which failed two
-    // ways: it needed a semester id, and `credentialManager.vtop` is only populated by
-    // an explicit login, so on a boot restored from localStorage the request went out
-    // with no credentials and came back 400.
+    // The sync engine fetches FFCS-authorized cohort curves for the current and
+    // cached class ids; this component only remaps the returned stats for display.
     const fetchStats = async () => {
       try {
         // Read from the atom the sync engine already populated, not from a parallel
@@ -771,7 +764,7 @@ export default function CourseDetailSubpage({
         const stored = marksStats as Record<string, any>;
         if (Object.keys(stored).length === 0) {
           console.warn(
-            "[marks/stats] No cohort statistics in this sync's payload. If this " +
+            "[curves] No cohort statistics in this sync's payload. If this " +
               "persists after a Reload, the API process predates the engine op.",
           );
           return;
@@ -2109,7 +2102,8 @@ export default function CourseDetailSubpage({
         </p>
         <ListShell>
           {assessments.map((detail: any, idx: number) => {
-            const aStat = asmStats[detail.title];
+            const statKey = assessmentStatsKey(typeLabel.toLowerCase(), String(detail.title ?? ""));
+            const aStat = asmStats[statKey] ?? asmStats[detail.title];
             return (
               <AssessmentRow
                 key={`${detail.title}-${idx}`}

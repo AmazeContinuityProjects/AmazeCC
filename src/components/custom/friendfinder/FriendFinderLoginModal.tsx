@@ -36,9 +36,16 @@ interface FriendFinderLoginModalProps {
   open: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  /** VTOP semester the open Friend Finder will query. */
+  semesterId?: string;
 }
 
-export default function FriendFinderLoginModal({ open, onClose, onSuccess }: FriendFinderLoginModalProps) {
+export default function FriendFinderLoginModal({
+  open,
+  onClose,
+  onSuccess,
+  semesterId = "CH20262705",
+}: FriendFinderLoginModalProps) {
   const setIsLoggedIn = useSetAtom(isLoggedInAtom);
   const setDemoMode = useSetAtom(demoModeAtom);
   const setIDs = useSetAtom(credentialsAtom);
@@ -127,7 +134,7 @@ export default function FriendFinderLoginModal({ open, onClose, onSuccess }: Fri
       // 5. Hydrate timetable for Winter 2026-27 (CH20262705)
       appendSyncLine("Syncing registered timetable snapshot…", "loading");
       try {
-        await syncEngine.sync("timetable", { semesterId: "CH20262705" });
+        await syncEngine.sync("timetable", { semesterId });
         appendSyncLine("Registered courses synchronized", "success");
       } catch {
         appendSyncLine("Timetable fetch skipped (best effort)", "info");
@@ -167,7 +174,7 @@ export default function FriendFinderLoginModal({ open, onClose, onSuccess }: Fri
       // Register verified student identity with PostHog immediately on login
       syncCurrentUserPostHogIdentity({
         route: "friend_finder",
-        semester: "CH20262705",
+        semester: semesterId,
         username: cleanUsername,
         authorizedID: creds?.authorizedID,
         extraProperties: {

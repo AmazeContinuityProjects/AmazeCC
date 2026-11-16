@@ -27,10 +27,9 @@ export default function CabShareTab({ onBack }: { onBack?: () => void }) {
   const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
-    const userStr = localStorage.getItem("cabshare_user");
-    if (userStr) {
-      setCabShareUser(JSON.parse(userStr));
-    }
+    // Older builds stored a local-only Cab Share identity. It is not proof of
+    // the caller's Amaze ID and must not bypass the current server auth flow.
+    localStorage.removeItem("cabshare_user");
     setLoading(false);
   }, []);
 
@@ -40,8 +39,10 @@ export default function CabShareTab({ onBack }: { onBack?: () => void }) {
       const res = await api(`cabshare/trips/me?reg_number=${cabShareUser.reg_number}`, { parse: "raw" });
       const data = await readJsonResponse(res as Response);
       if (data?.success) {
-        const count = (data.my_trips || []).reduce((acc: number, trip: any) =>
-          acc + (trip.requests || []).filter((r: any) => r.status === 'pending').length, 0);
+        const count = (data.my_trips || []).reduce(
+          (acc: number, trip: any) => acc + (trip.requests || []).filter((r: any) => r.status === "pending").length,
+          0,
+        );
         setPendingCount(count);
       }
     } catch {}
@@ -92,7 +93,6 @@ export default function CabShareTab({ onBack }: { onBack?: () => void }) {
       <CabShareAuthModal
         isOpen={!cabShareUser}
         onAuthSuccess={(user) => {
-          localStorage.setItem("cabshare_user", JSON.stringify(user));
           setCabShareUser(user);
         }}
       />
@@ -140,15 +140,19 @@ export default function CabShareTab({ onBack }: { onBack?: () => void }) {
 
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
             {activeTab === "search" && <SearchTrips cabShareUser={cabShareUser} />}
-            {activeTab === "create" && <CreateTrip cabShareUser={cabShareUser} onTripCreated={() => setActiveTab("my-trips")} />}
+            {activeTab === "create" && (
+              <CreateTrip cabShareUser={cabShareUser} onTripCreated={() => setActiveTab("my-trips")} />
+            )}
             {activeTab === "my-trips" && <MyTrips cabShareUser={cabShareUser} pendingCount={pendingCount} />}
           </div>
 
           <div className="space-y-3">
             <SectionHeader icon={Lock} title="Privacy" />
-            <div className={cn(TILE_CARD, "text-xs font-medium leading-relaxed text-text-secondary dark:text-text-muted")}>
-              Phone numbers are shared only after a ride request is accepted. Until then a
-              matched student sees your name and register number only.
+            <div
+              className={cn(TILE_CARD, "text-xs font-medium leading-relaxed text-text-secondary dark:text-text-muted")}
+            >
+              Phone numbers are shared only after a ride request is accepted. Until then a matched student sees your
+              name and register number only.
             </div>
           </div>
         </div>

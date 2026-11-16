@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { assessmentKeyFor, remapCohortStats, syncMarksDiff } from "@/lib/marksSync";
+import { assessmentKeyFor, assessmentStatsKey, remapCohortStats, syncMarksDiff } from "@/lib/marksSync";
 import { normalisedPct } from "@/components/custom/exams/courseHelpers";
 
 vi.mock("@/lib/sync-engine", () => ({ api: vi.fn() }));
@@ -38,24 +38,16 @@ function installLocalStorage() {
 installLocalStorage();
 
 /**
- * The client side of the two cross-boundary contracts the cohort statistics
- * depend on.
+ * The legacy client-side digest contract used by the old API.
  *
- * `assessmentKeyFor` must agree byte-for-byte with
- * `AmazeCC-API/src/lib/marksStats.ts`. The expected value below was computed
- * independently on both sides; if either implementation changes, this test and
- * its server twin (`marksStats.test.ts`) must change together, or every read
- * silently misses.
+ * `assessmentKeyFor` remains byte-identical to the legacy API contract. Hono
+ * no longer exposes or requires this digest.
  */
 describe("assessmentKeyFor (client)", () => {
-  it("matches the server implementation byte-for-byte", async () => {
-    await expect(
-      assessmentKeyFor(
-        "CH2026270102001",
-        "theory",
-        "Continuous Assessment Test - I"
-      )
-    ).resolves.toBe("980839950cdf23ab162c753ae63ad4b8");
+  it("matches the legacy server implementation byte-for-byte", async () => {
+    await expect(assessmentKeyFor("CH2026270102001", "theory", "Continuous Assessment Test - I")).resolves.toBe(
+      "980839950cdf23ab162c753ae63ad4b8",
+    );
   });
 
   it("separates theory from lab", async () => {
@@ -87,7 +79,7 @@ describe("remapCohortStats", () => {
     expect(out[CLASS].overall).toEqual({ count: 25, mean: 53.36, sd: 14.03 });
   });
 
-  it("maps each assessment by its re-derived digest key", async () => {
+  it("maps a legacy assessment by its re-derived digest key", async () => {
     const key = await assessmentKeyFor(CLASS, "theory", "Continuous Assessment Test - I");
     const payload = {
       [CLASS]: {
@@ -112,6 +104,40 @@ describe("remapCohortStats", () => {
     });
   });
 
+  it("joins keyed server metadata and separates same-title theory and lab assessments", async () => {
+    const theory = { count: 12, mean: 68.5, sd: 9.1 };
+    const lab = { count: 8, mean: 74, sd: 6.2 };
+    const payload = {
+      [CLASS]: {
+        ...serverEntry,
+        assessments: {
+          opaqueTheoryKey: { ...theory, component: "theory", title: "CAT I" },
+          opaqueLabKey: { ...lab, component: "lab", title: "CAT I" },
+        },
+      },
+    };
+    const courses = [
+      {
+        theory: { classNbr: CLASS, assessments: [{ title: "CAT I" }] },
+        lab: { classNbr: CLASS, assessments: [{ title: "CAT I" }] },
+      },
+    ];
+
+    const out = await remapCohortStats(payload, courses);
+
+    expect(out[CLASS].assessments[assessmentStatsKey("theory", "CAT I")]).toEqual({
+      ...theory,
+      component: "theory",
+      title: "CAT I",
+    });
+    expect(out[CLASS].assessments[assessmentStatsKey("lab", "CAT I")]).toEqual({
+      ...lab,
+      component: "lab",
+      title: "CAT I",
+    });
+    expect(out[CLASS].assessments["CAT I"]).toBeUndefined();
+  });
+
   it("yields null overall when the entry carries no figure", async () => {
     const out = await remapCohortStats({ [CLASS]: { assessments: {} } }, []);
     expect(out[CLASS].overall).toBeNull();
@@ -119,23 +145,17 @@ describe("remapCohortStats", () => {
   });
 
   it("treats the server's empty placeholder as no data, not a zero average", async () => {
-    const out = await remapCohortStats(
-      { [CLASS]: { count: 0, mean: 0, sd: 0, assessments: {} } },
-      []
-    );
+    const out = await remapCohortStats({ [CLASS]: { count: 0, mean: 0, sd: 0, assessments: {} } }, []);
     expect(out[CLASS].overall).toBeNull();
   });
 
   it("ignores assessments with no matching statistic", async () => {
-    const out = await remapCohortStats(
-      { [CLASS]: serverEntry },
-      [
-        {
-          theory: { classNbr: CLASS, assessments: [{ title: "CAT II" }] },
-          lab: null,
-        },
-      ]
-    );
+    const out = await remapCohortStats({ [CLASS]: serverEntry }, [
+      {
+        theory: { classNbr: CLASS, assessments: [{ title: "CAT II" }] },
+        lab: null,
+      },
+    ]);
     expect(out[CLASS].overall).toEqual({ count: 25, mean: 53.36, sd: 14.03 });
     expect(out[CLASS].assessments).toEqual({});
   });
@@ -157,9 +177,7 @@ describe("syncMarksDiff backfill", () => {
         classNbr: "C1",
         slot: "A1",
         credits: 3,
-        assessments: [
-          { title: "CAT I", maxMark: 50, scoredMark: 40, weightagePercent: 15, weightageMark: 12 },
-        ],
+        assessments: [{ title: "CAT I", maxMark: 50, scoredMark: 40, weightagePercent: 15, weightageMark: 12 }],
       },
     ],
   };
@@ -304,9 +322,7 @@ describe("token receipts and frozen visibility", () => {
         classNbr: "C1",
         slot: "A1",
         credits: 3,
-        assessments: [
-          { title: "CAT I", maxMark: 50, scoredMark: 40, weightagePercent: 15, weightageMark: 12 },
-        ],
+        assessments: [{ title: "CAT I", maxMark: 50, scoredMark: 40, weightagePercent: 15, weightageMark: 12 }],
       },
     ],
   };
@@ -335,10 +351,7 @@ describe("token receipts and frozen visibility", () => {
   it("flags an unchanged resend whose token moved", async () => {
     // No backfill flag: every scored value is (re)sent, including unchanged ones.
     // The overall is identical across snapshots, so any token move is suspect.
-    window.localStorage.setItem(
-      "marksTokensV1",
-      JSON.stringify({ "C1::overall::overall": "tok-old" })
-    );
+    window.localStorage.setItem("marksTokensV1", JSON.stringify({ "C1::overall::overall": "tok-old" }));
     (api as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -358,7 +371,7 @@ describe("token receipts and frozen visibility", () => {
       JSON.stringify({
         "C1::overall::overall": "tok-overall",
         "C9::assessment::k9": "tok-stale",
-      })
+      }),
     );
     window.localStorage.setItem("marksSyncBackfillV2", "true");
     (api as ReturnType<typeof vi.fn>).mockResolvedValue({

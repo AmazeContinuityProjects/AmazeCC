@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { TONE_ICON_TILE, TONE_TEXT } from "@/lib/uiTokens";
 import { toneForGrade } from "@/lib/gradeHistory";
+import { assessmentStatsKey } from "@/lib/marksSync";
 import {
   GhostButton,
   InsightCarousel,
@@ -500,7 +501,9 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
               key={asm.id}
               asm={asm}
               tone={tone}
-              cohortStat={assessmentStats?.[asm.title] ?? null}
+              cohortStat={
+                assessmentStats?.[assessmentStatsKey(component, asm.title)] ?? assessmentStats?.[asm.title] ?? null
+              }
               onOpen={() => setSheetAsm({ asm, tone, component })}
             />
           ))}
@@ -554,7 +557,9 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
           {prediction.theoryCredits}T + {prediction.labCredits}L
         </ToneBadge>
         {prediction.isCurved ? (
-          <ToneBadge tone={classStats?.manual ? "indigo" : "amber"}>{classStats?.manual ? "Your curve" : "Curved"}</ToneBadge>
+          <ToneBadge tone={classStats?.manual ? "indigo" : "amber"}>
+            {classStats?.manual ? "Your curve" : "Curved"}
+          </ToneBadge>
         ) : null}
         {targetScore != null ? <ToneBadge tone="cyan">Goal {targetScore.toFixed(0)}%</ToneBadge> : null}
         {actionsEl ? null : (
@@ -788,8 +793,8 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
                     </span>
                   ) : syncedClassStats && syncedClassStats.count > 0 ? (
                     <span>
-                      Only {syncedClassStats.count} {syncedClassStats.count === 1 ? "peer" : "peers"} so far — the
-                      curve needs {MIN_CURVE_SAMPLE}+, showing default bands
+                      Only {syncedClassStats.count} {syncedClassStats.count === 1 ? "peer" : "peers"} so far — the curve
+                      needs {MIN_CURVE_SAMPLE}+, showing default bands
                     </span>
                   ) : (
                     <span>No class data yet — showing default bands</span>
@@ -847,7 +852,11 @@ function CoursePredictorPageInner({ course, marksStats, actionsSlotRef }: Course
         <AssessmentMarkSheet
           asm={markSheetAsm as any}
           tone={sheetAsm.tone}
-          cohortStat={assessmentStats?.[markSheetAsm.title] ?? null}
+          cohortStat={
+            assessmentStats?.[assessmentStatsKey(sheetAsm.component, markSheetAsm.title)] ??
+            assessmentStats?.[markSheetAsm.title] ??
+            null
+          }
           fatFrozen={sheetAsm.component === frozenFatComponent && isFinalExamAssessment(markSheetAsm)}
           onClose={() => setSheetAsm(null)}
           onUpdateScoredMark={handleUpdateScoredMark}

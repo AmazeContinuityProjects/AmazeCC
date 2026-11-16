@@ -333,6 +333,9 @@ registerOp({
     if (data.marksRes && typeof data.marksRes === "string") {
       throw new Error(`Marks fetch failed: ${data.marksRes}`);
     }
+    if (!data.marksRes || typeof data.marksRes !== "object") {
+      throw new Error("Marks fetch failed: the API response did not include marks data.");
+    }
     persist("attendance", data.attRes);
     persist("marks", data.marksRes);
     ctx.bridge.setAtom(dataAtoms.attendanceDataAtom, data.attRes);
@@ -347,11 +350,11 @@ registerOp({
   auth: "vtop",
   meta: {
     label: "Cohort statistics",
-    description: "Per-class cohort marks stats, merged over cached terms.",
+    description: "FFCS-enrollment-gated cohort curves for the caller's classes.",
     category: "academics",
     cost: "medium",
   },
-  async run(ctx) {
+  async run(ctx, args) {
     const ids = new Set<string>();
 
     const collect = (courses: unknown) => {
@@ -367,32 +370,46 @@ registerOp({
       collect(current?.courses);
     } catch {}
 
-    try {
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (!key || !key.startsWith("frozen_marks_")) continue;
-        try {
-          const data = JSON.parse(localStorage.getItem(key) || "null") as { courses?: unknown } | null;
-          collect(data?.courses);
-        } catch {}
-      }
-    } catch {}
-
     const classIds = [...ids].slice(0, 100);
     if (classIds.length === 0) return { stats: {} };
 
-    const res = await trackedRequest(ctx, "marksStats", () =>
-      ctx
-        .request("marks/stats", { classIds }, { auth: "vtop" })
-        .then((r: any) => (assertApiSuccess(r, "Cohort statistics"), r)),
-    );
+    const semesterId =
+      (typeof args?.semesterId === "string" && args.semesterId) ||
+      (storage.attendance.get() as { semester?: string } | null)?.semester ||
+      "";
+    if (!semesterId) {
+      persist("marksStats", {});
+      ctx.bridge.setAtom(dataAtoms.marksStatsAtom, {});
+      return { stats: {} };
+    }
 
-    const fresh = (res as { stats?: Record<string, unknown> })?.stats ?? {};
-    const prev = (ctx.bridge.getAtom(dataAtoms.marksStatsAtom) as Record<string, unknown>) ?? {};
-    const merged = { ...prev, ...fresh };
-    persist("marksStats", merged);
-    ctx.bridge.setAtom(dataAtoms.marksStatsAtom, merged);
-    return { stats: merged };
+    const fetchCurves = () =>
+      trackedRequest(ctx, "marksStats", () =>
+        ctx
+          .request("curves", { classIds, semesterId }, { auth: "vtop" })
+          .then((r: any) => (assertApiSuccess(r, "Cohort statistics"), r)),
+      );
+
+    let res = await fetchCurves();
+    let fresh = (res as { stats?: Record<string, unknown> })?.stats ?? {};
+
+    // /attendance records FFCS enrollment and ingests this semester's marks into
+    // the server's Welford accumulators. If /curves omitted a class, enroll by
+    // fetching that semester once, then retry the aggregate read.
+    const missingEnrollment = classIds.some((id) => !(id in fresh));
+    if (missingEnrollment) {
+      try {
+        await ctx.request("attendance", { semesterId }, { auth: "vtop", retry: { max: 0 } });
+        res = await fetchCurves();
+        fresh = (res as { stats?: Record<string, unknown> })?.stats ?? {};
+      } catch (error) {
+        console.warn("Could not enroll for cohort curves through attendance:", error);
+      }
+    }
+
+    persist("marksStats", fresh);
+    ctx.bridge.setAtom(dataAtoms.marksStatsAtom, fresh);
+    return { stats: fresh };
   },
 });
 
@@ -1263,10 +1280,6 @@ registerOp({
       (ctx.ids.VtopUsername as string) === "DEMO123";
     if (demoMode) return null;
 
-    try {
-      await credentialManager.ensureVtopSession({ demoMode });
-    } catch {}
-
     const semesterId =
       (args?.proposedSemesterId as string) || (args?.semesterId as string) || (args?.activeSem as string) || "";
 
@@ -1279,10 +1292,8 @@ registerOp({
     ctx.bridge.setAtom(socialSyncStateAtom, { ...prevState, syncing: true });
 
     try {
-      const res = (await ctx.request("social/identity/sync", semesterId ? { proposedSemesterId: semesterId } : {}, {
-        auth: "vtop",
-        retry: { max: 1 },
-      })) as SocialSyncPayload | null;
+      const { syncIdentity } = await import("@/lib/social/client");
+      const res = (await syncIdentity(semesterId || undefined)) as SocialSyncPayload | null;
 
       if (!res || res.success === false || !res.identity) {
         throw toEngineError(

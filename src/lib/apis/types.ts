@@ -2,7 +2,7 @@
  * API definition files - the adapter contract for every API the app talks to.
  *
  * The sync engine (and everything else that reaches the network) resolves
- * *operations* (`whoami`, `marks/stats`, `buses`, ...) through a registry of
+ * *operations* (`whoami`, `curves`, `buses`, ...) through a registry of
  * mounted `ApiDefinition`s instead of hardcoding hosts and paths. Each mount
  * is a self-contained description of one API: its base URL, the operations it
  * serves, and how to call them.
@@ -23,7 +23,7 @@ export interface AuthCreds {
 
 export interface ApiRoute {
   method?: "GET" | "POST";
-  /** Path relative to the mount, e.g. "/whoami" or "/services/marks/stats". */
+  /** Path relative to the mount, e.g. "/whoami" or "/services/curves". */
   path: string;
   /** Auth domain this route requires. Defaults to the mount's default. */
   auth?: ApiAuth;

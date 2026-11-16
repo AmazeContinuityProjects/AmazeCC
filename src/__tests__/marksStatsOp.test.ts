@@ -6,12 +6,8 @@ import { marksStatsAtom } from "@/store/dataAtoms";
 /**
  * The `marksStats` engine op.
  *
- * This exists because the previous design called `/marks/stats` directly from a
- * component with the bare `api()`. That path has no retry, no auth-failure
- * classification, and — critically — no session: `credentialManager.vtop` is only
- * populated by an explicit login, so on a boot restored from localStorage the request
- * went out with no credentials and came back 400. Routing through the engine means
- * credentials, retry, dedupe and the sync log all come for free.
+ * The engine requests the FFCS-enrollment-gated `/curves` batch route for the
+ * requested semester and uses `/attendance` only to seed missing enrollment.
  */
 /**
  * jsdom hands vitest an opaque origin, so `localStorage` is absent — and the op reads
@@ -59,6 +55,7 @@ function fakeCtx() {
           success: true,
           stats: {
             C1: { count: 10, mean: 70, sd: 5, assessments: {} },
+            C2: { count: 8, mean: 75, sd: 4, assessments: {} },
           },
         };
       },
@@ -100,37 +97,36 @@ describe("marksStats op", () => {
     expect(getOp("marksStats")?.name).toBe("marksStats");
   });
 
-  it("fetches current plus frozen classes in one call", async () => {
+  it("fetches only current-semester classes and sends the semester", async () => {
     const op = getOp("marksStats")!;
     const { ctx, calls } = fakeCtx();
-    await op.run(ctx, {});
+    await op.run(ctx, { semesterId: "CH20262701" });
     expect(calls).toHaveLength(1);
-    expect(calls[0].path).toBe("marks/stats");
+    expect(calls[0].path).toBe("curves");
     expect(calls[0].body).toEqual({
-      classIds: expect.arrayContaining(["C1", "C2", "C3"]),
+      classIds: expect.arrayContaining(["C1", "C2"]),
+      semesterId: "CH20262701",
     });
-    // C1 appears in both sources but is requested once; the codeless course is skipped.
-    expect((calls[0].body as { classIds: string[] }).classIds).toHaveLength(3);
+    // The historical C3 entry is ignored, and the codeless course is skipped.
+    expect((calls[0].body as { classIds: string[] }).classIds).toHaveLength(2);
   });
 
   it("persists and bridges the merged result", async () => {
     const op = getOp("marksStats")!;
     const { ctx, atoms } = fakeCtx();
-    const out = (await op.run(ctx, {})) as { stats: Record<string, unknown> };
+    const out = (await op.run(ctx, { semesterId: "CH20262701" })) as { stats: Record<string, unknown> };
     expect(out.stats).toHaveProperty("C1");
     expect(atoms.get(marksStatsAtom)).toHaveProperty("C1");
-    expect(JSON.parse(localStorage.getItem("marksStats") || "{}")).toHaveProperty(
-      "C1"
-    );
+    expect(JSON.parse(localStorage.getItem("marksStats") || "{}")).toHaveProperty("C1");
   });
 
-  it("merges instead of overwriting", async () => {
+  it("replaces stale stats from a previous semester", async () => {
     const op = getOp("marksStats")!;
     const { ctx, atoms } = fakeCtx();
     atoms.set(marksStatsAtom, { C9: { count: 1 } });
-    await op.run(ctx, {});
+    await op.run(ctx, { semesterId: "CH20262701" });
     const merged = atoms.get(marksStatsAtom) as Record<string, unknown>;
-    expect(merged).toHaveProperty("C9");
+    expect(merged).not.toHaveProperty("C9");
     expect(merged).toHaveProperty("C1");
   });
 

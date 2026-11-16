@@ -204,10 +204,10 @@ export async function request(path: string, body?: unknown, opts: RequestOpts = 
  * raw/blob/text/json. Auth-failure responses trigger an AuthError (give-up flow).
  */
 export interface ApiOptions {
-  method?: "GET" | "POST";
+  method?: "GET" | "POST" | "PATCH";
   body?: unknown;
   query?: Record<string, string | number>;
-  auth?: AuthDomain | "none";
+  auth?: AuthDomain | "none" | "amazeId";
   parse?: "json" | "raw" | "text" | "blob";
   headers?: Record<string, string>;
   signal?: AbortSignal;
@@ -236,7 +236,7 @@ export async function apiRequest(path: string, opts: ApiOptions = {}): Promise<a
   const headers: Record<string, string> = { ...(opts.headers || {}) };
   let body: BodyInit | undefined;
 
-  if (method === "POST" && opts.body !== undefined) {
+  if ((method === "POST" || method === "PATCH") && opts.body !== undefined) {
     if (opts.body instanceof FormData) {
       body = opts.body;
     } else if (typeof opts.body === "string") {
