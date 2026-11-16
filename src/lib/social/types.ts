@@ -36,6 +36,8 @@ export type SocialStoredGrant = {
  */
 export type SocialSyncPayload = {
   success: boolean;
+  /** All AMZ-… handles historically issued to this registration number. */
+  handles: string[];
   identity: SocialIdentity;
   semesterSource: string;
   version: number;

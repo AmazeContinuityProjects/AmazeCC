@@ -194,7 +194,24 @@ function unwrap<T>(json: unknown, require: (v: any) => boolean, what: string): T
  */
 export async function syncIdentity(proposedSemesterId?: string): Promise<SyncResponse> {
   const json = await socialRequest("social/identity/sync", proposedSemesterId ? { proposedSemesterId } : {});
-  return unwrap<SyncResponse>(json, (v) => Boolean(v?.identity?.handle), "an identity");
+  // Keep the client usable against an older Hono deployment during rollout.
+  // The aligned Hono contract returns every historical AMZ-… handle.
+  const compatibleJson =
+    json && typeof json === "object" && !Array.isArray(json)
+      ? {
+          ...(json as Record<string, unknown>),
+          handles: Array.isArray((json as Record<string, unknown>).handles)
+            ? (json as Record<string, unknown>).handles
+            : [(json as Record<string, any>).identity?.handle].filter(
+                (handle): handle is string => typeof handle === "string",
+              ),
+        }
+      : json;
+  return unwrap<SyncResponse>(
+    compatibleJson,
+    (v) => Boolean(v?.identity?.handle) && Array.isArray(v?.handles),
+    "an identity and its AMZ handles",
+  );
 }
 
 export async function lookupPerson(handle: string): Promise<PersonResponse> {

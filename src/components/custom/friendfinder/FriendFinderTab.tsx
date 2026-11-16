@@ -1086,6 +1086,22 @@ export default function FriendFinderTab({
                 </div>
               </div>
             </div>
+
+            {(state.handles?.length ?? 0) > 1 ? (
+              <div className="pt-1">
+                <span className="block text-[11px] font-medium text-muted-foreground mb-1.5">Your Social handles</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {state.handles.map((handle) => (
+                    <span
+                      key={handle}
+                      className="px-2 py-1 rounded-lg bg-white dark:bg-zinc-900/60 border border-border-subtle/60 text-[11px] font-mono text-text-heading"
+                    >
+                      {handle}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
           {/* Visibility Switch */}
           <div className="flex items-center justify-between p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-border-subtle">

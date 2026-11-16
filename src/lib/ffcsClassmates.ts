@@ -58,6 +58,8 @@ export type ClassmateOverlap = ClassmatePerson & {
 
 export type ClassmatesState = {
   semesterId: string;
+  /** All AMZ-… handles associated with the current registration number. */
+  handles: string[];
   participants: number;
   me: {
     handle: string;
@@ -228,7 +230,14 @@ export async function callClassmates(semesterId: string, request: ClassmatesRequ
       typeof json?.detail === "string" ? json.detail : undefined,
     );
   }
-  const state = json as unknown as ClassmatesState;
+  const state = {
+    ...json,
+    handles: Array.isArray(json.handles)
+      ? json.handles.filter((handle): handle is string => typeof handle === "string")
+      : [(json.me as Record<string, unknown> | undefined)?.handle].filter(
+          (handle): handle is string => typeof handle === "string",
+        ),
+  } as unknown as ClassmatesState;
   if (!state.me || !Array.isArray(state.sections) || !Array.isArray(state.overlaps)) {
     throw new ClassmatesError("unexpected_response", "The server did not return friend finder data.");
   }
