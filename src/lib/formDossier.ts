@@ -31,7 +31,6 @@ import { getTimetableSchema } from "@/lib/campusSchema";
 import { courseClashPairCount } from "./ffcsClashPairs";
 import { getFacultyReview, isVitfacIntegrationEnabled } from "@/lib/vitfacService";
 import type { ModernPrintableReportParams } from "./exportTimetable";
-import { buildFormDossierPdfInWorker } from "./pdfWorkerBridge";
 
 const PAGE_W = 210;
 const PAGE_H = 297;
@@ -733,10 +732,13 @@ export async function renderFormDossierPdf(params: PrintDossierParams): Promise<
  * Offloads generation to a Web Worker when available, falling back to inline main-thread rendering.
  */
 export async function createPrintDossierPdf(params: PrintDossierParams): Promise<ArrayBuffer> {
-  const workerBuffer = await buildFormDossierPdfInWorker(params);
-  if (workerBuffer) {
-    return workerBuffer;
-  }
+  try {
+    const { buildFormDossierPdfInWorker } = await import("./pdfWorkerBridge");
+    const workerBuffer = await buildFormDossierPdfInWorker(params);
+    if (workerBuffer) {
+      return workerBuffer;
+    }
+  } catch {}
   return renderFormDossierPdf(params);
 }
 

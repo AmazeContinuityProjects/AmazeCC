@@ -5,7 +5,6 @@ import { expandCourseHalves, sameSlotFacultyAlternatives } from "@/lib/ffcsGener
 import { ensureLunchPeriod } from "@/lib/slots";
 import type { ModernPrintableReportParams } from "./exportTimetable";
 import { renderHtmlToImage } from "./imageDownload";
-import { buildPortraitDossierPdfInWorker } from "./pdfWorkerBridge";
 
 export type DossierGridMode = "vector" | "image";
 
@@ -599,10 +598,13 @@ export async function createPortraitDossierPdf(
   params: ModernPrintableReportParams & { theme?: "light" | "dark"; gridMode?: DossierGridMode },
 ): Promise<ArrayBuffer> {
   if (params.gridMode !== "image") {
-    const workerBuffer = await buildPortraitDossierPdfInWorker(params);
-    if (workerBuffer) {
-      return workerBuffer;
-    }
+    try {
+      const { buildPortraitDossierPdfInWorker } = await import("./pdfWorkerBridge");
+      const workerBuffer = await buildPortraitDossierPdfInWorker(params);
+      if (workerBuffer) {
+        return workerBuffer;
+      }
+    } catch {}
   }
   return renderPortraitDossierPdf(params);
 }

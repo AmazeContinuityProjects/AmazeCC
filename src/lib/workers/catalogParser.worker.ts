@@ -5,7 +5,7 @@
  * thread never hitches when loading multi-megabyte course catalogs.
  */
 
-import { parseFastCSV } from "../courseCatalog";
+import { parseFastCSV } from "../fastCsv";
 import { parseCourseRows, type FreeRoomCourse } from "../freeClassrooms";
 
 export interface CatalogParserRequest {

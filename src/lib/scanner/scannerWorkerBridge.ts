@@ -29,7 +29,7 @@ function uniqueId(): string {
  * Creates a scanner worker instance if supported by the browser runtime.
  */
 function createScannerWorker(): Worker | null {
-  if (typeof Worker === "undefined") return null;
+  if (typeof window === "undefined" || typeof Worker === "undefined") return null;
   try {
     return new Worker(new URL("./workers/scanner.worker.ts", import.meta.url), {
       type: "module",

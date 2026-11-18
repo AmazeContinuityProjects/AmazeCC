@@ -15,7 +15,7 @@ function uniqueId(): string {
 }
 
 function createFreeClassroomWorker(): Worker | null {
-  if (typeof Worker === "undefined") return null;
+  if (typeof window === "undefined" || typeof Worker === "undefined") return null;
   try {
     return new Worker(new URL("./workers/freeClassroom.worker.ts", import.meta.url), { type: "module" });
   } catch (err) {

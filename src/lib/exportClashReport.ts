@@ -24,7 +24,6 @@ import { COLOR_HEX_MAP, typeLabels } from "@/lib/ffcsConstants";
 import { getTimetableSchema } from "@/lib/campusSchema";
 import { DAYS_OF_WEEK, periodsForSlot, splitSlots, type CampusSchema } from "@/lib/slots";
 import { courseClashPairs, courseClashPairCount, formatMinutesOfDay, type CourseClash } from "./ffcsClashPairs";
-import { buildClashReportPdfInWorker } from "./pdfWorkerBridge";
 
 const PAGE_W = 210;
 const PAGE_H = 297;
@@ -524,10 +523,13 @@ export async function renderClashReportPdf(params: ClashReportParams): Promise<A
  * Dispatches generation to a Web Worker when available, falling back to inline rendering.
  */
 export async function createClashReportPdf(params: ClashReportParams): Promise<ArrayBuffer> {
-  const workerBuffer = await buildClashReportPdfInWorker(params);
-  if (workerBuffer) {
-    return workerBuffer;
-  }
+  try {
+    const { buildClashReportPdfInWorker } = await import("./pdfWorkerBridge");
+    const workerBuffer = await buildClashReportPdfInWorker(params);
+    if (workerBuffer) {
+      return workerBuffer;
+    }
+  } catch {}
   return renderClashReportPdf(params);
 }
 

@@ -37,9 +37,10 @@ export function initPostHogClient(): boolean {
       capture_pageview: false,
       capture_pageleave: true,
       disable_session_recording: true,
+      disable_scroll_properties: true,
       autocapture: false,
       persistence: "localStorage+cookie",
-    });
+    } as any);
     return true;
   } catch (err) {
     console.debug("[PostHog init]", err);
@@ -1227,6 +1228,7 @@ export function applyPostHogIdentityVerification(distinctId: string, identityHas
       ui_host: uiHost,
       identity_distinct_id: distinctId,
       identity_hash: identityHash,
+      disable_scroll_properties: true,
     } as any);
   } catch (err) {
     console.error("[PostHog applyIdentityVerification]", err);

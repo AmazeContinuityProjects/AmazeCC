@@ -49,7 +49,7 @@ export type PdfWorkerReply =
   { type: "success"; pdfBuffer: ArrayBuffer; fileName: string } | { type: "error"; message: string };
 
 function createPdfWorker(): Worker | null {
-  if (typeof Worker === "undefined") return null;
+  if (typeof window === "undefined" || typeof Worker === "undefined") return null;
   try {
     return new Worker(new URL("../components/custom/exams/FFCS/workers/pdf.worker.ts", import.meta.url), {
       type: "module",
