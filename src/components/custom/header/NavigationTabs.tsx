@@ -1,13 +1,16 @@
 "use client";
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useAtomValue } from "jotai";
+import { unifiedIdentityAtom, unifiedAcademicsAtom } from "@/store";
+import type { UnifiedUserIdentity } from "@/types";
 import OptionPicker from "../shared/primitives/OptionPicker";
 import AppLibraryPortal from "./AppLibraryPortal";
 
 import { getAssetPath } from "@/lib/utils";
 import { formatSemesterName } from "@/lib/formatSemesterName";
 
-import { createTapTracker, hasSectionHome, sectionHomeFor } from "@/lib/sectionHome";
+import { createTapTracker, getSectionRootTab, hasSectionHome, sectionHomeFor } from "@/lib/sectionHome";
 import { useOverlayBack } from "@/lib/overlayStack";
 import { animateThemeCircularExpansion } from "../ThemeToggle";
 import {
@@ -183,6 +186,9 @@ export default function NavigationTabs({
   const [currentIcon, setCurrentIcon] = useState(getAssetPath("/logo.png"));
   const [profileData, setProfileData] = useState<any>(null);
 
+  const unifiedIdentity: UnifiedUserIdentity = useAtomValue(unifiedIdentityAtom);
+  const unifiedAcademics = useAtomValue(unifiedAcademicsAtom);
+
   // Progressive disclosure
   const [showAcademicsPanel, setShowAcademicsPanel] = useState(activeTab === "academics");
   const [showToolsPanel, setShowToolsPanel] = useState(activeTab === "tools");
@@ -281,12 +287,25 @@ export default function NavigationTabs({
       : 0;
   const credits = marksData?.cgpa
     ? Number(marksData.cgpa.creditsEarned) + Number(marksData.cgpa.nonGradedRequirement || 0)
-    : "-";
-  const attendanceValue = `${attendancePercentage?.[settings.attendancePercentageOrString] || "-"}${
-    settings.attendancePercentageOrString === "percentage" ? "%" : ""
-  }`;
+    : unifiedAcademics.cgpa || "-";
+  const normalizedOverallAttendance =
+    settings.attendancePercentageOrString === "percentage"
+      ? unifiedAcademics.overallAttendancePercentage > 0
+        ? `${unifiedAcademics.overallAttendancePercentage}%`
+        : undefined
+      : unifiedAcademics.overallAttendanceFormatted;
+  const attendanceValue =
+    (attendancePercentage?.[settings.attendancePercentageOrString]
+      ? `${attendancePercentage[settings.attendancePercentageOrString]}${settings.attendancePercentageOrString === "percentage" ? "%" : ""}`
+      : normalizedOverallAttendance) || "-";
 
-  const profileName = settings.friendlyName || profileData?.name || username || "Student";
+  const profileName =
+    settings.friendlyName ||
+    unifiedIdentity.friendlyName ||
+    unifiedIdentity.name ||
+    profileData?.name ||
+    username ||
+    "Student";
   const shouldDisplayGpa = shouldShowGpa(settings);
   const shouldDisplayProfilePhoto = shouldShowProfilePhoto(settings);
   const initials = String(profileName)
@@ -347,6 +366,7 @@ export default function NavigationTabs({
       more: { icon: <MoreHorizontal className="h-5 w-5 stroke-[2]" />, label: "More" },
       profile: { icon: <User className="h-5 w-5 stroke-[2]" />, label: "Profile" },
       credentials: { icon: <Key className="h-5 w-5 stroke-[2]" />, label: "Credentials" },
+      hostel: { icon: <Home className="h-5 w-5 stroke-[2]" />, label: "Hostel Hub" },
     }),
     [activeAttendanceSubTab],
   );
@@ -400,7 +420,9 @@ export default function NavigationTabs({
             isActive:
               tabId === "credentials"
                 ? activeTab === "profile" && activeProfileSubTab === "credentials" && !isAppLibraryOpen
-                : activeTab === tabId && !isAppLibraryOpen,
+                : tabId === "profile" && pinnedTabs.includes("credentials")
+                  ? activeTab === "profile" && activeProfileSubTab !== "credentials" && !isAppLibraryOpen
+                  : activeTab === tabId && !isAppLibraryOpen,
             onClick: () => {
               setIsAppLibraryOpen(false);
               if (tabId === "credentials") {
@@ -707,14 +729,39 @@ export default function NavigationTabs({
       profile: {
         label: "Profile",
         icon: User,
-        isActive: activeTab === "profile",
+        isActive: activeTab === "profile" && activeProfileSubTab !== "credentials",
         onSelect: () => {
           selectTab("profile");
         },
       },
+      credentials: {
+        label: "Credentials",
+        icon: Key,
+        isActive: activeTab === "profile" && activeProfileSubTab === "credentials",
+        onSelect: () => {
+          selectTab("profile");
+          setActiveProfileSubTab("credentials");
+        },
+      },
+      hostel: {
+        label: "Hostel Hub",
+        icon: Home,
+        isActive: activeTab === "hostel",
+        onSelect: () => {
+          selectTab("hostel");
+          setHostelActiveSubTab("overview");
+        },
+      },
     };
     return pinnedTabs.map((id: string) => ({ id, ...tabData[id] })).filter((item: any) => item.label !== undefined);
-  }, [settings?.pinnedNavTabs, activeTab, selectTab]);
+  }, [
+    settings?.pinnedNavTabs,
+    activeTab,
+    activeProfileSubTab,
+    selectTab,
+    setActiveProfileSubTab,
+    setHostelActiveSubTab,
+  ]);
 
   const academicsItems = useMemo(
     () =>
@@ -817,24 +864,29 @@ export default function NavigationTabs({
         return;
       }
 
-      const home = sectionHomeFor(item.id, {
+      if (item.id === "modules") {
+        setIsAppLibraryOpen(true);
+        return;
+      }
+
+      if (item.id === "search") {
+        openCommandPalette();
+        return;
+      }
+
+      sectionHomeFor(item.id, {
         setActiveAttendanceSubTab,
         setActiveSubTab,
         setActiveToolsSubTab,
         setActiveDayscholarSubTab,
         setActiveMoreSubTab,
         setActiveProfileSubTab,
+        setHostelActiveSubTab,
       });
-      // A toggle icon (search, modules) has no home, and a single-screen tab
-      // needs no reset - in both cases the normal tap already did everything
-      // there is to do, so the double tap falls through to it.
-      if (!home) {
-        item.onClick();
-        return;
-      }
 
       setIsAppLibraryOpen(false);
-      selectTab(item.id);
+      const targetTab = getSectionRootTab(item.id);
+      selectTab(targetTab);
       // When the first tap switched sections it already committed and wrote
       // that section as its own screen, so fold this move into it. Otherwise the
       // double tap would be two Back steps instead of one.
@@ -846,6 +898,7 @@ export default function NavigationTabs({
       navTaps,
       selectTab,
       setIsAppLibraryOpen,
+      openCommandPalette,
       onCollapseScreenChange,
       setActiveAttendanceSubTab,
       setActiveSubTab,
@@ -853,6 +906,7 @@ export default function NavigationTabs({
       setActiveDayscholarSubTab,
       setActiveMoreSubTab,
       setActiveProfileSubTab,
+      setHostelActiveSubTab,
     ],
   );
 
@@ -1358,11 +1412,14 @@ export default function NavigationTabs({
               >
                 <SidebarProfile
                   name={profileName}
-                  degree={(profileData?.program || profileData?.branch || profileData?.batch || "").replace(
-                    "B.Tech ",
-                    "",
-                  )}
-                  avatarUrl={shouldDisplayProfilePhoto ? profileData?.image : undefined}
+                  degree={(
+                    unifiedIdentity.programme ||
+                    profileData?.program ||
+                    profileData?.branch ||
+                    profileData?.batch ||
+                    ""
+                  ).replace("B.Tech ", "")}
+                  avatarUrl={shouldDisplayProfilePhoto ? unifiedIdentity.photo || profileData?.image : undefined}
                   initials={initials || "ST"}
                   onLogout={handleLogOutRequest}
                 />
@@ -1387,7 +1444,7 @@ export default function NavigationTabs({
 
                 {/* Profile Avatar */}
                 <SidebarProfile
-                  avatarUrl={shouldDisplayProfilePhoto ? profileData?.image : undefined}
+                  avatarUrl={shouldDisplayProfilePhoto ? unifiedIdentity.photo || profileData?.image : undefined}
                   initials={initials || "ST"}
                   onProfileClick={() => selectTab("profile")}
                 />

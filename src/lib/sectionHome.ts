@@ -23,12 +23,23 @@ export const SECTION_HOME: Readonly<Record<string, string>> = {
   // The rest mirror the `uiAtoms.ts` defaults.
   academics: "courses-simplified",
   tools: "overview",
+  hostel: "overview",
   transport: "finder",
   more: "social",
   profile: "settings",
   // A nav pin rather than a section, but it lands inside Profile.
   credentials: "credentials",
 };
+
+/** Actual root tab route for items whose pin or icon id differs from the route id. */
+export const SECTION_ROOT_TAB: Readonly<Record<string, string>> = {
+  credentials: "profile",
+};
+
+/** Get the root tab for a given section/pin id. */
+export function getSectionRootTab(tabId: string): string {
+  return SECTION_ROOT_TAB[tabId] ?? tabId;
+}
 
 /** Tabs that are a single screen, so "home" is just "the tab". */
 export const SINGLE_SCREEN_TABS = [
@@ -61,6 +72,7 @@ export type SectionSetters = {
   setActiveDayscholarSubTab?: (v: string) => void;
   setActiveMoreSubTab?: (v: string) => void;
   setActiveProfileSubTab?: (v: string) => void;
+  setHostelActiveSubTab?: (v: string) => void;
 };
 
 /**
@@ -82,6 +94,9 @@ export function sectionHomeFor(tabId: string, setters: SectionSetters): string |
       return home;
     case "tools":
       setters.setActiveToolsSubTab?.(home);
+      return home;
+    case "hostel":
+      setters.setHostelActiveSubTab?.(home);
       return home;
     case "transport":
       setters.setActiveDayscholarSubTab?.(home);

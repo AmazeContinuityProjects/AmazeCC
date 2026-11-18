@@ -3,24 +3,53 @@ import { useState, useEffect } from "react";
 import SimplifiedAcademicsPage from "./SimplifiedAcademicsPage";
 import CourseDetailSubpage from "./CourseDetailSubpage";
 import { Creds } from "./courseHelpers";
+import { getTypedStorageItem, removeTypedStorageItem } from "@/lib/storage";
+import { extractBaseCourseCode } from "@/lib/courseNormalizer";
 
 export default function CourseDashboard({
-  marksData, attendanceData, allGradesData, pastSemesterData, loginToVTOP, setActiveSubTab,
-  calendars, decimalValues, isDayscholarWithBus,
-  targetCourseCode, targetTab, onClearTarget
+  marksData,
+  attendanceData,
+  allGradesData,
+  pastSemesterData,
+  loginToVTOP,
+  setActiveSubTab,
+  calendars,
+  decimalValues,
+  isDayscholarWithBus,
+  targetCourseCode,
+  targetTab,
+  onClearTarget,
+  resetKey,
 }: {
-  marksData: any; attendanceData: any; allGradesData?: any;
-  pastSemesterData?: any; loginToVTOP: () => Promise<Creds>; setActiveSubTab: (tab: string) => void;
-  calendars?: any; decimalValues?: boolean; isDayscholarWithBus?: boolean;
-  targetCourseCode?: string; targetTab?: string; onClearTarget?: () => void;
+  marksData: any;
+  attendanceData: any;
+  allGradesData?: any;
+  pastSemesterData?: any;
+  loginToVTOP: () => Promise<Creds>;
+  setActiveSubTab: (tab: string) => void;
+  calendars?: any;
+  decimalValues?: boolean;
+  isDayscholarWithBus?: boolean;
+  targetCourseCode?: string;
+  targetTab?: string;
+  onClearTarget?: () => void;
+  resetKey?: number;
 }) {
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
   const [initialTab, setInitialTab] = useState("overview");
 
   useEffect(() => {
+    if (resetKey !== undefined && resetKey > 0) {
+      setSelectedCode(null);
+      setInitialTab("overview");
+      onClearTarget?.();
+    }
+  }, [resetKey, onClearTarget]);
+
+  useEffect(() => {
     // 1. Target from props
     if (targetCourseCode) {
-      const cleanCode = targetCourseCode.replace(/\([LPT]\)$/i, "").trim();
+      const cleanCode = extractBaseCourseCode(targetCourseCode) || targetCourseCode.replace(/\([LPT]\)$/i, "").trim();
       setSelectedCode(cleanCode);
       if (targetTab) {
         setInitialTab(targetTab);
@@ -29,27 +58,27 @@ export default function CourseDashboard({
       return;
     }
 
-    // 2. Target from localStorage
+    // 2. Target from typed storage
     try {
-      const rawTarget = localStorage.getItem("course_dashboard_target");
-      const rawTab = localStorage.getItem("course_dashboard_tab");
+      const rawTarget = getTypedStorageItem("course_dashboard_target");
+      const rawTab = getTypedStorageItem("course_dashboard_tab");
       if (rawTarget) {
-        let code = rawTarget;
+        let code = String(rawTarget);
         let tab = rawTab || "overview";
-        if (rawTarget.startsWith("{")) {
+        if (typeof rawTarget === "string" && rawTarget.startsWith("{")) {
           try {
             const parsed = JSON.parse(rawTarget);
             if (parsed.courseCode) code = parsed.courseCode;
             if (parsed.targetTab) tab = parsed.targetTab;
           } catch {}
         }
-        const cleanCode = code.replace(/\([LPT]\)$/i, "").trim();
+        const cleanCode = extractBaseCourseCode(code) || code.replace(/\([LPT]\)$/i, "").trim();
         setSelectedCode(cleanCode);
         if (tab) {
           setInitialTab(tab);
         }
-        localStorage.removeItem("course_dashboard_target");
-        localStorage.removeItem("course_dashboard_tab");
+        removeTypedStorageItem("course_dashboard_target");
+        removeTypedStorageItem("course_dashboard_tab");
       }
     } catch {}
   }, [targetCourseCode, targetTab, onClearTarget]);

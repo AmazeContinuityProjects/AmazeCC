@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   createTapTracker,
   DOUBLE_TAP_MS,
+  getSectionRootTab,
   hasSectionHome,
   NO_HOME_TABS,
   SECTION_HOME,
@@ -17,6 +18,7 @@ function spySetters() {
     setActiveDayscholarSubTab: vi.fn(),
     setActiveMoreSubTab: vi.fn(),
     setActiveProfileSubTab: vi.fn(),
+    setHostelActiveSubTab: vi.fn(),
   };
 }
 
@@ -64,9 +66,22 @@ describe("sectionHomeFor", () => {
 
   it("covers every section that has sub-screens", () => {
     const s = spySetters();
-    for (const tab of ["attendance", "academics", "tools", "transport", "more", "profile"]) {
+    for (const tab of ["attendance", "academics", "tools", "hostel", "transport", "more", "profile"]) {
       expect(sectionHomeFor(tab, s)).toBe(SECTION_HOME[tab]);
     }
+  });
+
+  it("resets Hostel to overview through setHostelActiveSubTab", () => {
+    const s = spySetters();
+    expect(sectionHomeFor("hostel", s)).toBe("overview");
+    expect(s.setHostelActiveSubTab).toHaveBeenCalledWith("overview");
+  });
+
+  it("maps credentials to profile root tab and keeps others unchanged", () => {
+    expect(getSectionRootTab("credentials")).toBe("profile");
+    expect(getSectionRootTab("academics")).toBe("academics");
+    expect(getSectionRootTab("home")).toBe("home");
+    expect(getSectionRootTab("tools")).toBe("tools");
   });
 
   it("returns null for single-screen tabs so the tap just does its normal job", () => {
