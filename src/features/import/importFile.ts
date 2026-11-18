@@ -1,17 +1,9 @@
 /**
- * Reading a uploaded course sheet into this app's rows.
+ * Reading an uploaded course sheet into this app's rows.
  *
- * The same job the static `ffcsReport.csv` loader does on mount, but for a
- * file a student chose, and therefore for headings nobody here wrote. The
- * shipped report works because its columns are known in advance; an arbitrary
- * export does not, so this goes through `normalizeColumns` instead of assuming
- * `CODE`/`SLOT` and reading `VENUE` under whichever of two spellings happens
- * to be present.
- *
- * `xlsx` is imported dynamically, as the rest of the app already does. It is
- * the largest dependency in the project and the planner reaches it only when a
- * student actually uploads something — the course list the app starts with
- * never pays for it.
+ * Replaced heavy SheetJS (xlsx) with a fast, zero-dependency delimited text
+ * parser (CSV, TSV, TXT). Users uploading Excel workbooks are guided to export
+ * or save as CSV.
  */
 
 import type { ParsedCourse } from "@/lib/ffcsTypes";
@@ -46,18 +38,102 @@ export interface FileImport {
   error: string | null;
 }
 
-const NO_SHEET = "No readable sheet found in this file.";
+/**
+ * Parse delimited text (CSV, TSV, or semicolon-delimited) with support for RFC 4180
+ * quoted values, escaped quotes (""), embedded delimiters, and multiline cells.
+ */
+export function parseDelimitedText(text: string): { headers: string[]; rows: Record<string, string>[] } {
+  const clean = text.replace(/^\uFEFF/, "");
+  const firstNonEmpty = clean.split(/\r?\n/).find((l) => l.trim().length > 0) || "";
 
-/** Extensions read as delimited text rather than as a zip. */
-const TEXTUAL = /\.(csv|tsv|txt)$/i;
+  // Detect delimiter: comma, tab, or semicolon
+  let delimiter = ",";
+  const commas = (firstNonEmpty.match(/,/g) || []).length;
+  const tabs = (firstNonEmpty.match(/\t/g) || []).length;
+  const semis = (firstNonEmpty.match(/;/g) || []).length;
+  if (tabs > commas && tabs > semis) delimiter = "\t";
+  else if (semis > commas) delimiter = ";";
+
+  const records: string[][] = [];
+  let currentRecord: string[] = [];
+  let currentField = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < clean.length; i++) {
+    const char = clean[i];
+    const nextChar = clean[i + 1];
+
+    if (inQuotes) {
+      if (char === '"' && nextChar === '"') {
+        currentField += '"';
+        i++;
+      } else if (char === '"') {
+        inQuotes = false;
+      } else {
+        currentField += char;
+      }
+    } else {
+      if (char === '"') {
+        inQuotes = true;
+      } else if (char === delimiter) {
+        currentRecord.push(currentField.trim());
+        currentField = "";
+      } else if (char === "\r") {
+        if (nextChar === "\n") i++;
+        currentRecord.push(currentField.trim());
+        currentField = "";
+        if (currentRecord.some((f) => f.length > 0)) {
+          records.push(currentRecord);
+        }
+        currentRecord = [];
+      } else if (char === "\n") {
+        currentRecord.push(currentField.trim());
+        currentField = "";
+        if (currentRecord.some((f) => f.length > 0)) {
+          records.push(currentRecord);
+        }
+        currentRecord = [];
+      } else {
+        currentField += char;
+      }
+    }
+  }
+
+  if (currentField.length > 0 || currentRecord.length > 0) {
+    currentRecord.push(currentField.trim());
+    if (currentRecord.some((f) => f.length > 0)) {
+      records.push(currentRecord);
+    }
+  }
+
+  if (records.length === 0) {
+    return { headers: [], rows: [] };
+  }
+
+  const rawHeaders = records[0];
+  const headers = rawHeaders.map((h) => h.trim());
+  const rows: Record<string, string>[] = [];
+
+  for (let r = 1; r < records.length; r++) {
+    const rowRecord = records[r];
+    const rowObj: Record<string, string> = {};
+    for (let c = 0; c < headers.length; c++) {
+      const header = headers[c];
+      if (header) {
+        rowObj[header] = rowRecord[c] ?? "";
+      }
+    }
+    rows.push(rowObj);
+  }
+
+  return { headers, rows };
+}
 
 /**
  * Read a file the student picked into importable rows.
  *
- * Never throws: a corrupt file, a sheet of formulas, or a non-spreadsheet
- * renamed to `.xlsx` all come back as an `error` with no rows, because this is
- * called straight from a file input where an exception would surface as a
- * blank screen instead of as a message.
+ * Never throws: corrupt files or unsupported binary files come back as an `error`
+ * with no rows, safely displayed in the preview UI.
  */
 export async function importFile(file: File | Blob): Promise<FileImport> {
   const source = (file as File).name || "uploaded file";
@@ -74,35 +150,25 @@ export async function importFile(file: File | Blob): Promise<FileImport> {
     error,
   });
 
+  if (/\.(xlsx|xls|xlsb)$/i.test(source)) {
+    return empty(
+      "Excel .xlsx workbooks are not supported directly. Please save or export your spreadsheet as a CSV (.csv) file and upload again.",
+    );
+  }
+
   try {
-    const XLSX = await import("xlsx");
+    const text = await file.text();
+    if (!text.trim()) {
+      return empty("The selected file is empty.");
+    }
 
-    // A `.csv` is read as text and a workbook as bytes. SheetJS sniffs both
-    // formats from a byte array, but reading the text path as bytes would
-    // hand it a UTF-8 BOM it does not strip reliably — which turns the first
-    // heading into `\uFEFFCODE` and, because no heading then matches, every
-    // column in the file into an unnamed one.
-    const isText = TEXTUAL.test(source);
-    const workbook = isText
-      ? XLSX.read(await file.text(), { type: "string" })
-      : XLSX.read(new Uint8Array(await file.arrayBuffer()), { type: "array" });
+    const { headers, rows: rawRows } = parseDelimitedText(text);
 
-    const sheetName = workbook.SheetNames[0];
-    if (!sheetName || !workbook.Sheets[sheetName]) return empty(NO_SHEET);
-
-    const sheet = workbook.Sheets[sheetName];
-
-    // The header row read separately, because `sheet_to_json` otherwise uses
-    // the first row as the key *and* consumes it — there is no second read
-    // that gives both the names and the row beneath them.
-    const grid = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, blankrows: false });
-    const headerRow = (grid[0] ?? []) as unknown[];
-    const headers = headerRow.map((cell) => String(cell ?? "").trim());
-    if (!headers.some((header) => header)) return empty("The first row of this file has no column headings.");
+    if (!headers.some((header) => header)) {
+      return empty("The first row of this file has no column headings.");
+    }
 
     const columns = detectColumns(headers);
-    const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
-
     const rows = rawRows.map((row) => normalizeRow(row, columns));
     const courses: ParsedCourse[] = [];
     let skipped = 0;
@@ -126,7 +192,7 @@ export async function importFile(file: File | Blob): Promise<FileImport> {
         headers,
         ignoredHeaders: unrecognizedColumns(headers),
         missingFields,
-        sheet: sheetName,
+        sheet: "Sheet1",
         skipped: rows.length,
         rows,
       };
@@ -138,7 +204,7 @@ export async function importFile(file: File | Blob): Promise<FileImport> {
       headers,
       ignoredHeaders: unrecognizedColumns(headers),
       missingFields,
-      sheet: sheetName,
+      sheet: "Sheet1",
       source,
       skipped,
       error: null,

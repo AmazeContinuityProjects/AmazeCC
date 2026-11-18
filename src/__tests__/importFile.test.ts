@@ -190,23 +190,38 @@ describe("importing a sheet nobody here wrote", () => {
   });
 });
 
-describe("importing an actual workbook", () => {
-  it("reads .xlsx bytes, which are not text in a hat", async () => {
-    const XLSX = await import("xlsx");
-    const sheet = XLSX.utils.aoa_to_sheet([
-      ["Course Code", "Course Title", "Slot", "Professor"],
-      ["CSE1001", "Intro to Computing", "A1+TA1", "Dr. Smith"],
-      ["CSE1002", "Databases", "B1+TB1", "Dr. Rao"],
-    ]);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, sheet, "Courses");
-    const bytes = XLSX.write(workbook, { type: "array", bookType: "xlsx" }) as Uint8Array;
-
+describe("handling .xlsx files", () => {
+  it("rejects .xlsx files with a clear instruction to save as CSV", async () => {
+    const bytes = new Uint8Array([0x50, 0x4b, 0x03, 0x04]);
     const result = await importFile(fileOf(bytes, "semester.xlsx"));
+    expect(result.error).toContain("Excel .xlsx workbooks are not supported directly");
+    expect(result.courses).toEqual([]);
+  });
+
+  it("reads tab-separated (.tsv) files seamlessly", async () => {
+    const tsv = [
+      "Course Code\tCourse Title\tSlot\tProfessor",
+      "CSE1001\tIntro to Computing\tA1+TA1\tDr. Smith",
+      "CSE1002\tDatabases\tB1+TB1\tDr. Rao",
+    ].join("\n");
+
+    const result = await importFile(fileOf(tsv, "courses.tsv"));
     expect(result.error).toBeNull();
-    expect(result.sheet).toBe("Courses");
     expect(result.courses.map((c) => c.CODE)).toEqual(["CSE1001", "CSE1002"]);
     expect(result.courses[0].SLOT).toBe("A1+TA1");
+  });
+
+  it("reads quoted values with commas correctly", async () => {
+    const csvWithQuotes = [
+      "Course Code,Course Title,Slot,Professor",
+      'CSE1001,"Problem Solving, C and Python",A1+TA1,"Smith, Dr. John"',
+    ].join("\n");
+
+    const result = await importFile(fileOf(csvWithQuotes, "courses.csv"));
+    expect(result.error).toBeNull();
+    expect(result.courses[0].CODE).toBe("CSE1001");
+    expect(result.courses[0].TITLE).toBe("Problem Solving, C and Python");
+    expect(result.courses[0].FACULTY).toBe("Smith, Dr. John");
   });
 });
 

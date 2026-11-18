@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import * as XLSX from "xlsx";
+import { parseFastCSV } from "@/lib/courseCatalog";
 import {
   DEFAULT_FFCS_SEMESTER,
   FFCS_SEMESTER_REPORTS,
@@ -180,10 +180,8 @@ describe("parsing report rows", () => {
 
   it("reads every row of the shipped winter CSVs", () => {
     const load = (path: string) => {
-      const csv = readFileSync(resolve(process.cwd(), path));
-      const workbook = XLSX.read(csv, { type: "buffer" });
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      return parseReportRows(XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet));
+      const csv = readFileSync(resolve(process.cwd(), path), "utf8");
+      return parseReportRows(parseFastCSV(csv));
     };
 
     // The final course-offered list (the default report).
@@ -211,10 +209,8 @@ describe("parsing report rows", () => {
   });
 
   it("joins wrapped names at word boundaries without splitting words", () => {
-    const csv = readFileSync(resolve(process.cwd(), "public/ffcs/winter-2026-2027-final-ffcs.csv"));
-    const workbook = XLSX.read(csv, { type: "buffer" });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const courses = parseReportRows(XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet));
+    const csv = readFileSync(resolve(process.cwd(), "public/ffcs/winter-2026-2027-final-ffcs.csv"), "utf8");
+    const courses = parseReportRows(parseFastCSV(csv));
 
     expect(courses.find((course) => course.CODE === "MATR706")?.FACULTY).toBe("THARASI DILLESWAR RAO");
     expect(courses.find((course) => course.CODE === "PRMC001L")?.FACULTY).toBe("BALAMURUGAN B J");

@@ -1,6 +1,9 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useAtomValue } from "jotai";
+import { unifiedAcademicsAtom, unifiedMarksAtom } from "@/store";
+import type { NormalizedCourse } from "@/types";
 import type { attendanceRes } from "@/types/data/attendance";
 import type { AllGradesRes } from "@/types/data/allgrades";
 import type { Settings } from "@/store/settingsAtoms";
@@ -23,6 +26,7 @@ interface DashboardAcademicsFeatureProps {
   handleScheduleFetch: () => Promise<unknown>;
   courseDashboardTarget: { courseCode: string; targetTab?: string } | null;
   onClearCourseTarget: () => void;
+  resetKey?: number;
 }
 
 function FeatureLoading() {
@@ -58,54 +62,57 @@ export default function DashboardAcademicsFeature({
   handleScheduleFetch,
   courseDashboardTarget,
   onClearCourseTarget,
+  resetKey,
 }: DashboardAcademicsFeatureProps) {
+  const unifiedAcademics = useAtomValue(unifiedAcademicsAtom);
+  const unifiedMarks = useAtomValue(unifiedMarksAtom);
+  void unifiedMarks;
+  const effectiveAttendance: NormalizedCourse[] | undefined =
+    (attendanceData?.attendance as unknown as NormalizedCourse[]) ??
+    (unifiedAcademics.courses.length > 0 ? unifiedAcademics.courses : undefined);
+
   return (
     <div className="animate-fadeIn">
       {(activeSubTab === "courses-simplified" || activeSubTab === "simplified-academics" || activeSubTab === "overview" || activeSubTab === "course-dashboard") && (
-        marksData ? (
-          <CourseDashboard
-            marksData={marksData}
-            allGradesData={allGradesData}
-            pastSemesterData={pastSemesterData}
-            attendanceData={attendanceData}
-            loginToVTOP={loginToVTOP}
-            setActiveSubTab={setActiveSubTab}
-            calendars={calendarData?.calendars}
-            decimalValues={settings.decimalValues}
-            isDayscholarWithBus={settings.isDayscholarWithBus}
-            targetCourseCode={courseDashboardTarget?.courseCode}
-            targetTab={courseDashboardTarget?.targetTab}
-            onClearTarget={onClearCourseTarget}
-          />
-        ) : <FeatureLoading />
+        <CourseDashboard
+          marksData={marksData}
+          allGradesData={allGradesData}
+          pastSemesterData={pastSemesterData}
+          attendanceData={attendanceData}
+          loginToVTOP={loginToVTOP}
+          setActiveSubTab={setActiveSubTab}
+          calendars={calendarData?.calendars}
+          decimalValues={settings.decimalValues}
+          isDayscholarWithBus={settings.isDayscholarWithBus}
+          targetCourseCode={courseDashboardTarget?.courseCode}
+          targetTab={courseDashboardTarget?.targetTab}
+          onClearTarget={onClearCourseTarget}
+          resetKey={resetKey}
+        />
       )}
 
       {activeSubTab === "grades" && (
-        marksData ? (
-          <MarksHistoryTab
-            data={allGradesData}
-            marksData={marksData}
-            gradesData={gradesData}
-            pastSemesters={pastSemesterData}
-            onRefresh={handleFetchGrades}
-            onBack={() => setActiveSubTab("overview")}
-          />
-        ) : <FeatureLoading />
+        <MarksHistoryTab
+          data={allGradesData}
+          marksData={marksData}
+          gradesData={gradesData}
+          pastSemesters={pastSemesterData}
+          onRefresh={handleFetchGrades}
+          onBack={() => setActiveSubTab("overview")}
+        />
       )}
 
       {(activeSubTab === "curriculum" || activeSubTab === "cgpa-predictor") && (
-        marksData ? (
-          <CurriculumPage
-            marksData={marksData}
-            allGradesData={allGradesData}
-            gradesData={gradesData}
-            attendance={attendanceData?.attendance}
-            handleFetchGrades={handleFetchGrades}
-            setActiveSubTab={setActiveSubTab}
-            loginToVTOP={loginToVTOP}
-            initialScreen={activeSubTab === "cgpa-predictor" ? "planner" : undefined}
-          />
-        ) : <FeatureLoading />
+        <CurriculumPage
+          marksData={marksData}
+          allGradesData={allGradesData}
+          gradesData={gradesData}
+          attendance={effectiveAttendance}
+          handleFetchGrades={handleFetchGrades}
+          setActiveSubTab={setActiveSubTab}
+          loginToVTOP={loginToVTOP}
+          initialScreen={activeSubTab === "cgpa-predictor" ? "planner" : undefined}
+        />
       )}
 
       {activeSubTab === "schedule" && (
@@ -120,7 +127,7 @@ export default function DashboardAcademicsFeature({
         <MarksPredictorTab
           marksData={marksData}
           marksStats={marksStats}
-          attendance={attendanceData?.attendance}
+          attendance={effectiveAttendance}
           setActiveSubTab={setActiveSubTab}
         />
       )}

@@ -33,6 +33,7 @@ import {
   decodeTimetableShare,
 } from "@/lib/ffcsShare";
 import { getFFCSSemester, parseReportRows, type FFCSSemesterId } from "@/lib/ffcsReports";
+import { parseFastCSV } from "@/lib/courseCatalog";
 import { groupSharedReportCourses } from "@/lib/ffcsCourseGrouping";
 import { COLORS } from "@/lib/ffcsConstants";
 import { splitSlots } from "@/lib/ffcsGenerate";
@@ -169,10 +170,9 @@ export async function fetchSemesterReport(semesterId: FFCSSemesterId): Promise<P
     throw new ShareInputError("network", `Could not download the ${semester.name} (HTTP ${response.status}).`);
   }
   try {
-    const XLSX = await import("xlsx");
-    const workbook = XLSX.read(new Uint8Array(await response.arrayBuffer()), { type: "array" });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    return parseReportRows(XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet));
+    const text = await response.text();
+    const rawRows = parseFastCSV(text);
+    return parseReportRows(rawRows);
   } catch (err) {
     if (err instanceof ShareInputError) throw err;
     throw new ShareInputError(
