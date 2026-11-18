@@ -24,6 +24,7 @@ import { COLOR_HEX_MAP, typeLabels } from "@/lib/ffcsConstants";
 import { getTimetableSchema } from "@/lib/campusSchema";
 import { DAYS_OF_WEEK, periodsForSlot, splitSlots, type CampusSchema } from "@/lib/slots";
 import { courseClashPairs, courseClashPairCount, formatMinutesOfDay, type CourseClash } from "./ffcsClashPairs";
+import { buildClashReportPdfInWorker } from "./pdfWorkerBridge";
 
 const PAGE_W = 210;
 const PAGE_H = 297;
@@ -266,7 +267,7 @@ function drawSectionTitle(pdf: jsPDF, title: string, subtitle: string, y: number
  * ones — generated plans come out "No clashes - all courses fit", which is the
  * generator's guarantee made visible on paper.
  */
-export async function createClashReportPdf(params: ClashReportParams): Promise<ArrayBuffer> {
+export async function renderClashReportPdf(params: ClashReportParams): Promise<ArrayBuffer> {
   const { jsPDF } = await import("jspdf");
   const schema = params.schema ?? getTimetableSchema();
   const courses = params.courses;
@@ -516,6 +517,18 @@ export async function createClashReportPdf(params: ClashReportParams): Promise<A
   }
 
   return pdf.output("arraybuffer");
+}
+
+/**
+ * Build the clash report as an A4 portrait PDF.
+ * Dispatches generation to a Web Worker when available, falling back to inline rendering.
+ */
+export async function createClashReportPdf(params: ClashReportParams): Promise<ArrayBuffer> {
+  const workerBuffer = await buildClashReportPdfInWorker(params);
+  if (workerBuffer) {
+    return workerBuffer;
+  }
+  return renderClashReportPdf(params);
 }
 
 /**

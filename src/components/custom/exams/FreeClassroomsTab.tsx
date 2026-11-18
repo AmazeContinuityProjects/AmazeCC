@@ -24,20 +24,21 @@ import {
   DAY_LABELS,
   blockAvailability,
   buildDayIndex,
-  buildPeriodSlots,
+  buildWeekIndex,
   freeRoomsForPeriod,
   freeRoomsForRun,
   positionLabel,
   parseCachedCourses,
-  parseCourseRows,
   resolveNow,
   resolvePeriods,
   type DayId,
-  type DayIndex,
   type FreeRoomCourse,
   type FreeRooms,
   type PeriodOption,
+  type WeekMap,
 } from "@/lib/freeClassrooms";
+import { buildWeekIndexAsync } from "@/lib/freeClassroomWorkerBridge";
+import { loadCourseCatalog, getCourseCatalogSync } from "@/lib/courseCatalog";
 import { mergeDay, type MergedDay, type MergedOccupant } from "@/lib/roomMerge";
 import BottomSheet from "../shared/BottomSheet";
 import ClassDetailsModal from "./ClassDetailsModal";
@@ -63,12 +64,12 @@ import {
 import chennaiSchema from "@/data/campus/chennai.json";
 import { useAtom } from "jotai";
 import { settingsAtom } from "@/store/settingsAtoms";
+import { getTypedStorageItem } from "@/lib/storage";
 import {
   FINAL_FFCS_REPORTS,
   GLOBAL_SEMESTER_CHANGE_EVENT,
   broadcastGlobalSemesterChange,
   finalSemesterToVtopId,
-  getSelectedFinalReportPath,
   getSelectedFinalSemesterId,
   mapToFinalSemesterId,
   type FinalFFCSSemesterId,
@@ -364,13 +365,22 @@ export default function FreeClassroomsTab({
       setLoading(true);
       setError(null);
 
-      let hasCached = false;
+      // Check synchronous in-memory cache first
       if (!forceReload) {
-        const cached = parseCachedCourses(localStorage.getItem(`ffcs_raw_courses_${targetSemester}`));
+        const syncCached = getCourseCatalogSync(targetSemester);
+        if (syncCached && syncCached.length > 0) {
+          setCourses(syncCached);
+          setLoading(false);
+          return;
+        }
+
+        const cachedRaw = getTypedStorageItem(`ffcs_raw_courses_${targetSemester}`) as unknown;
+        const cached: FreeRoomCourse[] = Array.isArray(cachedRaw)
+          ? (cachedRaw as FreeRoomCourse[])
+          : parseCachedCourses(typeof cachedRaw === "string" ? cachedRaw : JSON.stringify(cachedRaw));
         if (cached.length) {
           setCourses(cached);
           setLoading(false);
-          hasCached = true;
           if (cached.some((c) => c.ERP_ID || c.FACULTY)) {
             return;
           }
@@ -378,30 +388,10 @@ export default function FreeClassroomsTab({
       }
 
       try {
-        const XLSX = await import("xlsx");
-        const reportPath = getSelectedFinalReportPath(targetSemester);
-        const response = await fetch(reportPath);
-        if (!response.ok) {
-          if (!hasCached) throw new Error("Failed to load campus timetable records");
-          return;
-        }
-        const workbook = XLSX.read(new Uint8Array(await response.arrayBuffer()), { type: "array" });
-        const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[workbook.SheetNames[0]]);
-
-        // Header normalisation (the BOM, the CODE/VENUE aliases) lives in the
-        // lib and is tested there. Doing it inline here once shipped a mangled
-        // byte-order mark that silently dropped every course in the report.
-        const parsed = parseCourseRows(rows);
-
+        const parsed = await loadCourseCatalog(targetSemester);
         setCourses(parsed);
-        try {
-          localStorage.setItem(`ffcs_raw_courses_${targetSemester}`, JSON.stringify(parsed));
-          localStorage.setItem("ffcs_raw_courses", JSON.stringify(parsed));
-        } catch {}
       } catch (err: any) {
-        if (!hasCached) {
-          setError(err.message || "Failed to load timetable data");
-        }
+        setError(err.message || "Failed to load timetable data");
       } finally {
         setLoading(false);
       }
@@ -427,18 +417,27 @@ export default function FreeClassroomsTab({
    * Five passes over the report is a few thousand operations, once, when the
    * data arrives. After that a day switch is a map read.
    */
-  const week = useMemo(() => {
-    const map = new Map<DayId, { periods: PeriodOption[]; slots: Map<string, Set<string>>; index: DayIndex }>();
-    for (const d of DAYS_OF_WEEK) {
-      const periods = resolvePeriods(SCHEMA, d);
-      const slots = buildPeriodSlots(periods);
-      map.set(d, { periods, slots, index: buildDayIndex(courses, periods, slots) });
-    }
-    return map;
+  const [week, setWeek] = useState<WeekMap>(() => buildWeekIndex(courses, SCHEMA));
+
+  useEffect(() => {
+    let cancelled = false;
+    buildWeekIndexAsync(courses, SCHEMA).then((indexedWeek) => {
+      if (!cancelled) {
+        setWeek(indexedWeek);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [courses]);
 
   // Falls back rather than asserting: a bad `day` should not blank the page.
-  const shown = week.get(day) ?? week.get("mon")!;
+  const shown = week.get(day) ??
+    week.get("mon") ?? {
+      periods: resolvePeriods(SCHEMA, "mon"),
+      slots: new Map(),
+      index: buildDayIndex([], resolvePeriods(SCHEMA, "mon"), new Map()),
+    };
   const periods = shown.periods;
   const index = shown.index;
 

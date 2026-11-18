@@ -31,6 +31,7 @@ import { getTimetableSchema } from "@/lib/campusSchema";
 import { courseClashPairCount } from "./ffcsClashPairs";
 import { getFacultyReview, isVitfacIntegrationEnabled } from "@/lib/vitfacService";
 import type { ModernPrintableReportParams } from "./exportTimetable";
+import { buildFormDossierPdfInWorker } from "./pdfWorkerBridge";
 
 const PAGE_W = 210;
 const PAGE_H = 297;
@@ -568,7 +569,7 @@ function buildDropInRows(params: PrintDossierParams): string[][] {
  * degrades honestly: no catalog loaded says so, Vitfac off omits the
  * assessment section entirely rather than printing empty scorecards.
  */
-export async function createPrintDossierPdf(params: PrintDossierParams): Promise<ArrayBuffer> {
+export async function renderFormDossierPdf(params: PrintDossierParams): Promise<ArrayBuffer> {
   const { jsPDF } = await import("jspdf");
   const schema = params.schema ?? getTimetableSchema();
   const groups = groupCourses(params.courses);
@@ -725,6 +726,18 @@ export async function createPrintDossierPdf(params: PrintDossierParams): Promise
   }
 
   return pdf.output("arraybuffer");
+}
+
+/**
+ * Build the print-friendly dossier as an A4 portrait PDF.
+ * Offloads generation to a Web Worker when available, falling back to inline main-thread rendering.
+ */
+export async function createPrintDossierPdf(params: PrintDossierParams): Promise<ArrayBuffer> {
+  const workerBuffer = await buildFormDossierPdfInWorker(params);
+  if (workerBuffer) {
+    return workerBuffer;
+  }
+  return renderFormDossierPdf(params);
 }
 
 /**

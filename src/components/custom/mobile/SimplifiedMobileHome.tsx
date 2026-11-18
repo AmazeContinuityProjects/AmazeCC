@@ -56,9 +56,11 @@ import {
   useHorizontalSwipe,
   type InsightSlide,
 } from "../shared/primitives";
-import { useAtom, useSetAtom } from "jotai";
-import { isFeedbackModalOpenAtom, feedbackModalCategoryAtom } from "@/store/uiAtoms";
+import { useAtom, useSetAtom, useAtomValue } from "jotai";
+import { isFeedbackModalOpenAtom, feedbackModalCategoryAtom, unifiedIdentityAtom, unifiedAcademicsAtom } from "@/store";
 import { tasksAtom } from "@/store/dataAtoms";
+import { getTypedStorageItem, setTypedStorageItem } from "@/lib/storage";
+import type { NormalizedCourse, UnifiedUserIdentity } from "@/types";
 import { classTaskSummary, tasksForDay, isDueOnDay } from "@/lib/taskMatch";
 import {
   SELECTED_RING,
@@ -71,9 +73,10 @@ import {
 } from "@/lib/weekStrip";
 import TaskBadge from "../tasks/TaskBadge";
 import { KIND_CONFIG } from "../tasks/TaskCard";
-import { parseCachedCourses, parseCourseRows, type FreeRoomCourse } from "@/lib/freeClassrooms";
+import { parseCachedCourses, type FreeRoomCourse } from "@/lib/freeClassrooms";
+import { loadCourseCatalog } from "@/lib/courseCatalog";
 import { facultyGroupKey } from "../exams/FFCS/logic/facultyGroups";
-import { getSelectedFinalReportPath, getSelectedFinalSemesterId, mapToFinalSemesterId } from "@/lib/ffcsReports";
+import { getSelectedFinalSemesterId, mapToFinalSemesterId } from "@/lib/ffcsReports";
 import { useDayKey, useNow, useNowHour, useNowMinute } from "@/lib/useNow";
 import { clickable } from "@/lib/a11y";
 
@@ -324,6 +327,8 @@ export default function SimplifiedMobileHome({
   const [tasks] = useAtom(tasksAtom);
   const setIsFeedbackOpen = useSetAtom(isFeedbackModalOpenAtom);
   const setFeedbackCategory = useSetAtom(feedbackModalCategoryAtom);
+  const unifiedIdentity: UnifiedUserIdentity = useAtomValue(unifiedIdentityAtom);
+  const unifiedAcademics = useAtomValue(unifiedAcademicsAtom);
   const [cachedProfile, setCachedProfile] = useState<any>(profileDataProp || null);
   const currentMinute = useNowMinute();
   const minuteNow = useMemo(() => new Date(currentMinute * 60_000), [currentMinute]);
@@ -348,12 +353,10 @@ export default function SimplifiedMobileHome({
   );
 
   const [reportCourses, setReportCourses] = useState<FreeRoomCourse[]>(() => {
-    if (typeof window === "undefined" || typeof window.localStorage === "undefined") return [];
     try {
-      return parseCachedCourses(
-        window.localStorage.getItem(`ffcs_raw_courses_${activeSemesterId}`) ||
-          window.localStorage.getItem("ffcs_raw_courses"),
-      );
+      const cached =
+        getTypedStorageItem(`ffcs_raw_courses_${activeSemesterId}` as any) || getTypedStorageItem("ffcs_raw_courses");
+      return parseCachedCourses(cached as any);
     } catch {
       return [];
     }
@@ -363,17 +366,11 @@ export default function SimplifiedMobileHome({
     let cancelled = false;
     (async () => {
       try {
-        const XLSX = await import("xlsx");
-        const reportPath = getSelectedFinalReportPath(activeSemesterId);
-        const response = await fetch(reportPath);
-        if (!response.ok) return;
-        const workbook = XLSX.read(new Uint8Array(await response.arrayBuffer()), { type: "array" });
-        const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[workbook.SheetNames[0]]);
-        const parsed = parseCourseRows(rows);
+        const parsed = await loadCourseCatalog(activeSemesterId);
         if (!cancelled && parsed.length > 0) {
           setReportCourses(parsed);
           try {
-            localStorage.setItem(`ffcs_raw_courses_${activeSemesterId}`, JSON.stringify(parsed));
+            setTypedStorageItem(`ffcs_raw_courses_${activeSemesterId}` as any, parsed as any);
           } catch {}
         }
       } catch {}
@@ -443,14 +440,14 @@ export default function SimplifiedMobileHome({
     if (typeof facultyNameOrErp === "string" && facultyNameOrErp.trim()) {
       const clean = facultyNameOrErp.trim();
       if (/^\d{3,}$/.test(clean) || clean.startsWith("erp:")) {
-        localStorage.setItem("faculty_schedule_target_erp", clean.replace(/^erp:/, ""));
+        setTypedStorageItem("faculty_schedule_target_erp", clean.replace(/^erp:/, ""));
       } else {
-        localStorage.setItem("faculty_schedule_target_name", clean);
+        setTypedStorageItem("faculty_schedule_target_name", clean);
       }
     }
     // Home launches count only the reader's *enrolled* faculties — the picks
     // they made in the /ffcs planner are a plan, not this screen's courses.
-    localStorage.setItem("faculty_schedule_source", "home");
+    setTypedStorageItem("faculty_schedule_source", "home");
     setActiveTab("faculty-schedule");
   };
 
@@ -471,8 +468,8 @@ export default function SimplifiedMobileHome({
 
       if (isAlreadySelected) {
         try {
-          localStorage.setItem("course_dashboard_target", cleanCode);
-          localStorage.setItem("course_dashboard_tab", "overview");
+          setTypedStorageItem("course_dashboard_target", cleanCode);
+          setTypedStorageItem("course_dashboard_tab", "overview");
         } catch {}
         setActiveTab("academics");
         setActiveSubTab("course-dashboard");
@@ -482,8 +479,8 @@ export default function SimplifiedMobileHome({
     } else {
       // Mobile mode: directly navigate to course dashboard
       try {
-        localStorage.setItem("course_dashboard_target", cleanCode);
-        localStorage.setItem("course_dashboard_tab", "overview");
+        setTypedStorageItem("course_dashboard_target", cleanCode);
+        setTypedStorageItem("course_dashboard_tab", "overview");
       } catch {}
       setActiveTab("academics");
       setActiveSubTab("course-dashboard");
@@ -520,14 +517,7 @@ export default function SimplifiedMobileHome({
   });
 
   const [satOverride] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        return localStorage.getItem("saturday_timetable_override") || "MON";
-      } catch {
-        return "MON";
-      }
-    }
-    return "MON";
+    return getTypedStorageItem("saturday_timetable_override") || "MON";
   });
 
   const pillStyle: "compact" | "detailed" = settings?.timetablePillStyle || "compact";
@@ -545,23 +535,29 @@ export default function SimplifiedMobileHome({
       setCachedProfile(profileDataProp);
       return;
     }
+    if (unifiedIdentity?.name || unifiedIdentity?.photo) {
+      setCachedProfile({
+        name: unifiedIdentity.name,
+        image: unifiedIdentity.photo,
+        regNo: unifiedIdentity.regNumber,
+      });
+      return;
+    }
     try {
-      const storedProfile = localStorage.getItem("profile");
-      const storedImages = localStorage.getItem("profileImages");
-      const parsedProfile = storedProfile ? JSON.parse(storedProfile) : null;
-      const parsedImages = storedImages ? JSON.parse(storedImages) : null;
+      const storedProfile = getTypedStorageItem("profile") as any;
+      const storedImages = getTypedStorageItem("profileImages") as any;
       const image =
-        parsedProfile?.image ||
-        parsedProfile?.photo ||
-        parsedProfile?.photoBase64 ||
-        parsedImages?.student?.photoBase64 ||
-        parsedImages?.profile?.photoBase64 ||
-        parsedImages?.studentPhoto;
-      setCachedProfile(image ? { ...parsedProfile, image } : parsedProfile);
+        storedProfile?.image ||
+        storedProfile?.photo ||
+        storedProfile?.photoBase64 ||
+        storedImages?.student?.photoBase64 ||
+        storedImages?.profile?.photoBase64 ||
+        storedImages?.studentPhoto;
+      setCachedProfile(image ? { ...storedProfile, image } : storedProfile);
     } catch {
       setCachedProfile(null);
     }
-  }, [profileDataProp]);
+  }, [profileDataProp, unifiedIdentity]);
 
   const handleRefresh = useCallback(async () => {
     setIsSpinning(true);
@@ -571,18 +567,44 @@ export default function SimplifiedMobileHome({
 
   const { isOffline, triggerSync: handleSyncClick } = useSyncTrigger(handleRefresh);
 
-  const profileName = settings?.friendlyName || cachedProfile?.name || IDs?.VtopUsername || "Student";
-  const profileImage = cachedProfile?.image || cachedProfile?.photo || cachedProfile?.photoBase64;
+  const profileName =
+    settings?.friendlyName ||
+    cachedProfile?.name ||
+    unifiedIdentity?.name ||
+    unifiedIdentity?.friendlyName ||
+    IDs?.VtopUsername ||
+    unifiedIdentity?.regNumber ||
+    "Student";
+  const profileImage =
+    cachedProfile?.image || cachedProfile?.photo || cachedProfile?.photoBase64 || unifiedIdentity?.photo;
   const shouldDisplayProfilePhoto = shouldShowProfilePhoto(settings);
   const shouldDisplayGpa = shouldShowGpa(settings);
   const targetAttendancePct = Number(settings?.targetAttendance || 75);
 
+  // Attendance records from props or unifiedAcademics atom fallback
+  const attendanceList = useMemo(() => {
+    if (attendanceData?.attendance && Array.isArray(attendanceData.attendance)) {
+      return attendanceData.attendance;
+    }
+    if (unifiedAcademics?.courses && Array.isArray(unifiedAcademics.courses)) {
+      return unifiedAcademics.courses.map((c: NormalizedCourse) => ({
+        courseCode: c.code,
+        courseTitle: c.title,
+        slotName: c.slotDisplay,
+        totalClasses: c.attendance?.totalClasses ?? 0,
+        attendedClasses: c.attendance?.attendedClasses ?? 0,
+        attendancePercentage: String(c.attendance?.attendancePercentage ?? 0),
+        viewLink: c.attendance?.history ?? [],
+      }));
+    }
+    return [];
+  }, [attendanceData?.attendance, unifiedAcademics?.courses]);
 
   // Overall attendance — the app's one formula, shared with the calendar page so
   // two screens can never show different percentages for the same student.
   const overallAttendance = useMemo(
-    () => summariseAttendance(attendanceData?.attendance, targetAttendancePct),
-    [attendanceData, targetAttendancePct],
+    () => summariseAttendance(attendanceList, targetAttendancePct),
+    [attendanceList, targetAttendancePct],
   );
 
   // Approved OD Hours
@@ -593,8 +615,8 @@ export default function SimplifiedMobileHome({
 
   // Critical Courses count (< target attendance)
   const criticalCount = useMemo(() => {
-    if (!attendanceData?.attendance || !Array.isArray(attendanceData.attendance)) return 0;
-    return attendanceData.attendance.filter((c: any) => {
+    if (!attendanceList || !Array.isArray(attendanceList)) return 0;
+    return attendanceList.filter((c: any) => {
       if (!c) return false;
       const slot = String(c.slotName || "")
         .trim()
@@ -607,7 +629,7 @@ export default function SimplifiedMobileHome({
       const pct = parseFloat(c.attendancePercentage);
       return !isNaN(pct) && pct < targetAttendancePct;
     }).length;
-  }, [attendanceData, targetAttendancePct]);
+  }, [attendanceList, targetAttendancePct]);
 
   // Parsed academic calendar events
   const analyzedCalendarResults = useMemo(() => {
@@ -668,10 +690,11 @@ export default function SimplifiedMobileHome({
 
     // Slide 1: CGPA
     if (shouldDisplayGpa) {
+      const cgpaVal = marksData?.cgpa?.cgpa ?? unifiedAcademics?.cgpa;
       slides.push({
         id: "cgpa",
         title: "CGPA",
-        headline: marksData?.cgpa?.cgpa ? `${Number(marksData.cgpa.cgpa).toFixed(2)}` : "—",
+        headline: cgpaVal ? `${Number(cgpaVal).toFixed(2)}` : "—",
         subline: "VTOP Verified Grade",
         badge: "Academic",
         onClick: () => {
@@ -685,10 +708,11 @@ export default function SimplifiedMobileHome({
     }
 
     // Slide 2: Credits
+    const creditsVal = marksData?.cgpa?.creditsEarned ?? (unifiedAcademics?.grades as any)?.cgpa?.creditsEarned;
     slides.push({
       id: "credits",
       title: "Credits",
-      headline: marksData?.cgpa?.creditsEarned ? `${Number(marksData.cgpa.creditsEarned)} cr` : "—",
+      headline: creditsVal ? `${Number(creditsVal)} cr` : "—",
       subline: "Degree Curriculum Earned",
       badge: "Degree",
       onClick: () => {
@@ -876,8 +900,8 @@ export default function SimplifiedMobileHome({
 
   // All weekly timetable cards map
   const timetableMap = useMemo(() => {
-    return buildAttendanceDayCardsMap(attendanceData?.attendance || [], undefined, satOverride);
-  }, [attendanceData, satOverride]);
+    return buildAttendanceDayCardsMap(attendanceList, undefined, satOverride);
+  }, [attendanceList, satOverride]);
 
   // Integrated Calendar week days with accurate month-matched event detection
   const weekDays = useMemo(() => {
@@ -1131,7 +1155,7 @@ export default function SimplifiedMobileHome({
 
   // Selected course object for desktop course side view pane (active when a class is clicked)
   const selectedCourseObj = useMemo(() => {
-    if (!selectedCourseCode || !attendanceData?.attendance || !Array.isArray(attendanceData.attendance)) {
+    if (!selectedCourseCode || !attendanceList || !Array.isArray(attendanceList)) {
       return null;
     }
 
@@ -1141,7 +1165,7 @@ export default function SimplifiedMobileHome({
       .toUpperCase();
 
     return (
-      attendanceData.attendance.find((c: any) => {
+      attendanceList.find((c: any) => {
         const cCode = String(c?.courseCode || "")
           .replace(/\([LPT]\)$/i, "")
           .trim()
@@ -1149,7 +1173,7 @@ export default function SimplifiedMobileHome({
         return cCode === clean;
       }) || null
     );
-  }, [attendanceData?.attendance, selectedCourseCode]);
+  }, [attendanceList, selectedCourseCode]);
 
   // Month & Year header for the calendar row
   const calendarWeekHeader = useMemo(() => {
@@ -1359,7 +1383,11 @@ export default function SimplifiedMobileHome({
             }}
           >
             {directTiles.map((tile) => (
-              <div key={tile.id} {...clickable(tile.onClick)} className={cn("min-w-0", tile.onClick && "cursor-pointer")}>
+              <div
+                key={tile.id}
+                {...clickable(tile.onClick)}
+                className={cn("min-w-0", tile.onClick && "cursor-pointer")}
+              >
                 <StatTile
                   label={tile.label}
                   value={tile.value}
@@ -2209,7 +2237,7 @@ export default function SimplifiedMobileHome({
               <button
                 onClick={() => {
                   try {
-                    localStorage.setItem("friend_finder_source", "home");
+                    setTypedStorageItem("friend_finder_source", "home");
                   } catch {}
                   setActiveTab("friend-finder");
                 }}
@@ -2259,8 +2287,8 @@ export default function SimplifiedMobileHome({
                     .replace(/\([LPT]\)$/i, "")
                     .trim();
                   try {
-                    localStorage.setItem("course_dashboard_target", cleanCode);
-                    localStorage.setItem("course_dashboard_tab", "overview");
+                    setTypedStorageItem("course_dashboard_target", cleanCode);
+                    setTypedStorageItem("course_dashboard_tab", "overview");
                   } catch {}
                   setActiveTab("academics");
                   setActiveSubTab("course-dashboard");
@@ -2308,7 +2336,7 @@ export default function SimplifiedMobileHome({
                 </IconButton>
               </div>
               <div className="p-4 sm:p-5">
-                <TimetableGrid attendance={attendanceData?.attendance || []} />
+                <TimetableGrid attendance={attendanceList} />
               </div>
             </div>
           </BottomSheet>

@@ -20,6 +20,7 @@
 
 import type { OcrEngineChoice } from "./ocr";
 import type { CleanupMode } from "./types";
+import { getTypedStorageItem, setTypedStorageItem } from "../storage";
 
 export const SCANNER_SETTINGS_KEY = "paperScannerSettings";
 
@@ -106,9 +107,10 @@ export function _resetSessionApiKey(): void {
 /** Current settings, or defaults when storage is empty, corrupt or forbidden. */
 export function loadScannerSettings(): ScannerSettings {
   try {
-    const raw = localStorage.getItem(SCANNER_SETTINGS_KEY);
-    if (raw === null) return { ...ScannerSettingsDefaults, ocrApiKey: sessionApiKey };
-    return sanitizeScannerSettings({ ...JSON.parse(raw), ocrApiKey: sessionApiKey });
+    const raw = getTypedStorageItem(SCANNER_SETTINGS_KEY as any);
+    if (!raw) return { ...ScannerSettingsDefaults, ocrApiKey: sessionApiKey };
+    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+    return sanitizeScannerSettings({ ...parsed, ocrApiKey: sessionApiKey });
   } catch {
     return { ...ScannerSettingsDefaults, ocrApiKey: sessionApiKey };
   }
@@ -130,7 +132,7 @@ export function saveScannerSettings(patch: Partial<ScannerSettings>): ScannerSet
   const next = sanitizeScannerSettings({ ...loadScannerSettings(), ...patch, ocrApiKey: sessionApiKey });
   try {
     const { ocrApiKey: _omit, ...safeSettings } = next;
-    localStorage.setItem(SCANNER_SETTINGS_KEY, JSON.stringify(safeSettings));
+    setTypedStorageItem(SCANNER_SETTINGS_KEY as any, safeSettings as any);
   } catch {
     /* quota or private mode: the session keeps working with `next` */
   }
