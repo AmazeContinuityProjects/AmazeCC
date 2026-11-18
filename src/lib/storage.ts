@@ -1,6 +1,13 @@
+import type { StorageValue } from "@/types/storage";
 import type { attendanceRes } from "@/types/data/attendance";
 import type { AllGradesRes } from "@/types/data/allgrades";
 import type { CourseItem } from "@/types/data/marks";
+import type { UnifiedUserIdentity } from "@/types/auth";
+import type { UnifiedSemesterAcademics } from "@/types/academics";
+import type { UnifiedSemesterMarks } from "@/types/marks";
+import type { UnifiedCampusServices } from "@/types/campus";
+import type { UnifiedEventsAndNotices } from "@/types/events";
+import type { UnifiedAppSettings } from "@/types/appSettings";
 
 export const KEYS = {
   ATTENDANCE: "attendance",
@@ -71,6 +78,12 @@ export const KEYS = {
   FROZEN_ATT_PREFIX: "frozen_att_",
   FROZEN_MARKS_PREFIX: "frozen_marks_",
   OFFICIAL_OD_PREFIX: "official_od_",
+  UNIFIED_IDENTITY: "amz_unified_identity",
+  UNIFIED_ACADEMICS: "amz_unified_academics",
+  UNIFIED_MARKS: "amz_unified_marks",
+  UNIFIED_CAMPUS: "amz_unified_campus",
+  UNIFIED_EVENTS: "amz_unified_events",
+  UNIFIED_SETTINGS: "amz_unified_settings",
 } as const;
 
 function getItem<T>(key: string): T | null {
@@ -441,6 +454,38 @@ export const storage = {
     set: (data: unknown) => setItem(KEYS.CABSHARE_USER, data),
     remove: () => removeItem(KEYS.CABSHARE_USER),
   },
+  unified: {
+    identity: {
+      get: () => getTypedStorageItem("amz_unified_identity"),
+      set: (data: UnifiedUserIdentity) => setTypedStorageItem("amz_unified_identity", data),
+      remove: () => removeTypedStorageItem("amz_unified_identity"),
+    },
+    academics: {
+      get: () => getTypedStorageItem("amz_unified_academics"),
+      set: (data: UnifiedSemesterAcademics) => setTypedStorageItem("amz_unified_academics", data),
+      remove: () => removeTypedStorageItem("amz_unified_academics"),
+    },
+    marks: {
+      get: () => getTypedStorageItem("amz_unified_marks"),
+      set: (data: UnifiedSemesterMarks) => setTypedStorageItem("amz_unified_marks", data),
+      remove: () => removeTypedStorageItem("amz_unified_marks"),
+    },
+    campus: {
+      get: () => getTypedStorageItem("amz_unified_campus"),
+      set: (data: UnifiedCampusServices) => setTypedStorageItem("amz_unified_campus", data),
+      remove: () => removeTypedStorageItem("amz_unified_campus"),
+    },
+    events: {
+      get: () => getTypedStorageItem("amz_unified_events"),
+      set: (data: UnifiedEventsAndNotices) => setTypedStorageItem("amz_unified_events", data),
+      remove: () => removeTypedStorageItem("amz_unified_events"),
+    },
+    settings: {
+      get: () => getTypedStorageItem("amz_unified_settings"),
+      set: (data: UnifiedAppSettings) => setTypedStorageItem("amz_unified_settings", data),
+      remove: () => removeTypedStorageItem("amz_unified_settings"),
+    },
+  },
 };
 
 export function clearAllData(): void {
@@ -464,5 +509,125 @@ export function clearAllData(): void {
     }
   } catch {
     /* silently fail */
+  }
+}
+
+// ============================================================================
+// Type-safe Generic Storage Layer
+// ============================================================================
+
+const RAW_STRING_KEYS = new Set([
+  "IDs",
+  "username",
+  "password",
+  "theme",
+  "ph_debug",
+  "demoMode",
+  "app-icon",
+  "amazecc_api_pref",
+  "amazecc_custom_api_url",
+  "amazecc_active_api_url",
+  "amazecc_feedback_email",
+  "amazecc_feedback_personal_email",
+  "has_selected_interface",
+  "hasSeenPushPrompt",
+  "push_prompt_dismissed",
+  "lastPushPromptTimestamp",
+  "pwaInstallCardDismissed",
+  "lastSeenCommitHash",
+  "lastSeenSurveyDate",
+  "fresherWelcomeDismissed",
+  "introDone",
+  "busPromptDismissed",
+  "koha_card",
+  "koha_password",
+  "moodle_username",
+  "moodle_password",
+  "vitol_username",
+  "vitol_password",
+  "vitol_site",
+  "saturday_timetable_override",
+  "course_dashboard_target",
+  "course_dashboard_tab",
+  "faculty_schedule_target_name",
+  "faculty_schedule_target_erp",
+  "faculty_schedule_source",
+  "friend_finder_source",
+  "ffcs_activeTimetableId",
+  "ffcs_dismiss_faculty_guide",
+  "ffcs_layout_mode",
+  "friendlyName",
+  "marksSyncBackfillV1",
+  "marksSyncBackfillV2",
+]);
+
+export function isStorageAvailable(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const testKey = "__amazecc_storage_probe__";
+    window.localStorage.setItem(testKey, "1");
+    window.localStorage.removeItem(testKey);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function getTypedStorageItem<K extends string>(
+  key: K,
+  fallback: StorageValue<K> | null = null,
+): StorageValue<K> | null {
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (raw === null || raw === undefined) return fallback;
+
+    if (RAW_STRING_KEYS.has(key)) {
+      return raw as unknown as StorageValue<K>;
+    }
+
+    try {
+      return JSON.parse(raw) as StorageValue<K>;
+    } catch {
+      return raw as unknown as StorageValue<K>;
+    }
+  } catch {
+    return fallback;
+  }
+}
+
+export function setTypedStorageItem<K extends string>(key: K, value: StorageValue<K>): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    if (value === null || value === undefined) {
+      window.localStorage.removeItem(key);
+      return true;
+    }
+
+    if (RAW_STRING_KEYS.has(key) && typeof value === "string") {
+      window.localStorage.setItem(key, value);
+    } else {
+      window.localStorage.setItem(key, JSON.stringify(value));
+    }
+    return true;
+  } catch (err) {
+    console.warn(`[storage] Failed to set localStorage key "${key}":`, err);
+    return false;
+  }
+}
+
+export function removeTypedStorageItem<K extends string>(key: K): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(key);
+  } catch {}
+}
+
+export function hasTypedStorageItem<K extends string>(key: K): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(key) !== null;
+  } catch {
+    return false;
   }
 }
