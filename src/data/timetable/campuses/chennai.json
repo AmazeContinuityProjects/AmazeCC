@@ -1,0 +1,4414 @@
+{
+  "$schema": "../schema/timetable.schema.json",
+  "schemaVersion": 1,
+  "vocabularyVersion": "de8caec4d4d4f872",
+  "campusId": "chennai",
+  "timezone": "Asia/Kolkata",
+  "effectiveFrom": "2026-11",
+  "days": [
+    {
+      "id": "MON",
+      "label": "Monday",
+      "order": 1
+    },
+    {
+      "id": "TUE",
+      "label": "Tuesday",
+      "order": 2
+    },
+    {
+      "id": "WED",
+      "label": "Wednesday",
+      "order": 3
+    },
+    {
+      "id": "THU",
+      "label": "Thursday",
+      "order": 4
+    },
+    {
+      "id": "FRI",
+      "label": "Friday",
+      "order": 5
+    },
+    {
+      "id": "SAT",
+      "label": "Saturday",
+      "order": 6
+    },
+    {
+      "id": "SUN",
+      "label": "Sunday",
+      "order": 7
+    }
+  ],
+  "programmes": [
+    {
+      "id": "core",
+      "label": "Core engineering"
+    },
+    {
+      "id": "programme_i",
+      "label": "programme_i",
+      "note": "Rename once the programme behind this token family is confirmed."
+    },
+    {
+      "id": "programme_m",
+      "label": "programme_m",
+      "note": "Rename once the programme behind this token family is confirmed."
+    },
+    {
+      "id": "programme_n",
+      "label": "programme_n",
+      "note": "Rename once the programme behind this token family is confirmed."
+    },
+    {
+      "id": "programme_r",
+      "label": "programme_r",
+      "note": "Rename once the programme behind this token family is confirmed."
+    },
+    {
+      "id": "programme_u",
+      "label": "programme_u",
+      "note": "Rename once the programme behind this token family is confirmed."
+    },
+    {
+      "id": "weekend",
+      "label": "Weekend"
+    }
+  ],
+  "periods": [
+    {
+      "id": "L01",
+      "kind": "lab",
+      "startMin": 480,
+      "endMin": 530,
+      "lunch": false,
+      "origin": "campus",
+      "slots": {
+        "MON": [
+          "L1"
+        ],
+        "TUE": [
+          "L7"
+        ],
+        "WED": [
+          "L13"
+        ],
+        "THU": [
+          "L19"
+        ],
+        "FRI": [
+          "L25"
+        ]
+      }
+    },
+    {
+      "id": "T01",
+      "kind": "theory",
+      "startMin": 480,
+      "endMin": 530,
+      "lunch": false,
+      "origin": "campus",
+      "slots": {
+        "MON": [
+          "A1",
+          "M1"
+        ],
+        "TUE": [
+          "B1",
+          "U1"
+        ],
+        "WED": [
+          "C1",
+          "N1"
+        ],
+        "THU": [
+          "D1",
+          "R1"
+        ],
+        "FRI": [
+          "E1",
+          "I1"
+        ]
+      }
+    },
+    {
+      "id": "X04",
+      "kind": "theory",
+      "startMin": 480,
+      "endMin": 530,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "SAT": [
+          "X11",
+          "L71"
+        ]
+      }
+    },
+    {
+      "id": "X22",
+      "kind": "theory",
+      "startMin": 480,
+      "endMin": 530,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "SUN": [
+          "Y11",
+          "L83"
+        ]
+      }
+    },
+    {
+      "id": "L02",
+      "kind": "lab",
+      "startMin": 530,
+      "endMin": 580,
+      "lunch": false,
+      "origin": "campus",
+      "slots": {
+        "MON": [
+          "L2"
+        ],
+        "TUE": [
+          "L8"
+        ],
+        "WED": [
+          "L14"
+        ],
+        "THU": [
+          "L20"
+        ],
+        "FRI": [
+          "L26"
+        ]
+      }
+    },
+    {
+      "id": "X16",
+      "kind": "lab",
+      "startMin": 530,
+      "endMin": 580,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "SAT": [
+          "L72"
+        ]
+      }
+    },
+    {
+      "id": "X34",
+      "kind": "lab",
+      "startMin": 530,
+      "endMin": 580,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "SUN": [
+          "L84"
+        ]
+      }
+    },
+    {
+      "id": "T02",
+      "kind": "theory",
+      "startMin": 535,
+      "endMin": 585,
+      "lunch": false,
+      "origin": "campus",
+      "slots": {
+        "MON": [
+          "F1",
+          "M2"
+        ],
+        "TUE": [
+          "G1",
+          "U2"
+        ],
+        "WED": [
+          "A1",
+          "N2"
+        ],
+        "THU": [
+          "B1",
+          "R2"
+        ],
+        "FRI": [
+          "C1",
+          "I2"
+        ]
+      }
+    },
+    {
+      "id": "X05",
+      "kind": "theory",
+      "startMin": 535,
+      "endMin": 585,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "SAT": [
+          "X12"
+        ]
+      }
+    },
+    {
+      "id": "X23",
+      "kind": "theory",
+      "startMin": 535,
+      "endMin": 585,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "SUN": [
+          "Y12"
+        ]
+      }
+    },
+    {
+      "id": "L03",
+      "kind": "lab",
+      "startMin": 590,
+      "endMin": 640,
+      "lunch": false,
+      "origin": "campus",
+      "slots": {
+        "MON": [
+          "L3"
+        ],
+        "TUE": [
+          "L9"
+        ],
+        "WED": [
+          "L15"
+        ],
+        "THU": [
+          "L21"
+        ],
+        "FRI": [
+          "L27"
+        ]
+      }
+    },
+    {
+      "id": "T03",
+      "kind": "theory",
+      "startMin": 590,
+      "endMin": 640,
+      "lunch": false,
+      "origin": "campus",
+      "slots": {
+        "MON": [
+          "D1",
+          "M3"
+        ],
+        "TUE": [
+          "E1",
+          "U3"
+        ],
+        "WED": [
+          "F1",
+          "N3"
+        ],
+        "THU": [
+          "G1",
+          "R3"
+        ],
+        "FRI": [
+          "TA1",
+          "I3"
+        ]
+      }
+    },
+    {
+      "id": "X06",
+      "kind": "theory",
+      "startMin": 590,
+      "endMin": 640,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "SAT": [
+          "Y11",
+          "L73"
+        ]
+      }
+    },
+    {
+      "id": "X24",
+      "kind": "theory",
+      "startMin": 590,
+      "endMin": 640,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "SUN": [
+          "X11",
+          "L85"
+        ]
+      }
+    },
+    {
+      "id": "L04",
+      "kind": "lab",
+      "startMin": 640,
+      "endMin": 690,
+      "lunch": false,
+      "origin": "campus",
+      "slots": {
+        "MON": [
+          "L4"
+        ],
+        "TUE": [
+          "L10"
+        ],
+        "WED": [
+          "L16"
+        ],
+        "THU": [
+          "L22"
+        ],
+        "FRI": [
+          "L28"
+        ]
+      }
+    },
+    {
+      "id": "X17",
+      "kind": "lab",
+      "startMin": 640,
+      "endMin": 690,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "SAT": [
+          "L74"
+        ]
+      }
+    },
+    {
+      "id": "X35",
+      "kind": "lab",
+      "startMin": 640,
+      "endMin": 690,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "SUN": [
+          "L86"
+        ]
+      }
+    },
+    {
+      "id": "T04",
+      "kind": "theory",
+      "startMin": 645,
+      "endMin": 695,
+      "lunch": false,
+      "origin": "campus",
+      "slots": {
+        "MON": [
+          "TB1",
+          "M4"
+        ],
+        "TUE": [
+          "TC1",
+          "U4"
+        ],
+        "WED": [
+          "TD1",
+          "N4"
+        ],
+        "THU": [
+          "TE1",
+          "R4"
+        ],
+        "FRI": [
+          "TF1",
+          "I4"
+        ]
+      }
+    },
+    {
+      "id": "X07",
+      "kind": "theory",
+      "startMin": 645,
+      "endMin": 695,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "SAT": [
+          "Y12"
+        ]
+      }
+    },
+    {
+      "id": "X25",
+      "kind": "theory",
+      "startMin": 645,
+      "endMin": 695,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "SUN": [
+          "X12"
+        ]
+      }
+    },
+    {
+      "id": "L05",
+      "kind": "lab",
+      "startMin": 700,
+      "endMin": 750,
+      "lunch": false,
+      "origin": "campus",
+      "slots": {
+        "MON": [
+          "L5"
+        ],
+        "TUE": [
+          "L11"
+        ],
+        "WED": [
+          "L17"
+        ],
+        "THU": [
+          "L23"
+        ],
+        "FRI": [
+          "L29"
+        ]
+      }
+    },
+    {
+      "id": "T05",
+      "kind": "theory",
+      "startMin": 700,
+      "endMin": 750,
+      "lunch": false,
+      "origin": "campus",
+      "slots": {
+        "MON": [
+          "TG1",
+          "M5"
+        ],
+        "TUE": [
+          "TAA1",
+          "U5"
+        ],
+        "WED": [
+          "TBB1",
+          "N5"
+        ],
+        "THU": [
+          "TCC1",
+          "R5"
+        ],
+        "FRI": [
+          "TDD1",
+          "I5"
+        ]
+      }
+    },
+    {
+      "id": "X08",
+      "kind": "theory",
+      "startMin": 700,
+      "endMin": 750,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "SAT": [
+          "S8",
+          "L75"
+        ]
+      }
+    },
+    {
+      "id": "X26",
+      "kind": "theory",
+      "startMin": 700,
+      "endMin": 750,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "SUN": [
+          "S10",
+          "L87"
+        ]
+      }
+    },
+    {
+      "id": "L06",
+      "kind": "lab",
+      "startMin": 750,
+      "endMin": 800,
+      "lunch": false,
+      "origin": "campus",
+      "slots": {
+        "MON": [
+          "L6"
+        ],
+        "TUE": [
+          "L12"
+        ],
+        "WED": [
+          "L18"
+        ],
+        "THU": [
+          "L24"
+        ],
+        "FRI": [
+          "L30"
+        ]
+      },
+      "dayTimeOverrides": {
+        "WED": {
+          "startMin": 755,
+          "endMin": 805
+        },
+        "THU": {
+          "startMin": 755,
+          "endMin": 805
+        }
+      }
+    },
+    {
+      "id": "X18",
+      "kind": "lab",
+      "startMin": 750,
+      "endMin": 800,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "SAT": [
+          "L76"
+        ]
+      }
+    },
+    {
+      "id": "X36",
+      "kind": "lab",
+      "startMin": 750,
+      "endMin": 800,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "SUN": [
+          "L88"
+        ]
+      }
+    },
+    {
+      "id": "T06",
+      "kind": "theory",
+      "startMin": 755,
+      "endMin": 805,
+      "lunch": false,
+      "origin": "campus",
+      "slots": {
+        "MON": [
+          "S11",
+          "M6"
+        ],
+        "FRI": [
+          "S15",
+          "I6"
+        ]
+      }
+    },
+    {
+      "id": "X01",
+      "kind": "theory",
+      "startMin": 755,
+      "endMin": 805,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "TUE": [
+          "U6"
+        ]
+      }
+    },
+    {
+      "id": "X02",
+      "kind": "theory",
+      "startMin": 755,
+      "endMin": 805,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "WED": [
+          "N6"
+        ]
+      }
+    },
+    {
+      "id": "X03",
+      "kind": "theory",
+      "startMin": 755,
+      "endMin": 805,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "THU": [
+          "R6"
+        ]
+      }
+    },
+    {
+      "id": "X09",
+      "kind": "theory",
+      "startMin": 755,
+      "endMin": 805,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "SAT": [
+          "S8B"
+        ]
+      }
+    },
+    {
+      "id": "X27",
+      "kind": "theory",
+      "startMin": 755,
+      "endMin": 805,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "SUN": [
+          "S10B"
+        ]
+      }
+    },
+    {
+      "id": "L08",
+      "kind": "lab",
+      "startMin": 840,
+      "endMin": 890,
+      "lunch": false,
+      "origin": "campus",
+      "slots": {
+        "MON": [
+          "L31"
+        ],
+        "TUE": [
+          "L37"
+        ],
+        "WED": [
+          "L43"
+        ],
+        "THU": [
+          "L49"
+        ],
+        "FRI": [
+          "L55"
+        ]
+      }
+    },
+    {
+      "id": "T08",
+      "kind": "theory",
+      "startMin": 840,
+      "endMin": 890,
+      "lunch": false,
+      "origin": "campus",
+      "slots": {
+        "MON": [
+          "A2",
+          "M7"
+        ],
+        "TUE": [
+          "B2",
+          "U7"
+        ],
+        "WED": [
+          "C2",
+          "N7"
+        ],
+        "THU": [
+          "D2",
+          "R7"
+        ],
+        "FRI": [
+          "E2",
+          "I7"
+        ]
+      }
+    },
+    {
+      "id": "X10",
+      "kind": "theory",
+      "startMin": 840,
+      "endMin": 890,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "SAT": [
+          "X21",
+          "L77"
+        ]
+      }
+    },
+    {
+      "id": "X28",
+      "kind": "theory",
+      "startMin": 840,
+      "endMin": 890,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "SUN": [
+          "Y21",
+          "L89"
+        ]
+      }
+    },
+    {
+      "id": "L09",
+      "kind": "lab",
+      "startMin": 890,
+      "endMin": 940,
+      "lunch": false,
+      "origin": "campus",
+      "slots": {
+        "MON": [
+          "L32"
+        ],
+        "TUE": [
+          "L38"
+        ],
+        "WED": [
+          "L44"
+        ],
+        "THU": [
+          "L50"
+        ],
+        "FRI": [
+          "L56"
+        ]
+      }
+    },
+    {
+      "id": "X19",
+      "kind": "lab",
+      "startMin": 890,
+      "endMin": 940,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "SAT": [
+          "L78"
+        ]
+      }
+    },
+    {
+      "id": "X37",
+      "kind": "lab",
+      "startMin": 890,
+      "endMin": 940,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "SUN": [
+          "L90"
+        ]
+      }
+    },
+    {
+      "id": "T09",
+      "kind": "theory",
+      "startMin": 895,
+      "endMin": 945,
+      "lunch": false,
+      "origin": "campus",
+      "slots": {
+        "MON": [
+          "F2",
+          "M8"
+        ],
+        "TUE": [
+          "G2",
+          "U8"
+        ],
+        "WED": [
+          "A2",
+          "N8"
+        ],
+        "THU": [
+          "B2",
+          "R8"
+        ],
+        "FRI": [
+          "C2",
+          "I8"
+        ]
+      }
+    },
+    {
+      "id": "X11",
+      "kind": "theory",
+      "startMin": 895,
+      "endMin": 945,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "SAT": [
+          "Z21"
+        ]
+      }
+    },
+    {
+      "id": "X29",
+      "kind": "theory",
+      "startMin": 895,
+      "endMin": 945,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "SUN": [
+          "Z21"
+        ]
+      }
+    },
+    {
+      "id": "L10",
+      "kind": "lab",
+      "startMin": 950,
+      "endMin": 1000,
+      "lunch": false,
+      "origin": "campus",
+      "slots": {
+        "MON": [
+          "L33"
+        ],
+        "TUE": [
+          "L39"
+        ],
+        "WED": [
+          "L45"
+        ],
+        "THU": [
+          "L51"
+        ],
+        "FRI": [
+          "L57"
+        ]
+      }
+    },
+    {
+      "id": "T10",
+      "kind": "theory",
+      "startMin": 950,
+      "endMin": 1000,
+      "lunch": false,
+      "origin": "campus",
+      "slots": {
+        "MON": [
+          "D2",
+          "M9"
+        ],
+        "TUE": [
+          "E2",
+          "U9"
+        ],
+        "WED": [
+          "F2",
+          "N9"
+        ],
+        "THU": [
+          "G2",
+          "R9"
+        ],
+        "FRI": [
+          "TA2",
+          "I9"
+        ]
+      }
+    },
+    {
+      "id": "X12",
+      "kind": "theory",
+      "startMin": 950,
+      "endMin": 1000,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "SAT": [
+          "Y21",
+          "L79"
+        ]
+      }
+    },
+    {
+      "id": "X30",
+      "kind": "theory",
+      "startMin": 950,
+      "endMin": 1000,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "SUN": [
+          "X21",
+          "L91"
+        ]
+      }
+    },
+    {
+      "id": "L11",
+      "kind": "lab",
+      "startMin": 1000,
+      "endMin": 1050,
+      "lunch": false,
+      "origin": "campus",
+      "slots": {
+        "MON": [
+          "L34"
+        ],
+        "TUE": [
+          "L40"
+        ],
+        "WED": [
+          "L46"
+        ],
+        "THU": [
+          "L52"
+        ],
+        "FRI": [
+          "L58"
+        ]
+      }
+    },
+    {
+      "id": "X20",
+      "kind": "lab",
+      "startMin": 1000,
+      "endMin": 1050,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "SAT": [
+          "L80"
+        ]
+      }
+    },
+    {
+      "id": "X38",
+      "kind": "lab",
+      "startMin": 1000,
+      "endMin": 1050,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "SUN": [
+          "L92"
+        ]
+      }
+    },
+    {
+      "id": "T11",
+      "kind": "theory",
+      "startMin": 1005,
+      "endMin": 1055,
+      "lunch": false,
+      "origin": "campus",
+      "slots": {
+        "MON": [
+          "TB2",
+          "M10"
+        ],
+        "TUE": [
+          "TC2",
+          "U10"
+        ],
+        "WED": [
+          "TD2",
+          "N10"
+        ],
+        "THU": [
+          "TE2",
+          "R10"
+        ],
+        "FRI": [
+          "TF2",
+          "I10"
+        ]
+      }
+    },
+    {
+      "id": "X13",
+      "kind": "theory",
+      "startMin": 1005,
+      "endMin": 1055,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "SAT": [
+          "W21"
+        ]
+      }
+    },
+    {
+      "id": "X31",
+      "kind": "theory",
+      "startMin": 1005,
+      "endMin": 1055,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "SUN": [
+          "W21"
+        ]
+      }
+    },
+    {
+      "id": "L12",
+      "kind": "lab",
+      "startMin": 1060,
+      "endMin": 1110,
+      "lunch": false,
+      "origin": "campus",
+      "slots": {
+        "MON": [
+          "L35"
+        ],
+        "TUE": [
+          "L41"
+        ],
+        "WED": [
+          "L47"
+        ],
+        "THU": [
+          "L53"
+        ],
+        "FRI": [
+          "L59"
+        ]
+      }
+    },
+    {
+      "id": "T12",
+      "kind": "theory",
+      "startMin": 1060,
+      "endMin": 1110,
+      "lunch": false,
+      "origin": "campus",
+      "slots": {
+        "MON": [
+          "TG2"
+        ],
+        "TUE": [
+          "TAA2"
+        ],
+        "WED": [
+          "TBB2"
+        ],
+        "THU": [
+          "TCC2"
+        ],
+        "FRI": [
+          "TDD2"
+        ]
+      }
+    },
+    {
+      "id": "X14",
+      "kind": "theory",
+      "startMin": 1060,
+      "endMin": 1110,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "SAT": [
+          "W22",
+          "L81"
+        ]
+      }
+    },
+    {
+      "id": "X32",
+      "kind": "theory",
+      "startMin": 1060,
+      "endMin": 1110,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "SUN": [
+          "W22",
+          "L93"
+        ]
+      }
+    },
+    {
+      "id": "L13",
+      "kind": "lab",
+      "startMin": 1110,
+      "endMin": 1160,
+      "lunch": false,
+      "origin": "campus",
+      "slots": {
+        "MON": [
+          "L36"
+        ],
+        "TUE": [
+          "L42"
+        ],
+        "WED": [
+          "L48"
+        ],
+        "THU": [
+          "L54"
+        ],
+        "FRI": [
+          "L60"
+        ]
+      }
+    },
+    {
+      "id": "X21",
+      "kind": "lab",
+      "startMin": 1110,
+      "endMin": 1160,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "SAT": [
+          "L82"
+        ]
+      }
+    },
+    {
+      "id": "X39",
+      "kind": "lab",
+      "startMin": 1110,
+      "endMin": 1160,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "SUN": [
+          "L94"
+        ]
+      }
+    },
+    {
+      "id": "T13",
+      "kind": "theory",
+      "startMin": 1115,
+      "endMin": 1165,
+      "lunch": false,
+      "origin": "campus",
+      "slots": {
+        "MON": [
+          "S3"
+        ],
+        "TUE": [
+          "S1"
+        ],
+        "WED": [
+          "S4"
+        ],
+        "THU": [
+          "S2"
+        ]
+      }
+    },
+    {
+      "id": "X15",
+      "kind": "theory",
+      "startMin": 1115,
+      "endMin": 1165,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "SAT": [
+          "Z22"
+        ]
+      }
+    },
+    {
+      "id": "X33",
+      "kind": "theory",
+      "startMin": 1115,
+      "endMin": 1165,
+      "lunch": false,
+      "origin": "config",
+      "slots": {
+        "SUN": [
+          "Z22"
+        ]
+      }
+    },
+    {
+      "id": "L07",
+      "kind": "break",
+      "startMin": null,
+      "endMin": null,
+      "lunch": true,
+      "origin": "campus",
+      "slots": {}
+    },
+    {
+      "id": "T07",
+      "kind": "break",
+      "startMin": null,
+      "endMin": null,
+      "lunch": true,
+      "origin": "campus",
+      "slots": {}
+    }
+  ],
+  "slots": {
+    "MON:A1": {
+      "key": "MON:A1",
+      "token": "A1",
+      "day": "MON",
+      "periodId": "T01",
+      "kind": "theory",
+      "programme": "core",
+      "time": "8:00-8:50",
+      "startMin": 480,
+      "endMin": 530,
+      "aliases": [
+        {
+          "token": "A",
+          "system": "law"
+        }
+      ],
+      "flags": [],
+      "status": "active"
+    },
+    "MON:F1": {
+      "key": "MON:F1",
+      "token": "F1",
+      "day": "MON",
+      "periodId": "T02",
+      "kind": "theory",
+      "programme": "core",
+      "time": "8:55-9:45",
+      "startMin": 535,
+      "endMin": 585,
+      "aliases": [
+        {
+          "token": "F",
+          "system": "law"
+        }
+      ],
+      "flags": [],
+      "status": "active"
+    },
+    "MON:D1": {
+      "key": "MON:D1",
+      "token": "D1",
+      "day": "MON",
+      "periodId": "T03",
+      "kind": "theory",
+      "programme": "core",
+      "time": "9:50-10:40",
+      "startMin": 590,
+      "endMin": 640,
+      "aliases": [
+        {
+          "token": "D",
+          "system": "law"
+        }
+      ],
+      "flags": [],
+      "status": "active"
+    },
+    "MON:TB1": {
+      "key": "MON:TB1",
+      "token": "TB1",
+      "day": "MON",
+      "periodId": "T04",
+      "kind": "theory",
+      "programme": "core",
+      "time": "10:45-11:35",
+      "startMin": 645,
+      "endMin": 695,
+      "aliases": [
+        {
+          "token": "TB",
+          "system": "law"
+        }
+      ],
+      "flags": [],
+      "status": "active"
+    },
+    "MON:TG1": {
+      "key": "MON:TG1",
+      "token": "TG1",
+      "day": "MON",
+      "periodId": "T05",
+      "kind": "theory",
+      "programme": "core",
+      "time": "11:40-12:30",
+      "startMin": 700,
+      "endMin": 750,
+      "aliases": [
+        {
+          "token": "TG",
+          "system": "law"
+        }
+      ],
+      "flags": [],
+      "status": "active"
+    },
+    "MON:S11": {
+      "key": "MON:S11",
+      "token": "S11",
+      "day": "MON",
+      "periodId": "T06",
+      "kind": "theory",
+      "programme": "core",
+      "time": "12:35-1:25",
+      "startMin": 755,
+      "endMin": 805,
+      "aliases": [
+        {
+          "token": "TEE",
+          "system": "law"
+        }
+      ],
+      "flags": [],
+      "status": "active"
+    },
+    "MON:A2": {
+      "key": "MON:A2",
+      "token": "A2",
+      "day": "MON",
+      "periodId": "T08",
+      "kind": "theory",
+      "programme": "core",
+      "time": "2:00-2:50",
+      "startMin": 840,
+      "endMin": 890,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "MON:F2": {
+      "key": "MON:F2",
+      "token": "F2",
+      "day": "MON",
+      "periodId": "T09",
+      "kind": "theory",
+      "programme": "core",
+      "time": "2:55-3:45",
+      "startMin": 895,
+      "endMin": 945,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "MON:D2": {
+      "key": "MON:D2",
+      "token": "D2",
+      "day": "MON",
+      "periodId": "T10",
+      "kind": "theory",
+      "programme": "core",
+      "time": "3:50-4:40",
+      "startMin": 950,
+      "endMin": 1000,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "MON:TB2": {
+      "key": "MON:TB2",
+      "token": "TB2",
+      "day": "MON",
+      "periodId": "T11",
+      "kind": "theory",
+      "programme": "core",
+      "time": "4:45-5:35",
+      "startMin": 1005,
+      "endMin": 1055,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "MON:TG2": {
+      "key": "MON:TG2",
+      "token": "TG2",
+      "day": "MON",
+      "periodId": "T12",
+      "kind": "theory",
+      "programme": "core",
+      "time": "5:40-6:30",
+      "startMin": 1060,
+      "endMin": 1110,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "MON:S3": {
+      "key": "MON:S3",
+      "token": "S3",
+      "day": "MON",
+      "periodId": "T13",
+      "kind": "theory",
+      "programme": "core",
+      "time": "6:35-7:25",
+      "startMin": 1115,
+      "endMin": 1165,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "MON:L1": {
+      "key": "MON:L1",
+      "token": "L1",
+      "day": "MON",
+      "periodId": "L01",
+      "kind": "lab",
+      "programme": "core",
+      "time": "8:00-8:50",
+      "startMin": 480,
+      "endMin": 530,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "MON:L2": {
+      "key": "MON:L2",
+      "token": "L2",
+      "day": "MON",
+      "periodId": "L02",
+      "kind": "lab",
+      "programme": "core",
+      "time": "8:50-9:40",
+      "startMin": 530,
+      "endMin": 580,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "MON:L3": {
+      "key": "MON:L3",
+      "token": "L3",
+      "day": "MON",
+      "periodId": "L03",
+      "kind": "lab",
+      "programme": "core",
+      "time": "9:50-10:40",
+      "startMin": 590,
+      "endMin": 640,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "MON:L4": {
+      "key": "MON:L4",
+      "token": "L4",
+      "day": "MON",
+      "periodId": "L04",
+      "kind": "lab",
+      "programme": "core",
+      "time": "10:40-11:30",
+      "startMin": 640,
+      "endMin": 690,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "MON:L5": {
+      "key": "MON:L5",
+      "token": "L5",
+      "day": "MON",
+      "periodId": "L05",
+      "kind": "lab",
+      "programme": "core",
+      "time": "11:40-12:30",
+      "startMin": 700,
+      "endMin": 750,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "MON:L6": {
+      "key": "MON:L6",
+      "token": "L6",
+      "day": "MON",
+      "periodId": "L06",
+      "kind": "lab",
+      "programme": "core",
+      "time": "12:30-1:20",
+      "startMin": 750,
+      "endMin": 800,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "MON:L31": {
+      "key": "MON:L31",
+      "token": "L31",
+      "day": "MON",
+      "periodId": "L08",
+      "kind": "lab",
+      "programme": "core",
+      "time": "2:00-2:50",
+      "startMin": 840,
+      "endMin": 890,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "MON:L32": {
+      "key": "MON:L32",
+      "token": "L32",
+      "day": "MON",
+      "periodId": "L09",
+      "kind": "lab",
+      "programme": "core",
+      "time": "2:50-3:40",
+      "startMin": 890,
+      "endMin": 940,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "MON:L33": {
+      "key": "MON:L33",
+      "token": "L33",
+      "day": "MON",
+      "periodId": "L10",
+      "kind": "lab",
+      "programme": "core",
+      "time": "3:50-4:40",
+      "startMin": 950,
+      "endMin": 1000,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "MON:L34": {
+      "key": "MON:L34",
+      "token": "L34",
+      "day": "MON",
+      "periodId": "L11",
+      "kind": "lab",
+      "programme": "core",
+      "time": "4:40-5:30",
+      "startMin": 1000,
+      "endMin": 1050,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "MON:L35": {
+      "key": "MON:L35",
+      "token": "L35",
+      "day": "MON",
+      "periodId": "L12",
+      "kind": "lab",
+      "programme": "core",
+      "time": "5:40-6:30",
+      "startMin": 1060,
+      "endMin": 1110,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "MON:L36": {
+      "key": "MON:L36",
+      "token": "L36",
+      "day": "MON",
+      "periodId": "L13",
+      "kind": "lab",
+      "programme": "core",
+      "time": "6:30-7:20",
+      "startMin": 1110,
+      "endMin": 1160,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "MON:M1": {
+      "key": "MON:M1",
+      "token": "M1",
+      "day": "MON",
+      "periodId": "T01",
+      "kind": "theory",
+      "programme": "programme_m",
+      "time": "8:00-8:50",
+      "startMin": 480,
+      "endMin": 530,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "MON:M2": {
+      "key": "MON:M2",
+      "token": "M2",
+      "day": "MON",
+      "periodId": "T02",
+      "kind": "theory",
+      "programme": "programme_m",
+      "time": "8:55-9:45",
+      "startMin": 535,
+      "endMin": 585,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "MON:M3": {
+      "key": "MON:M3",
+      "token": "M3",
+      "day": "MON",
+      "periodId": "T03",
+      "kind": "theory",
+      "programme": "programme_m",
+      "time": "9:50-10:40",
+      "startMin": 590,
+      "endMin": 640,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "MON:M4": {
+      "key": "MON:M4",
+      "token": "M4",
+      "day": "MON",
+      "periodId": "T04",
+      "kind": "theory",
+      "programme": "programme_m",
+      "time": "10:45-11:35",
+      "startMin": 645,
+      "endMin": 695,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "MON:M5": {
+      "key": "MON:M5",
+      "token": "M5",
+      "day": "MON",
+      "periodId": "T05",
+      "kind": "theory",
+      "programme": "programme_m",
+      "time": "11:40-12:30",
+      "startMin": 700,
+      "endMin": 750,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "MON:M6": {
+      "key": "MON:M6",
+      "token": "M6",
+      "day": "MON",
+      "periodId": "T06",
+      "kind": "theory",
+      "programme": "programme_m",
+      "time": "12:35-1:25",
+      "startMin": 755,
+      "endMin": 805,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "MON:M7": {
+      "key": "MON:M7",
+      "token": "M7",
+      "day": "MON",
+      "periodId": "T08",
+      "kind": "theory",
+      "programme": "programme_m",
+      "time": "2:00-2:50",
+      "startMin": 840,
+      "endMin": 890,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "MON:M8": {
+      "key": "MON:M8",
+      "token": "M8",
+      "day": "MON",
+      "periodId": "T09",
+      "kind": "theory",
+      "programme": "programme_m",
+      "time": "2:55-3:45",
+      "startMin": 895,
+      "endMin": 945,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "MON:M9": {
+      "key": "MON:M9",
+      "token": "M9",
+      "day": "MON",
+      "periodId": "T10",
+      "kind": "theory",
+      "programme": "programme_m",
+      "time": "3:50-4:40",
+      "startMin": 950,
+      "endMin": 1000,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "MON:M10": {
+      "key": "MON:M10",
+      "token": "M10",
+      "day": "MON",
+      "periodId": "T11",
+      "kind": "theory",
+      "programme": "programme_m",
+      "time": "4:45-5:35",
+      "startMin": 1005,
+      "endMin": 1055,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "TUE:B1": {
+      "key": "TUE:B1",
+      "token": "B1",
+      "day": "TUE",
+      "periodId": "T01",
+      "kind": "theory",
+      "programme": "core",
+      "time": "8:00-8:50",
+      "startMin": 480,
+      "endMin": 530,
+      "aliases": [
+        {
+          "token": "B",
+          "system": "law"
+        }
+      ],
+      "flags": [],
+      "status": "active"
+    },
+    "TUE:G1": {
+      "key": "TUE:G1",
+      "token": "G1",
+      "day": "TUE",
+      "periodId": "T02",
+      "kind": "theory",
+      "programme": "core",
+      "time": "8:55-9:45",
+      "startMin": 535,
+      "endMin": 585,
+      "aliases": [
+        {
+          "token": "G",
+          "system": "law"
+        }
+      ],
+      "flags": [],
+      "status": "active"
+    },
+    "TUE:E1": {
+      "key": "TUE:E1",
+      "token": "E1",
+      "day": "TUE",
+      "periodId": "T03",
+      "kind": "theory",
+      "programme": "core",
+      "time": "9:50-10:40",
+      "startMin": 590,
+      "endMin": 640,
+      "aliases": [
+        {
+          "token": "E",
+          "system": "law"
+        }
+      ],
+      "flags": [],
+      "status": "active"
+    },
+    "TUE:TC1": {
+      "key": "TUE:TC1",
+      "token": "TC1",
+      "day": "TUE",
+      "periodId": "T04",
+      "kind": "theory",
+      "programme": "core",
+      "time": "10:45-11:35",
+      "startMin": 645,
+      "endMin": 695,
+      "aliases": [
+        {
+          "token": "TC",
+          "system": "law"
+        }
+      ],
+      "flags": [],
+      "status": "active"
+    },
+    "TUE:TAA1": {
+      "key": "TUE:TAA1",
+      "token": "TAA1",
+      "day": "TUE",
+      "periodId": "T05",
+      "kind": "theory",
+      "programme": "core",
+      "time": "11:40-12:30",
+      "startMin": 700,
+      "endMin": 750,
+      "aliases": [
+        {
+          "token": "TAA",
+          "system": "law"
+        }
+      ],
+      "flags": [],
+      "status": "active"
+    },
+    "TUE:L12": {
+      "key": "TUE:L12",
+      "token": "L12",
+      "day": "TUE",
+      "periodId": "L06",
+      "kind": "lab",
+      "programme": "core",
+      "time": "12:30-1:20",
+      "startMin": 750,
+      "endMin": 800,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "TUE:B2": {
+      "key": "TUE:B2",
+      "token": "B2",
+      "day": "TUE",
+      "periodId": "T08",
+      "kind": "theory",
+      "programme": "core",
+      "time": "2:00-2:50",
+      "startMin": 840,
+      "endMin": 890,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "TUE:G2": {
+      "key": "TUE:G2",
+      "token": "G2",
+      "day": "TUE",
+      "periodId": "T09",
+      "kind": "theory",
+      "programme": "core",
+      "time": "2:55-3:45",
+      "startMin": 895,
+      "endMin": 945,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "TUE:E2": {
+      "key": "TUE:E2",
+      "token": "E2",
+      "day": "TUE",
+      "periodId": "T10",
+      "kind": "theory",
+      "programme": "core",
+      "time": "3:50-4:40",
+      "startMin": 950,
+      "endMin": 1000,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "TUE:TC2": {
+      "key": "TUE:TC2",
+      "token": "TC2",
+      "day": "TUE",
+      "periodId": "T11",
+      "kind": "theory",
+      "programme": "core",
+      "time": "4:45-5:35",
+      "startMin": 1005,
+      "endMin": 1055,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "TUE:TAA2": {
+      "key": "TUE:TAA2",
+      "token": "TAA2",
+      "day": "TUE",
+      "periodId": "T12",
+      "kind": "theory",
+      "programme": "core",
+      "time": "5:40-6:30",
+      "startMin": 1060,
+      "endMin": 1110,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "TUE:S1": {
+      "key": "TUE:S1",
+      "token": "S1",
+      "day": "TUE",
+      "periodId": "T13",
+      "kind": "theory",
+      "programme": "core",
+      "time": "6:35-7:25",
+      "startMin": 1115,
+      "endMin": 1165,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "TUE:L7": {
+      "key": "TUE:L7",
+      "token": "L7",
+      "day": "TUE",
+      "periodId": "L01",
+      "kind": "lab",
+      "programme": "core",
+      "time": "8:00-8:50",
+      "startMin": 480,
+      "endMin": 530,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "TUE:L8": {
+      "key": "TUE:L8",
+      "token": "L8",
+      "day": "TUE",
+      "periodId": "L02",
+      "kind": "lab",
+      "programme": "core",
+      "time": "8:50-9:40",
+      "startMin": 530,
+      "endMin": 580,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "TUE:L9": {
+      "key": "TUE:L9",
+      "token": "L9",
+      "day": "TUE",
+      "periodId": "L03",
+      "kind": "lab",
+      "programme": "core",
+      "time": "9:50-10:40",
+      "startMin": 590,
+      "endMin": 640,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "TUE:L10": {
+      "key": "TUE:L10",
+      "token": "L10",
+      "day": "TUE",
+      "periodId": "L04",
+      "kind": "lab",
+      "programme": "core",
+      "time": "10:40-11:30",
+      "startMin": 640,
+      "endMin": 690,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "TUE:L11": {
+      "key": "TUE:L11",
+      "token": "L11",
+      "day": "TUE",
+      "periodId": "L05",
+      "kind": "lab",
+      "programme": "core",
+      "time": "11:40-12:30",
+      "startMin": 700,
+      "endMin": 750,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "TUE:L37": {
+      "key": "TUE:L37",
+      "token": "L37",
+      "day": "TUE",
+      "periodId": "L08",
+      "kind": "lab",
+      "programme": "core",
+      "time": "2:00-2:50",
+      "startMin": 840,
+      "endMin": 890,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "TUE:L38": {
+      "key": "TUE:L38",
+      "token": "L38",
+      "day": "TUE",
+      "periodId": "L09",
+      "kind": "lab",
+      "programme": "core",
+      "time": "2:50-3:40",
+      "startMin": 890,
+      "endMin": 940,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "TUE:L39": {
+      "key": "TUE:L39",
+      "token": "L39",
+      "day": "TUE",
+      "periodId": "L10",
+      "kind": "lab",
+      "programme": "core",
+      "time": "3:50-4:40",
+      "startMin": 950,
+      "endMin": 1000,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "TUE:L40": {
+      "key": "TUE:L40",
+      "token": "L40",
+      "day": "TUE",
+      "periodId": "L11",
+      "kind": "lab",
+      "programme": "core",
+      "time": "4:40-5:30",
+      "startMin": 1000,
+      "endMin": 1050,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "TUE:L41": {
+      "key": "TUE:L41",
+      "token": "L41",
+      "day": "TUE",
+      "periodId": "L12",
+      "kind": "lab",
+      "programme": "core",
+      "time": "5:40-6:30",
+      "startMin": 1060,
+      "endMin": 1110,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "TUE:L42": {
+      "key": "TUE:L42",
+      "token": "L42",
+      "day": "TUE",
+      "periodId": "L13",
+      "kind": "lab",
+      "programme": "core",
+      "time": "6:30-7:20",
+      "startMin": 1110,
+      "endMin": 1160,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "TUE:U1": {
+      "key": "TUE:U1",
+      "token": "U1",
+      "day": "TUE",
+      "periodId": "T01",
+      "kind": "theory",
+      "programme": "programme_u",
+      "time": "8:00-8:50",
+      "startMin": 480,
+      "endMin": 530,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "TUE:U2": {
+      "key": "TUE:U2",
+      "token": "U2",
+      "day": "TUE",
+      "periodId": "T02",
+      "kind": "theory",
+      "programme": "programme_u",
+      "time": "8:55-9:45",
+      "startMin": 535,
+      "endMin": 585,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "TUE:U3": {
+      "key": "TUE:U3",
+      "token": "U3",
+      "day": "TUE",
+      "periodId": "T03",
+      "kind": "theory",
+      "programme": "programme_u",
+      "time": "9:50-10:40",
+      "startMin": 590,
+      "endMin": 640,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "TUE:U4": {
+      "key": "TUE:U4",
+      "token": "U4",
+      "day": "TUE",
+      "periodId": "T04",
+      "kind": "theory",
+      "programme": "programme_u",
+      "time": "10:45-11:35",
+      "startMin": 645,
+      "endMin": 695,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "TUE:U5": {
+      "key": "TUE:U5",
+      "token": "U5",
+      "day": "TUE",
+      "periodId": "T05",
+      "kind": "theory",
+      "programme": "programme_u",
+      "time": "11:40-12:30",
+      "startMin": 700,
+      "endMin": 750,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "TUE:U6": {
+      "key": "TUE:U6",
+      "token": "U6",
+      "day": "TUE",
+      "periodId": "X01",
+      "kind": "theory",
+      "programme": "programme_u",
+      "time": "12:35-1:25",
+      "startMin": 755,
+      "endMin": 805,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "TUE:U7": {
+      "key": "TUE:U7",
+      "token": "U7",
+      "day": "TUE",
+      "periodId": "T08",
+      "kind": "theory",
+      "programme": "programme_u",
+      "time": "2:00-2:50",
+      "startMin": 840,
+      "endMin": 890,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "TUE:U8": {
+      "key": "TUE:U8",
+      "token": "U8",
+      "day": "TUE",
+      "periodId": "T09",
+      "kind": "theory",
+      "programme": "programme_u",
+      "time": "2:55-3:45",
+      "startMin": 895,
+      "endMin": 945,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "TUE:U9": {
+      "key": "TUE:U9",
+      "token": "U9",
+      "day": "TUE",
+      "periodId": "T10",
+      "kind": "theory",
+      "programme": "programme_u",
+      "time": "3:50-4:40",
+      "startMin": 950,
+      "endMin": 1000,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "TUE:U10": {
+      "key": "TUE:U10",
+      "token": "U10",
+      "day": "TUE",
+      "periodId": "T11",
+      "kind": "theory",
+      "programme": "programme_u",
+      "time": "4:45-5:35",
+      "startMin": 1005,
+      "endMin": 1055,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "WED:C1": {
+      "key": "WED:C1",
+      "token": "C1",
+      "day": "WED",
+      "periodId": "T01",
+      "kind": "theory",
+      "programme": "core",
+      "time": "8:00-8:50",
+      "startMin": 480,
+      "endMin": 530,
+      "aliases": [
+        {
+          "token": "C",
+          "system": "law"
+        }
+      ],
+      "flags": [],
+      "status": "active"
+    },
+    "WED:A1": {
+      "key": "WED:A1",
+      "token": "A1",
+      "day": "WED",
+      "periodId": "T02",
+      "kind": "theory",
+      "programme": "core",
+      "time": "8:55-9:45",
+      "startMin": 535,
+      "endMin": 585,
+      "aliases": [
+        {
+          "token": "A",
+          "system": "law"
+        }
+      ],
+      "flags": [],
+      "status": "active"
+    },
+    "WED:F1": {
+      "key": "WED:F1",
+      "token": "F1",
+      "day": "WED",
+      "periodId": "T03",
+      "kind": "theory",
+      "programme": "core",
+      "time": "9:50-10:40",
+      "startMin": 590,
+      "endMin": 640,
+      "aliases": [
+        {
+          "token": "F",
+          "system": "law"
+        }
+      ],
+      "flags": [],
+      "status": "active"
+    },
+    "WED:TD1": {
+      "key": "WED:TD1",
+      "token": "TD1",
+      "day": "WED",
+      "periodId": "T04",
+      "kind": "theory",
+      "programme": "core",
+      "time": "10:45-11:35",
+      "startMin": 645,
+      "endMin": 695,
+      "aliases": [
+        {
+          "token": "TD",
+          "system": "law"
+        }
+      ],
+      "flags": [],
+      "status": "active"
+    },
+    "WED:TBB1": {
+      "key": "WED:TBB1",
+      "token": "TBB1",
+      "day": "WED",
+      "periodId": "T05",
+      "kind": "theory",
+      "programme": "core",
+      "time": "11:40-12:30",
+      "startMin": 700,
+      "endMin": 750,
+      "aliases": [
+        {
+          "token": "TBB",
+          "system": "law"
+        }
+      ],
+      "flags": [
+        "extramural"
+      ],
+      "status": "active"
+    },
+    "WED:L18": {
+      "key": "WED:L18",
+      "token": "L18",
+      "day": "WED",
+      "periodId": "L06",
+      "kind": "lab",
+      "programme": "core",
+      "time": "12:35-1:25",
+      "startMin": 755,
+      "endMin": 805,
+      "aliases": [],
+      "flags": [
+        "extramural"
+      ],
+      "status": "active"
+    },
+    "WED:C2": {
+      "key": "WED:C2",
+      "token": "C2",
+      "day": "WED",
+      "periodId": "T08",
+      "kind": "theory",
+      "programme": "core",
+      "time": "2:00-2:50",
+      "startMin": 840,
+      "endMin": 890,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "WED:A2": {
+      "key": "WED:A2",
+      "token": "A2",
+      "day": "WED",
+      "periodId": "T09",
+      "kind": "theory",
+      "programme": "core",
+      "time": "2:55-3:45",
+      "startMin": 895,
+      "endMin": 945,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "WED:F2": {
+      "key": "WED:F2",
+      "token": "F2",
+      "day": "WED",
+      "periodId": "T10",
+      "kind": "theory",
+      "programme": "core",
+      "time": "3:50-4:40",
+      "startMin": 950,
+      "endMin": 1000,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "WED:TD2": {
+      "key": "WED:TD2",
+      "token": "TD2",
+      "day": "WED",
+      "periodId": "T11",
+      "kind": "theory",
+      "programme": "core",
+      "time": "4:45-5:35",
+      "startMin": 1005,
+      "endMin": 1055,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "WED:TBB2": {
+      "key": "WED:TBB2",
+      "token": "TBB2",
+      "day": "WED",
+      "periodId": "T12",
+      "kind": "theory",
+      "programme": "core",
+      "time": "5:40-6:30",
+      "startMin": 1060,
+      "endMin": 1110,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "WED:S4": {
+      "key": "WED:S4",
+      "token": "S4",
+      "day": "WED",
+      "periodId": "T13",
+      "kind": "theory",
+      "programme": "core",
+      "time": "6:35-7:25",
+      "startMin": 1115,
+      "endMin": 1165,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "WED:L13": {
+      "key": "WED:L13",
+      "token": "L13",
+      "day": "WED",
+      "periodId": "L01",
+      "kind": "lab",
+      "programme": "core",
+      "time": "8:00-8:50",
+      "startMin": 480,
+      "endMin": 530,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "WED:L14": {
+      "key": "WED:L14",
+      "token": "L14",
+      "day": "WED",
+      "periodId": "L02",
+      "kind": "lab",
+      "programme": "core",
+      "time": "8:50-9:40",
+      "startMin": 530,
+      "endMin": 580,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "WED:L15": {
+      "key": "WED:L15",
+      "token": "L15",
+      "day": "WED",
+      "periodId": "L03",
+      "kind": "lab",
+      "programme": "core",
+      "time": "9:50-10:40",
+      "startMin": 590,
+      "endMin": 640,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "WED:L16": {
+      "key": "WED:L16",
+      "token": "L16",
+      "day": "WED",
+      "periodId": "L04",
+      "kind": "lab",
+      "programme": "core",
+      "time": "10:40-11:30",
+      "startMin": 640,
+      "endMin": 690,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "WED:L17": {
+      "key": "WED:L17",
+      "token": "L17",
+      "day": "WED",
+      "periodId": "L05",
+      "kind": "lab",
+      "programme": "core",
+      "time": "11:40-12:30",
+      "startMin": 700,
+      "endMin": 750,
+      "aliases": [],
+      "flags": [
+        "extramural"
+      ],
+      "status": "active"
+    },
+    "WED:L43": {
+      "key": "WED:L43",
+      "token": "L43",
+      "day": "WED",
+      "periodId": "L08",
+      "kind": "lab",
+      "programme": "core",
+      "time": "2:00-2:50",
+      "startMin": 840,
+      "endMin": 890,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "WED:L44": {
+      "key": "WED:L44",
+      "token": "L44",
+      "day": "WED",
+      "periodId": "L09",
+      "kind": "lab",
+      "programme": "core",
+      "time": "2:50-3:40",
+      "startMin": 890,
+      "endMin": 940,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "WED:L45": {
+      "key": "WED:L45",
+      "token": "L45",
+      "day": "WED",
+      "periodId": "L10",
+      "kind": "lab",
+      "programme": "core",
+      "time": "3:50-4:40",
+      "startMin": 950,
+      "endMin": 1000,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "WED:L46": {
+      "key": "WED:L46",
+      "token": "L46",
+      "day": "WED",
+      "periodId": "L11",
+      "kind": "lab",
+      "programme": "core",
+      "time": "4:40-5:30",
+      "startMin": 1000,
+      "endMin": 1050,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "WED:L47": {
+      "key": "WED:L47",
+      "token": "L47",
+      "day": "WED",
+      "periodId": "L12",
+      "kind": "lab",
+      "programme": "core",
+      "time": "5:40-6:30",
+      "startMin": 1060,
+      "endMin": 1110,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "WED:L48": {
+      "key": "WED:L48",
+      "token": "L48",
+      "day": "WED",
+      "periodId": "L13",
+      "kind": "lab",
+      "programme": "core",
+      "time": "6:30-7:20",
+      "startMin": 1110,
+      "endMin": 1160,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "WED:N1": {
+      "key": "WED:N1",
+      "token": "N1",
+      "day": "WED",
+      "periodId": "T01",
+      "kind": "theory",
+      "programme": "programme_n",
+      "time": "8:00-8:50",
+      "startMin": 480,
+      "endMin": 530,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "WED:N2": {
+      "key": "WED:N2",
+      "token": "N2",
+      "day": "WED",
+      "periodId": "T02",
+      "kind": "theory",
+      "programme": "programme_n",
+      "time": "8:55-9:45",
+      "startMin": 535,
+      "endMin": 585,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "WED:N3": {
+      "key": "WED:N3",
+      "token": "N3",
+      "day": "WED",
+      "periodId": "T03",
+      "kind": "theory",
+      "programme": "programme_n",
+      "time": "9:50-10:40",
+      "startMin": 590,
+      "endMin": 640,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "WED:N4": {
+      "key": "WED:N4",
+      "token": "N4",
+      "day": "WED",
+      "periodId": "T04",
+      "kind": "theory",
+      "programme": "programme_n",
+      "time": "10:45-11:35",
+      "startMin": 645,
+      "endMin": 695,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "WED:N5": {
+      "key": "WED:N5",
+      "token": "N5",
+      "day": "WED",
+      "periodId": "T05",
+      "kind": "theory",
+      "programme": "programme_n",
+      "time": "11:40-12:30",
+      "startMin": 700,
+      "endMin": 750,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "WED:N6": {
+      "key": "WED:N6",
+      "token": "N6",
+      "day": "WED",
+      "periodId": "X02",
+      "kind": "theory",
+      "programme": "programme_n",
+      "time": "12:35-1:25",
+      "startMin": 755,
+      "endMin": 805,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "WED:N7": {
+      "key": "WED:N7",
+      "token": "N7",
+      "day": "WED",
+      "periodId": "T08",
+      "kind": "theory",
+      "programme": "programme_n",
+      "time": "2:00-2:50",
+      "startMin": 840,
+      "endMin": 890,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "WED:N8": {
+      "key": "WED:N8",
+      "token": "N8",
+      "day": "WED",
+      "periodId": "T09",
+      "kind": "theory",
+      "programme": "programme_n",
+      "time": "2:55-3:45",
+      "startMin": 895,
+      "endMin": 945,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "WED:N9": {
+      "key": "WED:N9",
+      "token": "N9",
+      "day": "WED",
+      "periodId": "T10",
+      "kind": "theory",
+      "programme": "programme_n",
+      "time": "3:50-4:40",
+      "startMin": 950,
+      "endMin": 1000,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "WED:N10": {
+      "key": "WED:N10",
+      "token": "N10",
+      "day": "WED",
+      "periodId": "T11",
+      "kind": "theory",
+      "programme": "programme_n",
+      "time": "4:45-5:35",
+      "startMin": 1005,
+      "endMin": 1055,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "THU:D1": {
+      "key": "THU:D1",
+      "token": "D1",
+      "day": "THU",
+      "periodId": "T01",
+      "kind": "theory",
+      "programme": "core",
+      "time": "8:00-8:50",
+      "startMin": 480,
+      "endMin": 530,
+      "aliases": [
+        {
+          "token": "D",
+          "system": "law"
+        }
+      ],
+      "flags": [],
+      "status": "active"
+    },
+    "THU:B1": {
+      "key": "THU:B1",
+      "token": "B1",
+      "day": "THU",
+      "periodId": "T02",
+      "kind": "theory",
+      "programme": "core",
+      "time": "8:55-9:45",
+      "startMin": 535,
+      "endMin": 585,
+      "aliases": [
+        {
+          "token": "B",
+          "system": "law"
+        }
+      ],
+      "flags": [],
+      "status": "active"
+    },
+    "THU:G1": {
+      "key": "THU:G1",
+      "token": "G1",
+      "day": "THU",
+      "periodId": "T03",
+      "kind": "theory",
+      "programme": "core",
+      "time": "9:50-10:40",
+      "startMin": 590,
+      "endMin": 640,
+      "aliases": [
+        {
+          "token": "G",
+          "system": "law"
+        }
+      ],
+      "flags": [],
+      "status": "active"
+    },
+    "THU:TE1": {
+      "key": "THU:TE1",
+      "token": "TE1",
+      "day": "THU",
+      "periodId": "T04",
+      "kind": "theory",
+      "programme": "core",
+      "time": "10:45-11:35",
+      "startMin": 645,
+      "endMin": 695,
+      "aliases": [
+        {
+          "token": "TE",
+          "system": "law"
+        }
+      ],
+      "flags": [],
+      "status": "active"
+    },
+    "THU:TCC1": {
+      "key": "THU:TCC1",
+      "token": "TCC1",
+      "day": "THU",
+      "periodId": "T05",
+      "kind": "theory",
+      "programme": "core",
+      "time": "11:40-12:30",
+      "startMin": 700,
+      "endMin": 750,
+      "aliases": [
+        {
+          "token": "TCC",
+          "system": "law"
+        }
+      ],
+      "flags": [],
+      "status": "active"
+    },
+    "THU:L24": {
+      "key": "THU:L24",
+      "token": "L24",
+      "day": "THU",
+      "periodId": "L06",
+      "kind": "lab",
+      "programme": "core",
+      "time": "12:35-1:25",
+      "startMin": 755,
+      "endMin": 805,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "THU:D2": {
+      "key": "THU:D2",
+      "token": "D2",
+      "day": "THU",
+      "periodId": "T08",
+      "kind": "theory",
+      "programme": "core",
+      "time": "2:00-2:50",
+      "startMin": 840,
+      "endMin": 890,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "THU:B2": {
+      "key": "THU:B2",
+      "token": "B2",
+      "day": "THU",
+      "periodId": "T09",
+      "kind": "theory",
+      "programme": "core",
+      "time": "2:55-3:45",
+      "startMin": 895,
+      "endMin": 945,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "THU:G2": {
+      "key": "THU:G2",
+      "token": "G2",
+      "day": "THU",
+      "periodId": "T10",
+      "kind": "theory",
+      "programme": "core",
+      "time": "3:50-4:40",
+      "startMin": 950,
+      "endMin": 1000,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "THU:TE2": {
+      "key": "THU:TE2",
+      "token": "TE2",
+      "day": "THU",
+      "periodId": "T11",
+      "kind": "theory",
+      "programme": "core",
+      "time": "4:45-5:35",
+      "startMin": 1005,
+      "endMin": 1055,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "THU:TCC2": {
+      "key": "THU:TCC2",
+      "token": "TCC2",
+      "day": "THU",
+      "periodId": "T12",
+      "kind": "theory",
+      "programme": "core",
+      "time": "5:40-6:30",
+      "startMin": 1060,
+      "endMin": 1110,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "THU:S2": {
+      "key": "THU:S2",
+      "token": "S2",
+      "day": "THU",
+      "periodId": "T13",
+      "kind": "theory",
+      "programme": "core",
+      "time": "6:35-7:25",
+      "startMin": 1115,
+      "endMin": 1165,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "THU:L19": {
+      "key": "THU:L19",
+      "token": "L19",
+      "day": "THU",
+      "periodId": "L01",
+      "kind": "lab",
+      "programme": "core",
+      "time": "8:00-8:50",
+      "startMin": 480,
+      "endMin": 530,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "THU:L20": {
+      "key": "THU:L20",
+      "token": "L20",
+      "day": "THU",
+      "periodId": "L02",
+      "kind": "lab",
+      "programme": "core",
+      "time": "8:50-9:40",
+      "startMin": 530,
+      "endMin": 580,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "THU:L21": {
+      "key": "THU:L21",
+      "token": "L21",
+      "day": "THU",
+      "periodId": "L03",
+      "kind": "lab",
+      "programme": "core",
+      "time": "9:50-10:40",
+      "startMin": 590,
+      "endMin": 640,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "THU:L22": {
+      "key": "THU:L22",
+      "token": "L22",
+      "day": "THU",
+      "periodId": "L04",
+      "kind": "lab",
+      "programme": "core",
+      "time": "10:40-11:30",
+      "startMin": 640,
+      "endMin": 690,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "THU:L23": {
+      "key": "THU:L23",
+      "token": "L23",
+      "day": "THU",
+      "periodId": "L05",
+      "kind": "lab",
+      "programme": "core",
+      "time": "11:40-12:30",
+      "startMin": 700,
+      "endMin": 750,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "THU:L49": {
+      "key": "THU:L49",
+      "token": "L49",
+      "day": "THU",
+      "periodId": "L08",
+      "kind": "lab",
+      "programme": "core",
+      "time": "2:00-2:50",
+      "startMin": 840,
+      "endMin": 890,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "THU:L50": {
+      "key": "THU:L50",
+      "token": "L50",
+      "day": "THU",
+      "periodId": "L09",
+      "kind": "lab",
+      "programme": "core",
+      "time": "2:50-3:40",
+      "startMin": 890,
+      "endMin": 940,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "THU:L51": {
+      "key": "THU:L51",
+      "token": "L51",
+      "day": "THU",
+      "periodId": "L10",
+      "kind": "lab",
+      "programme": "core",
+      "time": "3:50-4:40",
+      "startMin": 950,
+      "endMin": 1000,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "THU:L52": {
+      "key": "THU:L52",
+      "token": "L52",
+      "day": "THU",
+      "periodId": "L11",
+      "kind": "lab",
+      "programme": "core",
+      "time": "4:40-5:30",
+      "startMin": 1000,
+      "endMin": 1050,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "THU:L53": {
+      "key": "THU:L53",
+      "token": "L53",
+      "day": "THU",
+      "periodId": "L12",
+      "kind": "lab",
+      "programme": "core",
+      "time": "5:40-6:30",
+      "startMin": 1060,
+      "endMin": 1110,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "THU:L54": {
+      "key": "THU:L54",
+      "token": "L54",
+      "day": "THU",
+      "periodId": "L13",
+      "kind": "lab",
+      "programme": "core",
+      "time": "6:30-7:20",
+      "startMin": 1110,
+      "endMin": 1160,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "THU:R1": {
+      "key": "THU:R1",
+      "token": "R1",
+      "day": "THU",
+      "periodId": "T01",
+      "kind": "theory",
+      "programme": "programme_r",
+      "time": "8:00-8:50",
+      "startMin": 480,
+      "endMin": 530,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "THU:R2": {
+      "key": "THU:R2",
+      "token": "R2",
+      "day": "THU",
+      "periodId": "T02",
+      "kind": "theory",
+      "programme": "programme_r",
+      "time": "8:55-9:45",
+      "startMin": 535,
+      "endMin": 585,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "THU:R3": {
+      "key": "THU:R3",
+      "token": "R3",
+      "day": "THU",
+      "periodId": "T03",
+      "kind": "theory",
+      "programme": "programme_r",
+      "time": "9:50-10:40",
+      "startMin": 590,
+      "endMin": 640,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "THU:R4": {
+      "key": "THU:R4",
+      "token": "R4",
+      "day": "THU",
+      "periodId": "T04",
+      "kind": "theory",
+      "programme": "programme_r",
+      "time": "10:45-11:35",
+      "startMin": 645,
+      "endMin": 695,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "THU:R5": {
+      "key": "THU:R5",
+      "token": "R5",
+      "day": "THU",
+      "periodId": "T05",
+      "kind": "theory",
+      "programme": "programme_r",
+      "time": "11:40-12:30",
+      "startMin": 700,
+      "endMin": 750,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "THU:R6": {
+      "key": "THU:R6",
+      "token": "R6",
+      "day": "THU",
+      "periodId": "X03",
+      "kind": "theory",
+      "programme": "programme_r",
+      "time": "12:35-1:25",
+      "startMin": 755,
+      "endMin": 805,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "THU:R7": {
+      "key": "THU:R7",
+      "token": "R7",
+      "day": "THU",
+      "periodId": "T08",
+      "kind": "theory",
+      "programme": "programme_r",
+      "time": "2:00-2:50",
+      "startMin": 840,
+      "endMin": 890,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "THU:R8": {
+      "key": "THU:R8",
+      "token": "R8",
+      "day": "THU",
+      "periodId": "T09",
+      "kind": "theory",
+      "programme": "programme_r",
+      "time": "2:55-3:45",
+      "startMin": 895,
+      "endMin": 945,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "THU:R9": {
+      "key": "THU:R9",
+      "token": "R9",
+      "day": "THU",
+      "periodId": "T10",
+      "kind": "theory",
+      "programme": "programme_r",
+      "time": "3:50-4:40",
+      "startMin": 950,
+      "endMin": 1000,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "THU:R10": {
+      "key": "THU:R10",
+      "token": "R10",
+      "day": "THU",
+      "periodId": "T11",
+      "kind": "theory",
+      "programme": "programme_r",
+      "time": "4:45-5:35",
+      "startMin": 1005,
+      "endMin": 1055,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "FRI:E1": {
+      "key": "FRI:E1",
+      "token": "E1",
+      "day": "FRI",
+      "periodId": "T01",
+      "kind": "theory",
+      "programme": "core",
+      "time": "8:00-8:50",
+      "startMin": 480,
+      "endMin": 530,
+      "aliases": [
+        {
+          "token": "E",
+          "system": "law"
+        }
+      ],
+      "flags": [],
+      "status": "active"
+    },
+    "FRI:C1": {
+      "key": "FRI:C1",
+      "token": "C1",
+      "day": "FRI",
+      "periodId": "T02",
+      "kind": "theory",
+      "programme": "core",
+      "time": "8:55-9:45",
+      "startMin": 535,
+      "endMin": 585,
+      "aliases": [
+        {
+          "token": "C",
+          "system": "law"
+        }
+      ],
+      "flags": [],
+      "status": "active"
+    },
+    "FRI:TA1": {
+      "key": "FRI:TA1",
+      "token": "TA1",
+      "day": "FRI",
+      "periodId": "T03",
+      "kind": "theory",
+      "programme": "core",
+      "time": "9:50-10:40",
+      "startMin": 590,
+      "endMin": 640,
+      "aliases": [
+        {
+          "token": "TA",
+          "system": "law"
+        }
+      ],
+      "flags": [],
+      "status": "active"
+    },
+    "FRI:TF1": {
+      "key": "FRI:TF1",
+      "token": "TF1",
+      "day": "FRI",
+      "periodId": "T04",
+      "kind": "theory",
+      "programme": "core",
+      "time": "10:45-11:35",
+      "startMin": 645,
+      "endMin": 695,
+      "aliases": [
+        {
+          "token": "TF",
+          "system": "law"
+        }
+      ],
+      "flags": [],
+      "status": "active"
+    },
+    "FRI:TDD1": {
+      "key": "FRI:TDD1",
+      "token": "TDD1",
+      "day": "FRI",
+      "periodId": "T05",
+      "kind": "theory",
+      "programme": "core",
+      "time": "11:40-12:30",
+      "startMin": 700,
+      "endMin": 750,
+      "aliases": [
+        {
+          "token": "TDD",
+          "system": "law"
+        }
+      ],
+      "flags": [],
+      "status": "active"
+    },
+    "FRI:S15": {
+      "key": "FRI:S15",
+      "token": "S15",
+      "day": "FRI",
+      "periodId": "T06",
+      "kind": "theory",
+      "programme": "core",
+      "time": "12:35-1:25",
+      "startMin": 755,
+      "endMin": 805,
+      "aliases": [
+        {
+          "token": "TFF",
+          "system": "law"
+        }
+      ],
+      "flags": [],
+      "status": "active"
+    },
+    "FRI:E2": {
+      "key": "FRI:E2",
+      "token": "E2",
+      "day": "FRI",
+      "periodId": "T08",
+      "kind": "theory",
+      "programme": "core",
+      "time": "2:00-2:50",
+      "startMin": 840,
+      "endMin": 890,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "FRI:C2": {
+      "key": "FRI:C2",
+      "token": "C2",
+      "day": "FRI",
+      "periodId": "T09",
+      "kind": "theory",
+      "programme": "core",
+      "time": "2:55-3:45",
+      "startMin": 895,
+      "endMin": 945,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "FRI:TA2": {
+      "key": "FRI:TA2",
+      "token": "TA2",
+      "day": "FRI",
+      "periodId": "T10",
+      "kind": "theory",
+      "programme": "core",
+      "time": "3:50-4:40",
+      "startMin": 950,
+      "endMin": 1000,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "FRI:TF2": {
+      "key": "FRI:TF2",
+      "token": "TF2",
+      "day": "FRI",
+      "periodId": "T11",
+      "kind": "theory",
+      "programme": "core",
+      "time": "4:45-5:35",
+      "startMin": 1005,
+      "endMin": 1055,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "FRI:TDD2": {
+      "key": "FRI:TDD2",
+      "token": "TDD2",
+      "day": "FRI",
+      "periodId": "T12",
+      "kind": "theory",
+      "programme": "core",
+      "time": "5:40-6:30",
+      "startMin": 1060,
+      "endMin": 1110,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "FRI:L25": {
+      "key": "FRI:L25",
+      "token": "L25",
+      "day": "FRI",
+      "periodId": "L01",
+      "kind": "lab",
+      "programme": "core",
+      "time": "8:00-8:50",
+      "startMin": 480,
+      "endMin": 530,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "FRI:L26": {
+      "key": "FRI:L26",
+      "token": "L26",
+      "day": "FRI",
+      "periodId": "L02",
+      "kind": "lab",
+      "programme": "core",
+      "time": "8:50-9:40",
+      "startMin": 530,
+      "endMin": 580,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "FRI:L27": {
+      "key": "FRI:L27",
+      "token": "L27",
+      "day": "FRI",
+      "periodId": "L03",
+      "kind": "lab",
+      "programme": "core",
+      "time": "9:50-10:40",
+      "startMin": 590,
+      "endMin": 640,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "FRI:L28": {
+      "key": "FRI:L28",
+      "token": "L28",
+      "day": "FRI",
+      "periodId": "L04",
+      "kind": "lab",
+      "programme": "core",
+      "time": "10:40-11:30",
+      "startMin": 640,
+      "endMin": 690,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "FRI:L29": {
+      "key": "FRI:L29",
+      "token": "L29",
+      "day": "FRI",
+      "periodId": "L05",
+      "kind": "lab",
+      "programme": "core",
+      "time": "11:40-12:30",
+      "startMin": 700,
+      "endMin": 750,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "FRI:L30": {
+      "key": "FRI:L30",
+      "token": "L30",
+      "day": "FRI",
+      "periodId": "L06",
+      "kind": "lab",
+      "programme": "core",
+      "time": "12:30-1:20",
+      "startMin": 750,
+      "endMin": 800,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "FRI:L55": {
+      "key": "FRI:L55",
+      "token": "L55",
+      "day": "FRI",
+      "periodId": "L08",
+      "kind": "lab",
+      "programme": "core",
+      "time": "2:00-2:50",
+      "startMin": 840,
+      "endMin": 890,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "FRI:L56": {
+      "key": "FRI:L56",
+      "token": "L56",
+      "day": "FRI",
+      "periodId": "L09",
+      "kind": "lab",
+      "programme": "core",
+      "time": "2:50-3:40",
+      "startMin": 890,
+      "endMin": 940,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "FRI:L57": {
+      "key": "FRI:L57",
+      "token": "L57",
+      "day": "FRI",
+      "periodId": "L10",
+      "kind": "lab",
+      "programme": "core",
+      "time": "3:50-4:40",
+      "startMin": 950,
+      "endMin": 1000,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "FRI:L58": {
+      "key": "FRI:L58",
+      "token": "L58",
+      "day": "FRI",
+      "periodId": "L11",
+      "kind": "lab",
+      "programme": "core",
+      "time": "4:40-5:30",
+      "startMin": 1000,
+      "endMin": 1050,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "FRI:L59": {
+      "key": "FRI:L59",
+      "token": "L59",
+      "day": "FRI",
+      "periodId": "L12",
+      "kind": "lab",
+      "programme": "core",
+      "time": "5:40-6:30",
+      "startMin": 1060,
+      "endMin": 1110,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "FRI:L60": {
+      "key": "FRI:L60",
+      "token": "L60",
+      "day": "FRI",
+      "periodId": "L13",
+      "kind": "lab",
+      "programme": "core",
+      "time": "6:30-7:20",
+      "startMin": 1110,
+      "endMin": 1160,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "FRI:I1": {
+      "key": "FRI:I1",
+      "token": "I1",
+      "day": "FRI",
+      "periodId": "T01",
+      "kind": "theory",
+      "programme": "programme_i",
+      "time": "8:00-8:50",
+      "startMin": 480,
+      "endMin": 530,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "FRI:I2": {
+      "key": "FRI:I2",
+      "token": "I2",
+      "day": "FRI",
+      "periodId": "T02",
+      "kind": "theory",
+      "programme": "programme_i",
+      "time": "8:55-9:45",
+      "startMin": 535,
+      "endMin": 585,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "FRI:I3": {
+      "key": "FRI:I3",
+      "token": "I3",
+      "day": "FRI",
+      "periodId": "T03",
+      "kind": "theory",
+      "programme": "programme_i",
+      "time": "9:50-10:40",
+      "startMin": 590,
+      "endMin": 640,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "FRI:I4": {
+      "key": "FRI:I4",
+      "token": "I4",
+      "day": "FRI",
+      "periodId": "T04",
+      "kind": "theory",
+      "programme": "programme_i",
+      "time": "10:45-11:35",
+      "startMin": 645,
+      "endMin": 695,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "FRI:I5": {
+      "key": "FRI:I5",
+      "token": "I5",
+      "day": "FRI",
+      "periodId": "T05",
+      "kind": "theory",
+      "programme": "programme_i",
+      "time": "11:40-12:30",
+      "startMin": 700,
+      "endMin": 750,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "FRI:I6": {
+      "key": "FRI:I6",
+      "token": "I6",
+      "day": "FRI",
+      "periodId": "T06",
+      "kind": "theory",
+      "programme": "programme_i",
+      "time": "12:35-1:25",
+      "startMin": 755,
+      "endMin": 805,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "FRI:I7": {
+      "key": "FRI:I7",
+      "token": "I7",
+      "day": "FRI",
+      "periodId": "T08",
+      "kind": "theory",
+      "programme": "programme_i",
+      "time": "2:00-2:50",
+      "startMin": 840,
+      "endMin": 890,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "FRI:I8": {
+      "key": "FRI:I8",
+      "token": "I8",
+      "day": "FRI",
+      "periodId": "T09",
+      "kind": "theory",
+      "programme": "programme_i",
+      "time": "2:55-3:45",
+      "startMin": 895,
+      "endMin": 945,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "FRI:I9": {
+      "key": "FRI:I9",
+      "token": "I9",
+      "day": "FRI",
+      "periodId": "T10",
+      "kind": "theory",
+      "programme": "programme_i",
+      "time": "3:50-4:40",
+      "startMin": 950,
+      "endMin": 1000,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "FRI:I10": {
+      "key": "FRI:I10",
+      "token": "I10",
+      "day": "FRI",
+      "periodId": "T11",
+      "kind": "theory",
+      "programme": "programme_i",
+      "time": "4:45-5:35",
+      "startMin": 1005,
+      "endMin": 1055,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SAT:X11": {
+      "key": "SAT:X11",
+      "token": "X11",
+      "day": "SAT",
+      "periodId": "X04",
+      "kind": "theory",
+      "programme": "weekend",
+      "time": "8:00-8:50",
+      "startMin": 480,
+      "endMin": 530,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SAT:X12": {
+      "key": "SAT:X12",
+      "token": "X12",
+      "day": "SAT",
+      "periodId": "X05",
+      "kind": "theory",
+      "programme": "weekend",
+      "time": "8:55-9:45",
+      "startMin": 535,
+      "endMin": 585,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SAT:Y11": {
+      "key": "SAT:Y11",
+      "token": "Y11",
+      "day": "SAT",
+      "periodId": "X06",
+      "kind": "theory",
+      "programme": "weekend",
+      "time": "9:50-10:40",
+      "startMin": 590,
+      "endMin": 640,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SAT:Y12": {
+      "key": "SAT:Y12",
+      "token": "Y12",
+      "day": "SAT",
+      "periodId": "X07",
+      "kind": "theory",
+      "programme": "weekend",
+      "time": "10:45-11:35",
+      "startMin": 645,
+      "endMin": 695,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SAT:S8": {
+      "key": "SAT:S8",
+      "token": "S8",
+      "day": "SAT",
+      "periodId": "X08",
+      "kind": "theory",
+      "programme": "weekend",
+      "time": "11:40-12:30",
+      "startMin": 700,
+      "endMin": 750,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SAT:S8B": {
+      "key": "SAT:S8B",
+      "token": "S8B",
+      "day": "SAT",
+      "periodId": "X09",
+      "kind": "theory",
+      "programme": "weekend",
+      "time": "12:35-1:25",
+      "startMin": 755,
+      "endMin": 805,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SAT:X21": {
+      "key": "SAT:X21",
+      "token": "X21",
+      "day": "SAT",
+      "periodId": "X10",
+      "kind": "theory",
+      "programme": "weekend",
+      "time": "2:00-2:50",
+      "startMin": 840,
+      "endMin": 890,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SAT:Z21": {
+      "key": "SAT:Z21",
+      "token": "Z21",
+      "day": "SAT",
+      "periodId": "X11",
+      "kind": "theory",
+      "programme": "weekend",
+      "time": "2:55-3:45",
+      "startMin": 895,
+      "endMin": 945,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SAT:Y21": {
+      "key": "SAT:Y21",
+      "token": "Y21",
+      "day": "SAT",
+      "periodId": "X12",
+      "kind": "theory",
+      "programme": "weekend",
+      "time": "3:50-4:40",
+      "startMin": 950,
+      "endMin": 1000,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SAT:W21": {
+      "key": "SAT:W21",
+      "token": "W21",
+      "day": "SAT",
+      "periodId": "X13",
+      "kind": "theory",
+      "programme": "weekend",
+      "time": "4:45-5:35",
+      "startMin": 1005,
+      "endMin": 1055,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SAT:W22": {
+      "key": "SAT:W22",
+      "token": "W22",
+      "day": "SAT",
+      "periodId": "X14",
+      "kind": "theory",
+      "programme": "weekend",
+      "time": "5:40-6:30",
+      "startMin": 1060,
+      "endMin": 1110,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SAT:Z22": {
+      "key": "SAT:Z22",
+      "token": "Z22",
+      "day": "SAT",
+      "periodId": "X15",
+      "kind": "theory",
+      "programme": "weekend",
+      "time": "6:35-7:25",
+      "startMin": 1115,
+      "endMin": 1165,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SAT:L71": {
+      "key": "SAT:L71",
+      "token": "L71",
+      "day": "SAT",
+      "periodId": "X04",
+      "kind": "theory",
+      "programme": "weekend",
+      "time": "8:00-8:50",
+      "startMin": 480,
+      "endMin": 530,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SAT:L72": {
+      "key": "SAT:L72",
+      "token": "L72",
+      "day": "SAT",
+      "periodId": "X16",
+      "kind": "lab",
+      "programme": "weekend",
+      "time": "8:50-9:40",
+      "startMin": 530,
+      "endMin": 580,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SAT:L73": {
+      "key": "SAT:L73",
+      "token": "L73",
+      "day": "SAT",
+      "periodId": "X06",
+      "kind": "theory",
+      "programme": "weekend",
+      "time": "9:50-10:40",
+      "startMin": 590,
+      "endMin": 640,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SAT:L74": {
+      "key": "SAT:L74",
+      "token": "L74",
+      "day": "SAT",
+      "periodId": "X17",
+      "kind": "lab",
+      "programme": "weekend",
+      "time": "10:40-11:30",
+      "startMin": 640,
+      "endMin": 690,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SAT:L75": {
+      "key": "SAT:L75",
+      "token": "L75",
+      "day": "SAT",
+      "periodId": "X08",
+      "kind": "theory",
+      "programme": "weekend",
+      "time": "11:40-12:30",
+      "startMin": 700,
+      "endMin": 750,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SAT:L76": {
+      "key": "SAT:L76",
+      "token": "L76",
+      "day": "SAT",
+      "periodId": "X18",
+      "kind": "lab",
+      "programme": "weekend",
+      "time": "12:30-1:20",
+      "startMin": 750,
+      "endMin": 800,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SAT:L77": {
+      "key": "SAT:L77",
+      "token": "L77",
+      "day": "SAT",
+      "periodId": "X10",
+      "kind": "theory",
+      "programme": "weekend",
+      "time": "2:00-2:50",
+      "startMin": 840,
+      "endMin": 890,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SAT:L78": {
+      "key": "SAT:L78",
+      "token": "L78",
+      "day": "SAT",
+      "periodId": "X19",
+      "kind": "lab",
+      "programme": "weekend",
+      "time": "2:50-3:40",
+      "startMin": 890,
+      "endMin": 940,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SAT:L79": {
+      "key": "SAT:L79",
+      "token": "L79",
+      "day": "SAT",
+      "periodId": "X12",
+      "kind": "theory",
+      "programme": "weekend",
+      "time": "3:50-4:40",
+      "startMin": 950,
+      "endMin": 1000,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SAT:L80": {
+      "key": "SAT:L80",
+      "token": "L80",
+      "day": "SAT",
+      "periodId": "X20",
+      "kind": "lab",
+      "programme": "weekend",
+      "time": "4:40-5:30",
+      "startMin": 1000,
+      "endMin": 1050,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SAT:L81": {
+      "key": "SAT:L81",
+      "token": "L81",
+      "day": "SAT",
+      "periodId": "X14",
+      "kind": "theory",
+      "programme": "weekend",
+      "time": "5:40-6:30",
+      "startMin": 1060,
+      "endMin": 1110,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SAT:L82": {
+      "key": "SAT:L82",
+      "token": "L82",
+      "day": "SAT",
+      "periodId": "X21",
+      "kind": "lab",
+      "programme": "weekend",
+      "time": "6:30-7:20",
+      "startMin": 1110,
+      "endMin": 1160,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SUN:Y11": {
+      "key": "SUN:Y11",
+      "token": "Y11",
+      "day": "SUN",
+      "periodId": "X22",
+      "kind": "theory",
+      "programme": "weekend",
+      "time": "8:00-8:50",
+      "startMin": 480,
+      "endMin": 530,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SUN:Y12": {
+      "key": "SUN:Y12",
+      "token": "Y12",
+      "day": "SUN",
+      "periodId": "X23",
+      "kind": "theory",
+      "programme": "weekend",
+      "time": "8:55-9:45",
+      "startMin": 535,
+      "endMin": 585,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SUN:X11": {
+      "key": "SUN:X11",
+      "token": "X11",
+      "day": "SUN",
+      "periodId": "X24",
+      "kind": "theory",
+      "programme": "weekend",
+      "time": "9:50-10:40",
+      "startMin": 590,
+      "endMin": 640,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SUN:X12": {
+      "key": "SUN:X12",
+      "token": "X12",
+      "day": "SUN",
+      "periodId": "X25",
+      "kind": "theory",
+      "programme": "weekend",
+      "time": "10:45-11:35",
+      "startMin": 645,
+      "endMin": 695,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SUN:S10": {
+      "key": "SUN:S10",
+      "token": "S10",
+      "day": "SUN",
+      "periodId": "X26",
+      "kind": "theory",
+      "programme": "weekend",
+      "time": "11:40-12:30",
+      "startMin": 700,
+      "endMin": 750,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SUN:S10B": {
+      "key": "SUN:S10B",
+      "token": "S10B",
+      "day": "SUN",
+      "periodId": "X27",
+      "kind": "theory",
+      "programme": "weekend",
+      "time": "12:35-1:25",
+      "startMin": 755,
+      "endMin": 805,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SUN:Y21": {
+      "key": "SUN:Y21",
+      "token": "Y21",
+      "day": "SUN",
+      "periodId": "X28",
+      "kind": "theory",
+      "programme": "weekend",
+      "time": "2:00-2:50",
+      "startMin": 840,
+      "endMin": 890,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SUN:Z21": {
+      "key": "SUN:Z21",
+      "token": "Z21",
+      "day": "SUN",
+      "periodId": "X29",
+      "kind": "theory",
+      "programme": "weekend",
+      "time": "2:55-3:45",
+      "startMin": 895,
+      "endMin": 945,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SUN:X21": {
+      "key": "SUN:X21",
+      "token": "X21",
+      "day": "SUN",
+      "periodId": "X30",
+      "kind": "theory",
+      "programme": "weekend",
+      "time": "3:50-4:40",
+      "startMin": 950,
+      "endMin": 1000,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SUN:W21": {
+      "key": "SUN:W21",
+      "token": "W21",
+      "day": "SUN",
+      "periodId": "X31",
+      "kind": "theory",
+      "programme": "weekend",
+      "time": "4:45-5:35",
+      "startMin": 1005,
+      "endMin": 1055,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SUN:W22": {
+      "key": "SUN:W22",
+      "token": "W22",
+      "day": "SUN",
+      "periodId": "X32",
+      "kind": "theory",
+      "programme": "weekend",
+      "time": "5:40-6:30",
+      "startMin": 1060,
+      "endMin": 1110,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SUN:Z22": {
+      "key": "SUN:Z22",
+      "token": "Z22",
+      "day": "SUN",
+      "periodId": "X33",
+      "kind": "theory",
+      "programme": "weekend",
+      "time": "6:35-7:25",
+      "startMin": 1115,
+      "endMin": 1165,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SUN:L83": {
+      "key": "SUN:L83",
+      "token": "L83",
+      "day": "SUN",
+      "periodId": "X22",
+      "kind": "theory",
+      "programme": "weekend",
+      "time": "8:00-8:50",
+      "startMin": 480,
+      "endMin": 530,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SUN:L84": {
+      "key": "SUN:L84",
+      "token": "L84",
+      "day": "SUN",
+      "periodId": "X34",
+      "kind": "lab",
+      "programme": "weekend",
+      "time": "8:50-9:40",
+      "startMin": 530,
+      "endMin": 580,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SUN:L85": {
+      "key": "SUN:L85",
+      "token": "L85",
+      "day": "SUN",
+      "periodId": "X24",
+      "kind": "theory",
+      "programme": "weekend",
+      "time": "9:50-10:40",
+      "startMin": 590,
+      "endMin": 640,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SUN:L86": {
+      "key": "SUN:L86",
+      "token": "L86",
+      "day": "SUN",
+      "periodId": "X35",
+      "kind": "lab",
+      "programme": "weekend",
+      "time": "10:40-11:30",
+      "startMin": 640,
+      "endMin": 690,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SUN:L87": {
+      "key": "SUN:L87",
+      "token": "L87",
+      "day": "SUN",
+      "periodId": "X26",
+      "kind": "theory",
+      "programme": "weekend",
+      "time": "11:40-12:30",
+      "startMin": 700,
+      "endMin": 750,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SUN:L88": {
+      "key": "SUN:L88",
+      "token": "L88",
+      "day": "SUN",
+      "periodId": "X36",
+      "kind": "lab",
+      "programme": "weekend",
+      "time": "12:30-1:20",
+      "startMin": 750,
+      "endMin": 800,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SUN:L89": {
+      "key": "SUN:L89",
+      "token": "L89",
+      "day": "SUN",
+      "periodId": "X28",
+      "kind": "theory",
+      "programme": "weekend",
+      "time": "2:00-2:50",
+      "startMin": 840,
+      "endMin": 890,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SUN:L90": {
+      "key": "SUN:L90",
+      "token": "L90",
+      "day": "SUN",
+      "periodId": "X37",
+      "kind": "lab",
+      "programme": "weekend",
+      "time": "2:50-3:40",
+      "startMin": 890,
+      "endMin": 940,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SUN:L91": {
+      "key": "SUN:L91",
+      "token": "L91",
+      "day": "SUN",
+      "periodId": "X30",
+      "kind": "theory",
+      "programme": "weekend",
+      "time": "3:50-4:40",
+      "startMin": 950,
+      "endMin": 1000,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SUN:L92": {
+      "key": "SUN:L92",
+      "token": "L92",
+      "day": "SUN",
+      "periodId": "X38",
+      "kind": "lab",
+      "programme": "weekend",
+      "time": "4:40-5:30",
+      "startMin": 1000,
+      "endMin": 1050,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SUN:L93": {
+      "key": "SUN:L93",
+      "token": "L93",
+      "day": "SUN",
+      "periodId": "X32",
+      "kind": "theory",
+      "programme": "weekend",
+      "time": "5:40-6:30",
+      "startMin": 1060,
+      "endMin": 1110,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
+    "SUN:L94": {
+      "key": "SUN:L94",
+      "token": "L94",
+      "day": "SUN",
+      "periodId": "X39",
+      "kind": "lab",
+      "programme": "weekend",
+      "time": "6:30-7:20",
+      "startMin": 1110,
+      "endMin": 1160,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    }
+  },
+  "baseline": {
+    "slotCount": 214,
+    "periodCount": 65,
+    "tokenCount": 190
+  },
+  "notes": [
+    "One physical period, many naming systems: every token is a distinct slot with a shared periodId.",
+    "Overlapping tokens (e.g. A1 and M1 on MON 8:00) are intentional; never deduplicate by time.",
+    "S8 (11:40) and S8B (12:35) on SAT, S10/S10B on SUN are separate real slots.",
+    "L18/L24 retain the new 12:35-1:25 config times; dayTimeOverrides records divergence from campus."
+  ]
+}
