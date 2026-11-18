@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useAtomValue } from "jotai";
 import { AnimatePresence } from "framer-motion";
 import { syncEngine } from "@/lib/sync-engine";
-import { storage } from "@/lib/storage";
+import { getTypedStorageItem, setTypedStorageItem, storage } from "@/lib/storage";
+import { unifiedCampusServicesAtom } from "@/store";
 
 const DEMO_FINANCE_ALL = {
   dues: {
@@ -47,9 +49,9 @@ function applyFinanceAll(res: any) {
   const library = res?.library ?? null;
   const bank = res?.bank ?? null;
   try {
-    if (dues) localStorage.setItem(PAYMENTS_KEYS.dues, JSON.stringify(dues));
-    if (receipts) localStorage.setItem(PAYMENTS_KEYS.receipts, JSON.stringify(receipts));
-    if (wallet) localStorage.setItem(PAYMENTS_KEYS.wallet, JSON.stringify(wallet));
+    if (dues) setTypedStorageItem("payments_dues", dues);
+    if (receipts) setTypedStorageItem("payments_receipts", receipts);
+    if (wallet) setTypedStorageItem("payments_wallet", wallet);
     if (library) storage.cache.set("library-due", { success: true, ...library });
     if (bank) storage.cache.set("bank-info", bank);
   } catch {}
@@ -86,7 +88,6 @@ import {
 } from "./shared/primitives";
 import { LIST_SHELL, SECTION_CHIP, TILE } from "@/lib/uiTokens";
 import {
-  PAYMENTS_KEYS,
   safeNum,
   fmtAmt,
   latestBalance,
@@ -133,16 +134,6 @@ const CARD_BASE = `${TILE} min-h-32 sm:min-h-36`;
 
 const LIST_ROW = "w-full flex items-center justify-between gap-3 py-3 px-4 text-left";
 
-function readStored<T>(key: string, legacyKey: string): T | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const stored = localStorage.getItem(key) || localStorage.getItem(legacyKey);
-    return stored ? (JSON.parse(stored) as T) : null;
-  } catch {
-    return null;
-  }
-}
-
 interface PaymentsTabProps {
   loginToVTOP: () => Promise<{ cookies: string[]; authorizedID: string; csrf: string }>;
   onBack?: () => void;
@@ -152,14 +143,27 @@ interface PaymentsTabProps {
 type ListMode = "wallet" | "receipts";
 
 export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
-  const [duesData, setDuesData] = useState<PaymentsDuesData | null>(() =>
-    readStored<PaymentsDuesData>(PAYMENTS_KEYS.dues, "payments"),
+  const campusServices = useAtomValue(unifiedCampusServicesAtom);
+
+  const [duesData, setDuesData] = useState<PaymentsDuesData | null>(
+    () =>
+      getTypedStorageItem("payments_dues") ??
+      getTypedStorageItem("cache_payments") ??
+      campusServices.payments.dues ??
+      null,
   );
-  const [receiptsData, setReceiptsData] = useState<PaymentReceiptsData | null>(() =>
-    readStored<PaymentReceiptsData>(PAYMENTS_KEYS.receipts, "payment-receipts"),
+  const [receiptsData, setReceiptsData] = useState<PaymentReceiptsData | null>(
+    () =>
+      getTypedStorageItem("payments_receipts") ??
+      getTypedStorageItem("cache_payment-receipts") ??
+      (campusServices.payments.receipts?.length ? { receipts: campusServices.payments.receipts } : null),
   );
-  const [walletData, setWalletData] = useState<PaymentWalletData | null>(() =>
-    readStored<PaymentWalletData>(PAYMENTS_KEYS.wallet, "wallet"),
+  const [walletData, setWalletData] = useState<PaymentWalletData | null>(
+    () =>
+      getTypedStorageItem("payments_wallet") ??
+      getTypedStorageItem("cache_wallet") ??
+      campusServices.payments.wallet ??
+      null,
   );
 
   const [loading, setLoading] = useState<Record<SubTab, boolean>>({

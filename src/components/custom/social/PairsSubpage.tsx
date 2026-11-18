@@ -15,9 +15,9 @@
 
 import { useState } from "react";
 import { Link2, Loader2, ShieldCheck } from "lucide-react";
-import BackButton from "../shared/BackButton";
 import { EMPTY_STATE, LIST_SHELL } from "@/lib/libraries/ui";
 import { PairRow, SectionHeader } from "./rows";
+import { PageShell } from "../shared/primitives";
 import { revokeGrant } from "@/lib/social/client";
 import { useSocialData } from "@/lib/social/useSocialData";
 
@@ -25,12 +25,10 @@ import { useSocialData } from "@/lib/social/useSocialData";
 function ConfirmRevoke({ name, onYes, onNo }: { name: string; onYes: () => void; onNo: () => void }) {
   return (
     <div className="p-3 rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/40 space-y-2">
-      <p className="text-xs font-bold text-red-700 dark:text-red-300">
-        End the pairing with {name}?
-      </p>
+      <p className="text-xs font-bold text-red-700 dark:text-red-300">End the pairing with {name}?</p>
       <p className="text-[11px] text-red-600/80 dark:text-red-400/80 font-medium leading-relaxed">
-        Both of you lose access immediately. You can pair again later, but that mints a new grant
-        and the old one stays dead.
+        Both of you lose access immediately. You can pair again later, but that mints a new grant and the old one stays
+        dead.
       </p>
       <div className="flex gap-2">
         <button
@@ -52,20 +50,13 @@ function ConfirmRevoke({ name, onYes, onNo }: { name: string; onYes: () => void;
   );
 }
 
-export default function PairsSubpage({
-  onBack,
-  onAddPeer,
-}: {
-  onBack: () => void;
-  onAddPeer: () => void;
-}) {
+export default function PairsSubpage({ onBack, onAddPeer }: { onBack: () => void; onAddPeer: () => void }) {
   const { grants, peers, markDirty } = useSocialData();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const nameFor = (handle: string | null) =>
-    peers.find((p) => p.handle === handle)?.name || handle || "Unknown";
+  const nameFor = (handle: string | null) => peers.find((p) => p.handle === handle)?.name || handle || "Unknown";
 
   const revoke = async (grantId: string, secret: string) => {
     setBusyId(grantId);
@@ -81,30 +72,18 @@ export default function PairsSubpage({
     }
   };
 
+  const headerActions = (
+    <button
+      type="button"
+      onClick={onAddPeer}
+      className="px-3 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-colors cursor-pointer shrink-0"
+    >
+      New pair
+    </button>
+  );
+
   return (
-    <div className="space-y-5">
-      <div className="flex items-start justify-between gap-3">
-        <BackButton onClick={onBack} className="self-start" />
-        {/* In the header slot rather than a `hidden sm:flex` button, so it is
-            reachable on mobile. */}
-        <button
-          type="button"
-          onClick={onAddPeer}
-          className="px-3 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-colors cursor-pointer shrink-0"
-        >
-          New pair
-        </button>
-      </div>
-
-      <div className="px-1">
-        <p className="text-xs font-semibold text-zinc-400 dark:text-zinc-500 leading-none mb-1">
-          Campus
-        </p>
-        <h1 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white tracking-tight leading-tight font-outfit truncate">
-          Pairs
-        </h1>
-      </div>
-
+    <PageShell eyebrow="Campus" title="Pairs" onBack={onBack} actions={headerActions}>
       <SectionHeader icon={Link2} title="Active pairings" count={grants.length} />
 
       {error && (
@@ -117,8 +96,8 @@ export default function PairsSubpage({
         <div className={EMPTY_STATE}>
           <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400">No pairings yet</p>
           <p className="text-[11px] text-zinc-400 dark:text-zinc-500 font-medium mt-1.5 leading-relaxed">
-            A pairing is what lets two students see each other&apos;s timetable. It is mutual, and
-            either side can end it.
+            A pairing is what lets two students see each other&apos;s timetable. It is mutual, and either side can end
+            it.
           </p>
           <button
             type="button"
@@ -163,19 +142,18 @@ export default function PairsSubpage({
               </>
             ) : grants.some((g) => g.visibility !== "full") ? (
               <>
-                <ShieldCheck className="w-3 h-3 mt-px shrink-0" />
-                A legacy free/busy-only pair is being raised to full detail automatically.
+                <ShieldCheck className="w-3 h-3 mt-px shrink-0" />A legacy free/busy-only pair is being raised to full
+                detail automatically.
               </>
             ) : (
               <>
                 <ShieldCheck className="w-3 h-3 mt-px shrink-0" />
-                Every pairing shares full detail — course, venue and title. Either of you can end
-                it at any time.
+                Every pairing shares full detail — course, venue and title. Either of you can end it at any time.
               </>
             )}
           </p>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

@@ -1,14 +1,15 @@
 "use client";
 
-import dynamic from "next/dynamic";
+import ProfileTab from "../profile/ProfileTab";
 import type { ComponentProps, Dispatch, SetStateAction } from "react";
-import type ProfileTabComponent from "../profile/ProfileTab";
+import { useAtomValue } from "jotai";
+import { unifiedIdentityAtom } from "@/store";
+import type { UnifiedUserIdentity } from "@/types";
 import type { Credentials } from "@/store/authAtoms";
 import type { Settings } from "@/store/settingsAtoms";
 import { useDashboardNavigator } from "./DashboardNavigator";
-import { PageSkeleton } from "../shared/primitives/PageSkeleton";
 
-type ProfileTabProps = ComponentProps<typeof ProfileTabComponent>;
+type ProfileTabProps = ComponentProps<typeof ProfileTab>;
 type ProfileTabOwnedProps =
   | "activeProfileSubTab"
   | "setActiveProfileSubTab"
@@ -40,12 +41,6 @@ interface DashboardProfileFeatureProps extends Omit<ProfileTabProps, ProfileTabO
   setIDs: Dispatch<SetStateAction<Credentials>>;
 }
 
-function FeatureLoading() {
-  return <PageSkeleton label="Loading profile" />;
-}
-
-const ProfileTab = dynamic(() => import("../profile/ProfileTab"), { loading: FeatureLoading });
-
 /** Profile screen and its settings/credential persistence adapters. */
 export default function DashboardProfileFeature({
   settings,
@@ -55,6 +50,7 @@ export default function DashboardProfileFeature({
   ...profileProps
 }: DashboardProfileFeatureProps) {
   const { activeProfileSubTab, setActiveProfileSubTab } = useDashboardNavigator();
+  const unifiedIdentity: UnifiedUserIdentity = useAtomValue(unifiedIdentityAtom);
   const updateSetting = (key: keyof Settings, value: unknown) => {
     setSettings((previous) => {
       const next = { ...previous, [key]: value };
@@ -63,7 +59,7 @@ export default function DashboardProfileFeature({
   };
 
   return (
-    <div className="animate-fadeIn">
+    <div>
       <ProfileTab
         {...profileProps}
         activeProfileSubTab={activeProfileSubTab}
@@ -71,8 +67,8 @@ export default function DashboardProfileFeature({
         isLoggedIn={true}
         currSemesterID={settings.currSemesterID}
         setCurrSemesterID={(value: string) => updateSetting("currSemesterID", value)}
-        password={IDs.VtopPassword}
-        username={IDs.VtopUsername}
+        password={IDs?.VtopPassword || ""}
+        username={IDs?.VtopUsername || unifiedIdentity.regNumber}
         setPassword={(value: string[]) => {
           setIDs((previous) => {
             const next = { ...previous, VtopUsername: value[0], VtopPassword: value[1] };
@@ -86,7 +82,7 @@ export default function DashboardProfileFeature({
         setIsDayscholarWithBus={(value: boolean) => updateSetting("isDayscholarWithBus", value)}
         residentialStatus={settings.residentialStatus || "hosteller"}
         setResidentialStatus={(value: "hosteller" | "dayscholar") => updateSetting("residentialStatus", value)}
-        friendlyName={settings.friendlyName}
+        friendlyName={settings.friendlyName || unifiedIdentity.friendlyName}
         setFriendlyName={(value: string) => updateSetting("friendlyName", value)}
         calendarType={settings.calendarType}
         setCalendarType={(value: Settings["calendarType"]) => updateSetting("calendarType", value)}

@@ -19,7 +19,9 @@
 
 import { useMemo } from "react";
 import { BookOpen, Clock, Coins, EyeOff, MapPin, User } from "lucide-react";
-import { cn } from "@amazecontinuityprojects/amazeui";
+import { cn, type AddedCourse } from "@amazecontinuityprojects/amazeui";
+import type { NormalizedCourse } from "@/types/course";
+import type { NormalizedFaculty } from "@/types/faculty";
 import BottomSheet from "../shared/BottomSheet";
 import { CHIP, TONE_BADGE, TONE_TEXT } from "@/lib/libraries/ui";
 import { hasSlot } from "@/lib/slots";
@@ -28,6 +30,12 @@ import { hasSlot } from "@/lib/slots";
 import { defaultColor, typeColors, typeLabels } from "@/lib/ffcsConstants";
 import { minutesToTimeStr } from "@/lib/social/schedule";
 import type { Cell } from "@/lib/buildBands";
+
+export type SlotDetailCourse = (AddedCourse | NormalizedCourse) & {
+  type?: string;
+  color?: string;
+  faculty?: string | NormalizedFaculty | null;
+};
 
 /** What the attendance surface knows about a course that the planner does not. */
 export type AttendanceTone = {
@@ -73,10 +81,19 @@ export default function SlotDetailSheet({
   backdropZIndex?: number;
   panelZIndex?: number;
 }) {
-  const course = cell.course;
+  const course = cell.course as SlotDetailCourse | undefined;
   const attendance = course ? attendanceByCourse?.[course.code] : undefined;
-  const type = course ? (typeColors[course.type] ?? defaultColor) : null;
-  const typeLabel = course?.type ? (typeLabels[course.type] ?? course.type) : "";
+  const rawType = course?.type || (course as any)?.componentType;
+  const type = rawType ? (typeColors[rawType] ?? defaultColor) : null;
+  const typeLabel = rawType ? (typeLabels[rawType] ?? rawType) : "";
+  const courseColor = course?.color || (course as any)?.ffcs?.color || "bg-blue-600";
+
+  const facultyVal = course?.faculty;
+  const facultyDisplay = facultyVal
+    ? typeof facultyVal === "object"
+      ? facultyVal.raw || facultyVal.name || ""
+      : String(facultyVal)
+    : "";
 
   const timeRange = useMemo(
     () =>
@@ -122,7 +139,7 @@ export default function SlotDetailSheet({
       icon={<Clock className="h-4.5 w-4.5" />}
       accent={
         course
-          ? cn(course.color, "border-transparent text-gray-900 dark:text-gray-100")
+          ? cn(courseColor, "border-transparent text-gray-900 dark:text-gray-100")
           : TONE_BADGE[cell.kind === "gap" ? "amber" : cell.blocked ? "red" : "zinc"]
       }
       closeLabel="Close slot detail"
@@ -159,7 +176,7 @@ export default function SlotDetailSheet({
             <div className="rounded-2xl border border-zinc-200/70 p-3.5 dark:border-zinc-800">
               <div className="flex items-start gap-2">
                 <span
-                  className={cn("shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-black text-white", course.color)}
+                  className={cn("shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-black text-white", courseColor)}
                 >
                   {course.code}
                 </span>
@@ -179,10 +196,10 @@ export default function SlotDetailSheet({
                     </span>
                   </p>
                 )}
-                {course.faculty && (
+                {Boolean(facultyDisplay) && (
                   <p className="flex items-center gap-1.5 truncate text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
                     <User className="h-3 w-3 shrink-0 text-zinc-400" />
-                    {course.faculty}
+                    {facultyDisplay}
                   </p>
                 )}
                 <p className="flex items-center gap-1.5 truncate text-[11px] font-medium text-zinc-600 dark:text-zinc-400">

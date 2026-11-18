@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/sync-engine";
 import { runPageSync } from "@/lib/sync-engine/single-sync";
+import { getTypedStorageItem, setTypedStorageItem } from "@/lib/storage";
 import BottomSheet from "../shared/BottomSheet";
 import {
   IconButton,
@@ -137,7 +138,9 @@ function PatronSections({ pages }: { pages: PatronPages }) {
               count={rows}
               right={
                 rows > 0 ? (
-                  <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border ${TONE_BADGE[s.tone]}`}>
+                  <span
+                    className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border ${TONE_BADGE[s.tone]}`}
+                  >
                     {rows} item{rows === 1 ? "" : "s"}
                   </span>
                 ) : undefined
@@ -228,9 +231,7 @@ function PatronSections({ pages }: { pages: PatronPages }) {
                                 {amount && (
                                   <p
                                     className={`text-sm font-black font-outfit leading-tight ${
-                                      isFine && !paid
-                                        ? TONE_TEXT.red
-                                        : TONE_TEXT.emerald
+                                      isFine && !paid ? TONE_TEXT.red : TONE_TEXT.emerald
                                     }`}
                                   >
                                     ₹{num(amount).toFixed(2)}
@@ -249,18 +250,10 @@ function PatronSections({ pages }: { pages: PatronPages }) {
                         if (s.key === "checkouts") {
                           const title = stripKohaSuffix(cell(row, headers, "Title")) || "Untitled";
                           const author = cell(row, headers, "Author");
-                          const callNumber = cell(row, headers, "Call number").replace(
-                            /^Call number:\s*/i,
-                            ""
-                          );
-                          const itemType = cell(row, headers, "Item type").replace(
-                            /^Item type:\s*/i,
-                            ""
-                          );
+                          const callNumber = cell(row, headers, "Call number").replace(/^Call number:\s*/i, "");
+                          const itemType = cell(row, headers, "Item type").replace(/^Item type:\s*/i, "");
                           const rawDate = cell(row, headers, "Date") || cell(row, headers, "Due");
-                          const returned = rawDate.includes("Check-in")
-                            ? stripCheckinPrefix(rawDate)
-                            : "";
+                          const returned = rawDate.includes("Check-in") ? stripCheckinPrefix(rawDate) : "";
                           return (
                             <div key={ri} className={LIST_ROW}>
                               <span
@@ -378,11 +371,11 @@ export default function LibrariesTab({ loginToVTOP, onBack }: LibrariesTabProps)
       return;
     }
     try {
-      const raw = localStorage.getItem("koha_patron_pages");
-      if (raw) setPatronPages(JSON.parse(raw));
-      const savedCard = localStorage.getItem("koha_card");
+      const savedPages = getTypedStorageItem("koha_patron_pages");
+      if (savedPages) setPatronPages(savedPages);
+      const savedCard = getTypedStorageItem("koha_card");
       if (savedCard) setCard(savedCard);
-      const savedPass = localStorage.getItem("koha_password");
+      const savedPass = getTypedStorageItem("koha_password");
       if (savedPass) setPassword(savedPass);
     } catch {}
   }, [isDemo]);
@@ -422,7 +415,7 @@ export default function LibrariesTab({ loginToVTOP, onBack }: LibrariesTabProps)
       setPatronInfo(res?.data?.info || null);
       setLoggedIn(true);
       try {
-        localStorage.setItem("koha_patron_pages", JSON.stringify(pages || {}));
+        setTypedStorageItem("koha_patron_pages", pages || {});
       } catch {}
     } catch (e: any) {
       setLoginError(e?.message || "Could not reach the library system");
@@ -442,14 +435,11 @@ export default function LibrariesTab({ loginToVTOP, onBack }: LibrariesTabProps)
       setCatalogSeed(reuseLastQuery ? catalogQuery : "");
       setCatalogOpen(true);
     },
-    [catalogQuery]
+    [catalogQuery],
   );
 
   // ── derived headline figures ───────────────────────────────────────
-  const chargeTotals = useMemo(
-    () => computeDuesTotals(patronPages?.charges),
-    [patronPages]
-  );
+  const chargeTotals = useMemo(() => computeDuesTotals(patronPages?.charges), [patronPages]);
   const chargeCount = countRows(patronPages?.charges);
   const checkoutCount = countRows(patronPages?.checkouts);
   const historyCount = countRows(patronPages?.history);
@@ -553,7 +543,7 @@ export default function LibrariesTab({ loginToVTOP, onBack }: LibrariesTabProps)
         tone: s.tone || "indigo",
         onClick: s.onClick,
       })),
-    [slides]
+    [slides],
   );
   const duesTone = duesOverdue > 0 ? "red" : "amber";
 
@@ -662,9 +652,7 @@ export default function LibrariesTab({ loginToVTOP, onBack }: LibrariesTabProps)
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
             <Layers className="w-4 h-4 text-indigo-500" />
-            <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">
-              Sections
-            </h2>
+            <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">Sections</h2>
             <span className={SECTION_CHIP}>{SECTIONS.length}</span>
           </div>
         </div>
@@ -684,7 +672,7 @@ export default function LibrariesTab({ loginToVTOP, onBack }: LibrariesTabProps)
                 >
                   <Icon className="w-4.5 h-4.5" />
                 </span>
-      <ListRowText title={s.title} subtitle={s.desc} />
+                <ListRowText title={s.title} subtitle={s.desc} />
 
                 {count > 0 && (
                   <span className={`${CHIP} shrink-0`}>
@@ -705,98 +693,98 @@ export default function LibrariesTab({ loginToVTOP, onBack }: LibrariesTabProps)
   );
 
   // ── subpages ───────────────────────────────────────────────────────
-  const accountSubpage = loggedIn || accountConnected ? (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-2 px-1">
-        <div className="flex items-center gap-2 min-w-0">
-          <span
-            className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${TONE_ICON_TILE.emerald}`}
+  const accountSubpage =
+    loggedIn || accountConnected ? (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between gap-2 px-1">
+          <div className="flex items-center gap-2 min-w-0">
+            <span
+              className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${TONE_ICON_TILE.emerald}`}
+            >
+              <User className="w-4.5 h-4.5" />
+            </span>
+            <div className="min-w-0">
+              <p className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight">
+                {patronInfo?.name || "Library account"}
+              </p>
+              <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium truncate">
+                {patronInfo?.cardnumber || card || "Koha patron record"}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={logout}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer shrink-0`}
           >
-            <User className="w-4.5 h-4.5" />
-          </span>
-          <div className="min-w-0">
-            <p className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight">
-              {patronInfo?.name || "Library account"}
-            </p>
-            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium truncate">
-              {patronInfo?.cardnumber || card || "Koha patron record"}
+            <LogOut className="w-3.5 h-3.5" />
+            Log out
+          </button>
+        </div>
+
+        {patronPages ? (
+          <PatronSections pages={patronPages} />
+        ) : (
+          <div className={EMPTY_STATE}>
+            <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400">
+              Nothing cached yet — log in to load your record.
             </p>
           </div>
-        </div>
-        <button
-          type="button"
-          onClick={logout}
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer shrink-0`}
-        >
-          <LogOut className="w-3.5 h-3.5" />
-          Log out
-        </button>
-      </div>
-
-      {patronPages ? (
-        <PatronSections pages={patronPages} />
-      ) : (
-        <div className={EMPTY_STATE}>
-          <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400">
-            Nothing cached yet — log in to load your record.
-          </p>
-        </div>
-      )}
-    </div>
-  ) : (
-    <div className="space-y-3">
-      <SectionHeader icon={Library} title="Sign in to Koha" />
-      <div className={`${TILE} space-y-3`}>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
-          Use your library card and password. Save them on the Profile page to skip this
-          next time.
-        </p>
-        {loginError && (
-          <p className="p-3 rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 text-xs font-bold">
-            {loginError}
-          </p>
         )}
-        {loginBusy ? (
-          <p className="flex items-center gap-2 text-xs font-bold text-zinc-500 dark:text-zinc-400">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Signing in…
+      </div>
+    ) : (
+      <div className="space-y-3">
+        <SectionHeader icon={Library} title="Sign in to Koha" />
+        <div className={`${TILE} space-y-3`}>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+            Use your library card and password. Save them on the Profile page to skip this next time.
           </p>
-        ) : (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              void login();
-            }}
-            className="space-y-2"
-          >
-            <input
-              type="text"
-              value={card}
-              onChange={(e) => setCard(e.target.value)}
-              placeholder="Card number"
-              aria-label="Library card number"
-              className={FIELD_INPUT}
-            />
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password"
-              aria-label="Library account password"
-              className={FIELD_INPUT}
-            />
-            <button
-              type="submit"
-              disabled={!card.trim() || !password.trim()}
-              className="w-full px-4 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-black transition-colors cursor-pointer"
+          {loginError && (
+            <p className="p-3 rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 text-xs font-bold">
+              {loginError}
+            </p>
+          )}
+          {loginBusy ? (
+            <p className="flex items-center gap-2 text-xs font-bold text-zinc-500 dark:text-zinc-400">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Signing in…
+            </p>
+          ) : (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void login();
+              }}
+              className="space-y-2"
             >
-              Log in
-            </button>
-          </form>
-        )}
+              <input
+                type="text"
+                value={card}
+                onChange={(e) => setCard(e.target.value)}
+                placeholder="Card number"
+                aria-label="Library card number"
+                className={FIELD_INPUT}
+              />
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Password"
+                aria-label="Library account password"
+                className={FIELD_INPUT}
+              />
+              <button
+                type="submit"
+                disabled={!card.trim() || !password.trim()}
+                className="w-full px-4 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-black transition-colors cursor-pointer"
+              >
+                Log in
+              </button>
+            </form>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
 
   const subpage =
     screen === "account" ? (
@@ -808,9 +796,7 @@ export default function LibrariesTab({ loginToVTOP, onBack }: LibrariesTabProps)
           title="Library dues"
           right={
             duesOverdue > 0 ? (
-              <span
-                className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border ${TONE_BADGE.red}`}
-              >
+              <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border ${TONE_BADGE.red}`}>
                 {duesOverdue} overdue
               </span>
             ) : (
@@ -823,12 +809,7 @@ export default function LibrariesTab({ loginToVTOP, onBack }: LibrariesTabProps)
             )
           }
         />
-        <DuesView
-          creds={creds}
-          isDemo={isDemo}
-          refreshKey={refreshKey}
-          onTotals={onDuesTotals}
-        />
+        <DuesView creds={creds} isDemo={isDemo} refreshKey={refreshKey} onTotals={onDuesTotals} />
       </div>
     );
 
@@ -840,12 +821,7 @@ export default function LibrariesTab({ loginToVTOP, onBack }: LibrariesTabProps)
       contentClassName="pb-0"
       onClose={() => setCatalogOpen(false)}
     >
-      <CatalogSearch
-        variant="sheet"
-        isDemo={isDemo}
-        initialQuery={catalogSeed}
-        onSearched={onCatalogSearched}
-      />
+      <CatalogSearch variant="sheet" isDemo={isDemo} initialQuery={catalogSeed} onSearched={onCatalogSearched} />
     </BottomSheet>
   );
 

@@ -27,16 +27,8 @@
  *   `done/total` for a determinate indicator.
  */
 
-import {
-  applyCleanup,
-  detectQuad,
-  fullFrameQuad,
-  imageStats,
-  quadArea,
-  warpQuad,
-  warpSizeFor,
-  type ImageStats,
-} from "./imageOps";
+import { type ImageStats } from "./imageOps";
+import { processScanPagesAsync } from "./scannerWorkerBridge";
 import { classifyScan } from "./nn/model";
 import { classifyExamPaper, buildExamTitle } from "./examClassifier";
 import { OcrUnavailableError, runOcr, type OcrResult } from "./ocr";
@@ -363,25 +355,13 @@ export async function processScan(
   const signal = options.signal;
   const emit = (stage: ScanStage, done: number, total: number) => options.onProgress?.({ stage, done, total });
 
-  /* 1. edges → warp → cleanup, page by page */
-  const cleaned: Raster[] = [];
-  let stats: ImageStats | null = null;
-  for (let i = 0; i < pages.length; i++) {
-    signal?.throwIfAborted();
-    const { raster, quad: settled } = pages[i];
-    const quad = settled ?? detectQuad(raster) ?? fullFrameQuad(raster.width, raster.height);
-    const { width, height } = warpSizeFor(quad);
-    const page = applyCleanup(warpQuad(raster, quad, width, height), cleanup);
-    cleaned.push(page);
-    if (stats === null) {
-      // quadFill is measured from the corners actually used — an
-      // auto-detected miss the student corrected is a *known* fill, not an
-      // unknown one.
-      const frameArea = raster.width * raster.height;
-      stats = imageStats(page, frameArea > 0 ? quadArea(quad) / frameArea : 1);
-    }
-    emit("pages", i + 1, pages.length);
-  }
+  /* 1. edges → warp → cleanup, page by page (offloaded to web worker when available) */
+  const { cleaned, stats } = await processScanPagesAsync(
+    pages,
+    cleanup,
+    (done, total) => emit("pages", done, total),
+    signal,
+  );
 
   /* 2. OCR — best effort; failure narrows to "no text", it never loses the scan */
   let ocr: OcrResult | null = null;

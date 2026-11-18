@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import type { CabShareUser } from "@/types/storage";
 import { api } from "@/lib/sync-engine";
 import { getValidAccessToken, signInInteractive } from "@/lib/oauth2";
 import { AlertCircle, ArrowRight, Car, ExternalLink, Loader2, Phone, Shield } from "lucide-react";
@@ -16,20 +17,13 @@ const STEPS = [
   ["Confirm", "Contact details unlock only after the host accepts a request."],
 ] as const;
 
-type CabShareUser = {
-  user_id: number;
-  name: string;
-  phone_number: string | null;
-  reg_number: string;
-};
-
 type CabShareAuthResponse = {
   success?: boolean;
   error?: string;
   message?: string;
   detail?: { detail?: string };
   phone_required?: boolean;
-  user?: CabShareUser;
+  user?: CabShareUser & { user_id?: number; phone_number?: string | null };
 };
 
 type AuthStep = "checking" | "sign-in" | "link-vtop" | "phone" | "error";
@@ -90,7 +84,7 @@ export default function CabShareAuthModal({
       return;
     }
 
-    onAuthSuccessRef.current(data.user);
+    onAuthSuccessRef.current(data.user as CabShareUser);
   }, []);
 
   const authenticate = useCallback(async () => {

@@ -1,1 +1,0 @@
-export { CircularProgress as default } from "@amazecontinuityprojects/amazeui";

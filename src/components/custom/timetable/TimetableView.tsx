@@ -30,8 +30,10 @@
  * render three grids side by side at 85% and have no room for a switcher.
  */
 
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import { cn, type AddedCourse, type GapDetail, type TimetablePeriod } from "@amazecontinuityprojects/amazeui";
+import type { NormalizedCourse } from "@/types/course";
+import { normalizeCourse, normalizeSlots } from "@/lib/courseNormalizer";
 import { SegmentedControl } from "../shared/primitives";
 import HorizontalTimetableGrid from "./HorizontalTimetableGrid";
 import VerticalTimetableGrid from "./VerticalTimetableGrid";
@@ -69,7 +71,7 @@ const DENSITY_OPTIONS: readonly {
 ];
 
 export interface TimetableViewProps {
-  courses: AddedCourse[];
+  courses: (AddedCourse | NormalizedCourse | any)[];
   theoryPeriods: TimetablePeriod[];
   labPeriods: TimetablePeriod[];
   days?: { id: string; name: string }[];
@@ -127,6 +129,32 @@ export default function TimetableView({
   const { mode, setMode, density, setDensity, resolved, isMobile } = useTimetableViewMode();
   const view: ResolvedView | null = forceView ?? resolved;
   const activeDensity: CellDensity = cellDensity ?? density;
+
+  const adaptedCourses = useMemo<AddedCourse[]>(() => {
+    return (courses || []).map((c: any) => {
+      if (c && c.color && Array.isArray(c.slots) && typeof c.faculty === "string") return c as AddedCourse;
+      const norm = normalizeCourse(c);
+      const code = norm.code || c.code || c.courseCode || "";
+      const facultyStr =
+        typeof c.faculty === "object"
+          ? c.faculty?.raw || c.faculty?.name || ""
+          : c.faculty || norm.faculty.raw || norm.faculty.name || "";
+      const slots = norm.slots.length > 0 ? norm.slots : normalizeSlots(c.slots || c.slotName || c.slotDisplay);
+
+      return {
+        id: norm.id || c.id || `att-${code}`,
+        code,
+        title: norm.title || c.title || c.courseTitle || "",
+        slots,
+        faculty: facultyStr,
+        venue: norm.venue || c.venue || c.slotVenue || "",
+        credits: String(norm.credits ?? c.credits ?? "0"),
+        type: norm.componentType || c.type || c.courseType || "",
+        color: c.color || c.ffcs?.color || "bg-blue-600",
+      };
+    });
+  }, [courses]);
+
   // The horizontal grid has its own fixed cell shape; a density choice would be
   // meaningless there, so the control only appears where it does something.
   const showDensity = !forceView && (view === "vertical" || view === null);
@@ -176,7 +204,7 @@ export default function TimetableView({
         <div className="h-72 animate-pulse rounded-xl bg-zinc-100 dark:bg-zinc-900" aria-hidden="true" />
       ) : view === "vertical" ? (
         <VerticalTimetableGrid
-          courses={courses}
+          courses={adaptedCourses}
           theoryPeriods={theoryPeriods}
           labPeriods={labPeriods}
           days={days}
@@ -196,7 +224,7 @@ export default function TimetableView({
           )}
           <div className={cn("overflow-x-auto", horizontalClassName)}>
             <HorizontalTimetableGrid
-              courses={courses}
+              courses={adaptedCourses}
               theoryPeriods={theoryPeriods}
               labPeriods={labPeriods}
               days={days}

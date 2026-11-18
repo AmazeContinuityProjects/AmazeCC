@@ -2,20 +2,39 @@
 
 import { useState, useEffect } from "react";
 import { api } from "@/lib/sync-engine";
-import { AlertCircle, Bell, Calendar as CalendarIcon, Clock, Clock3, Loader2, MapPin, Route, Search, Send, User } from "lucide-react";
+import {
+  AlertCircle,
+  Bell,
+  Calendar as CalendarIcon,
+  Clock,
+  Clock3,
+  Loader2,
+  MapPin,
+  Route,
+  Search,
+  Send,
+  User,
+} from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import BottomSheet from "../../shared/BottomSheet";
-import { fallbackHubs, getLocalTrips, readJsonResponse, saveLocalTrips, dedupeHubs } from "./cabShareFallback";
+import {
+  fallbackHubs,
+  getLocalTrips,
+  readJsonResponse,
+  saveLocalTrips,
+  dedupeHubs,
+  type CabShareHub,
+} from "./cabShareFallback";
+import type { CabShareTrip, CabShareUser } from "@/types/storage";
 import SelectField from "../../shared/primitives/SelectField";
 import { EmptyPanel, ListRowText, ListSkeleton, SectionHeader, ToneBadge } from "../../shared/primitives";
 import { FIELD_INPUT, TILE_CARD, TONE_ICON_TILE } from "@/lib/uiTokens";
 
-const FIELD_LABEL =
-  "block text-[10px] font-black uppercase tracking-wider text-text-muted mb-1";
+const FIELD_LABEL = "block text-[10px] font-black uppercase tracking-wider text-text-muted mb-1";
 
-export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
-  const [hubs, setHubs] = useState<any[]>([]);
-  const [trips, setTrips] = useState<any[]>([]);
+export default function SearchTrips({ cabShareUser }: { cabShareUser: CabShareUser }) {
+  const [hubs, setHubs] = useState<CabShareHub[]>([]);
+  const [trips, setTrips] = useState<CabShareTrip[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -28,7 +47,7 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
   useEffect(() => {
     fetchHubs();
     // Default search for today's date
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().split("T")[0];
     setDate(today);
   }, []);
 
@@ -49,7 +68,7 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
 
   const handleFromChange = (val: string) => {
     if (val && val === hubId && hubs.length > 1) {
-      const next = hubs.find(h => h.hub_id.toString() !== val);
+      const next = hubs.find((h) => h.hub_id.toString() !== val);
       setHubId(next ? next.hub_id.toString() : "");
     }
     setFromHubId(val);
@@ -57,7 +76,7 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
 
   const handleToChange = (val: string) => {
     if (val && val === fromHubId && hubs.length > 1) {
-      const next = hubs.find(h => h.hub_id.toString() !== val);
+      const next = hubs.find((h) => h.hub_id.toString() !== val);
       setFromHubId(next ? next.hub_id.toString() : "");
     }
     setHubId(val);
@@ -81,9 +100,9 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
       const res = await api(`cabshare/trips?${params.toString()}`, { parse: "raw" });
       const data = await readJsonResponse(res as Response);
       if (data?.success) {
-        setTrips(data.trips);
+        setTrips(data.trips || []);
       } else {
-        const localTrips = getLocalTrips().filter((trip: any) => {
+        const localTrips = getLocalTrips().filter((trip: CabShareTrip) => {
           const matchesFrom = !fromHubId || Number(trip.from_hub_id) === Number(fromHubId);
           const matchesHub = !hubId || Number(trip.hub_id) === Number(hubId);
           const matchesDate = !date || trip.travel_date === date;
@@ -92,12 +111,15 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
         });
         setTrips(localTrips);
         if (localTrips.length === 0) {
-          setMessage({ type: "error", text: "Cab Share server is unavailable. Showing local rides saved on this device." });
+          setMessage({
+            type: "error",
+            text: "Cab Share server is unavailable. Showing local rides saved on this device.",
+          });
         }
       }
       setSearched(true);
     } catch (e) {
-      setTrips(getLocalTrips().filter((trip: any) => trip.reg_number !== cabShareUser.reg_number));
+      setTrips(getLocalTrips().filter((trip: CabShareTrip) => trip.reg_number !== cabShareUser.reg_number));
       setSearched(true);
       setMessage({ type: "error", text: "Cab Share server is unavailable. Showing local rides saved on this device." });
     }
@@ -111,15 +133,15 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
         body: {
           reg_number: cabShareUser.reg_number,
           trip_id,
-          action: "request"
-        }
+          action: "request",
+        },
       });
       const data = await readJsonResponse(res as Response);
       if (data?.success) {
         setShowPendingModal(true);
         handleSearch({ preventDefault: () => {} } as React.FormEvent);
       } else {
-        const trips = getLocalTrips().map((trip: any) =>
+        const trips: CabShareTrip[] = getLocalTrips().map((trip: CabShareTrip) =>
           trip.trip_id === trip_id
             ? {
                 ...trip,
@@ -133,13 +155,16 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
                   },
                 ],
               }
-            : trip
+            : trip,
         );
         saveLocalTrips(trips);
         setShowPendingModal(true);
       }
     } catch (e) {
-      setMessage({ type: "error", text: "Cab Share server is unavailable. Requests can only be saved locally right now." });
+      setMessage({
+        type: "error",
+        text: "Cab Share server is unavailable. Requests can only be saved locally right now.",
+      });
     }
   };
 
@@ -150,8 +175,8 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
         body: {
           reg_number: cabShareUser.reg_number,
           hub_id: parseInt(hubId),
-          travel_date: date
-        }
+          travel_date: date,
+        },
       });
       const data = await readJsonResponse(res as Response);
       if (data?.success) {
@@ -164,8 +189,9 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
     }
   };
 
-  const hubName = (hub: any) => hub?.hub_name || (hub?.hub_id ? `Hub #${hub.hub_id}` : "");
-  const routeLabel = (trip: any) => {
+  const hubName = (hub: { hub_id?: number; hub_name?: string }) =>
+    hub?.hub_name || (hub?.hub_id ? `Hub #${hub.hub_id}` : "");
+  const routeLabel = (trip: CabShareTrip) => {
     const from = trip.from_hub_name || hubName({ hub_id: trip.from_hub_id });
     return `${from ? `${from} → ` : ""}${trip.hub_name}`;
   };
@@ -215,12 +241,7 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
 
           <label className="block">
             <span className={FIELD_LABEL}>Date</span>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className={FIELD_INPUT}
-            />
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={FIELD_INPUT} />
           </label>
 
           <div className="flex items-end">
@@ -229,7 +250,13 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
               disabled={loading}
               className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-4 text-sm font-black text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-70"
             >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Search className="w-4 h-4" /> Search</>}
+              {loading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <Search className="w-4 h-4" /> Search
+                </>
+              )}
             </button>
           </div>
         </form>
@@ -282,12 +309,14 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
             count={trips.length}
             right={<ToneBadge tone="emerald">Open</ToneBadge>}
           />
-          {trips.map(trip => (
+          {trips.map((trip: CabShareTrip) => (
             <article key={trip.trip_id} className={TILE_CARD}>
               <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div className="min-w-0 space-y-3">
                   <div className="flex items-center gap-3">
-                    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${TONE_ICON_TILE.emerald}`}>
+                    <span
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${TONE_ICON_TILE.emerald}`}
+                    >
                       <MapPin className="h-5 w-5" />
                     </span>
                     <ListRowText
@@ -328,26 +357,26 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
       )}
 
       <AnimatePresence>
-      {showPendingModal && (
-        <BottomSheet onClose={() => setShowPendingModal(false)} overlayId="cabshare-pending" maxWidth="max-w-sm">
-          <div className="flex flex-col items-center text-center py-2">
-            <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
-              <Clock3 className="h-8 w-8" />
-            </span>
-            <h3 className="mt-5 text-xl font-black text-text-heading font-outfit">Request Pending</h3>
-            <p className="mt-2 text-sm font-medium leading-relaxed text-text-secondary dark:text-text-muted">
-              The host will see your request and respond soon. You can check the status in My Trips.
-            </p>
-            <button
-              type="button"
-              onClick={() => setShowPendingModal(false)}
-              className="mt-6 w-full rounded-2xl bg-zinc-900 px-4 py-3 text-sm font-black text-white transition-colors hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200 cursor-pointer active:scale-[0.98]"
-            >
-              Got it
-            </button>
-          </div>
-        </BottomSheet>
-      )}
+        {showPendingModal && (
+          <BottomSheet onClose={() => setShowPendingModal(false)} overlayId="cabshare-pending" maxWidth="max-w-sm">
+            <div className="flex flex-col items-center text-center py-2">
+              <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
+                <Clock3 className="h-8 w-8" />
+              </span>
+              <h3 className="mt-5 text-xl font-black text-text-heading font-outfit">Request Pending</h3>
+              <p className="mt-2 text-sm font-medium leading-relaxed text-text-secondary dark:text-text-muted">
+                The host will see your request and respond soon. You can check the status in My Trips.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowPendingModal(false)}
+                className="mt-6 w-full rounded-2xl bg-zinc-900 px-4 py-3 text-sm font-black text-white transition-colors hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200 cursor-pointer active:scale-[0.98]"
+              >
+                Got it
+              </button>
+            </div>
+          </BottomSheet>
+        )}
       </AnimatePresence>
     </div>
   );

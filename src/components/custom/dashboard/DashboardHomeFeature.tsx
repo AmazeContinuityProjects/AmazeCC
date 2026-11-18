@@ -1,10 +1,12 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import type { ComponentProps } from "react";
-import type SimplifiedMobileHome from "../mobile/SimplifiedMobileHome";
+import { useAtomValue } from "jotai";
+import { unifiedIdentityAtom, unifiedAcademicsAtom } from "@/store";
+import type { UnifiedUserIdentity } from "@/types";
+import SimplifiedHome from "../mobile/SimplifiedMobileHome";
 
-type SimplifiedHomeProps = ComponentProps<typeof SimplifiedMobileHome>;
+type SimplifiedHomeProps = ComponentProps<typeof SimplifiedHome>;
 
 interface DashboardHomeFeatureProps extends SimplifiedHomeProps {
   calendarData?: SimplifiedHomeProps["calendarData"];
@@ -13,19 +15,39 @@ interface DashboardHomeFeatureProps extends SimplifiedHomeProps {
   setGradesDisplayIsOpen?: SimplifiedHomeProps["setGradesDisplayIsOpen"];
 }
 
-function HomeLoading() {
-  return (
-    <div
-      className="min-h-40 animate-pulse rounded-2xl border border-slate-200/70 bg-white/70 dark:border-white/[0.08] dark:bg-zinc-950/40"
-      role="status"
-      aria-label="Loading home"
-    />
-  );
-}
-
-const SimplifiedHome = dynamic(() => import("../mobile/SimplifiedMobileHome"), { loading: HomeLoading });
-
 /** Renders the home dashboard. */
 export default function DashboardHomeFeature(props: DashboardHomeFeatureProps) {
-  return <SimplifiedHome {...props} />;
+  const unifiedIdentity: UnifiedUserIdentity = useAtomValue(unifiedIdentityAtom);
+  const unifiedAcademics = useAtomValue(unifiedAcademicsAtom);
+
+  const normalizedProfile = props.profileData || {
+    name: unifiedIdentity.name,
+    studentName: unifiedIdentity.name,
+    branch: unifiedIdentity.programme,
+    programme: unifiedIdentity.programme,
+    school: unifiedIdentity.school,
+    campus: unifiedIdentity.campus,
+    regNo: unifiedIdentity.regNumber,
+    registerNumber: unifiedIdentity.regNumber,
+    image: unifiedIdentity.photo,
+    photo: unifiedIdentity.photo,
+    email: unifiedIdentity.email,
+    mobileNumber: unifiedIdentity.phone,
+    bloodGroup: unifiedIdentity.bloodGroup,
+  };
+
+  const enhancedProps: DashboardHomeFeatureProps = {
+    ...props,
+    profileData: normalizedProfile,
+    attendanceData:
+      props.attendanceData ||
+      (unifiedAcademics.courses.length > 0
+        ? ({
+            attendance: unifiedAcademics.courses,
+            semester: unifiedAcademics.semesterId,
+          } as any)
+        : props.attendanceData),
+  };
+
+  return <SimplifiedHome {...enhancedProps} />;
 }

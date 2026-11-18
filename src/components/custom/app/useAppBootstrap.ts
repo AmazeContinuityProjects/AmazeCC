@@ -21,7 +21,7 @@ import {
   hostelDataAtom,
 } from "@/store";
 import { migrateCustomHomework } from "@/lib/tasksStorage";
-import { storage } from "@/lib/storage";
+import { storage, getTypedStorageItem } from "@/lib/storage";
 import { hasStoredVtopCredentials } from "./readBootstrapSnapshot";
 import { useAttendanceState } from "./useAttendanceState";
 
@@ -66,7 +66,7 @@ export function useAppBootstrap() {
       MoodlePassword: storage.moodlePassword.get() || "",
       ...(idsRaw || {}),
     });
-    setShowIntro(!localStorage.getItem("introDone"));
+    setShowIntro(!getTypedStorageItem("introDone"));
     setDemoMode(Boolean(isDemoStored));
     setIsLoggedIn(Boolean(isDemoStored || hasVtop));
 

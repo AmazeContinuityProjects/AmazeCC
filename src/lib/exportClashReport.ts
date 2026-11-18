@@ -266,7 +266,7 @@ function drawSectionTitle(pdf: jsPDF, title: string, subtitle: string, y: number
  * ones — generated plans come out "No clashes - all courses fit", which is the
  * generator's guarantee made visible on paper.
  */
-export async function createClashReportPdf(params: ClashReportParams): Promise<ArrayBuffer> {
+export async function renderClashReportPdf(params: ClashReportParams): Promise<ArrayBuffer> {
   const { jsPDF } = await import("jspdf");
   const schema = params.schema ?? getTimetableSchema();
   const courses = params.courses;
@@ -516,6 +516,21 @@ export async function createClashReportPdf(params: ClashReportParams): Promise<A
   }
 
   return pdf.output("arraybuffer");
+}
+
+/**
+ * Build the clash report as an A4 portrait PDF.
+ * Dispatches generation to a Web Worker when available, falling back to inline rendering.
+ */
+export async function createClashReportPdf(params: ClashReportParams): Promise<ArrayBuffer> {
+  try {
+    const { buildClashReportPdfInWorker } = await import("./pdfWorkerBridge");
+    const workerBuffer = await buildClashReportPdfInWorker(params);
+    if (workerBuffer) {
+      return workerBuffer;
+    }
+  } catch {}
+  return renderClashReportPdf(params);
 }
 
 /**

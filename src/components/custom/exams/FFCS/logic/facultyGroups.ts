@@ -1,10 +1,9 @@
 import chennaiSchema from "@/data/campus/chennai.json";
 import type { TimetablePeriod } from "@amazecontinuityprojects/amazeui";
-import { parseCourseRows } from "@/lib/freeClassrooms";
 import { COLORS } from "@/lib/ffcsConstants";
 import type { AddedCourse } from "@/lib/ffcsTypes";
 import { splitSlots } from "@/lib/slots";
-import { getSelectedFinalReportPath } from "@/lib/ffcsReports";
+import { loadCourseCatalog } from "@/lib/courseCatalog";
 
 /**
  * Faculty name groups, and the schedule built from one group.
@@ -274,12 +273,6 @@ function toOffering(row: OfferingLike): FacultyOffering {
  * report (`/ffcs/winter-2026-2027-final-ffcs.csv` or `/ffcs/fall-2026-2027-final-ffcs.csv`).
  */
 export async function loadFacultyOfferings(semesterId?: string | null): Promise<FacultyOffering[]> {
-  const XLSX = await import("xlsx");
-  const reportPath = getSelectedFinalReportPath(semesterId);
-  const response = await fetch(reportPath);
-  if (!response.ok) throw new Error("Failed to load FFCS course report");
-  const workbook = XLSX.read(new Uint8Array(await response.arrayBuffer()), { type: "array" });
-  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[workbook.SheetNames[0]]);
-  const parsed = parseCourseRows(rows);
+  const parsed = await loadCourseCatalog(semesterId);
   return parsed.map(toOffering);
 }

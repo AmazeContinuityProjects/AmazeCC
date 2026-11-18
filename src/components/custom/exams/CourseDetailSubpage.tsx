@@ -61,11 +61,15 @@ import {
   Check,
   User,
 } from "lucide-react";
-import CourseFacultyCard, { parseFacultyInfo } from "./CourseFacultyCard";
+import CourseFacultyCard from "./CourseFacultyCard";
 import CourseWeeklySchedule from "./CourseWeeklySchedule";
 import { useFacultyReviewSheet } from "./FFCS/hooks/useFacultyReviewSheet";
 import { buildFacultyNameGroups, loadFacultyOfferings, type FacultyNameGroup } from "./FFCS/logic/facultyGroups";
 import { storage } from "@/lib/storage";
+import type { NormalizedFaculty } from "@/types/faculty";
+import type { NormalizedCourse } from "@/types/course";
+import type { UnifiedSemesterMarks } from "@/types/marks";
+import { normalizeFaculty, normalizeCourse } from "@/lib/courseNormalizer";
 
 const FacultyReviewSheetHost = dynamic(() => import("./FFCS/components/FacultyReviewSheetHost"), { ssr: false });
 const FacultyScheduleModal = dynamic(() => import("./FFCS/components/modals/FacultyScheduleModal"), { ssr: false });
@@ -114,7 +118,7 @@ import {
 const AttendanceCalendarView = dynamic(() => import("../attendance/AttendanceCalendarView"), { ssr: false });
 
 interface CourseDetailSubpageProps {
-  marksData: any;
+  marksData: UnifiedSemesterMarks | Record<string, any> | any;
   attendanceData: any;
   allGradesData?: any;
   pastSemesterData?: any;
@@ -458,12 +462,19 @@ export default function CourseDetailSubpage({
 
     // Process current semester
     const currentMap = new Map();
-    if (marksData?.courses && Array.isArray(marksData.courses)) {
-      marksData.courses.forEach((c: any) => {
+    if (marksData?.courses) {
+      const marksCoursesList = Array.isArray(marksData.courses)
+        ? marksData.courses
+        : typeof marksData.courses === "object"
+          ? Object.values(marksData.courses)
+          : [];
+
+      marksCoursesList.forEach((c: any) => {
         if (!c || typeof c !== "object") return;
-        const key = sanitizeCourseCode(c.courseCode || c.code);
-        const rawTitle = String(c.courseTitle || c.title || "").trim();
-        const classNbr = String(c.classNumber || c.classNbr || c.crn || "").trim();
+        const normCourse = normalizeCourse(c);
+        const key = sanitizeCourseCode(normCourse.code || c.courseCode || c.code);
+        const rawTitle = String(normCourse.title || c.courseTitle || c.title || "").trim();
+        const classNbr = String(normCourse.classId || c.classNumber || c.classNbr || c.crn || "").trim();
         if (!key && isJunkOrEmpty(rawTitle)) return;
         if (isJunkOrEmpty(key) && isJunkOrEmpty(classNbr)) return;
 
@@ -471,7 +482,8 @@ export default function CourseDetailSubpage({
         if (!baseCode) return;
 
         const courseTitle = sanitizeCourseTitle(rawTitle, baseCode);
-        const isLab = c.courseType?.toLowerCase().includes("lab") || c.slot?.toLowerCase().startsWith("l");
+        const isLab =
+          normCourse.isLab || c.courseType?.toLowerCase().includes("lab") || c.slot?.toLowerCase().startsWith("l");
         if (!currentMap.has(baseCode)) {
           currentMap.set(baseCode, {
             courseCode: baseCode,
@@ -806,6 +818,21 @@ export default function CourseDetailSubpage({
       labAttItem: labItem,
     };
   }, [attendanceData, selectedCode]);
+
+  const normalizedTheoryCourse = useMemo<NormalizedCourse | null>(() => {
+    if (!theoryAttItem && !selectedGroup?.theory) return null;
+    return normalizeCourse({ ...(theoryAttItem || {}), ...(selectedGroup?.theory || {}) });
+  }, [theoryAttItem, selectedGroup?.theory]);
+
+  const normalizedLabCourse = useMemo<NormalizedCourse | null>(() => {
+    if (!labAttItem && !selectedGroup?.lab) return null;
+    return normalizeCourse({ ...(labAttItem || {}), ...(selectedGroup?.lab || {}) });
+  }, [labAttItem, selectedGroup?.lab]);
+
+  const normalizedMainCourse = useMemo<NormalizedCourse | null>(() => {
+    if (!mainCourse) return null;
+    return normalizeCourse(mainCourse);
+  }, [mainCourse]);
 
   // Attendance sub-tabs resolve straight to a component — no shared scope.
   // Legacy "attendance" deep-links land on the default component's log.
@@ -1607,14 +1634,25 @@ export default function CourseDetailSubpage({
 
     // 3. Faculty
     const primaryFaculty =
-      selectedGroup?.theory?.faculty || theoryAttItem?.faculty || selectedGroup?.lab?.faculty || labAttItem?.faculty;
+      normalizedMainCourse?.faculty ||
+      normalizedTheoryCourse?.faculty ||
+      normalizedLabCourse?.faculty ||
+      selectedGroup?.theory?.faculty ||
+      theoryAttItem?.faculty ||
+      selectedGroup?.lab?.faculty ||
+      labAttItem?.faculty;
     if (primaryFaculty) {
-      const { cleanName, school, department } = parseFacultyInfo(primaryFaculty);
+      const normFaculty =
+        typeof primaryFaculty === "object" && "name" in primaryFaculty
+          ? (primaryFaculty as NormalizedFaculty)
+          : normalizeFaculty(primaryFaculty);
+      const cleanName = [normFaculty.title, normFaculty.name].filter(Boolean).join(" ") || normFaculty.name;
+      const deptOrSchool = normFaculty.department || normFaculty.school || "Course Instructor";
       slides.push({
         id: "faculty",
         label: "Faculty Assigned",
         value: cleanName || "Faculty Assigned",
-        sub: department || school || "Course Instructor",
+        sub: deptOrSchool,
         badge: "Faculty",
         tone: "violet",
       });
@@ -2740,6 +2778,8 @@ export default function CourseDetailSubpage({
                   scope="Theory"
                   courseComp={selectedGroup.theory}
                   attItem={theoryAttItem}
+                  course={normalizedTheoryCourse}
+                  faculty={normalizedTheoryCourse?.faculty}
                   isEmbedded={true}
                   courseCode={selectedCode}
                   onOpenFacultyReview={openFacultyReview}
@@ -2749,6 +2789,8 @@ export default function CourseDetailSubpage({
                   scope="Lab"
                   courseComp={selectedGroup.lab}
                   attItem={labAttItem}
+                  course={normalizedLabCourse}
+                  faculty={normalizedLabCourse?.faculty}
                   isEmbedded={true}
                   courseCode={selectedCode}
                   onOpenFacultyReview={openFacultyReview}
@@ -2760,6 +2802,8 @@ export default function CourseDetailSubpage({
                 scope={theoryAttItem ? "Theory" : labAttItem ? "Lab" : "Course"}
                 courseComp={mainCourse}
                 attItem={theoryAttItem || labAttItem}
+                course={normalizedMainCourse}
+                faculty={normalizedMainCourse?.faculty}
                 isEmbedded={false}
                 courseCode={selectedCode}
                 onOpenFacultyReview={openFacultyReview}
@@ -2772,12 +2816,13 @@ export default function CourseDetailSubpage({
           <CourseWeeklySchedule
             courseCode={selectedCode}
             dayCardsMap={dayCardsMap}
+            course={normalizedMainCourse || normalizedTheoryCourse || normalizedLabCourse || undefined}
             theorySlot={selectedGroup?.theory?.slot || theoryAttItem?.slotName}
             labSlot={selectedGroup?.lab?.slot || labAttItem?.slotName}
             theoryVenue={theoryAttItem?.slotVenue || selectedGroup?.theory?.venue}
             labVenue={labAttItem?.slotVenue || selectedGroup?.lab?.venue}
-            theoryFaculty={selectedGroup?.theory?.faculty || theoryAttItem?.faculty}
-            labFaculty={selectedGroup?.lab?.faculty || labAttItem?.faculty}
+            theoryFaculty={normalizedTheoryCourse?.faculty || selectedGroup?.theory?.faculty || theoryAttItem?.faculty}
+            labFaculty={normalizedLabCourse?.faculty || selectedGroup?.lab?.faculty || labAttItem?.faculty}
             viewDetail={viewDetail}
             viewLoading={viewLoading}
             onFetchViewDetail={fetchViewDetail}

@@ -5,6 +5,8 @@ import { formatSemesterName } from "@/lib/formatSemesterName";
 import { loadFrozenPastSemesters } from "@/lib/pastDataSync";
 import { BookOpen, Search, ChevronRight, GraduationCap, History, Sparkles } from "lucide-react";
 import { clickable } from "@/lib/a11y";
+import { getTypedStorageItem, setTypedStorageItem } from "@/lib/storage";
+import { normalizeCourse } from "@/lib/courseNormalizer";
 
 /** The four course-type pills above the list. Ordered, so `ChipTabs` scrolls rather than wraps. */
 type CourseTypeFilter = "all" | "theory" | "lab" | "embedded";
@@ -303,9 +305,12 @@ export default function SimplifiedAcademicsPage({
     if (allGradesData && typeof allGradesData === "object" && allGradesData.grades) return allGradesData;
     if (typeof window !== "undefined") {
       try {
-        const stored = localStorage.getItem("allgradesdata") || localStorage.getItem("allGradesData");
+        const stored =
+          getTypedStorageItem<any>("allGrades") ||
+          getTypedStorageItem<any>("allgradesdata") ||
+          getTypedStorageItem<any>("allGradesData");
         if (stored) {
-          const parsed = JSON.parse(stored);
+          const parsed = typeof stored === "string" ? JSON.parse(stored) : stored;
           if (parsed && typeof parsed === "object") return parsed;
         }
       } catch {}
@@ -553,8 +558,8 @@ export default function SimplifiedAcademicsPage({
       onSelectCourse(cleanCode);
     } else if (setActiveSubTab) {
       try {
-        localStorage.setItem("course_dashboard_target", cleanCode);
-        localStorage.setItem("course_dashboard_tab", "marks");
+        setTypedStorageItem("course_dashboard_target", cleanCode);
+        setTypedStorageItem("course_dashboard_tab", "marks");
       } catch {}
       setActiveSubTab("course-dashboard");
     }
@@ -564,7 +569,14 @@ export default function SimplifiedAcademicsPage({
   const renderCoursePill = (course: any) => {
     const isEmbedded = Boolean(course.theory && course.lab);
     const main = course.theory || course.lab;
-    const courseTypeLabel = isEmbedded ? "Embedded Theory + Lab" : course.lab ? "Lab Only" : "Theory Only";
+    const norm = normalizeCourse(main || course);
+    const displayCode = norm.baseCode || norm.code || course.courseCode;
+    const displayTitle = norm.title || course.courseTitle;
+    const courseTypeLabel = isEmbedded
+      ? "Embedded Theory + Lab"
+      : norm.componentType === "Lab Only" || course.lab
+        ? "Lab Only"
+        : "Theory Only";
 
     const grandWeightage = calculateGrandWeightage(course, decimalValues);
 
@@ -603,20 +615,22 @@ export default function SimplifiedAcademicsPage({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <span className="text-xs sm:text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">
-                {course.courseCode}
+                {displayCode}
               </span>
             </div>
 
             {/* Course Title */}
             <p className="text-xs text-zinc-700 dark:text-zinc-200 font-bold truncate mt-0.5 font-outfit">
-              {course.courseTitle}
+              {displayTitle}
             </p>
 
             {/* Subtitle containing course type, credits and slot */}
             <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium truncate mt-0.5">
               {courseTypeLabel}
-              {course.credits > 0 ? ` • ${course.credits} Credits` : ""}
-              {main?.slotName || main?.slot ? ` • ${main.slotName || main.slot}` : ""}
+              {(norm.credits ?? course.credits) > 0 ? ` • ${norm.credits ?? course.credits} Credits` : ""}
+              {norm.slotDisplay || main?.slotName || main?.slot
+                ? ` • ${norm.slotDisplay || main.slotName || main.slot}`
+                : ""}
             </p>
           </div>
         </div>

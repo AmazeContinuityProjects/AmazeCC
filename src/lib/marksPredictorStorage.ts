@@ -1,4 +1,5 @@
 import { type PredictorAssessment } from "./marksPredictor";
+import { getTypedStorageItem, setTypedStorageItem, removeTypedStorageItem } from "./storage";
 
 export interface CustomCourseMock {
   courseCode: string;
@@ -39,18 +40,16 @@ const CUSTOM_COURSES_KEY = "uni_cc_marks_predictor_custom_courses";
 export const getStoredPredictorState = (): Record<string, StoredCourseState> => {
   if (typeof window === "undefined") return {};
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
+    const raw = getTypedStorageItem(STORAGE_KEY as any);
+    if (!raw) return {};
+    return typeof raw === "string" ? JSON.parse(raw) : raw;
   } catch (e) {
     console.error("Error reading marks predictor state:", e);
     return {};
   }
 };
 
-export const saveCoursePredictorState = (
-  courseCode: string,
-  state: StoredCourseState
-): void => {
+export const saveCoursePredictorState = (courseCode: string, state: StoredCourseState): void => {
   if (typeof window === "undefined" || !courseCode) return;
   try {
     const all = getStoredPredictorState();
@@ -59,15 +58,13 @@ export const saveCoursePredictorState = (
       ...state,
       lastUpdated: Date.now(),
     };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+    setTypedStorageItem(STORAGE_KEY as any, all as any);
   } catch (e) {
     console.error("Error saving course predictor state:", e);
   }
 };
 
-export const getCoursePredictorState = (
-  courseCode: string
-): StoredCourseState | null => {
+export const getCoursePredictorState = (courseCode: string): StoredCourseState | null => {
   if (typeof window === "undefined" || !courseCode) return null;
   const all = getStoredPredictorState();
   return all[courseCode] || null;
@@ -78,7 +75,7 @@ export const resetCoursePredictorState = (courseCode: string): void => {
   try {
     const all = getStoredPredictorState();
     delete all[courseCode];
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+    setTypedStorageItem(STORAGE_KEY as any, all as any);
   } catch (e) {
     console.error("Error resetting course predictor state:", e);
   }
@@ -99,7 +96,7 @@ export const setCourseIgnored = (courseCode: string, ignored: boolean): void => 
       ignored,
       lastUpdated: Date.now(),
     };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+    setTypedStorageItem(STORAGE_KEY as any, all as any);
   } catch (e) {
     console.error("Error setting course ignored state:", e);
   }
@@ -114,8 +111,8 @@ export const setCourseIgnored = (courseCode: string, ignored: boolean): void => 
 export const resetAllCoursePredictorState = (): void => {
   if (typeof window === "undefined") return;
   try {
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(CUSTOM_COURSES_KEY);
+    removeTypedStorageItem(STORAGE_KEY as any);
+    removeTypedStorageItem(CUSTOM_COURSES_KEY as any);
   } catch (e) {
     console.error("Error resetting all marks predictor state:", e);
   }
@@ -125,8 +122,9 @@ export const resetAllCoursePredictorState = (): void => {
 export const getCustomCourses = (): CustomCourseMock[] => {
   if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem(CUSTOM_COURSES_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const raw = getTypedStorageItem(CUSTOM_COURSES_KEY as any);
+    if (!raw) return [];
+    return typeof raw === "string" ? JSON.parse(raw) : (raw as CustomCourseMock[]);
   } catch (e) {
     console.error("Error reading custom courses:", e);
     return [];
@@ -139,7 +137,7 @@ export const saveCustomCourse = (course: CustomCourseMock): void => {
     const list = getCustomCourses();
     const filtered = list.filter((c) => c.courseCode !== course.courseCode);
     filtered.push(course);
-    localStorage.setItem(CUSTOM_COURSES_KEY, JSON.stringify(filtered));
+    setTypedStorageItem(CUSTOM_COURSES_KEY as any, filtered as any);
   } catch (e) {
     console.error("Error saving custom course:", e);
   }
@@ -149,7 +147,7 @@ export const deleteCustomCourse = (courseCode: string): void => {
   if (typeof window === "undefined") return;
   try {
     const list = getCustomCourses().filter((c) => c.courseCode !== courseCode);
-    localStorage.setItem(CUSTOM_COURSES_KEY, JSON.stringify(list));
+    setTypedStorageItem(CUSTOM_COURSES_KEY as any, list as any);
     resetCoursePredictorState(courseCode);
   } catch (e) {
     console.error("Error deleting custom course:", e);

@@ -2,6 +2,9 @@
 
 import { useEffect } from "react";
 import dynamic from "next/dynamic";
+import { useAtomValue } from "jotai";
+import { unifiedAcademicsAtom, unifiedIdentityAtom } from "@/store";
+import type { NormalizedCourse } from "@/types";
 import type { attendanceRes, ODListItem } from "@/types/data/attendance";
 import type { AllGradesRes } from "@/types/data/allgrades";
 import type { Credentials } from "@/store/authAtoms";
@@ -9,7 +12,6 @@ import type { Settings } from "@/store/settingsAtoms";
 import type { Creds } from "../exams/courseHelpers";
 import { buildAttendanceDayCardsMap } from "@/lib/attendanceTimetable";
 import { buildMilestoneDates } from "@/lib/milestoneDates";
-import { PageSkeleton } from "../shared/primitives/PageSkeleton";
 
 interface DashboardAttendanceFeatureProps {
   activeSubTab: string;
@@ -34,16 +36,11 @@ interface DashboardAttendanceFeatureProps {
   resetKey: number;
 }
 
-function FeatureLoading() {
-  return <PageSkeleton label="Loading attendance" />;
-}
+import CalendarSubpage from "../attendance/CalendarSubpage";
 
-const CalendarSubpage = dynamic(() => import("../attendance/CalendarSubpage"), { loading: FeatureLoading });
-const CircularsTab = dynamic(() => import("../exams/CircularsTab"), { loading: FeatureLoading });
-const OverallAttendancePredictor = dynamic(() => import("../attendance/OverallAttendancePredictor"), {
-  loading: FeatureLoading,
-});
-const ODTrackerSubpage = dynamic(() => import("../attendance/ODTrackerSubpage"), { loading: FeatureLoading });
+const CircularsTab = dynamic(() => import("../exams/CircularsTab"));
+const OverallAttendancePredictor = dynamic(() => import("../attendance/OverallAttendancePredictor"));
+const ODTrackerSubpage = dynamic(() => import("../attendance/ODTrackerSubpage"));
 
 /** Attendance, calendar, predictor, circulars, and OD screens. */
 export default function DashboardAttendanceFeature({
@@ -68,7 +65,11 @@ export default function DashboardAttendanceFeature({
   loginToVTOP,
   resetKey,
 }: DashboardAttendanceFeatureProps) {
-  const attendance = attendanceData?.attendance ?? [];
+  const unifiedAcademics = useAtomValue(unifiedAcademicsAtom);
+  const unifiedIdentity = useAtomValue(unifiedIdentityAtom);
+  const attendance: NormalizedCourse[] | any[] =
+    attendanceData?.attendance ??
+    (unifiedAcademics.courses.length > 0 ? (unifiedAcademics.courses as NormalizedCourse[]) : []);
 
   useEffect(() => {
     if (activeSubTab === "attendance") {
@@ -77,7 +78,7 @@ export default function DashboardAttendanceFeature({
   }, [activeSubTab, setActiveSubTab]);
 
   return (
-    <div className="animate-fadeIn">
+    <div>
       {(activeSubTab === "calendar" || activeSubTab === "attendance") && (
         <CalendarSubpage
           calendars={calendarData?.calendars}
@@ -88,7 +89,7 @@ export default function DashboardAttendanceFeature({
           attendanceData={attendanceData}
           ODhoursData={ODhoursData}
           handleFetchMoodle={handleFetchMoodle}
-          IDs={IDs}
+          IDs={IDs?.VtopUsername ? IDs : { ...IDs, VtopUsername: unifiedIdentity.regNumber }}
           currSemesterID={settings.currSemesterID}
           targetAttendance={settings.targetAttendance}
           onOpenCirculars={() => setActiveSubTab("circulars")}
@@ -111,7 +112,9 @@ export default function DashboardAttendanceFeature({
               dayCardsMap={buildAttendanceDayCardsMap(
                 attendance,
                 undefined,
-                (typeof window !== "undefined" ? localStorage.getItem("saturday_timetable_override") : null) || "SAT",
+                unifiedAcademics.saturdayOverride ||
+                  (typeof window !== "undefined" ? localStorage.getItem("saturday_timetable_override") : null) ||
+                  "SAT",
               )}
               impDates={impDates}
               isDayscholarWithBus={settings.isDayscholarWithBus}
@@ -124,7 +127,7 @@ export default function DashboardAttendanceFeature({
       {activeSubTab === "od" && (
         <ODTrackerSubpage
           ODhoursData={ODhoursData}
-          attendanceData={attendanceData?.attendance}
+          attendanceData={attendance}
           onBack={onSystemBack}
           currSemesterID={settings.currSemesterID}
           allGradesData={allGradesData}

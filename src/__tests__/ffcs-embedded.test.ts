@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import * as XLSX from "xlsx";
+import { parseFastCSV } from "@/lib/courseCatalog";
 import { processParsedCourses } from "../components/custom/exams/FFCSTimetableTab";
 import { parseReportRows } from "@/lib/ffcsReports";
 import type { ParsedCourse } from "@/lib/ffcsTypes";
@@ -302,10 +302,8 @@ describe("labelled halves keep the engine they always had", () => {
 
 describe("the shipped reports", () => {
   const loadCsv = (file: string): ParsedCourse[] => {
-    const csv = readFileSync(resolve(process.cwd(), file));
-    const workbook = XLSX.read(csv, { type: "buffer" });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    return parseReportRows(XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet));
+    const csv = readFileSync(resolve(process.cwd(), file), "utf8");
+    return parseReportRows(parseFastCSV(csv));
   };
 
   const halvesOf = (combo: ParsedCourse): { theory: string; lab: string } | null => {

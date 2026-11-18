@@ -109,7 +109,7 @@ export function CourseImportPanel({ mode, onImport, onImportToTimetable }: Cours
         <p className="text-xs text-muted-foreground">
           {mode === "paste"
             ? "Paste one course per line or copy-paste directly from VTOP registration."
-            : "CSV, TSV or XLSX. Column headings do not have to match ours."}
+            : "CSV, TSV or TXT. Column headings do not have to match ours."}
         </p>
       )}
 
@@ -187,7 +187,7 @@ function FileDropzone({ dropzone, reading }: { dropzone: ReturnType<typeof useDr
             <p className="text-xs text-text-heading font-medium">
               {isDragActive ? "Drop it here" : "Drag a file, or click to choose"}
             </p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">CSV, TSV or XLSX</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">CSV, TSV or TXT</p>
           </>
         )}
       </div>

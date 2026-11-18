@@ -428,7 +428,8 @@ input:-webkit-autofill:focus {
 }
 
 .animate-fadeIn {
-  animation: pageEnter 0.26s cubic-bezier(0.16, 1, 0.3, 1) both;
+  /* Instant display without motion blur, scale bounce, or transition delays */
+  opacity: 1;
 }
 
 @keyframes slideUp {
@@ -777,7 +778,6 @@ html.has-stored-session .guest-experience-root {
 html.has-stored-session .opening-screen-fallback {
   display: flex !important;
 }
-
 
 /*
  * Privacy mode (Settings → Privacy mode, Alt/Option+P, or the command palette).

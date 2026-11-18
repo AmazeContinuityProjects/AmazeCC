@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 import config from "../../../../config.json";
 import { syncEngine, cancelAllRequests } from "@/lib/sync-engine";
-import { storage } from "@/lib/storage";
+import { storage, getTypedStorageItem, setTypedStorageItem } from "@/lib/storage";
 import { syncPastSemesters } from "@/lib/pastDataSync";
 import { loadActivityTree, saveActivityTree } from "@/lib/activity-tree";
 import { reportError } from "@/lib/error-utils";
@@ -107,10 +107,10 @@ export function useAppDataActions({
         setCalender(demoData.calender);
         if ((demoData as any).registeredEvents) {
           setRegisteredEvents((demoData as any).registeredEvents);
-          localStorage.setItem("registeredEvents", JSON.stringify((demoData as any).registeredEvents));
+          setTypedStorageItem("registeredEvents", (demoData as any).registeredEvents);
         }
         if ((demoData as any).profile) {
-          localStorage.setItem("profile", JSON.stringify((demoData as any).profile));
+          setTypedStorageItem("profile", (demoData as any).profile);
         }
         setIsLoggedIn(true);
         setIsReloading(false);
@@ -339,10 +339,10 @@ export function useAppDataActions({
         setCalender(demoData.calender);
         if ((demoData as any).registeredEvents) {
           setRegisteredEvents((demoData as any).registeredEvents);
-          localStorage.setItem("registeredEvents", JSON.stringify((demoData as any).registeredEvents));
+          setTypedStorageItem("registeredEvents", (demoData as any).registeredEvents);
         }
         if ((demoData as any).profile) {
-          localStorage.setItem("profile", JSON.stringify((demoData as any).profile));
+          setTypedStorageItem("profile", (demoData as any).profile);
         }
         setOfficialOdData(DEMO_OFFICIAL_OD);
         try {
@@ -356,7 +356,7 @@ export function useAppDataActions({
 
       setIsReloading(true);
       openSyncSession(mode.label);
-      localStorage.setItem("IDs", JSON.stringify(IDs));
+      setTypedStorageItem("IDs", IDs);
 
       // Pre-flight check: verify VTOP portal is up before dispatching requests to AmazeCC API
       appendSyncLine("Checking VTOP portal (vtopcc.vit.ac.in)…", "loading");
@@ -376,7 +376,7 @@ export function useAppDataActions({
 
           try {
             const { cookies, authorizedID, csrf } = await syncEngine.login(IDs, demoMode);
-            const allGradesData = JSON.parse(localStorage.getItem("allGrades") || "{}");
+            const allGradesData = (getTypedStorageItem("allGrades", {}) as any) || {};
             await syncPastSemesters(allGradesData, { cookies, authorizedID, csrf });
           } catch (err) {
             console.error("Failed to sync past semesters on global reload", err);
@@ -408,8 +408,8 @@ export function useAppDataActions({
         const applyAttendanceResult = (attRes: any, marksRes: any) => {
           setAttendanceAndOD(attRes);
           setMarksData(marksRes as object);
-          localStorage.setItem("attendance", JSON.stringify(attRes));
-          localStorage.setItem("marks", JSON.stringify(marksRes));
+          setTypedStorageItem("attendance", attRes);
+          setTypedStorageItem("marks", marksRes as any);
         };
 
         // Daily Sync: attendance + marks only, nothing else.
@@ -451,7 +451,7 @@ export function useAppDataActions({
           try {
             // setAttendanceAndOD diffs against the stored copy, so snapshot it
             // before the engine overwrites it below.
-            const prevAttRaw = localStorage.getItem("attendance");
+            const prevAtt = getTypedStorageItem("attendance");
             const cachedProfile = storage.profile.get() as any;
             const res = await syncEngine.syncMode(mode.id, {
               semesterId: activeSem,
@@ -465,7 +465,7 @@ export function useAppDataActions({
             });
             const att = res.results.find((r) => r.op === "attendanceMarks")?.value as any;
             if (att?.attRes) {
-              if (prevAttRaw) localStorage.setItem("attendance", prevAttRaw);
+              if (prevAtt) setTypedStorageItem("attendance", prevAtt);
               applyAttendanceResult(att.attRes, att.marksRes);
             }
             setSyncProgress(100);

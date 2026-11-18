@@ -44,7 +44,7 @@ const FeedbackModal = dynamic(() => import("./feedback/FeedbackModal"));
 const BugRecordingFloatingBar = dynamic(() => import("./feedback/BugRecordingFloatingBar"));
 import { useOverlayBack } from "@/lib/overlayStack";
 import type { Ids } from "@/lib/sync-engine/types";
-import { storage } from "@/lib/storage";
+import { storage, setTypedStorageItem } from "@/lib/storage";
 import { reportError } from "@/lib/error-utils";
 import { DashboardNavigatorProvider, useDashboardNavigator } from "./dashboard/DashboardNavigator";
 import CommandPaletteHost from "./app/CommandPaletteHost";
@@ -337,7 +337,7 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
   const handleDemoClick = async () => {
     const demoData = await (await fetch("/data/demoData.json")).json();
     setDemoMode(true);
-    localStorage.setItem("demoMode", "true");
+    setTypedStorageItem("demoMode", "true");
     setIDs({
       VtopUsername: demoData.username,
       VtopPassword: demoData.password,
@@ -355,10 +355,10 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
     setCalender(demoData.calender);
     if ((demoData as any).registeredEvents) {
       setRegisteredEvents((demoData as any).registeredEvents);
-      localStorage.setItem("registeredEvents", JSON.stringify((demoData as any).registeredEvents));
+      setTypedStorageItem("registeredEvents", (demoData as any).registeredEvents);
     }
     if ((demoData as any).profile) {
-      localStorage.setItem("profile", JSON.stringify((demoData as any).profile));
+      setTypedStorageItem("profile", (demoData as any).profile);
     }
     setIsLoggedIn(true);
   };

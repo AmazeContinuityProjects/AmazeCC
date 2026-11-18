@@ -1,1 +1,0 @@
-export { SectionHeader as default } from "@amazecontinuityprojects/amazeui";

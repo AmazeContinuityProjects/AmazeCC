@@ -1,1 +1,0 @@
-export { BackButton as default } from "@amazecontinuityprojects/amazeui";

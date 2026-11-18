@@ -35,6 +35,9 @@ import {
   type FinalFFCSSemesterId,
 } from "@/lib/ffcsReports";
 import { splitSlots } from "@/lib/slots";
+import type { NormalizedFaculty } from "@/types/faculty";
+import type { NormalizedCourse } from "@/types/course";
+import { normalizeCourse } from "@/lib/courseNormalizer";
 
 /**
  * The faculties on the courses in the reader's active FFCS timetable.
@@ -57,6 +60,8 @@ export interface CurrentCourseFacultyRef {
   classId?: string;
   courseCode?: string;
   slot?: string;
+  faculty?: NormalizedFaculty;
+  course?: NormalizedCourse;
 }
 
 export function readCurrentCourseRefs(): CurrentCourseFacultyRef[] {
@@ -71,13 +76,14 @@ export function readCurrentCourseRefs(): CurrentCourseFacultyRef[] {
 
     const refs: CurrentCourseFacultyRef[] = [];
     for (const course of active.courses) {
-      const name = String(course?.faculty ?? "").trim();
-      const employeeId = String(course?.employeeId ?? "").trim() || undefined;
-      const classId = String(course?.classId ?? "").trim() || undefined;
-      const courseCode = String(course?.code ?? "").trim() || undefined;
-      const slot = Array.isArray(course?.slots) ? course.slots.join("+") : undefined;
+      const normalized = normalizeCourse(course);
+      const name = normalized.faculty.name || String(course?.faculty ?? "").trim();
+      const employeeId = normalized.faculty.employeeId || String(course?.employeeId ?? "").trim() || undefined;
+      const classId = normalized.classId || String(course?.classId ?? "").trim() || undefined;
+      const courseCode = normalized.code || String(course?.code ?? "").trim() || undefined;
+      const slot = normalized.slotDisplay || (Array.isArray(course?.slots) ? course.slots.join("+") : undefined);
       if (name || employeeId) {
-        refs.push({ name, employeeId, classId, courseCode, slot });
+        refs.push({ name, employeeId, classId, courseCode, slot, faculty: normalized.faculty, course: normalized });
       }
     }
     return refs;
@@ -289,29 +295,37 @@ export default function FacultyScheduleTab({
   const currentCourseRefs = useMemo<CurrentCourseFacultyRef[]>(() => {
     const refs: CurrentCourseFacultyRef[] = [...ffcsRefs];
 
-    const marksCourses = (marksData as { courses?: unknown[] } | null)?.courses;
-    if (Array.isArray(marksCourses)) {
-      for (const raw of marksCourses) {
-        const course = raw as { faculty?: unknown; courseCode?: unknown; classId?: unknown };
-        const name = String(course?.faculty ?? "").trim();
-        const classId = String(course?.classId ?? "").trim() || undefined;
-        const courseCode = String(course?.courseCode ?? "").trim() || undefined;
-        if (name || classId) {
-          refs.push({ name, classId, courseCode });
-        }
+    const rawMarksCourses = (marksData as { courses?: unknown } | null)?.courses;
+    const marksCoursesList = Array.isArray(rawMarksCourses)
+      ? rawMarksCourses
+      : rawMarksCourses && typeof rawMarksCourses === "object"
+        ? Object.values(rawMarksCourses)
+        : [];
+
+    for (const raw of marksCoursesList) {
+      const normCourse = normalizeCourse(raw);
+      const name = normCourse.faculty.name || String((raw as any)?.faculty ?? "").trim();
+      const employeeId = normCourse.faculty.employeeId || String((raw as any)?.employeeId ?? "").trim() || undefined;
+      const classId = normCourse.classId || String((raw as any)?.classId ?? "").trim() || undefined;
+      const courseCode =
+        normCourse.code || normCourse.baseCode || String((raw as any)?.courseCode ?? "").trim() || undefined;
+      if (name || classId || employeeId) {
+        refs.push({ name, employeeId, classId, courseCode, faculty: normCourse.faculty, course: normCourse });
       }
     }
 
     const attendanceItems = (attendanceData as { attendance?: unknown[] } | null)?.attendance;
     if (Array.isArray(attendanceItems)) {
       for (const raw of attendanceItems) {
-        const item = raw as { faculty?: unknown; courseCode?: unknown; slotName?: unknown; classId?: unknown };
-        const name = String(item?.faculty ?? "").trim();
-        const classId = String(item?.classId ?? "").trim() || undefined;
-        const courseCode = String(item?.courseCode ?? "").trim() || undefined;
-        const slot = String(item?.slotName ?? "").trim() || undefined;
-        if (name || classId) {
-          refs.push({ name, classId, courseCode, slot });
+        const normCourse = normalizeCourse(raw);
+        const name = normCourse.faculty.name || String((raw as any)?.faculty ?? "").trim();
+        const employeeId = normCourse.faculty.employeeId || String((raw as any)?.employeeId ?? "").trim() || undefined;
+        const classId = normCourse.classId || String((raw as any)?.classId ?? "").trim() || undefined;
+        const courseCode =
+          normCourse.code || normCourse.baseCode || String((raw as any)?.courseCode ?? "").trim() || undefined;
+        const slot = normCourse.slotDisplay || String((raw as any)?.slotName ?? "").trim() || undefined;
+        if (name || classId || employeeId) {
+          refs.push({ name, employeeId, classId, courseCode, slot, faculty: normCourse.faculty, course: normCourse });
         }
       }
     }

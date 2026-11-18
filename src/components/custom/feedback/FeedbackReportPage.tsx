@@ -53,6 +53,7 @@ import {
   type PostHogConversationMessage,
 } from "@/lib/posthog";
 import { getActiveDisplayName, getActiveRegNumber } from "@/lib/social/identity";
+import { getTypedStorageItem, setTypedStorageItem } from "@/lib/storage";
 import { clickable } from "@/lib/a11y";
 
 export type ReportCategory = "bug" | "feature" | "experience" | "other";
@@ -261,7 +262,7 @@ export default function FeedbackReportPage({
   // Persistent user email
   useEffect(() => {
     try {
-      const saved = window.localStorage.getItem("amazecc_feedback_email");
+      const saved = getTypedStorageItem("amazecc_feedback_email");
       if (saved && !contactEmail) {
         setContactEmail(saved);
       }
@@ -271,7 +272,7 @@ export default function FeedbackReportPage({
   const handleEmailChange = (val: string) => {
     setContactEmail(val);
     try {
-      window.localStorage.setItem("amazecc_feedback_email", val.trim());
+      setTypedStorageItem("amazecc_feedback_email", val.trim());
     } catch {}
   };
 
@@ -295,8 +296,7 @@ export default function FeedbackReportPage({
   const getStoredTickets = (): PostHogConversationTicket[] => {
     if (typeof window === "undefined") return [];
     try {
-      const raw = window.localStorage.getItem(LOCAL_TICKETS_KEY);
-      return raw ? JSON.parse(raw) : [];
+      return (getTypedStorageItem(LOCAL_TICKETS_KEY) as unknown as PostHogConversationTicket[]) || [];
     } catch {
       return [];
     }
@@ -305,7 +305,7 @@ export default function FeedbackReportPage({
   const saveStoredTickets = (newTickets: PostHogConversationTicket[]) => {
     if (typeof window === "undefined") return;
     try {
-      window.localStorage.setItem(LOCAL_TICKETS_KEY, JSON.stringify(newTickets));
+      setTypedStorageItem(LOCAL_TICKETS_KEY, newTickets as any);
     } catch {}
   };
 
@@ -557,7 +557,7 @@ export default function FeedbackReportPage({
 
         if (contactEmail.trim()) {
           try {
-            window.localStorage.setItem("amazecc_feedback_email", contactEmail.trim());
+            setTypedStorageItem("amazecc_feedback_email", contactEmail.trim());
           } catch {}
         }
 

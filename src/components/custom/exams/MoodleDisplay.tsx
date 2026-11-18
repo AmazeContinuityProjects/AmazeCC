@@ -2,247 +2,238 @@ import { useState } from "react";
 import { RefreshCcw, CheckCircle, AlertCircle, Clock, Eye, EyeOff, Undo2, LogOut } from "lucide-react";
 import FetchButton from "../shared/FetchButton";
 import EmptyState from "../shared/EmptyState";
+import { setTypedStorageItem } from "@/lib/storage";
+import { normalizeCourse } from "@/lib/courseNormalizer";
 
 export default function MoodleDisplay({ moodleData, handleFetchMoodle, setMoodleData, IDs }) {
-    const [showHidden, setShowHidden] = useState(false);
+  const [showHidden, setShowHidden] = useState(false);
 
-    if (!moodleData || moodleData.length === 0) {
-        return (
-            <div className="text-xl mb-4 text-center text-gray-900  dark:text-gray-100">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
-                    {/* Mobile View: Inline Center */}
-                    <h1 className="md:hidden font-bold">
-                        Moodle/LMS Data
-                        <FetchButton onClick={() => handleFetchMoodle()} size="sm" icon={<RefreshCcw className="w-4 h-4" />} className="ml-2 align-middle" />
-                    </h1>
-                    
-                    {/* Desktop View: Left Aligned Heading + Right Aligned Button */}
-                    <h1 className="hidden md:block text-2xl font-bold text-left">
-                        Moodle/LMS Data
-                    </h1>
-                    <div className="hidden md:flex items-center justify-end">
-                        <FetchButton onClick={() => handleFetchMoodle()} icon={<RefreshCcw className="w-4 h-4" />}>
-                            <span className="text-sm">Reload</span>
-                        </FetchButton>
-                    </div>
-                </div>
-                <EmptyState
-                    title="Nothing here yet? Try refreshing."
-                    action={<MoodleUserPassForm handleFetchMoodle={handleFetchMoodle} IDs={IDs} />}
-                    className="py-4"
-                />
-            </div>
-        );
-    }
-    const sortedData = [...moodleData].sort(
-        (a, b) => new Date(b.due).getTime() - new Date(a.due).getTime()
-    );
-
-    const visibleAssignments = sortedData.filter(
-        item => showHidden || !item.hidden
-    );
-
-    const hiddenCount = sortedData.filter(item => item.hidden).length;
-
-    const setHiddenState = (url, hidden) => {
-        setMoodleData(prev => {
-            const updated = prev.map(item =>
-                item.url === url ? { ...item, hidden } : item
-            );
-
-            localStorage.setItem("moodleData", JSON.stringify(updated));
-            return updated;
-        });
-    };
-
-    const LogOutMoodle = () => {
-        localStorage.setItem("IDs", JSON.stringify({ ...IDs, MoodleUsername: "", MoodlePassword: "" }))
-        window.location.reload();
-    }
-
+  if (!moodleData || moodleData.length === 0) {
     return (
-        <div className="mt-6 p-4">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
-                {/* Mobile View: Inline Center */}
-                <h1 className="md:hidden text-xl font-bold text-center text-gray-900  dark:text-gray-100">
-                    Moodle Upcoming Exams / Assignments
-                    <FetchButton
-                        onClick={() => handleFetchMoodle()}
-                        size="sm"
-                        icon={<RefreshCcw size={16} />}
-                        className="ml-2 align-middle"
-                    />
-                </h1>
-                
-                {/* Desktop View: Left Aligned Heading + Right Aligned Button */}
-                <h1 className="hidden md:block text-2xl lg:text-3xl font-bold text-left text-gray-900  dark:text-gray-100">
-                    Moodle Upcoming Exams / Assignments
-                </h1>
-                <div className="hidden md:flex items-center justify-end">
-                    <FetchButton onClick={() => handleFetchMoodle()} icon={<RefreshCcw size={16} />}>
-                        <span className="text-sm">Reload</span>
-                    </FetchButton>
-                </div>
-            </div>
+      <div className="text-xl mb-4 text-center text-gray-900  dark:text-gray-100">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+          {/* Mobile View: Inline Center */}
+          <h1 className="md:hidden font-bold">
+            Moodle/LMS Data
+            <FetchButton
+              onClick={() => handleFetchMoodle()}
+              size="sm"
+              icon={<RefreshCcw className="w-4 h-4" />}
+              className="ml-2 align-middle"
+            />
+          </h1>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {visibleAssignments.map((item, idx) => {
-                    const isOverdue = !item.done && new Date(item.due) < new Date();
-                    const [, courseName, assignmentName] = item.name.split("/");
+          {/* Desktop View: Left Aligned Heading + Right Aligned Button */}
+          <h1 className="hidden md:block text-2xl font-bold text-left">Moodle/LMS Data</h1>
+          <div className="hidden md:flex items-center justify-end">
+            <FetchButton onClick={() => handleFetchMoodle()} icon={<RefreshCcw className="w-4 h-4" />}>
+              <span className="text-sm">Reload</span>
+            </FetchButton>
+          </div>
+        </div>
+        <EmptyState
+          title="Nothing here yet? Try refreshing."
+          action={<MoodleUserPassForm handleFetchMoodle={handleFetchMoodle} IDs={IDs} />}
+          className="py-4"
+        />
+      </div>
+    );
+  }
+  const sortedData = [...moodleData].sort((a, b) => new Date(b.due).getTime() - new Date(a.due).getTime());
 
-                    return (
-                        <div
-                            key={idx}
-                            className="p-4 rounded-lg shadow bg-white  dark:bg-black
+  const visibleAssignments = sortedData.filter((item) => showHidden || !item.hidden);
+
+  const hiddenCount = sortedData.filter((item) => item.hidden).length;
+
+  const setHiddenState = (url, hidden) => {
+    setMoodleData((prev) => {
+      const updated = prev.map((item) => (item.url === url ? { ...item, hidden } : item));
+
+      setTypedStorageItem("moodleData", updated);
+      return updated;
+    });
+  };
+
+  const LogOutMoodle = () => {
+    setTypedStorageItem("IDs", { ...IDs, MoodleUsername: "", MoodlePassword: "" });
+    window.location.reload();
+  };
+
+  return (
+    <div className="mt-6 p-4">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+        {/* Mobile View: Inline Center */}
+        <h1 className="md:hidden text-xl font-bold text-center text-gray-900  dark:text-gray-100">
+          Moodle Upcoming Exams / Assignments
+          <FetchButton
+            onClick={() => handleFetchMoodle()}
+            size="sm"
+            icon={<RefreshCcw size={16} />}
+            className="ml-2 align-middle"
+          />
+        </h1>
+
+        {/* Desktop View: Left Aligned Heading + Right Aligned Button */}
+        <h1 className="hidden md:block text-2xl lg:text-3xl font-bold text-left text-gray-900  dark:text-gray-100">
+          Moodle Upcoming Exams / Assignments
+        </h1>
+        <div className="hidden md:flex items-center justify-end">
+          <FetchButton onClick={() => handleFetchMoodle()} icon={<RefreshCcw size={16} />}>
+            <span className="text-sm">Reload</span>
+          </FetchButton>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {visibleAssignments.map((item, idx) => {
+          const isOverdue = !item.done && new Date(item.due) < new Date();
+          const [, courseName, assignmentName] = item.name.split("/");
+          const norm = courseName ? normalizeCourse({ title: courseName, code: courseName }) : null;
+          const displayCourse = norm?.title || courseName || "Course";
+
+          return (
+            <div
+              key={idx}
+              className="p-4 rounded-lg shadow bg-white  dark:bg-black
                                        dark:outline dark:outline-1 dark:outline-gray-800
                                        hover:shadow-md transition cursor-pointer"
-                        >
-                            <a href={item.url} target="_blank" rel="noopener noreferrer">
-                                <div className="flex items-center justify-between">
-                                    <h2 className="font-semibold text-gray-900  dark:text-gray-200">
-                                        {courseName} - {assignmentName}
-                                    </h2>
+            >
+              <a href={item.url} target="_blank" rel="noopener noreferrer">
+                <div className="flex items-center justify-between">
+                  <h2 className="font-semibold text-gray-900  dark:text-gray-200">
+                    {displayCourse} - {assignmentName}
+                  </h2>
 
-                                    {item.done ? (
-                                        <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                                    ) : isOverdue ? (
-                                        <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
-                                    ) : (
-                                        <Clock className="w-5 h-5 text-yellow-500 flex-shrink-0" />
-                                    )}
-                                </div>
-
-                                <p className="mt-2 text-sm text-gray-700  dark:text-gray-300">
-                                    <strong>Teacher:</strong> {item.teachers?.[0] ?? "Unknown"}
-                                </p>
-                                <p className="mt-2 text-sm text-gray-700  dark:text-gray-300">
-                                    <strong>Due:</strong> {item.due}
-                                </p>
-                            </a>
-
-                            <div className="mt-3 flex items-center justify-between">
-                                <span
-                                    className={`px-3 py-1 rounded-full text-xs ${item.done
-                                        ? "bg-green-200 text-green-800"
-                                        : isOverdue
-                                            ? "bg-red-200 text-red-800"
-                                            : "bg-yellow-200 text-yellow-800"
-                                        }`}
-                                >
-                                    {item.done ? "Completed" : isOverdue ? "Overdue" : "Pending"}
-                                </span>
-
-                                {!item.hidden ? (
-                                    <button
-                                        onClick={() => setHiddenState(item.url, true)}
-                                        className="text-xs text-gray-500 hover:text-red-600"
-                                    >
-                                        Not yours? Hide it
-                                    </button>
-                                ) : (
-                                    <button
-                                        onClick={() => setHiddenState(item.url, false)}
-                                        className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
-                                    >
-                                        <Undo2 size={14} />
-                                        Unhide
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
-            {hiddenCount > 0 && (
-                <div className="mt-6 flex items-center justify-center gap-3 text-sm text-gray-700 dark:text-gray-300">
-                    <span>{hiddenCount} hidden assignments</span>
-                    <button
-                        onClick={() => setShowHidden(!showHidden)}
-                        className="inline-flex items-center gap-1 px-3 py-1 rounded-md bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 transition"
-                    >
-                        {showHidden ? <EyeOff size={14} /> : <Eye size={14} />}
-                        {showHidden ? "Hide hidden" : "Show hidden"}
-                    </button>
+                  {item.done ? (
+                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                  ) : isOverdue ? (
+                    <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                  ) : (
+                    <Clock className="w-5 h-5 text-yellow-500 flex-shrink-0" />
+                  )}
                 </div>
-            )}
-            <div className="mt-6 flex items-center justify-center gap-3 text-sm text-gray-700 dark:text-gray-300">
-                <button
-                    onClick={LogOutMoodle}
-                    className="w-full max-w-md px-4 py-2 rounded-lg font-medium flex items-center justify-center bg-red-600 hover:bg-red-700 text-white transition-colors"
+
+                <p className="mt-2 text-sm text-gray-700  dark:text-gray-300">
+                  <strong>Teacher:</strong> {item.teachers?.[0] ?? "Unknown"}
+                </p>
+                <p className="mt-2 text-sm text-gray-700  dark:text-gray-300">
+                  <strong>Due:</strong> {item.due}
+                </p>
+              </a>
+
+              <div className="mt-3 flex items-center justify-between">
+                <span
+                  className={`px-3 py-1 rounded-full text-xs ${
+                    item.done
+                      ? "bg-green-200 text-green-800"
+                      : isOverdue
+                        ? "bg-red-200 text-red-800"
+                        : "bg-yellow-200 text-yellow-800"
+                  }`}
                 >
-                    <LogOut className="w-4 h-4 mr-1" />
-                    Log Out Moodle
-                </button>
+                  {item.done ? "Completed" : isOverdue ? "Overdue" : "Pending"}
+                </span>
+
+                {!item.hidden ? (
+                  <button
+                    onClick={() => setHiddenState(item.url, true)}
+                    className="text-xs text-gray-500 hover:text-red-600"
+                  >
+                    Not yours? Hide it
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setHiddenState(item.url, false)}
+                    className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                  >
+                    <Undo2 size={14} />
+                    Unhide
+                  </button>
+                )}
+              </div>
             </div>
+          );
+        })}
+      </div>
+      {hiddenCount > 0 && (
+        <div className="mt-6 flex items-center justify-center gap-3 text-sm text-gray-700 dark:text-gray-300">
+          <span>{hiddenCount} hidden assignments</span>
+          <button
+            onClick={() => setShowHidden(!showHidden)}
+            className="inline-flex items-center gap-1 px-3 py-1 rounded-md bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 transition"
+          >
+            {showHidden ? <EyeOff size={14} /> : <Eye size={14} />}
+            {showHidden ? "Hide hidden" : "Show hidden"}
+          </button>
         </div>
-    );
+      )}
+      <div className="mt-6 flex items-center justify-center gap-3 text-sm text-gray-700 dark:text-gray-300">
+        <button
+          onClick={LogOutMoodle}
+          className="w-full max-w-md px-4 py-2 rounded-lg font-medium flex items-center justify-center bg-red-600 hover:bg-red-700 text-white transition-colors"
+        >
+          <LogOut className="w-4 h-4 mr-1" />
+          Log Out Moodle
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export function MoodleUserPassForm({ handleFetchMoodle, IDs }) {
-    const [username, setUsername] = useState("");
-    const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
 
-    async function handleSubmit(e) {
-        e.preventDefault();
+  async function handleSubmit(e) {
+    e.preventDefault();
 
-        if (!username || !password) return;
-        await handleFetchMoodle(username, password);
-        localStorage.setItem("IDs", JSON.stringify({ ...IDs, MoodleUsername: username, MoodlePassword: password }))
-        window.location.reload();
-    }
+    if (!username || !password) return;
+    await handleFetchMoodle(username, password);
+    setTypedStorageItem("IDs", { ...IDs, MoodleUsername: username, MoodlePassword: password });
+    window.location.reload();
+  }
 
-    return (
-        <div className="flex flex-col items-center justify-center gap-6 p-6 text-center">
-            <h2 className="text-xl font-semibold text-gray-800  dark:text-gray-100">
-                Enter Moodle Credentials
-            </h2>
+  return (
+    <div className="flex flex-col items-center justify-center gap-6 p-6 text-center">
+      <h2 className="text-xl font-semibold text-gray-800  dark:text-gray-100">Enter Moodle Credentials</h2>
 
-            <form
-                onSubmit={handleSubmit}
-                className="flex flex-col w-full max-w-sm gap-4"
-            >
-                <div className="flex flex-col text-left">
-                    <label
-                        className="text-sm font-medium text-gray-700  dark:text-gray-200 mb-1"
-                    >
-                        Username (Registration No.)
-                    </label>
-                    <input
-                        className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 
+      <form onSubmit={handleSubmit} className="flex flex-col w-full max-w-sm gap-4">
+        <div className="flex flex-col text-left">
+          <label className="text-sm font-medium text-gray-700  dark:text-gray-200 mb-1">
+            Username (Registration No.)
+          </label>
+          <input
+            className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 
                         dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100
                         focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                        placeholder="Enter Moodle username"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                    />
-                </div>
+            placeholder="Enter Moodle username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+          />
+        </div>
 
-                <div className="flex flex-col text-left">
-                    <label
-                        className="text-sm font-medium text-gray-700  dark:text-gray-200 mb-1"
-                    >
-                        Password
-                    </label>
-                    <input
-                        type="password"
-                        className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 
+        <div className="flex flex-col text-left">
+          <label className="text-sm font-medium text-gray-700  dark:text-gray-200 mb-1">Password</label>
+          <input
+            type="password"
+            className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 
                         dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100
                         focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                        placeholder="Enter Moodle password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                    />
-                </div>
+            placeholder="Enter Moodle password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
 
-                <button
-                    type="submit"
-                    className="px-6 py-2 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700 
+        <button
+          type="submit"
+          className="px-6 py-2 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700 
                         dark:bg-blue-500 dark:hover:bg-blue-600
                         transition-colors duration-150"
-                >
-                    Continue
-                </button>
-            </form>
-        </div>
-    );
+        >
+          Continue
+        </button>
+      </form>
+    </div>
+  );
 }

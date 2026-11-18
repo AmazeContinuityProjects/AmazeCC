@@ -11,6 +11,24 @@ import {
   getTodayAttendanceDay,
 } from "@/lib/attendanceTimetable";
 import config from "../../../../config.json";
+import type { NormalizedCourse } from "@/types/course";
+import type { NormalizedFaculty } from "@/types/faculty";
+
+export interface WeeklyClassSession {
+  slotName: string;
+  time: string;
+  courseCode: string;
+  courseType?: string;
+  slotVenue?: string | null;
+  faculty?: string | NormalizedFaculty | null;
+}
+
+export interface WeeklyScheduleDay {
+  dayKey: string;
+  label: string;
+  full: string;
+  classes: WeeklyClassSession[];
+}
 
 export interface CourseWeeklyScheduleProps {
   courseCode: string;
@@ -19,8 +37,9 @@ export interface CourseWeeklyScheduleProps {
   labSlot?: string;
   theoryVenue?: string;
   labVenue?: string;
-  theoryFaculty?: string;
-  labFaculty?: string;
+  theoryFaculty?: string | NormalizedFaculty;
+  labFaculty?: string | NormalizedFaculty;
+  course?: NormalizedCourse;
   viewDetail?: any;
   viewLoading?: boolean;
   onFetchViewDetail?: () => void;
@@ -48,6 +67,7 @@ export default function CourseWeeklySchedule({
   labVenue,
   theoryFaculty,
   labFaculty,
+  course,
   viewDetail,
   viewLoading,
   onFetchViewDetail,
@@ -55,7 +75,7 @@ export default function CourseWeeklySchedule({
   detailEntriesByScope,
   renderScopeBadge,
 }: CourseWeeklyScheduleProps) {
-  const cleanSelected = courseCode
+  const cleanSelected = (course?.baseCode || courseCode)
     .replace(/\([LPT]\)$/i, "")
     .trim()
     .toUpperCase();
@@ -67,13 +87,22 @@ export default function CourseWeeklySchedule({
 
     const result = (ATTENDANCE_DAYS as readonly string[])
       .map((dayKey) => {
-        const classes = (dayCardsMap[dayKey] || []).filter((cls: any) => {
-          const cCode = String(cls.courseCode || "")
-            .replace(/\([LPT]\)$/i, "")
-            .trim()
-            .toUpperCase();
-          return cCode === cleanSelected;
-        });
+        const classes: WeeklyClassSession[] = (dayCardsMap[dayKey] || [])
+          .filter((cls: any) => {
+            const cCode = String(cls.courseCode || "")
+              .replace(/\([LPT]\)$/i, "")
+              .trim()
+              .toUpperCase();
+            return cCode === cleanSelected;
+          })
+          .map((cls: any) => ({
+            slotName: cls.slotName || "",
+            time: cls.time || "",
+            courseCode: cls.courseCode || cleanSelected,
+            courseType: cls.courseType,
+            slotVenue: cls.slotVenue || null,
+            faculty: cls.faculty || null,
+          }));
 
         return {
           dayKey,
@@ -93,11 +122,22 @@ export default function CourseWeeklySchedule({
     const slotMap = (config as any).slotMap;
     if (!slotMap) return [];
 
-    const theorySlots = (theorySlot || "")
+    const effectiveTheorySlot = theorySlot || (course?.isTheory ? course.slotDisplay : "");
+    const effectiveLabSlot = labSlot || (course?.isLab ? course.slotDisplay : "");
+    const effectiveTheoryVenue = theoryVenue || (course?.isTheory ? course.venue : "");
+    const effectiveLabVenue = labVenue || (course?.isLab ? course.venue : "");
+    const effectiveTheoryFaculty =
+      typeof theoryFaculty === "object"
+        ? theoryFaculty?.name
+        : theoryFaculty || (course?.isTheory ? course.faculty.name : "");
+    const effectiveLabFaculty =
+      typeof labFaculty === "object" ? labFaculty?.name : labFaculty || (course?.isLab ? course.faculty.name : "");
+
+    const theorySlots = effectiveTheorySlot
       .split("+")
       .map((s) => s.trim())
       .filter(Boolean);
-    const labSlots = (labSlot || "")
+    const labSlots = effectiveLabSlot
       .split("+")
       .map((s) => s.trim())
       .filter(Boolean);
@@ -107,7 +147,7 @@ export default function CourseWeeklySchedule({
     return (ATTENDANCE_DAYS as readonly string[])
       .map((dayKey) => {
         const daySlots = slotMap[dayKey] || {};
-        const classes: any[] = [];
+        const classes: WeeklyClassSession[] = [];
 
         theorySlots.forEach((slotName) => {
           if (daySlots[slotName]) {
@@ -116,8 +156,8 @@ export default function CourseWeeklySchedule({
               time: daySlots[slotName].time,
               courseCode: cleanSelected,
               courseType: "Theory",
-              slotVenue: theoryVenue,
-              faculty: theoryFaculty,
+              slotVenue: effectiveTheoryVenue || null,
+              faculty: effectiveTheoryFaculty || null,
             });
           }
         });
@@ -129,8 +169,8 @@ export default function CourseWeeklySchedule({
               time: daySlots[slotName].time,
               courseCode: `${cleanSelected}(L)`,
               courseType: "Lab",
-              slotVenue: labVenue,
-              faculty: labFaculty,
+              slotVenue: effectiveLabVenue || null,
+              faculty: effectiveLabFaculty || null,
             });
           }
         });
@@ -149,7 +189,7 @@ export default function CourseWeeklySchedule({
         };
       })
       .filter((d) => d.classes.length > 0);
-  }, [scheduledDays, cleanSelected, theorySlot, labSlot, theoryVenue, labVenue, theoryFaculty, labFaculty]);
+  }, [scheduledDays, cleanSelected, theorySlot, labSlot, theoryVenue, labVenue, theoryFaculty, labFaculty, course]);
 
   // Total classes per week count
   const totalClassesCount = useMemo(() => {
@@ -260,7 +300,14 @@ export default function CourseWeeklySchedule({
                               <span>
                                 Venue: <span className="font-semibold text-text-heading">{cls.slotVenue || "—"}</span>
                               </span>
-                              {cls.faculty ? <span>&middot; {cls.faculty}</span> : null}
+                              {cls.faculty ? (
+                                <span>
+                                  &middot;{" "}
+                                  {typeof cls.faculty === "object"
+                                    ? (cls.faculty as NormalizedFaculty).name
+                                    : cls.faculty}
+                                </span>
+                              ) : null}
                             </span>
                           }
                         />

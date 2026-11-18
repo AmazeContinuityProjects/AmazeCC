@@ -32,12 +32,13 @@ if (typeof window !== "undefined") {
         network: true,
       },
       disable_session_recording: true,
-      debug: process.env.NODE_ENV === "development",
+      disable_scroll_properties: true,
+      debug: false,
       logs: {
         serviceName: "amazecc-web",
         environment: process.env.NODE_ENV,
       },
-    });
+    } as any);
   } else if (process.env.NODE_ENV !== "production") {
     console.warn(
       "[PostHog] NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN or NEXT_PUBLIC_POSTHOG_HOST is missing. Client analytics are inactive.",

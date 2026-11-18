@@ -1,10 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Mail, Phone, Copy, Check, CalendarDays, Star, Info, ChevronDown, ChevronUp } from "lucide-react";
 import { KeyValue, ToneBadge } from "../shared/primitives";
 import { FacultyAvatar, VitfacReviewPill } from "./FFCS/components/FacultyAvatar";
 import { useVitfacReview, getFacultyDirectoryProfile, type FacultyDirectoryProfile } from "@/lib/vitfacService";
+import type { NormalizedFaculty, ParsedFacultyInfo } from "@/types/faculty";
+import type { NormalizedCourse } from "@/types/course";
+import { normalizeFaculty } from "@/lib/courseNormalizer";
 
 export interface CourseFacultyCardProps {
   scope: "Theory" | "Lab" | "Course";
@@ -12,114 +15,34 @@ export interface CourseFacultyCardProps {
   attItem?: any;
   isEmbedded?: boolean;
   courseCode: string;
+  faculty?: NormalizedFaculty | string | null;
+  course?: NormalizedCourse | null;
   onOpenFacultyReview?: (target: { name: string; employeeId?: string; courseCode?: string }) => void;
   onOpenFacultySchedule?: (facultyName: string, employeeId?: string) => void;
 }
 
-export interface ParsedFacultyInfo {
-  cleanName: string;
-  employeeId?: string;
-  school?: string;
-  department?: string;
-}
-
-const KNOWN_VIT_SCHOOLS = new Set([
-  "SAS",
-  "SCOPE",
-  "SELECT",
-  "SENSE",
-  "SITE",
-  "SMEC",
-  "SSL",
-  "VITSOL",
-  "VITBS",
-  "SCHEME",
-  "HOT",
-  "SCSE",
-  "VAIAL",
-  "SHSS",
-  "DS",
-  "SEEE",
-  "SET",
-  "CORE",
-  "SCA",
-  "CBST",
-  "VFSTR",
-  "CNE",
-  "COE",
-]);
+export type { ParsedFacultyInfo };
 
 /**
  * Parses faculty name, employee id, and department from raw strings.
- * Employee ID is the first segment of the faculty name record,
- * and department is the last segment of the faculty name record.
- * Supports both hyphen-delimited ("12345 - DR. JOHN DOE - SCOPE")
- * and space-delimited ("50772 NATHIYA N SAS") records.
+ * Delegates to canonical `normalizeFaculty` normalizer and harmonizes
+ * field mappings so existing consumers receive clean names, employee IDs,
+ * schools, and departments.
  */
 export function parseFacultyInfo(rawFaculty?: string | null): ParsedFacultyInfo {
-  if (!rawFaculty || typeof rawFaculty !== "string") {
-    return { cleanName: "", employeeId: undefined, school: undefined, department: undefined };
-  }
-  let str = rawFaculty.trim();
-  if (!str) {
+  if (!rawFaculty || typeof rawFaculty !== "string" || !rawFaculty.trim()) {
     return { cleanName: "", employeeId: undefined, school: undefined, department: undefined };
   }
 
-  let employeeId: string | undefined = undefined;
-  let department: string | undefined = undefined;
-
-  // 1. Extract Employee ID (first segment)
-  // Check if string starts with digits (e.g. "50772 NATHIYA..." or "50772 - NATHIYA..." or "12345-...")
-  const startEmpMatch = str.match(/^(\d{3,7})\s*[-–—]?\s*(.*)$/);
-  if (startEmpMatch) {
-    employeeId = startEmpMatch[1];
-    str = startEmpMatch[2].trim();
-  }
-
-  // 2. Extract Department (last segment)
-  // Check if there is an explicit hyphen separator before the last segment:
-  // e.g. "DR. JOHN DOE - SCOPE" or "DR. CHARLES BABBAGE - SCHOOL OF ADVANCED SCIENCES"
-  const lastHyphenIdx = Math.max(str.lastIndexOf(" - "), str.lastIndexOf(" – "), str.lastIndexOf(" — "));
-  if (lastHyphenIdx !== -1) {
-    const after = str.slice(lastHyphenIdx + 3).trim();
-    const before = str.slice(0, lastHyphenIdx).trim();
-    if (after && before) {
-      department = after;
-      str = before;
-    }
-  } else if (str.includes("-")) {
-    const parts = str
-      .split("-")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (parts.length > 1) {
-      department = parts[parts.length - 1];
-      str = parts.slice(0, -1).join(" - ").trim();
-    }
-  } else {
-    // Space-separated segments (no hyphens remaining):
-    // e.g. "NATHIYA N SAS" -> tokens: ["NATHIYA", "N", "SAS"]
-    // e.g. "DR. JANE SMITH SELECT" -> tokens: ["DR.", "JANE", "SMITH", "SELECT"]
-    const tokens = str.split(/\s+/).filter(Boolean);
-    if (tokens.length >= 2) {
-      const lastToken = tokens[tokens.length - 1];
-      // When employee ID was present, the last token is unequivocally the department segment.
-      // When employee ID is absent and there are no hyphens, match against known VIT school acronyms.
-      const isDept = employeeId !== undefined || KNOWN_VIT_SCHOOLS.has(lastToken.toUpperCase());
-      if (isDept && (lastToken.length >= 2 || (employeeId !== undefined && tokens.length > 2))) {
-        department = lastToken;
-        str = tokens.slice(0, -1).join(" ");
-      }
-    }
-  }
-
-  const cleanName = str.trim();
+  const norm = normalizeFaculty(rawFaculty);
+  const cleanName = [norm.title, norm.name].filter(Boolean).join(" ") || norm.name || "";
+  const deptOrSchool = norm.department || norm.school || undefined;
 
   return {
     cleanName,
-    employeeId,
-    school: department,
-    department,
+    employeeId: norm.employeeId || undefined,
+    school: norm.school || norm.department || undefined,
+    department: deptOrSchool,
   };
 }
 
@@ -129,18 +52,39 @@ export default function CourseFacultyCard({
   attItem,
   isEmbedded,
   courseCode,
+  faculty,
+  course,
   onOpenFacultyReview,
   onOpenFacultySchedule,
 }: CourseFacultyCardProps) {
-  const rawFaculty = courseComp?.faculty || attItem?.faculty || "";
-  const venue = attItem?.slotVenue || courseComp?.venue || "";
+  const normalizedFaculty: NormalizedFaculty = useMemo(() => {
+    if (faculty && typeof faculty === "object" && "name" in faculty) {
+      return faculty as NormalizedFaculty;
+    }
+    if (course?.faculty) {
+      return course.faculty;
+    }
+    const rawFaculty = (typeof faculty === "string" ? faculty : null) || courseComp?.faculty || attItem?.faculty || "";
+    return normalizeFaculty(rawFaculty);
+  }, [faculty, course, courseComp, attItem]);
 
-  const {
-    cleanName,
-    employeeId: parsedEmpId,
-    school: parsedSchool,
-    department: parsedDept,
-  } = parseFacultyInfo(rawFaculty);
+  const rawFacultyString =
+    (typeof faculty === "string" ? faculty : null) ||
+    courseComp?.faculty ||
+    attItem?.faculty ||
+    normalizedFaculty.raw ||
+    "";
+  const venue = course?.venue || attItem?.slotVenue || courseComp?.venue || "";
+
+  const parsed = parseFacultyInfo(rawFacultyString || normalizedFaculty.raw);
+  const cleanName =
+    parsed.cleanName ||
+    [normalizedFaculty.title, normalizedFaculty.name].filter(Boolean).join(" ") ||
+    normalizedFaculty.name;
+  const parsedEmpId = normalizedFaculty.employeeId || parsed.employeeId;
+  const parsedSchool = normalizedFaculty.school || parsed.school;
+  const parsedDept = normalizedFaculty.department || parsed.department;
+
   const { review } = useVitfacReview(parsedEmpId, cleanName);
 
   const effectiveEmpId = parsedEmpId || review?.employeeId || undefined;

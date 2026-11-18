@@ -1,4 +1,12 @@
-export const fallbackHubs = [
+import { getTypedStorageItem, setTypedStorageItem } from "@/lib/storage";
+import type { CabShareTrip, CabShareUser, CabShareSeatOptions } from "@/types/storage";
+
+export interface CabShareHub {
+  hub_id: number;
+  hub_name: string;
+}
+
+export const fallbackHubs: CabShareHub[] = [
   { hub_id: 1, hub_name: "VIT Chennai" },
   { hub_id: 2, hub_name: "Chennai Airport" },
   { hub_id: 3, hub_name: "Chennai Central Railway Station" },
@@ -15,10 +23,10 @@ export const fallbackHubs = [
   { hub_id: 14, hub_name: "Velachery" },
 ];
 
-export function dedupeHubs(hubs: { hub_id: number; hub_name: string }[], withFallback?: { hub_id: number; hub_name: string }[]) {
+export function dedupeHubs(hubs: CabShareHub[], withFallback?: CabShareHub[]): CabShareHub[] {
   const seen = new Set<string>();
   const merged = withFallback ? [...withFallback, ...hubs] : hubs;
-  return merged.filter(h => {
+  return merged.filter((h) => {
     const key = h.hub_name.trim().toLowerCase();
     if (seen.has(key)) return false;
     seen.add(key);
@@ -26,30 +34,40 @@ export function dedupeHubs(hubs: { hub_id: number; hub_name: string }[], withFal
   });
 }
 
-const LOCAL_TRIPS_KEY = "cabshare_local_trips";
-
 export function readJsonResponse(res: Response) {
   const contentType = res.headers.get("content-type") || "";
   if (!res.ok || !contentType.includes("application/json")) return null;
   return res.json();
 }
 
-export function getLocalTrips() {
-  try {
-    return JSON.parse(localStorage.getItem(LOCAL_TRIPS_KEY) || "[]");
-  } catch {
-    return [];
-  }
+export function getLocalTrips(): CabShareTrip[] {
+  return getTypedStorageItem("cabshare_local_trips", []) || [];
 }
 
-export function saveLocalTrips(trips: any[]) {
-  localStorage.setItem(LOCAL_TRIPS_KEY, JSON.stringify(trips));
+export function saveLocalTrips(trips: CabShareTrip[]): void {
+  setTypedStorageItem("cabshare_local_trips", trips);
 }
 
-export function createLocalTrip(payload: any, cabShareUser: any, hubs = fallbackHubs) {
+export interface CreateLocalTripPayload {
+  from_hub_id: number;
+  hub_id: number;
+  travel_date: string;
+  preferred_time: string;
+  tolerance_hours: number;
+  seat_options: CabShareSeatOptions;
+  gender_preference: string;
+  notes?: string;
+  reg_number?: string;
+}
+
+export function createLocalTrip(
+  payload: CreateLocalTripPayload,
+  cabShareUser: Pick<CabShareUser, "reg_number"> & Partial<Pick<CabShareUser, "name" | "phone_number">>,
+  hubs: CabShareHub[] = fallbackHubs,
+): CabShareTrip {
   const hub = hubs.find((item) => Number(item.hub_id) === Number(payload.hub_id));
   const fromHub = hubs.find((item) => Number(item.hub_id) === Number(payload.from_hub_id));
-  const trip = {
+  const trip: CabShareTrip = {
     trip_id: Date.now(),
     ...payload,
     hub_name: hub?.hub_name || "Selected Hub",
@@ -57,7 +75,7 @@ export function createLocalTrip(payload: any, cabShareUser: any, hubs = fallback
     reg_number: cabShareUser.reg_number,
     name: cabShareUser.name || cabShareUser.reg_number,
     owner_name: cabShareUser.name || cabShareUser.reg_number,
-    owner_phone: cabShareUser.phone_number,
+    owner_phone: cabShareUser.phone_number || undefined,
     status: "active",
     requests: [],
     local_only: true,

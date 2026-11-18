@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { clearEventHubSession } from "@/lib/sync-engine";
 import { defaultCredentials } from "@/store/authAtoms";
 import { defaultSettings } from "@/store/settingsAtoms";
+import { getTypedStorageItem, setTypedStorageItem } from "@/lib/storage";
 import posthog from "posthog-js";
 
 interface LogoutActionOptions {
@@ -39,7 +40,7 @@ export function useLogoutAction({
   onSignedOut,
 }: LogoutActionOptions) {
   return useCallback(() => {
-    const savedTheme = localStorage.getItem("theme") || theme || "light";
+    const savedTheme = (getTypedStorageItem("theme") as string) || theme || "light";
     if (process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST) {
       posthog.reset();
     }
@@ -49,16 +50,20 @@ export function useLogoutAction({
     setAuthorizedID("");
     clearEventHubSession();
 
-    const keysToKeep = ["activityTree", "theme"];
-    const saved: Record<string, string | null> = {};
+    const keysToKeep = ["activityTree", "theme"] as const;
+    const saved: Record<string, any> = {};
     keysToKeep.forEach((key) => {
-      saved[key] = localStorage.getItem(key);
+      saved[key] = getTypedStorageItem(key);
     });
     saved.theme = saved.theme || savedTheme;
 
-    localStorage.clear();
+    if (typeof window !== "undefined" && typeof window.localStorage !== "undefined") {
+      window.localStorage.clear();
+    }
     keysToKeep.forEach((key) => {
-      if (saved[key] !== null) localStorage.setItem(key, saved[key]!);
+      if (saved[key] !== null && saved[key] !== undefined) {
+        setTypedStorageItem(key as any, saved[key]);
+      }
     });
 
     setTheme(savedTheme);

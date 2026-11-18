@@ -38,6 +38,7 @@ import {
   setSyncPresentation,
   useSyncSession,
 } from "@/lib/sync-engine/sync-session";
+import { setTypedStorageItem } from "@/lib/storage";
 
 export type InterfaceOptionId = "simplified";
 
@@ -267,11 +268,11 @@ export default function AmazeOnboardingFlow({
       interfaceChosen: true,
     };
     try {
-      localStorage.setItem("has_selected_interface", "true");
-      localStorage.setItem("introDone", "true");
-      localStorage.setItem("hasSeenPushPrompt", "true");
-      localStorage.setItem("push_prompt_dismissed", "true");
-      localStorage.setItem("busPromptDismissed", "true");
+      setTypedStorageItem("has_selected_interface", "true");
+      setTypedStorageItem("introDone", "true");
+      setTypedStorageItem("hasSeenPushPrompt", "true");
+      setTypedStorageItem("push_prompt_dismissed", "true");
+      setTypedStorageItem("busPromptDismissed", "true");
     } catch {}
 
     // Launch is not the moment for a progress modal: if the first full sync is
@@ -297,8 +298,8 @@ export default function AmazeOnboardingFlow({
       const permission = await Notification.requestPermission();
       if (permission === "granted") {
         setNotifEnabled(true);
-        localStorage.setItem("hasSeenPushPrompt", "true");
-        localStorage.setItem("push_prompt_dismissed", "true");
+        setTypedStorageItem("hasSeenPushPrompt", "true");
+        setTypedStorageItem("push_prompt_dismissed", "true");
 
         const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
         if (vapidPublicKey && (username || IDs?.VtopUsername) && "serviceWorker" in navigator) {

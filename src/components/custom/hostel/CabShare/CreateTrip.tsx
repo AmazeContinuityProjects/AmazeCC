@@ -2,42 +2,55 @@
 
 import { useState, useEffect } from "react";
 import { api } from "@/lib/sync-engine";
-import { AlertCircle, Calendar as CalendarIcon, CheckCircle2, Clock, Loader2, MapPin, MessageSquareText, SlidersHorizontal, Users } from "lucide-react";
-import { createLocalTrip, fallbackHubs, readJsonResponse, dedupeHubs } from "./cabShareFallback";
+import {
+  AlertCircle,
+  Calendar as CalendarIcon,
+  CheckCircle2,
+  Clock,
+  Loader2,
+  MapPin,
+  MessageSquareText,
+  SlidersHorizontal,
+  Users,
+} from "lucide-react";
+import {
+  createLocalTrip,
+  fallbackHubs,
+  readJsonResponse,
+  dedupeHubs,
+  type CabShareHub,
+  type CreateLocalTripPayload,
+} from "./cabShareFallback";
+import type { CabShareUser } from "@/types/storage";
 import SelectField from "../../shared/primitives/SelectField";
 import { ListSkeleton } from "../../shared/primitives";
 import { FIELD_INPUT, TILE_CARD, TONE_ICON_TILE } from "@/lib/uiTokens";
 
-const FIELD_LABEL =
-  "block text-[10px] font-black uppercase tracking-wider text-text-muted";
+const FIELD_LABEL = "block text-[10px] font-black uppercase tracking-wider text-text-muted";
 
 /** Label + icon-led control, the one wrapper the date/time/seats/tolerance share. */
 // Descendant (not `> child`) selectors: `SelectField` renders its own wrapper
 // `div` around the `select`, so the control is not always a direct child.
-function FieldWithIcon({
-  label,
-  icon,
-  children,
-}: {
-  label: string;
-  icon: React.ReactNode;
-  children: React.ReactNode;
-}) {
+function FieldWithIcon({ label, icon, children }: { label: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
     <label className="block space-y-1">
       <span className={FIELD_LABEL}>{label}</span>
       <span className="relative block [&_input]:pl-11 [&_select]:pl-11">
-        <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-text-muted">
-          {icon}
-        </span>
+        <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-text-muted">{icon}</span>
         {children}
       </span>
     </label>
   );
 }
 
-export default function CreateTrip({ cabShareUser, onTripCreated }: { cabShareUser: any, onTripCreated: () => void }) {
-  const [hubs, setHubs] = useState<any[]>([]);
+export default function CreateTrip({
+  cabShareUser,
+  onTripCreated,
+}: {
+  cabShareUser: CabShareUser;
+  onTripCreated: () => void;
+}) {
+  const [hubs, setHubs] = useState<CabShareHub[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -82,7 +95,7 @@ export default function CreateTrip({ cabShareUser, onTripCreated }: { cabShareUs
 
   const handleFromChange = (val: string) => {
     if (val === hubId && hubs.length > 1) {
-      const next = hubs.find(h => h.hub_id.toString() !== val);
+      const next = hubs.find((h) => h.hub_id.toString() !== val);
       setHubId(next ? next.hub_id.toString() : "");
     }
     setFromHubId(val);
@@ -90,7 +103,7 @@ export default function CreateTrip({ cabShareUser, onTripCreated }: { cabShareUs
 
   const handleToChange = (val: string) => {
     if (val === fromHubId && hubs.length > 1) {
-      const next = hubs.find(h => h.hub_id.toString() !== val);
+      const next = hubs.find((h) => h.hub_id.toString() !== val);
       setFromHubId(next ? next.hub_id.toString() : "");
     }
     setHubId(val);
@@ -105,7 +118,7 @@ export default function CreateTrip({ cabShareUser, onTripCreated }: { cabShareUs
     }
     setSubmitting(true);
     setError("");
-    const payload = {
+    const payload: CreateLocalTripPayload = {
       reg_number: cabShareUser.reg_number,
       from_hub_id: parseInt(fromHubId),
       hub_id: parseInt(hubId),
@@ -114,13 +127,13 @@ export default function CreateTrip({ cabShareUser, onTripCreated }: { cabShareUs
       tolerance_hours: parseFloat(tolerance),
       seat_options: { requested: parseInt(seats) },
       gender_preference: gender,
-      notes: notes
+      notes: notes,
     };
 
     try {
       const res = await api("cabshare/trips", {
         method: "POST",
-        body: payload
+        body: payload,
       });
       const data = await readJsonResponse(res as Response);
       if (data?.success) {
@@ -168,7 +181,7 @@ export default function CreateTrip({ cabShareUser, onTripCreated }: { cabShareUs
               <span className={FIELD_LABEL}>From</span>
               <SelectField
                 value={fromHubId}
-                options={hubs.map(h => ({ value: h.hub_id.toString(), label: h.hub_name }))}
+                options={hubs.map((h) => ({ value: h.hub_id.toString(), label: h.hub_name }))}
                 onChange={handleFromChange}
               />
             </label>
@@ -176,7 +189,7 @@ export default function CreateTrip({ cabShareUser, onTripCreated }: { cabShareUs
               <span className={FIELD_LABEL}>To</span>
               <SelectField
                 value={hubId}
-                options={hubs.map(h => ({ value: h.hub_id.toString(), label: h.hub_name }))}
+                options={hubs.map((h) => ({ value: h.hub_id.toString(), label: h.hub_name }))}
                 onChange={handleToChange}
               />
             </label>
@@ -230,7 +243,7 @@ export default function CreateTrip({ cabShareUser, onTripCreated }: { cabShareUs
           <fieldset className="lg:col-span-2">
             <legend className={`${FIELD_LABEL} mb-2`}>Gender Preference</legend>
             <div className="grid gap-2 sm:grid-cols-3">
-              {(["mixed", "boys", "girls"] as const).map(opt => (
+              {(["mixed", "boys", "girls"] as const).map((opt) => (
                 <label
                   key={opt}
                   className={`flex cursor-pointer items-center justify-center rounded-2xl border px-4 py-3 text-sm font-black capitalize transition-colors ${
@@ -271,7 +284,13 @@ export default function CreateTrip({ cabShareUser, onTripCreated }: { cabShareUs
             disabled={submitting}
             className="flex w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-black text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-70 lg:col-span-2"
           >
-            {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <><CheckCircle2 className="w-5 h-5" /> Post Ride</>}
+            {submitting ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <>
+                <CheckCircle2 className="w-5 h-5" /> Post Ride
+              </>
+            )}
           </button>
         </form>
       )}

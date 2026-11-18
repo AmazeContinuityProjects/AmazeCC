@@ -19,7 +19,11 @@ import {
   scheduleDataAtom,
   settingsAtom,
   isReloadingAtom,
+  unifiedIdentityAtom,
+  unifiedAcademicsAtom,
+  unifiedMarksAtom,
 } from "@/store";
+import type { UnifiedUserIdentity } from "@/types";
 import dynamic from "next/dynamic";
 import { AnimatePresence } from "framer-motion";
 
@@ -83,6 +87,10 @@ function DashboardContent({
   const [ODhoursIsOpen, setODhoursIsOpen] = useAtom(odHoursIsOpenAtom);
   const [GradesDisplayIsOpen, setGradesDisplayIsOpen] = useAtom(gradesDisplayIsOpenAtom);
   const [, setIsReloading] = useAtom(isReloadingAtom);
+  const [unifiedIdentity] = useAtom<UnifiedUserIdentity>(unifiedIdentityAtom);
+  const [unifiedAcademics] = useAtom(unifiedAcademicsAtom);
+  const [unifiedMarks] = useAtom(unifiedMarksAtom);
+  void unifiedMarks;
   const {
     allGradesData,
     pastSemesterData,
@@ -164,8 +172,8 @@ function DashboardContent({
           localStorage.setItem("fresherWelcomeDismissed", "true");
           setShowFresherWelcome(false);
         }}
-        username={IDs?.VtopUsername || ""}
-        friendlyName={settings?.friendlyName || ""}
+        username={unifiedIdentity.regNumber || IDs?.VtopUsername || ""}
+        friendlyName={unifiedIdentity.friendlyName || settings?.friendlyName || ""}
         eptData={fresherEptData}
         acknowledgementData={fresherAckData}
         resources={fresherResources}
@@ -180,7 +188,7 @@ function DashboardContent({
         isStandaloneInterfacePicker={true}
         settings={settings}
         setSettings={setSettings}
-        username={IDs?.VtopUsername}
+        username={unifiedIdentity.regNumber || IDs?.VtopUsername}
         onComplete={() => {
           setShowInterfaceOnboarding(false);
         }}
@@ -190,7 +198,7 @@ function DashboardContent({
         registeredEvents={registeredEvents}
         moodleData={moodleData}
         IDs={IDs}
-        profileData={profileData}
+        profileData={profileData || unifiedIdentity}
         ODhoursData={ODhoursData}
         calendarData={calendarData}
         ScheduleData={ScheduleData}
@@ -221,7 +229,7 @@ function DashboardContent({
         }}
         handleLogin={handleLogin}
         setIsReloading={setIsReloading}
-        username={IDs.VtopUsername}
+        username={unifiedIdentity.regNumber || IDs.VtopUsername}
         password={IDs.VtopPassword}
         setPassword={(val: string[]) => {
           setIDs((prev) => ({ ...prev, VtopUsername: val[0], VtopPassword: val[1] }));
@@ -270,7 +278,10 @@ function DashboardContent({
               marksData={marksData}
               onClose={() => setGradesDisplayIsOpen(false)}
               handleFetchGrades={handleFetchGrades}
-              attendance={attendanceData.attendance}
+              attendance={
+                attendanceData?.attendance ||
+                (unifiedAcademics.courses.length > 0 ? (unifiedAcademics.courses as any) : [])
+              }
             />
           )}
         </AnimatePresence>
@@ -299,7 +310,7 @@ function DashboardContent({
               setActiveToolsSubTab={setActiveToolsSubTab}
               handleReloadRequest={handleReloadRequest}
               onOpenCommandPalette={onOpenCommandPalette}
-              profileData={profileData}
+              profileData={profileData || unifiedIdentity}
               ODhoursData={ODhoursData as any}
               calendarData={calendarData}
               ScheduleData={ScheduleData}
@@ -308,7 +319,10 @@ function DashboardContent({
             />
           </DashboardRoute>
 
-          <DashboardRoute route="attendance" enabled={Boolean(attendanceData?.attendance)}>
+          <DashboardRoute
+            route="attendance"
+            enabled={Boolean(attendanceData?.attendance || unifiedAcademics.courses.length > 0)}
+          >
             <DashboardAttendanceFeature
               activeSubTab={activeAttendanceSubTab}
               setActiveSubTab={setActiveAttendanceSubTab}
@@ -355,6 +369,7 @@ function DashboardContent({
               handleScheduleFetch={handleFetchSchedule}
               courseDashboardTarget={courseDashboardTarget}
               onClearCourseTarget={() => setCourseDashboardTarget(null)}
+              resetKey={activePageResetKey}
             />
           </DashboardRoute>
 

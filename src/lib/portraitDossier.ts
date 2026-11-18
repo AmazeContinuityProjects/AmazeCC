@@ -307,7 +307,7 @@ function drawVectorGrid(pdf: jsPDF, params: ModernPrintableReportParams, theme: 
   return y + headerH + days.length * rowH;
 }
 
-export async function createPortraitDossierPdf(
+export async function renderPortraitDossierPdf(
   params: ModernPrintableReportParams & { theme?: "light" | "dark"; gridMode?: DossierGridMode },
 ): Promise<ArrayBuffer> {
   const light =
@@ -588,4 +588,23 @@ export async function createPortraitDossierPdf(
   }
 
   return pdf.output("arraybuffer");
+}
+
+/**
+ * Builds the portrait A4 registration dossier.
+ * Dispatches to a Web Worker when in vector grid mode, falling back to inline rendering.
+ */
+export async function createPortraitDossierPdf(
+  params: ModernPrintableReportParams & { theme?: "light" | "dark"; gridMode?: DossierGridMode },
+): Promise<ArrayBuffer> {
+  if (params.gridMode !== "image") {
+    try {
+      const { buildPortraitDossierPdfInWorker } = await import("./pdfWorkerBridge");
+      const workerBuffer = await buildPortraitDossierPdfInWorker(params);
+      if (workerBuffer) {
+        return workerBuffer;
+      }
+    } catch {}
+  }
+  return renderPortraitDossierPdf(params);
 }

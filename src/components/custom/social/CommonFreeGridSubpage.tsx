@@ -2,8 +2,8 @@
 
 import { useMemo } from "react";
 import { CalendarRange } from "lucide-react";
-import BackButton from "../shared/BackButton";
 import { SectionHeader } from "./rows";
+import { PageShell } from "../shared/primitives";
 import CommonFreeTimetableGrid from "./CommonFreeTimetableGrid";
 import { usePeerTimetables } from "@/lib/social/usePeerTimetables";
 import { useSocialData } from "@/lib/social/useSocialData";
@@ -45,20 +45,7 @@ export default function CommonFreeGridSubpage({
   }, [peers, onlyHandles]);
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-start justify-between gap-3">
-        <BackButton onClick={onBack} className="self-start" />
-      </div>
-
-      <div className="px-1">
-        <p className="text-xs font-semibold text-zinc-400 dark:text-zinc-500 leading-none mb-1">
-          Campus
-        </p>
-        <h1 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white tracking-tight leading-tight font-outfit truncate">
-          {title}
-        </h1>
-      </div>
-
+    <PageShell eyebrow="Campus" title={title} onBack={onBack}>
       <SectionHeader icon={CalendarRange} title={subTitle} />
 
       {loading ? (
@@ -70,12 +57,8 @@ export default function CommonFreeGridSubpage({
           Nobody in this group has published a timetable yet.
         </p>
       ) : (
-        <CommonFreeTimetableGrid
-          ownBusyMap={ownBusyMap}
-          peers={scoped}
-          onOpenPeer={onOpenPeer}
-        />
+        <CommonFreeTimetableGrid ownBusyMap={ownBusyMap} peers={scoped} onOpenPeer={onOpenPeer} />
       )}
-    </div>
+    </PageShell>
   );
 }

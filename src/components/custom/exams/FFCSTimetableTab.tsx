@@ -75,6 +75,7 @@ import { processParsedCourses } from "@/lib/ffcsCourseGrouping";
 export { processParsedCourses } from "@/lib/ffcsCourseGrouping";
 import { track } from "@/lib/analytics";
 import { useFFCSSettings } from "@/lib/ffcsSettings";
+import { parseFastCSV } from "@/lib/courseCatalog";
 import { storage } from "@/lib/storage";
 import { useAtomValue, useSetAtom } from "jotai";
 import { isLoggedInAtom } from "@/store";
@@ -198,7 +199,6 @@ const PdfGenerationBadge = dynamic(() => import("./FFCS/components/PdfGeneration
  * per browser.
  */
 const FFCS_FINAL_LIST_NOTICE_SEEN_KEY = "ffcs_final_list_notice_seen";
-
 
 export default function FFCSTimetableTab({
   onLayoutModeChange,
@@ -622,9 +622,7 @@ export default function FFCSTimetableTab({
     } catch {}
   }, [router]);
   const [socialTargetId, setSocialTargetId] = useState<string>("");
-  const [selectedGapDetails] = useState<
-    NonNullable<TimetableState["metrics"]>["gapDetails"] | null
-  >(null);
+  const [selectedGapDetails] = useState<NonNullable<TimetableState["metrics"]>["gapDetails"] | null>(null);
   const [isSocialMatrixOpen, setIsSocialMatrixOpen] = useState(false);
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
@@ -677,14 +675,11 @@ export default function FFCSTimetableTab({
 
     try {
       const assetPath = getAssetPath(semester.path);
-      // The xlsx parser chunk and the report itself are independent — fetch
-      // both together instead of paying for them one round trip at a time.
-      const [XLSX, response] = await Promise.all([import("xlsx"), fetch(assetPath)]);
+      const response = await fetch(assetPath);
       if (!response.ok) throw new Error(`Failed to fetch ${assetPath}`);
 
-      const workbook = XLSX.read(new Uint8Array(await response.arrayBuffer()), { type: "array" });
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet);
+      const text = await response.text();
+      const jsonData = parseFastCSV(text);
 
       if (requestId !== reportRequestRef.current) return false;
       if (jsonData.length === 0) {
@@ -1000,7 +995,6 @@ export default function FFCSTimetableTab({
   const theoryPeriods = (getTimetableSchema().theory as TimetablePeriod[]).filter((p) => !p.lunch);
   const labPeriods = (getTimetableSchema().lab as TimetablePeriod[]).filter((p) => !p.lunch);
 
-
   // The one lookup, shared with the module-level copy above and the modal's.
   // The old local version also returned a `pIdx`, which nothing ever read.
   const getPeriodsForSlot = (slotName: string) => periodsForSlot({ theory: theoryPeriods, lab: labPeriods }, slotName);
@@ -1026,7 +1020,6 @@ export default function FFCSTimetableTab({
     }
     return null;
   };
-
 
   // Unique Courses with their associated types
   const uniqueCourses = useMemo(() => {

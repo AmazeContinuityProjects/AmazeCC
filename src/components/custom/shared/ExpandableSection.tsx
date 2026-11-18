@@ -1,1 +1,0 @@
-export { ExpandableSection as default } from "@amazecontinuityprojects/amazeui";

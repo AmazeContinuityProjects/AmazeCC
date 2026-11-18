@@ -19,9 +19,22 @@ import {
 } from "lucide-react";
 import { cn } from "@amazecontinuityprojects/amazeui";
 import BottomSheet from "../shared/BottomSheet";
-import { AvatarDot, DotPill, EmptyPanel, GhostButton, IconButton, IconLink, ListRowText, ListShell, SectionHeader, ToneBadge, ToneDot } from "../shared/primitives";
+import {
+  AvatarDot,
+  DotPill,
+  EmptyPanel,
+  GhostButton,
+  IconButton,
+  IconLink,
+  ListRowText,
+  ListShell,
+  SectionHeader,
+  ToneBadge,
+  ToneDot,
+} from "../shared/primitives";
 import { minutesToTimeStr, slotRange } from "@/lib/social/schedule";
 import { resolveTeachingDay, type AttendanceDayCardsMap } from "@/lib/attendanceTimetable";
+import type { NormalizedCourse } from "@/types/course";
 import {
   dayHeadline,
   assessmentsOn,
@@ -131,10 +144,7 @@ export default function DayDetailSheet({
    * Saturday setting needs no help here: `buildAttendanceDayCardsMap` already
    * rewrote `map.SAT` to that day's classes.
    */
-  const teachingDay = useMemo(
-    () => (day ? resolveTeachingDay(day.fullDate, day.dayOrder) : "SAT"),
-    [day]
-  );
+  const teachingDay = useMemo(() => (day ? resolveTeachingDay(day.fullDate, day.dayOrder) : "SAT"), [day]);
 
   /**
    * The live timetable for that teaching day. `buildAttendanceDayCardsMap`
@@ -181,8 +191,7 @@ export default function DayDetailSheet({
     // series did not match the milestone — a FAT on the same day, or a schedule
     // key spelled nothing like the calendar's — lands beside it instead of
     // opening a second "Exams" heading further down.
-    const events =
-      kind === "exam" || kind === "milestone" ? assessmentsOn(day) : dayHeadline(day).events;
+    const events = kind === "exam" || kind === "milestone" ? assessmentsOn(day) : dayHeadline(day).events;
 
     if (kind === "milestone") {
       const papers = events[0]?.papers?.length ?? 0;
@@ -206,9 +215,7 @@ export default function DayDetailSheet({
 
   const grouped = useMemo(() => {
     if (!day) return null;
-    const rest = day.events.filter(
-      (e) => e.kind !== "class" && e.kind !== "working" && !occupying.events.includes(e)
-    );
+    const rest = day.events.filter((e) => e.kind !== "class" && e.kind !== "working" && !occupying.events.includes(e));
     return {
       // Milestones get their own heading. CAT, LID and Mid Term Test are the
       // dates a term is planned around, and filing them under "College events"
@@ -258,9 +265,7 @@ export default function DayDetailSheet({
         <div className="flex items-center gap-2 flex-wrap">
           {dayType ? <DotPill tone={dayType.tone}>{dayType.label}</DotPill> : null}
           {papers > 0 ? <ToneBadge tone="amber">Exam day</ToneBadge> : null}
-          {day.dayType === "nonInstructional" ? (
-            <ToneBadge tone="sky">College open</ToneBadge>
-          ) : null}
+          {day.dayType === "nonInstructional" ? <ToneBadge tone="sky">College open</ToneBadge> : null}
           {isToday ? <ToneBadge tone="indigo">Today</ToneBadge> : null}
           {day.taskCount > 0 ? (
             <ToneBadge tone="violet">
@@ -270,9 +275,9 @@ export default function DayDetailSheet({
         </div>
 
         {/*
-          * The timetable's slot in the sheet. The live weekly timetable is only
-          * shown when classes actually run — see `hasClasses`.
-          */}
+         * The timetable's slot in the sheet. The live weekly timetable is only
+         * shown when classes actually run — see `hasClasses`.
+         */}
         {occupying.kind === "schedule" ? (
           <section className="space-y-2.5">
             <SectionHeader
@@ -296,20 +301,27 @@ export default function DayDetailSheet({
               />
             ) : (
               <ListShell>
-                {schedule.map((cls) => {
+                {schedule.map((cls: NormalizedCourse | any) => {
+                  const courseCode = cls.courseCode || cls.code || "";
+                  const courseTitle = cls.courseTitle || cls.title || courseCode;
+                  const slotName =
+                    cls.slotName || cls.slotDisplay || (Array.isArray(cls.slots) ? cls.slots.join("+") : "");
+                  const slotVenue = cls.slotVenue || cls.venue || "";
+                  const faculty =
+                    typeof cls.faculty === "object" ? cls.faculty?.name || cls.faculty?.raw || "" : cls.faculty || "";
                   const { start, end } = slotRange(cls.time);
-                  const status = statusForClass(attendanceByDate, day.dateKey, cls.courseCode);
-                  const isLab = String(cls.slotName ?? "").startsWith("L");
+                  const status = statusForClass(attendanceByDate, day.dateKey, courseCode);
+                  const isLab = cls.isLab !== undefined ? cls.isLab : String(slotName ?? "").startsWith("L");
                   // A course with no code has no page to open, so it stays a
                   // plain row rather than a button that does nothing.
-                  const canOpen = Boolean(onOpenCourse && cls.courseCode);
+                  const canOpen = Boolean(onOpenCourse && courseCode);
 
                   return (
                     <button
-                      key={`${cls.slotName}-${cls.courseCode}`}
+                      key={`${slotName}-${courseCode}`}
                       type="button"
                       disabled={!canOpen}
-                      onClick={() => onOpenCourse?.(cls.courseCode)}
+                      onClick={() => onOpenCourse?.(courseCode)}
                       className={`flex w-full items-center gap-3 py-3 px-4 text-left ${
                         canOpen
                           ? "transition-colors hover:bg-zinc-50/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500/50 dark:hover:bg-white/[0.03]"
@@ -317,18 +329,15 @@ export default function DayDetailSheet({
                       }`}
                     >
                       <span
-                        className={cn(
-                          "w-1.5 h-1.5 rounded-full shrink-0",
-                          isLab ? "bg-emerald-500" : "bg-indigo-500"
-                        )}
+                        className={cn("w-1.5 h-1.5 rounded-full shrink-0", isLab ? "bg-emerald-500" : "bg-indigo-500")}
                       />
                       <div className="min-w-0 flex-1">
                         <ListRowText
-                          title={cls.courseTitle || cls.courseCode}
+                          title={courseTitle}
                           subtitle={[
-                            `${cls.slotName} · ${minutesToTimeStr(start)}–${minutesToTimeStr(end)}`,
-                            cls.slotVenue,
-                            cls.faculty,
+                            `${slotName} · ${minutesToTimeStr(start)}–${minutesToTimeStr(end)}`,
+                            slotVenue,
+                            faculty,
                           ]
                             .filter(Boolean)
                             .join(" · ")}
@@ -344,9 +353,7 @@ export default function DayDetailSheet({
                       )}
                       {/* The same affordance the Upcoming rows use, so a
                           tappable row looks the same wherever it appears. */}
-                      {canOpen ? (
-                        <ChevronRight className="w-4 h-4 shrink-0 text-zinc-300 dark:text-zinc-600" />
-                      ) : null}
+                      {canOpen ? <ChevronRight className="w-4 h-4 shrink-0 text-zinc-300 dark:text-zinc-600" /> : null}
                     </button>
                   );
                 })}
@@ -385,19 +392,16 @@ export default function DayDetailSheet({
 
         {/* ── Tasks ── */}
         {/*
-          * Read from the day model, not from the task store. The model merges
-          * task-store tasks and Moodle deadlines into one `assignment` list, so
-          * this section cannot disagree with the grid — which is how a Moodle
-          * deadline came to show as a dot on the cell and then "Nothing due
-          * today" in the sheet.
-          */}
+         * Read from the day model, not from the task store. The model merges
+         * task-store tasks and Moodle deadlines into one `assignment` list, so
+         * this section cannot disagree with the grid — which is how a Moodle
+         * deadline came to show as a dot on the cell and then "Nothing due
+         * today" in the sheet.
+         */}
         <section className="space-y-2.5">
           <SectionHeader icon={ListChecks} title="Tasks" count={assignments.length} />
           {assignments.length === 0 ? (
-            <EmptyPanel
-              variant="dashed"
-              title={isToday ? "Nothing due today." : "Nothing due on this day."}
-            />
+            <EmptyPanel variant="dashed" title={isToday ? "Nothing due today." : "Nothing due on this day."} />
           ) : (
             <ListShell>
               {assignments.map((event, i) => {
@@ -407,7 +411,10 @@ export default function DayDetailSheet({
                   : null;
 
                 return (
-                  <div key={`${event.taskId ?? event.url ?? event.title}-${i}`} className="flex items-center gap-3 py-3 px-4">
+                  <div
+                    key={`${event.taskId ?? event.url ?? event.title}-${i}`}
+                    className="flex items-center gap-3 py-3 px-4"
+                  >
                     <div className="min-w-0 flex-1">
                       <ListRowText
                         title={event.title}
@@ -461,9 +468,7 @@ export default function DayDetailSheet({
               </GhostButton>
             ) : null}
             {overdue.length > 0 ? (
-              <span className="text-[11px] font-bold text-red-600 dark:text-red-400">
-                {overdue.length} overdue
-              </span>
+              <span className="text-[11px] font-bold text-red-600 dark:text-red-400">{overdue.length} overdue</span>
             ) : null}
           </div>
         </section>
@@ -478,9 +483,7 @@ export default function DayDetailSheet({
         ) : null}
 
         {/* ── On-Duty ── */}
-        {grouped && grouped.od.length > 0 ? (
-          <EventSection title="On-Duty" icon={Clock} events={grouped.od} />
-        ) : null}
+        {grouped && grouped.od.length > 0 ? <EventSection title="On-Duty" icon={Clock} events={grouped.od} /> : null}
 
         {/* ── Everything else the college published ──
             The catch-all, and it is a catch-all on purpose: a college calendar
@@ -523,7 +526,7 @@ export default function DayDetailSheet({
                         "shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer",
                         secured
                           ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800/50 dark:text-emerald-400"
-                          : "bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                          : "bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-800",
                       )}
                     >
                       {secured ? <CheckCircle2 size={14} /> : <FileText size={14} />}
@@ -579,9 +582,7 @@ function EventSection({
   return (
     <section className="space-y-2.5">
       <SectionHeader icon={icon} title={title} count={events.length} />
-      {note ? (
-        <p className="px-1 -mt-1 text-[11px] font-medium text-zinc-500 dark:text-zinc-400">{note}</p>
-      ) : null}
+      {note ? <p className="px-1 -mt-1 text-[11px] font-medium text-zinc-500 dark:text-zinc-400">{note}</p> : null}
       <ListShell>
         {events.map((event, i) => (
           <div key={`${event.kind}-${event.title}-${i}`}>
@@ -589,10 +590,7 @@ function EventSection({
             {event.papers?.length ? (
               <div className="border-t border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/30">
                 {event.papers.map((paper, j) => (
-                  <div
-                    key={`${paper.title}-${j}`}
-                    className="flex items-center gap-3 py-2.5 pl-8 pr-4"
-                  >
+                  <div key={`${paper.title}-${j}`} className="flex items-center gap-3 py-2.5 pl-8 pr-4">
                     <ToneDot tone="amber" />
                     <div className="min-w-0 flex-1">
                       <ListRowText

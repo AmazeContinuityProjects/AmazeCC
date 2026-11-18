@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { FolderPlus, Users } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
-import BackButton from "../shared/BackButton";
+import { PageShell } from "../shared/primitives";
 import { GroupRow, SectionHeader } from "./rows";
 import CommonFreeGridSubpage from "./CommonFreeGridSubpage";
 import GroupMembersSheet from "./GroupMembersSheet";
@@ -50,7 +50,7 @@ export default function GroupsSubpage({ onBack }: { onBack: () => void }) {
   // on entry so the counts on screen are already honest.
   const handlePrune = useCallback(() => prune(), [prune]);
 
-  const open = openGroup ? summaries.find((s) => s.group.id === openGroup) ?? null : null;
+  const open = openGroup ? (summaries.find((s) => s.group.id === openGroup) ?? null) : null;
 
   if (open) {
     return (
@@ -63,36 +63,26 @@ export default function GroupsSubpage({ onBack }: { onBack: () => void }) {
     );
   }
 
+  const headerActions = (
+    <button
+      type="button"
+      onClick={handlePrune}
+      title="Remove people you are no longer paired with"
+      className="self-start p-2 rounded-xl bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 transition-all active:scale-95 cursor-pointer"
+    >
+      <Users className="w-4 h-4" />
+    </button>
+  );
+
   return (
-    <div className="space-y-5">
-      <div className="flex items-start justify-between gap-3">
-        <BackButton onClick={onBack} className="self-start" />
-        <button
-          type="button"
-          onClick={handlePrune}
-          title="Remove people you are no longer paired with"
-          className="self-start p-2 rounded-xl bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 transition-all active:scale-95 cursor-pointer"
-        >
-          <Users className="w-4 h-4" />
-        </button>
-      </div>
-
-      <div className="px-1">
-        <p className="text-xs font-semibold text-zinc-400 dark:text-zinc-500 leading-none mb-1">
-          Campus
-        </p>
-        <h1 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white tracking-tight leading-tight font-outfit truncate">
-          Groups
-        </h1>
-      </div>
-
+    <PageShell eyebrow="Campus" title="Groups" onBack={onBack} actions={headerActions}>
       <SectionHeader icon={FolderPlus} title="Your groups" />
 
       {summaries.length === 0 ? (
         <div className="text-center py-10 space-y-3">
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            No groups yet. A group collects people you are already paired with so you
-            can find a slot free for all of them.
+            No groups yet. A group collects people you are already paired with so you can find a slot free for all of
+            them.
           </p>
           <button
             type="button"
@@ -146,6 +136,6 @@ export default function GroupsSubpage({ onBack }: { onBack: () => void }) {
           />
         )}
       </AnimatePresence>
-    </div>
+    </PageShell>
   );
 }

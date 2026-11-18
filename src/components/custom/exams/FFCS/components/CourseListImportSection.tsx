@@ -89,7 +89,7 @@ export function CourseListImportSection({ onImport }: CourseListImportSectionPro
       <label className="border-2 border-dashed rounded-xl px-4 py-4 text-center cursor-pointer transition-colors border-border-strong hover:border-teal-500/50 focus-within:border-teal-500/50">
         <input
           type="file"
-          accept=".csv,.tsv,.txt,.xlsx"
+          accept=".csv,.tsv,.txt"
           onChange={(event) => {
             void readFiles(event.target.files);
             // Cleared so re-picking the same corrected file still fires change.
@@ -103,7 +103,7 @@ export function CourseListImportSection({ onImport }: CourseListImportSectionPro
         ) : (
           <>
             <UploadCloud className="w-5 h-5 mx-auto text-muted-foreground mb-1" />
-            <p className="text-xs text-text-heading font-medium">Choose your CSV or XLSX file</p>
+            <p className="text-xs text-text-heading font-medium">Choose your CSV or TSV file</p>
           </>
         )}
       </label>

@@ -1,3 +1,5 @@
+import { getTypedStorageItem, setTypedStorageItem } from "./storage";
+
 /**
  * VTOP course-page resolution cache — one entry per semester.
  *
@@ -32,9 +34,9 @@ const keyOf = (semSubId: string) => `vtopCoursePage:${String(semSubId ?? "").tri
 function readSemester(semSubId: string): VtopSemesterCache {
   if (typeof window === "undefined") return {};
   try {
-    const raw = window.localStorage.getItem(keyOf(semSubId));
+    const raw = getTypedStorageItem(keyOf(semSubId) as any);
     if (!raw) return {};
-    const parsed = JSON.parse(raw);
+    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
     return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
   } catch {
     return {};
@@ -44,7 +46,7 @@ function readSemester(semSubId: string): VtopSemesterCache {
 function writeSemester(semSubId: string, data: VtopSemesterCache): void {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(keyOf(semSubId), JSON.stringify(data));
+    setTypedStorageItem(keyOf(semSubId) as any, data as any);
   } catch {
     /* quota or serialization failure — cache is best-effort */
   }

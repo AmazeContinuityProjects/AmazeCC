@@ -22,9 +22,7 @@ export function useAppAppearance(settings: any, theme: any) {
     const root = document.documentElement;
     const selectedPalette = settings.colorPalette === "ocean" ? "neonPink" : settings.colorPalette;
     const palette =
-      selectedPalette === "custom"
-        ? settings.customPalette
-        : COLOR_PALETTES[selectedPalette || "default"];
+      selectedPalette === "custom" ? settings.customPalette : COLOR_PALETTES[selectedPalette || "default"];
 
     const vars = [
       "--theme-accent",
@@ -85,7 +83,7 @@ export function useAppAppearance(settings: any, theme: any) {
     root.style.setProperty("--theme-accent", accent);
 
     if (isDarkMode) {
-      root.style.setProperty("--background", `color-mix(in oklab, ${accent} 4%, oklch(0.09 0.015 255))`);
+      root.style.setProperty("--background", `color-mix(in oklab, ${accent} 4%, oklch(0.10 0 0))`);
       root.style.setProperty("--surface", `color-mix(in oklab, ${accent} 5%, oklch(0.20 0 0))`);
       root.style.setProperty("--surface-raised", `color-mix(in oklab, ${accent} 5%, oklch(0.23 0 0))`);
       root.style.setProperty("--surface-secondary", `color-mix(in oklab, ${accent} 6%, oklch(0.25 0 0))`);
@@ -144,6 +142,4 @@ export function useAppAppearance(settings: any, theme: any) {
     if (typeof document === "undefined") return;
     document.documentElement.dataset.cardSurface = settings.cardSurfaceZinc ? "zinc" : "gray";
   }, [settings.cardSurfaceZinc]);
-
-
 }

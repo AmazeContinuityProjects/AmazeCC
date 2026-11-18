@@ -2,8 +2,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { clearEventHubSession, eventHubRequest, loginToEventHub } from "@/lib/sync-engine";
 import { runPageSync } from "@/lib/sync-engine/single-sync";
+import { setTypedStorageItem } from "@/lib/storage";
 import { Skeleton, cn } from "@amazecontinuityprojects/amazeui";
-import { EventHubEvent, EventHubPreview } from "@/types/data/eventhub";
+import { EventHubEvent, EventHubPreview, EventHubRegistration } from "@/types/data/eventhub";
 import {
   eventDateLabel,
   eventhubImageUrl,
@@ -123,11 +124,7 @@ function CardSkeletonGrid({ count }: { count: number }) {
  */
 function EventCard({ event, onOpen }: { event: any; onOpen: (e: any) => void }) {
   return (
-    <m.div
-      whileTap={{ scale: 0.99 }}
-      onClick={() => onOpen(event)}
-      className="h-full cursor-pointer"
-    >
+    <m.div whileTap={{ scale: 0.99 }} onClick={() => onOpen(event)} className="h-full cursor-pointer">
       <div className={cn(TILE_CARD, "h-full flex flex-col")}>
         {/* Posters vary wildly in shape, so the frame takes the poster's own
             height rather than cropping it to a fixed ratio. */}
@@ -190,8 +187,8 @@ export default function EventHubTab({
   IDs: any;
   onBack?: () => void;
   setIsSubpageOpen?: (isOpen: boolean) => void;
-  registeredEvents?: any[];
-  setRegisteredEvents?: (events: any[]) => void;
+  registeredEvents?: EventHubRegistration[];
+  setRegisteredEvents?: (events: EventHubRegistration[]) => void;
 }) {
   const [events, setEvents] = useState<EventHubEvent[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -216,7 +213,7 @@ export default function EventHubTab({
   const dedupeEvents = (data: EventHubEvent[]) => {
     // Deduplicate by eid
     const uniqueEventsMap = new Map<string, EventHubEvent>();
-    (Array.isArray(data) ? data : []).forEach(event => {
+    (Array.isArray(data) ? data : []).forEach((event) => {
       if (!uniqueEventsMap.has(event.eid)) {
         uniqueEventsMap.set(event.eid, { ...event });
       } else {
@@ -243,7 +240,7 @@ export default function EventHubTab({
           date: "2026-07-15",
           location: "Netaji Auditorium",
           price: "Free",
-          registeredDetails: null
+          registeredDetails: null,
         },
         {
           eid: "evt-002",
@@ -258,9 +255,9 @@ export default function EventHubTab({
             orderId: "ORD-920194",
             registrationDate: "2026-06-20",
             certificateEligible: "Yes",
-            attendanceStatus: "Attended"
-          }
-        }
+            attendanceStatus: "Attended",
+          },
+        },
       ]);
       setLoading(false);
       return;
@@ -322,66 +319,72 @@ export default function EventHubTab({
       const pendingEventName = sessionStorage.getItem("pendingEventOpen");
       if (pendingEventName) {
         sessionStorage.removeItem("pendingEventOpen");
-        const ev = events.find(e => e.title === pendingEventName);
+        const ev = events.find((e) => e.title === pendingEventName);
         if (ev) {
           openPreview(ev);
         } else {
           // If not in active events, construct a past event
-          const regEv = registeredEvents?.find(e => e.name === pendingEventName);
+          const regEv = registeredEvents?.find((e) => e.name === pendingEventName);
           openPreview({
             eid: regEv?.orderId || "unknown",
             title: pendingEventName,
             isPastEvent: true,
-            registeredDetails: regEv
+            registeredDetails: regEv,
           } as any);
         }
       }
     }
   }, [events, registeredEvents]);
 
-  const openPreview = useCallback(async (event: EventHubEvent) => {
-    setSelectedEvent(event);
-    setPreviewData(null);
-    setPreviewError("");
+  const openPreview = useCallback(
+    async (event: EventHubEvent) => {
+      setSelectedEvent(event);
+      setPreviewData(null);
+      setPreviewError("");
 
-    if (event.isPastEvent) {
-      setPreviewError("Details are no longer available for this event since it has already concluded or its registration period has ended.");
-      setPreviewLoading(false);
-      return;
-    }
+      if (event.isPastEvent) {
+        setPreviewError(
+          "Details are no longer available for this event since it has already concluded or its registration period has ended.",
+        );
+        setPreviewLoading(false);
+        return;
+      }
 
-    setPreviewLoading(true);
-    if (IDs?.VtopUsername === "demo") {
-      await new Promise(resolve => setTimeout(resolve, 150));
-      setPreviewData({
-        eid: event.eid,
-        description: event.eid === "evt-001"
-          ? "Build innovative products and compete for cash prizes at the annual flagship dev sprint event hosted by VIT Chennai's Coding Club."
-          : "Hands-on calibration workshop for micro-controllers and servo engines to build autonomous soccer robots.",
-        metaDetails: {
-          "Fee": event.price,
-          "Location": event.location,
-          "Date": event.date
-        }
-      });
-      setPreviewLoading(false);
-      return;
-    }
+      setPreviewLoading(true);
+      if (IDs?.VtopUsername === "demo") {
+        await new Promise((resolve) => setTimeout(resolve, 150));
+        setPreviewData({
+          eid: event.eid,
+          description:
+            event.eid === "evt-001"
+              ? "Build innovative products and compete for cash prizes at the annual flagship dev sprint event hosted by VIT Chennai's Coding Club."
+              : "Hands-on calibration workshop for micro-controllers and servo engines to build autonomous soccer robots.",
+          metaDetails: {
+            Fee: event.price,
+            Location: event.location,
+            Date: event.date,
+          },
+        });
+        setPreviewLoading(false);
+        return;
+      }
 
-    try {
-      const data = (await eventHubRequest(IDs, "events/preview", {
-        eid: event.eid,
-        username: IDs.VtopUsername,
-        password: IDs.VtopPassword,
-      })) as EventHubPreview;
-      setPreviewData(data);
-    } catch (err: any) {
-      setPreviewError(err.message || "Failed to load preview");
-      clearEventHubSession();
-    } finally {
-      setPreviewLoading(false);
-    }
-  }, [IDs]);
+      try {
+        const data = (await eventHubRequest(IDs, "events/preview", {
+          eid: event.eid,
+          username: IDs.VtopUsername,
+          password: IDs.VtopPassword,
+        })) as EventHubPreview;
+        setPreviewData(data);
+      } catch (err: any) {
+        setPreviewError(err.message || "Failed to load preview");
+        clearEventHubSession();
+      } finally {
+        setPreviewLoading(false);
+      }
+    },
+    [IDs],
+  );
 
   const closePreview = () => {
     setSelectedEvent(null);
@@ -420,9 +423,9 @@ export default function EventHubTab({
           username: IDs.VtopUsername,
           password: IDs.VtopPassword,
         })) as any;
-        const list = data.events || [];
+        const list: EventHubRegistration[] = data.events || [];
         setRegisteredEvents?.(list);
-        localStorage.setItem("registeredEvents", JSON.stringify(list));
+        setTypedStorageItem("registeredEvents", list);
       } catch (err: any) {
         if (!cancelled) setRegisteredError(err.message || "An error occurred");
         clearEventHubSession();
@@ -436,10 +439,7 @@ export default function EventHubTab({
     };
   }, [viewMode, IDs, registeredEvents, setRegisteredEvents]);
 
-  const summary = useMemo(
-    () => summariseEvents(events, registeredEvents ?? []),
-    [events, registeredEvents]
-  );
+  const summary = useMemo(() => summariseEvents(events, registeredEvents ?? []), [events, registeredEvents]);
 
   /**
    * The rotating second hero tile, built the same way the OD hours page builds
@@ -527,32 +527,35 @@ export default function EventHubTab({
     );
   }
 
-  const types = ["All", ...Array.from(new Set(events.map(e => e.type).filter(Boolean)))];
+  const types = ["All", ...Array.from(new Set(events.map((e) => e.type).filter(Boolean)))];
 
-  const filteredEvents = events.filter(event => {
+  const filteredEvents = events.filter((event) => {
     const matchesSearch = event.title.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = selectedType === "All" || event.type === selectedType;
     return matchesSearch && matchesType;
   });
 
-  const displayEvents = viewMode === "registered"
-    ? (registeredEvents || []).map(re => {
-        const matched = events.find(e => e.title === re.name);
-        return matched ? { ...matched, registeredDetails: re } : {
-          eid: `past_${re.orderId || re.name}`, // Prefix to easily identify
-          title: re.name,
-          date: re.date,
-          time: re.time,
-          location: re.venue,
-          type: "Registered",
-          imageSrc: null,
-          eligibility: "",
-          price: "",
-          registeredDetails: re,
-          isPastEvent: true
-        };
-      })
-    : filteredEvents;
+  const displayEvents =
+    viewMode === "registered"
+      ? (registeredEvents || []).map((re) => {
+          const matched = events.find((e) => e.title === re.name);
+          return matched
+            ? { ...matched, registeredDetails: re }
+            : {
+                eid: `past_${re.orderId || re.name}`, // Prefix to easily identify
+                title: re.name,
+                date: re.date,
+                time: re.time,
+                location: re.venue,
+                type: "Registered",
+                imageSrc: null,
+                eligibility: "",
+                price: "",
+                registeredDetails: re,
+                isPastEvent: true,
+              };
+        })
+      : filteredEvents;
 
   const isRegisteredView = viewMode === "registered";
 
@@ -603,8 +606,8 @@ export default function EventHubTab({
           </div>
 
           <p className="px-1 -mt-3 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
-            A blank fee means the event is free to enter. Registration and payment run on the
-            official Event Hub portal — tap any card for the full details.
+            A blank fee means the event is free to enter. Registration and payment run on the official Event Hub portal
+            — tap any card for the full details.
           </p>
         </>
       )}
@@ -631,7 +634,7 @@ export default function EventHubTab({
         <div
           className={cn(
             TILE_CARD,
-            "flex items-center gap-3 text-sm font-semibold text-red-600 dark:text-red-400 border-red-500/25"
+            "flex items-center gap-3 text-sm font-semibold text-red-600 dark:text-red-400 border-red-500/25",
           )}
         >
           <CalendarOff className="w-4 h-4 shrink-0" />
@@ -641,11 +644,7 @@ export default function EventHubTab({
         <EmptyPanel
           tone={isRegisteredView ? "sky" : "indigo"}
           icon={isRegisteredView ? <Ticket className="w-7 h-7" /> : <SearchX className="w-7 h-7" />}
-          title={
-            isRegisteredView
-              ? "You haven't registered for anything yet"
-              : "No events match your filters"
-          }
+          title={isRegisteredView ? "You haven't registered for anything yet" : "No events match your filters"}
           description={
             isRegisteredView
               ? "Registrations you make here or on the Event Hub portal will show up in this list, with their payment status and certificates."

@@ -44,6 +44,7 @@ import { getTimetableSchema } from "@/lib/campusSchema";
 import { FacultyAvatar, VitfacReviewPill } from "./FacultyAvatar";
 import ExportDossierWidget from "./ExportDossierWidget";
 import { getFacultyReview, loadVitfacCatalog } from "@/lib/vitfacService";
+import { getTypedStorageItem, setTypedStorageItem } from "@/lib/storage";
 import {
   BlockedSlotClash,
   ClashDetails,
@@ -392,9 +393,9 @@ export default function FFCSDashboardHeader({
 
   useEffect(() => {
     try {
-      const saved = window.localStorage.getItem("ffcs_dashboard_widgets");
+      const saved = getTypedStorageItem("ffcs_dashboard_widgets") as unknown;
       if (saved) {
-        const parsed: unknown = JSON.parse(saved);
+        const parsed: unknown = typeof saved === "string" ? JSON.parse(saved) : saved;
         if (Array.isArray(parsed)) {
           const validWidgets = parsed.filter(
             (widget): widget is DashboardWidget =>
@@ -415,7 +416,7 @@ export default function FFCSDashboardHeader({
   useEffect(() => {
     if (!widgetPreferencesReady) return;
     try {
-      window.localStorage.setItem("ffcs_dashboard_widgets", JSON.stringify(enabledWidgets));
+      setTypedStorageItem("ffcs_dashboard_widgets", enabledWidgets as string[]);
     } catch (error) {
       console.error("Failed to save FFCS dashboard widget preferences:", error);
     }

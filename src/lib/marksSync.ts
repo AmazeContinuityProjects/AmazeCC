@@ -1,4 +1,5 @@
 import { api } from "@/lib/sync-engine";
+import { getTypedStorageItem, setTypedStorageItem } from "@/lib/storage";
 
 /**
  * Contribute this student's marks to their cohorts' running statistics.
@@ -292,9 +293,9 @@ const FROZEN_KEY = "marksFrozenV1";
 
 export function getFrozenKeys(): string[] {
   try {
-    const raw = localStorage.getItem(FROZEN_KEY);
+    const raw = getTypedStorageItem(FROZEN_KEY as any);
     if (!raw) return [];
-    const parsed = JSON.parse(raw);
+    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
     return Array.isArray(parsed) ? parsed.filter((k) => typeof k === "string") : [];
   } catch {
     return [];
@@ -308,9 +309,9 @@ export type TokenMap = Record<string, string>;
 
 export function getStoredTokens(): TokenMap {
   try {
-    const raw = localStorage.getItem(TOKENS_KEY);
+    const raw = getTypedStorageItem(TOKENS_KEY as any);
     if (!raw) return {};
-    const parsed = JSON.parse(raw);
+    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
     return parsed as TokenMap;
   } catch {
@@ -320,7 +321,7 @@ export function getStoredTokens(): TokenMap {
 
 function setStoredTokens(tokens: TokenMap): void {
   try {
-    localStorage.setItem(TOKENS_KEY, JSON.stringify(tokens));
+    setTypedStorageItem(TOKENS_KEY as any, tokens as any);
   } catch {}
 }
 
@@ -409,7 +410,7 @@ export const syncMarksDiff = async (oldMarksData: any, newMarksData: any): Promi
 
   let backfill = false;
   try {
-    backfill = localStorage.getItem(BACKFILL_KEY) !== "true";
+    backfill = getTypedStorageItem(BACKFILL_KEY as any) !== "true";
   } catch {}
 
   try {
@@ -480,7 +481,7 @@ export const syncMarksDiff = async (oldMarksData: any, newMarksData: any): Promi
       // Persisted like every other path: the UI badge reads the stored list, not a
       // return value it never sees.
       try {
-        localStorage.setItem(FROZEN_KEY, JSON.stringify(frozen));
+        setTypedStorageItem(FROZEN_KEY as any, frozen as any);
       } catch {}
       return { tally: {}, mismatches: [], frozen };
     }
@@ -557,14 +558,14 @@ export const syncMarksDiff = async (oldMarksData: any, newMarksData: any): Promi
     // Mark the backfill done only on success, so a failed attempt retries next sync.
     if (backfill) {
       try {
-        localStorage.setItem(BACKFILL_KEY, "true");
+        setTypedStorageItem(BACKFILL_KEY as any, "true");
       } catch {}
     }
 
     // Persist the frozen set so the UI can show it without recomputing: these are
     // contributions the server holds that this device cannot update.
     try {
-      localStorage.setItem(FROZEN_KEY, JSON.stringify(frozen));
+      setTypedStorageItem(FROZEN_KEY as any, frozen as any);
     } catch {}
 
     return { tally, mismatches, frozen };

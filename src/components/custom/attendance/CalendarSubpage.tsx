@@ -63,6 +63,9 @@ import { canonicalSeriesName } from "@/lib/examSeries";
 import { cycleTaskStatus, createTask, migrateCustomHomework } from "@/lib/tasksStorage";
 import { registeredEventsAtom, tasksAtom } from "@/store/dataAtoms";
 import { settingsAtom } from "@/store/settingsAtoms";
+import { unifiedAcademicsAtom } from "@/store";
+import type { NormalizedCourse } from "@/types/course";
+import { normalizeCourse } from "@/lib/courseNormalizer";
 import { shouldShowProfilePhoto } from "@/lib/settingsVisibility";
 import { storage } from "@/lib/storage";
 import type { EventHubRegistration } from "@/types/data/eventhub";
@@ -202,7 +205,7 @@ export default function CalendarSubpage({
   handleCalendarFetch: (type: string) => void | Promise<unknown>;
   moodleData?: any[];
   scheduleData?: any;
-  attendanceData?: any;
+  attendanceData?: { attendance?: (NormalizedCourse | any)[] } | (NormalizedCourse | any)[] | any;
   ODhoursData?: any;
   handleFetchMoodle: (username: string, password: string) => void;
   IDs?: any;
@@ -222,6 +225,7 @@ export default function CalendarSubpage({
   const [reloading, setReloading] = useState(false);
   const registeredEvents = useAtomValue(registeredEventsAtom);
   const settings = useAtomValue(settingsAtom);
+  const unifiedAcademics = useAtomValue(unifiedAcademicsAtom);
 
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [filter, setFilter] = useState<LogFilter>("all");
@@ -246,10 +250,12 @@ export default function CalendarSubpage({
 
   // ---- Derived data ------------------------------------------------------
 
-  const attendanceList = useMemo(
-    () => (Array.isArray(attendanceData?.attendance) ? attendanceData.attendance : []),
-    [attendanceData],
-  );
+  const attendanceList = useMemo(() => {
+    if (Array.isArray(attendanceData?.attendance)) return attendanceData.attendance;
+    if (Array.isArray(attendanceData) && attendanceData.length > 0) return attendanceData;
+    if (unifiedAcademics?.courses && unifiedAcademics.courses.length > 0) return unifiedAcademics.courses;
+    return [];
+  }, [attendanceData, unifiedAcademics]);
 
   const dayCardsMap: AttendanceDayCardsMap = useMemo(
     () => buildAttendanceDayCardsMap(attendanceList),
@@ -312,7 +318,8 @@ export default function CalendarSubpage({
       let earliest: number | null = null;
       (Object.keys(dayCardsMap) as (keyof AttendanceDayCardsMap)[]).forEach((day) => {
         dayCardsMap[day]?.forEach((cls: any) => {
-          if (cls.courseCode !== courseCode) return;
+          const code = cls.courseCode || cls.code;
+          if (code !== courseCode) return;
           const start = parseAttendanceTime(String(cls.time).split("-")[0]);
           if (earliest === null || start < earliest) earliest = start;
         });
@@ -356,17 +363,22 @@ export default function CalendarSubpage({
   const courseRows = useMemo(() => {
     return attendanceList
       .map((course: any) => {
-        const attended = Number(course?.attendedClasses) || 0;
-        const total = Number(course?.totalClasses) || 0;
+        const norm = normalizeCourse(course);
+        const attended = Number(norm.attendance?.attendedClasses ?? course?.attendedClasses) || 0;
+        const total = Number(norm.attendance?.totalClasses ?? course?.totalClasses) || 0;
         if (total <= 0) return null;
         const pct = (attended / total) * 100;
-        const isLab = /(\((L|P)\))$/.test(String(course?.courseCode ?? ""));
+        const code = norm.code || String(course?.courseCode ?? "");
+        const title = norm.title || String(course?.courseTitle ?? code ?? "Course");
+        const slot = norm.slotDisplay || String(course?.slotName ?? "");
+        const venue = norm.venue || String(course?.slotVenue ?? "");
+        const isLab = norm.isLab;
         return {
-          id: String(course?.courseCode ?? course?.courseTitle ?? Math.random()),
-          code: String(course?.courseCode ?? ""),
-          title: String(course?.courseTitle ?? course?.courseCode ?? "Course"),
-          slot: String(course?.slotName ?? ""),
-          venue: String(course?.slotVenue ?? ""),
+          id: norm.id || String(course?.courseCode ?? course?.courseTitle ?? Math.random()),
+          code,
+          title,
+          slot,
+          venue,
           attended,
           total,
           pct,

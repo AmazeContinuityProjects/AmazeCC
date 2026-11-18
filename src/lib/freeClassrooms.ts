@@ -473,6 +473,28 @@ export function buildPeriodSlots(periods: readonly PeriodOption[]): Map<string, 
   return map;
 }
 
+export interface DayPackage {
+  periods: PeriodOption[];
+  slots: Map<string, Set<string>>;
+  index: DayIndex;
+}
+
+export type WeekMap = Map<DayId, DayPackage>;
+
+/**
+ * Builds the entire 5-day week classroom index.
+ * Maps every weekday to its resolved periods, slot assignments, and room occupancy index.
+ */
+export function buildWeekIndex(courses: readonly FreeRoomCourse[], schema: CampusSchema): WeekMap {
+  const map: WeekMap = new Map();
+  for (const d of DAYS_OF_WEEK) {
+    const periods = resolvePeriods(schema, d);
+    const slots = buildPeriodSlots(periods);
+    map.set(d, { periods, slots, index: buildDayIndex(courses, periods, slots) });
+  }
+  return map;
+}
+
 /* ── questions ─────────────────────────────────────────────────────────── */
 
 export interface FreeRooms {

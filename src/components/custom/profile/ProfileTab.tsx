@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useAtomValue } from "jotai";
+import { unifiedIdentityAtom } from "@/store";
 import ProfilePage from "../header/ProfilePage";
 import { clearApiCache } from "../exams/GenericApiView";
 
@@ -40,7 +42,9 @@ function useCredentialSection(loginToVTOP: () => Promise<any>) {
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    loginToVTOP().then(setCreds).catch(() => {});
+    loginToVTOP()
+      .then(setCreds)
+      .catch(() => {});
   }, [loginToVTOP]);
 
   return {
@@ -66,13 +70,17 @@ export default function ProfileTab(props: ProfileTabProps) {
     ...profilePageProps
   } = props;
   const { creds, refreshKey, reload } = useCredentialSection(loginToVTOP);
+  const unifiedIdentity = useAtomValue(unifiedIdentityAtom);
+  const resolvedUsername = username || unifiedIdentity.regNumber;
+  const resolvedFriendlyName = props.friendlyName || unifiedIdentity.friendlyName;
 
   return (
     <div className="animate-fadeIn w-full max-w-7xl mx-auto">
       <ProfilePage
         {...profilePageProps}
         loginToVTOP={loginToVTOP}
-        username={username}
+        username={resolvedUsername}
+        friendlyName={resolvedFriendlyName}
         password={password}
         setPassword={setPassword}
         creds={creds}

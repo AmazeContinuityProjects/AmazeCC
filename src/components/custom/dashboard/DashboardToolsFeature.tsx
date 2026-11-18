@@ -1,19 +1,11 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import type ToolsTabComponent from "../tools/ToolsTab";
+import ToolsTab from "../tools/ToolsTab";
 import type { ComponentProps } from "react";
-import { PageSkeleton } from "../shared/primitives/PageSkeleton";
 
-type ToolsTabProps = ComponentProps<typeof ToolsTabComponent>;
+type ToolsTabProps = ComponentProps<typeof ToolsTab>;
 
-function FeatureLoading() {
-  return <PageSkeleton label="Loading tools" />;
-}
-
-const ToolsTab = dynamic(() => import("../tools/ToolsTab"), { loading: FeatureLoading });
-
-/** Feature boundary for tool pages; its implementation is fetched on selection. */
+/** Feature boundary for tool pages. */
 export default function DashboardToolsFeature(props: ToolsTabProps) {
-  return <div className="animate-fadeIn"><ToolsTab {...props} /></div>;
+  return <ToolsTab {...props} />;
 }

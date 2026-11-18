@@ -1,1 +1,0 @@
-export { useIsMobile } from "@amazecontinuityprojects/amazeui";

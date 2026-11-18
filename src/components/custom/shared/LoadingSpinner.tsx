@@ -1,1 +1,0 @@
-export { LoadingSpinner as default } from "@amazecontinuityprojects/amazeui";
