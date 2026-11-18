@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useAtomValue } from "jotai";
 import { settingsAtom } from "@/store/settingsAtoms";
+import { getTypedStorageItem, setTypedStorageItem } from "@/lib/storage";
 import { RefreshCcw, Clock, Sparkles, Utensils, Sun, Coffee, Moon, CalendarCheck } from "lucide-react";
 import { useIsMobile } from "../shared";
 import { WORKER_BASE } from "@/lib/workerBase";
@@ -177,21 +178,20 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
     const remoteUrl = messLinks[g]?.[t] || messLinks.Male.Veg;
 
     try {
-      const cached = localStorage.getItem(fileName);
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        setMenu(parsed.list || []);
+      const cached = getTypedStorageItem(fileName) as { list?: any[] } | null;
+      if (cached?.list) {
+        setMenu(cached.list);
       }
     } catch (err) {
-      console.warn("LocalStorage read failed:", err);
+      console.warn("Storage read failed:", err);
     }
 
-    if (!localStorage.getItem(fileName)) {
+    if (!getTypedStorageItem(fileName)) {
       try {
         const res = await fetch(localUrl);
         const data = await res.json();
         setMenu(data.list || []);
-        localStorage.setItem(fileName, JSON.stringify(data));
+        setTypedStorageItem(fileName, data);
       } catch (err) {
         console.error("Error loading local mess JSON:", err);
       }
@@ -202,7 +202,7 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
       .then((data) => {
         if (data?.list) {
           setMenu(data.list);
-          localStorage.setItem(fileName, JSON.stringify(data));
+          setTypedStorageItem(fileName, data);
         }
       })
       .catch((err) => {

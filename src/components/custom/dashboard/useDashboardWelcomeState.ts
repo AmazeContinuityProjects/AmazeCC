@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/sync-engine";
+import { getTypedStorageItem } from "@/lib/storage";
 
 interface DashboardWelcomeStateOptions {
   demoMode: boolean;
@@ -17,7 +18,7 @@ export function useDashboardWelcomeState({ demoMode, interfaceChosen }: Dashboar
 
   useEffect(() => {
     try {
-      const hasChosen = localStorage.getItem("has_selected_interface") === "true" || interfaceChosen === true;
+      const hasChosen = getTypedStorageItem("has_selected_interface") === "true" || interfaceChosen === true;
       if (!hasChosen) setShowInterfaceOnboarding(true);
     } catch {}
   }, [interfaceChosen]);
@@ -35,34 +36,23 @@ export function useDashboardWelcomeState({ demoMode, interfaceChosen }: Dashboar
     }
 
     try {
-      const dismissed = localStorage.getItem("fresherWelcomeDismissed");
+      const dismissed = getTypedStorageItem("fresherWelcomeDismissed");
       let eptData: any = null;
       let ackData: any = null;
       let hasFresherData = false;
 
-      const whoamiRaw = localStorage.getItem("cache_whoami");
-      if (whoamiRaw) {
-        try {
-          const w = JSON.parse(whoamiRaw);
-          eptData = w?.eptSchedule ?? null;
-          ackData = w?.acknowledgement ?? null;
-        } catch {}
+      const w = getTypedStorageItem("cache_whoami") as any;
+      if (w) {
+        eptData = w?.eptSchedule ?? null;
+        ackData = w?.acknowledgement ?? null;
       }
 
       // Backward compat with old caches
       if (!eptData) {
-        const ept = localStorage.getItem("cache_ept_schedule");
-        if (ept)
-          try {
-            eptData = JSON.parse(ept);
-          } catch {}
+        eptData = getTypedStorageItem("cache_ept_schedule") as any;
       }
       if (!ackData) {
-        const ack = localStorage.getItem("cache_acknowledgement");
-        if (ack)
-          try {
-            ackData = JSON.parse(ack);
-          } catch {}
+        ackData = getTypedStorageItem("cache_acknowledgement") as any;
       }
 
       if (eptData) {
@@ -78,7 +68,7 @@ export function useDashboardWelcomeState({ demoMode, interfaceChosen }: Dashboar
 
       if (hasFresherData && dismissed !== "true") setShowFresherWelcome(true);
     } catch (error) {
-      console.error("Failed to load fresher data from localStorage", error);
+      console.error("Failed to load fresher data from typed storage", error);
     }
   }, [demoMode]);
 

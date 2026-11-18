@@ -30,6 +30,9 @@ import {
   KeyRound,
 } from "lucide-react";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useAtomValue } from "jotai";
+import { unifiedIdentityAtom } from "@/store";
+import type { UnifiedUserIdentity } from "@/types";
 import { Button, cn } from "@amazecontinuityprojects/amazeui";
 import { useOverlayBack } from "@/lib/overlayStack";
 import { useForgetCredentialsAction } from "../app/useForgetCredentialsAction";
@@ -293,10 +296,15 @@ export default function ProfilePage({
   // the in-app BackButton in PageShell.
   useOverlayBack("profile-section", !screens.isRoot, screens.back);
 
+  const unifiedIdentity: UnifiedUserIdentity = useAtomValue(unifiedIdentityAtom);
+  const resolvedUsername = unifiedIdentity.regNumber || username;
+  const resolvedFriendlyName = friendlyName || unifiedIdentity.friendlyName;
+  const resolvedDisplayName = resolvedFriendlyName || unifiedIdentity.name || resolvedUsername || "Student";
+
   const [selectedSemester, setSelectedSemester] = useState<string>(currSemesterID);
   const [appIcon, setAppIcon] = useState<string>("default");
   const [isEditingName, setIsEditingName] = useState<boolean>(false);
-  const [tempFriendlyName, setTempFriendlyName] = useState<string>(friendlyName || "");
+  const [tempFriendlyName, setTempFriendlyName] = useState<string>(resolvedFriendlyName || "");
   const [searchQuery, setSearchQuery] = useState("");
 
   /**
@@ -823,7 +831,7 @@ export default function ProfilePage({
   const sectionSummary = useMemo((): Record<SectionId, { value: string; tone?: "emerald" | "amber" | "red" }> => {
     const sync = settings?.autoSyncInterval || "off";
     return {
-      profile: { value: profileData?.branch || "—" },
+      profile: { value: unifiedIdentity.programme || profileData?.branch || "—" },
       credentials: isLoggedIn ? { value: "Active", tone: "emerald" } : { value: "Signed out", tone: "red" },
       preferences: {
         // A pinned "System" is worth showing as such rather than as the theme
@@ -856,6 +864,7 @@ export default function ProfilePage({
     resolvedTheme,
     currSemesterID,
     profileData?.branch,
+    unifiedIdentity.programme,
     apiChoice,
   ]);
 
@@ -892,17 +901,17 @@ export default function ProfilePage({
           lost no action, only the repetition. */}
       <div className="relative p-5 sm:p-6 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs bg-white dark:bg-zinc-900/80">
         <div className="flex flex-col sm:flex-row sm:items-center gap-4 min-w-0">
-          {displayProfileImage && profileData?.image ? (
+          {displayProfileImage && (unifiedIdentity.photo || profileData?.image) ? (
             <img
               loading="lazy"
               decoding="async"
-              src={profileData.image}
+              src={unifiedIdentity.photo || profileData.image}
               alt="Profile"
               className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl object-cover shadow-sm ring-2 ring-indigo-500/20 border border-zinc-200 dark:border-zinc-800 shrink-0"
             />
           ) : (
             <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center font-black text-2xl shadow-sm shrink-0">
-              {friendlyName ? friendlyName[0].toUpperCase() : (username || "A")[0].toUpperCase()}
+              {(resolvedFriendlyName ? resolvedFriendlyName[0] : (resolvedUsername || "A")[0]).toUpperCase()}
             </div>
           )}
           <div className="min-w-0 flex-1">
@@ -936,7 +945,7 @@ export default function ProfilePage({
             ) : (
               <div className="flex items-center gap-2">
                 <h1 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white font-outfit tracking-tight truncate">
-                  {friendlyName || username || "Student"}
+                  {resolvedDisplayName}
                 </h1>
                 <button
                   onClick={() => setIsEditingName(true)}
@@ -950,10 +959,17 @@ export default function ProfilePage({
             )}
             <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-zinc-500 dark:text-zinc-400 font-medium">
               <span className="px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 font-mono text-[11px] font-bold text-zinc-700 dark:text-zinc-300">
-                {username}
+                {resolvedUsername}
               </span>
-              {profileData?.branch && (
-                <span className="truncate max-w-[200px] sm:max-w-none">{profileData.branch}</span>
+              {(unifiedIdentity.programme || profileData?.branch) && (
+                <span className="truncate max-w-[200px] sm:max-w-none">
+                  {unifiedIdentity.programme || profileData.branch}
+                </span>
+              )}
+              {unifiedIdentity.school && (
+                <span className="px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-[11px] font-semibold text-zinc-600 dark:text-zinc-300">
+                  {unifiedIdentity.school}
+                </span>
               )}
               {profileData?.isHosteller !== undefined && (
                 <span className="px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-semibold text-[11px]">
@@ -1047,6 +1063,11 @@ export default function ProfilePage({
       {/* Personal Info Grid */}
       <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 sm:p-6 space-y-6 shadow-2xs">
         {[
+          unifiedIdentity.school,
+          unifiedIdentity.programme,
+          unifiedIdentity.campus,
+          unifiedIdentity.email,
+          unifiedIdentity.phone,
           profileData?.nativeLanguage,
           profileData?.nationality,
           profileData?.community,
@@ -1062,20 +1083,24 @@ export default function ProfilePage({
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 text-xs">
               {[
-                ["Native Language", profileData.nativeLanguage],
-                ["Native State", profileData.nativeState],
-                ["Nationality", profileData.nationality],
-                ["Community", profileData.community],
-                ["Religion", profileData.religion],
-                ["Caste", profileData.caste],
-                ["Physically Challenged", profileData.physicallyChallenged],
-                ["Mobile Number", profileData.mobileNumber],
-                ["Friend Mobile", profileData.friendMobileNumber],
-                ["Aadhar Number", profileData.aadharNumber],
-                ["Blood Group", profileData.bloodGroup],
+                ["School", unifiedIdentity.school || profileData?.school],
+                ["Programme", unifiedIdentity.programme || profileData?.branch || profileData?.programme],
+                ["Campus", unifiedIdentity.campus || profileData?.campus],
+                ["Native Language", profileData?.nativeLanguage],
+                ["Native State", profileData?.nativeState],
+                ["Nationality", profileData?.nationality],
+                ["Community", profileData?.community],
+                ["Religion", profileData?.religion],
+                ["Caste", profileData?.caste],
+                ["Physically Challenged", profileData?.physicallyChallenged],
+                ["Mobile Number", unifiedIdentity.phone || profileData?.mobileNumber],
+                ["Email", unifiedIdentity.email || profileData?.email],
+                ["Friend Mobile", profileData?.friendMobileNumber],
+                ["Aadhar Number", profileData?.aadharNumber],
+                ["Blood Group", unifiedIdentity.bloodGroup || profileData?.bloodGroup],
                 [
                   "Hostel Status",
-                  profileData.isHosteller
+                  profileData?.isHosteller
                     ? `${hostelInfo?.blockName || "Hostel"} - Room ${hostelInfo?.roomNo || "N/A"}`
                     : "Day Scholar",
                 ],

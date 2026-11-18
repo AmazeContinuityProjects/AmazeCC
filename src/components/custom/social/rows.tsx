@@ -14,27 +14,15 @@
 
 import React from "react";
 import { ChevronRight, Pencil, Trash2, Users } from "lucide-react";
-import {
-  CHIP,
-  LIST_ROW,
-  TONE_BADGE,
-  TONE_ICON_TILE,
-  TONE_TEXT,
-} from "@/lib/libraries/ui";
+import { CHIP, LIST_ROW, TONE_BADGE, TONE_ICON_TILE, TONE_TEXT } from "@/lib/libraries/ui";
 import { STALE_AFTER_DAYS, type SocialVisibility } from "@/lib/social/types";
 import { relativePublished, type PeerTimetable } from "@/lib/social/usePeerTimetables";
 import type { OverlapMetrics } from "@/lib/social/schedule";
 
+import { getInitials } from "@/lib/textUtils";
+
 export function initials(name: string): string {
-  return (
-    name
-      .split(" ")
-      .map((n) => n[0])
-      .filter(Boolean)
-      .join("")
-      .substring(0, 2)
-      .toUpperCase() || "AM"
-  );
+  return getInitials(name, { maxChars: 2, fallback: "AM" });
 }
 
 /**
@@ -53,15 +41,7 @@ function StatusDot({ freeNow, known }: { freeNow: boolean; known: boolean }) {
   );
 }
 
-function Avatar({
-  name,
-  tone = "indigo",
-  children,
-}: {
-  name: string;
-  tone?: string;
-  children?: React.ReactNode;
-}) {
+function Avatar({ name, tone = "indigo", children }: { name: string; tone?: string; children?: React.ReactNode }) {
   return (
     <span className="relative shrink-0">
       <span
@@ -91,9 +71,7 @@ export function PeopleRow({
 }) {
   const isStale =
     peer.stale ||
-    (peer.publishedAt
-      ? Date.now() - new Date(peer.publishedAt).getTime() > STALE_AFTER_DAYS * 86_400_000
-      : false);
+    (peer.publishedAt ? Date.now() - new Date(peer.publishedAt).getTime() > STALE_AFTER_DAYS * 86_400_000 : false);
 
   // Real meta, never a placeholder. A peer who has not published must read as
   // absent rather than as a row of zeroes.
@@ -103,9 +81,7 @@ export function PeopleRow({
     if (!peer.publishedAt) return "not published for this term";
     if (!peer.loaded) return "loading…";
     const common = metrics ? `${metrics.commonFreeSlots} common free slots` : "";
-    return [common, `published ${relativePublished(peer.publishedAt)}`]
-      .filter(Boolean)
-      .join(" · ");
+    return [common, `published ${relativePublished(peer.publishedAt)}`].filter(Boolean).join(" · ");
   })();
 
   const body = (
@@ -114,7 +90,9 @@ export function PeopleRow({
         <StatusDot freeNow={metrics?.freeNow ?? true} known={Boolean(metrics)} />
       </Avatar>
       <ListRowText title={peer.name} subtitle={meta} />
-      {isStale && <span className={`${CHIP} shrink-0 border-amber-500/20 text-amber-600 dark:text-amber-400`}>Stale</span>}
+      {isStale && (
+        <span className={`${CHIP} shrink-0 border-amber-500/20 text-amber-600 dark:text-amber-400`}>Stale</span>
+      )}
       {right}
       {onOpen && <ChevronRight className="w-4 h-4 text-zinc-400 shrink-0" />}
     </>
@@ -130,11 +108,7 @@ export function PeopleRow({
       </button>
     );
   }
-  return (
-    <div className={`${LIST_ROW} cursor-default`}>
-      {body}
-    </div>
-  );
+  return <div className={`${LIST_ROW} cursor-default`}>{body}</div>;
 }
 
 /* ------------------------------------------------------------------ *
@@ -211,9 +185,7 @@ export function FreeNowRow({
       </Avatar>
       <ListRowText
         title={peer.name}
-        subtitle={
-          venue ? `${slotLabel ?? "Free"} · ${venue}` : slotLabel ?? "Free for the rest of the slot"
-        }
+        subtitle={venue ? `${slotLabel ?? "Free"} · ${venue}` : (slotLabel ?? "Free for the rest of the slot")}
       />
       <ChevronRight className="w-4 h-4 text-zinc-400 shrink-0" />
     </button>
@@ -253,16 +225,19 @@ export function GroupRow({
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  const tone = empty ? "zinc" : matchPct === undefined ? "zinc" : matchPct >= 70 ? "emerald" : matchPct >= 40 ? "amber" : "red";
+  const tone = empty
+    ? "zinc"
+    : matchPct === undefined
+      ? "zinc"
+      : matchPct >= 70
+        ? "emerald"
+        : matchPct >= 40
+          ? "amber"
+          : "red";
 
   return (
     <div className={LIST_ROW}>
-      <button
-        type="button"
-        onClick={onOpen}
-        disabled={empty}
-        className="contents text-left disabled:cursor-default"
-      >
+      <button type="button" onClick={onOpen} disabled={empty} className="contents text-left disabled:cursor-default">
         <Avatar name={name} tone={tone}>
           <Users className="w-4 h-4" />
         </Avatar>
@@ -278,9 +253,7 @@ export function GroupRow({
         />
         {!empty && commonFreeHours !== undefined && (
           <span className="text-right shrink-0">
-            <span className={`block text-sm font-black font-outfit ${TONE_TEXT[tone] ?? ""}`}>
-              {commonFreeHours}h
-            </span>
+            <span className={`block text-sm font-black font-outfit ${TONE_TEXT[tone] ?? ""}`}>{commonFreeHours}h</span>
             <span className="block text-[9px] font-extrabold uppercase text-zinc-400 dark:text-zinc-500 leading-none">
               common
             </span>
@@ -340,7 +313,9 @@ export function ToneNumber({
   className?: string;
 }) {
   return (
-    <span className={`block truncate font-black font-outfit tracking-tight leading-none ${TONE_TEXT[tone] ?? TONE_TEXT.zinc} ${className}`}>
+    <span
+      className={`block truncate font-black font-outfit tracking-tight leading-none ${TONE_TEXT[tone] ?? TONE_TEXT.zinc} ${className}`}
+    >
       {value}
     </span>
   );

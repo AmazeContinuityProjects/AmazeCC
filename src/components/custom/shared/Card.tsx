@@ -1,1 +1,0 @@
-export { Card as default, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@amazecontinuityprojects/amazeui";

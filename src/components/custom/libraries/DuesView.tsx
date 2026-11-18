@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, CheckCircle2, Loader2, Receipt, RefreshCcw, TriangleAlert } from "lucide-react";
 import { api } from "@/lib/sync-engine";
 import { runPageSync } from "@/lib/sync-engine/single-sync";
-import { storage } from "@/lib/storage";
+import { setTypedStorageItem, storage } from "@/lib/storage";
 import { DEMO_DUES } from "@/lib/libraries/demo";
 import { num, type LibraryDueResponse, type PatronTable } from "@/lib/libraries/koha";
 import { EMPTY_STATE, LIST_ROW, LIST_SHELL, SECTION_CHIP, TONE_BADGE } from "@/lib/libraries/ui";
@@ -103,9 +103,9 @@ export default function DuesView({ creds, isDemo, refreshKey, onTotals }: DuesVi
       setData(library);
       try {
         storage.cache.set("library-due", library);
-        if (res?.dues) localStorage.setItem("payments_dues", JSON.stringify(res.dues));
-        if (res?.receipts) localStorage.setItem("payments_receipts", JSON.stringify(res.receipts));
-        if (res?.wallet) localStorage.setItem("payments_wallet", JSON.stringify(res.wallet));
+        if (res?.dues) setTypedStorageItem("payments_dues", res.dues);
+        if (res?.receipts) setTypedStorageItem("payments_receipts", res.receipts);
+        if (res?.wallet) setTypedStorageItem("payments_wallet", res.wallet);
         if (res?.bank) storage.cache.set("bank-info", res.bank);
       } catch {}
     } catch (e: any) {

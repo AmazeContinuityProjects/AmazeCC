@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import { useSetAtom } from "jotai";
+import { useSetAtom, useAtomValue } from "jotai";
+import { unifiedAcademicsAtom } from "@/store";
+import type { NormalizedCourse } from "@/types/course";
+import { normalizeCourse } from "@/lib/courseNormalizer";
 import {
   ChipTabs,
   EmptyPanel,
@@ -109,7 +112,7 @@ interface CalendarDay {
 }
 
 interface OverallAttendancePredictorProps {
-  attendanceData: any[];
+  attendanceData?: (NormalizedCourse | any)[];
   analyzeCalendars?: any[];
   dayCardsMap?: Record<string, any[]>;
   impDates?: {
@@ -124,7 +127,7 @@ interface OverallAttendancePredictorProps {
 }
 
 export default function OverallAttendancePredictor({
-  attendanceData = [],
+  attendanceData,
   analyzeCalendars = [],
   dayCardsMap = {},
   impDates = {},
@@ -133,6 +136,29 @@ export default function OverallAttendancePredictor({
   decimalValues = true,
 }: OverallAttendancePredictorProps) {
   const setSettings = useSetAtom(settingsAtom);
+  const unifiedAcademics = useAtomValue(unifiedAcademicsAtom);
+
+  const normalizedAttendance = useMemo(() => {
+    const list = attendanceData && attendanceData.length > 0 ? attendanceData : unifiedAcademics?.courses || [];
+    return list.map((c: any) => {
+      const norm = normalizeCourse(c);
+      return {
+        ...c,
+        ...norm,
+        courseCode: norm.code || c.courseCode || c.code || "",
+        courseTitle: norm.title || c.courseTitle || c.title || "",
+        slotName: norm.slotDisplay || c.slotName || (norm.slots ? norm.slots.join("+") : ""),
+        slotVenue: norm.venue || c.slotVenue || "",
+        faculty:
+          typeof c.faculty === "object"
+            ? c.faculty?.raw || c.faculty?.name || ""
+            : c.faculty || norm.faculty?.raw || norm.faculty?.name || "",
+        attendedClasses: norm.attendance?.attendedClasses ?? c.attendedClasses ?? 0,
+        totalClasses: norm.attendance?.totalClasses ?? c.totalClasses ?? 0,
+        attendancePercentage: norm.attendance?.attendancePercentageFormatted ?? c.attendancePercentage ?? "0%",
+      };
+    });
+  }, [attendanceData, unifiedAcademics]);
   /**
    * The course whose date skipper is expanded.
    *
@@ -307,7 +333,7 @@ export default function OverallAttendancePredictor({
 
   // Main Course-by-Course Attendance Predictions
   const predictions: Prediction[] = useMemo(() => {
-    const validCourses = attendanceData.filter((c) => isProjectableCourse(c));
+    const validCourses = normalizedAttendance.filter((c) => isProjectableCourse(c));
 
     return validCourses.map((c) => {
       const isLab = isLabCourse(c);
@@ -349,7 +375,7 @@ export default function OverallAttendancePredictor({
       };
     });
   }, [
-    attendanceData,
+    normalizedAttendance,
     mode,
     impDates,
     allWorkingDays,
@@ -372,10 +398,11 @@ export default function OverallAttendancePredictor({
   // Filtered courses based on search and status filter
   const filteredCourses = useMemo(() => {
     return predictions.filter((p) => {
+      const facultyStr = typeof p.faculty === "object" ? p.faculty?.name || p.faculty?.raw || "" : p.faculty || "";
       const matchesSearch =
         p.courseCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.courseTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.faculty?.toLowerCase().includes(searchTerm.toLowerCase());
+        facultyStr.toLowerCase().includes(searchTerm.toLowerCase());
       if (!matchesSearch) return false;
 
       if (filterType === "safe") return p.predictedPct >= targetThreshold;

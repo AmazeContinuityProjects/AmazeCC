@@ -6,6 +6,7 @@ import { Inbox, Send } from "lucide-react";
 import { LoadingSpinner, ErrorDisplay, EmptyState } from "@/components/custom/shared";
 
 import SelectField from "../shared/primitives/SelectField";
+import { getTypedStorageItem, setTypedStorageItem, removeTypedStorageItem } from "@/lib/storage";
 const Field = ({ label, value }: { label: string; value: string }) => (
   <div className="min-w-0">
     <p className="text-[11px] font-semibold text-gray-400  dark:text-gray-500 uppercase tracking-wider">{label}</p>
@@ -35,11 +36,22 @@ const LS_PREFIX = "uni_cc_generic_";
 const cache = new Map<string, any>();
 export const clearApiCache = () => {
   cache.clear();
-  const keys = Object.keys(localStorage).filter(k => k.startsWith(LS_PREFIX) || k.startsWith("cache_"));
-  keys.forEach(k => localStorage.removeItem(k));
+  if (typeof window === "undefined") return;
+  try {
+    const keys = Object.keys(localStorage).filter((k) => k.startsWith(LS_PREFIX) || k.startsWith("cache_"));
+    keys.forEach((k) => removeTypedStorageItem(k));
+  } catch {}
 };
 
-export default function GenericApiView({ endpoint, title, creds, extraParams, refreshKey = 0, writable = false, allGradesData }: GenericApiViewProps) {
+export default function GenericApiView({
+  endpoint,
+  title,
+  creds,
+  extraParams,
+  refreshKey = 0,
+  writable = false,
+  allGradesData,
+}: GenericApiViewProps) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,119 +75,125 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
   credsRef.current = creds;
   const cacheKey = `${endpoint}:${selectedSemester || ""}:${JSON.stringify(extraParams || {})}`;
 
-  const fetchData = useCallback(async (semesterId?: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const { cookies, authorizedID, csrf } = credsRef.current;
-      
-      if (authorizedID === "DEMO123") {
-        await new Promise(resolve => setTimeout(resolve, 300));
-        let result: any = null;
-        if (endpoint === "hostel-counselling") {
-          result = {
-            tables: [
-              {
-                caption: "Hostel Counselling Requests",
-                headers: ["S.NO.", "REQUEST FRIEND REGNO", "BASKETID", "ROOM CAPACITY", "ROOM CATEGORY", "OTP", "OTP STATUS"],
-                rows: [
-                  ["1", "25BYB1043", "4AC-DBL-COT-NORMAL", "4", "AC-DBL-COT", "6919", "OTP accepted by Room Leader"]
-                ]
-              }
-            ]
-          };
-        } else if (endpoint === "library-due") {
-          result = {
-            tables: [
-              {
-                caption: "Active Library Dues",
-                headers: ["Book ID", "Title", "Issue Date", "Due Date", "Fine Amount"],
-                rows: [
-                  ["BK-90123", "Introduction to Algorithms", "2026-06-10", "2026-06-25", "Rs. 0.00"]
-                ]
-              }
-            ]
-          };
-        } else if (endpoint === "ept-schedule") {
-          result = {
-            tables: [
-              {
-                caption: "English Proficiency Test Schedule",
-                headers: ["Date", "Time", "Venue", "Seat Number"],
-                rows: [
-                  ["2026-07-02", "10:00 AM", "Netaji Auditorium", "A-12"]
-                ]
-              }
-            ]
-          };
-        } else if (endpoint.includes("project")) {
-          result = {
-            tables: [
-              {
-                caption: "Academic Projects Summary",
-                headers: ["Project Title", "Guide Name", "Status", "Review 1 Marks", "Review 2 Marks"],
-                rows: [
-                  ["AmazeCC Developer Portal", "Dr. K. Srinivasan", "In Progress", "18/20", "19/20"]
-                ]
-              }
-            ]
-          };
-        } else {
-          result = {
-            tables: [
-              {
-                caption: "Information Summary",
-                headers: ["Item", "Details", "Remarks"],
-                rows: [
-                  ["Demo Mode Record", "Active", "No records found on VTOP server."]
-                ]
-              }
-            ]
-          };
-        }
-        setData(result);
-        return;
-      }
+  const fetchData = useCallback(
+    async (semesterId?: string) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const { cookies, authorizedID, csrf } = credsRef.current;
 
-      const body: Record<string, any> = { cookies, authorizedID, csrf, ...(extraParams || {}) };
-      if (semesterId) body.semesterId = semesterId;
-      const result = await api(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body,
-      });
-      if (result.success === false) {
-        setError(result.error || result.message || "Failed to load data");
-      } else {
-        setData(result);
-        const ck = `${endpoint}:${semesterId || ""}:${JSON.stringify(extraParams || {})}`;
-        cache.set(ck, result);
-        localStorage.setItem(LS_PREFIX + ck, JSON.stringify(result));
+        if (authorizedID === "DEMO123") {
+          await new Promise((resolve) => setTimeout(resolve, 300));
+          let result: any = null;
+          if (endpoint === "hostel-counselling") {
+            result = {
+              tables: [
+                {
+                  caption: "Hostel Counselling Requests",
+                  headers: [
+                    "S.NO.",
+                    "REQUEST FRIEND REGNO",
+                    "BASKETID",
+                    "ROOM CAPACITY",
+                    "ROOM CATEGORY",
+                    "OTP",
+                    "OTP STATUS",
+                  ],
+                  rows: [
+                    ["1", "25BYB1043", "4AC-DBL-COT-NORMAL", "4", "AC-DBL-COT", "6919", "OTP accepted by Room Leader"],
+                  ],
+                },
+              ],
+            };
+          } else if (endpoint === "library-due") {
+            result = {
+              tables: [
+                {
+                  caption: "Active Library Dues",
+                  headers: ["Book ID", "Title", "Issue Date", "Due Date", "Fine Amount"],
+                  rows: [["BK-90123", "Introduction to Algorithms", "2026-06-10", "2026-06-25", "Rs. 0.00"]],
+                },
+              ],
+            };
+          } else if (endpoint === "ept-schedule") {
+            result = {
+              tables: [
+                {
+                  caption: "English Proficiency Test Schedule",
+                  headers: ["Date", "Time", "Venue", "Seat Number"],
+                  rows: [["2026-07-02", "10:00 AM", "Netaji Auditorium", "A-12"]],
+                },
+              ],
+            };
+          } else if (endpoint.includes("project")) {
+            result = {
+              tables: [
+                {
+                  caption: "Academic Projects Summary",
+                  headers: ["Project Title", "Guide Name", "Status", "Review 1 Marks", "Review 2 Marks"],
+                  rows: [["AmazeCC Developer Portal", "Dr. K. Srinivasan", "In Progress", "18/20", "19/20"]],
+                },
+              ],
+            };
+          } else {
+            result = {
+              tables: [
+                {
+                  caption: "Information Summary",
+                  headers: ["Item", "Details", "Remarks"],
+                  rows: [["Demo Mode Record", "Active", "No records found on VTOP server."]],
+                },
+              ],
+            };
+          }
+          setData(result);
+          return;
+        }
+
+        const body: Record<string, any> = { cookies, authorizedID, csrf, ...(extraParams || {}) };
+        if (semesterId) body.semesterId = semesterId;
+        const result = await api(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body,
+        });
+        if (result.success === false) {
+          setError(result.error || result.message || "Failed to load data");
+        } else {
+          setData(result);
+          const ck = `${endpoint}:${semesterId || ""}:${JSON.stringify(extraParams || {})}`;
+          cache.set(ck, result);
+          setTypedStorageItem(LS_PREFIX + ck, result);
+        }
+      } catch (err: any) {
+        setError(err.message || "Network error");
+      } finally {
+        setLoading(false);
       }
-    } catch (err: any) {
-      setError(err.message || "Network error");
-    } finally {
-      setLoading(false);
-    }
-  }, [endpoint, extraParams]);
+    },
+    [endpoint, extraParams],
+  );
 
   const restoreCache = useCallback(() => {
     const cached = cache.get(cacheKey);
-    if (cached) { setData(cached); return true; }
+    if (cached) {
+      setData(cached);
+      return true;
+    }
     try {
-      const raw = localStorage.getItem(LS_PREFIX + cacheKey);
-      if (raw) {
-        const parsed = JSON.parse(raw);
+      const stored = getTypedStorageItem<any>(LS_PREFIX + cacheKey);
+      if (stored) {
+        const parsed = typeof stored === "string" ? JSON.parse(stored) : stored;
         cache.set(cacheKey, parsed);
         setData(parsed);
         return true;
       }
     } catch {}
     try {
-      const raw = localStorage.getItem("cache_" + endpoint);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed.success !== false) {
+      const stored = getTypedStorageItem<any>("cache_" + endpoint);
+      if (stored) {
+        const parsed = typeof stored === "string" ? JSON.parse(stored) : stored;
+        if (parsed && parsed.success !== false) {
           cache.set(cacheKey, parsed);
           setData(parsed);
           return true;
@@ -201,7 +219,7 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
   };
 
   const handleFormFieldChange = (name: string, value: string) => {
-    setFormValues(prev => ({ ...prev, [name]: value }));
+    setFormValues((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -228,11 +246,13 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
     }
   };
 
-  let semesterOptions = data?.selectOptions ? (
-    Object.entries(data.selectOptions).find(([key, val]: any) =>
-      val?.some?.((o: any) => o.value && (o.text?.toLowerCase().includes("sem") || key.toLowerCase().includes("sem")))
-    )
-  ) : undefined;
+  let semesterOptions = data?.selectOptions
+    ? Object.entries(data.selectOptions).find(([key, val]: any) =>
+        val?.some?.(
+          (o: any) => o.value && (o.text?.toLowerCase().includes("sem") || key.toLowerCase().includes("sem")),
+        ),
+      )
+    : undefined;
 
   const hasSemestersResponse = data?.semesters !== undefined;
   const semestersKeys = data?.semesters ? Object.keys(data.semesters) : [];
@@ -256,46 +276,67 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
       return (
         <div key={idx} className="solid-card mb-5">
           <div className="p-5">
-            {table.caption && <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">{table.caption}</h4>}
-            {hasRows ? (() => {
-              const expanded = expandedTables.has(idx);
-              const rows = expanded ? table.rows : table.rows.slice(0, ROW_WINDOW);
-              const hidden = table.rows.length - rows.length;
-              return (
-                <>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-200  dark:border-gray-700">
-                      {table.headers.map((h: string, i: number) => (
-                        <th key={i} className="text-left py-2 px-2 text-xs font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row: any, ri: number) => (
-                      <tr key={ri} className="border-b border-gray-100  dark:border-gray-800 last:border-0 hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                        {table.headers.map((h: string, ci: number) => (
-                          <td key={ci} className="py-2.5 px-2 text-gray-800  dark:text-gray-200 whitespace-nowrap">
-                            {typeof row === "object" ? (row[h] || row[ci] || "") : (Array.isArray(row) ? row[ci] || "" : "")}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {hidden > 0 && (
-                <button
-                  onClick={() => toggleExpandTable(idx)}
-                  className="mt-3 w-full inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200  dark:border-gray-700 bg-white/60 dark:bg-zinc-900/50 px-4 py-2.5 text-xs font-bold text-gray-600  dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800/60 transition-colors cursor-pointer"
-                >
-                  {expanded ? "Show fewer rows" : `Show ${hidden.toLocaleString()} more rows`}
-                </button>
-              )}
-              </>
-              );
-            })() : (
+            {table.caption && (
+              <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">
+                {table.caption}
+              </h4>
+            )}
+            {hasRows ? (
+              (() => {
+                const expanded = expandedTables.has(idx);
+                const rows = expanded ? table.rows : table.rows.slice(0, ROW_WINDOW);
+                const hidden = table.rows.length - rows.length;
+                return (
+                  <>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-gray-200  dark:border-gray-700">
+                            {table.headers.map((h: string, i: number) => (
+                              <th
+                                key={i}
+                                className="text-left py-2 px-2 text-xs font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider whitespace-nowrap"
+                              >
+                                {h}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {rows.map((row: any, ri: number) => (
+                            <tr
+                              key={ri}
+                              className="border-b border-gray-100  dark:border-gray-800 last:border-0 hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors"
+                            >
+                              {table.headers.map((h: string, ci: number) => (
+                                <td
+                                  key={ci}
+                                  className="py-2.5 px-2 text-gray-800  dark:text-gray-200 whitespace-nowrap"
+                                >
+                                  {typeof row === "object"
+                                    ? row[h] || row[ci] || ""
+                                    : Array.isArray(row)
+                                      ? row[ci] || ""
+                                      : ""}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {hidden > 0 && (
+                      <button
+                        onClick={() => toggleExpandTable(idx)}
+                        className="mt-3 w-full inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200  dark:border-gray-700 bg-white/60 dark:bg-zinc-900/50 px-4 py-2.5 text-xs font-bold text-gray-600  dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800/60 transition-colors cursor-pointer"
+                      >
+                        {expanded ? "Show fewer rows" : `Show ${hidden.toLocaleString()} more rows`}
+                      </button>
+                    )}
+                  </>
+                );
+              })()
+            ) : (
               <EmptyState title="No data available" className="py-4" />
             )}
           </div>
@@ -311,7 +352,9 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
     return (
       <div className="solid-card mb-5">
         <div className="p-5">
-          <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">Details</h4>
+          <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">
+            Details
+          </h4>
           <div className="grid grid-cols-2 gap-x-4 gap-y-3">
             {entries.map(([key, val]) => (
               <Field key={key} label={key} value={String(val)} />
@@ -324,23 +367,29 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
 
   const semesterHasContent = (semData: any) => {
     if (semData.error) return true;
-    return semData.tables?.length > 0
-      || Object.keys(semData.keyValuePairs || {}).length > 0
-      || !!semData.formFields
-      || (semData?.selectOptions && Object.values(semData.selectOptions).some((v: any) => Array.isArray(v) && v.length > 0))
-      || (semData?.cascadingOptions && Object.keys(semData.cascadingOptions).length > 0);
+    return (
+      semData.tables?.length > 0 ||
+      Object.keys(semData.keyValuePairs || {}).length > 0 ||
+      !!semData.formFields ||
+      (semData?.selectOptions &&
+        Object.values(semData.selectOptions).some((v: any) => Array.isArray(v) && v.length > 0)) ||
+      (semData?.cascadingOptions && Object.keys(semData.cascadingOptions).length > 0)
+    );
   };
 
   const renderSingleSemester = (semData: any, semName: string) => {
     const hasContent = semesterHasContent(semData);
     const semSelectOptions = semData?.selectOptions
-      ? Object.entries(semData.selectOptions).filter(([key, val]: any) =>
-          Array.isArray(val) && val.length > 0 && !key.toLowerCase().includes("sem"))
+      ? Object.entries(semData.selectOptions).filter(
+          ([key, val]: any) => Array.isArray(val) && val.length > 0 && !key.toLowerCase().includes("sem"),
+        )
       : [];
     return (
       <div className="solid-card mb-5" key={semName}>
         <div className="p-5">
-          <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">{semName}</h4>
+          <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">
+            {semName}
+          </h4>
           {renderMessages(semData.messages)}
           {hasContent ? (
             <>
@@ -359,13 +408,22 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
           )}
           {semSelectOptions.length > 0 && (
             <div className="space-y-3 mt-4">
-              <h5 className="text-xs font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider">Available Options</h5>
+              <h5 className="text-xs font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider">
+                Available Options
+              </h5>
               {semSelectOptions.map(([key, options]: any) => (
                 <div key={key}>
-                  <p className="text-xs font-medium text-gray-500  dark:text-gray-400 mb-1.5 capitalize">{key.replace(/-/g, " ")}</p>
+                  <p className="text-xs font-medium text-gray-500  dark:text-gray-400 mb-1.5 capitalize">
+                    {key.replace(/-/g, " ")}
+                  </p>
                   <div className="flex flex-wrap gap-2">
-                    {(options as Array<{value: string; text: string}>).map((opt: any, i: number) => (
-                      <span key={i} className="px-3 py-1.5 rounded-lg bg-gray-100  dark:bg-gray-800 text-xs font-medium text-gray-600  dark:text-gray-300">{opt.text}</span>
+                    {(options as Array<{ value: string; text: string }>).map((opt: any, i: number) => (
+                      <span
+                        key={i}
+                        className="px-3 py-1.5 rounded-lg bg-gray-100  dark:bg-gray-800 text-xs font-medium text-gray-600  dark:text-gray-300"
+                      >
+                        {opt.text}
+                      </span>
                     ))}
                   </div>
                 </div>
@@ -374,28 +432,40 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
           )}
           {semData?.cascadingOptions && Object.keys(semData.cascadingOptions).length > 0 && (
             <div className="space-y-4 mt-5 pt-4 border-t border-gray-100  dark:border-gray-700/50">
-              <h5 className="text-xs font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider">Available Minor / Honour Combinations</h5>
+              <h5 className="text-xs font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider">
+                Available Minor / Honour Combinations
+              </h5>
               {Object.entries(semData.cascadingOptions).map(([fieldName, fieldData]: [string, any]) => (
                 <div key={fieldName} className="space-y-2">
-                  <p className="text-xs font-semibold text-gray-600  dark:text-gray-300 capitalize">{fieldName.replace(/-/g, " ")}</p>
+                  <p className="text-xs font-semibold text-gray-600  dark:text-gray-300 capitalize">
+                    {fieldName.replace(/-/g, " ")}
+                  </p>
                   <div className="space-y-2 ml-2">
                     {(fieldData.options || []).map((opt: any, i: number) => (
                       <div key={i} className="bg-gray-50  dark:bg-gray-800/50 rounded-lg p-3">
                         <p className="text-sm font-medium text-gray-700  dark:text-gray-200">{opt.text}</p>
-                        {fieldData.children?.[opt.text]?.selectOptions && Object.entries(fieldData.children[opt.text].selectOptions).map(([childField, childOpts]: [string, any]) => (
-                          <div key={childField} className="mt-2 ml-2">
-                            <p className="text-[11px] font-medium text-gray-400  dark:text-gray-500 uppercase tracking-wider mb-1">{childField.replace(/-/g, " ")}</p>
-                            <div className="flex flex-wrap gap-1.5">
-                              {(childOpts as Array<{value: string; text: string}>).map((co: any, ci: number) => (
-                                <span key={ci} className="px-2.5 py-1 rounded-md bg-white  dark:bg-gray-900 text-xs text-gray-500  dark:text-gray-400 border border-gray-200  dark:border-gray-700">{co.text}</span>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
+                        {fieldData.children?.[opt.text]?.selectOptions &&
+                          Object.entries(fieldData.children[opt.text].selectOptions).map(
+                            ([childField, childOpts]: [string, any]) => (
+                              <div key={childField} className="mt-2 ml-2">
+                                <p className="text-[11px] font-medium text-gray-400  dark:text-gray-500 uppercase tracking-wider mb-1">
+                                  {childField.replace(/-/g, " ")}
+                                </p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {(childOpts as Array<{ value: string; text: string }>).map((co: any, ci: number) => (
+                                    <span
+                                      key={ci}
+                                      className="px-2.5 py-1 rounded-md bg-white  dark:bg-gray-900 text-xs text-gray-500  dark:text-gray-400 border border-gray-200  dark:border-gray-700"
+                                    >
+                                      {co.text}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            ),
+                          )}
                         {fieldData.children?.[opt.text]?.tables && fieldData.children[opt.text].tables.length > 0 && (
-                          <div className="mt-2">
-                            {renderTables(fieldData.children[opt.text].tables)}
-                          </div>
+                          <div className="mt-2">{renderTables(fieldData.children[opt.text].tables)}</div>
                         )}
                         {fieldData.children?.[opt.text]?.error && (
                           <p className="text-xs text-red-500 mt-1 ml-2">{fieldData.children[opt.text].error}</p>
@@ -435,7 +505,11 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
 
   if (!data) return null;
 
-  const allSelectOptions = data?.selectOptions ? Object.entries(data.selectOptions).filter(([key, val]: any) => Array.isArray(val) && val.length > 0 && !key.toLowerCase().includes("sem")) : [];
+  const allSelectOptions = data?.selectOptions
+    ? Object.entries(data.selectOptions).filter(
+        ([key, val]: any) => Array.isArray(val) && val.length > 0 && !key.toLowerCase().includes("sem"),
+      )
+    : [];
 
   return (
     <div className="space-y-4">
@@ -450,7 +524,9 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
                 return (
                   <div className="solid-card mb-5" key={semName}>
                     <div className="p-5">
-                      <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">{semName}</h4>
+                      <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">
+                        {semName}
+                      </h4>
                       <p className="error-banner">{semData.error}</p>
                     </div>
                   </div>
@@ -460,11 +536,7 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
             })
         ) : (
           <div className="solid-card mb-5">
-            <EmptyState
-              icon={<Inbox className="w-10 h-10" />}
-              title="No data found"
-              className="py-12"
-            />
+            <EmptyState icon={<Inbox className="w-10 h-10" />} title="No data found" className="py-12" />
           </div>
         )
       ) : (
@@ -474,23 +546,26 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
           {semesterOptions && (
             <div className="solid-card mb-5">
               <div className="p-4">
-                <label className="text-xs font-semibold text-gray-400  dark:text-gray-500 uppercase tracking-wider mb-2 block">Select Semester</label>
+                <label className="text-xs font-semibold text-gray-400  dark:text-gray-500 uppercase tracking-wider mb-2 block">
+                  Select Semester
+                </label>
                 <div className="relative">
-                       <SelectField
-                         value={selectedSemester}
-                         onChange={(val) => handleSemesterChange(val)}
-                         options={[
-                           { value: "", label: "-- Select --" },
-                           ...(semesterOptions[1] as Array<{ value: string; text: string }>).map(
-                             (opt: any) => ({ value: opt.value, label: opt.text })
-                           ),
-                         ]}
-                         searchable
-                         stacked
-                         role="group"
-                         aria-label="Semester"
-                       />
-                     </div>
+                  <SelectField
+                    value={selectedSemester}
+                    onChange={(val) => handleSemesterChange(val)}
+                    options={[
+                      { value: "", label: "-- Select --" },
+                      ...(semesterOptions[1] as Array<{ value: string; text: string }>).map((opt: any) => ({
+                        value: opt.value,
+                        label: opt.text,
+                      })),
+                    ]}
+                    searchable
+                    stacked
+                    role="group"
+                    aria-label="Semester"
+                  />
+                </div>
               </div>
             </div>
           )}
@@ -504,14 +579,23 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
               {allSelectOptions.length > 0 && (
                 <div className="solid-card mb-5">
                   <div className="p-5">
-                    <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">Available Options</h4>
+                    <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">
+                      Available Options
+                    </h4>
                     <div className="space-y-3">
                       {allSelectOptions.map(([key, options]: any) => (
                         <div key={key}>
-                          <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 capitalize">{key.replace(/-/g, " ")}</p>
+                          <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 capitalize">
+                            {key.replace(/-/g, " ")}
+                          </p>
                           <div className="flex flex-wrap gap-2">
-                            {(options as Array<{value: string; text: string}>).map((opt: any, i: number) => (
-                              <span key={i} className="px-3 py-1.5 rounded-lg bg-gray-100  dark:bg-gray-800 text-xs font-medium text-gray-600  dark:text-gray-300">{opt.text}</span>
+                            {(options as Array<{ value: string; text: string }>).map((opt: any, i: number) => (
+                              <span
+                                key={i}
+                                className="px-3 py-1.5 rounded-lg bg-gray-100  dark:bg-gray-800 text-xs font-medium text-gray-600  dark:text-gray-300"
+                              >
+                                {opt.text}
+                              </span>
                             ))}
                           </div>
                         </div>
@@ -520,53 +604,67 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
                   </div>
                 </div>
               )}
-              {data.formFields && Object.keys(data.formFields).length > 0 && (writable ? (
-                <div className="solid-card mb-5">
-                  <form onSubmit={handleSubmit} className="p-5 space-y-4">
-                    <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">Submit Form</h4>
-                    {submitResult?.messages?.success && <div className="success-banner">{submitResult.messages.success}</div>}
-                    {submitResult?.messages?.error && <div className="error-banner">{submitResult.messages.error}</div>}
-                    {submitResult?.error && <div className="error-banner">{submitResult.error}</div>}
-                    {Object.entries(data.formFields).map(([key, val]: any) => (
-                      <div key={key}>
-                        <label className="text-xs font-semibold text-gray-400  dark:text-gray-500 uppercase tracking-wider mb-1.5 block">{key.replace(/-/g, " ")}</label>
-                        <input
-                          name={key}
-                          defaultValue={typeof val === "string" ? val : ""}
-                          onChange={(e) => handleFormFieldChange(key, e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl bg-white  dark:bg-gray-800 border border-gray-200  dark:border-gray-700 text-gray-800  dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                    ))}
-                    <button type="submit" disabled={submitting}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Send className="w-4 h-4" />
-                      {submitting ? "Submitting..." : "Submit"}
-                    </button>
-                  </form>
-                </div>
-              ) : (
-                <div className="solid-card mb-5">
-                  <div className="p-5">
-                    <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">Details</h4>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                      {Object.entries(data.formFields).map(([key, field]: any) => (
-                        <Field key={key} label={field.label || key} value={field.value || ""} />
+              {data.formFields &&
+                Object.keys(data.formFields).length > 0 &&
+                (writable ? (
+                  <div className="solid-card mb-5">
+                    <form onSubmit={handleSubmit} className="p-5 space-y-4">
+                      <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">
+                        Submit Form
+                      </h4>
+                      {submitResult?.messages?.success && (
+                        <div className="success-banner">{submitResult.messages.success}</div>
+                      )}
+                      {submitResult?.messages?.error && (
+                        <div className="error-banner">{submitResult.messages.error}</div>
+                      )}
+                      {submitResult?.error && <div className="error-banner">{submitResult.error}</div>}
+                      {Object.entries(data.formFields).map(([key, val]: any) => (
+                        <div key={key}>
+                          <label className="text-xs font-semibold text-gray-400  dark:text-gray-500 uppercase tracking-wider mb-1.5 block">
+                            {key.replace(/-/g, " ")}
+                          </label>
+                          <input
+                            name={key}
+                            defaultValue={typeof val === "string" ? val : ""}
+                            onChange={(e) => handleFormFieldChange(key, e.target.value)}
+                            className="w-full px-3 py-2 rounded-xl bg-white  dark:bg-gray-800 border border-gray-200  dark:border-gray-700 text-gray-800  dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
                       ))}
+                      <button
+                        type="submit"
+                        disabled={submitting}
+                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Send className="w-4 h-4" />
+                        {submitting ? "Submitting..." : "Submit"}
+                      </button>
+                    </form>
+                  </div>
+                ) : (
+                  <div className="solid-card mb-5">
+                    <div className="p-5">
+                      <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">
+                        Details
+                      </h4>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                        {Object.entries(data.formFields).map(([key, field]: any) => (
+                          <Field key={key} label={field.label || key} value={field.value || ""} />
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-              {!allSelectOptions.length && !data.tables?.length && !Object.keys(data.keyValuePairs || {}).length && !data.formFields && !data.messages && (
-                <div className="solid-card mb-5">
-                  <EmptyState
-                    icon={<Inbox className="w-10 h-10" />}
-                    title="No data found"
-                    className="py-12"
-                  />
-                </div>
-              )}
+                ))}
+              {!allSelectOptions.length &&
+                !data.tables?.length &&
+                !Object.keys(data.keyValuePairs || {}).length &&
+                !data.formFields &&
+                !data.messages && (
+                  <div className="solid-card mb-5">
+                    <EmptyState icon={<Inbox className="w-10 h-10" />} title="No data found" className="py-12" />
+                  </div>
+                )}
             </>
           )}
         </>

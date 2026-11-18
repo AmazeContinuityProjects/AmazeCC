@@ -7,6 +7,8 @@ import BottomSheet from "../shared/BottomSheet";
 import type { MergedOccupant } from "@/lib/roomMerge";
 import { useAtom } from "jotai";
 import { activeTabAtom } from "@/store/uiAtoms";
+import { setTypedStorageItem } from "@/lib/storage";
+import { normalizeFaculty } from "@/lib/courseNormalizer";
 import { cn } from "@amazecontinuityprojects/amazeui";
 
 export interface ClassDetailsModalProps {
@@ -52,10 +54,10 @@ export default function ClassDetailsModal({
     if (!active) return;
     const target = active.erpId ? `erp:${active.erpId}` : active.faculty;
     if (active.erpId) {
-      localStorage.setItem("faculty_schedule_target_erp", active.erpId);
+      setTypedStorageItem("faculty_schedule_target_erp", active.erpId);
     }
     if (active.faculty) {
-      localStorage.setItem("faculty_schedule_target_name", active.faculty);
+      setTypedStorageItem("faculty_schedule_target_name", active.faculty);
     }
     if (onViewFacultySchedule) {
       onViewFacultySchedule(target);
@@ -67,13 +69,17 @@ export default function ClassDetailsModal({
 
   if (!active) return null;
 
+  const facultyNorm = normalizeFaculty(active.faculty);
+  const displayFaculty = active.faculty || facultyNorm.name || "Not Specified";
+  const displayErp = active.erpId || facultyNorm.employeeId;
+
   const venue = active.code || roomCode || "Unknown Room";
   const block = venue.includes("-") ? `${venue.split("-")[0].trim()} Block` : "Campus Venue";
 
   const fullCopyText = [
     `Course: ${active.courseCode} - ${active.title || "Class"}`,
     active.type ? `Component: ${active.type}` : "",
-    `Faculty: ${active.faculty}${active.erpId ? ` (ERP: ${active.erpId})` : ""}`,
+    `Faculty: ${displayFaculty}${displayErp ? ` (ERP: ${displayErp})` : ""}`,
     `Room: ${venue} (${block})`,
     dayLabel ? `Day: ${dayLabel}` : "",
     periodLabel ? `Time: ${periodLabel}` : "",
@@ -195,20 +201,18 @@ export default function ClassDetailsModal({
                   </div>
                   <div className="min-w-0">
                     <p className="text-[10px] uppercase tracking-wider font-bold text-zinc-400">Faculty / Teacher</p>
-                    <p className="text-sm font-extrabold text-zinc-900 dark:text-white truncate">
-                      {active.faculty || "Not Specified"}
-                    </p>
-                    {active.erpId && (
+                    <p className="text-sm font-extrabold text-zinc-900 dark:text-white truncate">{displayFaculty}</p>
+                    {displayErp && (
                       <span className="inline-flex items-center gap-1 font-mono font-bold text-[11px] text-indigo-600 dark:text-indigo-400">
                         <Hash className="w-3 h-3" />
-                        {active.erpId}
+                        {displayErp}
                       </span>
                     )}
                   </div>
                 </div>
                 <button
                   type="button"
-                  onClick={() => handleCopy(active.faculty, "faculty")}
+                  onClick={() => handleCopy(displayFaculty, "faculty")}
                   className="p-1 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
                   title="Copy faculty name"
                 >

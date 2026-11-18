@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { AnimatePresence, m } from "framer-motion";
 import { Bell, X } from "lucide-react";
 import { syncEngine } from "@/lib/sync-engine";
+import { getTypedStorageItem, setTypedStorageItem } from "@/lib/storage";
 
 function urlBase64ToUint8Array(base64String: string) {
   if (!base64String) return new Uint8Array(0);
@@ -22,7 +23,7 @@ export default function PushPromptModal({ UserID }: { UserID: string }) {
     if (Notification.permission === "granted") return;
 
     // Periodic reminder logic: check when prompt was last shown
-    const lastPromptTime = localStorage.getItem("lastPushPromptTimestamp");
+    const lastPromptTime = getTypedStorageItem("lastPushPromptTimestamp");
     const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
 
     const shouldShow = !lastPromptTime || Date.now() - Number(lastPromptTime) > THREE_DAYS_MS;
@@ -36,7 +37,7 @@ export default function PushPromptModal({ UserID }: { UserID: string }) {
   }, [UserID]);
 
   const handleClose = () => {
-    localStorage.setItem("lastPushPromptTimestamp", String(Date.now()));
+    setTypedStorageItem("lastPushPromptTimestamp", String(Date.now()));
     setIsOpen(false);
   };
 

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import type { CabShareTrip, CabShareUser } from "@/types/storage";
+import { setTypedStorageItem } from "@/lib/storage";
 import CreateTrip from "./CreateTrip";
 import SearchTrips from "./SearchTrips";
 import MyTrips from "./MyTrips";
@@ -22,14 +24,14 @@ type CabShareScreen = (typeof TABS)[number]["value"];
 
 export default function CabShareTab({ onBack }: { onBack?: () => void }) {
   const [activeTab, setActiveTab] = useState<CabShareScreen>("search");
-  const [cabShareUser, setCabShareUser] = useState<any>(null);
+  const [cabShareUser, setCabShareUser] = useState<CabShareUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
     // Older builds stored a local-only Cab Share identity. It is not proof of
     // the caller's Amaze ID and must not bypass the current server auth flow.
-    localStorage.removeItem("cabshare_user");
+    setTypedStorageItem("cabshare_user", null);
     setLoading(false);
   }, []);
 
@@ -39,8 +41,9 @@ export default function CabShareTab({ onBack }: { onBack?: () => void }) {
       const res = await api(`cabshare/trips/me?reg_number=${cabShareUser.reg_number}`, { parse: "raw" });
       const data = await readJsonResponse(res as Response);
       if (data?.success) {
-        const count = (data.my_trips || []).reduce(
-          (acc: number, trip: any) => acc + (trip.requests || []).filter((r: any) => r.status === "pending").length,
+        const count = ((data.my_trips || []) as CabShareTrip[]).reduce(
+          (acc: number, trip: CabShareTrip) =>
+            acc + (trip.requests || []).filter((r: any) => r.status === "pending").length,
           0,
         );
         setPendingCount(count);
@@ -94,6 +97,7 @@ export default function CabShareTab({ onBack }: { onBack?: () => void }) {
         isOpen={!cabShareUser}
         onAuthSuccess={(user) => {
           setCabShareUser(user);
+          setTypedStorageItem("cabshare_user", user);
         }}
       />
 

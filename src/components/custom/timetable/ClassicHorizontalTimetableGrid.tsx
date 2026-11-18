@@ -11,6 +11,7 @@ import {
   type GapDetail,
   type TimetablePeriod,
 } from "@amazecontinuityprojects/amazeui";
+import type { NormalizedCourse } from "@/types/course";
 import { expandSlotSpellings, ownSlotSpelling } from "@/lib/slots";
 
 const DEFAULT_DAYS: { id: string; name: string }[] = [
@@ -23,8 +24,8 @@ const DEFAULT_DAYS: { id: string; name: string }[] = [
 
 function respell(
   periods: readonly TimetablePeriod[],
-  courses: readonly AddedCourse[],
-  days: readonly { id: string; name: string }[]
+  courses: readonly (AddedCourse | NormalizedCourse | any)[],
+  days: readonly { id: string; name: string }[],
 ): TimetablePeriod[] {
   return periods.map((period) => {
     if (!period?.days) return period;
@@ -44,7 +45,7 @@ function respell(
 }
 
 export interface ClassicHorizontalTimetableGridProps {
-  courses: AddedCourse[];
+  courses: (AddedCourse | NormalizedCourse | any)[];
   theoryPeriods: TimetablePeriod[];
   labPeriods: TimetablePeriod[];
   days?: { id: string; name: string }[];

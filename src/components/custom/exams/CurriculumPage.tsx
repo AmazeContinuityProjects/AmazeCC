@@ -43,7 +43,8 @@ import SelectField from "../shared/primitives/SelectField";
 import { CHIP, LIST_ROW, LIST_SHELL, SEARCH_FIELD, TILE } from "@/lib/uiTokens";
 import { readSettings, settingsAtom } from "@/store/settingsAtoms";
 import { useSetAtom } from "jotai";
-import { storage } from "@/lib/storage";
+import { storage, getTypedStorageItem, setTypedStorageItem } from "@/lib/storage";
+import { normalizeCourse } from "@/lib/courseNormalizer";
 import { buildCategoryRows, splitCurriculumRows, num, type CategoryRow } from "@/lib/curriculum";
 
 // ── helpers & constants ──────────────────────────────────────────────
@@ -1187,9 +1188,9 @@ export default function CurriculumPage({
     // required average is derived), so an existing value migrates untouched and
     // `requiredSgpa` is simply ignored.
     try {
-      const raw = localStorage.getItem("uni_cc_gpa_goal");
-      if (raw) {
-        const parsed = JSON.parse(raw);
+      const stored = getTypedStorageItem<any>("uni_cc_gpa_goal");
+      if (stored) {
+        const parsed = typeof stored === "string" ? JSON.parse(stored) : stored;
         const t = Number(parsed?.target);
         if (t > 0 && t <= 10) return t;
       }
@@ -1203,7 +1204,7 @@ export default function CurriculumPage({
   const setTargetCgpa = (value: number) => {
     setTargetCgpaState(value);
     try {
-      localStorage.setItem("uni_cc_gpa_goal", JSON.stringify({ target: value }));
+      setTypedStorageItem("uni_cc_gpa_goal", { target: value });
     } catch {}
   };
 
@@ -1215,14 +1216,17 @@ export default function CurriculumPage({
   const plannerCourses = useMemo(() => {
     const map = new Map<string, { code: string; title: string; credits: number }>();
     for (const a of safeAttendance) {
-      const code = String(a.courseCode || "")
-        .replace(/\((T|L)\)/g, "")
-        .trim();
-      const credits = num(a.credits);
+      const norm = normalizeCourse(a);
+      const code =
+        norm.baseCode ||
+        String(a.courseCode || "")
+          .replace(/\((T|L)\)/g, "")
+          .trim();
+      const credits = norm.credits ?? num(a.credits);
       if (!code || !credits) continue;
       const existing = map.get(code);
       if (existing) existing.credits += credits;
-      else map.set(code, { code, title: a.courseTitle || code, credits });
+      else map.set(code, { code, title: norm.title || a.courseTitle || code, credits });
     }
     return [...map.values()].sort((a, b) => a.code.localeCompare(b.code));
   }, [safeAttendance]);

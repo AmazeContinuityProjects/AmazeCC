@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { ErrorDiagnosticCard as BaseErrorDiagnosticCard, Button } from "@amazecontinuityprojects/amazeui";
 import { Bug, Send, CheckCircle2, AlertTriangle } from "lucide-react";
 import { sendPostHogSupportTicket } from "@/lib/posthog";
+import { getTypedStorageItem, setTypedStorageItem } from "@/lib/storage";
 
 export interface ErrorDiagnosticCardProps {
   title: string;
@@ -24,7 +25,7 @@ export default function ErrorDiagnosticCard(props: ErrorDiagnosticCardProps) {
   const [contactEmail, setContactEmail] = useState(() => {
     if (typeof window !== "undefined") {
       try {
-        return window.localStorage.getItem("amazecc_feedback_email") || "";
+        return getTypedStorageItem("amazecc_feedback_email") || "";
       } catch {
         return "";
       }
@@ -79,7 +80,7 @@ export default function ErrorDiagnosticCard(props: ErrorDiagnosticCardProps) {
 
       if (contactEmail.trim() && typeof window !== "undefined") {
         try {
-          window.localStorage.setItem("amazecc_feedback_email", contactEmail.trim());
+          setTypedStorageItem("amazecc_feedback_email", contactEmail.trim());
         } catch {}
       }
 

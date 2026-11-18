@@ -10,9 +10,9 @@
 
 import { useMemo } from "react";
 import { BookOpen, MapPin, UserRound } from "lucide-react";
-import BackButton from "../shared/BackButton";
 import { CHIP, EMPTY_STATE, LIST_SHELL } from "@/lib/libraries/ui";
 import { SectionHeader, initials } from "./rows";
+import { PageShell } from "../shared/primitives";
 import { usePeerTimetables } from "@/lib/social/usePeerTimetables";
 import { useSocialData } from "@/lib/social/useSocialData";
 import { sharedClassesByCourse, type PeerClassMatch } from "@/lib/social/sharedClasses";
@@ -75,18 +75,7 @@ export default function ClassesTogetherSubpage({
   );
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-start justify-between gap-3">
-        <BackButton onClick={onBack} className="self-start" />
-      </div>
-
-      <div className="px-1">
-        <p className="text-xs font-semibold text-zinc-400 dark:text-zinc-500 leading-none mb-1">This term</p>
-        <h1 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white tracking-tight leading-tight font-outfit truncate">
-          Classes Together
-        </h1>
-      </div>
-
+    <PageShell eyebrow="This term" title="Classes Together" onBack={onBack}>
       <SectionHeader icon={BookOpen} title="Shared courses" count={rows.length} />
 
       {ownCourses.length === 0 ? (
@@ -162,6 +151,6 @@ export default function ClassesTogetherSubpage({
           slots.
         </p>
       )}
-    </div>
+    </PageShell>
   );
 }

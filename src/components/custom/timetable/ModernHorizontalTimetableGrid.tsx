@@ -1,6 +1,7 @@
 "use client";
 
 import { type AddedCourse, type GapDetail, type TimetablePeriod } from "@amazecontinuityprojects/amazeui";
+import type { NormalizedCourse } from "@/types/course";
 import { cn } from "@/lib/utils";
 import { COLOR_HEX_MAP } from "@/lib/ffcsConstants";
 import { ensureLunchPeriod, expandSlotSpellings, hasSlot, ownSlotSpelling, timeToMinutes } from "@/lib/slots";
@@ -15,7 +16,7 @@ const DEFAULT_DAYS: { id: string; name: string }[] = [
 ];
 
 export interface ModernHorizontalTimetableGridProps {
-  courses: AddedCourse[];
+  courses: (AddedCourse | NormalizedCourse | any)[];
   theoryPeriods: TimetablePeriod[];
   labPeriods: TimetablePeriod[];
   days?: { id: string; name: string }[];
@@ -235,7 +236,7 @@ export default function ModernHorizontalTimetableGrid({
 
                   const renderSlotHalf = (
                     slotName?: string,
-                    course?: AddedCourse | null,
+                    course?: (AddedCourse | NormalizedCourse | any) | null,
                     isBlocked?: boolean,
                     inGap?: boolean,
                     isLab?: boolean,
@@ -265,6 +266,10 @@ export default function ModernHorizontalTimetableGrid({
                     if (course) {
                       const colorHex =
                         COLOR_HEX_MAP[course.color] || (course.color?.startsWith("#") ? course.color : "#2563eb");
+                      const facultyStr =
+                        typeof course.faculty === "object"
+                          ? course.faculty?.raw || course.faculty?.name || ""
+                          : course.faculty || "";
                       return (
                         <div
                           {...clickable(() => onToggleBlockSlot?.(slotName))}
@@ -294,7 +299,7 @@ export default function ModernHorizontalTimetableGrid({
                           {/* Hover tooltip */}
                           <div className="absolute opacity-0 group-hover/tile:opacity-100 transition-opacity duration-200 bottom-full left-1/2 -translate-x-1/2 mb-1.5 w-max max-w-[220px] bg-slate-900 dark:bg-slate-950 text-white text-xs rounded-xl p-2.5 shadow-2xl z-50 pointer-events-none border border-slate-700 dark:border-white/20 text-center">
                             <p className="font-bold text-slate-100">{course.title}</p>
-                            <p className="text-slate-400 text-[11px] mt-0.5">{course.faculty}</p>
+                            {facultyStr && <p className="text-slate-400 text-[11px] mt-0.5">{facultyStr}</p>}
                             <div className="flex items-center justify-center gap-1.5 mt-1 text-[10px] text-blue-400 font-semibold">
                               <span>Slot: {slotName}</span>
                               <span>•</span>

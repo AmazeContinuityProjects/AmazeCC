@@ -2,36 +2,29 @@
 
 import dynamic from "next/dynamic";
 import type { ComponentProps } from "react";
+import { useAtomValue } from "jotai";
+import { unifiedIdentityAtom, unifiedAcademicsAtom } from "@/store";
+import type { UnifiedUserIdentity } from "@/types";
 import { DashboardRoute, useDashboardNavigator } from "./DashboardNavigator";
 import type BusFinderComponent from "../dayscholar/BusFinder";
 
 type BusFinderProps = ComponentProps<typeof BusFinderComponent>;
 
-function FeatureLoading() {
-  return (
-    <div
-      className="min-h-40 animate-pulse rounded-2xl bg-slate-100 dark:bg-zinc-900"
-      role="status"
-      aria-label="Loading page"
-    />
-  );
-}
-
-const CabShareTab = dynamic(() => import("../hostel/CabShare/CabShareTab"), { loading: FeatureLoading });
-const BusFinder = dynamic(() => import("../dayscholar/BusFinder"), { loading: FeatureLoading });
-const PaymentsTab = dynamic(() => import("../PaymentsTab"), { loading: FeatureLoading });
-const LibrariesTab = dynamic(() => import("../libraries/LibrariesTab"), { loading: FeatureLoading });
-const EventHubTab = dynamic(() => import("../events/EventHubTab"), { loading: FeatureLoading });
-const ClubHubTab = dynamic(() => import("../clubs/ClubHubTab"), { loading: FeatureLoading });
-const CommunityFeed = dynamic(() => import("../clubs/CommunityFeed"), { loading: FeatureLoading });
-const FreeClassroomsTab = dynamic(() => import("../exams/FreeClassroomsTab"), { loading: FeatureLoading });
-const FacultyScheduleTab = dynamic(() => import("../exams/FacultyScheduleTab"), { loading: FeatureLoading });
-const FriendFinderTab = dynamic(() => import("../friendfinder/FriendFinderTab"), { loading: FeatureLoading });
-const PaperScannerPage = dynamic(() => import("../tools/scanner/PaperScannerPage"), { loading: FeatureLoading });
-const MoreTab = dynamic(() => import("../more/MoreTab"), { loading: FeatureLoading });
-const AboutTab = dynamic(() => import("../AboutTab"), { loading: FeatureLoading });
-const FeedbackReportPage = dynamic(() => import("../feedback/FeedbackReportPage"), { loading: FeatureLoading });
-const StudentReportPage = dynamic(() => import("../reports/StudentReportPage"), { loading: FeatureLoading });
+const CabShareTab = dynamic(() => import("../hostel/CabShare/CabShareTab"));
+const BusFinder = dynamic(() => import("../dayscholar/BusFinder"));
+const PaymentsTab = dynamic(() => import("../PaymentsTab"));
+const LibrariesTab = dynamic(() => import("../libraries/LibrariesTab"));
+const EventHubTab = dynamic(() => import("../events/EventHubTab"));
+const ClubHubTab = dynamic(() => import("../clubs/ClubHubTab"));
+const CommunityFeed = dynamic(() => import("../clubs/CommunityFeed"));
+const FreeClassroomsTab = dynamic(() => import("../exams/FreeClassroomsTab"));
+const FacultyScheduleTab = dynamic(() => import("../exams/FacultyScheduleTab"));
+const FriendFinderTab = dynamic(() => import("../friendfinder/FriendFinderTab"));
+const PaperScannerPage = dynamic(() => import("../tools/scanner/PaperScannerPage"));
+const MoreTab = dynamic(() => import("../more/MoreTab"));
+const AboutTab = dynamic(() => import("../AboutTab"));
+const FeedbackReportPage = dynamic(() => import("../feedback/FeedbackReportPage"));
+const StudentReportPage = dynamic(() => import("../reports/StudentReportPage"));
 
 interface DashboardUtilityRoutesProps {
   onSystemBack: () => void;
@@ -71,6 +64,18 @@ export default function DashboardUtilityRoutes({
   isSubpageOpen,
 }: DashboardUtilityRoutesProps) {
   const { activeMoreSubTab, setActiveMoreSubTab } = useDashboardNavigator();
+  const unifiedIdentity: UnifiedUserIdentity = useAtomValue(unifiedIdentityAtom);
+  const unifiedAcademics = useAtomValue(unifiedAcademicsAtom);
+  const resolvedIDs = IDs?.VtopUsername ? IDs : { ...IDs, VtopUsername: unifiedIdentity.regNumber };
+  const resolvedAttendanceData =
+    attendanceData ||
+    (unifiedAcademics.courses.length > 0
+      ? {
+          attendance: unifiedAcademics.courses,
+          semester: unifiedAcademics.semesterId,
+        }
+      : attendanceData);
+
   const busProps = {
     transportData,
     transportLoading,
@@ -92,83 +97,57 @@ export default function DashboardUtilityRoutes({
         <BusFinder {...busProps} buses={transportBuses} />
       </DashboardRoute>
       <DashboardRoute route="payments">
-        <div className="animate-fadeIn">
-          <PaymentsTab loginToVTOP={loginToVTOP} onBack={onSystemBack} />
-        </div>
+        <PaymentsTab loginToVTOP={loginToVTOP} onBack={onSystemBack} />
       </DashboardRoute>
       <DashboardRoute route="libraries">
-        <div className="animate-fadeIn">
-          <LibrariesTab loginToVTOP={loginToVTOP} onBack={onSystemBack} />
-        </div>
+        <LibrariesTab loginToVTOP={loginToVTOP} onBack={onSystemBack} />
       </DashboardRoute>
       <DashboardRoute route="events">
-        <div className="animate-fadeIn">
-          <EventHubTab
-            IDs={IDs}
-            onBack={onSystemBack}
-            setIsSubpageOpen={setIsSubpageOpen}
-            registeredEvents={registeredEvents}
-            setRegisteredEvents={setRegisteredEvents}
-          />
-        </div>
+        <EventHubTab
+          IDs={resolvedIDs}
+          onBack={onSystemBack}
+          setIsSubpageOpen={setIsSubpageOpen}
+          registeredEvents={registeredEvents}
+          setRegisteredEvents={setRegisteredEvents}
+        />
       </DashboardRoute>
       <DashboardRoute route="clubs">
-        <div className="animate-fadeIn">
-          <ClubHubTab IDs={IDs} loginToVTOP={loginToVTOP} onBack={onSystemBack} />
-        </div>
+        <ClubHubTab IDs={resolvedIDs} loginToVTOP={loginToVTOP} onBack={onSystemBack} />
       </DashboardRoute>
       <DashboardRoute route="community">
-        <div className="animate-fadeIn">
-          <CommunityFeed IDs={IDs} loginToVTOP={loginToVTOP} onBack={onSystemBack} />
-        </div>
+        <CommunityFeed IDs={resolvedIDs} loginToVTOP={loginToVTOP} onBack={onSystemBack} />
       </DashboardRoute>
       <DashboardRoute route="free-class">
-        <div className="animate-fadeIn">
-          <FreeClassroomsTab onBack={onSystemBack} handleReloadRequest={handleReloadRequest} />
-        </div>
+        <FreeClassroomsTab onBack={onSystemBack} handleReloadRequest={handleReloadRequest} />
       </DashboardRoute>
       <DashboardRoute route="faculty-schedule">
-        <div className="animate-fadeIn">
-          <FacultyScheduleTab onBack={onSystemBack} handleReloadRequest={handleReloadRequest} />
-        </div>
+        <FacultyScheduleTab onBack={onSystemBack} handleReloadRequest={handleReloadRequest} />
       </DashboardRoute>
       <DashboardRoute route="friend-finder">
-        <div className="animate-fadeIn">
-          <FriendFinderTab onBack={onSystemBack} />
-        </div>
+        <FriendFinderTab onBack={onSystemBack} />
       </DashboardRoute>
       <DashboardRoute route="paper-scanner">
-        <div className="animate-fadeIn">
-          <PaperScannerPage onBack={onSystemBack} />
-        </div>
+        <PaperScannerPage onBack={onSystemBack} />
       </DashboardRoute>
       <DashboardRoute route="student-report">
-        <div className="animate-fadeIn">
-          <StudentReportPage />
-        </div>
+        <StudentReportPage />
       </DashboardRoute>
       <DashboardRoute route="more">
-        <div className="animate-fadeIn">
-          <MoreTab
-            attendanceData={attendanceData}
-            activeMoreSubTab={activeMoreSubTab}
-            setActiveMoreSubTab={setActiveMoreSubTab}
-            IDs={IDs}
-            loginToVTOP={loginToVTOP}
-            isSubpageOpen={isSubpageOpen}
-            setIsSubpageOpen={setIsSubpageOpen}
-          />
-        </div>
+        <MoreTab
+          attendanceData={resolvedAttendanceData}
+          activeMoreSubTab={activeMoreSubTab}
+          setActiveMoreSubTab={setActiveMoreSubTab}
+          IDs={resolvedIDs}
+          loginToVTOP={loginToVTOP}
+          isSubpageOpen={isSubpageOpen}
+          setIsSubpageOpen={setIsSubpageOpen}
+        />
       </DashboardRoute>
       <DashboardRoute route="about">
-        <div className="animate-fadeIn">
-          <AboutTab />
-        </div>
+        <AboutTab />
       </DashboardRoute>
       <DashboardRoute route="feedback">
-        <div className="animate-fadeIn">
-          <FeedbackReportPage onBack={onSystemBack} />
-        </div>
+        <FeedbackReportPage onBack={onSystemBack} />
       </DashboardRoute>
     </>
   );

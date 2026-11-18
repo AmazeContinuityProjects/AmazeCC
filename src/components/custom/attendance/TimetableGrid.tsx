@@ -26,7 +26,11 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { Download, Printer } from "lucide-react";
+import { useAtomValue } from "jotai";
 import type { AddedCourse } from "@amazecontinuityprojects/amazeui";
+import type { NormalizedCourse } from "@/types/course";
+import { normalizeCourse, normalizeSlots } from "@/lib/courseNormalizer";
+import { unifiedAcademicsAtom } from "@/store";
 import config from "../../../../config.json";
 import { exportableHtml, openTimetablePrintablePage } from "@/lib/exportTimetable";
 import { downloadElementImage } from "@/lib/imageDownload";
@@ -68,32 +72,38 @@ const ATT_COLORS = [
   "bg-rose-600",
 ];
 
-function convertToAddedCourses(data: any[]): AddedCourse[] {
+function convertToAddedCourses(data: (NormalizedCourse | any)[]): AddedCourse[] {
   const colorMap: Record<string, string> = {};
   let colorIdx = 0;
   return (data || []).map((c: any) => {
-    const code = c.courseCode || "";
+    const norm = normalizeCourse(c);
+    const code = norm.code || c.courseCode || c.code || "";
     if (!colorMap[code]) colorMap[code] = ATT_COLORS[colorIdx++ % ATT_COLORS.length];
+    const facultyStr =
+      typeof c.faculty === "object"
+        ? c.faculty?.raw || c.faculty?.name || ""
+        : c.faculty || norm.faculty?.raw || norm.faculty?.name || "";
+    const slots = norm.slots.length > 0 ? norm.slots : normalizeSlots(c.slotName || c.slotDisplay);
+
     return {
       id: `att-${code}`,
       code,
-      title: c.courseTitle || "",
-      slots: String(c.slotName || "")
-        .split("+")
-        .map((s: string) => s.trim())
-        .filter(Boolean),
-      faculty: c.faculty || "",
-      venue: c.slotVenue || "",
-      credits: c.credits || "0",
-      type: c.courseType || "",
+      title: norm.title || c.courseTitle || c.title || "",
+      slots,
+      faculty: facultyStr,
+      venue: norm.venue || c.slotVenue || "",
+      credits: String(norm.credits ?? c.credits ?? "0"),
+      type: norm.componentType || c.courseType || "",
       color: colorMap[code],
     };
   });
 }
 
-export default function TimetableVtop({ attendance }: { attendance?: any[] }) {
+export default function TimetableVtop({ attendance }: { attendance?: (NormalizedCourse | any)[] }) {
   const captureRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const unifiedAcademics = useAtomValue(unifiedAcademicsAtom);
+  const effectiveAttendance = attendance && attendance.length > 0 ? attendance : unifiedAcademics?.courses || [];
 
   const { theme, resolvedTheme } = useTheme();
   const currentTheme = resolvedTheme || theme || "light";
@@ -152,7 +162,7 @@ export default function TimetableVtop({ attendance }: { attendance?: any[] }) {
     return { theoryPeriods: skeleton.theoryPeriods, labPeriods: skeleton.labPeriods };
   }, [slotMap]);
 
-  const addedCourses = useMemo(() => convertToAddedCourses(attendance || []), [attendance]);
+  const addedCourses = useMemo(() => convertToAddedCourses(effectiveAttendance), [effectiveAttendance]);
 
   /**
    * One row per course code, for the shared course list.
@@ -176,17 +186,21 @@ export default function TimetableVtop({ attendance }: { attendance?: any[] }) {
   /** Feeds the vertical cell sheet, which the planner has no equivalent of. */
   const attendanceByCourse = useMemo(() => {
     const map: Record<string, AttendanceTone> = {};
-    (attendance || []).forEach((c: any) => {
-      const pct = parseInt(c.attendancePercentage);
+    effectiveAttendance.forEach((c: any) => {
+      const norm = normalizeCourse(c);
+      const code = norm.code || c.courseCode || c.code;
+      if (!code) return;
+      const rawPct = norm.attendance?.attendancePercentage ?? c.attendancePercentage;
+      const pct = typeof rawPct === "number" ? rawPct : parseInt(String(rawPct ?? ""));
       if (!Number.isFinite(pct)) return;
       // Same thresholds as `lib/attendanceTimetable.ts`.
-      map[c.courseCode] = {
-        percentage: String(pct),
+      map[code] = {
+        percentage: String(Math.round(pct)),
         cls: pct < 50 ? "low" : pct < 75 ? "medium" : "high",
       };
     });
     return map;
-  }, [attendance]);
+  }, [effectiveAttendance]);
 
   return (
     <div className="flex w-full flex-col gap-4">

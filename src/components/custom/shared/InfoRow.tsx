@@ -1,1 +1,0 @@
-export { InfoRow as default } from "@amazecontinuityprojects/amazeui";

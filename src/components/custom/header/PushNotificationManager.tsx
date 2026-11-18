@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAtom } from "jotai";
-import { settingsAtom } from "@/store/settingsAtoms";
+import { useAtom, useAtomValue } from "jotai";
+import { settingsAtom, unifiedIdentityAtom } from "@/store";
+import type { UnifiedUserIdentity } from "@/types";
 import { Switch } from "@amazecontinuityprojects/amazeui";
 import { api } from "@/lib/sync-engine";
 import {
@@ -54,6 +55,8 @@ export default function PushNotificationManager() {
   const [fetchStatus, setFetchStatus] = useState<string | null>(null);
   const [isTesting, setIsTesting] = useState(false);
   const [userID, setUserID] = useState<string | null>(null);
+  const unifiedIdentity: UnifiedUserIdentity = useAtomValue(unifiedIdentityAtom);
+  const activeUserID = unifiedIdentity.regNumber || userID || "STUDENT";
 
   useEffect(() => {
     try {
@@ -155,11 +158,11 @@ export default function PushNotificationManager() {
         });
       }
 
-      if (userID) {
+      if (activeUserID) {
         api("notifications/subscribe", {
           method: "POST",
           body: {
-            UserID: userID,
+            UserID: activeUserID,
             subscription: JSON.parse(JSON.stringify(sub)),
             settings,
           },
@@ -178,11 +181,11 @@ export default function PushNotificationManager() {
     if (!subscription) return;
     try {
       await subscription.unsubscribe();
-      if (userID) {
+      if (activeUserID) {
         api("notifications/unsubscribe", {
           method: "POST",
           body: {
-            UserID: userID,
+            UserID: activeUserID,
             endpoint: subscription.endpoint,
           },
         }).catch(() => {});

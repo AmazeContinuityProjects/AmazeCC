@@ -96,7 +96,7 @@ function seriesDurationMin(examType: string): number {
 export function examWindow(
   raw: any,
   examType: string,
-  date: Date | null
+  date: Date | null,
 ): { startAt: Date | null; endAt: Date | null } {
   if (!date) return { startAt: null, endAt: null };
 
@@ -123,11 +123,7 @@ export function examWindow(
  * midnight. When no end time is known we can only judge by calendar day, which
  * is the old behaviour.
  */
-export function classifyExamState(
-  date: Date | null,
-  endAt: Date | null,
-  now: Date
-): ExamState {
+export function classifyExamState(date: Date | null, endAt: Date | null, now: Date): ExamState {
   if (!date) return "upcoming";
 
   const nowMs = now.getTime();
@@ -204,16 +200,8 @@ export function relativeDay(date: Date | null, now: Date = new Date()) {
   return diffDays > 0 ? `in ${diffDays} days` : `${Math.abs(diffDays)} days ago`;
 }
 
-/** "9:15 AM" for the hero tile's clock line. */
-export function formatClock(minutes: number | null | undefined) {
-  if (minutes === null || minutes === undefined) return "Time TBA";
-  let h = Math.floor(minutes / 60) % 24;
-  const m = minutes % 60;
-  const meridian = h >= 12 ? "PM" : "AM";
-  if (h === 0) h = 12;
-  if (h > 12) h -= 12;
-  return `${h}:${String(m).padStart(2, "0")} ${meridian}`;
-}
+import { formatClock } from "./timeUtils";
+export { formatClock };
 
 /**
  * Headline for the "Next exam" tile.

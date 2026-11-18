@@ -43,6 +43,7 @@ import {
   X,
 } from "lucide-react";
 import { activeTabAtom, credentialsAtom, demoModeAtom, isLoggedInAtom } from "@/store";
+import { getTypedStorageItem, setTypedStorageItem, removeTypedStorageItem } from "@/lib/storage";
 import {
   callClassmates,
   classmatesSemester,
@@ -98,9 +99,7 @@ const FRIEND_FINDER_CACHE_KEY_PREFIX = "amaze_friend_finder_cache_";
 export function getCachedFriendFinderState(sem: string): ClassmatesState | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = window.localStorage.getItem(`${FRIEND_FINDER_CACHE_KEY_PREFIX}${sem}`);
-    if (!raw) return null;
-    return JSON.parse(raw) as ClassmatesState;
+    return getTypedStorageItem(`${FRIEND_FINDER_CACHE_KEY_PREFIX}${sem}`) as ClassmatesState | null;
   } catch {
     return null;
   }
@@ -110,9 +109,9 @@ export function setCachedFriendFinderState(sem: string, state: ClassmatesState |
   if (typeof window === "undefined") return;
   try {
     if (!state) {
-      window.localStorage.removeItem(`${FRIEND_FINDER_CACHE_KEY_PREFIX}${sem}`);
+      removeTypedStorageItem(`${FRIEND_FINDER_CACHE_KEY_PREFIX}${sem}`);
     } else {
-      window.localStorage.setItem(`${FRIEND_FINDER_CACHE_KEY_PREFIX}${sem}`, JSON.stringify(state));
+      setTypedStorageItem(`${FRIEND_FINDER_CACHE_KEY_PREFIX}${sem}`, state as any);
     }
   } catch {}
 }
@@ -792,7 +791,7 @@ export default function FriendFinderTab({
     if (launchSourceRead.current) return;
     launchSourceRead.current = true;
     try {
-      if (window.localStorage.getItem("friend_finder_source") === "home") {
+      if (getTypedStorageItem("friend_finder_source") === "home") {
         setOpenedFromHome(true);
       }
     } catch {}
@@ -801,7 +800,7 @@ export default function FriendFinderTab({
   useEffect(
     () => () => {
       try {
-        window.localStorage.removeItem("friend_finder_source");
+        removeTypedStorageItem("friend_finder_source");
       } catch {}
     },
     [],

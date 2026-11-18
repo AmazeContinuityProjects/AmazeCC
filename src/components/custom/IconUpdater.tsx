@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { getAssetPath } from "@/lib/utils";
+import { getTypedStorageItem } from "@/lib/storage";
 
 export default function IconUpdater() {
   useEffect(() => {
@@ -46,8 +47,8 @@ export default function IconUpdater() {
         return;
       }
 
-      const savedIcon = localStorage.getItem("app-icon") || "default";
-      
+      const savedIcon = getTypedStorageItem("app-icon") || "default";
+
       // Update ALL link[rel~="icon"] tags
       const iconLinks = document.querySelectorAll("link[rel~='icon']");
       const appleIconLinks = document.querySelectorAll("link[rel='apple-touch-icon']");

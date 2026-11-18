@@ -6,10 +6,12 @@ import EmptyState from "../shared/EmptyState";
 import { findOfficialOdWhy } from "@/lib/officialOd";
 import { getTargetAttendancePct } from "@/store/settingsAtoms";
 import { clickable } from "@/lib/a11y";
+import type { NormalizedCourse } from "@/types/course";
+import { normalizeCourse } from "@/lib/courseNormalizer";
 
 export interface DesktopCourseDetailProps {
-  a?: any;
-  course?: any;
+  a?: NormalizedCourse | any;
+  course?: NormalizedCourse | any;
   isDayscholarWithBus?: boolean;
   decimalValues?: boolean;
   results?: any;
@@ -64,8 +66,8 @@ export default function DesktopCourseDetail({
   }, []);
 
   const toggleNotes = (dateStr: string) => {
-    if (!item?.courseCode) return;
-    const key = item.courseCode;
+    const key = item?.courseCode || item?.code;
+    if (!key) return;
     setNotesTracker((prev) => {
       const newState = {
         ...prev,
@@ -88,7 +90,7 @@ export default function DesktopCourseDetail({
       onViewFullPage();
       return;
     }
-    const code = item?.courseCode;
+    const code = item?.courseCode || item?.code;
     if (code && typeof window !== "undefined") {
       localStorage.setItem("course_dashboard_target", code);
       localStorage.setItem("course_dashboard_tab", "attendance");
@@ -112,17 +114,24 @@ export default function DesktopCourseDetail({
     );
   }
 
-  const codeRaw = item.courseCode || "";
-  const lab = Boolean(codeRaw.endsWith("(L)") || item.courseType?.toLowerCase().includes("lab"));
-  const isTheory = Boolean(codeRaw.endsWith("(T)") || item.courseType?.toLowerCase().includes("theory"));
-  const displayCode = codeRaw.endsWith("(L)") || codeRaw.endsWith("(T)") ? codeRaw.slice(0, -3) : codeRaw;
-  const displayType = lab ? "Lab" : isTheory ? "Theory" : item.courseType || "Theory";
-  const credits = item.credits ?? item.credit ?? "4.0";
+  const norm = normalizeCourse(item);
+  const codeRaw = item.courseCode || norm.code || item.code || "";
+  const lab = Boolean(norm.isLab || codeRaw.endsWith("(L)") || item.courseType?.toLowerCase().includes("lab"));
+  const isTheory = Boolean(
+    norm.isTheory || codeRaw.endsWith("(T)") || item.courseType?.toLowerCase().includes("theory"),
+  );
+  const displayCode =
+    norm.baseCode || (codeRaw.endsWith("(L)") || codeRaw.endsWith("(T)") ? codeRaw.slice(0, -3) : codeRaw);
+  const displayType = lab ? "Lab" : isTheory ? "Theory" : item.courseType || norm.componentType || "Theory";
+  const credits = item.credits ?? item.credit ?? (norm.credits !== null ? norm.credits.toFixed(1) : "4.0");
 
   const thresholdPct = getTargetAttendancePct();
-  const originalPercentage = parseFloat(item.attendancePercentage || "0");
-  const attended = parseInt(item.attendedClasses || "0", 10);
-  const total = parseInt(item.totalClasses || "0", 10) + simulatedSkips;
+  const rawAttended = norm.attendance?.attendedClasses ?? item.attendedClasses;
+  const rawTotal = norm.attendance?.totalClasses ?? item.totalClasses;
+  const attended = parseInt(String(rawAttended ?? "0"), 10);
+  const total = parseInt(String(rawTotal ?? "0"), 10) + simulatedSkips;
+  const originalPercentage =
+    norm.attendance?.attendancePercentage ?? parseFloat(String(item.attendancePercentage || "0"));
   const simulatedPercentage = total > 0 ? parseFloat(((attended / total) * 100).toFixed(1)) : originalPercentage;
 
   const isSafe = simulatedPercentage >= thresholdPct;
@@ -132,7 +141,12 @@ export default function DesktopCourseDetail({
   const neededVal = !isSafe ? Math.ceil(((thresholdPct / 100) * total - attended) / (1 - thresholdPct / 100)) : 0;
   const neededClasses = lab ? Math.ceil(neededVal / 2) : neededVal;
 
-  const historyList = Array.isArray(item.viewLink) ? item.viewLink : [];
+  const historyList =
+    norm.attendance?.history && norm.attendance.history.length > 0
+      ? norm.attendance.history
+      : Array.isArray(item.viewLink)
+        ? item.viewLink
+        : [];
   const recentHistory = historyList.slice(0, 5);
 
   const CLASS_WEIGHT = lab ? 2 : 1;
@@ -146,6 +160,14 @@ export default function DesktopCourseDetail({
   const attendDiffStr = attendDiff >= 0 ? `+${attendDiff}%` : `${attendDiff}%`;
   const skipDiffStr = skipDiff >= 0 ? `+${skipDiff}%` : `${skipDiff}%`;
 
+  const slotDisplay = item.slotName || norm.slotDisplay || norm.slots.join("+");
+  const timeDisplay = item.time ? ` (${item.time})` : "";
+  const venueDisplay = item.slotVenue || norm.venue || "TBA";
+  const facultyDisplay =
+    typeof item.faculty === "object"
+      ? item.faculty?.raw || item.faculty?.name || ""
+      : item.faculty || norm.faculty?.raw || norm.faculty?.name || "";
+
   return (
     <div className={containerClasses}>
       <div className="space-y-6">
@@ -153,7 +175,7 @@ export default function DesktopCourseDetail({
         <div className="flex flex-col gap-3.5 border-b border-gray-150 dark:border-gray-800/80 pb-4">
           <div className="space-y-1">
             <h2 className="text-lg font-black font-[family-name:var(--font-outfit)] text-gray-900 dark:text-gray-100 leading-tight">
-              {item.courseTitle}
+              {norm.title || item.courseTitle || item.title}
             </h2>
             <p className="text-[11px] font-bold text-gray-500 dark:text-gray-400">
               {displayCode} • {displayType} • {credits} Credits
@@ -168,7 +190,8 @@ export default function DesktopCourseDetail({
                   Slot & Time
                 </p>
                 <p className="font-extrabold text-gray-800 dark:text-gray-200 truncate">
-                  {item.slotName} ({item.time})
+                  {slotDisplay}
+                  {timeDisplay}
                 </p>
               </div>
             </div>
@@ -178,17 +201,17 @@ export default function DesktopCourseDetail({
                 <p className="text-[9px] uppercase tracking-wider text-gray-400 dark:text-gray-555 font-bold leading-none mb-0.5">
                   Venue
                 </p>
-                <p className="font-extrabold text-gray-800 dark:text-gray-200 truncate">{item.slotVenue}</p>
+                <p className="font-extrabold text-gray-800 dark:text-gray-200 truncate">{venueDisplay}</p>
               </div>
             </div>
-            {item.faculty && (
+            {facultyDisplay && (
               <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-950 p-2 rounded-xl border border-gray-150/40 dark:border-gray-800/60 col-span-2">
                 <User className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-450 shrink-0" />
                 <div className="min-w-0">
                   <p className="text-[9px] uppercase tracking-wider text-gray-400 dark:text-gray-555 font-bold leading-none mb-0.5">
                     Faculty
                   </p>
-                  <p className="font-extrabold text-gray-800 dark:text-gray-200 truncate">{item.faculty}</p>
+                  <p className="font-extrabold text-gray-800 dark:text-gray-200 truncate">{facultyDisplay}</p>
                 </div>
               </div>
             )}
@@ -368,7 +391,8 @@ export default function DesktopCourseDetail({
                 const status = (d.status || "").toLowerCase();
                 const isPresent = status === "present";
                 const isAbsent = status === "absent";
-                const hasNotes = notesTracker[item.courseCode]?.[d.date] === true;
+                const courseKey = item.courseCode || norm.code || item.code || "";
+                const hasNotes = notesTracker[courseKey]?.[d.date] === true;
                 const isOD = status === "on duty" || status === "partial od";
                 const officialWhy = isOD ? findOfficialOdWhy(d.date) : [];
 

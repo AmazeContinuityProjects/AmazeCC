@@ -1,16 +1,19 @@
 import { api } from "@/lib/sync-engine";
 import { appendSyncLine } from "@/lib/sync-engine/sync-session";
+import { getTypedStorageItem, setTypedStorageItem } from "@/lib/storage";
 
 export async function syncPastSemesters(allGradesData: any, creds: any): Promise<void> {
   if (!allGradesData?.grades || !creds) return;
 
   let pastSemesters: string[] = [];
   if (Array.isArray(allGradesData.grades)) {
-    pastSemesters = allGradesData.grades.map((sem: any) => sem.semesterSubId || sem.semSubId || sem.semesterId).filter(Boolean);
+    pastSemesters = allGradesData.grades
+      .map((sem: any) => sem.semesterSubId || sem.semSubId || sem.semesterId)
+      .filter(Boolean);
   } else {
     pastSemesters = Object.keys(allGradesData.grades);
   }
-  
+
   if (pastSemesters.length === 0) return;
 
   let fetched = 0;
@@ -21,7 +24,7 @@ export async function syncPastSemesters(allGradesData: any, creds: any): Promise
     const attKey = `frozen_att_${semId}`;
     const marksKey = `frozen_marks_${semId}`;
 
-    if (!localStorage.getItem(attKey) || !localStorage.getItem(marksKey)) {
+    if (!getTypedStorageItem(attKey as any) || !getTypedStorageItem(marksKey as any)) {
       console.log(`Fetching frozen data for past semester: ${semId}`);
       try {
         const res = (await api("attendance", {
@@ -39,11 +42,11 @@ export async function syncPastSemesters(allGradesData: any, creds: any): Promise
           const data = await res.json();
           let hasContent = false;
           if (data.attRes?.attendance) {
-            localStorage.setItem(attKey, JSON.stringify(data.attRes));
+            setTypedStorageItem(attKey as any, data.attRes);
             hasContent = true;
           }
           if (data.marksRes?.courses) {
-            localStorage.setItem(marksKey, JSON.stringify(data.marksRes));
+            setTypedStorageItem(marksKey as any, data.marksRes);
             hasContent = true;
           }
           if (hasContent) {
@@ -66,7 +69,7 @@ export async function syncPastSemesters(allGradesData: any, creds: any): Promise
       failed > 0
         ? `Past semester data synced (${fetched} ok, ${failed} failed)`
         : `Past semester data synced (${fetched} semester${fetched === 1 ? "" : "s"})`,
-      failed > 0 ? "error" : "success"
+      failed > 0 ? "error" : "success",
     );
   }
 }
@@ -76,27 +79,29 @@ export function loadFrozenPastSemesters(allGradesData: any) {
 
   let pastSemesters: string[] = [];
   if (Array.isArray(allGradesData.grades)) {
-    pastSemesters = allGradesData.grades.map((sem: any) => sem.semesterSubId || sem.semSubId || sem.semesterId).filter(Boolean);
+    pastSemesters = allGradesData.grades
+      .map((sem: any) => sem.semesterSubId || sem.semSubId || sem.semesterId)
+      .filter(Boolean);
   } else {
     pastSemesters = Object.keys(allGradesData.grades);
   }
-  
+
   const frozenData: Record<string, { attendance: any; marks: any }> = {};
 
   for (const semId of pastSemesters) {
     if (semId === "Current" || semId === "curriculum" || semId === "effectiveGrades") continue;
-    
+
     const attKey = `frozen_att_${semId}`;
     const marksKey = `frozen_marks_${semId}`;
 
-    const attStr = localStorage.getItem(attKey);
-    const marksStr = localStorage.getItem(marksKey);
+    const attData = getTypedStorageItem(attKey as any);
+    const marksData = getTypedStorageItem(marksKey as any);
 
-    if (attStr || marksStr) {
+    if (attData || marksData) {
       try {
         frozenData[semId] = {
-          attendance: attStr ? JSON.parse(attStr) : null,
-          marks: marksStr ? JSON.parse(marksStr) : null,
+          attendance: attData || null,
+          marks: marksData || null,
         };
       } catch (e) {
         console.error(`Failed to parse frozen data for ${semId}`);

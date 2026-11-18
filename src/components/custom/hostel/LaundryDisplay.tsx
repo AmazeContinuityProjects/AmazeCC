@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getTypedStorageItem, setTypedStorageItem } from "@/lib/storage";
 import { RefreshCcw, Sparkles, Info, Clock, CheckCircle2, Search, CalendarDays } from "lucide-react";
 import { WORKER_BASE } from "@/lib/workerBase";
 
@@ -77,21 +78,20 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
     const remoteUrl = LaundryLinks[g][h];
 
     try {
-      const cached = localStorage.getItem(fileName);
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        setSchedule(parsed.list || []);
+      const cached = getTypedStorageItem(fileName) as { list?: any[] } | null;
+      if (cached?.list) {
+        setSchedule(cached.list);
       }
     } catch (err) {
-      console.warn("LocalStorage read failed:", err);
+      console.warn("Storage read failed:", err);
     }
 
-    if (!localStorage.getItem(fileName)) {
+    if (!getTypedStorageItem(fileName)) {
       try {
         const res = await fetch(localUrl);
         const data = await res.json();
         setSchedule(data.list || []);
-        localStorage.setItem(fileName, JSON.stringify(data));
+        setTypedStorageItem(fileName, data);
       } catch (err) {
         console.error("Error loading laundry from public folder:", err);
       }
@@ -101,7 +101,7 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
       .then((res) => res.json())
       .then((data) => {
         setSchedule(data.list || []);
-        localStorage.setItem(fileName, JSON.stringify(data));
+        setTypedStorageItem(fileName, data);
       })
       .catch((err) => {
         console.warn("Remote fetch failed, keeping cached:", err);

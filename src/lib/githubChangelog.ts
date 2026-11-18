@@ -1,4 +1,5 @@
 import { WORKER_BASE } from "./workerBase";
+import { getTypedStorageItem, setTypedStorageItem } from "./storage";
 
 export interface GitHubCommit {
   sha: string;
@@ -63,12 +64,12 @@ export async function fetchGitHubCommits(forceRefresh = false): Promise<GitHubCo
 
   if (!forceRefresh && typeof window !== "undefined") {
     try {
-      const cached = localStorage.getItem("github_changelog_cache");
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Date.now() - parsed.timestamp < CACHE_TTL_MS && Array.isArray(parsed.data)) {
-          memoryCache = parsed;
-          return parsed.data;
+      const parsed = getTypedStorageItem("github_changelog_cache" as any);
+      if (parsed && typeof parsed === "object") {
+        const cacheObj = parsed as { data?: GitHubCommit[]; timestamp?: number };
+        if (cacheObj.timestamp && Date.now() - cacheObj.timestamp < CACHE_TTL_MS && Array.isArray(cacheObj.data)) {
+          memoryCache = cacheObj as { data: GitHubCommit[]; timestamp: number };
+          return cacheObj.data;
         }
       }
     } catch {}
@@ -117,7 +118,7 @@ export async function fetchGitHubCommits(forceRefresh = false): Promise<GitHubCo
     memoryCache = cachePayload;
     if (typeof window !== "undefined") {
       try {
-        localStorage.setItem("github_changelog_cache", JSON.stringify(cachePayload));
+        setTypedStorageItem("github_changelog_cache" as any, cachePayload as any);
       } catch {}
     }
 

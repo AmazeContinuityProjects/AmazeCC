@@ -4,6 +4,7 @@ import { Search, CalendarDays, MapPin, DollarSign, X, Sparkles, ArrowLeft, Loade
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/sync-engine";
 import { eventhubImageUrl } from "@/lib/eventhub";
+import { getTypedStorageItem } from "@/lib/storage";
 
 interface EventItem {
   title?: string;
@@ -26,7 +27,6 @@ interface EventItem {
   payLaterLink?: string;
   _source?: "registered" | "discover";
 }
-
 
 const badge = {
   violet:
@@ -140,13 +140,13 @@ export default function EventSearchPalette() {
 
   useEffect(() => {
     let cancelled = false;
-    const stored = localStorage.getItem("registeredEvents");
+    const stored = getTypedStorageItem("registeredEvents");
     let reg: EventItem[] = [];
-    try {
-      if (stored) reg = JSON.parse(stored);
-    } catch {}
+    if (Array.isArray(stored)) {
+      reg = stored as unknown as EventItem[];
+    }
     setRegisteredEvents(reg);
-    const isDemo = localStorage.getItem("demoMode") === "true";
+    const isDemo = getTypedStorageItem("demoMode") === "true";
     if (isDemo) {
       setEventHubEvents([
         {
@@ -203,11 +203,12 @@ export default function EventSearchPalette() {
     setPreviewLoading(true);
     setPreviewData(null);
     setPreviewError(null);
-    let username = localStorage.getItem("username") || "";
-    let password = localStorage.getItem("password") || "";
+    let username = getTypedStorageItem("username") || "";
+    let password = getTypedStorageItem("password") || "";
     if (!username || !password) {
       try {
-        const ids = JSON.parse(localStorage.getItem("IDs") || "{}");
+        const rawIds = getTypedStorageItem("IDs");
+        const ids = typeof rawIds === "string" ? JSON.parse(rawIds) : rawIds || {};
         username = ids.VtopUsername || "";
         password = ids.VtopPassword || "";
       } catch {}
@@ -217,7 +218,7 @@ export default function EventSearchPalette() {
       setPreviewError("VTOP credentials not found. Login to view posters.");
       return;
     }
-    const isDemo = localStorage.getItem("demoMode") === "true";
+    const isDemo = getTypedStorageItem("demoMode") === "true";
     if (isDemo) {
       setTimeout(() => {
         if (cancelled) return;

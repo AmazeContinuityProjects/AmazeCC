@@ -1,1 +1,0 @@
-export { ViewModeToggle as default } from "@amazecontinuityprojects/amazeui";

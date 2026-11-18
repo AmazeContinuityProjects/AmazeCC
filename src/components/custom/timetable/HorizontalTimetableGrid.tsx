@@ -6,16 +6,13 @@
  * and the classic amazeui grid.
  */
 
-import type {
-  AddedCourse,
-  GapDetail,
-  TimetablePeriod,
-} from "@amazecontinuityprojects/amazeui";
+import type { AddedCourse, GapDetail, TimetablePeriod } from "@amazecontinuityprojects/amazeui";
+import type { NormalizedCourse } from "@/types/course";
 import ModernHorizontalTimetableGrid from "./ModernHorizontalTimetableGrid";
 import ClassicHorizontalTimetableGrid from "./ClassicHorizontalTimetableGrid";
 
 export interface HorizontalTimetableGridProps {
-  courses: AddedCourse[];
+  courses: (AddedCourse | NormalizedCourse | any)[];
   theoryPeriods: TimetablePeriod[];
   labPeriods: TimetablePeriod[];
   days?: { id: string; name: string }[];

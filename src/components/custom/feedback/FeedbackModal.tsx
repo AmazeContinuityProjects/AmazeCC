@@ -22,6 +22,7 @@ import {
 } from "@/lib/posthog";
 import { useDashboardNavigator } from "../dashboard/DashboardNavigator";
 import { getActiveDisplayName } from "@/lib/social/identity";
+import { getTypedStorageItem, setTypedStorageItem } from "@/lib/storage";
 import buildInfo from "@/data/buildInfo.json";
 import {
   Bug,
@@ -107,8 +108,7 @@ export default function FeedbackModal() {
     if (!contact && typeof window !== "undefined") {
       try {
         const saved =
-          window.localStorage.getItem("amazecc_feedback_email") ||
-          window.localStorage.getItem("amazecc_feedback_personal_email");
+          getTypedStorageItem("amazecc_feedback_email") || getTypedStorageItem("amazecc_feedback_personal_email");
         if (saved) setContact(saved);
       } catch {}
     }
@@ -208,7 +208,7 @@ export default function FeedbackModal() {
 
       if (contact.trim()) {
         try {
-          window.localStorage.setItem("amazecc_feedback_email", contact.trim());
+          setTypedStorageItem("amazecc_feedback_email", contact.trim());
         } catch {}
       }
 
@@ -221,16 +221,15 @@ export default function FeedbackModal() {
       if (result.ticketId) {
         setTicketId(result.ticketId);
         try {
-          const raw = window.localStorage.getItem("amazecc_support_tickets");
-          const list = raw ? JSON.parse(raw) : [];
-          list.unshift({
+          const list = getTypedStorageItem("amazecc_support_tickets") || [];
+          (list as any[]).unshift({
             id: result.ticketId,
             subject: `${category.toUpperCase()}: ${message.trim().slice(0, 40)}`,
             status: "open",
             created_at: new Date().toISOString(),
             last_message: message.trim(),
           });
-          window.localStorage.setItem("amazecc_support_tickets", JSON.stringify(list));
+          setTypedStorageItem("amazecc_support_tickets", list);
         } catch {}
       }
 

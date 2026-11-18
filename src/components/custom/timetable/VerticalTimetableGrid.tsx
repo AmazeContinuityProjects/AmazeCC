@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { cn, type AddedCourse, type GapDetail, type TimetablePeriod } from "@amazecontinuityprojects/amazeui";
+import type { NormalizedCourse } from "@/types/course";
+import { normalizeCourse, normalizeSlots } from "@/lib/courseNormalizer";
 import { buildVerticalGrid, describeCell, type Cell } from "@/lib/buildBands";
 import { hasSlot, ensureLunchPeriod } from "@/lib/slots";
 import SlotDetailSheet from "./SlotDetailSheet";
@@ -60,7 +62,7 @@ export default function VerticalTimetableGrid({
   backdropZIndex,
   panelZIndex,
 }: {
-  courses: AddedCourse[];
+  courses: (AddedCourse | NormalizedCourse | any)[];
   theoryPeriods: TimetablePeriod[];
   labPeriods: TimetablePeriod[];
   days?: { id: string; name: string }[];
@@ -88,10 +90,35 @@ export default function VerticalTimetableGrid({
   const effectiveTheory = useMemo(() => ensureLunchPeriod(theoryPeriods), [theoryPeriods]);
   const effectiveLab = useMemo(() => ensureLunchPeriod(labPeriods), [labPeriods]);
 
+  const adaptedCourses = useMemo<AddedCourse[]>(() => {
+    return (courses || []).map((c: any) => {
+      if (c && c.color && Array.isArray(c.slots) && typeof c.faculty === "string") return c as AddedCourse;
+      const norm = normalizeCourse(c);
+      const code = norm.code || c.code || c.courseCode || "";
+      const facultyStr =
+        typeof c.faculty === "object"
+          ? c.faculty?.raw || c.faculty?.name || ""
+          : c.faculty || norm.faculty.raw || norm.faculty.name || "";
+      const slots = norm.slots.length > 0 ? norm.slots : normalizeSlots(c.slots || c.slotName || c.slotDisplay);
+
+      return {
+        id: norm.id || c.id || `att-${code}`,
+        code,
+        title: norm.title || c.title || c.courseTitle || "",
+        slots,
+        faculty: facultyStr,
+        venue: norm.venue || c.venue || c.slotVenue || "",
+        credits: String(norm.credits ?? c.credits ?? "0"),
+        type: norm.componentType || c.type || c.courseType || "",
+        color: c.color || c.ffcs?.color || "bg-blue-600",
+      };
+    });
+  }, [courses]);
+
   const grid = useMemo(
     () =>
       buildVerticalGrid({
-        courses,
+        courses: adaptedCourses,
         theoryPeriods: effectiveTheory,
         labPeriods: effectiveLab,
         days,

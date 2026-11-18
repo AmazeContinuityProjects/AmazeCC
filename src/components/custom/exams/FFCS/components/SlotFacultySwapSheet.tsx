@@ -29,6 +29,7 @@ import { getTimetableSchema } from "@/lib/campusSchema";
 import { downloadHtmlImage } from "@/lib/imageDownload";
 import { periodsForSlot, findPeriodClash, splitSlots } from "@/lib/slots";
 import { useFacultyReviewSheet } from "../hooks/useFacultyReviewSheet";
+import { getTypedStorageItem, setTypedStorageItem, removeTypedStorageItem } from "@/lib/storage";
 
 export interface SlotFacultySwapSheetProps {
   /** The clicked row's course code. */
@@ -324,9 +325,7 @@ export default function SlotFacultySwapSheet({
   const { target: selectedReview, open: openFacultyReview, close: closeFacultyReview } = useFacultyReviewSheet();
   const [showTutorial, setShowTutorial] = useState(() => {
     try {
-      if (typeof window !== "undefined") {
-        return window.localStorage?.getItem("ffcs_dismiss_faculty_guide") !== "true";
-      }
+      return getTypedStorageItem<string>("ffcs_dismiss_faculty_guide") !== "true";
     } catch {}
     return true;
   });
@@ -334,18 +333,14 @@ export default function SlotFacultySwapSheet({
   const handleDismissTutorial = () => {
     setShowTutorial(false);
     try {
-      if (typeof window !== "undefined") {
-        window.localStorage?.setItem("ffcs_dismiss_faculty_guide", "true");
-      }
+      setTypedStorageItem("ffcs_dismiss_faculty_guide", "true");
     } catch {}
   };
 
   const handleRestoreTutorial = () => {
     setShowTutorial(true);
     try {
-      if (typeof window !== "undefined") {
-        window.localStorage?.removeItem("ffcs_dismiss_faculty_guide");
-      }
+      removeTypedStorageItem("ffcs_dismiss_faculty_guide");
     } catch {}
   };
 

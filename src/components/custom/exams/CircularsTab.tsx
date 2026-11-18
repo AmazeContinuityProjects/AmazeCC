@@ -6,7 +6,18 @@ import SubpageLayout from "../shared/SubpageLayout";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import BottomSheet from "../shared/BottomSheet";
 import { AnimatePresence } from "framer-motion";
-import { AlertTriangle, Bell, ChevronDown, ChevronRight, Download, File, FileText, FolderOpen, RefreshCcw } from "lucide-react";
+import {
+  AlertTriangle,
+  Bell,
+  ChevronDown,
+  ChevronRight,
+  Download,
+  File,
+  FileText,
+  FolderOpen,
+  RefreshCcw,
+} from "lucide-react";
+import { getTypedStorageItem, setTypedStorageItem } from "@/lib/storage";
 
 interface Creds {
   cookies: string[];
@@ -44,34 +55,44 @@ function TreeNode({ item, depth = 0, creds }: { item: CircularItem; depth?: numb
   const [open, setOpen] = useState(true);
   const hasChildren = item.children && item.children.length > 0;
 
-  const downloadCircular = useCallback(async (id: string, title: string) => {
-    if (!creds) return;
-    try {
-      const res = await api("circulars/download", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: { cookies: creds.cookies, authorizedID: creds.authorizedID, csrf: creds.csrf, circularId: id },
-        parse: "raw",
-      }) as Response;
-      if (!res.ok) throw new Error("Download failed");
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${title.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (err: any) {
-      console.error("Circular download error:", err.message);
-    }
-  }, [creds]);
+  const downloadCircular = useCallback(
+    async (id: string, title: string) => {
+      if (!creds) return;
+      try {
+        const res = (await api("circulars/download", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: { cookies: creds.cookies, authorizedID: creds.authorizedID, csrf: creds.csrf, circularId: id },
+          parse: "raw",
+        })) as Response;
+        if (!res.ok) throw new Error("Download failed");
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${title.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (err: any) {
+        console.error("Circular download error:", err.message);
+      }
+    },
+    [creds],
+  );
 
   if (item.id != null && item.title) {
     return (
-      <div className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50/50 dark:hover:bg-slate-800/30 dark:hover:bg-gray-800/30 transition-colors group" style={{ paddingLeft: `${16 + depth * 20}px` }}>
+      <div
+        className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50/50 dark:hover:bg-slate-800/30 dark:hover:bg-gray-800/30 transition-colors group"
+        style={{ paddingLeft: `${16 + depth * 20}px` }}
+      >
         <File className="w-3.5 h-3.5 shrink-0 text-gray-400" />
         <p className="text-sm text-gray-700  dark:text-gray-300 flex-1 min-w-0">{item.title}</p>
-        <button onClick={() => downloadCircular(item.id!, item.title!)} className="p-1.5 rounded-lg relative hit-expand opacity-0 group-hover:opacity-100 [@media(any-hover:none)]:opacity-100 hover:bg-gray-100 dark:hover:bg-slate-700 dark:hover:bg-gray-800 text-gray-400 hover:text-blue-500 transition-all" title="Download">
+        <button
+          onClick={() => downloadCircular(item.id!, item.title!)}
+          className="p-1.5 rounded-lg relative hit-expand opacity-0 group-hover:opacity-100 [@media(any-hover:none)]:opacity-100 hover:bg-gray-100 dark:hover:bg-slate-700 dark:hover:bg-gray-800 text-gray-400 hover:text-blue-500 transition-all"
+          title="Download"
+        >
           <Download className="w-3.5 h-3.5" />
         </button>
       </div>
@@ -80,8 +101,16 @@ function TreeNode({ item, depth = 0, creds }: { item: CircularItem; depth?: numb
 
   return (
     <div>
-      <button onClick={() => setOpen(!open)} className="w-full flex items-center gap-3 px-5 py-3 hover:bg-gray-50/50 dark:hover:bg-slate-800/30 dark:hover:bg-gray-800/30 transition-colors text-left" style={{ paddingLeft: `${16 + depth * 20}px` }}>
-        {open ? <ChevronDown className="w-3.5 h-3.5 shrink-0 text-gray-400" /> : <ChevronRight className="w-3.5 h-3.5 shrink-0 text-gray-400" />}
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-3 px-5 py-3 hover:bg-gray-50/50 dark:hover:bg-slate-800/30 dark:hover:bg-gray-800/30 transition-colors text-left"
+        style={{ paddingLeft: `${16 + depth * 20}px` }}
+      >
+        {open ? (
+          <ChevronDown className="w-3.5 h-3.5 shrink-0 text-gray-400" />
+        ) : (
+          <ChevronRight className="w-3.5 h-3.5 shrink-0 text-gray-400" />
+        )}
         <FolderOpen className="w-3.5 h-3.5 shrink-0 text-amber-500" />
         <span className="text-sm font-medium text-gray-800  dark:text-gray-200">{item.name}</span>
       </button>
@@ -111,14 +140,20 @@ function NewCircularsModal({ circulars, onClose }: { circulars: CircularItem[]; 
       <div className="flex flex-col min-h-0 space-y-4">
         <div className="space-y-2">
           {circulars.map((c, i) => (
-            <div key={i} className="flex items-center gap-3 p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/60 dark:border-zinc-800/60">
+            <div
+              key={i}
+              className="flex items-center gap-3 p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/60 dark:border-zinc-800/60"
+            >
               <FileText className="w-4 h-4 shrink-0 text-blue-500" />
               <span className="text-[13px] font-semibold text-zinc-700 dark:text-zinc-300">{c.title}</span>
             </div>
           ))}
         </div>
         <div className="flex justify-end pt-1">
-          <button onClick={onClose} className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-black transition-all cursor-pointer active:scale-95">
+          <button
+            onClick={onClose}
+            className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-black transition-all cursor-pointer active:scale-95"
+          >
             Got it
           </button>
         </div>
@@ -139,17 +174,27 @@ export default function CircularsTab({ loginToVTOP, onBack, setActiveTab }: Circ
   const ingestCirculars = (result: any) => {
     setData(result);
 
-    const seenStr = localStorage.getItem(LS_SEEN_KEY);
-    const seenIds = seenStr ? JSON.parse(seenStr) as string[] : [];
+    const storedSeen = getTypedStorageItem(LS_SEEN_KEY) as string[] | string | null;
+    const seenIds: string[] = Array.isArray(storedSeen)
+      ? storedSeen
+      : storedSeen && typeof storedSeen === "string"
+        ? (() => {
+            try {
+              return JSON.parse(storedSeen);
+            } catch {
+              return [];
+            }
+          })()
+        : [];
     const currentIds = flattenIds(result.circulars || []);
-    const newIds = currentIds.filter(id => !seenIds.includes(id));
+    const newIds = currentIds.filter((id) => !seenIds.includes(id));
     if (newIds.length > 0) {
       const newItems = collectByIds(result.circulars || [], new Set(newIds));
       if (newItems.length > 0) setNewCirculars(newItems);
     }
 
-    localStorage.setItem(LS_SEEN_KEY, JSON.stringify(currentIds));
-    localStorage.setItem(LS_KEY, JSON.stringify(result));
+    setTypedStorageItem(LS_SEEN_KEY, currentIds);
+    setTypedStorageItem(LS_KEY, result);
   };
 
   // Header reload + error retry: exactly this screen's endpoint through the
@@ -173,10 +218,10 @@ export default function CircularsTab({ loginToVTOP, onBack, setActiveTab }: Circ
   const fetchData = async (c: Creds, force = false) => {
     if (!force) {
       try {
-        const raw = localStorage.getItem(LS_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (parsed.success !== false) {
+        const cached = getTypedStorageItem(LS_KEY) as any;
+        if (cached) {
+          const parsed = typeof cached === "string" ? JSON.parse(cached) : cached;
+          if (parsed && parsed.success !== false) {
             setData(parsed);
             setLoading(false);
             return;
@@ -188,11 +233,11 @@ export default function CircularsTab({ loginToVTOP, onBack, setActiveTab }: Circ
     setError(null);
     try {
       const { cookies, authorizedID, csrf } = c;
-      const result = await api("circulars", {
+      const result = (await api("circulars", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: { cookies, authorizedID, csrf },
-      }) as any;
+      })) as any;
       if (result.success === false) setError(result.error || "Failed to load");
       else ingestCirculars(result);
     } catch (err: any) {
@@ -233,9 +278,7 @@ export default function CircularsTab({ loginToVTOP, onBack, setActiveTab }: Circ
         {error ? (
           <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
             <AlertTriangle className="h-9 w-9 text-amber-500" />
-            <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-              Could not load circulars
-            </p>
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">Could not load circulars</p>
             <p className="text-xs text-gray-500 dark:text-gray-400 max-w-xs">{error}</p>
             <button
               onClick={() => {
@@ -263,19 +306,25 @@ export default function CircularsTab({ loginToVTOP, onBack, setActiveTab }: Circ
       title="Circulars"
       onBack={leave}
       action={
-        <button onClick={() => { void refreshCirculars(); }} className="p-2.5 rounded-full bg-blue-50  dark:bg-slate-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-slate-700 transition-colors" title="Reload">
+        <button
+          onClick={() => {
+            void refreshCirculars();
+          }}
+          className="p-2.5 rounded-full bg-blue-50  dark:bg-slate-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-slate-700 transition-colors"
+          title="Reload"
+        >
           <RefreshCcw className="w-5 h-5" />
         </button>
       }
     >
       <AnimatePresence>
-        {newCirculars.length > 0 && (
-          <NewCircularsModal circulars={newCirculars} onClose={() => setNewCirculars([])} />
-        )}
+        {newCirculars.length > 0 && <NewCircularsModal circulars={newCirculars} onClose={() => setNewCirculars([])} />}
       </AnimatePresence>
 
       {error && (
-        <div className="p-4 text-sm text-red-600  dark:text-red-500 bg-red-50  dark:bg-red-900/20 rounded-2xl mb-4">{error}</div>
+        <div className="p-4 text-sm text-red-600  dark:text-red-500 bg-red-50  dark:bg-red-900/20 rounded-2xl mb-4">
+          {error}
+        </div>
       )}
       {circulars.length === 0 && !error && (
         <div className="flex flex-col items-center justify-center py-16 text-gray-400  dark:text-gray-500">

@@ -1,7 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useAtomValue } from "jotai";
 import { api } from "@/lib/sync-engine";
+import { getTypedStorageItem } from "@/lib/storage";
+import { unifiedCampusServicesAtom } from "@/store";
+import type { CabShareTrip, CabShareUser } from "@/types/storage";
 import { Car, Clock, Clock3, MapPin, Users } from "lucide-react";
 import { getLocalTrips } from "./cabShareFallback";
 import { ListRowText } from "../../shared/primitives";
@@ -47,25 +51,27 @@ const MATCH_COPY: Record<MatchKind, { title: string; icon: typeof Car }> = {
 };
 
 export default function CabShareMatchCard() {
+  const campusServices = useAtomValue(unifiedCampusServicesAtom);
   const [acceptedMatch, setAcceptedMatch] = useState<any>(null);
   const [pendingJoins, setPendingJoins] = useState<any[]>([]);
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
 
-  const loadFromLocal = (user: any) => {
-    const localTrips = getLocalTrips();
+  const loadFromLocal = (user: CabShareUser) => {
+    const localTrips: CabShareTrip[] = getLocalTrips();
     const myName = user.name || user.reg_number;
     // My pending requests: trips I did NOT post that have a pending request from me
     const myLocalReqs: any[] = [];
-    localTrips.forEach((trip: any) => {
-      if (trip.reg_number === user.reg_number || trip.reg_number === user.username) return;
+    localTrips.forEach((trip: CabShareTrip) => {
+      if (trip.reg_number === user.reg_number || ((user as any).username && trip.reg_number === (user as any).username))
+        return;
       (trip.requests || []).forEach((req: any) => {
-        if (req.name === myName && req.status === 'pending') {
+        if (req.name === myName && req.status === "pending") {
           myLocalReqs.push({
             trip_id: trip.trip_id,
             hub_name: trip.hub_name,
             preferred_time: trip.preferred_time,
             owner_name: trip.name,
-            match_status: 'pending',
+            match_status: "pending",
           });
         }
       });
@@ -74,10 +80,13 @@ export default function CabShareMatchCard() {
 
     // Incoming local requests: trips I posted that have pending requests from others
     const myLocalIncoming: any[] = [];
-    localTrips.forEach((trip: any) => {
-      if (trip.reg_number === user.reg_number || trip.reg_number === user.username) {
+    localTrips.forEach((trip: CabShareTrip) => {
+      if (
+        trip.reg_number === user.reg_number ||
+        ((user as any).username && trip.reg_number === (user as any).username)
+      ) {
         (trip.requests || []).forEach((req: any) => {
-          if (req.status === 'pending') {
+          if (req.status === "pending") {
             myLocalIncoming.push({ ...req, trip });
           }
         });
@@ -87,37 +96,36 @@ export default function CabShareMatchCard() {
   };
 
   useEffect(() => {
-    const userStr = localStorage.getItem("cabshare_user");
-    if (!userStr) return;
+    const user = campusServices.cabShare.user || getTypedStorageItem("cabshare_user");
+    if (!user || !user.reg_number) return;
 
     try {
-      const user = JSON.parse(userStr);
-      if (!user || !user.reg_number) return;
-
       api(`cabshare/trips/me?reg_number=${user.reg_number}`, { parse: "raw" })
         .then((res) => (res as Response).json())
-        .then(data => {
+        .then((data) => {
           if (data.success) {
             // Accepted match (confirmed ride)
-            const acceptedJoin = data.joined_trips?.find((t: any) => t.match_status === 'accepted');
+            const acceptedJoin = data.joined_trips?.find((t: any) => t.match_status === "accepted");
             if (acceptedJoin) {
-              setAcceptedMatch({ ...acceptedJoin, role: 'passenger' });
+              setAcceptedMatch({ ...acceptedJoin, role: "passenger" });
             } else {
-              const activePost = data.my_trips?.find((t: any) => t.status === 'active' && t.requests && t.requests.some((r:any)=>r.status==='accepted'));
+              const activePost = data.my_trips?.find(
+                (t: any) => t.status === "active" && t.requests && t.requests.some((r: any) => r.status === "accepted"),
+              );
               if (activePost) {
-                setAcceptedMatch({ ...activePost, role: 'host' });
+                setAcceptedMatch({ ...activePost, role: "host" });
               }
             }
 
             // Pending join requests (I requested to join, waiting for host)
-            const pendingReqs = (data.joined_trips || []).filter((t: any) => t.match_status === 'pending');
+            const pendingReqs = (data.joined_trips || []).filter((t: any) => t.match_status === "pending");
             setPendingJoins(pendingReqs);
 
             // Pending incoming requests (someone wants to join my ride)
             const incomingReqs: any[] = [];
             (data.my_trips || []).forEach((trip: any) => {
               (trip.requests || []).forEach((req: any) => {
-                if (req.status === 'pending') {
+                if (req.status === "pending") {
                   incomingReqs.push({ ...req, trip });
                 }
               });
@@ -128,11 +136,11 @@ export default function CabShareMatchCard() {
         .catch(() => loadFromLocal(user));
 
       // Also try local fallback regardless (covers local_only users)
-      if (user.local_only) {
+      if ((user as any).local_only) {
         loadFromLocal(user);
       }
-    } catch(e) {}
-  }, []);
+    } catch (e) {}
+  }, [campusServices.cabShare.user]);
 
   if (!acceptedMatch && pendingJoins.length === 0 && pendingRequests.length === 0) return null;
 
@@ -142,15 +150,7 @@ export default function CabShareMatchCard() {
    * as information; a tinted `TILE` keeps the card language and still leads with
    * the tone.
    */
-  const MatchCard = ({
-    kind,
-    sub,
-    children,
-  }: {
-    kind: MatchKind;
-    sub: React.ReactNode;
-    children: React.ReactNode;
-  }) => {
+  const MatchCard = ({ kind, sub, children }: { kind: MatchKind; sub: React.ReactNode; children: React.ReactNode }) => {
     const { title, icon: Icon } = MATCH_COPY[kind];
     const tone = MATCH_TONE[kind];
     return (
@@ -169,13 +169,7 @@ export default function CabShareMatchCard() {
     );
   };
 
-  const MetaRow = ({
-    left,
-    right,
-  }: {
-    left: React.ReactNode;
-    right?: React.ReactNode;
-  }) => (
+  const MetaRow = ({ left, right }: { left: React.ReactNode; right?: React.ReactNode }) => (
     <div className="flex items-center justify-between gap-3 rounded-2xl bg-surface-tertiary dark:bg-surface border border-border-muted dark:border-border px-3 py-2.5">
       {left}
       {right}
@@ -196,7 +190,7 @@ export default function CabShareMatchCard() {
   return (
     <div className="space-y-3">
       {/* Pending - My requests waiting for host approval */}
-      {pendingJoins.map(trip => (
+      {pendingJoins.map((trip) => (
         <MatchCard
           key={trip.trip_id}
           kind="pendingOutbound"
@@ -205,8 +199,16 @@ export default function CabShareMatchCard() {
           <MetaRow
             left={
               <PlaceLine
-                hub={<><MapPin className="h-3.5 w-3.5" /> {trip.hub_name}</>}
-                time={<><Clock className="h-3.5 w-3.5" /> {trip.preferred_time}</>}
+                hub={
+                  <>
+                    <MapPin className="h-3.5 w-3.5" /> {trip.hub_name}
+                  </>
+                }
+                time={
+                  <>
+                    <Clock className="h-3.5 w-3.5" /> {trip.preferred_time}
+                  </>
+                }
               />
             }
             right={
@@ -223,7 +225,7 @@ export default function CabShareMatchCard() {
       {pendingRequests.length > 0 && (
         <MatchCard
           kind="pendingInbound"
-          sub={`${pendingRequests.length} student${pendingRequests.length > 1 ? 's' : ''} want${pendingRequests.length === 1 ? 's' : ''} to join your ride${pendingRequests.length > 1 ? 's' : ''}.`}
+          sub={`${pendingRequests.length} student${pendingRequests.length > 1 ? "s" : ""} want${pendingRequests.length === 1 ? "s" : ""} to join your ride${pendingRequests.length > 1 ? "s" : ""}.`}
         >
           <div className="space-y-2">
             {pendingRequests.map((req, i) => (
@@ -232,7 +234,13 @@ export default function CabShareMatchCard() {
                 left={
                   <ListRowText
                     title={req.name}
-                    subtitle={req.trip?.hub_name ? <><MapPin className="h-3 w-3" /> {req.trip.hub_name}</> : undefined}
+                    subtitle={
+                      req.trip?.hub_name ? (
+                        <>
+                          <MapPin className="h-3 w-3" /> {req.trip.hub_name}
+                        </>
+                      ) : undefined
+                    }
                   />
                 }
                 right={
@@ -250,20 +258,30 @@ export default function CabShareMatchCard() {
       {acceptedMatch && (
         <MatchCard
           kind="accepted"
-          sub={`You have a confirmed ${acceptedMatch.role === 'host' ? 'passenger' : 'ride'}!`}
+          sub={`You have a confirmed ${acceptedMatch.role === "host" ? "passenger" : "ride"}!`}
         >
           <MetaRow
             left={
               <PlaceLine
-                hub={<><MapPin className="h-3.5 w-3.5" /> {acceptedMatch.hub_name}</>}
-                time={<><Clock className="h-3.5 w-3.5" /> {acceptedMatch.preferred_time}</>}
+                hub={
+                  <>
+                    <MapPin className="h-3.5 w-3.5" /> {acceptedMatch.hub_name}
+                  </>
+                }
+                time={
+                  <>
+                    <Clock className="h-3.5 w-3.5" /> {acceptedMatch.preferred_time}
+                  </>
+                }
               />
             }
             right={
               <div className="text-right">
                 <p className="text-[11px] font-medium text-text-muted">Contact</p>
                 <p className="text-xs font-black text-text-heading">
-                  {acceptedMatch.role === 'host' ? acceptedMatch.requests.find((r:any)=>r.status==='accepted')?.phone_number : acceptedMatch.owner_phone}
+                  {acceptedMatch.role === "host"
+                    ? acceptedMatch.requests.find((r: any) => r.status === "accepted")?.phone_number
+                    : acceptedMatch.owner_phone}
                 </p>
               </div>
             }

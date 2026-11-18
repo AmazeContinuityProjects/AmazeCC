@@ -1,1 +1,0 @@
-export { ErrorDisplay as default } from "@amazecontinuityprojects/amazeui";
