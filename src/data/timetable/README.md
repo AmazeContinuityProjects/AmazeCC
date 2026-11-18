@@ -1,10 +1,14 @@
 # Unified timetable vocabulary
 
 One physical period can be named by several slot tokens from different
-programmes. `A1` (core) and `M1` (programme M) both name Monday 8:00–8:50; they
-are **two distinct slots** that resolve to **one period** (`T01`). They must
-never be deduplicated by time: a busy map, a share code, or a programme picker
-may legitimately reference either token.
+programmes. `A1` (core), `M1` (programme M) and `A` (law) all name Monday
+8:00–8:50; they are **distinct slots** that resolve to **one period** (`T01`).
+They must never be deduplicated by time: a busy map, a share code, or a
+programme picker may legitimately reference any of them.
+
+Law is a first-class `programmes: law` family (27 slots, including `TAA`, `TBB`,
+`TCC`, `TDD`, `TEE`, `TFF`). Core slots keep the old law alias metadata
+(`A1 → A`, `S11 → TEE`) purely so older decoders can still resolve legacy data.
 
 ## Files
 
@@ -52,5 +56,5 @@ negotiation can be trusted.
   those token families are confirmed.
 - `L18`/`L24` use the new `12:35-1:25` time. `period.dayTimeOverrides` records
   where this diverges from the original campus lab time (`12:30-1:20`).
-- Law aliases are explicit data on core theory slots; the old regex-derived
-  aliases (`M → M`, `U → U`, …) are gone.
+- Law is a first-class programme; aliases remain only as a legacy decode bridge.
+  The old regex-derived aliases (`M → M`, `U → U`, …) are gone.

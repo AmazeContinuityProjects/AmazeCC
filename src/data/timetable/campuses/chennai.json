@@ -1,7 +1,7 @@
 {
   "$schema": "../schema/timetable.schema.json",
   "schemaVersion": 1,
-  "vocabularyVersion": "de8caec4d4d4f872",
+  "vocabularyVersion": "bf537de3a6b31ef2",
   "campusId": "chennai",
   "timezone": "Asia/Kolkata",
   "effectiveFrom": "2026-11",
@@ -46,6 +46,10 @@
     {
       "id": "core",
       "label": "Core engineering"
+    },
+    {
+      "id": "law",
+      "label": "Law school"
     },
     {
       "id": "programme_i",
@@ -113,22 +117,27 @@
       "slots": {
         "MON": [
           "A1",
+          "A",
           "M1"
         ],
         "TUE": [
           "B1",
+          "B",
           "U1"
         ],
         "WED": [
           "C1",
+          "C",
           "N1"
         ],
         "THU": [
           "D1",
+          "D",
           "R1"
         ],
         "FRI": [
           "E1",
+          "E",
           "I1"
         ]
       }
@@ -222,22 +231,27 @@
       "slots": {
         "MON": [
           "F1",
+          "F",
           "M2"
         ],
         "TUE": [
           "G1",
+          "G",
           "U2"
         ],
         "WED": [
           "A1",
+          "A",
           "N2"
         ],
         "THU": [
           "B1",
+          "B",
           "R2"
         ],
         "FRI": [
           "C1",
+          "C",
           "I2"
         ]
       }
@@ -303,22 +317,27 @@
       "slots": {
         "MON": [
           "D1",
+          "D",
           "M3"
         ],
         "TUE": [
           "E1",
+          "E",
           "U3"
         ],
         "WED": [
           "F1",
+          "F",
           "N3"
         ],
         "THU": [
           "G1",
+          "G",
           "R3"
         ],
         "FRI": [
           "TA1",
+          "TA",
           "I3"
         ]
       }
@@ -412,22 +431,27 @@
       "slots": {
         "MON": [
           "TB1",
+          "TB",
           "M4"
         ],
         "TUE": [
           "TC1",
+          "TC",
           "U4"
         ],
         "WED": [
           "TD1",
+          "TD",
           "N4"
         ],
         "THU": [
           "TE1",
+          "TE",
           "R4"
         ],
         "FRI": [
           "TF1",
+          "TF",
           "I4"
         ]
       }
@@ -493,22 +517,27 @@
       "slots": {
         "MON": [
           "TG1",
+          "TG",
           "M5"
         ],
         "TUE": [
           "TAA1",
+          "TAA",
           "U5"
         ],
         "WED": [
           "TBB1",
+          "TBB",
           "N5"
         ],
         "THU": [
           "TCC1",
+          "TCC",
           "R5"
         ],
         "FRI": [
           "TDD1",
+          "TDD",
           "I5"
         ]
       }
@@ -612,10 +641,12 @@
       "slots": {
         "MON": [
           "S11",
+          "TEE",
           "M6"
         ],
         "FRI": [
           "S15",
+          "TFF",
           "I6"
         ]
       }
@@ -1262,6 +1293,20 @@
     }
   ],
   "slots": {
+    "MON:A": {
+      "key": "MON:A",
+      "token": "A",
+      "day": "MON",
+      "periodId": "T01",
+      "kind": "theory",
+      "programme": "law",
+      "time": "8:00-8:50",
+      "startMin": 480,
+      "endMin": 530,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
     "MON:A1": {
       "key": "MON:A1",
       "token": "A1",
@@ -1278,6 +1323,20 @@
           "system": "law"
         }
       ],
+      "flags": [],
+      "status": "active"
+    },
+    "MON:F": {
+      "key": "MON:F",
+      "token": "F",
+      "day": "MON",
+      "periodId": "T02",
+      "kind": "theory",
+      "programme": "law",
+      "time": "8:55-9:45",
+      "startMin": 535,
+      "endMin": 585,
+      "aliases": [],
       "flags": [],
       "status": "active"
     },
@@ -1300,6 +1359,20 @@
       "flags": [],
       "status": "active"
     },
+    "MON:D": {
+      "key": "MON:D",
+      "token": "D",
+      "day": "MON",
+      "periodId": "T03",
+      "kind": "theory",
+      "programme": "law",
+      "time": "9:50-10:40",
+      "startMin": 590,
+      "endMin": 640,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
     "MON:D1": {
       "key": "MON:D1",
       "token": "D1",
@@ -1316,6 +1389,20 @@
           "system": "law"
         }
       ],
+      "flags": [],
+      "status": "active"
+    },
+    "MON:TB": {
+      "key": "MON:TB",
+      "token": "TB",
+      "day": "MON",
+      "periodId": "T04",
+      "kind": "theory",
+      "programme": "law",
+      "time": "10:45-11:35",
+      "startMin": 645,
+      "endMin": 695,
+      "aliases": [],
       "flags": [],
       "status": "active"
     },
@@ -1338,6 +1425,20 @@
       "flags": [],
       "status": "active"
     },
+    "MON:TG": {
+      "key": "MON:TG",
+      "token": "TG",
+      "day": "MON",
+      "periodId": "T05",
+      "kind": "theory",
+      "programme": "law",
+      "time": "11:40-12:30",
+      "startMin": 700,
+      "endMin": 750,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
     "MON:TG1": {
       "key": "MON:TG1",
       "token": "TG1",
@@ -1354,6 +1455,20 @@
           "system": "law"
         }
       ],
+      "flags": [],
+      "status": "active"
+    },
+    "MON:TEE": {
+      "key": "MON:TEE",
+      "token": "TEE",
+      "day": "MON",
+      "periodId": "T06",
+      "kind": "theory",
+      "programme": "law",
+      "time": "12:35-1:25",
+      "startMin": 755,
+      "endMin": 805,
+      "aliases": [],
       "flags": [],
       "status": "active"
     },
@@ -1768,6 +1883,20 @@
       "flags": [],
       "status": "active"
     },
+    "TUE:B": {
+      "key": "TUE:B",
+      "token": "B",
+      "day": "TUE",
+      "periodId": "T01",
+      "kind": "theory",
+      "programme": "law",
+      "time": "8:00-8:50",
+      "startMin": 480,
+      "endMin": 530,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
     "TUE:B1": {
       "key": "TUE:B1",
       "token": "B1",
@@ -1784,6 +1913,20 @@
           "system": "law"
         }
       ],
+      "flags": [],
+      "status": "active"
+    },
+    "TUE:G": {
+      "key": "TUE:G",
+      "token": "G",
+      "day": "TUE",
+      "periodId": "T02",
+      "kind": "theory",
+      "programme": "law",
+      "time": "8:55-9:45",
+      "startMin": 535,
+      "endMin": 585,
+      "aliases": [],
       "flags": [],
       "status": "active"
     },
@@ -1806,6 +1949,20 @@
       "flags": [],
       "status": "active"
     },
+    "TUE:E": {
+      "key": "TUE:E",
+      "token": "E",
+      "day": "TUE",
+      "periodId": "T03",
+      "kind": "theory",
+      "programme": "law",
+      "time": "9:50-10:40",
+      "startMin": 590,
+      "endMin": 640,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
     "TUE:E1": {
       "key": "TUE:E1",
       "token": "E1",
@@ -1825,6 +1982,20 @@
       "flags": [],
       "status": "active"
     },
+    "TUE:TC": {
+      "key": "TUE:TC",
+      "token": "TC",
+      "day": "TUE",
+      "periodId": "T04",
+      "kind": "theory",
+      "programme": "law",
+      "time": "10:45-11:35",
+      "startMin": 645,
+      "endMin": 695,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
     "TUE:TC1": {
       "key": "TUE:TC1",
       "token": "TC1",
@@ -1841,6 +2012,20 @@
           "system": "law"
         }
       ],
+      "flags": [],
+      "status": "active"
+    },
+    "TUE:TAA": {
+      "key": "TUE:TAA",
+      "token": "TAA",
+      "day": "TUE",
+      "periodId": "T05",
+      "kind": "theory",
+      "programme": "law",
+      "time": "11:40-12:30",
+      "startMin": 700,
+      "endMin": 750,
+      "aliases": [],
       "flags": [],
       "status": "active"
     },
@@ -2255,6 +2440,20 @@
       "flags": [],
       "status": "active"
     },
+    "WED:C": {
+      "key": "WED:C",
+      "token": "C",
+      "day": "WED",
+      "periodId": "T01",
+      "kind": "theory",
+      "programme": "law",
+      "time": "8:00-8:50",
+      "startMin": 480,
+      "endMin": 530,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
     "WED:C1": {
       "key": "WED:C1",
       "token": "C1",
@@ -2271,6 +2470,20 @@
           "system": "law"
         }
       ],
+      "flags": [],
+      "status": "active"
+    },
+    "WED:A": {
+      "key": "WED:A",
+      "token": "A",
+      "day": "WED",
+      "periodId": "T02",
+      "kind": "theory",
+      "programme": "law",
+      "time": "8:55-9:45",
+      "startMin": 535,
+      "endMin": 585,
+      "aliases": [],
       "flags": [],
       "status": "active"
     },
@@ -2293,6 +2506,20 @@
       "flags": [],
       "status": "active"
     },
+    "WED:F": {
+      "key": "WED:F",
+      "token": "F",
+      "day": "WED",
+      "periodId": "T03",
+      "kind": "theory",
+      "programme": "law",
+      "time": "9:50-10:40",
+      "startMin": 590,
+      "endMin": 640,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
     "WED:F1": {
       "key": "WED:F1",
       "token": "F1",
@@ -2312,6 +2539,20 @@
       "flags": [],
       "status": "active"
     },
+    "WED:TD": {
+      "key": "WED:TD",
+      "token": "TD",
+      "day": "WED",
+      "periodId": "T04",
+      "kind": "theory",
+      "programme": "law",
+      "time": "10:45-11:35",
+      "startMin": 645,
+      "endMin": 695,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
     "WED:TD1": {
       "key": "WED:TD1",
       "token": "TD1",
@@ -2328,6 +2569,20 @@
           "system": "law"
         }
       ],
+      "flags": [],
+      "status": "active"
+    },
+    "WED:TBB": {
+      "key": "WED:TBB",
+      "token": "TBB",
+      "day": "WED",
+      "periodId": "T05",
+      "kind": "theory",
+      "programme": "law",
+      "time": "11:40-12:30",
+      "startMin": 700,
+      "endMin": 750,
+      "aliases": [],
       "flags": [],
       "status": "active"
     },
@@ -2748,6 +3003,20 @@
       "flags": [],
       "status": "active"
     },
+    "THU:D": {
+      "key": "THU:D",
+      "token": "D",
+      "day": "THU",
+      "periodId": "T01",
+      "kind": "theory",
+      "programme": "law",
+      "time": "8:00-8:50",
+      "startMin": 480,
+      "endMin": 530,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
     "THU:D1": {
       "key": "THU:D1",
       "token": "D1",
@@ -2764,6 +3033,20 @@
           "system": "law"
         }
       ],
+      "flags": [],
+      "status": "active"
+    },
+    "THU:B": {
+      "key": "THU:B",
+      "token": "B",
+      "day": "THU",
+      "periodId": "T02",
+      "kind": "theory",
+      "programme": "law",
+      "time": "8:55-9:45",
+      "startMin": 535,
+      "endMin": 585,
+      "aliases": [],
       "flags": [],
       "status": "active"
     },
@@ -2786,6 +3069,20 @@
       "flags": [],
       "status": "active"
     },
+    "THU:G": {
+      "key": "THU:G",
+      "token": "G",
+      "day": "THU",
+      "periodId": "T03",
+      "kind": "theory",
+      "programme": "law",
+      "time": "9:50-10:40",
+      "startMin": 590,
+      "endMin": 640,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
     "THU:G1": {
       "key": "THU:G1",
       "token": "G1",
@@ -2805,6 +3102,20 @@
       "flags": [],
       "status": "active"
     },
+    "THU:TE": {
+      "key": "THU:TE",
+      "token": "TE",
+      "day": "THU",
+      "periodId": "T04",
+      "kind": "theory",
+      "programme": "law",
+      "time": "10:45-11:35",
+      "startMin": 645,
+      "endMin": 695,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
     "THU:TE1": {
       "key": "THU:TE1",
       "token": "TE1",
@@ -2821,6 +3132,20 @@
           "system": "law"
         }
       ],
+      "flags": [],
+      "status": "active"
+    },
+    "THU:TCC": {
+      "key": "THU:TCC",
+      "token": "TCC",
+      "day": "THU",
+      "periodId": "T05",
+      "kind": "theory",
+      "programme": "law",
+      "time": "11:40-12:30",
+      "startMin": 700,
+      "endMin": 750,
+      "aliases": [],
       "flags": [],
       "status": "active"
     },
@@ -3235,6 +3560,20 @@
       "flags": [],
       "status": "active"
     },
+    "FRI:E": {
+      "key": "FRI:E",
+      "token": "E",
+      "day": "FRI",
+      "periodId": "T01",
+      "kind": "theory",
+      "programme": "law",
+      "time": "8:00-8:50",
+      "startMin": 480,
+      "endMin": 530,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
     "FRI:E1": {
       "key": "FRI:E1",
       "token": "E1",
@@ -3251,6 +3590,20 @@
           "system": "law"
         }
       ],
+      "flags": [],
+      "status": "active"
+    },
+    "FRI:C": {
+      "key": "FRI:C",
+      "token": "C",
+      "day": "FRI",
+      "periodId": "T02",
+      "kind": "theory",
+      "programme": "law",
+      "time": "8:55-9:45",
+      "startMin": 535,
+      "endMin": 585,
+      "aliases": [],
       "flags": [],
       "status": "active"
     },
@@ -3273,6 +3626,20 @@
       "flags": [],
       "status": "active"
     },
+    "FRI:TA": {
+      "key": "FRI:TA",
+      "token": "TA",
+      "day": "FRI",
+      "periodId": "T03",
+      "kind": "theory",
+      "programme": "law",
+      "time": "9:50-10:40",
+      "startMin": 590,
+      "endMin": 640,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
     "FRI:TA1": {
       "key": "FRI:TA1",
       "token": "TA1",
@@ -3289,6 +3656,20 @@
           "system": "law"
         }
       ],
+      "flags": [],
+      "status": "active"
+    },
+    "FRI:TF": {
+      "key": "FRI:TF",
+      "token": "TF",
+      "day": "FRI",
+      "periodId": "T04",
+      "kind": "theory",
+      "programme": "law",
+      "time": "10:45-11:35",
+      "startMin": 645,
+      "endMin": 695,
+      "aliases": [],
       "flags": [],
       "status": "active"
     },
@@ -3311,6 +3692,20 @@
       "flags": [],
       "status": "active"
     },
+    "FRI:TDD": {
+      "key": "FRI:TDD",
+      "token": "TDD",
+      "day": "FRI",
+      "periodId": "T05",
+      "kind": "theory",
+      "programme": "law",
+      "time": "11:40-12:30",
+      "startMin": 700,
+      "endMin": 750,
+      "aliases": [],
+      "flags": [],
+      "status": "active"
+    },
     "FRI:TDD1": {
       "key": "FRI:TDD1",
       "token": "TDD1",
@@ -3327,6 +3722,20 @@
           "system": "law"
         }
       ],
+      "flags": [],
+      "status": "active"
+    },
+    "FRI:TFF": {
+      "key": "FRI:TFF",
+      "token": "TFF",
+      "day": "FRI",
+      "periodId": "T06",
+      "kind": "theory",
+      "programme": "law",
+      "time": "12:35-1:25",
+      "startMin": 755,
+      "endMin": 805,
+      "aliases": [],
       "flags": [],
       "status": "active"
     },
@@ -4401,14 +4810,15 @@
     }
   },
   "baseline": {
-    "slotCount": 214,
+    "slotCount": 241,
     "periodCount": 65,
-    "tokenCount": 190
+    "tokenCount": 210
   },
   "notes": [
     "One physical period, many naming systems: every token is a distinct slot with a shared periodId.",
     "Overlapping tokens (e.g. A1 and M1 on MON 8:00) are intentional; never deduplicate by time.",
     "S8 (11:40) and S8B (12:35) on SAT, S10/S10B on SUN are separate real slots.",
-    "L18/L24 retain the new 12:35-1:25 config times; dayTimeOverrides records divergence from campus."
+    "L18/L24 retain the new 12:35-1:25 config times; dayTimeOverrides records divergence from campus.",
+    "Law tokens (A, TAA, TEE, ...) are first-class slots in the law programme, resolving to the same periods as core tokens; core slots keep the aliases for legacy decode."
   ]
 }
