@@ -1,4 +1,3 @@
-
 const MARGIN = 13;
 const PAGE_W = 210;
 const PAGE_H = 297;
@@ -15,8 +14,20 @@ function safe(value: string) {
     .replace(/[^\u0020-\u007e\u00a0-\u00ff]/g, "");
 }
 
-/** Converts the report's semantic HTML into searchable jsPDF text and vector rules. */
-export async function downloadStudentReportPdf(html: string, fileName: string, grayscale: boolean): Promise<void> {
+/**
+ * Converts the report's semantic HTML into searchable jsPDF text and vector rules.
+ *
+ * `onProgress` is called once per top-level report section, from a loop that
+ * yields back to the event loop between sections. The PDF is built from the same
+ * source DOM in the same order — only the scheduling changes — so the output is
+ * byte-for-byte the same while the UI can paint a progress indicator.
+ */
+export async function downloadStudentReportPdf(
+  html: string,
+  fileName: string,
+  grayscale: boolean,
+  onProgress?: (completed: number, total: number) => void,
+): Promise<void> {
   const { jsPDF } = await import("jspdf");
   const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
   pdf.setProperties({ title: "AmazeCC Student Academic Report", creator: "AmazeCC" });
@@ -452,7 +463,13 @@ export async function downloadStudentReportPdf(html: string, fileName: string, g
     y += Math.max(42, ly - y + 2);
   };
 
-  for (const node of Array.from(root.children)) {
+  const topLevel = Array.from(root.children);
+  for (let nodeIndex = 0; nodeIndex < topLevel.length; nodeIndex++) {
+    const node = topLevel[nodeIndex];
+    // Yield before each section so the caller's progress state can paint and a
+    // long report never locks the main thread for its whole generation.
+    onProgress?.(nodeIndex + 1, topLevel.length);
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
     if (node.matches(".report-divider")) {
       newPage();
       if (node.id) sectionPages.set(node.id, page);

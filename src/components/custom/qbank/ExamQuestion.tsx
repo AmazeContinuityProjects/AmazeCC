@@ -1,10 +1,30 @@
-import { useState } from "react";
+"use client";
+
+import { lazy, memo, Suspense, useState } from "react";
 import "katex/dist/katex.min.css";
-import Latex from "./Latex";
 import { CheckCircle2, XCircle, RotateCcw } from "lucide-react";
 import { QBankQuestion } from "@/types/qbank.types";
 
-export default function ExamQuestion({ question, index }: { question: QBankQuestion; index: number }) {
+/**
+ * `Latex` pulls in KaTeX (~258 KB). Keep it out of the course list and the
+ * plain-text papers: the chunk is only requested when a rendered string
+ * actually contains a math delimiter, and the raw text is the fallback while
+ * it loads. `Latex` itself is memoised on its raw children.
+ */
+const KatexLatex = lazy(() => import("./Latex"));
+
+const MATH_RUN = /\$\$[^$]+\$\$|\\\[[\s\S]+?\\\]|\\\([\s\S]+?\\\)|\$[^$\n]+\$/;
+
+function MathText({ value }: { value: string }) {
+  if (!MATH_RUN.test(value)) return <>{value}</>;
+  return (
+    <Suspense fallback={<>{value}</>}>
+      <KatexLatex>{value}</KatexLatex>
+    </Suspense>
+  );
+}
+
+function ExamQuestionBase({ question, index }: { question: QBankQuestion; index: number }) {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
 
   const isWrong = (opt: string) => selectedOption === opt && opt !== question.correct_answer;
@@ -39,7 +59,7 @@ export default function ExamQuestion({ question, index }: { question: QBankQuest
           {selectedOption && (
             <button
               onClick={handleReset}
-              className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 dark:hover:text-gray-300 transition-colors"
+              className="relative hit-expand p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
               title="Reset"
             >
               <RotateCcw className="w-4 h-4" />
@@ -51,7 +71,7 @@ export default function ExamQuestion({ question, index }: { question: QBankQuest
 
       {/* Question Text */}
       <div className="text-gray-800  dark:text-gray-200 text-base leading-relaxed mb-6 overflow-x-auto">
-        <Latex>{question.question_text || ""}</Latex>
+        <MathText value={question.question_text || ""} />
       </div>
 
       {/* Fallback Image */}
@@ -85,13 +105,13 @@ export default function ExamQuestion({ question, index }: { question: QBankQuest
                 key={key}
                 disabled={!!selectedOption}
                 onClick={() => setSelectedOption(key)}
-                className={`w-full flex items-center p-3 rounded-lg border text-left transition-all ${btnClass}`}
+                className={`w-full flex items-center p-3 rounded-lg border text-left transition-all active:scale-[0.99] ${btnClass}`}
               >
                 <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100  dark:bg-gray-800 text-sm font-semibold text-gray-700  dark:text-gray-300 mr-3">
                   {key}
                 </div>
                 <div className="flex-grow text-sm text-gray-700  dark:text-gray-300 overflow-x-auto">
-                  <Latex>{(value as string) || ""}</Latex>
+                  <MathText value={(value as string) || ""} />
                 </div>
                 {selectedOption && key === question.correct_answer && (
                   <CheckCircle2 className="w-5 h-5 text-green-500 ml-2 shrink-0" />
@@ -109,7 +129,7 @@ export default function ExamQuestion({ question, index }: { question: QBankQuest
           {!selectedOption ? (
             <button
               onClick={() => setSelectedOption("SHOW_ANSWER")}
-              className="text-sm px-4 py-2 bg-gray-100  dark:bg-black text-gray-700  dark:text-gray-300 border border-gray-200  dark:border-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors font-medium"
+              className="text-sm px-4 py-2 min-h-11 bg-gray-100  dark:bg-black text-gray-700  dark:text-gray-300 border border-gray-200  dark:border-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-700 active:bg-gray-300 dark:active:bg-slate-600 transition-colors font-medium"
             >
               Show Answer / Hints
             </button>
@@ -119,7 +139,7 @@ export default function ExamQuestion({ question, index }: { question: QBankQuest
                 Answer:
               </h4>
               <div className="text-sm text-gray-800  dark:text-white font-medium">
-                <Latex>{question.correct_answer}</Latex>
+                <MathText value={question.correct_answer} />
               </div>
             </div>
           )}
@@ -128,3 +148,7 @@ export default function ExamQuestion({ question, index }: { question: QBankQuest
     </div>
   );
 }
+
+/** A paper's questions don't change while the reader answers one of them. */
+const ExamQuestion = memo(ExamQuestionBase);
+export default ExamQuestion;

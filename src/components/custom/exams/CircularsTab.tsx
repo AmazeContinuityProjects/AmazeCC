@@ -53,12 +53,14 @@ function flattenIds(items: CircularItem[]): string[] {
 
 function TreeNode({ item, depth = 0, creds }: { item: CircularItem; depth?: number; creds: Creds | null }) {
   const [open, setOpen] = useState(true);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
   const hasChildren = item.children && item.children.length > 0;
 
   const downloadCircular = useCallback(
     async (id: string, title: string) => {
       if (!creds) return;
       try {
+        setDownloadError(null);
         const res = (await api("circulars/download", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -75,6 +77,7 @@ function TreeNode({ item, depth = 0, creds }: { item: CircularItem; depth?: numb
         URL.revokeObjectURL(url);
       } catch (err: any) {
         console.error("Circular download error:", err.message);
+        setDownloadError("Couldn't download this circular. Check your connection and try again.");
       }
     },
     [creds],
@@ -82,19 +85,32 @@ function TreeNode({ item, depth = 0, creds }: { item: CircularItem; depth?: numb
 
   if (item.id != null && item.title) {
     return (
-      <div
-        className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50/50 dark:hover:bg-slate-800/30 dark:hover:bg-gray-800/30 transition-colors group"
-        style={{ paddingLeft: `${16 + depth * 20}px` }}
-      >
-        <File className="w-3.5 h-3.5 shrink-0 text-gray-400" />
-        <p className="text-sm text-gray-700  dark:text-gray-300 flex-1 min-w-0">{item.title}</p>
-        <button
-          onClick={() => downloadCircular(item.id!, item.title!)}
-          className="p-1.5 rounded-lg relative hit-expand opacity-0 group-hover:opacity-100 [@media(any-hover:none)]:opacity-100 hover:bg-gray-100 dark:hover:bg-slate-700 dark:hover:bg-gray-800 text-gray-400 hover:text-blue-500 transition-all"
-          title="Download"
+      <div>
+        <div
+          className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50/50 dark:hover:bg-slate-800/30 dark:hover:bg-gray-800/30 transition-colors group"
+          style={{ paddingLeft: `${16 + depth * 20}px` }}
         >
-          <Download className="w-3.5 h-3.5" />
-        </button>
+          <File className="w-3.5 h-3.5 shrink-0 text-gray-400" />
+          <p className="text-sm text-gray-700  dark:text-gray-300 flex-1 min-w-0 truncate" title={item.title}>
+            {item.title}
+          </p>
+          <button
+            onClick={() => downloadCircular(item.id!, item.title!)}
+            className="p-1.5 rounded-lg relative hit-expand opacity-0 group-hover:opacity-100 [@media(any-hover:none)]:opacity-100 hover:bg-gray-100 dark:hover:bg-slate-700 dark:hover:bg-gray-800 text-gray-400 hover:text-blue-500 transition-all"
+            title="Download"
+          >
+            <Download className="w-3.5 h-3.5" />
+          </button>
+        </div>
+        {downloadError ? (
+          <p
+            role="alert"
+            className="px-5 pb-3 text-xs font-medium text-danger"
+            style={{ paddingLeft: `${16 + depth * 20}px` }}
+          >
+            {downloadError}
+          </p>
+        ) : null}
       </div>
     );
   }
@@ -112,7 +128,9 @@ function TreeNode({ item, depth = 0, creds }: { item: CircularItem; depth?: numb
           <ChevronRight className="w-3.5 h-3.5 shrink-0 text-gray-400" />
         )}
         <FolderOpen className="w-3.5 h-3.5 shrink-0 text-amber-500" />
-        <span className="text-sm font-medium text-gray-800  dark:text-gray-200">{item.name}</span>
+        <span className="text-sm font-medium text-gray-800  dark:text-gray-200 min-w-0 truncate" title={item.name}>
+          {item.name}
+        </span>
       </button>
       {open && hasChildren && (
         <div>
@@ -145,7 +163,7 @@ function NewCircularsModal({ circulars, onClose }: { circulars: CircularItem[]; 
               className="flex items-center gap-3 p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/60 dark:border-zinc-800/60"
             >
               <FileText className="w-4 h-4 shrink-0 text-blue-500" />
-              <span className="text-[13px] font-semibold text-zinc-700 dark:text-zinc-300">{c.title}</span>
+              <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">{c.title}</span>
             </div>
           ))}
         </div>
@@ -284,7 +302,7 @@ export default function CircularsTab({ loginToVTOP, onBack, setActiveTab }: Circ
               onClick={() => {
                 void refreshCirculars();
               }}
-              className="mt-1 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-extrabold uppercase tracking-wider transition-colors cursor-pointer"
+              className="mt-1 px-4 py-2 min-h-11 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-extrabold uppercase tracking-wider transition-colors cursor-pointer"
             >
               Try again
             </button>
@@ -310,7 +328,7 @@ export default function CircularsTab({ loginToVTOP, onBack, setActiveTab }: Circ
           onClick={() => {
             void refreshCirculars();
           }}
-          className="p-2.5 rounded-full bg-blue-50  dark:bg-slate-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-slate-700 transition-colors"
+          className="relative hit-expand p-2.5 rounded-full bg-blue-50  dark:bg-slate-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-slate-700 active:bg-blue-200 dark:active:bg-slate-600 transition-colors"
           title="Reload"
         >
           <RefreshCcw className="w-5 h-5" />

@@ -14,7 +14,7 @@ import {
   SegmentedControl,
   ToneBadge,
 } from "../shared/primitives";
-import { LIST_ROW, SEARCH_FIELD } from "@/lib/uiTokens";
+import { LIST_ROW, SEARCH_FIELD, PRIMARY_BUTTON } from "@/lib/uiTokens";
 import FacultyScheduleModal from "./FFCS/components/modals/FacultyScheduleModal";
 import { VitfacReviewPill, FacultyAvatar } from "./FFCS/components/FacultyReviewSheet";
 import {
@@ -461,7 +461,7 @@ export default function FacultyScheduleTab({
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-bold text-text-heading truncate">{group.canonical}</span>
             {empId && (
-              <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 shrink-0">
+              <span className="text-xs tabular-nums font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 shrink-0">
                 #{empId}
               </span>
             )}
@@ -517,11 +517,7 @@ export default function FacultyScheduleTab({
               title="No faculty found"
               description={`Nothing matches “${search.trim()}”. Try a full name (PARTHIBAN V) or a course code (BCSE101).`}
               action={
-                <button
-                  type="button"
-                  onClick={() => setSearch("")}
-                  className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-black text-white transition-colors hover:bg-indigo-700"
-                >
+                <button type="button" onClick={() => setSearch("")} className={PRIMARY_BUTTON}>
                   Clear search
                 </button>
               }
@@ -547,7 +543,7 @@ export default function FacultyScheduleTab({
                wondering where their own professors went. Name the two ways in:
                a synced timetable/semester, or an FFCS draft (the latter only
                when the planner's picks are being counted at all). */
-            <div className="rounded-2xl border border-dashed border-border-muted p-4 text-[11px] leading-relaxed font-medium text-text-secondary dark:text-text-muted">
+            <div className="rounded-2xl border border-dashed border-border-muted p-4 text-sm text-pretty leading-relaxed font-medium text-text-secondary dark:text-text-muted">
               Once your timetable and marks are synced
               {openedFromHome ? "" : " — or you add courses in the FFCS planner"} — the faculties teaching{" "}
               <span className="font-bold text-text-heading">your</span> courses will be listed here first.

@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { ChipTabs, EmptyPanel, PageShell, SelectField } from "../shared/primitives";
-import { SEARCH_FIELD, TILE_INTERACTIVE_ROW } from "@/lib/uiTokens";
+import { SEARCH_FIELD, TILE_INTERACTIVE_ROW, TEXT_CAPTION, SEARCH_ICON, TEXT_BLOCK } from "@/lib/uiTokens";
 import { formatSemesterName } from "@/lib/formatSemesterName";
 import { loadFrozenPastSemesters } from "@/lib/pastDataSync";
 import { BookOpen, Search, ChevronRight, GraduationCap, History, Sparkles } from "lucide-react";
@@ -597,7 +597,7 @@ export default function SimplifiedAcademicsPage({
         className={`${TILE_INTERACTIVE_ROW} hover:border-indigo-500/40 dark:hover:border-indigo-500/40 duration-200 group select-none`}
       >
         {/* Left Column: Clean Icon + Course Code, Title & Subtitle */}
-        <div className="flex items-center gap-3 min-w-0 flex-1">
+        <div className={`flex items-center gap-3 ${TEXT_BLOCK}`}>
           {/* Clean minimal icon */}
           <div
             className={`w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center shrink-0 border ${
@@ -612,7 +612,7 @@ export default function SimplifiedAcademicsPage({
           </div>
 
           {/* Course Details */}
-          <div className="min-w-0 flex-1">
+          <div className={TEXT_BLOCK}>
             <div className="flex items-center gap-2">
               <span className="text-xs sm:text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">
                 {displayCode}
@@ -625,7 +625,7 @@ export default function SimplifiedAcademicsPage({
             </p>
 
             {/* Subtitle containing course type, credits and slot */}
-            <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium truncate mt-0.5">
+            <p className="text-xs text-zinc-400 dark:text-zinc-500 font-medium truncate mt-0.5">
               {courseTypeLabel}
               {(norm.credits ?? course.credits) > 0 ? ` • ${norm.credits ?? course.credits} Credits` : ""}
               {norm.slotDisplay || main?.slotName || main?.slot
@@ -640,22 +640,19 @@ export default function SimplifiedAcademicsPage({
           <div>
             {course.grade ? (
               <div className="flex flex-col items-end">
-                <span className="text-base sm:text-lg font-black text-indigo-500 dark:text-indigo-400 font-outfit">
+                <span className="text-xl font-black font-outfit leading-[1.3] tabular-nums text-indigo-500 dark:text-indigo-400">
                   Grade {course.grade}
                 </span>
-                <span className="text-[9px] text-zinc-400 font-medium">Final Grade</span>
+                <span className="text-xs text-zinc-400 font-medium">Final Grade</span>
               </div>
             ) : grandWeightage.hasAssessments ? (
               <div className="flex flex-col items-end">
-                <span
-                  data-private
-                  className={`text-base sm:text-lg font-black font-outfit tracking-tight leading-none ${statColor}`}
-                >
+                <span data-private className={`text-xl font-black font-outfit leading-[1.3] tabular-nums ${statColor}`}>
                   {grandWeightage.maxWeight > 0
                     ? `${grandWeightage.displayScore} / ${grandWeightage.displayMax}`
                     : `${grandWeightage.displayScore}`}
                 </span>
-                <span className="text-[9px] font-bold text-zinc-400 mt-0.5">
+                <span className="text-xs font-bold text-zinc-400 mt-0.5">
                   {grandWeightage.percentage !== null
                     ? `${formatUpToTwoDecimals(grandWeightage.percentage, decimalValues)}% Score`
                     : "Weightage"}
@@ -664,7 +661,7 @@ export default function SimplifiedAcademicsPage({
             ) : (
               <div className="flex flex-col items-end">
                 <span className="text-xs font-bold text-zinc-400 dark:text-zinc-500">Pending</span>
-                <span className="text-[9px] text-zinc-500">No marks yet</span>
+                <span className="text-xs text-zinc-500">No marks yet</span>
               </div>
             )}
           </div>
@@ -705,7 +702,7 @@ export default function SimplifiedAcademicsPage({
       >
         {/* Search */}
         <div className="relative w-full">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+          <Search className={SEARCH_ICON} />
           <input
             type="text"
             value={searchTerm}
@@ -730,7 +727,7 @@ export default function SimplifiedAcademicsPage({
                       <span className="text-xs sm:text-sm font-black text-zinc-900 dark:text-white font-outfit">
                         {sem.semesterName}
                       </span>
-                      <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500">
+                      <span className="text-xs font-bold text-zinc-400 dark:text-zinc-500">
                         ({filteredSemCourses.length} courses)
                       </span>
                     </div>
@@ -755,7 +752,7 @@ export default function SimplifiedAcademicsPage({
                 setActiveSubTab ? (
                   <button
                     onClick={() => setActiveSubTab("grades")}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-11 rounded-xl bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white text-xs font-bold transition-colors cursor-pointer"
                   >
                     <GraduationCap className="w-4 h-4" />
                     <span>View Grade History</span>
@@ -785,7 +782,7 @@ export default function SimplifiedAcademicsPage({
       <div className="space-y-3">
         {/* Search Input */}
         <div className="relative">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+          <Search className={SEARCH_ICON} />
           <input
             type="text"
             value={searchTerm}
@@ -835,11 +832,11 @@ export default function SimplifiedAcademicsPage({
             <div className="min-w-0">
               <p className="text-xs sm:text-sm font-black font-outfit text-zinc-900 dark:text-white truncate flex items-center gap-2">
                 <span>Marks Predictor & Simulator</span>
-                <span className="px-1.5 py-0.2 rounded-md bg-indigo-600 text-white text-[9px] font-black uppercase">
+                <span className="px-1.5 py-0.2 rounded-md bg-indigo-600 text-white text-xs font-black uppercase">
                   New
                 </span>
               </p>
-              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">
+              <p className={`${TEXT_CAPTION} truncate`}>
                 Simulate what-if scores, calculate points lost & solve FAT targets
               </p>
             </div>
@@ -864,9 +861,7 @@ export default function SimplifiedAcademicsPage({
                 <p className="text-xs sm:text-sm font-black font-outfit text-zinc-900 dark:text-white truncate">
                   Degree Curriculum
                 </p>
-                <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">
-                  Program credits, baskets & distribution
-                </p>
+                <p className={`${TEXT_CAPTION} truncate`}>Program credits, baskets & distribution</p>
               </div>
             </div>
             <div className="flex items-center gap-1 text-xs font-black text-indigo-600 dark:text-indigo-400 font-outfit group-hover:translate-x-0.5 transition-transform shrink-0">
@@ -888,7 +883,7 @@ export default function SimplifiedAcademicsPage({
                 <p className="text-xs sm:text-sm font-black font-outfit text-zinc-900 dark:text-white truncate">
                   Grade History
                 </p>
-                <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">Cumulative GPA & past semesters</p>
+                <p className={`${TEXT_CAPTION} truncate`}>Cumulative GPA & past semesters</p>
               </div>
             </div>
             <div className="flex items-center gap-1 text-xs font-black text-purple-600 dark:text-purple-400 font-outfit group-hover:translate-x-0.5 transition-transform shrink-0">
@@ -919,7 +914,7 @@ export default function SimplifiedAcademicsPage({
               <p className="text-xs sm:text-sm font-black font-outfit text-zinc-900 dark:text-white truncate">
                 Looking for previous semesters?
               </p>
-              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">
+              <p className={`${TEXT_CAPTION} truncate`}>
                 {pastSemesters.length > 0
                   ? `View archived courses and grades from ${pastSemesters.length} earlier semesters`
                   : "View archived courses, GPA & grades from previous semesters"}

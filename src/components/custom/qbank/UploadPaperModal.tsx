@@ -91,7 +91,7 @@ export default function UploadPaperModal({
       title="Upload Past Paper Link"
       subtitle={
         isAdmin ? (
-          <span className="bg-green-100 text-green-700 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full dark:bg-green-900/30 dark:text-green-400">
+          <span className="bg-green-100 text-green-700 text-xs uppercase font-bold px-2 py-0.5 rounded-full dark:bg-green-900/30 dark:text-green-400">
             Admin Mode
           </span>
         ) : undefined
@@ -103,7 +103,9 @@ export default function UploadPaperModal({
           <div className="w-16 h-16 bg-green-100  dark:bg-green-900/30 text-green-500 rounded-full flex items-center justify-center mb-4">
             <UploadCloud className="w-8 h-8" />
           </div>
-          <h3 className="text-lg font-bold text-foreground mb-2">Upload Successful!</h3>
+          <h3 className="text-xl font-bold font-outfit text-foreground leading-[1.3] text-balance mb-2">
+            Upload Successful!
+          </h3>
           <p className="text-muted-foreground text-sm">
             Your paper has been sent to the Admin queue for question extraction and approval.
           </p>
@@ -124,7 +126,7 @@ export default function UploadPaperModal({
               <button
                 type="button"
                 onClick={() => setUseCustomCode(!useCustomCode)}
-                className="flex items-center gap-1 text-xs text-accent hover:underline"
+                className="flex items-center gap-1 min-h-11 text-xs text-accent hover:underline active:underline"
               >
                 <Plus className="w-3 h-3" />
                 {useCustomCode ? "Select from list" : "Enter custom code"}

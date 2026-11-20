@@ -1,5 +1,6 @@
 "use client";
 
+import { TEXT_CAPTION } from "@/lib/uiTokens";
 import { useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { BookOpen, DoorOpen, User, Clock, Copy, Check, Layers, Hash, ChevronRight } from "lucide-react";
@@ -109,7 +110,7 @@ export default function ClassDetailsModal({
               type="button"
               onClick={() => handleCopy(fullCopyText, "all")}
               title="Copy class details"
-              className="p-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-300 dark:hover:border-indigo-600 transition-colors cursor-pointer"
+              className="relative hit-expand p-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-300 dark:hover:border-indigo-600 active:scale-95 transition-colors cursor-pointer"
             >
               {copiedKey === "all" ? (
                 <Check className="w-3.5 h-3.5 text-emerald-500" />
@@ -129,7 +130,7 @@ export default function ClassDetailsModal({
                     type="button"
                     onClick={() => setSelectedIndex(idx)}
                     className={cn(
-                      "px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer",
+                      "px-3 py-1.5 min-h-11 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer active:bg-zinc-200/70 dark:active:bg-zinc-600/70",
                       selectedIndex === idx
                         ? "bg-white dark:bg-zinc-700 text-indigo-600 dark:text-indigo-300 shadow-2xs"
                         : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white",
@@ -144,17 +145,17 @@ export default function ClassDetailsModal({
             {/* Course & Title Header Tile */}
             <div className="p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800 space-y-1.5">
               <div className="flex items-center justify-between gap-2">
-                <span className="px-2 py-0.5 rounded-md bg-indigo-100/80 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 font-mono font-bold text-xs">
+                <span className="px-2 py-0.5 rounded-md bg-indigo-100/80 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 font-mono font-bold text-xs tabular-nums">
                   {active.courseCode || "COURSE"}
                 </span>
                 <div className="flex items-center gap-1.5">
                   {active.type && (
-                    <span className="px-2 py-0.5 rounded-md bg-zinc-200/60 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-bold text-[10px] uppercase tracking-wider">
+                    <span className="px-2 py-0.5 rounded-md bg-zinc-200/60 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-bold text-xs uppercase tracking-wider">
                       {active.type}
                     </span>
                   )}
                   {active.classId && (
-                    <span className="px-2 py-0.5 rounded-md bg-emerald-100/70 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-mono font-bold text-[10px]">
+                    <span className="px-2 py-0.5 rounded-md bg-emerald-100/70 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-mono font-bold text-xs tabular-nums">
                       #{active.classId}
                     </span>
                   )}
@@ -174,15 +175,15 @@ export default function ClassDetailsModal({
                     <DoorOpen className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] uppercase tracking-wider font-bold text-zinc-400">Classroom Venue</p>
+                    <p className="text-xs uppercase tracking-wider font-bold text-zinc-400">Classroom Venue</p>
                     <p className="text-sm font-extrabold text-zinc-900 dark:text-white truncate">{venue}</p>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">{block}</p>
+                    <p className={`${TEXT_CAPTION} font-medium`}>{block}</p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => handleCopy(venue, "room")}
-                  className="p-1 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
+                  className="relative hit-expand p-2 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 active:text-zinc-900 dark:active:text-white transition-colors"
                   title="Copy room"
                 >
                   {copiedKey === "room" ? (
@@ -200,10 +201,10 @@ export default function ClassDetailsModal({
                     <User className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] uppercase tracking-wider font-bold text-zinc-400">Faculty / Teacher</p>
+                    <p className="text-xs uppercase tracking-wider font-bold text-zinc-400">Faculty / Teacher</p>
                     <p className="text-sm font-extrabold text-zinc-900 dark:text-white truncate">{displayFaculty}</p>
                     {displayErp && (
-                      <span className="inline-flex items-center gap-1 font-mono font-bold text-[11px] text-indigo-600 dark:text-indigo-400">
+                      <span className="inline-flex items-center gap-1 font-mono font-bold text-xs tabular-nums text-indigo-600 dark:text-indigo-400">
                         <Hash className="w-3 h-3" />
                         {displayErp}
                       </span>
@@ -213,7 +214,7 @@ export default function ClassDetailsModal({
                 <button
                   type="button"
                   onClick={() => handleCopy(displayFaculty, "faculty")}
-                  className="p-1 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
+                  className="relative hit-expand p-2 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 active:text-zinc-900 dark:active:text-white transition-colors"
                   title="Copy faculty name"
                 >
                   {copiedKey === "faculty" ? (
@@ -230,11 +231,11 @@ export default function ClassDetailsModal({
                   <Clock className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[10px] uppercase tracking-wider font-bold text-zinc-400">Time & Schedule</p>
+                  <p className="text-xs uppercase tracking-wider font-bold text-zinc-400">Time & Schedule</p>
                   <p className="text-sm font-extrabold text-zinc-900 dark:text-white truncate">
                     {periodLabel || "Period"}
                   </p>
-                  {dayLabel && <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">{dayLabel}</p>}
+                  {dayLabel && <p className={`${TEXT_CAPTION} font-medium`}>{dayLabel}</p>}
                 </div>
               </div>
 
@@ -244,11 +245,11 @@ export default function ClassDetailsModal({
                   <Layers className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[10px] uppercase tracking-wider font-bold text-zinc-400">VTOP Slot</p>
+                  <p className="text-xs uppercase tracking-wider font-bold text-zinc-400">VTOP Slot</p>
                   <p className="text-sm font-extrabold text-zinc-900 dark:text-white truncate">
                     {active.slot || "N/A"}
                   </p>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+                  <p className={`${TEXT_CAPTION} font-medium`}>
                     Source: {active.source === "live" ? "Live Contribution" : "FFCS Allocation"}
                   </p>
                 </div>

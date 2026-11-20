@@ -9,7 +9,7 @@ import SelectField from "../shared/primitives/SelectField";
 import { getTypedStorageItem, setTypedStorageItem, removeTypedStorageItem } from "@/lib/storage";
 const Field = ({ label, value }: { label: string; value: string }) => (
   <div className="min-w-0">
-    <p className="text-[11px] font-semibold text-gray-400  dark:text-gray-500 uppercase tracking-wider">{label}</p>
+    <p className="text-xs font-semibold text-gray-400  dark:text-gray-500 uppercase tracking-wider">{label}</p>
     <p className="text-sm font-medium text-gray-800  dark:text-gray-200 break-words">{value || "—"}</p>
   </div>
 );
@@ -311,7 +311,7 @@ export default function GenericApiView({
                               {table.headers.map((h: string, ci: number) => (
                                 <td
                                   key={ci}
-                                  className="py-2.5 px-2 text-gray-800  dark:text-gray-200 whitespace-nowrap"
+                                  className="py-2.5 px-2 text-gray-800  dark:text-gray-200 break-words min-w-0"
                                 >
                                   {typeof row === "object"
                                     ? row[h] || row[ci] || ""
@@ -328,7 +328,7 @@ export default function GenericApiView({
                     {hidden > 0 && (
                       <button
                         onClick={() => toggleExpandTable(idx)}
-                        className="mt-3 w-full inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200  dark:border-gray-700 bg-white/60 dark:bg-zinc-900/50 px-4 py-2.5 text-xs font-bold text-gray-600  dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800/60 transition-colors cursor-pointer"
+                        className="mt-3 w-full inline-flex items-center justify-center gap-2 min-h-11 rounded-xl border border-gray-200  dark:border-gray-700 bg-white/60 dark:bg-zinc-900/50 px-4 py-2.5 text-xs font-bold text-gray-600  dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800/60 active:bg-gray-100 dark:active:bg-zinc-700 transition-colors cursor-pointer"
                       >
                         {expanded ? "Show fewer rows" : `Show ${hidden.toLocaleString()} more rows`}
                       </button>
@@ -448,7 +448,7 @@ export default function GenericApiView({
                           Object.entries(fieldData.children[opt.text].selectOptions).map(
                             ([childField, childOpts]: [string, any]) => (
                               <div key={childField} className="mt-2 ml-2">
-                                <p className="text-[11px] font-medium text-gray-400  dark:text-gray-500 uppercase tracking-wider mb-1">
+                                <p className="text-xs font-medium text-gray-400  dark:text-gray-500 uppercase tracking-wider mb-1">
                                   {childField.replace(/-/g, " ")}
                                 </p>
                                 <div className="flex flex-wrap gap-1.5">

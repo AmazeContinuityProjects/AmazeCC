@@ -245,6 +245,24 @@ export const toneForGrade = (grade: string | undefined | null): string =>
       .toUpperCase()
   ] ?? "zinc";
 
+/**
+ * Grade -> solid bar hue, for the compact distribution bars on the grade
+ * history and marks-predictor screens. Those two screens used to each carry this
+ * exact map; it lives here so they cannot drift apart. Only the grade-to-hue
+ * decision is shared — the Tailwind recipe each screen paints with stays local.
+ */
+export const GRADE_BAR: Record<string, string> = {
+  S: "bg-amber-500",
+  A: "bg-emerald-500",
+  B: "bg-blue-500",
+  C: "bg-cyan-500",
+  D: "bg-violet-500",
+  E: "bg-red-500",
+  F: "bg-red-600",
+  N: "bg-zinc-400",
+  P: "bg-violet-500",
+};
+
 export type DistributionRow = {
   grade: string;
   tone: string;

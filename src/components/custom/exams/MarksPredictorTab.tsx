@@ -15,14 +15,11 @@ import {
   StatTile,
   ToneBadge,
 } from "../shared/primitives";
-import { LIST_ROW } from "@/lib/uiTokens";
+import { LIST_ROW, MICRO_LABEL } from "@/lib/uiTokens";
 import { toneForGrade } from "@/lib/gradeHistory";
 import { predictGpa } from "@/lib/predictorGpa";
 import { manualClassStats } from "@/lib/gradeBoundaries";
-import {
-  type CoursePredictionResult,
-  computeCoursePrediction,
-} from "@/lib/marksPredictor";
+import { type CoursePredictionResult, computeCoursePrediction } from "@/lib/marksPredictor";
 import {
   deleteCustomCourse,
   getCustomCourses,
@@ -108,12 +105,12 @@ export default function MarksPredictorTab({
   // Parse all enrolled courses from VTOP marksData and attendance
   const enrolledCourses: EnrolledCourseItem[] = useMemo(
     () => buildEnrolledCourses(marksData, attendance, customCourses),
-    [marksData, attendance, customCourses]
+    [marksData, attendance, customCourses],
   );
 
   const activeCourse = useMemo(
     () => enrolledCourses.find((c) => c.courseCode === activeCourseCode) ?? null,
-    [enrolledCourses, activeCourseCode]
+    [enrolledCourses, activeCourseCode],
   );
 
   // The grading context the engine read needs the REMAPPED cohort statistics —
@@ -155,7 +152,7 @@ export default function MarksPredictorTab({
           labCredits: config.labCredits,
           courseSystem: course.courseSystem ?? null,
           classStats,
-        })
+        }),
       );
     }
     return byCode;
@@ -166,9 +163,9 @@ export default function MarksPredictorTab({
       [...enrolledCourses].sort(
         (a, b) =>
           (predictions.get(b.courseCode)?.pointsLostScaled ?? 0) -
-          (predictions.get(a.courseCode)?.pointsLostScaled ?? 0)
+          (predictions.get(a.courseCode)?.pointsLostScaled ?? 0),
       ),
-    [enrolledCourses, predictions]
+    [enrolledCourses, predictions],
   );
 
   // The engine-derived letters the GPA pair aggregates: the pace grade per
@@ -176,11 +173,11 @@ export default function MarksPredictorTab({
   // (`100 − points lost`).
   const paceGrades = useMemo(
     () => Object.fromEntries([...predictions].map(([code, p]) => [code, p.optimalGrade?.letter ?? null])),
-    [predictions]
+    [predictions],
   );
   const ceilingGrades = useMemo(
     () => Object.fromEntries([...predictions].map(([code, p]) => [code, p.maximisableGrade.letter])),
-    [predictions]
+    [predictions],
   );
 
   // Which subjects the user held out of the GPA pair — read per course from
@@ -189,9 +186,7 @@ export default function MarksPredictorTab({
   const ignoredCodes = useMemo(() => {
     void refreshTrigger;
     return new Set(
-      enrolledCourses
-        .filter((c) => getCoursePredictorState(c.courseCode)?.ignored === true)
-        .map((c) => c.courseCode)
+      enrolledCourses.filter((c) => getCoursePredictorState(c.courseCode)?.ignored === true).map((c) => c.courseCode),
     );
   }, [enrolledCourses, refreshTrigger]);
 
@@ -207,10 +202,14 @@ export default function MarksPredictorTab({
           // Excluded, not hidden: an ignored subject is inert for the
           // aggregation but keeps its row and its own prediction.
           .filter((c) => !ignoredCodes.has(c.courseCode))
-          .map((c) => ({ credits: c.credits, optimal: paceGrades[c.courseCode] ?? null, maximisable: ceilingGrades[c.courseCode] ?? null })),
-        marksData?.cgpa
+          .map((c) => ({
+            credits: c.credits,
+            optimal: paceGrades[c.courseCode] ?? null,
+            maximisable: ceilingGrades[c.courseCode] ?? null,
+          })),
+        marksData?.cgpa,
       ),
-    [enrolledCourses, paceGrades, ceilingGrades, marksData, ignoredCodes]
+    [enrolledCourses, paceGrades, ceilingGrades, marksData, ignoredCodes],
   );
 
   const openCourse = (code: string) => {
@@ -253,8 +252,7 @@ export default function MarksPredictorTab({
     setRefreshTrigger((r) => r + 1);
   };
 
-  const title =
-    viewMode === "course" ? activeCourse?.courseCode ?? "Course" : "Marks Predictor";
+  const title = viewMode === "course" ? (activeCourse?.courseCode ?? "Course") : "Marks Predictor";
   const subtitle =
     viewMode === "course"
       ? activeCourse?.courseTitle
@@ -303,10 +301,7 @@ export default function MarksPredictorTab({
             >
               {isEditMode ? <Check className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
             </IconButton>
-            <IconButton
-              onClick={() => setIsResetConfirmOpen(true)}
-              title="Reset every course's predictor stats"
-            >
+            <IconButton onClick={() => setIsResetConfirmOpen(true)} title="Reset every course's predictor stats">
               <RotateCcw className="w-4 h-4" />
             </IconButton>
           </>
@@ -359,16 +354,14 @@ export default function MarksPredictorTab({
                   </GhostButton>
                 }
               />
-              <p className="px-1 -mt-1 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
-                Sorted by how much is left to lose. Tap one to simulate it.
+              <p className="px-1 -mt-1 text-sm text-pretty leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
+                Sorted by where you have the most room to improve. Tap one to simulate it.
               </p>
 
               {enrolledCourses.length === 0 ? (
                 <div className="p-6 rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700 text-center">
-                  <p className="text-sm font-bold text-zinc-500 dark:text-zinc-400">
-                    No courses found
-                  </p>
-                  <p className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1">
+                  <p className="text-sm font-bold text-zinc-500 dark:text-zinc-400">No courses found</p>
+                  <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
                     Pull your marks from VTOP, or add a custom subject to simulate.
                   </p>
                 </div>
@@ -383,9 +376,7 @@ export default function MarksPredictorTab({
                         <button
                           type="button"
                           onClick={() => openCourse(course.courseCode)}
-                          className={`${LIST_ROW} cursor-pointer group flex-1 min-w-0 ${
-                            isIgnored ? "opacity-55" : ""
-                          }`}
+                          className={`${LIST_ROW} cursor-pointer group flex-1 min-w-0 ${isIgnored ? "opacity-55" : ""}`}
                         >
                           <ListRowText
                             title={course.courseTitle}
@@ -396,9 +387,7 @@ export default function MarksPredictorTab({
                               <span className="block text-sm font-black font-outfit text-zinc-900 dark:text-white">
                                 {deficit > 0 ? `-${deficit.toFixed(1)}` : "0.0"}
                               </span>
-                              <span className="block text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                                pts lost
-                              </span>
+                              <span className={`block ${MICRO_LABEL}`}>pts lost</span>
                             </span>
                             {isIgnored ? (
                               // The pair no longer counts this course, so the
@@ -408,10 +397,7 @@ export default function MarksPredictorTab({
                                 Ignored
                               </ToneBadge>
                             ) : (
-                              <ToneBadge
-                                tone={toneForGrade(prediction.optimalGrade?.letter ?? "")}
-                                size="lg"
-                              >
+                              <ToneBadge tone={toneForGrade(prediction.optimalGrade?.letter ?? "")} size="lg">
                                 {prediction.optimalGrade?.letter ?? "—"}
                               </ToneBadge>
                             )}
@@ -470,9 +456,7 @@ export default function MarksPredictorTab({
                 key="empty"
                 className="p-6 rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700 text-center"
               >
-                <p className="text-sm font-bold text-zinc-500 dark:text-zinc-400">
-                  No course selected
-                </p>
+                <p className="text-sm font-bold text-zinc-500 dark:text-zinc-400">No course selected</p>
                 <button
                   type="button"
                   onClick={() => {
@@ -555,10 +539,8 @@ function ConfirmSheet({
     <BottomSheet onClose={onClose} overlayId={overlayId} maxWidth="max-w-md">
       <div className="space-y-3.5 pb-2">
         <div className="space-y-1.5">
-          <h3 className="text-base font-black text-red-600 dark:text-red-400 font-outfit tracking-tight">
-            {title}
-          </h3>
-          <p className="text-[11px] font-medium leading-relaxed text-text-secondary dark:text-text-muted">
+          <h3 className="text-base font-black text-red-600 dark:text-red-400 font-outfit tracking-tight">{title}</h3>
+          <p className="text-sm text-pretty font-medium leading-relaxed text-text-secondary dark:text-text-muted">
             {body}
           </p>
         </div>
@@ -569,7 +551,7 @@ function ConfirmSheet({
           <button
             type="button"
             onClick={onConfirm}
-            className="flex-1 flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-black shadow-xs cursor-pointer active:scale-95"
+            className="flex-1 flex items-center justify-center gap-1.5 px-5 py-2.5 min-h-11 rounded-xl bg-red-600 hover:bg-red-700 active:bg-red-800 text-white text-xs font-black shadow-xs cursor-pointer active:scale-95"
           >
             {confirmIcon}
             {confirmLabel}

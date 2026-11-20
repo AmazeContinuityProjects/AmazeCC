@@ -1,11 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo, memo } from "react";
 import { api } from "@/lib/sync-engine";
-import {
-  loadFacultyRoster,
-  getFacultyDirectoryProfile,
-  getFacultyReview,
-} from "@/lib/vitfacService";
+import { loadFacultyRoster, getFacultyDirectoryProfile, getFacultyReview } from "@/lib/vitfacService";
 import {
   Search,
   User,
@@ -32,7 +28,16 @@ import {
   ToneBadge,
   useSubpageStack,
 } from "../shared/primitives";
-import { CHIP, LIST_ROW, LIST_SHELL, SEARCH_FIELD, TILE_CARD, TONE_ICON_TILE } from "@/lib/uiTokens";
+import {
+  CHIP,
+  LIST_ROW,
+  LIST_SHELL,
+  SEARCH_FIELD,
+  TILE_CARD,
+  TONE_ICON_TILE,
+  PRIMARY_BUTTON,
+  ICON_WELL,
+} from "@/lib/uiTokens";
 import FacultyScheduleModal from "./FFCS/components/modals/FacultyScheduleModal";
 import { VitfacReviewPill, FacultyAvatar } from "./FFCS/components/FacultyReviewSheet";
 import FacultyReviewSheetHost from "./FFCS/components/FacultyReviewSheetHost";
@@ -243,7 +248,7 @@ const FacultyCard = memo(
           type="button"
           onClick={() => setExpanded((v) => !v)}
           aria-expanded={expanded}
-          className="mt-3 w-full flex items-center justify-between gap-2 border-t border-border-muted pt-3 text-[10px] font-bold text-zinc-500 dark:text-zinc-400 hover:text-text-heading transition-colors"
+          className="mt-3 w-full flex items-center justify-between gap-2 border-t border-border-muted pt-3 text-xs font-bold text-zinc-500 dark:text-zinc-400 hover:text-text-heading transition-colors"
         >
           <span>{expanded ? "Show less" : "View full details"}</span>
           {loading ? (
@@ -254,7 +259,7 @@ const FacultyCard = memo(
         </button>
 
         {expanded && !loading && !profile.email && !profile.intercom && (
-          <p className="mt-2 text-[11px] text-text-muted">
+          <p className="mt-2 text-sm text-text-muted">
             Additional contact details are not published on the public portal.
           </p>
         )}
@@ -485,7 +490,7 @@ export default function FacultyInfoTab({
               </h2>
               <ToneBadge tone="indigo">Directory</ToneBadge>
             </div>
-            <p className="mt-1 text-[11px] font-medium leading-relaxed text-text-secondary dark:text-text-muted">
+            <p className="mt-1 text-sm text-pretty font-medium leading-relaxed text-text-secondary dark:text-text-muted">
               Pick a department to load its faculty list, designations, employee IDs and intercom numbers.
             </p>
           </div>
@@ -521,11 +526,7 @@ export default function FacultyInfoTab({
             }
             action={
               schoolSearchTerm ? (
-                <button
-                  type="button"
-                  onClick={() => setSchoolSearchTerm("")}
-                  className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-black text-white transition-colors hover:bg-indigo-700"
-                >
+                <button type="button" onClick={() => setSchoolSearchTerm("")} className={PRIMARY_BUTTON}>
                   Clear search
                 </button>
               ) : null
@@ -545,9 +546,7 @@ export default function FacultyInfoTab({
                   }}
                   className={`${LIST_ROW} cursor-pointer`}
                 >
-                  <span
-                    className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${TONE_ICON_TILE.sky}`}
-                  >
+                  <span className={`${ICON_WELL} ${TONE_ICON_TILE.sky}`}>
                     <GraduationCap className="w-4.5 h-4.5" />
                   </span>
                   <ListRowText title={cleanName} subtitle={acronym || undefined} titleTooltip={school.school_name} />
@@ -604,11 +603,7 @@ export default function FacultyInfoTab({
           }
           action={
             searchTerm ? (
-              <button
-                type="button"
-                onClick={() => setSearchTerm("")}
-                className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-black text-white transition-colors hover:bg-indigo-700"
-              >
+              <button type="button" onClick={() => setSearchTerm("")} className={PRIMARY_BUTTON}>
                 Clear search
               </button>
             ) : null
@@ -660,7 +655,7 @@ export default function FacultyInfoTab({
               <button
                 type="button"
                 onClick={() => handleSelectSchool(selectedSchool)}
-                className="shrink-0 rounded-xl bg-red-600 px-3 py-1 text-xs font-bold text-white hover:bg-red-700 transition-colors cursor-pointer"
+                className="shrink-0 rounded-xl bg-red-600 px-3 py-1 min-h-11 text-xs font-bold text-white hover:bg-red-700 active:bg-red-800 transition-colors cursor-pointer"
               >
                 Retry
               </button>

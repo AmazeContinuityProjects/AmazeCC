@@ -19,6 +19,7 @@
  * the same source react-latex-next adapted.
  */
 
+import { memo } from "react";
 import katex from "katex";
 
 type Delimiter = { left: string; right: string; display: boolean };
@@ -96,6 +97,14 @@ function renderToHtml(text: string): string {
     .join("");
 }
 
-export default function Latex({ children }: { children: string }) {
+function LatexBase({ children }: { children: string }) {
   return <span className="__Latex__" dangerouslySetInnerHTML={{ __html: renderToHtml(children) }} />;
 }
+
+/**
+ * `renderToHtml` re-parses and re-renders every math run, so an unchanged
+ * question must not pay for it again when a sibling's answer state changes.
+ * The raw children string is the whole input — key the memo on it explicitly.
+ */
+const Latex = memo(LatexBase, (prev, next) => prev.children === next.children);
+export default Latex;

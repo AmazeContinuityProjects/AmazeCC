@@ -199,8 +199,7 @@ export function AssessmentRow({
   // A pending row ("-" or blank) has no mark to place; reading it as 0% put an F on it.
   const rawScored = String(detail.scoredMark ?? "").trim();
   const isRecorded = rawScored !== "" && rawScored !== "-" && Number.isFinite(Number(rawScored));
-  const gradePlacement =
-    !isRecorded || (isRelative && !statsUsable) ? "?" : gradeAt(asmPct, ladder);
+  const gradePlacement = !isRecorded || (isRelative && !statsUsable) ? "?" : gradeAt(asmPct, ladder);
   const gradeBounds = ladder
     .filter((b) => ["S", "A", "B", "C"].includes(b.grade))
     .map((b) => ({ grade: b.grade, range: `>= ${sBoundaryCalc(b.limit, detail.maxMark)}` }));
@@ -227,7 +226,7 @@ export function AssessmentRow({
         <span className="w-20 shrink-0 text-right">
           <span className="block text-sm font-black font-outfit tracking-tight leading-none text-text-heading">
             {formatNumber(detail.scoredMark)}
-            <span className="text-[10px] font-bold text-text-muted"> / {formatNumber(detail.maxMark)}</span>
+            <span className="text-xs font-bold text-text-muted"> / {formatNumber(detail.maxMark)}</span>
           </span>
           <span className="mt-1.5 block">
             <MiniBar pct={asmPct} tone={scopeTone === "blue" ? "bg-blue-500" : "bg-emerald-500"} />
@@ -245,7 +244,7 @@ export function AssessmentRow({
           className="px-4 pb-4 pt-3 bg-surface-tertiary/40 dark:bg-background/40 border-t border-border-muted dark:border-border"
         >
           {isRelative && !statsUsable ? (
-            <p className="text-[11px] text-text-secondary dark:text-text-muted italic text-center py-2">
+            <p className="text-xs text-text-secondary dark:text-text-muted italic text-center py-2">
               {aStat?.count > 0
                 ? `Only ${aStat.count} ${aStat.count === 1 ? "student has" : "students have"} shared this assessment — the curve needs at least ${MIN_CURVE_SAMPLE}.`
                 : "Not enough data to calculate class statistics for this assessment yet."}
@@ -267,7 +266,7 @@ export function AssessmentRow({
               )}
 
               <div>
-                <p className="text-text-muted text-[10px] uppercase font-bold tracking-wider mb-2">
+                <p className="text-text-muted text-xs uppercase font-bold tracking-wider mb-2">
                   {isRelative ? "Grade placement preview" : "Absolute grade range preview"}
                 </p>
                 <div className="flex gap-2">
@@ -283,13 +282,13 @@ export function AssessmentRow({
                         }`}
                       >
                         <span className="text-sm font-black">{b.grade}</span>
-                        <span className="text-[9px] font-bold opacity-80">{b.range}</span>
+                        <span className="text-xs font-bold opacity-80">{b.range}</span>
                       </span>
                     );
                   })}
                 </div>
                 {gradePlacement !== "?" && (
-                  <p className={`mt-2.5 text-[11px] font-bold ${TONE_TEXT[toneForGrade(gradePlacement)]}`}>
+                  <p className={`mt-2.5 text-xs font-bold ${TONE_TEXT[toneForGrade(gradePlacement)]}`}>
                     Hypothetical placement: Grade {gradePlacement}
                   </p>
                 )}

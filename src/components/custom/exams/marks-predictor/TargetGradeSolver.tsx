@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Target, AlertTriangle, CheckCircle2, Sparkles, Flame, ShieldAlert } from "lucide-react";
+import { Target, AlertTriangle, CheckCircle2, Sparkles, Flame } from "lucide-react";
 import { solveTargetFAT, TargetFATSolverResult, CoursePredictionResult, estimateGrade } from "@/lib/marksPredictor";
 import { fatNeededForEachGrade } from "@/lib/gradeInsights";
 import { isAssessmentPublished, isFinalExamAssessment, onlyFatRemains } from "./useCoursePredictionScope";
 import { ChipTabs, ToneBadge } from "../../shared/primitives";
-import { FIELD_INPUT, TILE_CARD, TONE_ICON_TILE } from "@/lib/uiTokens";
+import { FIELD_INPUT, TILE_CARD, TONE_ICON_TILE, TEXT_BLOCK } from "@/lib/uiTokens";
 
 interface TargetGradeSolverProps {
   prediction: CoursePredictionResult;
@@ -139,10 +139,13 @@ export default function TargetGradeSolver({
         return { label: "Achievable", tone: "blue", icon: Target };
       case "tough":
         return { label: "Tough", tone: "amber", icon: Flame };
+      // The two hard cases keep their honest severity (amber / red) but name
+      // the action, not the odds — "Needs a strong finish" tells the student
+      // what to do without implying the goal is a fantasy.
       case "miracle":
-        return { label: "Miracle", tone: "violet", icon: ShieldAlert };
+        return { label: "Needs a strong finish", tone: "amber", icon: Target };
       default:
-        return { label: "Out of reach", tone: "red", icon: AlertTriangle };
+        return { label: "Needs a strong finish", tone: "red", icon: AlertTriangle };
     }
   };
 
@@ -156,7 +159,7 @@ export default function TargetGradeSolver({
 
   return (
     <div className={`${TILE_CARD} w-full max-w-full space-y-4`}>
-      <p className="text-[11px] leading-relaxed text-zinc-500 dark:text-zinc-400 font-medium">
+      <p className="text-sm text-pretty leading-relaxed text-zinc-500 dark:text-zinc-400 font-medium">
         Aim {targetGradeOnLadder} ({selectedTargetScore}%) on this ladder
         {gateOpen ? ` — calculated as the exact marks needed in ${fatExamName}.` : "."}
       </p>
@@ -164,7 +167,7 @@ export default function TargetGradeSolver({
       {/* Presets */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <span className="text-[11px] font-bold text-zinc-500 shrink-0">Target:</span>
+          <span className="text-xs font-bold text-zinc-500 shrink-0">Target:</span>
           <span className="relative w-20 shrink-0">
             <input
               type="number"
@@ -176,7 +179,7 @@ export default function TargetGradeSolver({
               aria-label="Target percentage"
               className={`${FIELD_INPUT} text-center pr-7`}
             />
-            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-bold text-zinc-400 pointer-events-none">
+            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-zinc-400 pointer-events-none">
               %
             </span>
           </span>
@@ -207,11 +210,11 @@ export default function TargetGradeSolver({
         >
           <Flame className="h-5 w-5" />
         </span>
-        <span className="min-w-0 flex-1">
+        <span className={TEXT_BLOCK}>
           <span className="block text-xs font-black text-text-heading font-outfit uppercase tracking-wider truncate">
             {fatExamName} · {fatWeight} wt · /{fatMax}
           </span>
-          <span className="block text-[11px] font-semibold mt-0.5 text-zinc-500 dark:text-zinc-400">
+          <span className="block text-xs font-semibold mt-0.5 text-zinc-500 dark:text-zinc-400">
             Counted as 0 — frozen; the prediction never lets this be filled.
           </span>
         </span>
@@ -225,7 +228,7 @@ export default function TargetGradeSolver({
           stall here without knowing the blanks are theirs to fill. */}
       {!gateOpen ? (
         <div className="rounded-2xl border border-dashed border-amber-500/40 bg-amber-500/5 px-3.5 py-3">
-          <p className="text-[11px] leading-relaxed text-zinc-600 dark:text-zinc-300 font-medium">
+          <p className="text-sm text-pretty leading-relaxed text-zinc-600 dark:text-zinc-300 font-medium">
             <strong className="font-black text-zinc-800 dark:text-zinc-100">
               Assign a mark to every other assessment first.
             </strong>{" "}
@@ -249,9 +252,7 @@ export default function TargetGradeSolver({
         <div className="space-y-3">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">
-                Required in {fatExamName}
-              </p>
+              <p className="text-xs font-black uppercase tracking-widest text-text-muted">Required in {fatExamName}</p>
               <p className="mt-1 flex items-baseline gap-2 flex-wrap min-w-0">
                 <span className="text-2xl font-black text-zinc-900 dark:text-white font-outfit tracking-tight">
                   {solverResult.isAlreadyAchieved ? "0" : solverResult.requiredFATRawScore.toFixed(1)}
@@ -261,7 +262,7 @@ export default function TargetGradeSolver({
                   {solverResult.isAlreadyAchieved ? "0%" : `${solverResult.requiredFATPercentage.toFixed(1)}%`}
                 </ToneBadge>
               </p>
-              <p className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 mt-1">
+              <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 mt-1">
                 Contributes{" "}
                 <strong className="text-zinc-800 dark:text-zinc-200">
                   {solverResult.requiredFATWeight.toFixed(1)}
@@ -278,7 +279,7 @@ export default function TargetGradeSolver({
           </p>
           {fatNeeds.length > 0 && (
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-text-muted mb-1.5">
+              <p className="text-xs font-black uppercase tracking-widest text-text-muted mb-1.5">
                 {fatExamName} needed per grade
               </p>
               <div className="flex flex-wrap gap-1.5">
@@ -288,7 +289,7 @@ export default function TargetGradeSolver({
                     type="button"
                     onClick={() => handleSelectPreset(need.target)}
                     aria-label={`${need.grade}: ${need.raw === null ? "out of reach" : `${need.raw} of ${fatMax}`}`}
-                    className="cursor-pointer"
+                    className="cursor-pointer min-h-11 min-w-11 inline-flex items-center justify-center rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 active:scale-95 transition-transform"
                   >
                     <ToneBadge tone={need.raw === null ? "zinc" : need.secured ? "emerald" : "indigo"}>
                       {need.grade} · {need.raw === null ? "✕" : `${need.raw}/${fatMax}`}
