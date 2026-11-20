@@ -259,19 +259,19 @@ describe("slot vocabulary invariants", () => {
   // breaks these is not, and these are what make the difference loud.
   const slotMap = config.slotMap as Record<string, Record<string, { time: string }>>;
 
-  it("has 164 slots", () => {
+  it("has 214 editable config slots", () => {
     const total = Object.values(slotMap).reduce((sum, day) => sum + Object.keys(day).length, 0);
-    expect(total).toBe(164);
+    expect(total).toBe(214);
   });
 
   it("has a stable per-day shape", () => {
     const counts = Object.fromEntries(Object.entries(slotMap).map(([d, slots]) => [d, Object.keys(slots).length]));
     expect(counts).toEqual({
-      MON: 24,
-      TUE: 23,
-      WED: 23,
-      THU: 23,
-      FRI: 23,
+      MON: 34,
+      TUE: 33,
+      WED: 33,
+      THU: 33,
+      FRI: 33,
       SAT: 24,
       SUN: 24,
     });

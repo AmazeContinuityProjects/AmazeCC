@@ -38,9 +38,21 @@ function installLocalStorage() {
 }
 
 const requestMock = vi.fn();
+const apiMock = vi.fn();
 vi.mock("../lib/sync-engine/request-layer", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../lib/sync-engine/request-layer")>();
-  return { ...actual, request: (...args: unknown[]) => requestMock(...args) };
+  return {
+    ...actual,
+    // `login` still rides the engine's request layer; the social op now goes
+    // through `social/client`, i.e. apiRequest, with Amaze ID auth.
+    request: (...args: unknown[]) => requestMock(...args),
+    apiRequest: (...args: unknown[]) => apiMock(...args),
+  };
+});
+// The guard under test is the login-then-sync sequence, not token acquisition.
+vi.mock("../lib/oauth2", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../lib/oauth2")>();
+  return { ...actual, getValidAccessToken: () => Promise.resolve("test-access-token") };
 });
 
 const { syncEngine } = await import("../lib/sync-engine");
@@ -65,11 +77,15 @@ const SYNC_PAYLOAD = {
 /** Routes a request by name so each test controls only what it cares about. */
 function routeRequests(overrides: Record<string, () => unknown> = {}) {
   requestMock.mockImplementation(async (path: string) => {
-    // Overrides win, so a test can replace the social response.
     if (overrides[path]) return overrides[path]();
     if (path === "login") {
       return { success: true, authorizedID: "25BCE1234", cookies: ["JSESSIONID=x"], csrf: "c" };
     }
+    return {};
+  });
+  apiMock.mockImplementation(async (path: string) => {
+    // Overrides win, so a test can replace the social response.
+    if (overrides[path]) return overrides[path]();
     if (path === "social/identity/sync") {
       return SYNC_PAYLOAD;
     }
@@ -77,14 +93,20 @@ function routeRequests(overrides: Record<string, () => unknown> = {}) {
   });
 }
 
-/** Names of the calls made, in order, for asserting on sequence. */
+/** Names of the calls made, in order, across both request layers. */
 function callOrder(): string[] {
-  return requestMock.mock.calls.map((c) => String(c[0]));
+  return [
+    ...requestMock.mock.calls.map((c, i) => ({ at: requestMock.mock.invocationCallOrder[i], path: String(c[0]) })),
+    ...apiMock.mock.calls.map((c, i) => ({ at: apiMock.mock.invocationCallOrder[i], path: String(c[0]) })),
+  ]
+    .sort((a, b) => a.at - b.at)
+    .map((c) => c.path);
 }
 
 beforeAll(installLocalStorage);
 beforeEach(() => {
   requestMock.mockReset();
+  apiMock.mockReset();
   credentialManager.clearCache();
   storage.ids.set({ ...IDS });
   // `syncEngine.ids` is private and set by `login`; start from logged-out so the
@@ -136,7 +158,7 @@ describe("syncSocial", () => {
   });
 
   it("returns the sync payload on success", async () => {
-    const res = await syncEngine.syncSocial({}) as { identity?: { handle?: string } };
+    const res = (await syncEngine.syncSocial({})) as { identity?: { handle?: string } };
     expect(res?.identity?.handle).toBe("AMZ-4KD2-7RP1");
   });
 });

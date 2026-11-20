@@ -13,7 +13,8 @@ import { Clock, Sparkles } from "lucide-react";
 import { EMPTY_STATE, LIST_SHELL } from "@/lib/libraries/ui";
 import { FreeNowRow, SectionHeader } from "./rows";
 import { PageShell } from "../shared/primitives";
-import { slotCoveringNow, parseSlotKey, slotMap } from "@/lib/social/schedule";
+import { SLOT_MAP } from "@/lib/generated/timetable";
+import { slotCoveringNow, parseSlotKey } from "@/lib/social/schedule";
 import { useOverlap, usePeerTimetables } from "@/lib/social/usePeerTimetables";
 import { useSocialData } from "@/lib/social/useSocialData";
 
@@ -23,7 +24,7 @@ function currentSlotLabel(now = new Date()): { label: string; key: string } | nu
   if (!key) return null;
   const parsed = parseSlotKey(key);
   if (!parsed) return null;
-  const slot = slotMap[parsed.day]?.[parsed.slotId];
+  const slot = SLOT_MAP[parsed.day]?.[parsed.slotId];
   return { key, label: slot ? `${parsed.day} · ${parsed.slotId} · ${slot.time}` : `${parsed.day} · ${parsed.slotId}` };
 }
 
@@ -68,7 +69,7 @@ export default function FreeNowSubpage({
           <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 mt-3">
             {now ? "Nobody is free in this slot" : "It is outside class hours"}
           </p>
-          <p className="text-[11px] text-zinc-400 dark:text-zinc-500 font-medium mt-1.5 leading-relaxed max-w-[320px] mx-auto">
+          <p className="text-xs text-zinc-400 dark:text-zinc-500 font-medium mt-1.5 leading-relaxed max-w-[320px] mx-auto">
             {now ? (
               <>
                 Every paired peer has class in {now.label}. Times are your device&apos;s local time — the campus day
@@ -100,7 +101,7 @@ export default function FreeNowSubpage({
       )}
 
       {freeNow.length > 0 && (
-        <p className="px-1 -mt-3 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium flex items-start gap-1.5">
+        <p className="px-1 -mt-3 text-xs leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium flex items-start gap-1.5">
           <Sparkles className="w-3 h-3 mt-px shrink-0" />A legacy free/busy-only pair shows no venue — the server
           withholds it, not this screen.
         </p>

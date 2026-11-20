@@ -23,6 +23,7 @@
  * the wrong code never fills the field with garbage.
  */
 
+import { SPINNER_ICON, TEXT_CAPTION } from "@/lib/uiTokens";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera, CameraOff, Loader2 } from "lucide-react";
 import BottomSheet from "../shared/BottomSheet";
@@ -85,9 +86,7 @@ export default function ScanHandleSheet({
       if (!window.isSecureContext) {
         if (!cancelled) {
           setState("unsupported");
-          setMessage(
-            "Scanning a QR needs a secure connection. Open the app over HTTPS and try again."
-          );
+          setMessage("Scanning a QR needs a secure connection. Open the app over HTTPS and try again.");
         }
         return;
       }
@@ -122,7 +121,7 @@ export default function ScanHandleSheet({
               // Wrong code, or a real QR that is not a handle. Say what was read
               // so the mismatch is obvious, and keep the camera up.
               setMessage(
-                `That QR is not a handle (read "${String(decodedText).slice(0, 32)}"). Point the camera at a peer's Share screen.`
+                `That QR is not a handle (read "${String(decodedText).slice(0, 32)}"). Point the camera at a peer's Share screen.`,
               );
               return;
             }
@@ -131,7 +130,7 @@ export default function ScanHandleSheet({
           },
           // Fires on every frame that fails to decode. There is nothing to do
           // with that, and surfacing it would flicker the UI nonstop.
-          () => {}
+          () => {},
         );
 
         if (cancelled) {
@@ -145,7 +144,7 @@ export default function ScanHandleSheet({
         if (name === "NotAllowedError" || name === "SecurityError") {
           setState("denied");
           setMessage(
-            "Camera access was blocked. Allow it in your browser's site settings, or type the handle instead."
+            "Camera access was blocked. Allow it in your browser's site settings, or type the handle instead.",
           );
         } else if (name === "NotFoundError" || name === "OverconstrainedError") {
           setState("unsupported");
@@ -155,7 +154,7 @@ export default function ScanHandleSheet({
           setMessage(
             err instanceof Error && err.message
               ? `The camera would not start: ${err.message}`
-              : "The camera would not start."
+              : "The camera would not start.",
           );
         }
       }
@@ -195,15 +194,13 @@ export default function ScanHandleSheet({
 
         {busy && (
           <p className="flex items-center gap-2 text-xs font-bold text-zinc-500 dark:text-zinc-400">
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <Loader2 className={SPINNER_ICON} />
             Starting the camera&hellip;
           </p>
         )}
 
         {state === "scanning" && !message && (
-          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">
-            Looking for a handle&hellip;
-          </p>
+          <p className={`${TEXT_CAPTION} font-medium`}>Looking for a handle&hellip;</p>
         )}
 
         {message && (

@@ -1,16 +1,20 @@
-import config from "../../config.json";
+import { DAY_LABELS, DAY_ORDER, SLOT_MAP } from "@/lib/generated/timetable";
+import head164 from "@/data/timetable/legacy/head-164-index.json";
 import { getActiveRegNumber } from "./social/identity";
 import { readList, writeList } from "./social/storage";
 
-const DAYS_MAP: Record<string, string> = {
-  MON: "Monday",
-  TUE: "Tuesday",
-  WED: "Wednesday",
-  THU: "Thursday",
-  FRI: "Friday",
-  SAT: "Saturday",
-  SUN: "Sunday",
-};
+const DAYS_MAP: Record<string, string> = DAY_LABELS;
+const DAYS = DAY_ORDER as readonly string[];
+
+/**
+ * The v5/v6 share-code slot order, frozen at HEAD (164 entries).
+ *
+ * Old share codes encode a *position* in this list, so it must never be
+ * rebuilt from the live vocabulary — a new programme token would shift every
+ * existing index and silently decode to the wrong slot. The generated flat map
+ * is still used to resolve each decoded key to its display time.
+ */
+const STATIC_SLOTS_LIST: readonly string[] = head164.order;
 
 export type FriendClassSlot = {
   day: string;
@@ -40,7 +44,6 @@ export type FriendGroup = {
   createdAt: string;
 };
 
-
 const decodeBase64 = (str: string) => {
   if (typeof window !== "undefined") {
     return atob(str);
@@ -48,27 +51,12 @@ const decodeBase64 = (str: string) => {
   return Buffer.from(str, "base64").toString("utf-8");
 };
 
-export function exportScheduleCode(
-  attendance: any[],
-  name: string,
-  regNumber: string,
-  expiryMinutes?: number
-): string {
+export function exportScheduleCode(attendance: any[], name: string, regNumber: string, expiryMinutes?: number): string {
   if (!Array.isArray(attendance) || attendance.length === 0) return "";
-  const slotMap = config.slotMap as any;
-
-  // Generate deterministic slots list from slotMap
-  const days = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
-  const staticSlotsList: string[] = [];
-  days.forEach((day) => {
-    if (slotMap[day]) {
-      Object.keys(slotMap[day])
-        .sort()
-        .forEach((slotId) => {
-          staticSlotsList.push(`${day}:${slotId}`);
-        });
-    }
-  });
+  const slotMap = SLOT_MAP as Record<string, Record<string, { time: string }>>;
+  const days = DAYS;
+  // Frozen share-code order — see STATIC_SLOTS_LIST. Never rebuilt at runtime.
+  const staticSlotsList = STATIC_SLOTS_LIST;
 
   // 1. Extract unique course titles
   const uniqueTitles: string[] = [];
@@ -124,11 +112,8 @@ export function compressScheduleCode(code: string): string {
   try {
     const bytes = new TextEncoder().encode(code);
     let binary = "";
-    bytes.forEach(b => binary += String.fromCharCode(b));
-    return btoa(binary)
-      .replace(/\+/g, "-")
-      .replace(/\//g, "_")
-      .replace(/=/g, "");
+    bytes.forEach((b) => (binary += String.fromCharCode(b)));
+    return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
   } catch (e) {
     return code;
   }
@@ -157,7 +142,7 @@ export function exportShareableLink(
   attendance: any[],
   name: string,
   regNumber: string,
-  expiryMinutes?: number
+  expiryMinutes?: number,
 ): string {
   const code = exportScheduleCode(attendance, name, regNumber, expiryMinutes);
   if (!code) return "";
@@ -201,7 +186,9 @@ export function importScheduleCode(rawData: string, nickname?: string): Friend {
       const nowSec = Math.floor(Date.now() / 1000);
       if (expiresAtSec && nowSec > expiresAtSec) {
         const minAgo = Math.max(1, Math.ceil((nowSec - expiresAtSec) / 60));
-        throw new Error(`This temporary link expired ${minAgo} minute${minAgo !== 1 ? 's' : ''} ago. Please request a fresh link.`);
+        throw new Error(
+          `This temporary link expired ${minAgo} minute${minAgo !== 1 ? "s" : ""} ago. Please request a fresh link.`,
+        );
       }
 
       name = parts[2];
@@ -210,18 +197,8 @@ export function importScheduleCode(rawData: string, nickname?: string): Friend {
       const assignmentsData = parts[5];
 
       const titles = coursesData.length > 0 ? coursesData.split(";") : [];
-      const slotMap = config.slotMap as any;
-      const staticSlotsList: string[] = [];
-      const days = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
-      days.forEach((day) => {
-        if (slotMap[day]) {
-          Object.keys(slotMap[day])
-            .sort()
-            .forEach((slotId) => {
-              staticSlotsList.push(`${day}:${slotId}`);
-            });
-        }
-      });
+      const slotMap = SLOT_MAP as Record<string, Record<string, { time: string }>>;
+      const staticSlotsList = STATIC_SLOTS_LIST;
 
       for (let i = 0; i < assignmentsData.length; i += 3) {
         const chunk = assignmentsData.substring(i, i + 3);
@@ -261,19 +238,9 @@ export function importScheduleCode(rawData: string, nickname?: string): Friend {
 
       const titles = coursesData.length > 0 ? coursesData.split(";") : [];
 
-      // Re-generate the deterministic slots list
-      const slotMap = config.slotMap as any;
-      const staticSlotsList: string[] = [];
-      const days = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
-      days.forEach((day) => {
-        if (slotMap[day]) {
-          Object.keys(slotMap[day])
-            .sort()
-            .forEach((slotId) => {
-              staticSlotsList.push(`${day}:${slotId}`);
-            });
-        }
-      });
+      // The frozen share-code order — see STATIC_SLOTS_LIST.
+      const slotMap = SLOT_MAP as Record<string, Record<string, { time: string }>>;
+      const staticSlotsList = STATIC_SLOTS_LIST;
 
       // Parse assignments string in chunks of 3 characters
       for (let i = 0; i < assignmentsData.length; i += 3) {
@@ -316,7 +283,7 @@ export function importScheduleCode(rawData: string, nickname?: string): Friend {
       const titles = payload[2];
       const assignments = payload[3];
 
-      const slotMap = config.slotMap as any;
+      const slotMap = SLOT_MAP as Record<string, Record<string, { time: string }>>;
       if (Array.isArray(assignments)) {
         assignments.forEach((assignment) => {
           if (Array.isArray(assignment) && assignment.length === 3) {
@@ -352,7 +319,7 @@ export function importScheduleCode(rawData: string, nickname?: string): Friend {
       const titles = coursesData.length > 0 ? coursesData.split(";") : [];
 
       // Parse assignments and resolve full slot details
-      const slotMap = config.slotMap as any;
+      const slotMap = SLOT_MAP as Record<string, Record<string, { time: string }>>;
       if (assignmentsData.length > 0) {
         assignmentsData.split(";").forEach((aStr) => {
           const aParts = aStr.split(",");
@@ -399,7 +366,7 @@ export function importScheduleCode(rawData: string, nickname?: string): Friend {
       }
 
       // Parse assignments and resolve full slot details
-      const slotMap = config.slotMap as any;
+      const slotMap = SLOT_MAP as Record<string, Record<string, { time: string }>>;
       if (assignmentsData.length > 0) {
         assignmentsData.split(";").forEach((aStr) => {
           const aParts = aStr.split(",");
@@ -454,16 +421,7 @@ export function importScheduleCode(rawData: string, nickname?: string): Friend {
     }
 
     // Generate a consistent color based on regNumber
-    const colors = [
-      "#EC4899",
-      "#10B981",
-      "#A855F7",
-      "#F59E0B",
-      "#3B82F6",
-      "#EF4444",
-      "#14B8A6",
-      "#8B5CF6",
-    ];
+    const colors = ["#EC4899", "#10B981", "#A855F7", "#F59E0B", "#3B82F6", "#EF4444", "#14B8A6", "#8B5CF6"];
     let hash = 0;
     for (let i = 0; i < regNumber.length; i++) {
       hash = regNumber.charCodeAt(i) + ((hash << 5) - hash);
@@ -531,7 +489,7 @@ export function removeFriend(id: string, userReg?: string) {
   writeList(
     "friends",
     getFriends(reg).filter((f) => f.id !== id),
-    reg
+    reg,
   );
 }
 
@@ -558,6 +516,6 @@ export function removeFriendGroup(id: string, userReg?: string) {
   writeList(
     "groups",
     getFriendGroups(reg).filter((g) => g.id !== id),
-    reg
+    reg,
   );
 }

@@ -33,17 +33,22 @@
  * says who is busy in it and who is free.
  */
 
+import { TEXT_CAPTION } from "@/lib/uiTokens";
 import { useMemo, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { CalendarRange, Info, Users } from "lucide-react";
 import BottomSheet from "../shared/BottomSheet";
 import { CHIP, EMPTY_STATE, TONE_TEXT } from "@/lib/libraries/ui";
-import { DAYS, fmt, parseSlotKey, slotMap, type Day } from "@/lib/social/schedule";
+import { DAY_ORDER, SLOT_MAP } from "@/lib/generated/timetable";
+import { fmt, parseSlotKey, type Day } from "@/lib/social/schedule";
 import type { BusyEntry, BusyMap, SocialVisibility } from "@/lib/social/types";
 import TimetableGridShell, { useTodayKey, type ShellCell, type ShellDay } from "../timetable/TimetableGridShell";
 import type { Band } from "@/lib/buildBands";
 import { buildPeriodSkeleton } from "../timetable/periodSkeleton";
 import { useTimetableViewMode } from "../timetable/useTimetableViewMode";
+
+/** Days in the canonical order, shared by every grid on this page. */
+const DAYS = DAY_ORDER as readonly Day[];
 
 export type GridPeer = {
   handle: string;
@@ -143,8 +148,8 @@ export default function CommonFreeTimetableGrid({
           else freeNames.push({ name: person.name, handle: person.handle });
         }
 
-        const theoryTime = col.theory ? slotMap[day]?.[col.theory.slotId]?.time : undefined;
-        const labTime = col.lab ? slotMap[day]?.[col.lab.slotId]?.time : undefined;
+        const theoryTime = col.theory ? SLOT_MAP[day]?.[col.theory.slotId]?.time : undefined;
+        const labTime = col.lab ? SLOT_MAP[day]?.[col.lab.slotId]?.time : undefined;
         const dayTime = theoryTime ?? labTime ?? "";
 
         return {
@@ -180,7 +185,7 @@ export default function CommonFreeTimetableGrid({
           <Users className="w-4.5 h-4.5 text-zinc-400" />
         </span>
         <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 mt-3">No peer timetables loaded</p>
-        <p className="text-[11px] text-zinc-400 dark:text-zinc-500 font-medium mt-1.5 leading-relaxed max-w-[320px] mx-auto">
+        <p className="text-xs text-zinc-400 dark:text-zinc-500 font-medium mt-1.5 leading-relaxed max-w-[320px] mx-auto text-pretty">
           The grid compares your week against everyone you are paired with, so it needs at least one peer to have
           published a timetable.
         </p>
@@ -200,10 +205,16 @@ export default function CommonFreeTimetableGrid({
     return {
       content: (
         <>
-          <span className={compact ? "text-[13px] font-black leading-none" : "text-[15px] font-black leading-none"}>
+          <span
+            className={
+              compact
+                ? "text-sm font-black leading-none tabular-nums"
+                : "text-base font-black leading-none tabular-nums"
+            }
+          >
             {cell.free}
           </span>
-          <span className="text-[9px] font-bold leading-none opacity-70">/{cell.total}</span>
+          <span className="text-xs font-bold leading-none opacity-70">/{cell.total}</span>
         </>
       ),
       title: description,
@@ -233,7 +244,7 @@ export default function CommonFreeTimetableGrid({
               key={d}
               type="button"
               onClick={() => setDayFilter(d as "ALL" | Day)}
-              className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                 dayFilter === d
                   ? "bg-white dark:bg-zinc-800 text-indigo-600 dark:text-indigo-400 shadow-2xs"
                   : "text-zinc-500 dark:text-zinc-400"
@@ -243,7 +254,7 @@ export default function CommonFreeTimetableGrid({
             </button>
           ))}
         </div>
-        <label className="flex items-center gap-2 text-[11px] font-bold text-zinc-600 dark:text-zinc-400 cursor-pointer">
+        <label className="flex items-center gap-2 text-xs font-bold text-zinc-600 dark:text-zinc-400 cursor-pointer">
           <input
             type="checkbox"
             checked={everyoneFreeOnly}
@@ -252,7 +263,7 @@ export default function CommonFreeTimetableGrid({
           />
           Highlight slots everyone is free
         </label>
-        <p className="text-[11px] text-zinc-400 dark:text-zinc-500 font-medium sm:ml-auto">
+        <p className="text-xs text-zinc-400 dark:text-zinc-500 font-medium sm:ml-auto">
           {roster.length + 1} people · tap a slot for detail
         </p>
       </div>
@@ -266,7 +277,7 @@ export default function CommonFreeTimetableGrid({
           today={today}
         />
 
-        <div className="flex flex-wrap items-center gap-2 text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
+        <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500/20 border border-emerald-500/40" />
             everyone free
@@ -313,9 +324,7 @@ export default function CommonFreeTimetableGrid({
             <div className="text-left space-y-4">
               {activeCell.who.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-[11px] font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
-                    Busy
-                  </p>
+                  <p className="text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">Busy</p>
                   {activeCell.who.map((w) => {
                     const parsed = parseSlotKey(w.key);
                     return (
@@ -338,7 +347,7 @@ export default function CommonFreeTimetableGrid({
                             {w.name}
                           </p>
                         )}
-                        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5 truncate">
+                        <p className={`${TEXT_CAPTION} font-medium mt-0.5 truncate`}>
                           {parsed ? `${parsed.day} · ${parsed.slotId}` : w.key}
                           {w.entry.c ? ` · ${w.entry.c}` : ""}
                           {w.entry.v ? ` · ${w.entry.v}` : ""}
@@ -351,9 +360,7 @@ export default function CommonFreeTimetableGrid({
 
               {activeCell.freeNames.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-[11px] font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
-                    Free
-                  </p>
+                  <p className="text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">Free</p>
                   <div className="flex flex-wrap gap-1.5">
                     {activeCell.freeNames.map((n) =>
                       n.handle && onOpenPeer ? (
@@ -375,7 +382,7 @@ export default function CommonFreeTimetableGrid({
                 </div>
               )}
 
-              <p className="text-[11px] text-zinc-400 dark:text-zinc-500 font-medium leading-relaxed flex items-start gap-1.5">
+              <p className="text-xs text-zinc-400 dark:text-zinc-500 font-medium leading-relaxed flex items-start gap-1.5 text-pretty">
                 <Info className="w-3 h-3 mt-px shrink-0" />
                 Names and course detail come from each pair&apos;s timetable. An older free/busy-only grant contributes
                 occupancy without a course or venue.

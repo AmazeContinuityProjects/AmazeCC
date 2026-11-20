@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import config from "../../config.json";
+import { equivalentTokens } from "../lib/generated/timetable";
 import {
   DAYS,
   LUNCH_START_MIN,
@@ -59,8 +60,7 @@ describe("toMinutes is the one parser", () => {
           const t = part.trim();
           const mine = toMinutes(t);
           if (mine !== gridRule(t)) mismatches.push(`${t}: grid ${gridRule(t)} vs ${mine}`);
-          if (mine !== attendanceRule(t))
-            mismatches.push(`${t}: attendance ${attendanceRule(t)} vs ${mine}`);
+          if (mine !== attendanceRule(t)) mismatches.push(`${t}: attendance ${attendanceRule(t)} vs ${mine}`);
         }
       }
     }
@@ -117,8 +117,8 @@ describe("the parser's assumption is checked, not assumed", () => {
     expect(inv.hours.every((h) => h >= 8)).toBe(true);
   });
 
-  it("counts 164 slots", () => {
-    expect(TOTAL_SLOTS).toBe(164);
+  it("counts the canonical 241 slots", () => {
+    expect(TOTAL_SLOTS).toBe(241);
   });
 });
 
@@ -255,9 +255,7 @@ describe("buildBusyMap", () => {
     // both the slot ids and the venue.
     // L31/L32 are Monday, L37/L38 Tuesday - the ids in one cell are NOT all on
     // the same day, which is exactly why the map is keyed (day, slotId).
-    const m = buildBusyMap([
-      { code: "BACSE102", title: "Problem Solving", slotVenue: "L31+L32+L37+L38 - AB1-607B" },
-    ]);
+    const m = buildBusyMap([{ code: "BACSE102", title: "Problem Solving", slotVenue: "L31+L32+L37+L38 - AB1-607B" }]);
     expect(m["MON:L31"]).toEqual({ c: "BACSE102", t: "Problem Solving", v: "AB1-607B" });
     expect(m["MON:L32"].v).toBe("AB1-607B");
     expect(m["TUE:L37"].v).toBe("AB1-607B");
@@ -356,7 +354,7 @@ describe("computeOverlap", () => {
           buildBusyMap([{ slotVenue: a % 2 ? "A1 - R" : "L31 - R" }]),
           buildBusyMap([{ slotVenue: b % 2 ? "A1 - R" : "L31 - R" }]),
           slotMap,
-          SUNDAY
+          SUNDAY,
         );
         expect(m.matchPct).toBeGreaterThanOrEqual(0);
         expect(m.matchPct).toBeLessThanOrEqual(100);
@@ -369,11 +367,10 @@ describe("computeOverlap", () => {
     // permanently 0, because every key in that union is busy for someone.
     const none: BusyMap = {};
     const m = computeOverlap(mine, none, slotMap, SUNDAY);
-    expect(m.commonFreeSlots).toBe(164 - 2);
-    expect(m.commonFreeHours).toBeCloseTo(
-      computeOverlap({}, {}, slotMap, SUNDAY).commonFreeHours - 100 / 60,
-      1
-    );
+    expect(m.commonFreeSlots).toBe(TOTAL_SLOTS - 2);
+    // Both figures are individually rounded to one decimal by computeOverlap,
+    // so their difference can drift by up to ~0.1 from the exact 100 minutes.
+    expect(m.commonFreeHours).toBeCloseTo(computeOverlap({}, {}, slotMap, SUNDAY).commonFreeHours - 100 / 60, 0);
   });
 
   it("commonFreeSlots falls as the peer gets busier", () => {
@@ -412,7 +409,7 @@ describe("computeOverlap", () => {
     expect(m.matchPct).toBe(0);
     expect(m.myClassHours).toBe(0);
     // But the common-free figure is still meaningful: they are busy, I am not.
-    expect(m.commonFreeSlots).toBe(164 - 1);
+    expect(m.commonFreeSlots).toBe(TOTAL_SLOTS - 1);
   });
 
   it("is symmetric for the clash figures, but not for matchPct", () => {
@@ -428,8 +425,9 @@ describe("computeOverlap", () => {
 
   it("reports the chronologically first common free slot", () => {
     const m = computeOverlap({}, {}, slotMap, SUNDAY);
-    // Earliest slot in the week is MON A1 at 08:00.
-    expect(m.firstCommonFreeSlot).toBe("MON:A1");
+    // Earliest slot in the week is the law token MON:A at 08:00, which is a
+    // first-class slot in the canonical vocabulary sharing period T01 with A1.
+    expect(m.firstCommonFreeSlot).toBe("MON:A");
   });
 
   it("the first common free slot really is the earliest one", () => {
@@ -486,9 +484,11 @@ describe("lunch", () => {
     expect(LUNCH_START_MIN).toBe(800);
   });
 
-  it("splits Monday's columns 6 before / 6 after", () => {
-    // See docs/social-tt/09-schedule-math.md §8.
-    expect(lunchColumnIndex()).toBe(6);
+  it("splits Monday's theory columns at lunch", () => {
+    // With programme and law tokens resolved onto physical periods, Monday now
+    // has 18 theory columns before the lunch spacer (was 6 in the old 164-slot
+    // vocabulary). See docs/social-tt/09-schedule-math.md §8.
+    expect(lunchColumnIndex()).toBe(18);
   });
 
   it("classifies MON.S11 (12:35-1:25) before lunch, by a 25-minute margin", () => {
@@ -545,9 +545,7 @@ describe("a known conflict registers as a conflict", () => {
 
   it("builds a realistic map from VTOP-shaped cells", () => {
     // A1 fans out to MON and WED; the L-blocks are Monday and Tuesday.
-    expect(Object.keys(mine).sort()).toEqual([
-      "MON:A1", "MON:L31", "MON:L32", "TUE:L37", "TUE:L38", "WED:A1",
-    ]);
+    expect(Object.keys(mine).sort()).toEqual(["MON:A1", "MON:L31", "MON:L32", "TUE:L37", "TUE:L38", "WED:A1"]);
     expect(busyHours(mine)).toBe(5); // 6 slots x 50 min
   });
 
@@ -555,7 +553,7 @@ describe("a known conflict registers as a conflict", () => {
     const m = computeOverlap(mine, mine, slotMap, new Date(2026, 8, 28, 10, 0));
     expect(m.matchPct).toBe(0);
     expect(m.sharedClassHours).toBe(5);
-    expect(m.commonFreeSlots).toBe(164 - 6);
+    expect(m.commonFreeSlots).toBe(TOTAL_SLOTS - 6);
   });
 
   it("flags a peer who shares exactly one slot as a partial clash", () => {
@@ -575,11 +573,13 @@ describe("a known conflict registers as a conflict", () => {
   });
 
   it("detects the clash live: same slot, right now", () => {
-    // Monday 08:30 sits inside MON:A1 (08:00-08:50), which both of us occupy.
+    // Monday 08:30 sits inside the 08:00 period, which both of us occupy. The
+    // canonical first token is law's MON:A; A1 names the same physical period.
     const when = new Date(2026, 8, 28, 8, 30);
     const key = slotCoveringNow(when);
-    expect(key).toBe("MON:A1");
-    expect(mine[key!]).toBeDefined();
+    expect(key).toBe("MON:A");
+    expect(equivalentTokens("MON", "A")).toContain("A1");
+    expect(mine["MON:A1"]).toBeDefined();
 
     const clashing = buildBusyMap([{ code: "X", slotVenue: "A1 - R", day: "MON" }]);
     expect(computeOverlap(mine, clashing, slotMap, when).freeNow).toBe(false);

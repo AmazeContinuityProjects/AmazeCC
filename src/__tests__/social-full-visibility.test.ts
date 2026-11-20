@@ -13,6 +13,19 @@ const fetchMock = vi.fn();
 vi.mock("@/lib/sync-engine/request-layer", () => ({
   apiRequest: (path: string, opts: { method?: string; body?: unknown }) =>
     fetchMock(path, { method: opts?.method, body: opts?.body }),
+  // CredentialManager registers itself with the request layer at construction.
+  setAuthProvider: vi.fn(),
+}));
+
+// Stub the auth prerequisites: this suite tests the upgrade request shape, not
+// Amaze ID / VTOP session establishment.
+vi.mock("@/lib/oauth2", () => ({
+  getValidAccessToken: () => Promise.resolve("test-access-token"),
+}));
+vi.mock("@/lib/sync-engine/credential-manager", () => ({
+  credentialManager: {
+    ensureVtopSession: () => Promise.resolve({ cookies: ["x"], authorizedID: "A", csrf: "c" }),
+  },
 }));
 
 import { upgradeGrantsToFull } from "../lib/social/visibility";
@@ -46,7 +59,7 @@ describe("upgradeGrantsToFull", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith("social/grant/visibility", {
       method: "POST",
-      body: { grantId: "g1", visibility: "full" },
+      body: expect.objectContaining({ grantId: "g1", visibility: "full" }),
     });
   });
 

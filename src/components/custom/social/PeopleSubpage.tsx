@@ -1,5 +1,6 @@
 "use client";
 
+import { SPINNER_ICON } from "@/lib/uiTokens";
 import { useMemo, useState } from "react";
 import { Loader2, RefreshCcw, Search, Users, X } from "lucide-react";
 import { EMPTY_STATE, ICON_BUTTON, LIST_SHELL, SEARCH_FIELD } from "@/lib/libraries/ui";
@@ -48,7 +49,7 @@ export default function PeopleSubpage({
         title="Refresh peer timetables"
         className={`${ICON_BUTTON} disabled:opacity-50`}
       >
-        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCcw className="w-4 h-4" />}
+        {loading ? <Loader2 className={SPINNER_ICON} /> : <RefreshCcw className="w-4 h-4" />}
       </button>
       <button
         type="button"
@@ -90,7 +91,7 @@ export default function PeopleSubpage({
       {peers.length === 0 ? (
         <div className={EMPTY_STATE}>
           <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400">No pairings yet</p>
-          <p className="text-[11px] text-zinc-400 dark:text-zinc-500 font-medium mt-1.5 leading-relaxed">
+          <p className="text-xs text-zinc-400 dark:text-zinc-500 font-medium mt-1.5 leading-relaxed">
             Pair with someone using their handle and their timetable will appear here. Pairing is mutual, so you will
             both be able to see each other.
           </p>
@@ -120,14 +121,14 @@ export default function PeopleSubpage({
       )}
 
       {peers.length > 0 && loading && (
-        <p className="px-1 -mt-3 text-[11px] text-zinc-400 dark:text-zinc-500 font-medium flex items-center gap-1.5">
+        <p className="px-1 -mt-3 text-xs text-zinc-400 dark:text-zinc-500 font-medium flex items-center gap-1.5">
           <Loader2 className="w-3 h-3 animate-spin" />
           Refreshing peer timetables…
         </p>
       )}
 
       {peers.length > 0 && (
-        <p className="px-1 -mt-3 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
+        <p className="px-1 -mt-3 text-xs leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
           Publish ages come from the server. A peer past 14 days is badged stale, because a dropped class still reads as
           busy until they sync.
         </p>

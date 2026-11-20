@@ -26,7 +26,7 @@ function ConfirmRevoke({ name, onYes, onNo }: { name: string; onYes: () => void;
   return (
     <div className="p-3 rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/40 space-y-2">
       <p className="text-xs font-bold text-red-700 dark:text-red-300">End the pairing with {name}?</p>
-      <p className="text-[11px] text-red-600/80 dark:text-red-400/80 font-medium leading-relaxed">
+      <p className="text-xs text-red-600/80 dark:text-red-400/80 font-medium leading-relaxed">
         Both of you lose access immediately. You can pair again later, but that mints a new grant and the old one stays
         dead.
       </p>
@@ -34,14 +34,14 @@ function ConfirmRevoke({ name, onYes, onNo }: { name: string; onYes: () => void;
         <button
           type="button"
           onClick={onNo}
-          className="flex-1 py-2 rounded-xl bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border border-zinc-300 dark:border-zinc-700 font-bold text-[11px] cursor-pointer"
+          className="flex-1 py-2 rounded-xl bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border border-zinc-300 dark:border-zinc-700 font-bold text-xs cursor-pointer"
         >
           Keep pairing
         </button>
         <button
           type="button"
           onClick={onYes}
-          className="flex-1 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-[11px] cursor-pointer"
+          className="flex-1 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs cursor-pointer"
         >
           End pairing
         </button>
@@ -95,7 +95,7 @@ export default function PairsSubpage({ onBack, onAddPeer }: { onBack: () => void
       {grants.length === 0 ? (
         <div className={EMPTY_STATE}>
           <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400">No pairings yet</p>
-          <p className="text-[11px] text-zinc-400 dark:text-zinc-500 font-medium mt-1.5 leading-relaxed">
+          <p className="text-xs text-zinc-400 dark:text-zinc-500 font-medium mt-1.5 leading-relaxed">
             A pairing is what lets two students see each other&apos;s timetable. It is mutual, and either side can end
             it.
           </p>
@@ -134,7 +134,7 @@ export default function PairsSubpage({ onBack, onAddPeer }: { onBack: () => void
             ))}
           </div>
 
-          <p className="px-1 -mt-1 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium flex items-start gap-1.5">
+          <p className="px-1 -mt-1 text-xs leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium flex items-start gap-1.5">
             {busyId ? (
               <>
                 <Loader2 className="w-3 h-3 animate-spin mt-px shrink-0" />

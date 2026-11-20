@@ -15,6 +15,7 @@
  * tick rather than re-navigating to a subpage that already has its own row.
  */
 
+import { ICON_WELL, STAT_GRID } from "@/lib/uiTokens";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { AlertTriangle, BookOpen, CalendarRange, Clock, Link2, Plus, RefreshCw, Share2, Users } from "lucide-react";
@@ -201,13 +202,13 @@ export default function SocialTab({ attendanceData, isDemo }: { attendanceData: 
 
     list.push({
       id: "freeNow",
-      title: "Peers free now",
+      title: "Free peers",
       headline: currentSlot ? String(freeNowHandles.size) : "—",
       subline: currentSlot
         ? `free in ${currentSlot.split(":")[0]} ${currentSlot.split(":")[1]}`
         : "outside class hours",
       badge: currentSlot ? "Now" : "Closed",
-      tone: !currentSlot ? "zinc" : freeNowHandles.size > 0 ? "emerald" : "zinc",
+      tone: "zinc",
       onClick: () => setScreen("freeNow"),
     });
 
@@ -217,7 +218,7 @@ export default function SocialTab({ attendanceData, isDemo }: { attendanceData: 
       headline: String(grants.length),
       subline: grants.length === 0 ? "pair with someone to begin" : "mutual, revocable any time",
       badge: grants.length === 0 ? "None" : "Active",
-      tone: grants.length === 0 ? "amber" : "indigo",
+      tone: "zinc",
       onClick: () => setScreen("pairs"),
     });
 
@@ -227,7 +228,7 @@ export default function SocialTab({ attendanceData, isDemo }: { attendanceData: 
       headline: String(groupCount),
       subline: groupCount === 0 ? "group people you are paired with" : "common free slots per group",
       badge: groupCount === 0 ? "None" : String(groupCount),
-      tone: groupCount === 0 ? "zinc" : "indigo",
+      tone: "zinc",
       onClick: () => setScreen("groups"),
     });
 
@@ -268,29 +269,29 @@ export default function SocialTab({ attendanceData, isDemo }: { attendanceData: 
 
   const landing = (
     <>
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 px-1">
+      <div className={`${STAT_GRID} px-1`}>
         {/* People — pinned */}
         <button type="button" onClick={() => setScreen("people")} className={`${TILE} h-32 sm:h-36`}>
           <div className="flex items-center justify-between gap-1">
-            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">
+            <span className="text-xs sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">
               People
             </span>
             <span
-              className={`text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shrink-0 border ${TONE_BADGE[syncBadge.tone]}`}
+              className={`text-xs sm:text-xs font-extrabold uppercase px-2 py-0.5 rounded-md shrink-0 border ${TONE_BADGE[syncBadge.tone]}`}
             >
               {syncBadge.label}
             </span>
           </div>
           <div className="my-auto min-w-0">
-            <span className="text-3xl sm:text-4xl font-black font-outfit tracking-tight leading-none block truncate">
+            <span className="text-[32px] font-black font-outfit tracking-tight leading-none block truncate tabular-nums">
               {peers.length}
             </span>
           </div>
           <div className="flex items-center justify-between gap-2">
-            <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">
-              {freeNowHandles.size} free right now
+            <p className="text-xs sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">
+              {freeNowHandles.size} free peers
             </p>
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
+            <span className="w-1.5 h-1.5 rounded-full bg-info shrink-0" />
           </div>
         </button>
 
@@ -311,7 +312,7 @@ export default function SocialTab({ attendanceData, isDemo }: { attendanceData: 
                 desc: "Everyone you are paired with",
                 count: peers.length,
                 suffix: "paired",
-                tone: "indigo",
+                tone: "zinc",
               },
               {
                 id: "pairs" as Screen,
@@ -320,16 +321,16 @@ export default function SocialTab({ attendanceData, isDemo }: { attendanceData: 
                 desc: "Full-detail sharing and revocation",
                 count: grants.length,
                 suffix: "pairs",
-                tone: "sky",
+                tone: "zinc",
               },
               {
                 id: "freeNow" as Screen,
                 icon: Clock,
-                title: "Free Right Now",
+                title: "Free peers",
                 desc: currentSlot ? `Free in ${currentSlot.split(":")[0]}` : "Outside class hours",
                 count: freeNowHandles.size,
                 suffix: "free",
-                tone: "emerald",
+                tone: "zinc",
               },
               {
                 id: "classes" as Screen,
@@ -338,7 +339,7 @@ export default function SocialTab({ attendanceData, isDemo }: { attendanceData: 
                 desc: "Who shares your courses and sections",
                 count: classesTogether,
                 suffix: "shared",
-                tone: "violet",
+                tone: "zinc",
               },
               {
                 id: "grid" as Screen,
@@ -347,17 +348,15 @@ export default function SocialTab({ attendanceData, isDemo }: { attendanceData: 
                 desc: "Where everyone's free",
                 count: 0,
                 suffix: "",
-                tone: "amber",
+                tone: "zinc",
               },
             ] as const
           ).map((s) => {
             const Icon = s.icon;
             return (
               <button key={s.id} type="button" onClick={() => setScreen(s.id)} className={`${LIST_ROW} cursor-pointer`}>
-                <span
-                  className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${TONE_ICON_TILE[s.tone]}`}
-                >
-                  <Icon className="w-4.5 h-4.5" />
+                <span className={`${ICON_WELL} ${TONE_ICON_TILE[s.tone]}`}>
+                  <Icon className="w-4.5 h-4.5 text-info" />
                 </span>
                 <ListRowText title={s.title} subtitle={s.desc} />
                 {s.count > 0 && (
@@ -372,7 +371,7 @@ export default function SocialTab({ attendanceData, isDemo }: { attendanceData: 
         </div>
       </div>
 
-      <p className="px-1 -mt-3 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
+      <p className="px-1 -mt-3 text-xs leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium text-pretty">
         Your timetable is derived from VTOP by the server, never uploaded from this device. Pairing is mutual, and
         either side can end it from Pairs.
       </p>
@@ -401,11 +400,11 @@ export default function SocialTab({ attendanceData, isDemo }: { attendanceData: 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6 pt-3 sm:pt-5 md:pb-8 animate-in fade-in duration-300 text-left select-none">
       {/*
-        The social sync op swallows its own errors so a failed push cannot break
-        the rest of the chain. That is right for the engine, but it left this page
-        showing stale data with no explanation at all. This is the only place the
-        failure surfaces, so it is deliberately above everything else.
-      */}
+            The social sync op swallows its own errors so a failed push cannot break
+            the rest of the chain. That is right for the engine, but it left this page
+            showing stale data with no explanation at all. This is the only place the
+            failure surfaces, so it is deliberately above everything else.
+          */}
       {syncError && (
         <div
           role="alert"
@@ -430,10 +429,10 @@ export default function SocialTab({ attendanceData, isDemo }: { attendanceData: 
       {screen === "landing" && (
         <>
           {/* Simplified Mobile Home's identity pattern. More and Tools already own
-              the back navigation, so a BackButton here would be wrong. */}
+                  the back navigation, so a BackButton here would be wrong. */}
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
-              <span className="w-11 h-11 rounded-2xl flex items-center justify-center text-xs font-black font-outfit border border-indigo-500/20 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
+              <span className="w-11 h-11 rounded-2xl flex items-center justify-center text-xs font-black font-outfit border border-zinc-500/20 bg-zinc-500/10 text-info shrink-0">
                 {initials(name)}
               </span>
               <div className="min-w-0">
@@ -467,29 +466,29 @@ export default function SocialTab({ attendanceData, isDemo }: { attendanceData: 
 
           <div className="flex items-center gap-2 px-1 -mt-3 flex-wrap">
             <span className={`${CHIP} font-mono tracking-widest`}>{myHandle}</span>
-            <span className="text-[11px] text-zinc-400 dark:text-zinc-500 font-medium truncate">
+            <span className="text-xs text-zinc-400 dark:text-zinc-500 font-medium truncate">
               {hasPublished ? "your handle" : "sync to publish your week"}
             </span>
           </div>
 
           {/*
-            An explicit sync. Social requires Amaze ID for the API and VTOP to
-            verify the student identity. This does the VTOP login and sync
-            together, and gives the student a sign-in action if Amaze ID is
-            missing.
-          */}
+                An explicit sync. Social requires Amaze ID for the API and VTOP to
+                verify the student identity. This does the VTOP login and sync
+                together, and gives the student a sign-in action if Amaze ID is
+                missing.
+              */}
           <div className="flex items-center gap-2.5 px-1">
             <button
               type="button"
               onClick={onSyncNow}
               disabled={syncing}
-              className="inline-flex items-center gap-1.5 rounded-full border border-zinc-300/70 dark:border-zinc-700 px-3 py-1.5 text-[11px] font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-1.5 rounded-full border border-zinc-300/70 dark:border-zinc-700 px-3 py-1.5 text-xs font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`} aria-hidden="true" />
               {syncing ? "Syncing…" : "Sync now"}
             </button>
             <span
-              className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 truncate"
+              className="text-xs font-medium text-zinc-400 dark:text-zinc-500 truncate"
               role="status"
               aria-live="polite"
             >
