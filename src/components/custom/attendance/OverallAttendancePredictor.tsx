@@ -18,7 +18,7 @@ import {
   useCarousel,
   type InsightSlide,
 } from "../shared/primitives";
-import { SEARCH_FIELD, TILE_CARD } from "@/lib/uiTokens";
+import { SEARCH_FIELD, TILE_CARD, ICON_WELL, TEXT_CAPTION, TEXT_BLOCK } from "@/lib/uiTokens";
 import { getTargetAttendancePct, settingsAtom } from "@/store/settingsAtoms";
 import {
   buildEffectiveDayMap,
@@ -48,7 +48,7 @@ import {
   RotateCcw,
   Sparkles,
   CheckCircle2,
-  Flame,
+  CalendarOff,
   Search,
   BookOpen,
   FlaskConical,
@@ -414,7 +414,11 @@ export default function OverallAttendancePredictor({
   }, [predictions, searchTerm, filterType, targetThreshold]);
 
   // Milestone button options. The date shown is the last day attendance can
-  // still move in that mode, which is three days before a CAT.
+  // still move in that mode, which is three days before a CAT. The dependency
+  // list uses the four date values rather than the `impDates` object: callers
+  // build that object inline, so keying on the object would recompute this —
+  // and every summary slide downstream of `activeMilestone` — on every render.
+  const { cat1Date, cat2Date, lidLabDate, lidTheoryDate } = impDates;
   const milestoneOptions = useMemo(() => {
     const now = new Date();
     return [
@@ -422,21 +426,21 @@ export default function OverallAttendancePredictor({
         id: "CAT1" as SimulationMode,
         label: "Till CAT I",
         lockLabel: "3 days before CAT I",
-        date: lockDateFor(impDates.cat1Date, CAT_LOCK_OFFSET_DAYS),
-        available: !impDates.cat1Date || impDates.cat1Date > now,
+        date: lockDateFor(cat1Date, CAT_LOCK_OFFSET_DAYS),
+        available: !cat1Date || cat1Date > now,
       },
       {
         id: "CAT2" as SimulationMode,
         label: "Till CAT II",
         lockLabel: "3 days before CAT II",
-        date: lockDateFor(impDates.cat2Date, CAT_LOCK_OFFSET_DAYS),
-        available: !impDates.cat2Date || impDates.cat2Date > now,
+        date: lockDateFor(cat2Date, CAT_LOCK_OFFSET_DAYS),
+        available: !cat2Date || cat2Date > now,
       },
       {
         id: "LID" as SimulationMode,
         label: "Till LID",
         lockLabel: "Lab and theory lock separately",
-        date: impDates.lidTheoryDate || impDates.lidLabDate,
+        date: lidTheoryDate || lidLabDate,
         available: true,
       },
       {
@@ -447,7 +451,7 @@ export default function OverallAttendancePredictor({
         available: true,
       },
     ];
-  }, [impDates]);
+  }, [cat1Date, cat2Date, lidLabDate, lidTheoryDate]);
 
   const activeMilestone = useMemo(
     () => milestoneOptions.find((o) => o.id === mode) ?? milestoneOptions[0],
@@ -567,7 +571,7 @@ export default function OverallAttendancePredictor({
       </div>
 
       {/* The lock the reader is currently projecting against, spelled out. */}
-      <p className="px-1 -mt-1 flex items-start gap-2 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
+      <p className="px-1 -mt-1 flex items-start gap-2 text-sm text-pretty leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
         <Snowflake className="h-3.5 w-3.5 shrink-0 mt-px" />
         <span>
           {mode === "CAT1" || mode === "CAT2" ? (
@@ -599,7 +603,7 @@ export default function OverallAttendancePredictor({
               <>
                 {opt.label}
                 {opt.date ? (
-                  <span className="ml-1.5 opacity-80 text-[10px] font-normal">
+                  <span className="ml-1.5 opacity-80 text-xs font-normal">
                     ({opt.date.toLocaleDateString("en-US", { month: "short", day: "numeric" })})
                   </span>
                 ) : null}
@@ -622,9 +626,9 @@ export default function OverallAttendancePredictor({
               Attend All
             </button>
           </ToneBadge>
-          <ToneBadge tone="amber" size="lg" icon={<Flame className="w-3.5 h-3.5" />}>
+          <ToneBadge tone="amber" size="lg" icon={<CalendarOff className="w-3.5 h-3.5" />}>
             <button type="button" onClick={handleBunkFridays} className="cursor-pointer">
-              Bunk Fridays
+              Skip Fridays
             </button>
           </ToneBadge>
         </div>
@@ -651,7 +655,7 @@ export default function OverallAttendancePredictor({
               <button
                 disabled={monthIdx === 0}
                 onClick={() => setMonthIdx((i) => Math.max(0, i - 1))}
-                className="p-1.5 rounded-xl bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
+                className="relative hit-expand p-2.5 rounded-xl bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-zinc-700 active:bg-gray-300 dark:active:bg-zinc-600 transition-colors cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -661,7 +665,7 @@ export default function OverallAttendancePredictor({
               <button
                 disabled={monthIdx >= monthsAvailable.length - 1}
                 onClick={() => setMonthIdx((i) => Math.min(monthsAvailable.length - 1, i + 1))}
-                className="p-1.5 rounded-xl bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
+                className="relative hit-expand p-2.5 rounded-xl bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-zinc-700 active:bg-gray-300 dark:active:bg-zinc-600 transition-colors cursor-pointer"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -686,6 +690,9 @@ export default function OverallAttendancePredictor({
                 d.weekday?.slice(0, 3).toUpperCase() ||
                 d.date.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
 
+              // The date strip's weekday/status labels use the named 12px
+              // label step like every other micro-label; the dense 9–10px
+              // exception belongs to the timetable grid, not this calendar.
               // Classes scheduled that weekday. A published day order means the
               // real weekday's cards apply, which the raw weekday lookup misses.
               const effWeekday = effectiveDayMap.get(dayKey(d.date)) || shortWeekday;
@@ -699,26 +706,28 @@ export default function OverallAttendancePredictor({
                   aria-pressed={state === 1}
                   className={`group relative flex flex-col items-center justify-between p-2.5 rounded-2xl border text-center transition-all duration-200 cursor-pointer select-none active:scale-95 ${
                     state === 1
-                      ? "bg-rose-500 text-white border-rose-600 shadow-sm scale-[1.02]"
+                      ? "bg-danger text-white border-danger shadow-sm scale-[1.02]"
                       : state === 2
-                        ? "bg-gray-200/80 dark:bg-zinc-800/80 text-gray-500 dark:text-gray-400 border-dashed border-gray-300 dark:border-zinc-700 opacity-60"
+                        ? "bg-surface-tertiary dark:bg-surface-secondary text-text-muted border-dashed border-border-muted dark:border-border opacity-60"
                         : isToday
-                          ? "bg-blue-600 text-white border-blue-700 shadow-sm"
-                          : "bg-white dark:bg-zinc-950 text-gray-800 dark:text-zinc-100 border-gray-200/80 dark:border-zinc-800/90 hover:border-blue-400 dark:hover:border-blue-500 shadow-2xs"
+                          ? "bg-info text-white border-info shadow-sm"
+                          : "bg-surface dark:bg-zinc-950 text-text-heading border-border-muted dark:border-border hover:border-info dark:hover:border-info shadow-2xs"
                   }`}
                 >
-                  <span className="text-[10px] font-black uppercase tracking-wider opacity-80">{shortWeekday}</span>
-                  <span className="text-base sm:text-lg font-black my-0.5">{dateNumber}</span>
+                  <span className="text-xs font-black uppercase tracking-wider opacity-80">{shortWeekday}</span>
+                  <span className="text-base sm:text-xl font-black font-outfit leading-[1.3] tabular-nums my-0.5">
+                    {dateNumber}
+                  </span>
                   <div className="flex items-center gap-1">
                     <span
-                      className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${
+                      className={`text-xs font-bold px-1.5 py-0.5 rounded-lg ${
                         state === 1
-                          ? "bg-rose-600 text-white"
+                          ? "bg-danger/80 text-white"
                           : state === 2
-                            ? "bg-gray-300 dark:bg-zinc-700 text-gray-600 dark:text-zinc-300"
+                            ? "bg-surface-secondary dark:bg-surface-tertiary text-text-secondary dark:text-text-muted"
                             : isToday
-                              ? "bg-blue-700 text-white"
-                              : "bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-zinc-400"
+                              ? "bg-info/80 text-white"
+                              : "bg-surface-secondary text-text-secondary dark:text-text-muted"
                       }`}
                     >
                       {state === 1 ? "Absent" : state === 2 ? "Off" : `${classCount} cl`}
@@ -731,17 +740,17 @@ export default function OverallAttendancePredictor({
         )}
 
         {/* Legend Bar */}
-        <div className="flex flex-wrap items-center justify-center gap-4 pt-2 text-[11px] font-bold text-gray-600 dark:text-gray-400">
+        <div className="flex flex-wrap items-center justify-center gap-4 pt-2 text-xs font-bold text-gray-600 dark:text-gray-400">
           <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded bg-blue-600" />
+            <div className="w-3 h-3 rounded bg-info" />
             <span>Present / Attending</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded bg-rose-500" />
+            <div className="w-3 h-3 rounded bg-danger" />
             <span>Absent / Bunked</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded bg-gray-300 dark:bg-zinc-700" />
+            <div className="w-3 h-3 rounded bg-surface-tertiary dark:bg-surface-secondary" />
             <span>Off / Excluded</span>
           </div>
         </div>
@@ -763,10 +772,11 @@ export default function OverallAttendancePredictor({
             />
           </div>
 
-          {/* Filter Pills */}
-          <ChipTabs
+          {/* One compact filter control instead of five loud pills: the same
+              status and course-type views, in a single SegmentedControl. */}
+          <SegmentedControl<FilterType>
             options={[
-              { value: "all" as FilterType, label: "All" },
+              { value: "all", label: "All" },
               { value: "safe", label: `Safe (≥${targetThreshold}%)` },
               { value: "risk", label: `At Risk (<${targetThreshold}%)` },
               { value: "theory", label: "Theory" },
@@ -774,6 +784,7 @@ export default function OverallAttendancePredictor({
             ]}
             value={filterType}
             onChange={setFilterType}
+            scroll
           />
         </div>
 
@@ -815,7 +826,7 @@ export default function OverallAttendancePredictor({
                     className="w-full py-3 px-4 flex items-center gap-3 text-left cursor-pointer transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/40 active:bg-zinc-100/70 dark:active:bg-zinc-800/60"
                   >
                     <div
-                      className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${
+                      className={`${ICON_WELL} ${
                         course.locked
                           ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 border-zinc-200/60 dark:border-zinc-700/60"
                           : isSafe
@@ -828,13 +839,13 @@ export default function OverallAttendancePredictor({
                       {course.isLab ? <FlaskConical className="w-5 h-5" /> : <BookOpen className="w-5 h-5" />}
                     </div>
 
-                    <div className="min-w-0 flex-1">
+                    <div className={TEXT_BLOCK}>
                       <h3 className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight flex items-center gap-1.5">
-                        <span className="font-mono text-[11px] uppercase text-zinc-500 dark:text-zinc-400">
+                        <span className="font-mono text-xs tabular-nums uppercase text-zinc-500 dark:text-zinc-400">
                           {course.courseCode}
                         </span>
                         {course.skippedCount > 0 && (
-                          <span className="shrink-0 rounded-full bg-amber-500/15 px-1.5 py-px text-[9px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                          <span className="shrink-0 rounded-full bg-amber-500/15 px-1.5 py-px text-xs font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
                             {course.skippedCount} skip{course.skippedCount === 1 ? "" : "s"}
                           </span>
                         )}
@@ -845,7 +856,7 @@ export default function OverallAttendancePredictor({
                           />
                         )}
                       </h3>
-                      <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5 truncate">
+                      <p className={`${TEXT_CAPTION} font-medium mt-0.5 truncate`}>
                         {course.slotName ? `${course.slotName} · ` : ""}
                         {course.meetingDays?.join(", ") || "No timetable"} · now{" "}
                         {formatPct(course.currentPct, decimalValues)}%
@@ -874,7 +885,7 @@ export default function OverallAttendancePredictor({
                   {expanded && (
                     <div className="px-4 pb-4 -mt-1">
                       {course.locked ? (
-                        <p className="flex items-start gap-2 rounded-xl bg-zinc-100/70 dark:bg-zinc-800/50 p-3 text-[11px] leading-relaxed text-zinc-500 dark:text-zinc-400 font-medium">
+                        <p className="flex items-start gap-2 rounded-xl bg-zinc-100/70 dark:bg-zinc-800/50 p-3 text-sm text-pretty leading-relaxed text-zinc-500 dark:text-zinc-400 font-medium">
                           <Snowflake className="h-3.5 w-3.5 shrink-0 mt-px" />
                           <span>
                             Attendance is frozen
@@ -890,7 +901,7 @@ export default function OverallAttendancePredictor({
                         />
                       ) : (
                         <>
-                          <p className="px-1 pb-2 text-[11px] leading-relaxed text-zinc-500 dark:text-zinc-400 font-medium">
+                          <p className="px-1 pb-2 text-sm text-pretty leading-relaxed text-zinc-500 dark:text-zinc-400 font-medium">
                             {course.isLab
                               ? "A lab session counts as two hours, so skipping one costs two classes."
                               : "Skipped dates count as absent for this subject only — nothing else on the timetable moves."}
@@ -914,25 +925,25 @@ export default function OverallAttendancePredictor({
                                         : "border-border-muted bg-surface-secondary"
                                     }`}
                                   >
-                                    <span className="text-[9px] font-black uppercase leading-none opacity-80">
+                                    <span className="text-xs font-black uppercase leading-none opacity-80">
                                       {date.toLocaleDateString("en-GB", { weekday: "short" })}
                                     </span>
                                     <span className="text-sm font-black font-outfit leading-tight">
                                       {date.getDate()}
                                     </span>
                                   </span>
-                                  <span className="min-w-0 flex-1">
+                                  <span className={TEXT_BLOCK}>
                                     <span className="block truncate text-sm font-bold text-text-heading dark:text-text-heading">
                                       {date.toLocaleDateString("en-GB", { day: "numeric", month: "long" })}
                                     </span>
-                                    <span className="block text-[11px] font-medium text-text-muted dark:text-text-muted">
+                                    <span className="block text-xs font-medium text-text-muted dark:text-text-muted">
                                       {skipped
                                         ? `Will be marked absent${course.isLab ? " (2 hrs)" : ""}`
                                         : "Scheduled class"}
                                     </span>
                                   </span>
                                   <span
-                                    className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${
+                                    className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-black uppercase tracking-wider ${
                                       skipped
                                         ? "bg-amber-500/20 text-amber-600 dark:text-amber-400"
                                         : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"

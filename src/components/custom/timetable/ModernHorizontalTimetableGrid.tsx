@@ -1,19 +1,22 @@
 "use client";
 
+import { useState } from "react";
+import { AnimatePresence } from "framer-motion";
 import { type AddedCourse, type GapDetail, type TimetablePeriod } from "@amazecontinuityprojects/amazeui";
 import type { NormalizedCourse } from "@/types/course";
 import { cn } from "@/lib/utils";
 import { COLOR_HEX_MAP } from "@/lib/ffcsConstants";
 import { ensureLunchPeriod, expandSlotSpellings, hasSlot, ownSlotSpelling, timeToMinutes } from "@/lib/slots";
 import { clickable } from "@/lib/a11y";
+import { DAY_LABELS, DAY_ORDER } from "@/lib/generated/timetable";
+import type { Cell } from "@/lib/buildBands";
+import SlotDetailSheet, { type AttendanceTone } from "./SlotDetailSheet";
 
-const DEFAULT_DAYS: { id: string; name: string }[] = [
-  { id: "mon", name: "Monday" },
-  { id: "tue", name: "Tuesday" },
-  { id: "wed", name: "Wednesday" },
-  { id: "thu", name: "Thursday" },
-  { id: "fri", name: "Friday" },
-];
+/** The teaching week's day scaffolding, from the generated unified timetable. */
+const DEFAULT_DAYS: { id: string; name: string }[] = DAY_ORDER.slice(0, 5).map((id) => ({
+  id: id.toLowerCase(),
+  name: DAY_LABELS[id],
+}));
 
 export interface ModernHorizontalTimetableGridProps {
   courses: (AddedCourse | NormalizedCourse | any)[];
@@ -23,6 +26,8 @@ export interface ModernHorizontalTimetableGridProps {
   blockedSlots?: Set<string>;
   onToggleBlockSlot?: (slot: string) => void;
   selectedGapDetails?: GapDetail[] | null;
+  /** Attendance figures for the tapped cell's sheet; read-only surfaces pass them in. */
+  attendanceByCourse?: Record<string, AttendanceTone>;
   title?: string;
   showLegend?: boolean;
   className?: string;
@@ -36,10 +41,20 @@ export default function ModernHorizontalTimetableGrid({
   blockedSlots,
   onToggleBlockSlot,
   selectedGapDetails,
+  attendanceByCourse,
   title = "Unified Schedule",
   showLegend = true,
   className,
 }: ModernHorizontalTimetableGridProps) {
+  /**
+   * A tapped course tile opens the same `SlotDetailSheet` the vertical grid
+   * uses. The old cell carried a 220px hover-tooltip wall that a touch device
+   * never saw; a native `title` is enough on desktop, and the tap is the real
+   * drill-down. In the planner `onToggleBlockSlot` is supplied, so a tap keeps
+   * its original "rule this slot out" meaning instead.
+   */
+  const [activeCell, setActiveCell] = useState<{ cell: Cell; dayName: string } | null>(null);
+
   const effectiveTheory = ensureLunchPeriod(theoryPeriods);
   const effectiveLab = ensureLunchPeriod(labPeriods);
   const numPeriods = Math.max(effectiveTheory.length, effectiveLab.length);
@@ -49,7 +64,7 @@ export default function ModernHorizontalTimetableGrid({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-slate-200/80 dark:border-white/10 bg-white dark:bg-[#0c1222] shadow-xl dark:shadow-2xl backdrop-blur-xl overflow-hidden mb-6 transition-colors",
+        "rounded-2xl border border-slate-200/80 dark:border-white/10 bg-white dark:bg-[#0c1222] shadow-2xs overflow-hidden mb-6 transition-colors",
         className,
       )}
     >
@@ -76,7 +91,7 @@ export default function ModernHorizontalTimetableGrid({
                 <span className="text-slate-700 dark:text-slate-300">Lab (Bottom)</span>
               </div>
               {onToggleBlockSlot && (
-                <span className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:inline">
+                <span className="text-xs text-slate-500 dark:text-slate-400 hidden sm:inline">
                   • Click any slot to toggle block
                 </span>
               )}
@@ -85,13 +100,16 @@ export default function ModernHorizontalTimetableGrid({
         </div>
       )}
 
-      {/* Responsive scrollable table container */}
+      {/* Type exception: the period matrix is a dense data grid — 38px-tall
+          cells and a 36px lunch column — so slot ids, codes and venue labels
+          stay at 7–10px instead of the 12px label step. Raising them would
+          overflow the cells; helper text and tooltips use the named steps. */}
       <div className="overflow-x-auto momentum-scroll scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700/60 touch-pan-x">
         <table className="w-full text-left border-collapse min-w-[1000px]">
           {/* Table Header */}
           <thead>
             <tr className="bg-slate-100/90 dark:bg-slate-900/90 border-b border-slate-200/80 dark:border-white/10">
-              <th className="p-3 border-r border-slate-200/80 dark:border-white/10 text-xs font-black text-slate-700 dark:text-slate-300 w-20 text-center sticky left-0 z-30 bg-slate-100 dark:bg-slate-900 shadow-[2px_0_10px_rgba(0,0,0,0.06)] dark:shadow-[2px_0_10px_rgba(0,0,0,0.5)]">
+              <th className="p-3 border-r border-slate-200/80 dark:border-white/10 text-xs font-black text-slate-700 dark:text-slate-300 w-20 text-center sticky left-0 z-30 bg-slate-100 dark:bg-slate-900 shadow-2xs">
                 DAY
               </th>
               {Array.from({ length: numPeriods }).map((_, pIdx) => {
@@ -142,7 +160,7 @@ export default function ModernHorizontalTimetableGrid({
                 className="border-b border-border-muted/80 dark:border-border-muted/50 hover:bg-slate-50/80 dark:hover:bg-slate-800/20 transition-colors group"
               >
                 {/* Sticky Day Column */}
-                <td className="p-3 border-r border-slate-200/80 dark:border-white/10 text-center font-black text-xs text-slate-800 dark:text-white bg-slate-100/95 dark:bg-slate-900/95 sticky left-0 z-20 shadow-[2px_0_10px_rgba(0,0,0,0.06)] dark:shadow-[2px_0_10px_rgba(0,0,0,0.5)] uppercase tracking-wider select-none">
+                <td className="p-3 border-r border-slate-200/80 dark:border-white/10 text-center font-black text-xs text-slate-800 dark:text-white bg-slate-100/95 dark:bg-slate-900/95 sticky left-0 z-20 shadow-2xs uppercase tracking-wider select-none">
                   {day.name.slice(0, 3).toUpperCase()}
                 </td>
 
@@ -266,21 +284,50 @@ export default function ModernHorizontalTimetableGrid({
                     if (course) {
                       const colorHex =
                         COLOR_HEX_MAP[course.color] || (course.color?.startsWith("#") ? course.color : "#2563eb");
-                      const facultyStr =
-                        typeof course.faculty === "object"
-                          ? course.faculty?.raw || course.faculty?.name || ""
-                          : course.faculty || "";
+
+                      const handleTap = () => {
+                        // The planner owns the tap: it has always meant "rule
+                        // this slot out". Read-only surfaces use the same tap
+                        // to open the full course detail sheet.
+                        if (onToggleBlockSlot) {
+                          onToggleBlockSlot(slotName);
+                          return;
+                        }
+                        const period = isLab ? lp : tp;
+                        const toMin = (value?: string) => timeToMinutes(value ?? "") ?? 0;
+                        const detailCell: Cell = {
+                          dayId: day.id,
+                          bandIndex: pIdx,
+                          bandCount: 1,
+                          label: slotName,
+                          shortLabel: slotName,
+                          slots: [slotName],
+                          course: course as Cell["course"],
+                          half: isLab ? "lab" : "theory",
+                          kind: "course",
+                          blocked: false,
+                          partiallyBlocked: false,
+                          inGap: false,
+                          shadowed: [],
+                          startMin: toMin(period?.start),
+                          endMin: toMin(period?.end),
+                        };
+                        setActiveCell({
+                          cell: detailCell,
+                          dayName: days.find((d) => d.id === day.id)?.name ?? day.id,
+                        });
+                      };
+
                       return (
                         <div
-                          {...clickable(() => onToggleBlockSlot?.(slotName))}
-                          className={cn(
-                            "h-[38px] p-1.5 rounded-md flex flex-col justify-between relative transition-all duration-200 group/tile",
-                            onToggleBlockSlot && "cursor-pointer",
-                          )}
+                          {...clickable(handleTap)}
+                          // Native tooltips only appear on hover, so this is a
+                          // desktop-only hint; touch users get the sheet.
+                          title={`${course.code}${course.title ? ` · ${course.title}` : ""}`}
+                          className="h-[38px] p-1.5 rounded-md flex flex-col justify-between relative transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
                           style={{
                             backgroundColor: `${colorHex}25`,
                             border: `1px solid ${colorHex}77`,
-                            boxShadow: `0 1px 4px ${colorHex}15`,
                           }}
                         >
                           <div className="flex items-center justify-between gap-1 leading-none">
@@ -294,18 +341,6 @@ export default function ModernHorizontalTimetableGrid({
 
                           <div className="text-[9px] font-semibold text-slate-600 dark:text-slate-400 truncate leading-none mt-0.5">
                             {course.venue || "TBA"}
-                          </div>
-
-                          {/* Hover tooltip */}
-                          <div className="absolute opacity-0 group-hover/tile:opacity-100 transition-opacity duration-200 bottom-full left-1/2 -translate-x-1/2 mb-1.5 w-max max-w-[220px] bg-slate-900 dark:bg-slate-950 text-white text-xs rounded-xl p-2.5 shadow-2xl z-50 pointer-events-none border border-slate-700 dark:border-white/20 text-center">
-                            <p className="font-bold text-slate-100">{course.title}</p>
-                            {facultyStr && <p className="text-slate-400 text-[11px] mt-0.5">{facultyStr}</p>}
-                            <div className="flex items-center justify-center gap-1.5 mt-1 text-[10px] text-blue-400 font-semibold">
-                              <span>Slot: {slotName}</span>
-                              <span>•</span>
-                              <span>Venue: {course.venue || "TBA"}</span>
-                            </div>
-                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-900 dark:bg-slate-950 rotate-45 border-r border-b border-slate-700 dark:border-white/20" />
                           </div>
                         </div>
                       );
@@ -357,6 +392,19 @@ export default function ModernHorizontalTimetableGrid({
           </tbody>
         </table>
       </div>
+
+      <AnimatePresence>
+        {activeCell && (
+          <SlotDetailSheet
+            cell={activeCell.cell}
+            dayName={activeCell.dayName}
+            blockedSlots={blockedSlots}
+            onToggleBlockSlot={onToggleBlockSlot}
+            attendanceByCourse={attendanceByCourse}
+            onClose={() => setActiveCell(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

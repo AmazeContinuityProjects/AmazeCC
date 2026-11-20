@@ -106,6 +106,9 @@ export default function TimetableGridShell({
   return (
     <div className={cn("space-y-2.5", className)}>
       <div className={cn("-mx-1 px-1 pb-1", !compact && "overflow-x-auto")}>
+        {/* Type exception: in compact mode seven day columns share a 360px
+            viewport (~36px each), so header/cell micro-labels stay at 9px
+            rather than the 12px label step; the surrounding UI uses named steps. */}
         <table className={cn("w-full border-separate border-spacing-1 text-center", compact && "table-fixed")}>
           <thead>
             <tr>

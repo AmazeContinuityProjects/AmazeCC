@@ -128,7 +128,7 @@ export default function UpcomingClassesList({
                 {dateStr}
               </span>
               <span
-                className={`text-[9px] uppercase font-bold tracking-wider mt-0.5 opacity-60 ${
+                className={`text-xs uppercase font-bold tracking-wider mt-0.5 opacity-60 ${
                   isSkipped ? "text-red-500 dark:text-red-400" : "text-gray-500 dark:text-gray-400"
                 }`}
               >

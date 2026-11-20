@@ -35,7 +35,10 @@ import TimetableGridShell, { useTodayKey, type ShellCell, type ShellDay } from "
  * container**, so seven days fit the viewport rather than needing a sideways
  * swipe. At 360px that leaves roughly 36px per day column, which is why a
  * merged run **stacks its slots down the tile** (`L31` over `+L32`) rather than
- * printing `"L31+L32"` on one truncated line.
+ * printing `"L31+L32"` on one truncated line. That 36px budget is also the
+ * documented type exception: slot ids and course codes stay at 9–11px here
+ * instead of the 12px label step — 12px would wrap or clip a 5-character code
+ * in the compact grid. Titles and surrounding prose still use the named steps.
  *
  * A merged tile also fills its whole `rowSpan` — the `<td>` is a containing
  * block and the tile is `absolute inset-0` — so a two-slot lab is one
@@ -205,7 +208,8 @@ export default function VerticalTimetableGrid({
                   className={cn(
                     "font-mono font-black tracking-tight rounded px-1 transition-all inline-block",
                     cell.slots.length === 1 ? "text-[10px]" : "text-[9px]",
-                    onToggleBlockSlot && "cursor-pointer active:scale-90 hover:ring-1 hover:ring-zinc-400",
+                    onToggleBlockSlot &&
+                      "cursor-pointer active:scale-90 hover:ring-1 hover:ring-zinc-400 focus-visible:ring-1 focus-visible:ring-zinc-400 focus-visible:outline-none",
                     isSlotBlocked
                       ? "text-rose-300 line-through bg-rose-500/20 border border-rose-500/30"
                       : isTheory

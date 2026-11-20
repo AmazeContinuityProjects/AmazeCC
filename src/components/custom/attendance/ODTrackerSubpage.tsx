@@ -8,7 +8,7 @@ import { normalizeCourse, normalizeSlots } from "@/lib/courseNormalizer";
 import { AnimatePresence, m } from "framer-motion";
 import { Award, Calendar, CheckCircle2, ChevronRight, Clock, FileText, ShieldAlert } from "lucide-react";
 import { cn } from "@amazecontinuityprojects/amazeui";
-import { LIST_ROW, TILE } from "@/lib/uiTokens";
+import { LIST_ROW, TILE, MICRO_LABEL, TEXT_CAPTION, TEXT_BLOCK } from "@/lib/uiTokens";
 import {
   EmptyPanel,
   InsightCarousel,
@@ -21,7 +21,7 @@ import {
   type InsightSlide,
 } from "../shared/primitives";
 import { parseAttendanceTime } from "@/lib/attendanceTimetable";
-import config from "../../../../config.json";
+import { SLOT_MAP } from "@/lib/generated/timetable";
 import OfficialOdSection from "./OfficialOdSection";
 import TabHelpFooter from "../shared/TabHelpFooter";
 import { getOfficialOd, matchOfficialOdForDate } from "@/lib/officialOd";
@@ -84,7 +84,7 @@ export default function ODTrackerSubpage({
 
     const trackerRaw = typeof window !== "undefined" ? localStorage.getItem("wastedODsTracker") : null;
     const tracker = trackerRaw ? JSON.parse(trackerRaw) : {};
-    const slotMap: any = (config as any).slotMap || {};
+    const slotMap = SLOT_MAP;
 
     // Course title → slotName lookup from live attendance (OD entries only carry titles)
     const attendanceSlotByTitle = new Map<string, string>();
@@ -347,16 +347,14 @@ export default function ODTrackerSubpage({
       {/* ── HERO STATS ── */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4">
         <div className={cn(TILE, "min-h-32 sm:min-h-36")}>
-          <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit">
-            Total OD
-          </span>
+          <span className={`${MICRO_LABEL} font-outfit`}>Total OD</span>
           <div className="my-auto">
-            <span className="text-3xl sm:text-4xl font-black font-outfit tracking-tight leading-none block text-emerald-600 dark:text-emerald-400">
+            <span className="text-[32px] font-black font-outfit tracking-[-0.025em] leading-[1.15] block tabular-nums text-emerald-600 dark:text-emerald-400">
               {totalODHours}
-              <span className="text-base sm:text-lg font-extrabold text-zinc-400 dark:text-zinc-500 ml-1">hrs</span>
+              <span className="text-base font-bold font-outfit text-zinc-400 dark:text-zinc-500 ml-1">hrs</span>
             </span>
           </div>
-          <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">
+          <p className={`${TEXT_CAPTION} font-medium truncate`}>
             Across {masterODHistory.length} {masterODHistory.length === 1 ? "day" : "days"} on duty
           </p>
         </div>
@@ -365,7 +363,7 @@ export default function ODTrackerSubpage({
       </div>
 
       {/* ── WASTED-OD EXPLAINER ── */}
-      <p className="px-1 -mt-3 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
+      <p className="px-1 -mt-3 text-sm text-pretty leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
         Wasted ODs were credited even though you were present in class — detected when VTOP flips a session from present
         to on-duty after the fact.
       </p>
@@ -423,7 +421,7 @@ export default function ODTrackerSubpage({
                       subtitle={`${d.courses.length} ${d.courses.length === 1 ? "session" : "sessions"}${d.daySpan ? ` · ${d.daySpan}` : ""}${d.officialWhy && d.officialWhy.length > 0 ? ` · ${d.officialWhy[0].reason}` : ""}`}
                     />
                     <span
-                      className={`shrink-0 text-sm font-black font-outfit tracking-tight leading-none w-12 text-right ${
+                      className={`shrink-0 text-sm tabular-nums font-black font-outfit tracking-tight leading-none w-12 text-right ${
                         status === "valid"
                           ? "text-emerald-600 dark:text-emerald-400"
                           : status === "partial"
@@ -435,7 +433,7 @@ export default function ODTrackerSubpage({
                     </span>
                     {status !== "valid" && (
                       <span
-                        className={`shrink-0 text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md border ${
+                        className={`shrink-0 text-xs font-extrabold uppercase px-1.5 py-0.5 rounded-md border ${
                           status === "partial"
                             ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
                             : "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20"
@@ -465,7 +463,7 @@ export default function ODTrackerSubpage({
                               {d.officialWhy.map((o, oi) => (
                                 <p
                                   key={oi}
-                                  className="text-[11px] text-indigo-700 dark:text-indigo-300 leading-snug flex items-start gap-1.5 font-medium"
+                                  className="text-xs text-indigo-700 dark:text-indigo-300 leading-snug flex items-start gap-1.5 font-medium"
                                 >
                                   <FileText size={12} className="mt-0.5 shrink-0 text-indigo-400" />
                                   <span>
@@ -486,43 +484,43 @@ export default function ODTrackerSubpage({
                                 <div key={bi} className="space-y-1.5">
                                   {showBlockHeader && (
                                     <div className="flex items-center justify-between gap-2 pt-1">
-                                      <span className="flex items-center gap-1.5 text-[11px] font-bold text-indigo-600 dark:text-indigo-400">
+                                      <span className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400">
                                         <Clock size={12} className="shrink-0" />
                                         {formatRange(block.startMin as number, block.endMin as number)}
                                       </span>
-                                      <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                                      <span className="text-xs font-extrabold uppercase px-1.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
                                         {block.hours} {block.hours === 1 ? "hr" : "hrs"}
                                       </span>
                                     </div>
                                   )}
                                   {block.courses.map((c, idx) => (
                                     <div key={idx} className="flex items-center justify-between gap-3 min-w-0 py-1">
-                                      <div className="min-w-0 flex-1 flex items-center gap-2">
+                                      <div className={`${TEXT_BLOCK} flex items-center gap-2`}>
                                         <p
-                                          className={`text-[13px] font-semibold truncate ${c.isWasted ? "text-zinc-400 dark:text-zinc-500 line-through" : "text-zinc-800 dark:text-zinc-100"}`}
+                                          className={`text-sm font-semibold truncate ${c.isWasted ? "text-zinc-400 dark:text-zinc-500 line-through" : "text-zinc-800 dark:text-zinc-100"}`}
                                         >
                                           {c.title}
                                         </p>
                                         {c.timeString ? (
-                                          <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400 shrink-0">
+                                          <span className="text-xs px-1.5 py-0.5 rounded-md font-semibold bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400 shrink-0">
                                             {c.timeString}
                                           </span>
                                         ) : (
-                                          <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-zinc-100/60 text-zinc-400 dark:bg-zinc-800/60 dark:text-zinc-500 shrink-0">
+                                          <span className="text-xs px-1.5 py-0.5 rounded-md font-semibold bg-zinc-100/60 text-zinc-400 dark:bg-zinc-800/60 dark:text-zinc-500 shrink-0">
                                             Time N/A
                                           </span>
                                         )}
                                       </div>
-                                      <span className="text-[10.5px] text-zinc-400 dark:text-zinc-500 font-bold uppercase tracking-wider shrink-0">
+                                      <span className="text-xs text-zinc-400 dark:text-zinc-500 font-bold uppercase tracking-wider shrink-0">
                                         {c.type} · {c.hours}h
                                       </span>
                                       {c.isWasted && (
-                                        <span className="shrink-0 text-[10px] font-bold bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                        <span className="shrink-0 text-xs font-bold bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
                                           <ShieldAlert size={11} /> Wasted
                                         </span>
                                       )}
                                       {c.isRecovered && (
-                                        <span className="shrink-0 text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                        <span className="shrink-0 text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
                                           <CheckCircle2 size={11} /> Recovered
                                         </span>
                                       )}

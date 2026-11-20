@@ -47,7 +47,7 @@ import {
   type DayId,
   type SchemaPeriod,
 } from "./slots";
-import { getTimetableSchema } from "./campusSchema";
+import { CAMPUS_SCHEMA } from "./generated/timetable";
 
 /**
  * The only fields of a course this module reads.
@@ -402,17 +402,19 @@ export function pairwiseSocialScore(
 }
 
 /**
- * `pairwiseSocialScore` with the campus schema already applied.
+ * `pairwiseSocialScore` with the generated campus schema already applied.
  *
  * Lived in `FFCSTimetableTab`, where the planner, the social matrix modal and
  * the generator all reached back into that component for it — a static import
- * against a component that `dynamic()`-imports them back.
+ * against a component that `dynamic()`-imports them back. The schema is now the
+ * one generated from the canonical unified timetable rather than a hand-read
+ * `src/data/campus/*.json` file.
  */
 export function calculatePairwiseSocialScore(
   mine: readonly MetricCourse[],
   theirs: readonly MetricCourse[],
 ): SocialScore {
-  return pairwiseSocialScore(mine, theirs, getTimetableSchema());
+  return pairwiseSocialScore(mine, theirs, CAMPUS_SCHEMA);
 }
 
 /* ── sorting ────────────────────────────────────────────────────────────── */

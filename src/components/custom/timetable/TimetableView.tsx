@@ -170,7 +170,7 @@ export default function TimetableView({
         >
           <div className="min-w-0">
             {title && <h3 className="font-outfit text-base font-black text-zinc-900 dark:text-zinc-100">{title}</h3>}
-            <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
+            <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
               {mode === "auto"
                 ? isMobile
                   ? "Auto · showing the vertical view on this phone"
@@ -218,7 +218,7 @@ export default function TimetableView({
       ) : (
         <div>
           {!forceView && isMobile && (
-            <div className="mb-2 flex items-center justify-center gap-1.5 rounded-lg border border-sky-500/20 bg-sky-500/10 px-3 py-1.5 text-center text-[10px] font-bold text-sky-600 dark:text-sky-400">
+            <div className="mb-2 flex items-center justify-center gap-1.5 rounded-lg border border-sky-500/20 bg-sky-500/10 px-3 py-1.5 text-center text-xs font-bold text-sky-600 dark:text-sky-400">
               <span>← Swipe horizontally to view the full grid →</span>
             </div>
           )}
@@ -231,6 +231,7 @@ export default function TimetableView({
               blockedSlots={blockedSlots}
               onToggleBlockSlot={onToggleBlockSlot}
               selectedGapDetails={selectedGapDetails}
+              attendanceByCourse={attendanceByCourse}
               title={forceView ? title : ""}
               showLegend={showLegend}
               variant={view === "classic" ? "classic" : "modern"}

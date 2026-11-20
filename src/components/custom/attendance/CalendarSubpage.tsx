@@ -29,7 +29,7 @@ import {
   useCarousel,
   type InsightSlide,
 } from "../shared/primitives";
-import { TILE_CARD } from "@/lib/uiTokens";
+import { TILE_CARD, MICRO_LABEL, TEXT_CAPTION, TEXT_BLOCK } from "@/lib/uiTokens";
 import {
   buildAttendanceDayCardsMap,
   parseAttendanceTime,
@@ -741,7 +741,7 @@ export default function CalendarSubpage({
           over the same reading time; today is also the one thing on this page
           that is a link rather than a measurement, so it belongs with the grid
           it jumps into. */}
-      <div className={TILE_CARD}>
+      <div className={TILE_CARD} style={{ contentVisibility: "auto", containIntrinsicSize: "560px" }}>
         <SectionHeader
           icon={CalendarIcon}
           title={activeMonth.label}
@@ -752,10 +752,10 @@ export default function CalendarSubpage({
                 type="button"
                 onClick={() => openDay(today)}
                 title="Open today"
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer shrink-0"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 min-h-11 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 active:bg-zinc-300 dark:active:bg-zinc-600 transition-colors cursor-pointer shrink-0"
               >
                 <ToneDot tone={todayTone(today)} size="md" />
-                <span className="text-[11px] font-bold">{todaySummary(today, dayCardsMap)}</span>
+                <span className="text-xs font-bold">{todaySummary(today, dayCardsMap)}</span>
                 <ChevronRight className="w-3 h-3" />
               </button>
             ) : null
@@ -766,10 +766,8 @@ export default function CalendarSubpage({
             shrink-0, and a native select is ~256px, which on a 360px phone
             leaves the month name about sixty pixels. */}
         <div className="mt-3 flex items-center gap-2">
-          <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-            Programme
-          </span>
-          <div className="min-w-0 flex-1">
+          <span className={`shrink-0 ${MICRO_LABEL}`}>Programme</span>
+          <div className={TEXT_BLOCK}>
             <SelectField value={type} onChange={handleTypeChange} options={CALENDAR_OPTIONS} />
           </div>
         </div>
@@ -807,6 +805,7 @@ export default function CalendarSubpage({
                 key={item.id}
                 type="button"
                 onClick={() => openDay(item.day)}
+                style={{ contentVisibility: "auto", containIntrinsicSize: "72px" }}
                 className="flex w-full items-start gap-3 py-3 px-4 text-left transition-colors hover:bg-zinc-50/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500/50 dark:hover:bg-white/[0.03]"
               >
                 {/* A dot, not a pill, and on the title's line rather than the
@@ -814,10 +813,10 @@ export default function CalendarSubpage({
                     it said something the dot already says in colour, so it
                     pushed the title — the part worth reading — off the line. */}
                 <ToneDot tone={item.tone} size="md" className="mt-[7px]" />
-                <div className="min-w-0 flex-1">
+                <div className={TEXT_BLOCK}>
                   <div className="flex items-center gap-2">
                     <AvatarDot src={item.avatarUrl} name={profileName} />
-                    <div className="min-w-0 flex-1">
+                    <div className={TEXT_BLOCK}>
                       <ListRowText
                         title={item.title}
                         titleTag="h4"
@@ -828,9 +827,7 @@ export default function CalendarSubpage({
                                 disappearing: the dot carries it at a glance, the
                                 word makes it unambiguous. On an exam day this is the
                                 series name, so the title can be the subjects. */}
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                              {item.kindText}
-                            </span>
+                            <span className={MICRO_LABEL}>{item.kindText}</span>
                             <ToneBadge tone={item.tone}>{relativeDayLabel(item.when)}</ToneBadge>
                           </span>
                         }
@@ -842,7 +839,7 @@ export default function CalendarSubpage({
                   {item.lines.length > 0 && (
                     <ul className="mt-1.5 space-y-1">
                       {item.lines.map((line, i) => (
-                        <li key={i} className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+                        <li key={i} className={`flex items-center gap-2 ${TEXT_CAPTION}`}>
                           <AvatarDot src={line.avatarUrl} name={profileName} />
                           <span className="truncate">{line.title}</span>
                         </li>
@@ -850,7 +847,7 @@ export default function CalendarSubpage({
                     </ul>
                   )}
                   {item.stats && (
-                    <p className="mt-1 text-[11px] font-medium text-zinc-400 dark:text-zinc-500">{item.stats}</p>
+                    <p className="mt-1 text-sm font-medium text-zinc-400 dark:text-zinc-500">{item.stats}</p>
                   )}
                 </div>
                 <ChevronRight className="w-4 h-4 shrink-0 text-zinc-300 dark:text-zinc-600 mt-0.5" />
@@ -955,10 +952,11 @@ function LogRow({ row, onClick }: { row: AttendanceLogRow; onClick: () => void }
     <button
       type="button"
       onClick={onClick}
+      style={{ contentVisibility: "auto", containIntrinsicSize: "72px" }}
       className="w-full flex items-start gap-3 py-3 px-4 text-left transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/40 active:bg-zinc-100/70 dark:active:bg-zinc-800/60 cursor-pointer"
     >
       <ToneDot tone={row.tone} size="md" className="mt-[7px]" />
-      <div className="min-w-0 flex-1">
+      <div className={TEXT_BLOCK}>
         <ListRowText
           title={row.dateObj.toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}
           titleTag="h4"
@@ -967,9 +965,7 @@ function LogRow({ row, onClick }: { row: AttendanceLogRow; onClick: () => void }
             // Same treatment as the Upcoming rows: the dot carries the status in
             // colour and the word confirms it, so the date — the thing you are
             // scanning for — keeps the width.
-            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-              {row.label}
-            </span>
+            <span className={MICRO_LABEL}>{row.label}</span>
           }
         />
       </div>

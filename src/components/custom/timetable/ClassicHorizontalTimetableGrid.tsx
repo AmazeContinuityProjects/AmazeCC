@@ -13,14 +13,13 @@ import {
 } from "@amazecontinuityprojects/amazeui";
 import type { NormalizedCourse } from "@/types/course";
 import { expandSlotSpellings, ownSlotSpelling } from "@/lib/slots";
+import { DAY_LABELS, DAY_ORDER } from "@/lib/generated/timetable";
 
-const DEFAULT_DAYS: { id: string; name: string }[] = [
-  { id: "mon", name: "Monday" },
-  { id: "tue", name: "Tuesday" },
-  { id: "wed", name: "Wednesday" },
-  { id: "thu", name: "Thursday" },
-  { id: "fri", name: "Friday" },
-];
+/** The teaching week's day scaffolding, from the generated unified timetable. */
+const DEFAULT_DAYS: { id: string; name: string }[] = DAY_ORDER.slice(0, 5).map((id) => ({
+  id: id.toLowerCase(),
+  name: DAY_LABELS[id],
+}));
 
 function respell(
   periods: readonly TimetablePeriod[],

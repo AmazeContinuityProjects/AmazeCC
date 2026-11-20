@@ -1,5 +1,6 @@
 "use client";
 
+import { MICRO_LABEL, TEXT_BLOCK } from "@/lib/uiTokens";
 import { useMemo } from "react";
 import {
   BookOpen,
@@ -32,6 +33,7 @@ import {
   ToneBadge,
   ToneDot,
 } from "../shared/primitives";
+import { resolveSlot } from "@/lib/generated/timetable";
 import { minutesToTimeStr, slotRange } from "@/lib/social/schedule";
 import { resolveTeachingDay, type AttendanceDayCardsMap } from "@/lib/attendanceTimetable";
 import type { NormalizedCourse } from "@/types/course";
@@ -290,7 +292,7 @@ export default function DayDetailSheet({
                 note names both days, because "which timetable?" and "which day
                 is it?" are the two things that have just changed. */}
             {orderNote && (
-              <p className="px-1 text-[11px] font-semibold leading-relaxed text-amber-600 dark:text-amber-400">
+              <p className="px-1 text-sm text-pretty font-semibold leading-relaxed text-amber-600 dark:text-amber-400">
                 {orderNote}
               </p>
             )}
@@ -311,7 +313,19 @@ export default function DayDetailSheet({
                     typeof cls.faculty === "object" ? cls.faculty?.name || cls.faculty?.raw || "" : cls.faculty || "";
                   const { start, end } = slotRange(cls.time);
                   const status = statusForClass(attendanceByDate, day.dateKey, courseCode);
-                  const isLab = cls.isLab !== undefined ? cls.isLab : String(slotName ?? "").startsWith("L");
+                  // Prefer the canonical slot's kind from the unified timetable.
+                  // The L-prefix stays as the fallback for legacy/unknown tokens,
+                  // so a record the vocabulary cannot resolve still renders.
+                  const firstToken = String(slotName ?? "")
+                    .split("+")[0]
+                    ?.trim();
+                  const canonicalSlot = firstToken ? resolveSlot(teachingDay, firstToken) : undefined;
+                  const isLab =
+                    cls.isLab !== undefined
+                      ? cls.isLab
+                      : canonicalSlot
+                        ? canonicalSlot.kind === "lab"
+                        : String(slotName ?? "").startsWith("L");
                   // A course with no code has no page to open, so it stays a
                   // plain row rather than a button that does nothing.
                   const canOpen = Boolean(onOpenCourse && courseCode);
@@ -331,7 +345,7 @@ export default function DayDetailSheet({
                       <span
                         className={cn("w-1.5 h-1.5 rounded-full shrink-0", isLab ? "bg-emerald-500" : "bg-indigo-500")}
                       />
-                      <div className="min-w-0 flex-1">
+                      <div className={TEXT_BLOCK}>
                         <ListRowText
                           title={courseTitle}
                           subtitle={[
@@ -415,7 +429,7 @@ export default function DayDetailSheet({
                     key={`${event.taskId ?? event.url ?? event.title}-${i}`}
                     className="flex items-center gap-3 py-3 px-4"
                   >
-                    <div className="min-w-0 flex-1">
+                    <div className={TEXT_BLOCK}>
                       <ListRowText
                         title={event.title}
                         titleTag="h4"
@@ -427,7 +441,7 @@ export default function DayDetailSheet({
                                 href={event.url}
                                 title="Open in Moodle"
                                 ariaLabel={`Open ${event.title} in Moodle`}
-                                className="p-2"
+                                className="p-2.5 min-h-11 min-w-11 flex items-center justify-center"
                               >
                                 <ExternalLink className="w-3.5 h-3.5" />
                               </IconLink>
@@ -438,7 +452,7 @@ export default function DayDetailSheet({
                               <IconButton
                                 onClick={() => onCycleTask(event.taskId!)}
                                 title="Cycle status"
-                                className="p-2"
+                                className="p-2.5 min-h-11 min-w-11 flex items-center justify-center"
                               >
                                 <CheckCircle2 className="w-3.5 h-3.5" />
                               </IconButton>
@@ -468,7 +482,7 @@ export default function DayDetailSheet({
               </GhostButton>
             ) : null}
             {overdue.length > 0 ? (
-              <span className="text-[11px] font-bold text-red-600 dark:text-red-400">{overdue.length} overdue</span>
+              <span className="text-xs font-bold text-red-600 dark:text-red-400">{overdue.length} overdue</span>
             ) : null}
           </div>
         </section>
@@ -502,7 +516,7 @@ export default function DayDetailSheet({
               title="Get notes"
               count={missed.filter((c) => notes.hasNotes(c.courseCode, c.rawDate)).length}
               right={
-                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20">
+                <span className="text-xs font-extrabold uppercase px-2 py-0.5 rounded-md bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20">
                   {missed.length} missed
                 </span>
               }
@@ -512,7 +526,7 @@ export default function DayDetailSheet({
                 const secured = notes.hasNotes(c.courseCode, c.rawDate);
                 return (
                   <div key={c.courseCode} className="flex items-center gap-3 py-3 px-4">
-                    <div className="min-w-0 flex-1">
+                    <div className={TEXT_BLOCK}>
                       <ListRowText
                         title={c.courseTitle || c.courseCode}
                         titleTag="h4"
@@ -523,7 +537,7 @@ export default function DayDetailSheet({
                       type="button"
                       onClick={() => notes.onToggleNotes(c.courseCode, c.rawDate)}
                       className={cn(
-                        "shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer",
+                        "shrink-0 flex items-center gap-1.5 px-3 py-1.5 min-h-11 rounded-lg border text-xs font-semibold transition-all cursor-pointer active:scale-95",
                         secured
                           ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800/50 dark:text-emerald-400"
                           : "bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-800",
@@ -545,9 +559,7 @@ export default function DayDetailSheet({
             <Download className="w-3.5 h-3.5" />
             Add to calendar
           </GhostButton>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-            {day.dateKey}
-          </span>
+          <span className={MICRO_LABEL}>{day.dateKey}</span>
         </div>
       </div>
     </BottomSheet>
@@ -582,7 +594,7 @@ function EventSection({
   return (
     <section className="space-y-2.5">
       <SectionHeader icon={icon} title={title} count={events.length} />
-      {note ? <p className="px-1 -mt-1 text-[11px] font-medium text-zinc-500 dark:text-zinc-400">{note}</p> : null}
+      {note ? <p className="px-1 -mt-1 text-sm font-medium text-zinc-500 dark:text-zinc-400">{note}</p> : null}
       <ListShell>
         {events.map((event, i) => (
           <div key={`${event.kind}-${event.title}-${i}`}>
@@ -592,12 +604,12 @@ function EventSection({
                 {event.papers.map((paper, j) => (
                   <div key={`${paper.title}-${j}`} className="flex items-center gap-3 py-2.5 pl-8 pr-4">
                     <ToneDot tone="amber" />
-                    <div className="min-w-0 flex-1">
+                    <div className={TEXT_BLOCK}>
                       <ListRowText
                         title={paper.title}
                         titleTag="h4"
                         subtitle={paper.detail}
-                        className="[&_p:first-child]:text-[13px]"
+                        className="[&_p:first-child]:text-sm"
                       />
                     </div>
                   </div>
@@ -620,7 +632,7 @@ function EventRow({ event }: { event: CalendarDayEvent }) {
           photo-visibility setting allows it — both decided before the event was
           built, so there is nothing to check here. */}
       <AvatarDot src={event.avatarUrl} />
-      <div className="min-w-0 flex-1">
+      <div className={TEXT_BLOCK}>
         <ListRowText
           title={event.title}
           titleTag="h4"
@@ -631,7 +643,7 @@ function EventRow({ event }: { event: CalendarDayEvent }) {
                 href={event.url}
                 title="Open in Moodle"
                 ariaLabel={`Open ${event.title} in Moodle`}
-                className="p-2"
+                className="p-2.5 min-h-11 min-w-11 flex items-center justify-center"
               >
                 <ExternalLink className="w-3.5 h-3.5" />
               </IconLink>
