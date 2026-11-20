@@ -11,9 +11,9 @@
  */
 
 import { jsPDF } from "jspdf";
-import { renderFormDossierPdf, type PrintDossierParams } from "@/lib/formDossier";
-import { renderPortraitDossierPdf, type DossierGridMode } from "@/lib/portraitDossier";
-import { renderClashReportPdf, type ClashReportParams } from "@/lib/exportClashReport";
+import { renderFormDossierPdf, type PrintDossierParams } from "@/lib/formDossier.render";
+import { renderPortraitDossierPdf, type DossierGridMode } from "@/lib/portraitDossier.render";
+import { renderClashReportPdf, type ClashReportParams } from "@/lib/exportClashReport.render";
 import type { ModernPrintableReportParams } from "@/lib/exportTimetable";
 
 export interface BuildDossierRequest {

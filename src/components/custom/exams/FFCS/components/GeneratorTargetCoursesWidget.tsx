@@ -76,12 +76,12 @@ export function GeneratorTargetCoursesWidget({
           count={targets.length}
           className="mb-2"
           right={
-            <span className="rounded-full border border-indigo-500/20 bg-indigo-500/10 px-2 py-1 text-[10px] font-semibold text-indigo-600 dark:text-indigo-300">
+            <span className="rounded-full border border-indigo-500/20 bg-indigo-500/10 px-2 py-1 text-[12px] font-semibold text-indigo-600 dark:text-indigo-300">
               Current semester
             </span>
           }
         />
-        <p className="px-1 text-xs leading-relaxed text-muted-foreground sm:text-sm">
+        <p className="text-pretty px-1 text-xs leading-relaxed text-muted-foreground sm:text-sm">
           Lock onto courses for this generator run. Slot filters here stay separate from planner target locks.
         </p>
       </header>

@@ -70,7 +70,7 @@ export function CourseListImportSection({ onImport }: CourseListImportSectionPro
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-xs text-muted-foreground">
+      <p className="text-pretty text-xs text-muted-foreground">
         Download the sample sheet, fill in your courses, and import it back. Columns can be renamed or reordered — only
         the required ones must stay.
       </p>
@@ -137,7 +137,7 @@ function FieldLegend() {
             <span
               key={field}
               title={required ? "Required — a row without it is dropped" : "Optional — safe to leave out"}
-              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[10px] font-bold ${
+              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[12px] font-bold ${
                 required
                   ? "bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/30"
                   : "bg-surface-secondary text-muted-foreground border-border-strong/50"
@@ -149,7 +149,7 @@ function FieldLegend() {
           );
         })}
       </div>
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-pretty text-[12px] text-muted-foreground">
         A row with no course code or no slot is dropped; everything else has a default.
       </p>
     </div>
@@ -212,7 +212,7 @@ function ImportPreview({ result, onImport }: { result: FileImport; onImport: () 
                     <td className="px-2.5 py-1.5 font-medium text-text-heading/80 whitespace-nowrap">
                       {row.CODE ?? "—"}
                     </td>
-                    <td className="px-2.5 py-1.5 font-mono text-text-heading/70 whitespace-nowrap">
+                    <td className="px-2.5 py-1.5 font-mono text-text-heading/70 whitespace-nowrap tabular-nums">
                       {row.SLOT ?? "—"}
                     </td>
                     <td className="px-2.5 py-1.5 text-text-heading/70 max-w-[9rem] truncate" title={row.FACULTY}>
@@ -225,7 +225,7 @@ function ImportPreview({ result, onImport }: { result: FileImport; onImport: () 
             </table>
           </div>
           {result.rows.length > shown.length && (
-            <p className="text-[11px] text-muted-foreground px-2.5 py-1.5 border-t border-border-strong/50 bg-surface-secondary/30">
+            <p className="text-pretty text-[12px] text-muted-foreground px-2.5 py-1.5 border-t border-border-strong/50 bg-surface-secondary/30">
               …and {result.rows.length - shown.length} more
             </p>
           )}

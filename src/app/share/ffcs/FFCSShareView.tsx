@@ -276,7 +276,7 @@ export default function FFCSShareView() {
           </Link>
         </div>
 
-        <p className="text-[11px] text-muted-foreground text-center pb-6">
+        <p className="text-xs text-muted-foreground text-center pb-6">
           {shapeEncoded || numericShapeEncoded
             ? numericShapeEncoded
               ? "This numeric TT shape link contains delta-packed class IDs. Its numeric code selects the semester report used to rebuild the timetable."

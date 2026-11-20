@@ -341,8 +341,8 @@ describe("FFCSGuidedSelector", () => {
     fireEvent.click(vitfacReviewBtn);
     expect(onOpenFacultyReview).toHaveBeenCalledWith(expect.objectContaining({ name: "DR. BOB" }));
 
-    // Check Apply CTA
-    const applyBtn = screen.getByRole("button", { name: /Apply This Recommendation to Timetable 2/i });
+    // Check Add-to-plan CTA
+    const applyBtn = screen.getByRole("button", { name: /Add these courses to Timetable 2/i });
     expect(applyBtn).toBeDefined();
     fireEvent.click(applyBtn);
     expect(onApplyTimetable).toHaveBeenCalled();

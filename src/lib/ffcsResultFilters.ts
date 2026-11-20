@@ -14,6 +14,7 @@
  */
 
 import { periodsForSlot, splitSlots, MORNING_BEFORE_MIN, type CampusSchema, type SlotPeriod } from "./slots";
+import { FFCS_SCHEMA } from "@/lib/ffcsTimetableData";
 import type { TimetableState } from "@/lib/ffcsTypes";
 
 /** How a plan's days are cut between morning and evening. */
@@ -76,7 +77,7 @@ export function planBuildings(plan: TimetableState): string[] {
  * `"mixed"` for a plan straddling the boundary, and for one with no
  * theory periods at all — a lab-only week is neither.
  */
-export function theorySessionOf(plan: TimetableState, schema: CampusSchema): TheorySession {
+export function theorySessionOf(plan: TimetableState, schema: CampusSchema = FFCS_SCHEMA): TheorySession {
   let morning = false;
   let evening = false;
   for (const course of plan.courses) {
@@ -162,21 +163,68 @@ export function filtersActive(filters: ResultFilters): boolean {
   return filters.session !== "all" || filters.sameBuilding || filters.facultyQuery.trim() !== "" || filters.groupBySlot;
 }
 
+/* ── incremental filtering ──────────────────────────────────────────────── */
+
+interface PlanFlags {
+  schema: CampusSchema;
+  session: TheorySession;
+  sameBuilding: boolean;
+  signature: string;
+}
+
 /**
- * Apply the bar to a result list, in a fixed order.
- *
- * Layout grouping runs *last*: collapsing before filtering would hide
- * options a student could have matched, and the whole point of the collapse
- * is to summarise the list they already narrowed.
+ * Per-plan derived flags. A streamed run appends each batch to the previous
+ * array, so the same plan object is inspected on every batch; walking its
+ * periods and slots again each time is what made a 500-option run quadratic.
+ * Plans are never mutated in place by the result view (a swap builds a new
+ * object), so a `WeakMap` keyed by the plan is safe and self-cleaning.
  */
-export function applyResultFilters(
-  plans: readonly TimetableState[],
-  filters: ResultFilters,
-  schema: CampusSchema,
-): TimetableState[] {
+const planFlags = new WeakMap<TimetableState, PlanFlags>();
+
+function flagsOf(plan: TimetableState, schema: CampusSchema): PlanFlags {
+  const cached = planFlags.get(plan);
+  if (cached && cached.schema === schema) return cached;
+  const flags: PlanFlags = {
+    schema,
+    session: theorySessionOf(plan, schema),
+    sameBuilding: isSameBuildingPlan(plan),
+    signature: slotSignature(plan),
+  };
+  planFlags.set(plan, flags);
+  return flags;
+}
+
+interface FilterResult {
+  source: readonly TimetableState[];
+  filters: ResultFilters;
+  schema: CampusSchema;
+  out: TimetableState[];
+}
+
+let lastResult: FilterResult | null = null;
+
+function sameFilters(a: ResultFilters, b: ResultFilters): boolean {
+  return (
+    a.session === b.session &&
+    a.sameBuilding === b.sameBuilding &&
+    a.facultyQuery === b.facultyQuery &&
+    a.groupBySlot === b.groupBySlot
+  );
+}
+
+function isPrefix(prefix: readonly TimetableState[], list: readonly TimetableState[], length: number): boolean {
+  for (let i = 0; i < length; i += 1) {
+    if (prefix[i] !== list[i]) return false;
+  }
+  return true;
+}
+
+/** The un-cached predicate pass, kept as the single source of filter semantics. */
+function filterPlans(plans: readonly TimetableState[], filters: ResultFilters, schema: CampusSchema): TimetableState[] {
   let out = plans.filter((plan) => {
-    if (filters.session !== "all" && theorySessionOf(plan, schema) !== filters.session) return false;
-    if (filters.sameBuilding && !isSameBuildingPlan(plan)) return false;
+    const flags = flagsOf(plan, schema);
+    if (filters.session !== "all" && flags.session !== filters.session) return false;
+    if (filters.sameBuilding && !flags.sameBuilding) return false;
     if (!planHasFaculty(plan, filters.facultyQuery)) return false;
     return true;
   });
@@ -184,8 +232,50 @@ export function applyResultFilters(
   return out;
 }
 
+/**
+ * Apply the bar to a result list, in a fixed order.
+ *
+ * Layout grouping runs *last*: collapsing before filtering would hide
+ * options a student could have matched, and the whole point of the collapse
+ * is to summarise the list they already narrowed.
+ *
+ * A streamed run keeps appending to the same array with the same filters, so
+ * only the new tail is filtered and appended to the previous answer — the
+ * whole list is re-walked only when the filter bar changes or the run settles
+ * with a replacement list. `groupBySlot` is inherently whole-list (it collapses
+ * duplicates across batches), so it always takes the full path.
+ */
+export function applyResultFilters(
+  plans: readonly TimetableState[],
+  filters: ResultFilters,
+  schema: CampusSchema = FFCS_SCHEMA,
+): TimetableState[] {
+  const previous = lastResult;
+  if (
+    previous &&
+    previous.schema === schema &&
+    sameFilters(previous.filters, filters) &&
+    plans.length >= previous.source.length &&
+    isPrefix(previous.source, plans, previous.source.length)
+  ) {
+    let out: TimetableState[];
+    if (filters.groupBySlot) {
+      out = filterPlans(plans, filters, schema);
+    } else {
+      const tail = filterPlans(plans.slice(previous.source.length), filters, schema);
+      out = tail.length === 0 ? previous.out : previous.out.length === 0 ? tail : [...previous.out, ...tail];
+    }
+    lastResult = { source: plans, filters: { ...filters }, schema, out };
+    return out;
+  }
+
+  const out = filterPlans(plans, filters, schema);
+  lastResult = { source: plans, filters: { ...filters }, schema, out };
+  return out;
+}
+
 /** The periods a plan books, per day — reused by the pager's summary line. */
-export function planPeriods(plan: TimetableState, schema: CampusSchema): SlotPeriod[] {
+export function planPeriods(plan: TimetableState, schema: CampusSchema = FFCS_SCHEMA): SlotPeriod[] {
   return (plan.courses ?? []).flatMap((course) =>
     (course.slots ?? []).flatMap((slot) => splitSlots(slot).flatMap((s) => periodsForSlot(schema, s))),
   );

@@ -55,7 +55,7 @@ export function TipDeck({ hints, onDismiss }: { hints: readonly FFCSHint[]; onDi
       </span>
       <p className="text-xs text-muted-foreground leading-relaxed flex-1 min-w-0" aria-live="polite">
         {many ? (
-          <span className="font-bold text-text-secondary dark:text-text-muted mr-1.5">
+          <span className="font-bold text-text-secondary dark:text-text-muted mr-1.5 tabular-nums">
             Tip {at + 1}/{hints.length}
           </span>
         ) : null}

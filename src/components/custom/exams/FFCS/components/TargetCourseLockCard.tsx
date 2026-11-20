@@ -154,7 +154,7 @@ export function TargetCourseLockCard({
                         ? `In your curriculum — counts toward ${category}`
                         : "Not in your curriculum — shares a code start with a course that is (open-elective candidate)"
                     }
-                    className={`rounded-md border px-1.5 py-0.5 text-[10px] font-bold ${
+                    className={`rounded-md border px-1.5 py-0.5 text-[12px] font-bold ${
                       curriculumListed
                         ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
                         : "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400"
@@ -189,12 +189,12 @@ export function TargetCourseLockCard({
 
       {isSelected && uniqueSlots.length > 1 && selection && (
         <div className="mt-2 space-y-2 pl-8">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+          <div className="text-[12px] font-bold uppercase tracking-wider text-muted-foreground">
             Filter Slots (Optional)
           </div>
           {clusters.length > 0 && (
             <div className="space-y-1">
-              <div className="text-[10px] font-bold uppercase text-text-heading/70">Quick Select Slot Bundles</div>
+              <div className="text-[12px] font-bold uppercase text-text-heading/70">Quick Select Slot Bundles</div>
               <div className="flex flex-wrap gap-1.5">
                 {clusters.map(([cluster, value]) => {
                   const selected =
@@ -213,7 +213,9 @@ export function TargetCourseLockCard({
                       title={`Toggle ${cluster} bundle (${value.slots.join(", ")})`}
                     >
                       <span>{label}</span>
-                      <span className="text-[10px] font-normal opacity-80">({value.slots.join(", ")})</span>
+                      <span className="text-[12px] font-normal opacity-80 tabular-nums">
+                        ({value.slots.join(", ")})
+                      </span>
                     </button>
                   );
                 })}
@@ -268,7 +270,7 @@ export function TargetCourseLockCard({
                   />
                   <span className="text-xs font-bold">{slot}</span>
                   <span
-                    className="inline-flex shrink-0 items-center gap-1 rounded border border-border-strong/70 bg-surface-secondary/70 px-1 py-0.2 text-[10px] font-semibold text-muted-foreground"
+                    className="inline-flex shrink-0 items-center gap-1 rounded border border-border-strong/70 bg-surface-secondary/70 px-1 py-0.2 text-[12px] font-semibold text-muted-foreground"
                     title={`${facultyCount} ${facultyCount === 1 ? "faculty" : "faculties"} teaching this slot`}
                   >
                     <Users className="h-2.5 w-2.5 shrink-0 text-muted-foreground/60" />

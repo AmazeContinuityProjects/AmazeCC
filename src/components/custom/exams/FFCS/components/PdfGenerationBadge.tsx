@@ -1,6 +1,7 @@
 "use client";
 
 import { FileText, Check, AlertCircle, X } from "lucide-react";
+import { TEXT_BLOCK } from "@/lib/uiTokens";
 
 export interface PdfGenerationBadgeProps {
   isGenerating: boolean;
@@ -29,11 +30,7 @@ export default function PdfGenerationBadge({
   const strokeCircumference = 2 * Math.PI * strokeRadius;
   const strokeOffset = strokeCircumference * 0.28; // ~72% fill for the rotating spinner ring
 
-  const borderLeftColor = isError
-    ? "border-l-rose-500"
-    : isSuccess
-    ? "border-l-emerald-500"
-    : "border-l-indigo-600";
+  const borderLeftColor = isError ? "border-l-rose-500" : isSuccess ? "border-l-emerald-500" : "border-l-indigo-600";
 
   return (
     <div
@@ -81,17 +78,13 @@ export default function PdfGenerationBadge({
         </div>
 
         {/* Pinned Info Labels */}
-        <div className="min-w-0 flex-1">
+        <div className={TEXT_BLOCK}>
           <div className="flex items-center gap-1.5">
-            <h4 className="text-[11px] font-extrabold text-slate-800 dark:text-white leading-none font-outfit truncate">
-              {isSuccess
-                ? "Dossier Downloaded"
-                : isError
-                ? "Dossier Download Failed"
-                : "Preparing Dossier Download"}
+            <h4 className="text-[12px] font-extrabold text-slate-800 dark:text-white leading-none font-outfit truncate">
+              {isSuccess ? "Dossier Downloaded" : isError ? "Dossier Download Failed" : "Preparing Dossier Download"}
             </h4>
             <span
-              className={`text-[10px] font-black uppercase px-1.5 py-0.2 rounded border shrink-0 ${
+              className={`text-[12px] font-black uppercase px-1.5 py-0.2 rounded border shrink-0 ${
                 theme === "light"
                   ? "bg-amber-500/10 text-amber-600 border-amber-500/25"
                   : "bg-indigo-500/10 text-indigo-400 border-indigo-500/25"
@@ -100,12 +93,12 @@ export default function PdfGenerationBadge({
               {theme === "light" ? "Light" : "Dark"}
             </span>
           </div>
-          <p className="text-[9px] text-slate-500 dark:text-slate-400 font-semibold truncate mt-1 leading-tight max-w-[155px]">
+          <p className="text-[12px] text-slate-500 dark:text-slate-400 font-semibold truncate mt-1 leading-tight max-w-[155px]">
             {isSuccess
               ? successMessage || `${timetableName} downloaded`
               : isError
-              ? errorMessage || "An error occurred"
-              : `Preparing ${timetableName} download...`}
+                ? errorMessage || "An error occurred"
+                : `Preparing ${timetableName} download...`}
           </p>
         </div>
 

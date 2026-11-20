@@ -34,7 +34,7 @@ export function FacultyScoreBadge({
 
   if (loading) {
     return (
-      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-zinc-900 border border-zinc-800 text-[10px] text-zinc-400 animate-pulse">
+      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-zinc-900 border border-zinc-800 text-[12px] text-zinc-400 animate-pulse">
         <span>★</span>
         <span>Score...</span>
       </span>
@@ -47,9 +47,9 @@ export function FacultyScoreBadge({
         type="button"
         onClick={onOpenReview}
         title={`Faculty: ${name || "Unknown"}\nNo community reviews logged yet on Vitfac`}
-        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-zinc-900/80 border border-zinc-800 text-[10.5px] font-bold text-zinc-400 hover:text-zinc-200 hover:border-zinc-700 transition-colors cursor-pointer shrink-0 ${className}`.trim()}
+        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-zinc-900/80 border border-zinc-800 text-[12px] font-bold text-zinc-400 hover:text-zinc-200 hover:border-zinc-700 transition-colors cursor-pointer shrink-0 ${className}`.trim()}
       >
-        <span className="text-[10px] opacity-70">★</span>
+        <span className="text-[12px] opacity-70">★</span>
         <span>Unrated</span>
       </button>
     );
@@ -74,11 +74,11 @@ export function FacultyScoreBadge({
       type="button"
       onClick={onOpenReview}
       title={`Faculty Rating: ${wPct}% Score based on ${review.reviews} reviews${metricsTitle}\nClick to view full review.`}
-      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-black transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95 shrink-0 ${toneClass} ${className}`.trim()}
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[12px] font-black transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95 shrink-0 ${toneClass} ${className}`.trim()}
     >
-      <span className="text-[10px]">★</span>
+      <span className="text-[12px]">★</span>
       <span>{wPct}% Score</span>
-      <span className="text-[9.5px] font-normal opacity-75 font-mono">({review.reviews})</span>
+      <span className="text-[12px] font-normal opacity-75 font-mono tabular-nums">({review.reviews})</span>
     </button>
   );
 }
@@ -177,7 +177,7 @@ export function FacultySingleReviewStat({
               {role && <span className="text-zinc-400 mr-1.5 font-normal">[{role}]</span>}
               {name}
             </p>
-            <p className="text-[10px] text-zinc-500">No community reviews logged yet on Vitfac</p>
+            <p className="text-[12px] text-zinc-500">No community reviews logged yet on Vitfac</p>
           </div>
         </div>
         <button
@@ -205,7 +205,7 @@ export function FacultySingleReviewStat({
               {role && <span className="text-zinc-400 mr-1.5 font-normal text-xs">[{role}]</span>}
               {name}
             </p>
-            <p className="text-[11px] text-zinc-400 mt-0.5">
+            <p className="text-[12px] text-zinc-400 mt-0.5">
               Based on <strong className="text-zinc-200">{review.reviews}</strong> verified student reviews
             </p>
           </div>
@@ -223,10 +223,10 @@ export function FacultySingleReviewStat({
           >
             <span>★</span>
             <span>{winPct}%</span>
-            <span className="text-[9px] font-normal opacity-70">W</span>
+            <span className="text-[12px] font-normal opacity-70">W</span>
           </div>
           {isHighRating && (
-            <span className="text-[9px] font-bold text-emerald-400 mt-1 flex items-center gap-1">
+            <span className="text-[12px] font-bold text-emerald-400 mt-1 flex items-center gap-1">
               <Award className="w-2.5 h-2.5" /> High Recommended
             </span>
           )}
@@ -236,35 +236,35 @@ export function FacultySingleReviewStat({
       {review.metrics && (
         <div className="grid grid-cols-3 gap-2 text-center pt-1 border-t border-zinc-800/60">
           <div className="p-2 sm:p-2.5 rounded-xl bg-zinc-900/80 border border-zinc-800/60">
-            <div className="flex items-center justify-center gap-1 text-[10px] font-bold text-zinc-400 mb-0.5">
+            <div className="flex items-center justify-center gap-1 text-[12px] font-bold text-zinc-400 mb-0.5">
               <Flame className="w-3 h-3 text-rose-400" />
               <span>Teaching</span>
             </div>
             <div className="text-xs sm:text-sm font-black text-white font-outfit">
               {typeof review.metrics.lecture === "number" ? review.metrics.lecture.toFixed(1) : "—"}
-              <span className="text-[9px] font-normal text-zinc-500"> / 5</span>
+              <span className="text-[12px] font-normal text-zinc-500 tabular-nums"> / 5</span>
             </div>
           </div>
 
           <div className="p-2 sm:p-2.5 rounded-xl bg-zinc-900/80 border border-zinc-800/60">
-            <div className="flex items-center justify-center gap-1 text-[10px] font-bold text-zinc-400 mb-0.5">
+            <div className="flex items-center justify-center gap-1 text-[12px] font-bold text-zinc-400 mb-0.5">
               <Award className="w-3 h-3 text-indigo-400" />
               <span>DA / Assign</span>
             </div>
             <div className="text-xs sm:text-sm font-black text-white font-outfit">
               {typeof review.metrics.da === "number" ? review.metrics.da.toFixed(1) : "—"}
-              <span className="text-[9px] font-normal text-zinc-500"> / 5</span>
+              <span className="text-[12px] font-normal text-zinc-500 tabular-nums"> / 5</span>
             </div>
           </div>
 
           <div className="p-2 sm:p-2.5 rounded-xl bg-zinc-900/80 border border-zinc-800/60">
-            <div className="flex items-center justify-center gap-1 text-[10px] font-bold text-zinc-400 mb-0.5">
+            <div className="flex items-center justify-center gap-1 text-[12px] font-bold text-zinc-400 mb-0.5">
               <Sparkles className="w-3 h-3 text-amber-400" />
               <span>Class Vibe</span>
             </div>
             <div className="text-xs sm:text-sm font-black text-white font-outfit">
               {typeof review.metrics.vibe === "number" ? review.metrics.vibe.toFixed(1) : "—"}
-              <span className="text-[9px] font-normal text-zinc-500"> / 5</span>
+              <span className="text-[12px] font-normal text-zinc-500 tabular-nums"> / 5</span>
             </div>
           </div>
         </div>
@@ -272,18 +272,18 @@ export function FacultySingleReviewStat({
 
       <div className="flex items-center justify-between gap-2 pt-1 border-t border-zinc-800/60 flex-wrap">
         <div className="flex items-center gap-1.5 flex-wrap flex-1 min-w-0">
-          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Top Lore:</span>
+          <span className="text-[12px] font-bold text-zinc-400 uppercase tracking-wider">Top Lore:</span>
           {review.lore?.green && review.lore.green.length > 0 ? (
             review.lore.green.slice(0, 3).map((item, idx) => (
               <span
                 key={idx}
-                className="text-[10.5px] font-semibold bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-lg border border-emerald-500/20 truncate max-w-[170px]"
+                className="text-[12px] font-semibold bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-lg border border-emerald-500/20 truncate max-w-[170px]"
               >
                 ✓ {item.text}
               </span>
             ))
           ) : (
-            <span className="text-[10px] text-zinc-500">No tags recorded</span>
+            <span className="text-[12px] text-zinc-500">No tags recorded</span>
           )}
         </div>
         <button

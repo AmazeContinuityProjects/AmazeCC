@@ -1,7 +1,13 @@
 import type { ManualLink, ParsedCourse } from "@/lib/ffcsTypes";
-import { getTimetableSchema } from "@/lib/campusSchema";
 import { MORNING_BEFORE_MIN, periodsForSlot, slotsOverlap, splitSlots, type SlotPeriod } from "@/lib/slots";
-const getPeriodsForSlotOuter = (slotName: string) => periodsForSlot(getTimetableSchema(), slotName);
+import {
+  FFCS_SCHEMA,
+  FFCS_CORE_MORNING_LAB_SLOTS,
+  FFCS_CORE_EVENING_LAB_SLOTS,
+  FFCS_LATE_MORNING_LAB_SLOTS,
+  FFCS_LATE_EVENING_LAB_SLOTS,
+} from "@/lib/ffcsTimetableData";
+const getPeriodsForSlotOuter = (slotName: string) => periodsForSlot(FFCS_SCHEMA, slotName);
 
 const getPeriodsForSlotsOuter = (slotStr: string): SlotPeriod[] => {
   return splitSlots(slotStr)
@@ -9,62 +15,14 @@ const getPeriodsForSlotsOuter = (slotStr: string): SlotPeriod[] => {
     .flatMap(getPeriodsForSlotOuter);
 };
 
-const isOverlap = (theorySlotStr: string, labSlotStr: string) =>
-  slotsOverlap(theorySlotStr, labSlotStr, getTimetableSchema());
+const isOverlap = (theorySlotStr: string, labSlotStr: string) => slotsOverlap(theorySlotStr, labSlotStr, FFCS_SCHEMA);
 
-// Core morning lab slots (8:00 AM - 11:40 AM: periods 1 to 4)
-const CORE_MORNING_LABS = new Set([
-  "L1",
-  "L2",
-  "L3",
-  "L4",
-  "L7",
-  "L8",
-  "L9",
-  "L10",
-  "L13",
-  "L14",
-  "L15",
-  "L16",
-  "L19",
-  "L20",
-  "L21",
-  "L22",
-  "L25",
-  "L26",
-  "L27",
-  "L28",
-]);
-
-// Core afternoon/evening lab slots (2:00 PM - 5:30 PM: periods 7 to 10)
-const CORE_EVENING_LABS = new Set([
-  "L31",
-  "L32",
-  "L33",
-  "L34",
-  "L37",
-  "L38",
-  "L39",
-  "L40",
-  "L43",
-  "L44",
-  "L45",
-  "L46",
-  "L49",
-  "L50",
-  "L51",
-  "L52",
-  "L55",
-  "L56",
-  "L57",
-  "L58",
-]);
-
-// Late morning window lab slots (11:40 AM - 1:20 PM: periods 5 and 6)
-const LATE_MORNING_LABS = new Set(["L5", "L6", "L11", "L12", "L17", "L18", "L23", "L24", "L29", "L30"]);
-
-// Late evening window lab slots (5:40 PM - 7:20 PM: periods 11 and 12)
-const LATE_EVENING_LABS = new Set(["L35", "L36", "L41", "L42", "L47", "L48", "L53", "L54", "L59", "L60"]);
+// Lab windows come from the canonical period tokens (L01–L04, L08–L11,
+// L05–L06, L12–L13) rather than a hand-maintained list of L## spellings.
+const CORE_MORNING_LABS = FFCS_CORE_MORNING_LAB_SLOTS;
+const CORE_EVENING_LABS = FFCS_CORE_EVENING_LAB_SLOTS;
+const LATE_MORNING_LABS = FFCS_LATE_MORNING_LAB_SLOTS;
+const LATE_EVENING_LABS = FFCS_LATE_EVENING_LAB_SLOTS;
 
 const isCoreMorningLab = (slotStr: string) => {
   const parts = splitSlots(slotStr).filter(Boolean);
@@ -94,14 +52,13 @@ const computePairScore = (t: ParsedCourse, l: ParsedCourse): number => {
   const tMorning = tPeriods.some((p) => p.startMin < MORNING_BEFORE_MIN);
   const tEvening = tPeriods.some((p) => p.startMin >= MORNING_BEFORE_MIN);
 
-  // Analyze whether the lab tokens are below 30 (morning) or above 30 (evening)
-  const labParts = splitSlots(l.SLOT)
-    .map((s) => parseInt(s.replace(/[^0-9]/g, ""), 10))
-    .filter((n) => !isNaN(n));
-  const hasBelow30 = labParts.some((n) => n <= 30);
-  const hasAbove30 = labParts.some((n) => n > 30);
-  const isBelow30Only = labParts.length > 0 && labParts.every((n) => n <= 30);
-  const isAbove30Only = labParts.length > 0 && labParts.every((n) => n > 30);
+  // The old code read `L##` numbers; the canonical data records the clock on
+  // the period, so classify the shift by start time instead.
+  const labStarts = lPeriods.filter((p) => p.type === "lab").map((p) => p.startMin);
+  const hasMorningLab = labStarts.some((min) => min < MORNING_BEFORE_MIN);
+  const hasEveningLab = labStarts.some((min) => min >= MORNING_BEFORE_MIN);
+  const isMorningLabOnly = labStarts.length > 0 && labStarts.every((min) => min < MORNING_BEFORE_MIN);
+  const isEveningLabOnly = labStarts.length > 0 && labStarts.every((min) => min >= MORNING_BEFORE_MIN);
 
   // Priority 1: 8:00-11:40 morning lab for evening theory, and 2:00-5:30 evening lab for morning theory
   if ((tEvening && isCoreMorningLab(l.SLOT)) || (tMorning && isCoreEveningLab(l.SLOT))) {
@@ -111,11 +68,11 @@ const computePairScore = (t: ParsedCourse, l: ParsedCourse): number => {
   else if ((tMorning && isLateMorningLab(l.SLOT)) || (tEvening && isLateEveningLab(l.SLOT))) {
     score += 1000;
   }
-  // Priority 3 (Current Priority 1 fallback): general cross-shift / above-30 & below-30
-  // (e.g. evening theory with late morning lab, morning theory with late evening lab / mixed)
-  else if ((tEvening && isBelow30Only) || (tMorning && isAbove30Only)) {
+  // Priority 3 (fallback): general cross-shift pairing
+  // (e.g. evening theory with a morning lab, morning theory with an evening lab / mixed)
+  else if ((tEvening && isMorningLabOnly) || (tMorning && isEveningLabOnly)) {
     score += 500;
-  } else if (hasBelow30 && hasAbove30) {
+  } else if (hasMorningLab && hasEveningLab) {
     score += 200;
   }
   // Priority 4: strongly penalize same-shift pairings outside the permitted late-window slots

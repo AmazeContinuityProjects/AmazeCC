@@ -43,7 +43,7 @@ import {
 import { applyResultFilters, DEFAULT_RESULT_FILTERS, type ResultFilters } from "@/lib/ffcsResultFilters";
 import FFCSResultsFilterBar from "./components/FFCSResultsFilterBar";
 import SearchInput from "../../shared/SearchInput";
-import { getTimetableSchema } from "@/lib/campusSchema";
+import { FFCS_SCHEMA, FFCS_EXTRAMURAL_SLOTS } from "@/lib/ffcsTimetableData";
 import { safeStorage } from "@/lib/safeStorage";
 import { offeringMatches } from "@/lib/ffcsReports";
 import { sameSlotFacultyAlternatives, expandCourseHalves } from "@/lib/ffcsGenerate";
@@ -79,6 +79,8 @@ import FacultyPriorityModal from "./components/modals/FacultyPriorityModal";
 import { loadVitfacRankingData } from "@/lib/vitfacService";
 import type { FacultyRatingLookup } from "@/lib/ffcsFacultyRanking";
 import { DAYS_OF_WEEK, type DayId } from "@/lib/slots";
+import { FOCUS_RING_INSET, ICON_WELL, LIST_ROW_BUTTON, TEXT_BLOCK } from "@/lib/uiTokens";
+import { PLANNER_ACTION_ACCENT } from "./plannerAccent";
 
 const posthogConfigured = Boolean(
   process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST,
@@ -144,11 +146,10 @@ const DEFAULT_FACULTY_METRIC_ORDER: FacultyMetricKey[] = ["wPct", "lecture", "da
 /**
  * Slots held for extramural hours (sports, NCC, cultural blocks) — no
  * academic offering can sit in them, so the toggle rules them out of every
- * run. The spellings exist in the campus schemas (Chennai `wed`, AP `thu`,
- * where the labs arrive as the combined `L17+L18`); a schema without them
- * simply has the toggle change nothing.
+ * run. The tokens come from the canonical `EXTRAMURAL_SLOT_KEYS`; a slot map
+ * without them simply has the toggle change nothing.
  */
-const EXTRAMURAL_SLOTS = ["TBB1", "L17", "L18"] as const;
+const EXTRAMURAL_SLOTS: readonly string[] = FFCS_EXTRAMURAL_SLOTS;
 
 /**
  * How many option cards the review grid paints before it pauses for a
@@ -283,6 +284,9 @@ export function FFCSGeneratorSubpage({
   const [rankingFactorDisabled, setRankingFactorDisabled] = useState<RankingFactor[]>(() => [
     ...(sessionPrefs.rankingFactorDisabled ?? []),
   ]);
+  // The first five factors carry nearly every run; the rest stay one click
+  // away instead of forming an eight-row wall on first paint.
+  const [showAllRankingFactors, setShowAllRankingFactors] = useState(false);
   // The Faculty quality sub-list, same recipe. An older session that tuned the
   // numeric weights still seeds the order (highest first, ties in the default
   // order); after that the list order IS the weights, derived below.
@@ -332,7 +336,7 @@ export function FFCSGeneratorSubpage({
    * more than the search it is meant to tame.
    */
   const filteredStagedTimetables = useMemo(
-    () => applyResultFilters(stagedTimetables, resultFilters, getTimetableSchema()),
+    () => applyResultFilters(stagedTimetables, resultFilters, FFCS_SCHEMA),
     [stagedTimetables, resultFilters],
   );
   const [generatorMinHalfDays, setGeneratorMinHalfDays] = useState<number>(
@@ -977,7 +981,7 @@ export function FFCSGeneratorSubpage({
         : undefined;
     const outcome = await generation.run(
       {
-        schema: getTimetableSchema(),
+        schema: FFCS_SCHEMA,
         masterCourses,
         courseLocks: generatorTargets,
         blockedSlots: [...blockedSlots, ...(blockExtramuralSlots ? EXTRAMURAL_SLOTS : [])],
@@ -1492,7 +1496,7 @@ export function FFCSGeneratorSubpage({
           onClose();
           setSuccessMsg(`Successfully saved and switched to ${generatorPreviewTimetable.name}`);
         }}
-        className="flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-xs sm:text-sm transition-all shadow-sm cursor-pointer"
+        className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-sm cursor-pointer ${PLANNER_ACTION_ACCENT}`}
       >
         <Save className="w-3.5 h-3.5" /> Save & Use This
       </button>
@@ -1534,7 +1538,7 @@ export function FFCSGeneratorSubpage({
         onClick={saveSelectedTimetables}
         aria-label={`Save ${selectedStagedIds.size} selected timetables`}
         title={`Save selected (${selectedStagedIds.size})`}
-        className="min-h-10 min-w-10 flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-sm cursor-pointer"
+        className={`min-h-10 min-w-10 flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm font-bold rounded-xl transition-all shadow-sm cursor-pointer ${PLANNER_ACTION_ACCENT}`}
       >
         <Save className="w-4 h-4" />
         <span className="hidden sm:inline">Save Selected ({selectedStagedIds.size})</span>
@@ -1564,7 +1568,7 @@ export function FFCSGeneratorSubpage({
         type="button"
         onClick={generateTimetables}
         disabled={isGenerating || generatorTargets.length === 0}
-        className={`flex min-h-11 items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-bold py-2 px-4 rounded-xl transition-all cursor-pointer ${generatorViewMode === "modern" ? "hidden lg:flex bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-600/20 active:scale-95 font-outfit" : "bg-amber-500 hover:bg-amber-600 shadow-md hover:shadow-amber-500/25"}`}
+        className={`flex min-h-11 items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm font-bold py-2 px-4 rounded-xl transition-all cursor-pointer shadow-md ${PLANNER_ACTION_ACCENT} ${generatorViewMode === "modern" ? "hidden lg:flex active:scale-95 font-outfit" : ""}`}
       >
         {isGenerating ? (
           <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -1657,8 +1661,8 @@ export function FFCSGeneratorSubpage({
                     <aside className="hidden lg:block absolute left-0 top-0 w-[296px]">
                       <div className="sticky top-4 overflow-hidden rounded-2xl border border-border-strong bg-surface shadow-sm">
                         <div className="border-b border-border-strong px-4 py-3">
-                          <h2 className="text-sm font-bold text-text-heading">Timetable options</h2>
-                          <p className="mt-0.5 text-[11px] text-muted-foreground">
+                          <h2 className="text-balance text-sm font-bold text-text-heading">Timetable options</h2>
+                          <p className="text-pretty mt-0.5 text-[12px] text-muted-foreground">
                             Choose a shape to compare its weekly rhythm.
                           </p>
                         </div>
@@ -1672,7 +1676,7 @@ export function FFCSGeneratorSubpage({
                         </div>
                         <div className="max-h-[calc(100vh-210px)] space-y-2 overflow-y-auto p-2 custom-scrollbar">
                           {filteredStagedTimetables.slice(0, stagedVisibleCount).map((option) => {
-                            const optionSchema = getTimetableSchema();
+                            const optionSchema = FFCS_SCHEMA;
                             const optionMetrics = timetableMetrics(option.courses, optionSchema);
                             const occupancyByDay = DAYS_OF_WEEK.map((day) =>
                               dayOccupancy(option.courses, optionSchema, day),
@@ -1700,16 +1704,16 @@ export function FFCSGeneratorSubpage({
                                 <div className="flex items-center justify-between gap-2">
                                   <span className="text-xs font-bold text-text-heading">{option.name}</span>
                                   {option.rankingScore !== undefined && (
-                                    <span className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-300">
+                                    <span className="text-[12px] font-semibold text-indigo-600 dark:text-indigo-300 tabular-nums">
                                       {option.rankingScore.toFixed(0)} pts
                                     </span>
                                   )}
                                 </div>
-                                <div className="mt-2 flex flex-wrap gap-1.5 text-[10px]">
-                                  <span className="rounded-md bg-surface px-1.5 py-1 text-text-secondary">
+                                <div className="mt-2 flex flex-wrap gap-1.5 text-[12px]">
+                                  <span className="rounded-md bg-surface px-1.5 py-1 text-text-secondary tabular-nums">
                                     {optionMetrics.halfDays} free half-days
                                   </span>
-                                  <span className="rounded-md bg-surface px-1.5 py-1 text-text-secondary">
+                                  <span className="rounded-md bg-surface px-1.5 py-1 text-text-secondary tabular-nums">
                                     {formatHours(optionMetrics.gaps)}h gaps
                                   </span>
                                   <span className="rounded-md bg-surface px-1.5 py-1 text-text-secondary">
@@ -1762,8 +1766,8 @@ export function FFCSGeneratorSubpage({
                     <section className="rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-4 md:p-5 space-y-4">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                          <h2 className="font-bold text-text-heading">Why this timetable ranks here</h2>
-                          <p className="mt-1 text-xs text-muted-foreground">
+                          <h2 className="text-balance font-bold text-text-heading">Why this timetable ranks here</h2>
+                          <p className="text-pretty mt-1 text-xs text-muted-foreground">
                             Combined score {generatorPreviewTimetable.rankingScore.toFixed(1)}/100. Higher-priority
                             criteria carry more weight; missing faculty reviews are excluded from averages and reduce
                             review coverage.
@@ -1778,10 +1782,10 @@ export function FFCSGeneratorSubpage({
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                         {Object.entries(generatorPreviewTimetable.rankingBreakdown ?? {}).map(([key, points]) => (
                           <div key={key} className="rounded-xl bg-surface/80 border border-border-strong/60 px-3 py-2">
-                            <span className="block text-[10px] uppercase tracking-wide text-muted-foreground">
+                            <span className="block text-[12px] uppercase tracking-wide text-muted-foreground tabular-nums">
                               {key in RANKING_FACTOR_META ? RANKING_FACTOR_META[key as RankingFactor].label : key}
                             </span>
-                            <span className="font-bold text-text-heading">{points.toFixed(1)} pts</span>
+                            <span className="font-bold text-text-heading tabular-nums">{points.toFixed(1)} pts</span>
                           </div>
                         ))}
                       </div>
@@ -1843,7 +1847,7 @@ export function FFCSGeneratorSubpage({
                                     {entry.rating.reviews} reviews
                                   </span>
                                 ) : (
-                                  <span className="text-amber-600 dark:text-amber-400">
+                                  <span className="text-amber-600 dark:text-amber-400 tabular-nums">
                                     Unrated · no faculty score applied
                                   </span>
                                 )}
@@ -1852,7 +1856,7 @@ export function FFCSGeneratorSubpage({
                           </div>
                         </>
                       )}
-                      <p className="text-[11px] text-muted-foreground">
+                      <p className="text-pretty text-[12px] text-muted-foreground">
                         Ranking priority:{" "}
                         {enabledFactors.length
                           ? enabledFactors.map((factor) => RANKING_FACTOR_META[factor].label).join(" → ")
@@ -1876,7 +1880,7 @@ export function FFCSGeneratorSubpage({
                     {generatorPreviewTimetable?.courses && generatorPreviewTimetable.courses.length > 0 && (
                       <div className="bg-transparent md:card-surface border-0 md:border md:border-border-strong rounded-none md:rounded-2xl shadow-none md:shadow-xs text-text-primary p-0 md:p-6 overflow-x-auto">
                         <div className="flex flex-wrap items-center justify-between gap-4 mb-4 min-w-[600px]">
-                          <h2 className="text-xl font-bold text-text-heading flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                          <h2 className="text-balance text-xl font-bold text-text-heading flex flex-wrap items-center gap-2 w-full sm:w-auto">
                             Selected Courses
                             <span className="bg-blue-500/20 text-blue-400 text-xs py-1 px-2.5 rounded-full border border-blue-500/20 whitespace-nowrap font-normal">
                               Total Credits:{" "}
@@ -2022,7 +2026,7 @@ export function FFCSGeneratorSubpage({
                                           >
                                             <span className="truncate">{c.faculty}</span>
                                             <span
-                                              className="inline-flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-surface-secondary/70 border border-border-strong/70 text-muted-foreground group-hover:text-amber-500 group-hover:border-amber-500/40 transition-colors shrink-0"
+                                              className="inline-flex items-center gap-1 text-[12px] font-semibold px-1.5 py-0.5 rounded-md bg-surface-secondary/70 border border-border-strong/70 text-muted-foreground group-hover:text-amber-500 group-hover:border-amber-500/40 transition-colors shrink-0"
                                               title={facultyCountTitle}
                                             >
                                               <Users className="w-3.5 h-3.5 text-muted-foreground/60 group-hover:text-amber-500 shrink-0" />
@@ -2049,7 +2053,7 @@ export function FFCSGeneratorSubpage({
                                         {c.slots.map((s: string) => (
                                           <span
                                             key={s}
-                                            className="bg-accent/50 border border-border-strong text-text-heading/80 text-[10px] px-1.5 py-0.5 rounded-md"
+                                            className="bg-accent/50 border border-border-strong text-text-heading/80 text-[12px] px-1.5 py-0.5 rounded-md"
                                           >
                                             {s}
                                           </span>
@@ -2079,12 +2083,12 @@ export function FFCSGeneratorSubpage({
                       panelZIndex={210}
                       backdropZIndex={205}
                     >
-                      <h3 className="font-bold text-text-heading flex items-center gap-2">
+                      <h3 className="text-balance font-bold text-text-heading flex items-center gap-2">
                         <span className="text-xl"></span> Block Dash Details
                       </h3>
                       <div>
                         {selectedDashDetails.length === 0 ? (
-                          <p className="text-muted-foreground text-center py-4">
+                          <p className="text-pretty text-muted-foreground text-center py-4">
                             No block dashes in this timetable. Great!
                           </p>
                         ) : (
@@ -2102,7 +2106,7 @@ export function FFCSGeneratorSubpage({
                                 </div>
                                 <div className="flex items-center gap-3">
                                   <div className="flex-1 flex flex-col overflow-hidden">
-                                    <span className="text-[10px] text-red-500/70 font-bold uppercase tracking-wider">
+                                    <span className="text-[12px] text-red-500/70 font-bold uppercase tracking-wider">
                                       From {dash.fromBlock}
                                     </span>
                                     <span
@@ -2114,7 +2118,7 @@ export function FFCSGeneratorSubpage({
                                   </div>
                                   <div className="text-red-500/50"></div>
                                   <div className="flex-1 flex flex-col text-right overflow-hidden">
-                                    <span className="text-[10px] text-red-500/70 font-bold uppercase tracking-wider">
+                                    <span className="text-[12px] text-red-500/70 font-bold uppercase tracking-wider">
                                       To {dash.toBlock}
                                     </span>
                                     <span
@@ -2144,7 +2148,9 @@ export function FFCSGeneratorSubpage({
                       panelZIndex={210}
                       backdropZIndex={205}
                     >
-                      <h3 className="font-bold text-text-heading flex items-center gap-2">Gap Hours Detail</h3>
+                      <h3 className="text-balance font-bold text-text-heading flex items-center gap-2">
+                        Gap Hours Detail
+                      </h3>
                       <div>
                         <p className="text-sm text-muted-foreground mb-4">
                           We have highlighted the empty gap slots in{" "}
@@ -2183,24 +2189,30 @@ export function FFCSGeneratorSubpage({
                                           className="bg-surface/50 rounded-lg p-3 border border-yellow-500/10"
                                         >
                                           <div className="flex items-center justify-between mb-2">
-                                            <span className="text-xs font-bold text-yellow-500/80 bg-yellow-500/10 px-2 py-0.5 rounded-full">
+                                            <span className="text-xs font-bold text-yellow-500/80 bg-yellow-500/10 px-2 py-0.5 rounded-full tabular-nums">
                                               {gap.durationMins} min gap
                                             </span>
-                                            <span className="text-[10px] text-muted-foreground font-medium">
+                                            <span className="text-[12px] text-muted-foreground font-medium tabular-nums">
                                               {gap.fromTime} – {gap.toTime}
                                             </span>
                                           </div>
                                           <div className="flex items-center gap-2 text-xs">
                                             <div className="flex-1 truncate">
-                                              <span className="text-muted-foreground block text-[10px]">From</span>
-                                              <span className="text-text-heading font-medium" title={gap.fromClass}>
+                                              <span className="text-muted-foreground block text-[12px]">From</span>
+                                              <span
+                                                className="text-text-heading font-medium tabular-nums"
+                                                title={gap.fromClass}
+                                              >
                                                 {gap.fromClass}
                                               </span>
                                             </div>
                                             <div className="text-yellow-500 shrink-0">→</div>
                                             <div className="flex-1 truncate text-right">
-                                              <span className="text-muted-foreground block text-[10px]">To</span>
-                                              <span className="text-text-heading font-medium" title={gap.toClass}>
+                                              <span className="text-muted-foreground block text-[12px]">To</span>
+                                              <span
+                                                className="text-text-heading font-medium tabular-nums"
+                                                title={gap.toClass}
+                                              >
                                                 {gap.toClass}
                                               </span>
                                             </div>
@@ -2223,8 +2235,8 @@ export function FFCSGeneratorSubpage({
               <div className="w-full flex flex-col h-full animate-in slide-in-from-right duration-300">
                 <div className="flex items-center justify-between mb-4 px-4 sm:px-6 pt-4">
                   <div>
-                    <h2 className="text-xl font-bold text-text-heading">Compare Options</h2>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <h2 className="text-balance text-xl font-bold text-text-heading">Compare Options</h2>
+                    <p className="text-pretty text-xs text-muted-foreground mt-1">
                       Comparing {selectedTimetablesToCompare.length} timetables side-by-side
                     </p>
                   </div>
@@ -2249,12 +2261,12 @@ export function FFCSGeneratorSubpage({
                           className="flex flex-col bg-surface border border-border-strong rounded-2xl overflow-hidden shadow-sm"
                         >
                           <div className="p-4 bg-surface-secondary/30 border-b border-border-strong flex justify-between items-center">
-                            <h3 className="font-bold text-lg text-text-heading">{tt.name}</h3>
+                            <h3 className="text-balance font-bold text-lg text-text-heading">{tt.name}</h3>
                             <div className="flex gap-2">
-                              <span className="text-xs font-bold text-muted-foreground bg-surface px-2 py-1 rounded-md border border-border-strong">
+                              <span className="text-xs font-bold text-muted-foreground bg-surface px-2 py-1 rounded-md border border-border-strong tabular-nums">
                                 {tt.metrics?.halfDays} Half Days
                               </span>
-                              <span className="text-xs font-bold text-muted-foreground bg-surface px-2 py-1 rounded-md border border-border-strong">
+                              <span className="text-xs font-bold text-muted-foreground bg-surface px-2 py-1 rounded-md border border-border-strong tabular-nums">
                                 {formatHours(tt.metrics?.gaps ?? 0)}h Gaps
                               </span>
                             </div>
@@ -2307,7 +2319,7 @@ export function FFCSGeneratorSubpage({
                 {filteredStagedTimetables.length === 0 && (
                   <div className="rounded-2xl border border-dashed border-border-strong p-8 text-center pb-20">
                     <p className="text-sm font-semibold text-text-heading">No plans match the current filters.</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
+                    <p className="text-pretty mt-1 text-xs text-muted-foreground">
                       All {stagedTimetables.length.toLocaleString()} options are still here — clear the filters to see
                       them.
                     </p>
@@ -2326,7 +2338,7 @@ export function FFCSGeneratorSubpage({
                     bottom padding stays the Saved bar's scroll clearance. */}
                 {filteredStagedTimetables.length > stagedVisibleCount && (
                   <div className="flex flex-col items-center gap-3 pb-20 -mt-14">
-                    <p className="text-xs text-muted-foreground text-center max-w-md">
+                    <p className="text-pretty text-xs text-muted-foreground text-center max-w-md">
                       Showing the first {stagedVisibleCount.toLocaleString()} of{" "}
                       {filteredStagedTimetables.length.toLocaleString()} options. Everything is kept — &ldquo;Save
                       Selected&rdquo; scans the whole list, and the ranked order keeps the best ones here.
@@ -2348,7 +2360,7 @@ export function FFCSGeneratorSubpage({
                 {/* Floating Compare Bar */}
                 {selectedTimetablesToCompare.length > 0 && (
                   <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+2.5rem)] left-1/2 -translate-x-1/2 z-[250] bg-surface border-2 border-purple-500 rounded-full px-6 py-3 shadow-2xl flex items-center gap-4 animate-in slide-in-from-bottom-10 fade-in duration-300">
-                    <span className="text-sm font-semibold text-text-heading">
+                    <span className="text-sm font-semibold text-text-heading tabular-nums">
                       {selectedTimetablesToCompare.length} selected to compare (Max 3)
                     </span>
                     <button
@@ -2434,11 +2446,9 @@ export function FFCSGeneratorSubpage({
                                   selectGeneratorSection(next.id);
                                   document.getElementById(`generator-tab-${next.id}`)?.focus();
                                 }}
-                                className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${isActive ? `${activeClass} text-text-heading` : "text-text-secondary hover:bg-surface-secondary/60 hover:text-text-heading"}`}
+                                className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors ${FOCUS_RING_INSET} ${isActive ? `${activeClass} text-text-heading` : "text-text-secondary hover:bg-surface-secondary/60 hover:text-text-heading"}`}
                               >
-                                <span
-                                  className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${tileClass}`}
-                                >
+                                <span className={`${ICON_WELL} ${tileClass}`}>
                                   <Icon className="w-4 h-4" />
                                 </span>
                                 <ListRowText title={label} titleTag="span" subtitle={detail} wrapSubtitle />
@@ -2462,17 +2472,15 @@ export function FFCSGeneratorSubpage({
                     <section aria-labelledby="generator-views-heading" className="space-y-2">
                       <h3
                         id="generator-views-heading"
-                        className="px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground"
+                        className="text-balance px-1 text-[12px] font-bold uppercase tracking-wider text-muted-foreground"
                       >
                         Views
                       </h3>
                       <ListShell>
-                        <button
-                          type="button"
-                          onClick={() => setIsViewModeModalOpen(true)}
-                          className="w-full flex items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-surface-secondary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500"
-                        >
-                          <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border-indigo-500/20">
+                        <button type="button" onClick={() => setIsViewModeModalOpen(true)} className={LIST_ROW_BUTTON}>
+                          <span
+                            className={`${ICON_WELL} bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border-indigo-500/20`}
+                          >
                             <PanelsTopLeft className="w-4 h-4" />
                           </span>
                           <ListRowText title="Switch Generator View" titleTag="span" subtitle={generatorViewLabel} />
@@ -2484,7 +2492,7 @@ export function FFCSGeneratorSubpage({
                       <section aria-labelledby="generator-focused-courses-heading" className="space-y-2">
                         <h3
                           id="generator-focused-courses-heading"
-                          className="px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground"
+                          className="text-balance px-1 text-[12px] font-bold uppercase tracking-wider text-muted-foreground"
                         >
                           Focused courses
                         </h3>
@@ -2497,17 +2505,17 @@ export function FFCSGeneratorSubpage({
                               aria-current={activeLockerCode === t.code ? "page" : undefined}
                               aria-controls="generator-active-panel"
                               onClick={() => selectGeneratorCourse(t.code)}
-                              className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-surface-secondary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${activeLockerCode === t.code ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" : "text-text-secondary hover:text-text-heading"}`}
+                              className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-surface-secondary/60 ${FOCUS_RING_INSET} ${activeLockerCode === t.code ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" : "text-text-secondary hover:text-text-heading"}`}
                             >
-                              <span className="w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/20 text-[10px] font-bold">
+                              <span className="w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/20 text-[12px] font-bold tabular-nums">
                                 {t.code.slice(0, 2)}
                               </span>
-                              <span className="min-w-0 flex-1">
+                              <span className={TEXT_BLOCK}>
                                 <span className="block truncate text-xs font-semibold">{t.code}</span>
-                                <span className="block truncate text-[10px] text-muted-foreground" title={t.title}>
+                                <span className="block truncate text-[12px] text-muted-foreground" title={t.title}>
                                   {t.title}
                                 </span>
-                                <span className="hidden truncate text-[10px] text-muted-foreground/70 lg:block">
+                                <span className="hidden truncate text-[12px] text-muted-foreground/70 lg:block">
                                   {t.offerings?.length
                                     ? `${t.offerings.length} offering${t.offerings.length === 1 ? "" : "s"}`
                                     : "any faculty/slot"}
@@ -2515,7 +2523,7 @@ export function FFCSGeneratorSubpage({
                               </span>
                               {facultyPriority[t.code]?.length ? (
                                 <span
-                                  className="hidden h-5 shrink-0 items-center gap-1 rounded bg-indigo-500/15 px-1.5 text-[10px] font-bold text-indigo-500 lg:flex"
+                                  className="hidden h-5 shrink-0 items-center gap-1 rounded bg-indigo-500/15 px-1.5 text-[12px] font-bold text-indigo-500 lg:flex"
                                   title={`Faculty priority set: ${facultyPriority[t.code].join(" > ")}`}
                                 >
                                   <ListOrdered className="h-3 w-3" />
@@ -2540,17 +2548,15 @@ export function FFCSGeneratorSubpage({
                   <section aria-labelledby="generator-classic-views-heading" className="col-span-full space-y-2">
                     <h3
                       id="generator-classic-views-heading"
-                      className="px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground"
+                      className="text-balance px-1 text-[12px] font-bold uppercase tracking-wider text-muted-foreground"
                     >
                       Views
                     </h3>
                     <ListShell>
-                      <button
-                        type="button"
-                        onClick={() => setIsViewModeModalOpen(true)}
-                        className="w-full flex items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-surface-secondary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500"
-                      >
-                        <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/20">
+                      <button type="button" onClick={() => setIsViewModeModalOpen(true)} className={LIST_ROW_BUTTON}>
+                        <span
+                          className={`${ICON_WELL} bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/20`}
+                        >
                           <PanelsTopLeft className="w-4 h-4" />
                         </span>
                         <ListRowText title="Switch Generator View" titleTag="span" subtitle={generatorViewLabel} />
@@ -2578,7 +2584,7 @@ export function FFCSGeneratorSubpage({
                       >
                         <div className="flex items-start justify-between gap-3">
                           {generatorViewMode === "modern" ? (
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-pretty text-sm text-muted-foreground">
                               Pick the slots and faculties the generator should focus on for this course.
                             </p>
                           ) : (
@@ -2587,7 +2593,7 @@ export function FFCSGeneratorSubpage({
                                 <span className="font-bold text-lg text-text-heading">{lkCourse.code}</span>
                                 <span className="text-sm text-muted-foreground truncate">{lkCourse.title}</span>
                               </div>
-                              <p className="text-sm text-muted-foreground mt-1">
+                              <p className="text-pretty text-sm text-muted-foreground mt-1">
                                 Pick the slots and faculties the generator should focus on for this course.
                               </p>
                             </div>
@@ -2683,13 +2689,13 @@ export function FFCSGeneratorSubpage({
                       <>
                         <div className="flex justify-between items-start mb-4">
                           <div>
-                            <h3 className="font-semibold text-lg mb-2 text-text-heading flex items-center gap-2">
-                              <span className="bg-amber-500/10 text-amber-500 w-7 h-7 rounded-full flex items-center justify-center text-sm">
+                            <h3 className="text-balance font-semibold text-lg mb-2 text-text-heading flex items-center gap-2">
+                              <span className="bg-amber-500/10 text-amber-500 w-7 h-7 rounded-full flex items-center justify-center text-sm tabular-nums">
                                 1
                               </span>
                               Target Courses
                             </h3>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-pretty text-sm text-muted-foreground">
                               Select the courses you want to take and optionally filter faculties/slots.
                             </p>
                           </div>
@@ -2697,7 +2703,7 @@ export function FFCSGeneratorSubpage({
 
                         {generatorTargets.length > 0 && (
                           <div className="mb-4 space-y-2">
-                            <div className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                            <div className="text-[12px] font-bold text-muted-foreground uppercase tracking-wider">
                               Locked target courses
                             </div>
                             <div className="flex flex-col gap-2">
@@ -2708,10 +2714,10 @@ export function FFCSGeneratorSubpage({
                                 >
                                   <div className="min-w-0">
                                     <div className="text-sm font-bold text-text-heading truncate">{t.code}</div>
-                                    <div className="text-[11px] text-muted-foreground truncate">{t.title}</div>
+                                    <div className="text-[12px] text-muted-foreground truncate">{t.title}</div>
                                   </div>
                                   <div className="flex items-center gap-2 shrink-0">
-                                    <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                                    <span className="text-[12px] font-semibold text-amber-600 dark:text-amber-400">
                                       {t.offerings?.length
                                         ? `${t.offerings.length} offering${t.offerings.length === 1 ? "" : "s"}`
                                         : "any"}
@@ -2746,7 +2752,7 @@ export function FFCSGeneratorSubpage({
                         />
 
                         <div className="flex flex-wrap items-center gap-1.5 mb-3">
-                          <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mr-1">
+                          <span className="text-[12px] font-bold uppercase tracking-wider text-muted-foreground mr-1">
                             Group by
                           </span>
                           {(
@@ -2766,7 +2772,7 @@ export function FFCSGeneratorSubpage({
                               {opt.label}
                             </button>
                           ))}
-                          <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground ml-2 mr-1">
+                          <span className="text-[12px] font-bold uppercase tracking-wider text-muted-foreground ml-2 mr-1">
                             Sort
                           </span>
                           {(
@@ -2799,7 +2805,7 @@ export function FFCSGeneratorSubpage({
                           {generatorCourseGroups.map((group) => (
                             <div key={group.label ?? "all"} className="flex flex-col gap-2">
                               {group.label && (
-                                <div className="sticky top-0 z-10 bg-surface-secondary/95 backdrop-blur px-2 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                <div className="sticky top-0 z-10 bg-surface-secondary/95 backdrop-blur px-2 py-1.5 rounded-lg text-[12px] font-bold uppercase tracking-wider text-muted-foreground">
                                   {group.label}
                                 </div>
                               )}
@@ -2866,7 +2872,7 @@ export function FFCSGeneratorSubpage({
                                         <span className="text-xs text-muted-foreground line-clamp-1">{c.title}</span>
                                       </span>
                                       {isSelected && (
-                                        <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400 shrink-0 hidden sm:inline">
+                                        <span className="text-[12px] font-semibold text-amber-600 dark:text-amber-400 shrink-0 hidden sm:inline">
                                           {activeLockerCode === c.code ? "Editing…" : "Open ›"}
                                         </span>
                                       )}
@@ -2949,7 +2955,7 @@ export function FFCSGeneratorSubpage({
                           title={activeSectionInfo.label}
                           className="mb-1 hidden lg:flex"
                         />
-                        <p className="mb-5 hidden px-1 text-xs leading-relaxed text-text-secondary dark:text-text-muted lg:block">
+                        <p className="text-pretty mb-5 hidden px-1 text-xs leading-relaxed text-text-secondary dark:text-text-muted lg:block">
                           {activeGeneratorSection === "ranking"
                             ? "Choose how options are ordered and how faculty review data affects scores."
                             : activeGeneratorSection === "schedule"
@@ -2958,8 +2964,8 @@ export function FFCSGeneratorSubpage({
                         </p>
                       </>
                     ) : (
-                      <h3 className="font-semibold text-lg mb-4 text-text-heading flex items-center gap-2">
-                        <span className="bg-blue-500/10 text-blue-500 w-7 h-7 rounded-full flex items-center justify-center text-sm">
+                      <h3 className="text-balance font-semibold text-lg mb-4 text-text-heading flex items-center gap-2">
+                        <span className="bg-blue-500/10 text-blue-500 w-7 h-7 rounded-full flex items-center justify-center text-sm tabular-nums">
                           2
                         </span>
                         Preferences
@@ -3071,8 +3077,8 @@ export function FFCSGeneratorSubpage({
                         className={`scroll-mt-24 space-y-4 rounded-xl border p-4 ${generatorViewMode === "modern" ? "border-violet-500/20 bg-violet-500/[0.04]" : "border-border-strong/70 bg-surface-secondary/20"} ${showGeneratorSection("ranking") ? "" : "hidden"}`}
                       >
                         <div>
-                          <h4 className="text-sm font-semibold text-text-heading">What matters most</h4>
-                          <p className="mt-1 text-xs text-muted-foreground">
+                          <h4 className="text-balance text-sm font-semibold text-text-heading">What matters most</h4>
+                          <p className="text-pretty mt-1 text-xs text-muted-foreground">
                             One ranked list for this run — order decides priority (the top factor weighs most); switch a
                             factor off to ignore it. Tuned here only, independent from your saved Planner Settings.
                           </p>
@@ -3080,11 +3086,12 @@ export function FFCSGeneratorSubpage({
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
                           <div>
-                            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
+                            <p className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
                               Ranking factors
                             </p>
                             <ListShell>
                               {rankingFactorOrder.map((factor, index) => {
+                                if (!showAllRankingFactors && index >= 5) return null;
                                 const enabled = !rankingFactorDisabled.includes(factor);
                                 const rank = enabled
                                   ? rankingFactorOrder
@@ -3136,13 +3143,23 @@ export function FFCSGeneratorSubpage({
                                 );
                               })}
                             </ListShell>
+                            {rankingFactorOrder.length > 5 && (
+                              <button
+                                type="button"
+                                onClick={() => setShowAllRankingFactors((current) => !current)}
+                                aria-expanded={showAllRankingFactors}
+                                className="mt-1.5 px-1.5 py-0.5 text-[12px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline rounded-md"
+                              >
+                                {showAllRankingFactors ? "Show fewer" : `Show all ${rankingFactorOrder.length} factors`}
+                              </button>
+                            )}
                           </div>
 
                           <div className={enabledFactors.includes("faculty") ? "" : "opacity-60"}>
-                            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            <p className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
                               Faculty score priorities
                             </p>
-                            <p className="mt-0.5 mb-1.5 text-[11px] text-muted-foreground">
+                            <p className="text-pretty mt-0.5 mb-1.5 text-[12px] text-muted-foreground">
                               Sub-list for Faculty quality: which Vitfac metric weighs most. Only used while that factor
                               is on.
                             </p>
@@ -3208,8 +3225,8 @@ export function FFCSGeneratorSubpage({
                         className={`scroll-mt-24 space-y-3 ${scheduleCardClass} ${showGeneratorSection("schedule") ? "" : "hidden"}`}
                       >
                         <div>
-                          <h4 className="text-sm font-semibold text-text-heading">Time windows</h4>
-                          <p className="mt-1 text-xs text-muted-foreground">
+                          <h4 className="text-balance text-sm font-semibold text-text-heading">Time windows</h4>
+                          <p className="text-pretty mt-1 text-xs text-muted-foreground">
                             Earliest start and latest end. Slots outside these windows never appear in a generated
                             timetable.
                           </p>
@@ -3254,7 +3271,7 @@ export function FFCSGeneratorSubpage({
                           className="flex w-full items-center justify-between gap-2 rounded-lg border border-border-strong/50 bg-surface px-3 py-2 text-left"
                         >
                           <span className="text-xs font-semibold text-text-heading">Day-specific class end times</span>
-                          <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                          <span className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
                             {dayLimitCount === 0 ? "Off" : `${dayLimitCount} of ${DAYS_OF_WEEK.length} days`}
                             <ChevronDown
                               className={`h-4 w-4 shrink-0 transition-transform ${dayLimitsOpen ? "rotate-180" : ""}`}
@@ -3324,7 +3341,7 @@ export function FFCSGeneratorSubpage({
                       <div
                         className={`space-y-2.5 ${scheduleCardClass} ${showGeneratorSection("schedule") ? "" : "hidden"}`}
                       >
-                        <h4 className="text-sm font-semibold text-text-heading">Time preference</h4>
+                        <h4 className="text-balance text-sm font-semibold text-text-heading">Time preference</h4>
                         <RadioGroup
                           name="generatorPreference"
                           options={GENERATOR_TIME_PREFERENCE_OPTIONS}
@@ -3349,7 +3366,10 @@ export function FFCSGeneratorSubpage({
                         aria-labelledby="generator-lab-rules-heading"
                         className={`scroll-mt-24 space-y-2.5 ${scheduleCardClass} ${showGeneratorSection("schedule") ? "" : "hidden"}`}
                       >
-                        <h4 id="generator-lab-rules-heading" className="text-sm font-semibold text-text-heading">
+                        <h4
+                          id="generator-lab-rules-heading"
+                          className="text-balance text-sm font-semibold text-text-heading"
+                        >
                           Lab rules
                         </h4>
                         <ListShell>
@@ -3383,24 +3403,24 @@ export function FFCSGeneratorSubpage({
                       >
                         <div className="flex flex-wrap items-start justify-between gap-2">
                           <div className="min-w-0">
-                            <h4 className="text-sm font-semibold text-text-heading">Slot map</h4>
-                            <p className="mt-1 text-xs text-muted-foreground">
+                            <h4 className="text-balance text-sm font-semibold text-text-heading">Slot map</h4>
+                            <p className="text-pretty mt-1 text-xs text-muted-foreground">
                               Tap a slot to block or unblock it. Red = out: hand-blocked, extramural, or past your time
                               windows.
                             </p>
                           </div>
                           <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-                            <span className="rounded-md bg-emerald-500/10 px-2 py-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                            <span className="rounded-md bg-emerald-500/10 px-2 py-1 text-[12px] font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
                               {scheduleSlotCounts.free} free
                             </span>
-                            <span className="rounded-md bg-red-500/10 px-2 py-1 text-[11px] font-bold text-red-600 dark:text-red-400">
+                            <span className="rounded-md bg-red-500/10 px-2 py-1 text-[12px] font-bold text-red-600 dark:text-red-400 tabular-nums">
                               {scheduleSlotCounts.blocked} blocked
                             </span>
-                            <span className="rounded-md bg-amber-500/10 px-2 py-1 text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                            <span className="rounded-md bg-amber-500/10 px-2 py-1 text-[12px] font-bold text-amber-600 dark:text-amber-400 tabular-nums">
                               {scheduleSlotCounts.limited} by limits
                             </span>
                             {scheduleSlotCounts.extramural > 0 && (
-                              <span className="rounded-md bg-violet-500/10 px-2 py-1 text-[11px] font-bold text-violet-600 dark:text-violet-400">
+                              <span className="rounded-md bg-violet-500/10 px-2 py-1 text-[12px] font-bold text-violet-600 dark:text-violet-400 tabular-nums">
                                 {scheduleSlotCounts.extramural} extramural
                               </span>
                             )}
@@ -3409,7 +3429,7 @@ export function FFCSGeneratorSubpage({
                                 type="button"
                                 aria-label="Reset blocked slots"
                                 onClick={() => [...blockedSlots].forEach((slot) => toggleBlockSlot(slot))}
-                                className="rounded-md border border-border-strong px-2 py-1 text-[11px] font-semibold text-text-secondary hover:text-text-heading"
+                                className="rounded-md border border-border-strong px-2 py-1 text-[12px] font-semibold text-text-secondary hover:text-text-heading"
                               >
                                 Reset
                               </button>
@@ -3419,7 +3439,7 @@ export function FFCSGeneratorSubpage({
                         <ListShell>
                           <ToggleRow
                             title="Block extramural hours"
-                            description="Never schedule TBB1, L17, L18 — the college's extramural slots."
+                            description={`Never schedule ${EXTRAMURAL_SLOTS.join(", ")} — the college's extramural slots.`}
                             checked={blockExtramuralSlots}
                             onCheckedChange={setBlockExtramuralSlots}
                           />
@@ -3445,8 +3465,8 @@ export function FFCSGeneratorSubpage({
                     {generatorViewMode === "modern" ? (
                       <SectionHeader icon={Users} title="Social matching" count={friends.length} className="mb-4" />
                     ) : (
-                      <h3 className="font-semibold text-lg mb-4 text-text-heading flex items-center gap-2">
-                        <span className="bg-pink-500/10 text-pink-500 w-7 h-7 rounded-full flex items-center justify-center text-sm">
+                      <h3 className="text-balance font-semibold text-lg mb-4 text-text-heading flex items-center gap-2">
+                        <span className="bg-pink-500/10 text-pink-500 w-7 h-7 rounded-full flex items-center justify-center text-sm tabular-nums">
                           3
                         </span>
                         Social Preferences
@@ -3481,7 +3501,7 @@ export function FFCSGeneratorSubpage({
                           <label className="text-sm font-bold text-text-heading block mb-2">
                             Maximize Shared Free Time
                           </label>
-                          <p className="text-xs text-muted-foreground mb-3">
+                          <p className="text-pretty text-xs text-muted-foreground mb-3">
                             Timetables will be sorted to show the ones where you and these friends have the most mutual
                             free time.
                           </p>
@@ -3526,7 +3546,7 @@ export function FFCSGeneratorSubpage({
                       type="button"
                       onClick={() => setIsRunSummaryOpen(true)}
                       disabled={isGenerating || generatorTargets.length === 0}
-                      className={`w-full sm:w-auto min-w-[260px] min-h-12 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3.5 px-6 sm:px-8 rounded-2xl transition-all cursor-pointer ${generatorViewMode === "modern" ? "bg-indigo-600 hover:bg-indigo-700 text-sm sm:text-base font-black font-outfit tracking-wide shadow-xl shadow-indigo-600/20 active:scale-[0.98]" : "bg-amber-500 hover:bg-amber-600 text-base font-bold shadow-lg hover:shadow-amber-500/25"}`}
+                      className={`w-full sm:w-auto min-w-[260px] min-h-12 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed py-3.5 px-6 sm:px-8 rounded-2xl transition-all cursor-pointer ${PLANNER_ACTION_ACCENT} ${generatorViewMode === "modern" ? "text-sm sm:text-base font-black font-outfit tracking-wide shadow-xl active:scale-[0.98]" : "text-base font-bold shadow-lg"}`}
                     >
                       {isGenerating ? (
                         <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -3546,7 +3566,7 @@ export function FFCSGeneratorSubpage({
                 type="button"
                 onClick={() => setIsRunSummaryOpen(true)}
                 disabled={isGenerating || generatorTargets.length === 0}
-                className="mx-auto flex min-h-12 w-full max-w-xl items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-6 py-3 text-sm font-black tracking-wide text-white shadow-xl shadow-indigo-600/20 transition-all hover:bg-indigo-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 font-outfit"
+                className={`mx-auto flex min-h-12 w-full max-w-xl items-center justify-center gap-2 rounded-2xl px-6 py-3 text-sm font-black tracking-wide shadow-xl transition-all active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 font-outfit ${PLANNER_ACTION_ACCENT}`}
               >
                 {isGenerating ? (
                   <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -3626,7 +3646,7 @@ export function FFCSGeneratorSubpage({
             backdropZIndex={215}
             contentClassName="flex flex-col gap-3"
           >
-            <h3 className="font-bold text-lg text-text-heading flex items-center gap-2">
+            <h3 className="text-balance font-bold text-lg text-text-heading flex items-center gap-2">
               <Search className="w-5 h-5 text-amber-500" /> Select Variant
             </h3>
 

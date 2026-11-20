@@ -17,6 +17,7 @@ import {
 import { sameSlotFacultyAlternatives, splitSlots } from "@/lib/ffcsGenerate";
 import type { ParsedCourse } from "@/lib/ffcsTypes";
 import { EmptyPanel, IconButton, ListSkeleton } from "../../../../shared/primitives";
+import { PRIMARY_BUTTON } from "@/lib/uiTokens";
 import { VitfacReviewPill, FacultyAvatar } from "../FacultyAvatar";
 import FacultyReviewSheetHost from "../FacultyReviewSheetHost";
 import { ENABLE_VITFAC_INTEGRATION, useVitfacDirectoryProfile } from "@/lib/vitfacService";
@@ -178,7 +179,7 @@ export function FacultyScheduleModal({
                       {selected ? `${selected.canonical}'s Schedule` : "Faculty Schedule"}
                     </h2>
                     {selected && selectedEmpId && (
-                      <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-surface-secondary border border-border-strong text-text-muted shrink-0">
+                      <span className="text-[12px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-surface-secondary border border-border-strong text-text-muted shrink-0">
                         #{selectedEmpId}
                       </span>
                     )}
@@ -203,7 +204,7 @@ export function FacultyScheduleModal({
                   </p>
                   {selected &&
                   (directoryProfile?.designation || directoryProfile?.email || directoryProfile?.intercom) ? (
-                    <p className="text-[11px] text-muted-foreground truncate">
+                    <p className="text-[12px] text-muted-foreground truncate">
                       {directoryProfile?.designation ? `${directoryProfile.designation} · ` : ""}
                       {directoryProfile?.email
                         ? directoryProfile.email
@@ -243,13 +244,13 @@ export function FacultyScheduleModal({
 
                 {selected.names.length > 1 && (
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    <span className="text-[12px] font-bold uppercase tracking-wider text-muted-foreground">
                       Also listed as
                     </span>
                     {selected.names.map((name) => (
                       <span
                         key={name}
-                        className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-surface-secondary text-text-heading border border-border-strong"
+                        className="text-[12px] font-bold px-2 py-0.5 rounded-md bg-surface-secondary text-text-heading border border-border-strong"
                       >
                         {name}
                       </span>
@@ -313,20 +314,20 @@ export function FacultyScheduleModal({
                             className="hover:bg-surface-secondary/20 transition-colors"
                           >
                             <td className="py-2.5 px-3">
-                              <span className="font-bold text-xs text-text-heading">{offering.CODE}</span>
-                              <span className="block text-xs text-muted-foreground truncate max-w-[220px]">
+                              <span className="font-bold text-xs text-text-heading tabular-nums">{offering.CODE}</span>
+                              <span className="block text-xs text-muted-foreground truncate max-w-[220px] tabular-nums">
                                 {offering.TITLE}
                               </span>
                             </td>
                             <td className="py-2.5 px-3 text-xs text-text-heading/80">{offering.TYPE}</td>
-                            <td className="py-2.5 px-3 font-mono text-xs text-text-heading/80">
+                            <td className="py-2.5 px-3 font-mono text-xs text-text-heading/80 tabular-nums">
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 <span>{offering.SLOT}</span>
                                 <button
                                   type="button"
                                   onClick={() => setSelectedSwapOffering(offering)}
                                   title={countTitle}
-                                  className="relative hit-expand inline-flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-surface-secondary/70 border border-border-strong/70 text-muted-foreground hover:text-amber-500 hover:border-amber-500/40 transition-colors shrink-0 cursor-pointer"
+                                  className="relative hit-expand inline-flex items-center gap-1 text-[12px] font-semibold px-1.5 py-0.5 rounded-md bg-surface-secondary/70 border border-border-strong/70 text-muted-foreground hover:text-amber-500 hover:border-amber-500/40 transition-colors shrink-0 cursor-pointer"
                                 >
                                   <Users className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-amber-500 shrink-0" />
                                   <span>{count}</span>
@@ -374,7 +375,7 @@ export function FacultyScheduleModal({
                         <button
                           type="button"
                           onClick={() => setQuery("")}
-                          className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-black text-white transition-colors hover:bg-indigo-700 cursor-pointer"
+                          className={`${PRIMARY_BUTTON} cursor-pointer`}
                         >
                           Clear search
                         </button>
@@ -436,7 +437,7 @@ export function FacultyScheduleModal({
                   </div>
                 )}
 
-                <div className="flex items-center justify-between text-[11px] text-muted-foreground flex-wrap gap-2">
+                <div className="flex items-center justify-between text-[12px] text-muted-foreground flex-wrap gap-2">
                   <span>
                     Schedules come from the FFCS course report. A faculty member appears here only if they teach a class
                     in it.

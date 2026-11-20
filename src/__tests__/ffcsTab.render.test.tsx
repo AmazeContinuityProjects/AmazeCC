@@ -640,6 +640,7 @@ describe("FFCSTimetableTab", () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue({
       ok: true,
       arrayBuffer: async () => new TextEncoder().encode(csvContent).buffer,
+      text: async () => csvContent,
       json: async () => [],
     } as any);
 
@@ -719,6 +720,7 @@ describe("FFCSTimetableTab", () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue({
       ok: true,
       arrayBuffer: async () => new TextEncoder().encode(csvContent).buffer,
+      text: async () => csvContent,
     } as any);
 
     render(<FFCSTimetableTab />);
@@ -764,12 +766,18 @@ describe("FFCSTimetableTab", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Import 1 course/ }));
 
-    // The picker closes (framer-motion plays the exit, so wait for it) and
-    // the tab confirms; the row joined the master list.
+    // The success toast auto-dismisses after 4s, so assert it BEFORE waiting
+    // for the sheet's framer-motion exit — under parallel-suite load that exit
+    // can outlast the toast and leave a synchronous getByText too late.
+    expect(
+      await screen.findByText(/Imported 1 course offering into your course list\./, {}, { timeout: 10000 }),
+    ).toBeDefined();
+
+    // The picker closes (framer-motion plays the exit, so wait for it); the row
+    // joined the master list.
     await waitForElementToBeRemoved(() => screen.getByRole("button", { name: /Download sample CSV/ }), {
-      timeout: 5000,
+      timeout: 10000,
     });
-    expect(screen.getByText(/Imported 1 course offering into your course list\./)).toBeDefined();
   }, 30_000);
 
   it("renames and deletes timetables inside the Select Timetable sheet", () => {
@@ -846,6 +854,7 @@ describe("FFCSTimetableTab", () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue({
       ok: true,
       arrayBuffer: async () => new TextEncoder().encode(csvContent).buffer,
+      text: async () => csvContent,
     } as any);
 
     storage.setItem(
@@ -909,6 +918,7 @@ describe("FFCSTimetableTab", () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue({
       ok: true,
       arrayBuffer: async () => new TextEncoder().encode(csvContent).buffer,
+      text: async () => csvContent,
     } as any);
 
     render(<FFCSTimetableTab />);
@@ -947,6 +957,7 @@ describe("FFCSTimetableTab", () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue({
       ok: true,
       arrayBuffer: async () => new TextEncoder().encode(csvContent).buffer,
+      text: async () => csvContent,
     } as any);
 
     storage.setItem(
@@ -1042,6 +1053,7 @@ describe("FFCSTimetableTab", () => {
       ok: true,
       json: async () => [],
       arrayBuffer: async () => new TextEncoder().encode(csvContent).buffer,
+      text: async () => csvContent,
     } as any);
 
     const first = render(<FFCSTimetableTab />);
@@ -1065,6 +1077,7 @@ describe("FFCSTimetableTab", () => {
       ok: true,
       json: async () => [],
       arrayBuffer: async () => new TextEncoder().encode(csvContent).buffer,
+      text: async () => csvContent,
     } as any);
 
     render(<FFCSTimetableTab />);
@@ -1087,6 +1100,7 @@ describe("FFCSTimetableTab", () => {
       ok: true,
       json: async () => [],
       arrayBuffer: async () => new TextEncoder().encode(csvContent).buffer,
+      text: async () => csvContent,
     } as any);
 
     render(<FFCSTimetableTab />);
@@ -1118,6 +1132,7 @@ describe("FFCSTimetableTab", () => {
       json: async () => [],
       arrayBuffer: async () =>
         new TextEncoder().encode(String(input).includes("slot-timetable") ? csvMock : csvFinal).buffer,
+      text: async () => (String(input).includes("slot-timetable") ? csvMock : csvFinal),
     })) as any);
 
     const both = [

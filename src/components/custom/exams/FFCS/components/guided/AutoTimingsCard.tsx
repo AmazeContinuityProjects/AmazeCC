@@ -56,17 +56,17 @@ export default function AutoTimingsCard({
     >
       <div className="space-y-4">
         <div>
-          <h3 className="text-sm font-black text-white uppercase tracking-wider font-outfit">
+          <h3 className="text-balance text-sm font-black text-white uppercase tracking-wider font-outfit">
             3. Day Start &amp; End Timings
           </h3>
-          <p className="text-xs text-zinc-400">
+          <p className="text-pretty text-xs text-zinc-400">
             Set earliest permitted class starts and latest wrap times. Slot-based edge chips align with VIT periods.
           </p>
         </div>
 
         {/* Quick Schedule Presets */}
         <div className="space-y-1.5">
-          <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Quick Timing Presets</span>
+          <span className="text-[12px] font-bold text-zinc-500 uppercase tracking-wider">Quick Timing Presets</span>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {quickDaySchedules.map((sched) => {
               const isActive = autoMinStartTime === sched.start && autoMaxEndTime === sched.end;
@@ -86,7 +86,7 @@ export default function AutoTimingsCard({
                   }`}
                 >
                   <div className="font-extrabold text-xs font-outfit truncate">{sched.title}</div>
-                  <div className="text-[10px] opacity-80 font-mono mt-0.5">{sched.badge}</div>
+                  <div className="text-[12px] opacity-80 font-mono mt-0.5 tabular-nums">{sched.badge}</div>
                 </button>
               );
             })}
@@ -116,7 +116,7 @@ export default function AutoTimingsCard({
               <span className="text-xs font-black text-white uppercase tracking-wider font-outfit block">
                 Earliest Start Time (No classes before)
               </span>
-              <span className="text-[11px] text-zinc-400">
+              <span className="text-[12px] text-zinc-400">
                 Classes starting earlier than this time will be excluded.
               </span>
             </div>
@@ -129,7 +129,7 @@ export default function AutoTimingsCard({
                 setAutoMinStartTime(val);
                 if (val) autoBlockOutsideSlots(val, autoMaxEndTime);
               }}
-              className="px-2.5 py-1 rounded-xl bg-zinc-900 border border-zinc-700 text-white text-xs font-mono font-bold"
+              className="px-2.5 py-1 rounded-xl bg-zinc-900 border border-zinc-700 text-white text-xs font-mono font-bold tabular-nums"
             />
           </div>
 
@@ -151,7 +151,7 @@ export default function AutoTimingsCard({
                   }`}
                 >
                   <span>{preset.label}</span>
-                  <span className="text-[9.5px] opacity-75 font-normal">{preset.desc}</span>
+                  <span className="text-[12px] opacity-75 font-normal">{preset.desc}</span>
                 </button>
               );
             })}
@@ -165,7 +165,7 @@ export default function AutoTimingsCard({
               <span className="text-xs font-black text-white uppercase tracking-wider font-outfit block">
                 Latest Wrap Time (No classes after)
               </span>
-              <span className="text-[11px] text-zinc-400">Classes ending later than this time will be excluded.</span>
+              <span className="text-[12px] text-zinc-400">Classes ending later than this time will be excluded.</span>
             </div>
             <input
               type="time"
@@ -176,7 +176,7 @@ export default function AutoTimingsCard({
                 setAutoMaxEndTime(val);
                 if (val) autoBlockOutsideSlots(autoMinStartTime, val);
               }}
-              className="px-2.5 py-1 rounded-xl bg-zinc-900 border border-zinc-700 text-white text-xs font-mono font-bold"
+              className="px-2.5 py-1 rounded-xl bg-zinc-900 border border-zinc-700 text-white text-xs font-mono font-bold tabular-nums"
             />
           </div>
 
@@ -198,7 +198,7 @@ export default function AutoTimingsCard({
                   }`}
                 >
                   <span>{preset.label}</span>
-                  <span className="text-[9.5px] opacity-75 font-normal">{preset.desc}</span>
+                  <span className="text-[12px] opacity-75 font-normal">{preset.desc}</span>
                 </button>
               );
             })}

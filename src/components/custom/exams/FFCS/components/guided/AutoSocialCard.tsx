@@ -31,8 +31,8 @@ export default function AutoSocialCard({
     >
       <div className="space-y-4">
         <div>
-          <h3 className="text-sm font-black text-white uppercase tracking-wider font-outfit">
-            3. Friends &amp; Peer Sync
+          <h3 className="text-balance text-sm font-black text-white uppercase tracking-wider font-outfit">
+            Friends &amp; Peer Sync
           </h3>
           <p className="text-xs text-zinc-400">Align your generated timetable with peer schedules.</p>
         </div>
@@ -40,8 +40,8 @@ export default function AutoSocialCard({
         {friends.length === 0 ? (
           <div className="p-6 rounded-2xl bg-zinc-950/60 border border-zinc-800 text-center space-y-2">
             <Users className="w-8 h-8 text-zinc-500 mx-auto" />
-            <h4 className="text-sm font-bold text-white">Solo Generation Mode</h4>
-            <p className="text-xs text-zinc-400 max-w-xs mx-auto">
+            <h4 className="text-balance text-sm font-bold text-white">Solo Generation Mode</h4>
+            <p className="text-pretty text-xs text-zinc-400 max-w-xs mx-auto">
               No friend timetables added yet. The solver will optimize purely for your personal preferences.
             </p>
           </div>
@@ -50,7 +50,7 @@ export default function AutoSocialCard({
             <div className="p-4 rounded-2xl bg-zinc-950/60 border border-zinc-800 flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-bold text-white">Sync Shared Class Slots</p>
-                <p className="text-[11px] text-zinc-400">Prioritize sections where your friends are enrolled</p>
+                <p className="text-[12px] text-zinc-400">Prioritize sections where your friends are enrolled</p>
               </div>
               <Switch checked={autoSyncFriends} onCheckedChange={setAutoSyncFriends} size="md" label="Sync Classes" />
             </div>
@@ -58,7 +58,7 @@ export default function AutoSocialCard({
             <div className="p-4 rounded-2xl bg-zinc-950/60 border border-zinc-800 flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-bold text-white">Maximize Shared Break Times</p>
-                <p className="text-[11px] text-zinc-400">Align lunch and free slots with friends</p>
+                <p className="text-[12px] text-zinc-400">Align lunch and free slots with friends</p>
               </div>
               <Switch
                 checked={autoMaximizeFreeTime}

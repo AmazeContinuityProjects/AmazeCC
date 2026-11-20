@@ -36,11 +36,11 @@ export default function FFCSPageView() {
   }, []);
 
   return (
-    <div className="min-h-[100dvh] w-full max-w-full overflow-x-clip bg-slate-50 text-slate-850 dark:bg-[#03060F] dark:text-gray-100 flex flex-col font-sans transition-colors duration-300">
+    <div className="min-h-[100dvh] w-full max-w-full overflow-x-clip bg-slate-50 text-slate-800 dark:bg-background dark:text-gray-100 flex flex-col font-sans transition-colors duration-300">
       {/* Top Navigation Bar - non-sticky so it scrolls with the page */}
       <nav
         hidden={plannerLayoutMode === "modern"}
-        className="w-full bg-white/85 dark:bg-[#03060F]/85 border-b border-slate-200/80 dark:border-white/[0.08]"
+        className="w-full bg-white/85 dark:bg-background/85 border-b border-slate-200/80 dark:border-white/[0.08]"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
@@ -51,7 +51,7 @@ export default function FFCSPageView() {
               title="AmazeCC Home"
             >
               <img
-                loading="lazy"
+                loading="eager"
                 decoding="async"
                 src={getAssetPath("/favicon/FFCS.png")}
                 alt="AmazeCC FFCS"

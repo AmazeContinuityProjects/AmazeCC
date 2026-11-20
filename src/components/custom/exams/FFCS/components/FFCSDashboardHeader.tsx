@@ -37,10 +37,11 @@ import {
   type InsightSlide,
 } from "../../../shared/primitives";
 import Switch from "../../../shared/primitives/Switch";
+import { FOCUS_RING_INSET, ICON_WELL, LIST_ROW_BUTTON } from "@/lib/uiTokens";
 import type { AddedCourse, ParsedCourse, TimetableState, Friend, FriendGroup } from "@/lib/ffcsTypes";
 import { periodsForSlot, findPeriodClash, splitSlots } from "@/lib/slots";
 import { freeHalfDays } from "@/lib/timetableMetrics";
-import { getTimetableSchema } from "@/lib/campusSchema";
+import { FFCS_SCHEMA } from "@/lib/ffcsTimetableData";
 import { FacultyAvatar, VitfacReviewPill } from "./FacultyAvatar";
 import ExportDossierWidget from "./ExportDossierWidget";
 import { getFacultyReview, loadVitfacCatalog } from "@/lib/vitfacService";
@@ -287,6 +288,10 @@ export default function FFCSDashboardHeader({
   const [mobileWidget, setMobileWidget] = useState<MobileWidget | null>(null);
   const [isWeeklyDetailsOpen, setIsWeeklyDetailsOpen] = useState(false);
   const [isClashDetailsOpen, setIsClashDetailsOpen] = useState(false);
+  // The add-course menu keeps every action reachable but tucks the supporting
+  // descriptions behind one disclosure so the planner menu is not a wall of
+  // five equally loud tiles on first paint.
+  const [showAllCourseActions, setShowAllCourseActions] = useState(false);
   const [widgetPreferencesReady, setWidgetPreferencesReady] = useState(false);
   const statsContainerRef = useRef<HTMLDivElement>(null);
   const [statTileCount, setStatTileCount] = useState(MAX_STAT_TILES);
@@ -304,7 +309,7 @@ export default function FFCSDashboardHeader({
   }, [availableSlots, enableVitfacIntegration, selectedCourseCode]);
 
   const recommendedSlotOptions = useMemo(() => {
-    const schema = getTimetableSchema();
+    const schema = FFCS_SCHEMA;
     return availableSlots
       .map((option, index) => {
         const optionSlots = splitSlots(option.SLOT).filter((slot) => slot !== "NIL");
@@ -458,7 +463,7 @@ export default function FFCSDashboardHeader({
   const { courseClashes, blockedSlotClashes } = useMemo(() => {
     const courseClashes: CourseClash[] = [];
     const blockedSlotClashes: BlockedSlotClash[] = [];
-    const schema = getTimetableSchema();
+    const schema = FFCS_SCHEMA;
     for (let i = 0; i < courses.length; i++) {
       const pA = courses[i].slots.flatMap((s) => periodsForSlot(schema, s));
       for (let j = i + 1; j < courses.length; j++) {
@@ -496,7 +501,7 @@ export default function FFCSDashboardHeader({
 
   // Schedule rhythm: Days with classes and free half-days
   const { daysWithClassesCount, freeHalfDaysCount } = useMemo(() => {
-    const schema = getTimetableSchema();
+    const schema = FFCS_SCHEMA;
     const days = new Set<string>();
     courses.forEach((c) => {
       c.slots.forEach((s) => {
@@ -544,16 +549,28 @@ export default function FFCSDashboardHeader({
             },
           ]
         : []),
-      ...(clashCount > 0
+      ...(clashCount > 0 || courses.length > 0
         ? [
-            {
-              id: "clash-status",
-              label: "Clash Status",
-              value: `${clashCount} Clash${clashCount > 1 ? "es" : ""}`,
-              sub: "Slot collision detected",
-              badge: "Alert",
-              tone: "red",
-            },
+            clashCount > 0
+              ? {
+                  id: "clash-status",
+                  label: "Clash Status",
+                  value: `${clashCount} Clash${clashCount > 1 ? "es" : ""}`,
+                  sub: "Slot collision detected",
+                  badge: "Alert",
+                  tone: "red",
+                }
+              : {
+                  // The core promise needs a visible "success" state, not just
+                  // the absence of the red tile. Emerald is this dashboard's
+                  // existing success accent (see the credits/rhythm tiles).
+                  id: "clash-status",
+                  label: "Clash Status",
+                  value: "Conflict-free",
+                  sub: "0 clashes",
+                  badge: "Clear",
+                  tone: "emerald",
+                },
           ]
         : []),
       ...(courses.length > 0
@@ -705,8 +722,8 @@ export default function FFCSDashboardHeader({
               key={tile.id}
               type="button"
               onClick={() => setIsClashDetailsOpen(true)}
-              aria-label={`Clash Status: ${clashCount === 0 ? "Conflict-Free" : `${clashCount} ${clashCount === 1 ? "clash" : "clashes"}`}. View clashing courses.`}
-              className="min-w-0 text-left rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+              aria-label={`Clash Status: ${clashCount === 0 ? "Conflict-free, 0 clashes" : `${clashCount} ${clashCount === 1 ? "clash" : "clashes"}`}. View clashing courses.`}
+              className={`min-w-0 text-left rounded-2xl focus-visible:outline-none focus-visible:ring-2 ${clashCount > 0 ? "focus-visible:ring-red-500" : "focus-visible:ring-emerald-500"}`}
             >
               {statTile}
             </button>
@@ -729,7 +746,7 @@ export default function FFCSDashboardHeader({
       <div className="space-y-2 pt-1">
         <h3
           id="ffcs-widgets-heading"
-          className="px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground"
+          className="text-balance px-1 text-[12px] font-bold uppercase tracking-wider text-muted-foreground"
         >
           Dashboard Widgets
         </h3>
@@ -737,12 +754,22 @@ export default function FFCSDashboardHeader({
           <nav aria-label="Planner menu" className="space-y-3">
             {isMobileViewport ? (
               <section aria-labelledby="ffcs-add-course-heading" className="space-y-2">
-                <h3
-                  id="ffcs-add-course-heading"
-                  className="px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground"
-                >
-                  Add Courses
-                </h3>
+                <div className="flex items-center justify-between gap-2">
+                  <h3
+                    id="ffcs-add-course-heading"
+                    className="text-balance px-1 text-[12px] font-bold uppercase tracking-wider text-muted-foreground"
+                  >
+                    Add Courses
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowAllCourseActions((current) => !current)}
+                    aria-expanded={showAllCourseActions}
+                    className="px-1.5 py-0.5 text-[12px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline rounded-md"
+                  >
+                    {showAllCourseActions ? "Show less" : `Show all ${COURSE_MENU_ACTIONS.length}`}
+                  </button>
+                </div>
                 <ListShell>
                   {COURSE_MENU_ACTIONS.map(({ value, label, description, Icon, iconClass, tourTarget }) => (
                     <button
@@ -750,16 +777,18 @@ export default function FFCSDashboardHeader({
                       type="button"
                       onClick={courseMenuActions[value]}
                       data-tour-id={tourTarget}
-                      className="w-full flex items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-surface-secondary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500"
+                      className={LIST_ROW_BUTTON}
                     >
-                      <span
-                        className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${iconClass}`}
-                      >
+                      <span className={`${ICON_WELL} ${iconClass}`}>
                         <Icon className="w-4 h-4" />
                       </span>
-                      <ListRowText title={label} titleTag="span" subtitle={description} />
+                      <ListRowText
+                        title={label}
+                        titleTag="span"
+                        subtitle={showAllCourseActions ? description : undefined}
+                      />
                       {value === "target-courses" && courseLocksCount > 0 && (
-                        <span className="min-w-5 h-5 px-1 rounded-full bg-purple-600 text-white text-[10px] font-black flex items-center justify-center shrink-0">
+                        <span className="min-w-5 h-5 px-1 rounded-full bg-purple-600 text-white text-[12px] font-black flex items-center justify-center shrink-0">
                           {courseLocksCount}
                         </span>
                       )}
@@ -773,11 +802,13 @@ export default function FFCSDashboardHeader({
                   type="button"
                   aria-pressed={enabledWidgets.includes("add-courses")}
                   onClick={() => toggleWidget("add-courses")}
-                  className={`w-full flex items-center gap-3 px-3 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${
+                  className={`w-full flex items-center gap-3 px-3 py-3 text-left transition-colors ${FOCUS_RING_INSET} ${
                     enabledWidgets.includes("add-courses") ? "bg-blue-500/10" : "hover:bg-surface-secondary/60"
                   }`}
                 >
-                  <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/20">
+                  <span
+                    className={`${ICON_WELL} bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/20`}
+                  >
                     <PlusCircle className="w-4 h-4" />
                   </span>
                   <ListRowText title="Add Courses" titleTag="span" subtitle="Show or hide the course-add widget." />
@@ -789,7 +820,7 @@ export default function FFCSDashboardHeader({
             <section aria-labelledby="ffcs-utility-heading" className="space-y-2">
               <h3
                 id="ffcs-utility-heading"
-                className="px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground"
+                className="text-balance px-1 text-[12px] font-bold uppercase tracking-wider text-muted-foreground"
               >
                 Planner & Social
               </h3>
@@ -802,13 +833,11 @@ export default function FFCSDashboardHeader({
                       type="button"
                       aria-pressed={isMobileViewport ? mobileWidget === value : isEnabled}
                       onClick={() => openWidget(value)}
-                      className={`w-full flex items-center gap-3 px-3 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${
+                      className={`w-full flex items-center gap-3 px-3 py-3 text-left transition-colors ${FOCUS_RING_INSET} ${
                         isEnabled ? "bg-indigo-500/10" : "hover:bg-surface-secondary/60"
                       }`}
                     >
-                      <span
-                        className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${iconClass}`}
-                      >
+                      <span className={`${ICON_WELL} ${iconClass}`}>
                         <Icon className="w-4 h-4" />
                       </span>
                       <ListRowText title={label} titleTag="span" subtitle={description} />
@@ -831,9 +860,11 @@ export default function FFCSDashboardHeader({
                   type="button"
                   aria-pressed={isMobileViewport && mobileWidget === "selected-course"}
                   onClick={() => openWidget("selected-course")}
-                  className="w-full flex items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-surface-secondary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500"
+                  className={LIST_ROW_BUTTON}
                 >
-                  <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border-indigo-500/20">
+                  <span
+                    className={`${ICON_WELL} bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border-indigo-500/20`}
+                  >
                     <PlusCircle className="w-4 h-4" />
                   </span>
                   <ListRowText title="Configure Selected Course" titleTag="span" subtitle={selectedCourseCode} />
@@ -852,17 +883,15 @@ export default function FFCSDashboardHeader({
             >
               <h3
                 id="ffcs-view-course-heading"
-                className="px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground"
+                className="text-balance px-1 text-[12px] font-bold uppercase tracking-wider text-muted-foreground"
               >
                 Views & Course Lists
               </h3>
               <ListShell>
-                <button
-                  type="button"
-                  onClick={onOpenLayoutPicker}
-                  className="w-full flex items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-surface-secondary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500"
-                >
-                  <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border-indigo-500/20">
+                <button type="button" onClick={onOpenLayoutPicker} className={LIST_ROW_BUTTON}>
+                  <span
+                    className={`${ICON_WELL} bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border-indigo-500/20`}
+                  >
                     <PanelsTopLeft className="w-4 h-4" />
                   </span>
                   <ListRowText
@@ -871,12 +900,10 @@ export default function FFCSDashboardHeader({
                     subtitle={currentLayoutLabel || "Choose Guided, Modern, or Classic."}
                   />
                 </button>
-                <button
-                  type="button"
-                  onClick={onOpenCourseListPicker}
-                  className="w-full flex items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-surface-secondary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500"
-                >
-                  <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-teal-500/10 dark:bg-teal-500/20 text-teal-600 dark:text-teal-400 border-teal-500/20">
+                <button type="button" onClick={onOpenCourseListPicker} className={LIST_ROW_BUTTON}>
+                  <span
+                    className={`${ICON_WELL} bg-teal-500/10 dark:bg-teal-500/20 text-teal-600 dark:text-teal-400 border-teal-500/20`}
+                  >
                     <ListFilter className="w-4 h-4" />
                   </span>
                   <ListRowText
@@ -894,17 +921,15 @@ export default function FFCSDashboardHeader({
               >
                 <h3
                   id="ffcs-settings-heading"
-                  className="px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground"
+                  className="text-balance px-1 text-[12px] font-bold uppercase tracking-wider text-muted-foreground"
                 >
                   Planner Settings
                 </h3>
                 <ListShell>
-                  <button
-                    type="button"
-                    onClick={onOpenPlannerSettings}
-                    className="w-full flex items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-surface-secondary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500"
-                  >
-                    <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/20">
+                  <button type="button" onClick={onOpenPlannerSettings} className={LIST_ROW_BUTTON}>
+                    <span
+                      className={`${ICON_WELL} bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/20`}
+                    >
                       <Settings2 className="w-4 h-4" />
                     </span>
                     <ListRowText
@@ -914,12 +939,10 @@ export default function FFCSDashboardHeader({
                     />
                   </button>
                   {isMobileViewport && onOpenHelp && (
-                    <button
-                      type="button"
-                      onClick={onOpenHelp}
-                      className="w-full flex items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-surface-secondary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500"
-                    >
-                      <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border-indigo-500/20">
+                    <button type="button" onClick={onOpenHelp} className={LIST_ROW_BUTTON}>
+                      <span
+                        className={`${ICON_WELL} bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border-indigo-500/20`}
+                      >
                         <CircleHelp className="w-4 h-4" />
                       </span>
                       <ListRowText
@@ -950,11 +973,13 @@ export default function FFCSDashboardHeader({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3 min-w-0">
-                      <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border-indigo-500/20">
+                      <span
+                        className={`${ICON_WELL} bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border-indigo-500/20`}
+                      >
                         <PlusCircle className="w-4 h-4" />
                       </span>
                       <div className="min-w-0">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-500 dark:text-indigo-400">
+                        <p className="text-[12px] font-bold uppercase tracking-wider text-indigo-500 dark:text-indigo-400">
                           Configure Selected Course
                         </p>
                         <h3 className="text-sm font-extrabold text-text-heading truncate">
@@ -1015,7 +1040,7 @@ export default function FFCSDashboardHeader({
                     </div>
 
                     <div className="space-y-1.5">
-                      <span className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                      <span className="block text-[12px] font-bold uppercase tracking-wider text-muted-foreground">
                         Slot & Faculty Choice
                       </span>
                       <button
@@ -1062,12 +1087,14 @@ export default function FFCSDashboardHeader({
                     {availableSlots.length > 0 && (
                       <div className="space-y-2">
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                          <span className="text-[12px] font-bold uppercase tracking-wider text-muted-foreground tabular-nums">
                             Recommended faculty, slots & timetable fit
                           </span>
-                          <span className="text-[10px] text-muted-foreground">{availableSlots.length} offerings</span>
+                          <span className="text-[12px] text-muted-foreground tabular-nums">
+                            {availableSlots.length} offerings
+                          </span>
                         </div>
-                        <p className="text-[10px] text-muted-foreground">
+                        <p className="text-pretty text-[12px] text-muted-foreground">
                           Conflict-free options come first, with higher-rated faculty ranked ahead. Search to browse
                           every offering.
                         </p>
@@ -1088,7 +1115,7 @@ export default function FFCSDashboardHeader({
                           })}
                         </div>
                         {availableSlots.length > 5 && (
-                          <p className="text-[10px] text-muted-foreground">
+                          <p className="text-pretty text-[12px] text-muted-foreground">
                             Open the slot picker to compare all {availableSlots.length} options.
                           </p>
                         )}
@@ -1112,16 +1139,28 @@ export default function FFCSDashboardHeader({
                   aria-label="Add Courses widget"
                   className="min-w-0 rounded-2xl border border-border-strong dark:border-border card-surface p-4 sm:p-5 shadow-xs space-y-4"
                 >
-                  <div className="flex items-start gap-3">
-                    <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/20">
-                      <PlusCircle className="w-4 h-4" />
-                    </span>
-                    <div>
-                      <h3 className="text-sm font-bold text-text-heading">Add Courses</h3>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Choose how to add courses to this timetable.
-                      </p>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <span
+                        className={`${ICON_WELL} bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/20`}
+                      >
+                        <PlusCircle className="w-4 h-4" />
+                      </span>
+                      <div>
+                        <h3 className="text-balance text-sm font-bold text-text-heading">Add Courses</h3>
+                        <p className="text-pretty text-xs text-muted-foreground mt-0.5">
+                          Choose how to add courses to this timetable.
+                        </p>
+                      </div>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowAllCourseActions((current) => !current)}
+                      aria-expanded={showAllCourseActions}
+                      className="shrink-0 px-1.5 py-0.5 text-[12px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline rounded-md"
+                    >
+                      {showAllCourseActions ? "Show less" : `Show all ${COURSE_MENU_ACTIONS.length}`}
+                    </button>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {COURSE_MENU_ACTIONS.map(({ value, label, description, Icon, iconClass, tourTarget }) => (
@@ -1140,12 +1179,14 @@ export default function FFCSDashboardHeader({
                         </span>
                         <span className="min-w-0">
                           <span className="block text-xs font-bold text-text-heading">{label}</span>
-                          <span className="block text-[10px] leading-snug text-muted-foreground mt-0.5">
-                            {description}
-                          </span>
+                          {showAllCourseActions && (
+                            <span className="block text-[12px] leading-snug text-muted-foreground mt-0.5">
+                              {description}
+                            </span>
+                          )}
                         </span>
                         {value === "target-courses" && courseLocksCount > 0 && (
-                          <span className="min-w-5 h-5 px-1 rounded-full bg-purple-600 text-white text-[10px] font-black flex items-center justify-center shrink-0">
+                          <span className="min-w-5 h-5 px-1 rounded-full bg-purple-600 text-white text-[12px] font-black flex items-center justify-center shrink-0">
                             {courseLocksCount}
                           </span>
                         )}
@@ -1255,7 +1296,7 @@ export default function FFCSDashboardHeader({
                           if (e.key === "Escape") setIsRenaming(false);
                         }}
                         placeholder="Enter new timetable name..."
-                        className="flex-1 min-h-[44px] bg-surface border border-indigo-500/50 rounded-xl px-3 text-sm text-text-heading focus:outline-none"
+                        className="flex-1 min-h-[44px] bg-surface border border-indigo-500/50 rounded-xl px-3 text-sm text-text-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                         autoFocus
                       />
                       <button
@@ -1382,8 +1423,8 @@ export default function FFCSDashboardHeader({
                 >
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <h4 className="text-sm font-bold text-text-heading">Faculty Schedule Insights</h4>
-                      <p className="text-xs text-muted-foreground mt-0.5">
+                      <h4 className="text-balance text-sm font-bold text-text-heading">Faculty Schedule Insights</h4>
+                      <p className="text-pretty text-xs text-muted-foreground mt-0.5">
                         Look up entire weekly schedules of faculty members across campus.
                       </p>
                     </div>
@@ -1398,7 +1439,7 @@ export default function FFCSDashboardHeader({
                         <CalendarDays className="w-4 h-4" />
                         <span>Faculty Schedules</span>
                         {facultyGroupsCount > 0 && (
-                          <span className="text-[10px] font-black bg-cyan-500/20 px-1.5 py-0.5 rounded-md">
+                          <span className="text-[12px] font-black bg-cyan-500/20 px-1.5 py-0.5 rounded-md">
                             {facultyGroupsCount}
                           </span>
                         )}
@@ -1424,7 +1465,7 @@ export default function FFCSDashboardHeader({
                         </div>
                         <ExternalLink className="w-4 h-4 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity" />
                       </a>
-                      <p className="text-[10.5px] text-muted-foreground/70 px-1 pt-1 leading-tight">
+                      <p className="text-pretty text-[12px] text-muted-foreground/70 px-1 pt-1 leading-tight">
                         Disclaimer: Ratings are sourced from community platform vitfac.pages.dev.
                       </p>
                     </div>

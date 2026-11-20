@@ -8,6 +8,7 @@ import {
   type GenerateResult,
   type GenerationHandle,
 } from "../logic/generator";
+import { toSolverCourses } from "@/lib/ffcsGenerate";
 import { DEFAULT_MAX_DROPS, droppableTail, isRetryableFailure, nextDrop, type DropPolicy } from "../logic/dropPolicy";
 import type { TimetableState } from "@/lib/ffcsTypes";
 
@@ -74,6 +75,9 @@ export interface GenerationRun {
   progress: GenerateProgress | null;
 }
 
+/** Distinct ids for the worker's per-run snapshot cache. */
+let nextRunId = 0;
+
 /** The solver params for one run with `dropped` courses removed. */
 function withCoursesDropped(params: GenerateParams, dropped: readonly string[]): GenerateParams {
   const set = new Set(dropped);
@@ -134,6 +138,11 @@ export function useGenerationRun(): GenerationRun {
       const tail = options?.drop ? droppableTail(options.drop) : [];
       const maxDrops = options?.drop?.maxDrops ?? DEFAULT_MAX_DROPS;
 
+      // One compact snapshot for the whole ladder. Retries post only the drop
+      // set; the worker reuses the catalog it already holds under this id.
+      const runId = `run-${++nextRunId}`;
+      const solverCourses = toSolverCourses(params.masterCourses);
+
       try {
         for (;;) {
           const attemptParams = dropped.length ? withCoursesDropped(params, dropped) : params;
@@ -152,6 +161,9 @@ export function useGenerationRun(): GenerationRun {
               lastProgressAtRef.current = now;
               setProgress(tick);
             },
+            solverCourses,
+            runId,
+            droppedCodes: dropped.length ? dropped : undefined,
           });
           handleRef.current = handle;
           const result: GenerationOutcome = await handle.result;

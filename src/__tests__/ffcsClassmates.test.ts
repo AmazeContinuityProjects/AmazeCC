@@ -91,11 +91,23 @@ describe("callClassmates", () => {
       source: "registered",
     });
     expect(state.participants).toBe(3);
-    expect(apiMock).toHaveBeenCalledWith("social/ffcs-match", {
-      method: "POST",
-      auth: "vtop",
-      body: { op: "publish", source: "registered", semesterId: "CH20262705" },
-    });
+    // Amaze ID is the transport auth; the VTOP session travels in the body so
+    // the server can verify the enrollment being published.
+    expect(apiMock).toHaveBeenCalledWith(
+      "social/ffcs-match",
+      expect.objectContaining({
+        method: "POST",
+        auth: "amazeId",
+        body: expect.objectContaining({
+          op: "publish",
+          source: "registered",
+          semesterId: "CH20262705",
+          authorizedID: "A",
+          cookies: ["x"],
+          csrf: "c",
+        }),
+      }),
+    );
   });
 
   it("translates planned_sharing_disabled error code", async () => {

@@ -28,6 +28,13 @@
  * has to be the one it dispatches on — emitting progress to a caller that only
  * reads `replies[0]` would make a working worker look broken.
  *
+ * ## Snapshot reuse and the drop ladder
+ *
+ * A run posts its compact catalog snapshot once, with a `runId`. Drop retries
+ * reuse that snapshot from this cache and send only the `droppedCodes` set,
+ * which is applied here. A bare request without a `runId` (the artifact test)
+ * simply uses the rows it was given, as it always has.
+ *
  * ## Why there is no `cancel` message
  *
  * The walk is synchronous. A message posted from the page while this thread is
@@ -37,9 +44,12 @@
  */
 
 import { generateTimetablesStream, type GenerateParams } from "@/lib/ffcsGenerate";
+import type { ParsedCourse } from "@/lib/ffcsTypes";
+
+type WireFields = { runId?: string; droppedCodes?: readonly string[] };
 
 /** What the main thread may send. */
-type WorkerRequest = { type: "stream"; params: GenerateParams } | GenerateParams;
+type WorkerRequest = ({ type: "stream"; params: GenerateParams } | GenerateParams) & WireFields;
 
 /** What this thread posts back. `success` is unchanged from the one-shot shape. */
 type WorkerReply =
@@ -51,6 +61,26 @@ type WorkerReply =
 
 const post = (reply: WorkerReply) => self.postMessage(reply);
 
+/**
+ * One snapshot per run. Bounded because a worker outlives a single run's page
+ * lifetime; evicting the oldest entry keeps an abandoned ladder from pinning
+ * catalogs in memory.
+ */
+const SNAPSHOT_CACHE_LIMIT = 8;
+const snapshots = new Map<string, readonly ParsedCourse[]>();
+
+function coursesForRun(params: GenerateParams, runId?: string): readonly ParsedCourse[] {
+  if (!runId) return params.masterCourses;
+  const cached = snapshots.get(runId);
+  if (cached) return cached;
+  snapshots.set(runId, params.masterCourses);
+  if (snapshots.size > SNAPSHOT_CACHE_LIMIT) {
+    const oldest = snapshots.keys().next().value;
+    if (oldest !== undefined) snapshots.delete(oldest);
+  }
+  return params.masterCourses;
+}
+
 self.onmessage = (event: MessageEvent<WorkerRequest>) => {
   const data = event.data;
   // A request is streaming only if it says so explicitly. Anything else —
@@ -59,10 +89,19 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
   // original handler always assumed.
   const isStream = !!data && typeof data === "object" && (data as { type?: string }).type === "stream";
   const params = isStream ? (data as { type: "stream"; params: GenerateParams }).params : (data as GenerateParams);
+  const { runId, droppedCodes } = (data ?? {}) as WireFields;
 
   try {
+    let masterCourses = coursesForRun(params, runId);
+    if (droppedCodes?.length) {
+      const dropped = new Set(droppedCodes);
+      masterCourses = masterCourses.filter((course) => !dropped.has(course.CODE));
+    }
+    const effectiveParams: GenerateParams =
+      masterCourses === params.masterCourses ? params : { ...params, masterCourses };
+
     const result = generateTimetablesStream(
-      params,
+      effectiveParams,
       isStream
         ? {
             // Every batch is its own message. `generateTimetablesStream` has

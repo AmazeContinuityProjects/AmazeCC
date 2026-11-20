@@ -13,7 +13,7 @@ import { Check, Users } from "lucide-react";
 import { StatTile, InsightCarousel, useCarousel, type InsightSlide } from "../../../shared/primitives";
 import { getFittingStatTileCount, STAT_TILE_MIN_WIDTH } from "./FFCSDashboardHeader";
 import type { TimetableState } from "@/lib/ffcsTypes";
-import { getTimetableSchema } from "@/lib/campusSchema";
+import { FFCS_SCHEMA } from "@/lib/ffcsTimetableData";
 import { DAYS_OF_WEEK } from "@/lib/slots";
 import { dayOccupancy, formatHours } from "@/lib/timetableMetrics";
 import { clickable } from "@/lib/a11y";
@@ -217,7 +217,7 @@ export const StagedCard = memo(function StagedCard({
   socialOn,
   onPreview,
 }: StagedCardProps) {
-  const optionSchema = getTimetableSchema();
+  const optionSchema = FFCS_SCHEMA;
   const occupancyByDay = DAYS_OF_WEEK.map((day) => dayOccupancy(tt.courses, optionSchema, day));
   const occupiedClasses = occupancyByDay.flatMap((occupancy) => occupancy.classes);
   const latestEnd = occupiedClasses.slice().sort((a, b) => b.endMin - a.endMin)[0]?.end;
@@ -251,7 +251,7 @@ export const StagedCard = memo(function StagedCard({
     >
       <div className="p-3 sm:p-5 flex-1 flex flex-col">
         <div className="flex justify-between items-center gap-2 mb-2 sm:mb-4">
-          <h3 className="font-bold text-sm sm:text-lg text-text-heading">{tt.name}</h3>
+          <h3 className="text-balance font-bold text-sm sm:text-lg text-text-heading">{tt.name}</h3>
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -263,13 +263,13 @@ export const StagedCard = memo(function StagedCard({
                   return [...prev, tt.id];
                 });
               }}
-              className={`hidden sm:inline-flex min-h-10 sm:min-h-0 text-[10px] uppercase font-bold px-2 py-1 rounded-md border transition-colors ${compareIds.includes(tt.id) ? "bg-purple-500 text-white border-purple-500" : "bg-transparent text-muted-foreground border-border-strong hover:border-purple-500/50"}`}
+              className={`hidden sm:inline-flex min-h-10 sm:min-h-0 text-[12px] uppercase font-bold px-2 py-1 rounded-md border transition-colors ${compareIds.includes(tt.id) ? "bg-purple-500 text-white border-purple-500" : "bg-transparent text-muted-foreground border-border-strong hover:border-purple-500/50"}`}
             >
               Compare
             </button>
             <div className="flex items-center gap-2 text-right">
               {tt.rankingScore !== undefined && (
-                <span className="font-mono text-xs font-bold tabular-nums text-indigo-700 dark:text-indigo-300">
+                <span className="font-mono text-xs font-bold text-indigo-700 dark:text-indigo-300 tabular-nums">
                   {tt.rankingScore.toFixed(0)} pts
                 </span>
               )}
@@ -288,27 +288,27 @@ export const StagedCard = memo(function StagedCard({
         </div>
 
         <div className="sm:hidden mb-2 flex flex-wrap gap-1.5">
-          <span className="rounded-md bg-surface-secondary px-2 py-1 text-[10px] font-semibold text-text-secondary">
+          <span className="rounded-md bg-surface-secondary px-2 py-1 text-[12px] font-semibold text-text-secondary tabular-nums">
             {tt.metrics?.halfDays ?? 0} free half-days
           </span>
-          <span className="rounded-md bg-surface-secondary px-2 py-1 text-[10px] font-semibold text-text-secondary">
+          <span className="rounded-md bg-surface-secondary px-2 py-1 text-[12px] font-semibold text-text-secondary tabular-nums">
             {formatHours(tt.metrics?.gaps ?? 0)}h gaps
           </span>
-          <span className="rounded-md bg-surface-secondary px-2 py-1 text-[10px] font-semibold text-text-secondary">
+          <span className="rounded-md bg-surface-secondary px-2 py-1 text-[12px] font-semibold text-text-secondary">
             {occupancyByDay.filter((occupancy) => occupancy.classes.length > 0).length} class days
           </span>
           {latestEnd && (
-            <span className="rounded-md bg-surface-secondary px-2 py-1 text-[10px] font-semibold text-text-secondary">
+            <span className="rounded-md bg-surface-secondary px-2 py-1 text-[12px] font-semibold text-text-secondary">
               ends {latestEnd}
             </span>
           )}
           {socialOn && (
-            <span className="rounded-md bg-pink-500/10 px-2 py-1 text-[10px] font-semibold text-pink-600 dark:text-pink-400">
+            <span className="rounded-md bg-pink-500/10 px-2 py-1 text-[12px] font-semibold text-pink-600 dark:text-pink-400 tabular-nums">
               Social {tt.metrics?.socialScore ?? 0}
             </span>
           )}
           {tt.metrics?.isLongWeekend && (
-            <span className="rounded-md bg-green-500/10 px-2 py-1 text-[10px] font-semibold text-green-600 dark:text-green-400">
+            <span className="rounded-md bg-green-500/10 px-2 py-1 text-[12px] font-semibold text-green-600 dark:text-green-400">
               Long weekend
             </span>
           )}
@@ -316,13 +316,19 @@ export const StagedCard = memo(function StagedCard({
 
         <div className="hidden sm:grid grid-cols-2 gap-3 mb-4 flex-1 content-start">
           <div className="bg-surface-secondary/30 rounded-xl p-3 flex flex-col items-center justify-center text-center">
-            <span className="text-2xl font-black text-text-heading">{tt.metrics?.halfDays}</span>
-            <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Free Half-Days</span>
+            <span className="text-2xl font-black text-text-heading tabular-nums">{tt.metrics?.halfDays}</span>
+            <span className="text-[12px] uppercase font-bold text-muted-foreground tracking-wider">Free Half-Days</span>
           </div>
-          <div className="bg-surface-secondary/30 rounded-xl p-3 flex flex-col items-center justify-center text-center group relative">
-            <span className="text-2xl font-black text-text-heading">{formatHours(tt.metrics?.gaps ?? 0)}h</span>
-            <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Total Gaps</span>
-            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max max-w-[200px] bg-slate-900 text-white text-[10px] p-2 rounded-lg opacity-0 group-hover:opacity-100 active:opacity-100 pointer-events-none transition-opacity z-50 shadow-xl grid grid-cols-2 gap-x-3 gap-y-1">
+          <div
+            tabIndex={0}
+            aria-label="Total gaps breakdown per day"
+            className="bg-surface-secondary/30 rounded-xl p-3 flex flex-col items-center justify-center text-center group relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
+          >
+            <span className="text-2xl font-black text-text-heading tabular-nums">
+              {formatHours(tt.metrics?.gaps ?? 0)}h
+            </span>
+            <span className="text-[12px] uppercase font-bold text-muted-foreground tracking-wider">Total Gaps</span>
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max max-w-[200px] bg-slate-900 text-white text-[12px] p-2 rounded-lg opacity-0 group-hover:opacity-100 group-focus:opacity-100 active:opacity-100 pointer-events-none transition-opacity z-50 shadow-xl grid grid-cols-2 gap-x-3 gap-y-1">
               {Object.entries(tt.metrics?.gapsPerDay || {}).map(([day, gap]) => (
                 <div key={day} className="flex justify-between gap-3">
                   <span className="font-bold text-slate-400 uppercase">{day}</span>
@@ -336,14 +342,14 @@ export const StagedCard = memo(function StagedCard({
         {tt.facultySummary && (
           <div className="hidden sm:block mb-3 rounded-xl border border-indigo-500/20 bg-indigo-500/5 px-3 py-2.5">
             <div className="flex items-center justify-between gap-2 text-xs">
-              <span className="font-bold text-indigo-600 dark:text-indigo-300">Faculty reviews</span>
+              <span className="font-bold text-indigo-600 dark:text-indigo-300 tabular-nums">Faculty reviews</span>
               <span className="font-semibold text-text-heading">
                 {tt.facultySummary.averageWPct == null
                   ? "No ratings"
                   : `${tt.facultySummary.averageWPct.toFixed(1)}% W`}
               </span>
             </div>
-            <p className="mt-1 text-[10px] text-muted-foreground">
+            <p className="text-pretty mt-1 text-[12px] text-muted-foreground">
               {tt.facultySummary.ratedFacultyCount} reviewed · {tt.facultySummary.unratedFacultyCount} unrated
             </p>
           </div>
@@ -366,7 +372,7 @@ export const StagedCard = memo(function StagedCard({
               <Users className="w-3.5 h-3.5" /> Social Score: {tt.metrics?.socialScore}
             </div>
             <div
-              className="text-[10px] text-muted-foreground truncate"
+              className="text-[12px] text-muted-foreground truncate"
               title={tt.metrics?.bestFriendMatches.join(", ")}
             >
               Matches best with:{" "}
@@ -414,7 +420,7 @@ export const StagedCard = memo(function StagedCard({
           <div className="hidden sm:block mt-auto pt-4 border-t border-border-strong/50">
             <div className="flex justify-between items-center mb-2">
               <span className="text-xs font-bold text-muted-foreground uppercase">Faculty Variants</span>
-              <span className="text-[10px] bg-surface-secondary px-2 py-0.5 rounded-full">
+              <span className="text-[12px] bg-surface-secondary px-2 py-0.5 rounded-full">
                 {tt.variants.length} available
               </span>
             </div>
@@ -437,7 +443,7 @@ export const StagedCard = memo(function StagedCard({
                     })}
                     className={`flex items-center justify-between p-2 rounded-lg border text-xs cursor-pointer transition-colors ${isSelected ? "bg-amber-500/10 border-amber-500/50 text-text-heading" : "bg-surface border-border-strong text-muted-foreground hover:border-amber-500/30"}`}
                   >
-                    <span className="font-medium">Variant {vIdx + 1}</span>
+                    <span className="font-medium tabular-nums">Variant {vIdx + 1}</span>
                     <div
                       className={`w-4 h-4 rounded-sm border flex items-center justify-center ${isSelected ? "bg-amber-500 border-amber-500 text-white" : "border-muted-foreground/30"}`}
                     >
@@ -447,7 +453,7 @@ export const StagedCard = memo(function StagedCard({
                 );
               })}
               {tt.variants.length > 50 && (
-                <div className="p-2 text-xs text-center text-muted-foreground bg-surface-secondary/20 rounded-lg">
+                <div className="p-2 text-xs text-center text-muted-foreground bg-surface-secondary/20 rounded-lg tabular-nums">
                   + {tt.variants.length - 50} more variations
                 </div>
               )}

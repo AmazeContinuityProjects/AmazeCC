@@ -93,7 +93,7 @@ export const PasteRegisteredCoursesModal: React.FC<PasteRegisteredCoursesModalPr
               rows={7}
               spellCheck={false}
               placeholder={`Paste your courses here from any source...\n\nSupports:\n• VTOP Registration page copy-paste\n• Markdown or Piped tables (| Code | Title | Slot | Faculty | Room |)\n• CSV / Excel TSV data (with or without headers)\n• JSON array export`}
-              className="w-full bg-surface border border-border-strong rounded-xl p-3 text-xs font-mono text-text-heading resize-y focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all custom-scrollbar placeholder:text-muted-foreground/60"
+              className="w-full bg-surface border border-border-strong rounded-xl p-3 text-xs font-mono text-text-heading resize-y focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all custom-scrollbar placeholder:text-muted-foreground/60 tabular-nums"
             />
 
             {/* Live Preview */}
@@ -103,7 +103,7 @@ export const PasteRegisteredCoursesModal: React.FC<PasteRegisteredCoursesModalPr
                   <span className="font-semibold flex items-center gap-1.5">
                     <Layers className="w-3.5 h-3.5 text-blue-500" /> Detected Courses Preview:
                   </span>
-                  <span className="text-purple-400 font-semibold text-[11px] bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">
+                  <span className="text-purple-400 font-semibold text-[12px] bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">
                     {FORMAT_LABELS[parsedData.format] || "Detected format"}
                   </span>
                 </div>
@@ -113,24 +113,26 @@ export const PasteRegisteredCoursesModal: React.FC<PasteRegisteredCoursesModalPr
                     <div key={idx} className="py-1.5 flex items-center justify-between text-xs gap-2">
                       <div className="flex items-center gap-2 min-w-0">
                         <span
-                          className={`px-2 py-0.5 rounded text-[11px] font-bold text-white shrink-0 ${c.color || "bg-blue-600"}`}
+                          className={`px-2 py-0.5 rounded text-[12px] font-bold text-white shrink-0 ${c.color || "bg-blue-600"}`}
                         >
                           {c.code}
                         </span>
                         <span className="truncate text-text-heading font-medium" title={c.title}>
                           {c.title}
                         </span>
-                        <span className="text-[10px] uppercase font-bold text-muted-foreground bg-surface-secondary px-1.5 py-0.5 rounded shrink-0">
+                        <span className="text-[12px] uppercase font-bold text-muted-foreground bg-surface-secondary px-1.5 py-0.5 rounded shrink-0">
                           {c.type}
                         </span>
                       </div>
-                      <div className="flex items-center gap-3 shrink-0 text-muted-foreground text-[11px]">
-                        <span className="font-mono font-semibold text-text-heading">{c.slots.join("+")}</span>
+                      <div className="flex items-center gap-3 shrink-0 text-muted-foreground text-[12px]">
+                        <span className="font-mono font-semibold text-text-heading tabular-nums">
+                          {c.slots.join("+")}
+                        </span>
                         {c.venue && <span>{c.venue}</span>}
                         <span className="truncate max-w-[120px]" title={c.faculty}>
                           {c.faculty}
                         </span>
-                        <span className="font-medium text-text-heading">{c.credits} cr</span>
+                        <span className="font-medium text-text-heading tabular-nums">{c.credits} cr</span>
                       </div>
                     </div>
                   ))}

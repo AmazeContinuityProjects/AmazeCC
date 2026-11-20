@@ -23,8 +23,8 @@
  * consumers are jsPDF standard fonts, where an en dash is a coin toss and a
  * leading-zero hour keeps the column widths even.
  */
-import { getTimetableSchema } from "@/lib/campusSchema";
 import { findPeriodClash, periodsForSlot, periodsOverlap, type CampusSchema, type SlotPeriod } from "@/lib/slots";
+import { FFCS_SCHEMA } from "@/lib/ffcsTimetableData";
 import type { AddedCourse } from "@/lib/ffcsTypes";
 
 /** One place on the clock where two courses overlap. */
@@ -107,7 +107,7 @@ function pushClash(
  */
 export function courseClashPairs(
   courses: readonly AddedCourse[],
-  schema: CampusSchema = getTimetableSchema(),
+  schema: CampusSchema = FFCS_SCHEMA,
 ): Map<string, CourseClash[]> {
   const byCourse = new Map<string, CourseClash[]>();
   const seen = new Map<string, Set<string>>();
@@ -149,10 +149,7 @@ export function courseClashPairs(
  * clash the way the report tells it, not two. Same-code rows never count —
  * theory and lab halves of one course cannot clash with each other.
  */
-export function courseClashPairCount(
-  courses: readonly AddedCourse[],
-  schema: CampusSchema = getTimetableSchema(),
-): number {
+export function courseClashPairCount(courses: readonly AddedCourse[], schema: CampusSchema = FFCS_SCHEMA): number {
   const periods = courses.map((course) => (course.slots ?? []).flatMap((slot) => periodsForSlot(schema, slot)));
   const clashingPairs = new Set<string>();
   for (let i = 0; i < courses.length; i++) {

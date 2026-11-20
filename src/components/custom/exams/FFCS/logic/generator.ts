@@ -25,12 +25,14 @@
 
 import {
   generateTimetablesStream,
+  toSolverCourses,
   type GenerateParams,
   type GenerateProgress,
   type GenerateResult,
+  type SolverCourse,
 } from "@/lib/ffcsGenerate";
 import type { GeneratorErrorCode } from "@/lib/ffcsGenerate";
-import type { TimetableState } from "@/lib/ffcsTypes";
+import type { ParsedCourse, TimetableState } from "@/lib/ffcsTypes";
 import { sortTimetables } from "@/lib/timetableMetrics";
 
 export type { GenerateParams, GenerateProgress, GenerateResult, GeneratorErrorCode };
@@ -61,6 +63,16 @@ export interface GenerationOptions {
    */
   onBatch?: (timetables: TimetableState[]) => void;
   onProgress?: (progress: GenerateProgress) => void;
+  /**
+   * The compact catalog snapshot for a whole run (including drop retries).
+   * Built once by the caller from the original `masterCourses`, so a retry
+   * never re-serializes or re-clones the full report.
+   */
+  solverCourses?: readonly SolverCourse[];
+  /** Courses the retry ladder has left out; applied inside the worker. */
+  droppedCodes?: readonly string[];
+  /** Identifies one run so the worker can keep its snapshot across retries. */
+  runId?: string;
 }
 
 export interface GenerationHandle {
@@ -118,6 +130,21 @@ function generateInline(
 }
 
 /* ── worker ────────────────────────────────────────────────────────────── */
+
+/**
+ * Snapshots are keyed by the caller's array identity, so a one-shot caller that
+ * posts the same catalog twice still pays for the serialization only once.
+ */
+const solverSnapshots = new WeakMap<readonly ParsedCourse[], readonly SolverCourse[]>();
+
+function snapshotFor(courses: readonly ParsedCourse[]): readonly SolverCourse[] {
+  let snapshot = solverSnapshots.get(courses);
+  if (!snapshot) {
+    snapshot = toSolverCourses(courses);
+    solverSnapshots.set(courses, snapshot);
+  }
+  return snapshot;
+}
 
 function generateInWorker(params: GenerateParams, options: GenerationOptions, stream: boolean): GenerationHandle {
   let settled = false;
@@ -210,7 +237,15 @@ function generateInWorker(params: GenerateParams, options: GenerationOptions, st
     generateInline(params, options, () => cancelled).then(finish);
   };
 
-  worker.postMessage(stream ? { type: "stream", params } : params);
+  // Only solver-read fields cross the structured clone. `runId` lets the
+  // worker keep this snapshot for the whole retry ladder, and `droppedCodes`
+  // is applied there — retries post a few strings, not the full catalog.
+  const snapshot = options.solverCourses ?? snapshotFor(params.masterCourses);
+  const wireParams = { ...params, masterCourses: snapshot } as unknown as GenerateParams;
+  const request = stream
+    ? { type: "stream" as const, params: wireParams, runId: options.runId, droppedCodes: options.droppedCodes }
+    : { ...wireParams, runId: options.runId, droppedCodes: options.droppedCodes };
+  worker.postMessage(request);
 
   return { result, cancel: stop };
 }

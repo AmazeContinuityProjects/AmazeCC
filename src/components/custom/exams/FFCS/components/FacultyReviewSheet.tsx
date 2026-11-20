@@ -162,13 +162,13 @@ export default function FacultyReviewSheet({
       {loading && !prof ? (
         <div className="py-12 flex flex-col items-center justify-center gap-2 text-muted-foreground">
           <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
-          <span className="text-xs">Loading faculty reviews…</span>
+          <span className="text-xs tabular-nums">Loading faculty reviews…</span>
         </div>
       ) : !prof || reviewsCount === 0 ? (
         <div className="py-8 text-center bg-surface-secondary/20 rounded-2xl border border-dashed border-border-strong p-6">
           <GraduationCap className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-50" />
           <p className="text-sm font-semibold text-text-heading">No reviews yet on vitfac</p>
-          <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
+          <p className="text-pretty text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
             This faculty has not received any reviews yet on vitfac.pages.dev.
           </p>
           <a
@@ -185,7 +185,7 @@ export default function FacultyReviewSheet({
           {/* Subject Filter Bar (matching vitfac subject toggle) */}
           {availableCourses.length > 0 && (
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+              <div className="flex items-center justify-between text-[12px] font-bold text-muted-foreground uppercase tracking-wider">
                 <span>Filter by Course</span>
                 {selectedCourseStat && (
                   <span className="text-amber-500 font-semibold lowercase">
@@ -227,7 +227,7 @@ export default function FacultyReviewSheet({
           <div className="bg-surface rounded-2xl border border-border-strong p-4 shadow-xs space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Community Rating</span>
-              <span className="text-xs font-medium text-muted-foreground">
+              <span className="text-xs font-medium text-muted-foreground tabular-nums">
                 {reviewsCount} {reviewsCount === 1 ? "student review" : "student reviews"}
               </span>
             </div>
@@ -265,27 +265,27 @@ export default function FacultyReviewSheet({
               <BookOpen className="w-4 h-4 mx-auto mb-1 text-blue-500" />
               <div className="text-base font-black text-text-heading">
                 {lecture ? lecture.toFixed(1) : "—"}
-                <span className="text-[10px] font-normal text-muted-foreground">/5</span>
+                <span className="text-[12px] font-normal text-muted-foreground tabular-nums">/5</span>
               </div>
-              <div className="text-[10px] font-bold text-muted-foreground uppercase mt-0.5">Lecture</div>
+              <div className="text-[12px] font-bold text-muted-foreground uppercase mt-0.5">Lecture</div>
             </div>
 
             <div className="bg-surface rounded-xl border border-border-strong p-3 text-center">
               <FileText className="w-4 h-4 mx-auto mb-1 text-purple-500" />
               <div className="text-base font-black text-text-heading">
                 {da ? da.toFixed(1) : "—"}
-                <span className="text-[10px] font-normal text-muted-foreground">/5</span>
+                <span className="text-[12px] font-normal text-muted-foreground tabular-nums">/5</span>
               </div>
-              <div className="text-[10px] font-bold text-muted-foreground uppercase mt-0.5">DA Marks</div>
+              <div className="text-[12px] font-bold text-muted-foreground uppercase mt-0.5">DA Marks</div>
             </div>
 
             <div className="bg-surface rounded-xl border border-border-strong p-3 text-center">
               <Smile className="w-4 h-4 mx-auto mb-1 text-amber-500" />
               <div className="text-base font-black text-text-heading">
                 {vibe ? vibe.toFixed(1) : "—"}
-                <span className="text-[10px] font-normal text-muted-foreground">/5</span>
+                <span className="text-[12px] font-normal text-muted-foreground tabular-nums">/5</span>
               </div>
-              <div className="text-[10px] font-bold text-muted-foreground uppercase mt-0.5">Vibe</div>
+              <div className="text-[12px] font-bold text-muted-foreground uppercase mt-0.5">Vibe</div>
             </div>
           </div>
 
@@ -302,7 +302,7 @@ export default function FacultyReviewSheet({
                     className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs font-medium"
                   >
                     <span>{item.text}</span>
-                    <span className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-1 rounded text-[10px] font-bold">
+                    <span className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-1 rounded text-[12px] font-bold tabular-nums">
                       +{item.count}
                     </span>
                   </span>
@@ -324,7 +324,9 @@ export default function FacultyReviewSheet({
                     className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-500/10 border border-red-500/20 text-red-700 dark:text-red-300 text-xs font-medium"
                   >
                     <span>{item.text}</span>
-                    <span className="bg-red-500/20 text-red-500 px-1 rounded text-[10px] font-bold">+{item.count}</span>
+                    <span className="bg-red-500/20 text-red-500 px-1 rounded text-[12px] font-bold tabular-nums">
+                      +{item.count}
+                    </span>
                   </span>
                 ))}
               </div>
@@ -334,12 +336,12 @@ export default function FacultyReviewSheet({
           {/* Courses Taught */}
           {prof.courses && prof.courses.length > 0 && (
             <div className="space-y-1.5 pt-2 border-t border-border-strong/40">
-              <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Known Courses</div>
+              <div className="text-[12px] font-bold uppercase tracking-wider text-muted-foreground">Known Courses</div>
               <div className="flex flex-wrap gap-1">
                 {prof.courses.map((c) => (
                   <span
                     key={c}
-                    className={`px-2 py-0.5 rounded text-[11px] font-mono font-medium border ${
+                    className={`px-2 py-0.5 rounded text-[12px] font-mono font-medium border ${
                       courseCode && c.toUpperCase().includes(courseCode.toUpperCase())
                         ? "bg-amber-500/20 border-amber-500/40 text-amber-500 font-bold"
                         : "bg-surface-secondary/40 border-border-strong text-muted-foreground"
@@ -365,7 +367,7 @@ export default function FacultyReviewSheet({
           <ExternalLink className="w-3.5 h-3.5" />
           <span>Leave a Review for this Faculty on vitfac.pages.dev</span>
         </a>
-        <div className="text-[10px] text-muted-foreground/70 text-center leading-relaxed">
+        <div className="text-[12px] text-muted-foreground/70 text-center leading-relaxed">
           <p>
             Disclaimer: Ratings and reviews are sourced from a third-party platform (
             <a

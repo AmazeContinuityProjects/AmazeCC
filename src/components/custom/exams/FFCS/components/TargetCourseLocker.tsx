@@ -188,7 +188,7 @@ export const TargetCourseLocker: React.FC<TargetCourseLockerProps> = ({
 
   const groupToggle = (
     <div className="flex flex-wrap items-center gap-1.5">
-      <span className="text-[10px] font-bold text-text-heading/70 uppercase">Group by</span>
+      <span className="text-[12px] font-bold text-text-heading/70 uppercase">Group by</span>
       {(
         [
           { id: "faculty", label: "Faculty" },
@@ -221,7 +221,7 @@ export const TargetCourseLocker: React.FC<TargetCourseLockerProps> = ({
       <div className="flex flex-wrap items-start justify-between gap-3">
         {availableSeries.length > 0 && (
           <div className="min-w-0">
-            <div className="text-[10px] font-bold text-text-heading/70 mb-1.5 uppercase">Quick Select Series</div>
+            <div className="text-[12px] font-bold text-text-heading/70 mb-1.5 uppercase">Quick Select Series</div>
             <div className="flex flex-wrap gap-1.5">
               {availableSeries.map((series) => {
                 const seriesOfferings = uniqueOfferings.filter((o) => {
@@ -283,7 +283,7 @@ export const TargetCourseLocker: React.FC<TargetCourseLockerProps> = ({
         {offeringGroupBy === "faculty" && (
           <>
             {catalogReady && rankedFacs.some((r) => r.rank.wPct >= 0) && (
-              <div className="flex items-center gap-1.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+              <div className="flex items-center gap-1.5 text-[12px] font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
                 <Award className="w-3 h-3 shrink-0" />
                 Ranked by vitfac reviews
               </div>
@@ -294,7 +294,7 @@ export const TargetCourseLocker: React.FC<TargetCourseLockerProps> = ({
                   <div className="flex items-center gap-1.5 min-w-0">
                     {rankNumber.has(fac) && (
                       <span
-                        className={`shrink-0 min-w-5 h-5 px-1 rounded-full text-[10px] font-black flex items-center justify-center ${
+                        className={`shrink-0 min-w-5 h-5 px-1 rounded-full text-[12px] font-black flex items-center justify-center ${
                           rankNumber.get(fac) === 1
                             ? "bg-amber-500 text-white"
                             : "bg-surface-secondary text-muted-foreground border border-border-strong"
@@ -336,7 +336,7 @@ export const TargetCourseLocker: React.FC<TargetCourseLockerProps> = ({
         {offeringGroupBy === "slot" && (
           <>
             {catalogReady && rankedFacs.some((r) => r.rank.wPct >= 0) && (
-              <div className="flex items-center gap-1.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+              <div className="flex items-center gap-1.5 text-[12px] font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
                 <Award className="w-3 h-3 shrink-0" />
                 Faculties ranked by vitfac reviews within each slot
               </div>
@@ -349,9 +349,9 @@ export const TargetCourseLocker: React.FC<TargetCourseLockerProps> = ({
                       <Hash className="w-3 h-3" />
                     </span>
                     <span className="truncate">{theory}</span>
-                    <span className="text-[10px] font-medium text-muted-foreground">theory</span>
+                    <span className="text-[12px] font-medium text-muted-foreground">theory</span>
                   </span>
-                  <span className="text-[10px] font-semibold text-muted-foreground shrink-0">
+                  <span className="text-[12px] font-semibold text-muted-foreground shrink-0">
                     {new Set(offeringsByTheorySlot[theory].map((o) => o.faculty)).size} fac
                   </span>
                 </div>
@@ -376,7 +376,7 @@ export const TargetCourseLocker: React.FC<TargetCourseLockerProps> = ({
         )}
       </div>
       {selection.offerings && selection.offerings.length > 0 && (
-        <div className="text-xs text-amber-500 mt-2 font-medium">
+        <div className="text-xs text-amber-500 mt-2 font-medium tabular-nums">
           Filtering by {selection.offerings.length} selected offering{selection.offerings.length === 1 ? "" : "s"}
         </div>
       )}
@@ -421,7 +421,7 @@ const OfferingRow: React.FC<{
 
   const tile =
     leading === "slot" ? (
-      <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/20 text-[11px] font-bold">
+      <span className="w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/20 text-[12px] font-bold tabular-nums">
         {theorySlotOf(offering.slot)}
       </span>
     ) : (
@@ -481,7 +481,7 @@ const OfferingRow: React.FC<{
         </span>
       ) : typeof rank === "number" ? (
         <span
-          className={`inline-flex items-center gap-0.5 text-[10px] font-black px-1.5 py-0.5 rounded shrink-0 ${
+          className={`inline-flex items-center gap-0.5 text-[12px] font-black px-1.5 py-0.5 rounded shrink-0 ${
             rank === 1
               ? "bg-amber-500 text-white"
               : "bg-surface-secondary/70 border border-border-strong/70 text-muted-foreground"
@@ -492,7 +492,7 @@ const OfferingRow: React.FC<{
           <span>{rank}</span>
         </span>
       ) : (
-        <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-surface-secondary/70 border border-border-strong/70 text-muted-foreground shrink-0">
+        <span className="inline-flex items-center gap-1 text-[12px] font-semibold px-1.5 py-0.5 rounded bg-surface-secondary/70 border border-border-strong/70 text-muted-foreground shrink-0">
           <Users className="w-2.5 h-2.5 text-muted-foreground/60 shrink-0" />
           <span>{altCount}</span>
         </span>

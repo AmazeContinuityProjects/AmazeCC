@@ -35,6 +35,10 @@ const SESSION_OPTIONS: readonly { value: TheorySession | "all"; label: string; t
   { value: "mixed", label: "Mixed", title: "Theory on both sides of the lunch break" },
 ];
 
+// Local (not a DS token): the /50 ring belongs to this bar's chips and text
+// actions, and no canonical FILTER_CHIP token exists. Written once here.
+const CHIP_FOCUS_RING = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50";
+
 export default function FFCSResultsFilterBar({
   filters,
   onChange,
@@ -60,7 +64,7 @@ export default function FFCSResultsFilterBar({
           onClick={() => onChange({ ...filters, sameBuilding: !filters.sameBuilding })}
           aria-pressed={filters.sameBuilding}
           title="Only plans whose courses share one building"
-          className={`flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full border transition-colors cursor-pointer ${
+          className={`relative hit-expand flex items-center gap-1.5 text-[12px] font-bold px-2.5 py-1 rounded-full border transition-colors cursor-pointer active:scale-[0.97] ${CHIP_FOCUS_RING} ${
             filters.sameBuilding
               ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-500"
               : "bg-surface border-border-strong text-muted-foreground hover:text-text-heading"
@@ -73,7 +77,7 @@ export default function FFCSResultsFilterBar({
           onClick={() => onChange({ ...filters, groupBySlot: !filters.groupBySlot })}
           aria-pressed={filters.groupBySlot}
           title="One row per distinct slot layout"
-          className={`flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full border transition-colors cursor-pointer ${
+          className={`relative hit-expand flex items-center gap-1.5 text-[12px] font-bold px-2.5 py-1 rounded-full border transition-colors cursor-pointer active:scale-[0.97] ${CHIP_FOCUS_RING} ${
             filters.groupBySlot
               ? "bg-indigo-500/15 border-indigo-500/30 text-indigo-400"
               : "bg-surface border-border-strong text-muted-foreground hover:text-text-heading"
@@ -89,21 +93,21 @@ export default function FFCSResultsFilterBar({
             value={filters.facultyQuery}
             onChange={(event) => onChange({ ...filters, facultyQuery: event.target.value })}
             placeholder="Filter by faculty or code…"
-            className="w-full min-w-0 h-8 pl-1 pr-2 rounded-lg bg-surface border border-border-strong text-xs text-text-heading placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+            className="w-full min-w-0 h-10 pl-2 pr-2 rounded-lg bg-surface border border-border-strong text-xs text-text-heading placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
           />
           {filters.facultyQuery && (
             <button
               type="button"
               onClick={() => onChange({ ...filters, facultyQuery: "" })}
               aria-label="Clear faculty filter"
-              className="p-1 rounded-md text-muted-foreground hover:text-text-heading transition-colors shrink-0"
+              className={`relative hit-expand p-1.5 rounded-md text-muted-foreground hover:text-text-heading active:scale-95 transition-colors shrink-0 ${CHIP_FOCUS_RING}`}
             >
               <X className="w-3.5 h-3.5" />
             </button>
           )}
         </label>
       </div>
-      <div className="flex items-center justify-between gap-2 text-[11px] font-semibold">
+      <div className="flex items-center justify-between gap-2 text-[12px] font-semibold">
         <span className={cut ? "text-amber-500" : "text-muted-foreground"} aria-live="polite">
           {cut
             ? `${visibleCount.toLocaleString()} of ${totalCount.toLocaleString()} plans match`
@@ -113,7 +117,7 @@ export default function FFCSResultsFilterBar({
           <button
             type="button"
             onClick={() => onChange({ ...DEFAULT_RESULT_FILTERS })}
-            className="text-indigo-400 hover:text-indigo-300 font-bold transition-colors cursor-pointer"
+            className={`relative hit-expand text-indigo-400 hover:text-indigo-300 active:text-indigo-200 font-bold transition-colors cursor-pointer rounded ${CHIP_FOCUS_RING}`}
           >
             Clear filters
           </button>

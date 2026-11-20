@@ -39,7 +39,7 @@ export default function FFCSGuideModal({ isOpen, onClose }: FFCSGuideModalProps)
         >
           {/* Welcome */}
           <section>
-            <h4 className="text-lg font-bold text-text-heading mb-3 flex items-center gap-2">
+            <h4 className="text-xl font-bold font-outfit text-text-heading leading-[1.3] text-balance mb-3 flex items-center gap-2">
               <span className="bg-blue-500/20 text-blue-500 p-1.5 rounded-lg">
                 <BookOpen className="w-4 h-4" />
               </span>
@@ -55,7 +55,7 @@ export default function FFCSGuideModal({ isOpen, onClose }: FFCSGuideModalProps)
 
           {/* Adding Courses */}
           <section>
-            <h4 className="text-lg font-bold text-text-heading mb-3 flex items-center gap-2">
+            <h4 className="text-xl font-bold font-outfit text-text-heading leading-[1.3] text-balance mb-3 flex items-center gap-2">
               <span className="bg-emerald-500/20 text-emerald-500 p-1.5 rounded-lg">
                 <Search className="w-4 h-4" />
               </span>
@@ -85,7 +85,7 @@ export default function FFCSGuideModal({ isOpen, onClose }: FFCSGuideModalProps)
 
           {/* Auto-Generator */}
           <section>
-            <h4 className="text-lg font-bold text-text-heading mb-3 flex items-center gap-2">
+            <h4 className="text-xl font-bold font-outfit text-text-heading leading-[1.3] text-balance mb-3 flex items-center gap-2">
               <span className="bg-purple-500/20 text-purple-500 p-1.5 rounded-lg">
                 <Zap className="w-4 h-4" />
               </span>
@@ -125,7 +125,7 @@ export default function FFCSGuideModal({ isOpen, onClose }: FFCSGuideModalProps)
 
           {/* Social Score */}
           <section>
-            <h4 className="text-lg font-bold text-text-heading mb-3 flex items-center gap-2">
+            <h4 className="text-xl font-bold font-outfit text-text-heading leading-[1.3] text-balance mb-3 flex items-center gap-2">
               <span className="bg-pink-500/20 text-pink-500 p-1.5 rounded-lg">
                 <Users className="w-4 h-4" />
               </span>
@@ -155,7 +155,7 @@ export default function FFCSGuideModal({ isOpen, onClose }: FFCSGuideModalProps)
 
           {/* Settings & sharing */}
           <section>
-            <h4 className="text-lg font-bold text-text-heading mb-3 flex items-center gap-2">
+            <h4 className="text-xl font-bold font-outfit text-text-heading leading-[1.3] text-balance mb-3 flex items-center gap-2">
               <span className="bg-sky-500/20 text-sky-500 p-1.5 rounded-lg">
                 <Settings2 className="w-4 h-4" />
               </span>

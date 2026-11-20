@@ -3,6 +3,7 @@
 import type React from "react";
 import type { CourseStrategy } from "@/components/custom/exams/FFCS/components/FFCSGuidedSelector";
 import { Lock, Check, BookOpen, Compass } from "lucide-react";
+import { TEXT_BLOCK } from "@/lib/uiTokens";
 
 /** Extracted from FFCSGuidedSelector's `renderSetupStrategyCard`; markup unchanged. */
 export interface SetupStrategyCardProps {
@@ -44,19 +45,21 @@ export default function SetupStrategyCard({
           >
             <Lock className="w-6 h-6" />
           </div>
-          <div className="min-w-0 flex-1">
+          <div className={TEXT_BLOCK}>
             <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className="text-[10px] font-black uppercase tracking-wider text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-md border border-purple-500/20">
+              <span className="text-[12px] font-black uppercase tracking-wider text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-md border border-purple-500/20">
                 🔒 Mandatory Locks
               </span>
               {courseStrategy === "lock_advance" && (
-                <span className="text-[10px] font-black text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
+                <span className="text-[12px] font-black text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
                   <Check className="w-3 h-3" /> Selected
                 </span>
               )}
             </div>
-            <h3 className="text-base sm:text-lg font-black text-white font-outfit">Lock Target Courses in Advance</h3>
-            <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+            <h3 className="text-balance text-base sm:text-lg font-black text-white font-outfit">
+              Lock Target Courses in Advance
+            </h3>
+            <p className="text-pretty text-xs text-zinc-400 mt-1 leading-relaxed">
               {planMode === "auto"
                 ? "Pre-lock mandatory core courses and optionally restrict allowed slot clusters (like A1, B1) or preferred faculty before generating combinations."
                 : "Pick mandatory core courses and lock preferred faculty or slot groups in advance before scheduling the rest."}
@@ -83,21 +86,21 @@ export default function SetupStrategyCard({
           >
             {planMode === "auto" ? <BookOpen className="w-6 h-6" /> : <Compass className="w-6 h-6" />}
           </div>
-          <div className="min-w-0 flex-1">
+          <div className={TEXT_BLOCK}>
             <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className="text-[10px] font-black uppercase tracking-wider text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-md border border-cyan-500/20">
+              <span className="text-[12px] font-black uppercase tracking-wider text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-md border border-cyan-500/20">
                 {planMode === "auto" ? "⚡ Unconstrained Catalog" : "🧭 Manual Course Selector"}
               </span>
               {courseStrategy === "one_by_one" && (
-                <span className="text-[10px] font-black text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
+                <span className="text-[12px] font-black text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
                   <Check className="w-3 h-3" /> Selected
                 </span>
               )}
             </div>
-            <h3 className="text-base sm:text-lg font-black text-white font-outfit">
+            <h3 className="text-balance text-base sm:text-lg font-black text-white font-outfit">
               {planMode === "auto" ? "Normally Add Courses in List" : "Choose Courses One by One"}
             </h3>
-            <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+            <p className="text-pretty text-xs text-zinc-400 mt-1 leading-relaxed">
               {planMode === "auto"
                 ? "Select target courses normally from the course list without locking slot or faculty constraints, giving the solver full flexibility."
                 : "Directly enter the manual course selector and pick slot offerings dynamically as you build."}

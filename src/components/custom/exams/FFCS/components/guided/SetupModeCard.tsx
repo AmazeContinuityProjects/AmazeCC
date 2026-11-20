@@ -3,6 +3,7 @@
 import type React from "react";
 import type { PlanMode } from "@/components/custom/exams/FFCS/components/FFCSGuidedSelector";
 import { Wand2, Check, Compass } from "lucide-react";
+import { TEXT_BLOCK } from "@/lib/uiTokens";
 
 /** Extracted from FFCSGuidedSelector's `renderSetupModeCard`; markup unchanged. */
 export interface SetupModeCardProps {
@@ -38,19 +39,21 @@ export default function SetupModeCard({ isLandscape = false, setPlanMode, planMo
           >
             <Wand2 className="w-6 h-6" />
           </div>
-          <div className="min-w-0 flex-1">
+          <div className={TEXT_BLOCK}>
             <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
+              <span className="text-[12px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
                 ✨ Algorithmic Engine
               </span>
               {planMode === "auto" && (
-                <span className="text-[10px] font-black text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
+                <span className="text-[12px] font-black text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
                   <Check className="w-3 h-3" /> Selected
                 </span>
               )}
             </div>
-            <h3 className="text-base sm:text-lg font-black text-white font-outfit">Auto-Generate Timetable</h3>
-            <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+            <h3 className="text-balance text-base sm:text-lg font-black text-white font-outfit">
+              Auto-Generate Timetable
+            </h3>
+            <p className="text-pretty text-xs text-zinc-400 mt-1 leading-relaxed">
               Step-by-step guidance: pick target courses, set pacing rules, align with peers, and inspect recommended
               variants with direct faculty review & schedule views.
             </p>
@@ -76,19 +79,21 @@ export default function SetupModeCard({ isLandscape = false, setPlanMode, planMo
           >
             <Compass className="w-6 h-6" />
           </div>
-          <div className="min-w-0 flex-1">
+          <div className={TEXT_BLOCK}>
             <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+              <span className="text-[12px] font-black uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
                 🧭 Manual Builder
               </span>
               {planMode === "custom" && (
-                <span className="text-[10px] font-black text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
+                <span className="text-[12px] font-black text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
                   <Check className="w-3 h-3" /> Selected
                 </span>
               )}
             </div>
-            <h3 className="text-base sm:text-lg font-black text-white font-outfit">Build My Own Timetable</h3>
-            <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+            <h3 className="text-balance text-base sm:text-lg font-black text-white font-outfit">
+              Build My Own Timetable
+            </h3>
+            <p className="text-pretty text-xs text-zinc-400 mt-1 leading-relaxed">
               Select courses and slot offerings one-by-one with real-time conflict checking, faculty ratings, and
               replacement support.
             </p>
