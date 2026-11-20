@@ -1,4 +1,5 @@
 import * as React from "react";
+import { MotionConfig } from "framer-motion";
 import { ThemeProvider } from "@amazecontinuityprojects/amazeui";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import IconUpdater from "../components/custom/IconUpdater";
@@ -115,6 +116,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body suppressHydrationWarning className="antialiased font-sans">
+        {/* WCAG 2.4.1 Bypass Blocks: first focusable element, hidden until focused. */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-surface focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-text-heading focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
+        >
+          Skip to content
+        </a>
         <IconUpdater />
         <ServiceWorkerRegistrar />
         <BackgroundPrefetch />
@@ -125,7 +133,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           disableTransitionOnChange
           value={{ light: "light", dark: "dark" }}
         >
-          {children}
+          <MotionConfig reducedMotion="user">
+            <div id="main-content" tabIndex={-1} className="focus:outline-none">
+              {children}
+            </div>
+          </MotionConfig>
         </ThemeProvider>
       </body>
       <GoogleAnalytics gaId="G-HGB7VDJKX0" />

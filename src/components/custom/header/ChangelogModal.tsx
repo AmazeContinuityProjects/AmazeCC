@@ -1,4 +1,5 @@
 "use client";
+import { TEXT_BLOCK } from "@/lib/uiTokens";
 import { useState, useEffect } from "react";
 import {
   GitBranch,
@@ -27,11 +28,10 @@ import {
 } from "../shared/primitives";
 
 /**
- * Commit type -> visual icon and tactile tint styling.
+ * Commit type -> visual icon and accessible label.
  *
- * Instead of bulky text badges that consume horizontal space on mobile,
- * each commit type is represented by a crisp, Apple-grade icon well with
- * subtle colored surface depth and crisp micro-borders.
+ * Every type shares one neutral well and the single accent: the icon carries
+ * the distinction, colour never does. Green/amber/red stay reserved for status.
  */
 interface CommitTypeConfig {
   icon: typeof Sparkles;
@@ -40,60 +40,22 @@ interface CommitTypeConfig {
   iconClass: string;
 }
 
+const NEUTRAL_WELL = "bg-zinc-500/10 border-zinc-500/20 text-info";
+
 const TYPE_CONFIG: Record<string, CommitTypeConfig> = {
-  feat: {
-    icon: Sparkles,
-    label: "Feature",
-    containerClass:
-      "bg-emerald-500/10 dark:bg-emerald-500/15 border-emerald-500/25 text-emerald-600 dark:text-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.12)]",
-    iconClass: "stroke-[2.2]",
-  },
-  fix: {
-    icon: Bug,
-    label: "Bug Fix",
-    containerClass:
-      "bg-rose-500/10 dark:bg-rose-500/15 border-rose-500/25 text-rose-600 dark:text-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.12)]",
-    iconClass: "stroke-[2.2]",
-  },
-  refactor: {
-    icon: Code2,
-    label: "Refactor",
-    containerClass:
-      "bg-indigo-500/10 dark:bg-indigo-500/15 border-indigo-500/25 text-indigo-600 dark:text-indigo-400 shadow-[0_0_8px_rgba(99,102,241,0.12)]",
-    iconClass: "stroke-[2.2]",
-  },
-  perf: {
-    icon: Zap,
-    label: "Performance",
-    containerClass:
-      "bg-amber-500/10 dark:bg-amber-500/15 border-amber-500/25 text-amber-600 dark:text-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.12)]",
-    iconClass: "stroke-[2.2]",
-  },
-  docs: {
-    icon: FileText,
-    label: "Docs",
-    containerClass: "bg-sky-500/10 dark:bg-sky-500/15 border-sky-500/25 text-sky-600 dark:text-sky-400",
-    iconClass: "stroke-[2.2]",
-  },
-  style: {
-    icon: Palette,
-    label: "Design",
-    containerClass:
-      "bg-fuchsia-500/10 dark:bg-fuchsia-500/15 border-fuchsia-500/25 text-fuchsia-600 dark:text-fuchsia-400",
-    iconClass: "stroke-[2.2]",
-  },
-  chore: {
-    icon: Wrench,
-    label: "Chore",
-    containerClass: "bg-slate-500/10 dark:bg-zinc-500/15 border-slate-500/25 text-slate-600 dark:text-zinc-400",
-    iconClass: "stroke-[2.2]",
-  },
+  feat: { icon: Sparkles, label: "Feature", containerClass: NEUTRAL_WELL, iconClass: "stroke-[2.2]" },
+  fix: { icon: Bug, label: "Bug Fix", containerClass: NEUTRAL_WELL, iconClass: "stroke-[2.2]" },
+  refactor: { icon: Code2, label: "Refactor", containerClass: NEUTRAL_WELL, iconClass: "stroke-[2.2]" },
+  perf: { icon: Zap, label: "Performance", containerClass: NEUTRAL_WELL, iconClass: "stroke-[2.2]" },
+  docs: { icon: FileText, label: "Docs", containerClass: NEUTRAL_WELL, iconClass: "stroke-[2.2]" },
+  style: { icon: Palette, label: "Design", containerClass: NEUTRAL_WELL, iconClass: "stroke-[2.2]" },
+  chore: { icon: Wrench, label: "Chore", containerClass: NEUTRAL_WELL, iconClass: "stroke-[2.2]" },
 };
 
 const DEFAULT_TYPE_CONFIG: CommitTypeConfig = {
   icon: GitCommit,
   label: "Update",
-  containerClass: "bg-blue-500/10 dark:bg-blue-500/15 border-blue-500/25 text-blue-600 dark:text-blue-400",
+  containerClass: NEUTRAL_WELL,
   iconClass: "stroke-[2.2]",
 };
 
@@ -169,12 +131,12 @@ export default function ChangelogModal({ handleClose }: { handleClose: () => voi
             icon={Sparkles}
             title="What's new in this build"
             count={buildInfo.changes.length}
-            right={<span className="text-[10px] font-bold text-text-muted shrink-0">{buildInfo.date}</span>}
+            right={<span className="text-xs font-bold text-text-muted shrink-0">{buildInfo.date}</span>}
           />
           <ListShell>
             {buildInfo.changes.map((change, i) => (
               <div key={i} className="flex items-start gap-2.5 py-2.5 px-4">
-                <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
+                <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-info shrink-0" />
                 <span className="text-xs font-medium leading-relaxed text-text-secondary dark:text-text-muted flex-1 min-w-0">
                   {change}
                 </span>
@@ -184,7 +146,7 @@ export default function ChangelogModal({ handleClose }: { handleClose: () => voi
                     target="_blank"
                     rel="noreferrer"
                     title={`Open commit ${buildInfo.commitHash} on GitHub`}
-                    className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-surface-tertiary dark:bg-surface-secondary px-2 py-1 text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400 border border-border-muted hover:border-indigo-500/40 transition-colors"
+                    className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-surface-tertiary dark:bg-surface-secondary px-2 py-1 text-xs font-mono font-bold text-info border border-border-muted hover:border-info/40 transition-colors"
                   >
                     <GitCommit className="h-2.5 w-2.5" />
                     {buildInfo.commitHash}
@@ -209,7 +171,7 @@ export default function ChangelogModal({ handleClose }: { handleClose: () => voi
                 title={group.date}
                 count={group.commits.length}
                 right={
-                  <span className="text-[10px] font-bold text-text-muted shrink-0">
+                  <span className="text-xs font-bold text-text-muted shrink-0">
                     {group.commits.length === 1 ? "commit" : "commits"}
                   </span>
                 }
@@ -232,11 +194,14 @@ export default function ChangelogModal({ handleClose }: { handleClose: () => voi
                         <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${conf.iconClass}`} />
                       </div>
 
-                      <div className="min-w-0 flex-1 pt-0.5">
-                        <p className="text-xs font-semibold text-text-heading leading-relaxed line-clamp-2 sm:line-clamp-none">
+                      <div className={`${TEXT_BLOCK} pt-0.5`}>
+                        <p
+                          title={commit.cleanMessage}
+                          className="text-xs font-semibold text-text-heading leading-relaxed line-clamp-2 sm:line-clamp-none"
+                        >
                           {commit.cleanMessage}
                         </p>
-                        <div className="mt-1 flex items-center gap-1.5 text-[10.5px] font-medium text-text-muted">
+                        <div className="mt-1 flex items-center gap-1.5 text-xs font-medium text-text-muted">
                           <span>
                             by{" "}
                             <span className="font-bold text-text-secondary dark:text-text-secondary">
@@ -244,7 +209,7 @@ export default function ChangelogModal({ handleClose }: { handleClose: () => voi
                             </span>
                           </span>
                           <span className="text-border-muted opacity-60">·</span>
-                          <span className="text-[10px] font-semibold text-text-muted capitalize">{conf.label}</span>
+                          <span className="text-xs font-semibold text-text-muted capitalize">{conf.label}</span>
                         </div>
                       </div>
 
@@ -253,7 +218,7 @@ export default function ChangelogModal({ handleClose }: { handleClose: () => voi
                         target="_blank"
                         rel="noreferrer"
                         title={`Open commit ${commit.shortSha} on GitHub`}
-                        className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-surface-tertiary dark:bg-surface-secondary px-2 py-1 text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400 border border-border-muted hover:border-indigo-500/40 active:scale-95 transition-all"
+                        className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-surface-tertiary dark:bg-surface-secondary px-2 py-1 text-xs font-mono font-bold text-info border border-border-muted hover:border-info/40 active:scale-95 transition-all"
                       >
                         <GitCommit className="h-2.5 w-2.5" />
                         {commit.shortSha}
@@ -274,12 +239,12 @@ export default function ChangelogModal({ handleClose }: { handleClose: () => voi
                 <SectionHeader
                   icon={Sparkles}
                   title={release.version}
-                  right={<span className="text-[10px] font-bold text-text-muted shrink-0">{release.date}</span>}
+                  right={<span className="text-xs font-bold text-text-muted shrink-0">{release.date}</span>}
                 />
                 <ListShell>
                   {release.changes.map((change, i) => (
                     <div key={i} className="flex items-start gap-2.5 py-2.5 px-4">
-                      <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
+                      <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-info shrink-0" />
                       <span className="text-xs font-medium leading-relaxed text-text-secondary dark:text-text-muted">
                         {change}
                       </span>

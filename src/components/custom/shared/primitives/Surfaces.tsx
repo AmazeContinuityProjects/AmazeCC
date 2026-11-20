@@ -28,12 +28,8 @@ export function SectionHeader({
     <div className={`flex items-center justify-between gap-2 px-1 ${className}`.trim()}>
       <div className="flex items-center gap-2 min-w-0">
         {leading ?? (Icon ? <Icon className="w-4 h-4 text-indigo-500 shrink-0" /> : null)}
-        <h2 className="text-sm font-black text-text-heading font-outfit tracking-tight truncate">
-          {title}
-        </h2>
-        {typeof count === "number" ? (
-          <span className={`${SECTION_CHIP} shrink-0`}>{count}</span>
-        ) : null}
+        <h2 className="text-sm font-black text-text-heading font-outfit tracking-tight truncate">{title}</h2>
+        {typeof count === "number" ? <span className={`${SECTION_CHIP} shrink-0`}>{count}</span> : null}
       </div>
       {right ? <div className="flex items-center gap-2 shrink-0">{right}</div> : null}
     </div>
@@ -84,17 +80,17 @@ export function StatTile({
   const valueTone =
     !tone || tone === "neutral" || tone === "default"
       ? "text-zinc-900 dark:text-white"
-      : TONE_TEXT[tone] ?? "text-zinc-900 dark:text-white";
+      : (TONE_TEXT[tone] ?? "text-zinc-900 dark:text-white");
 
   return (
     <div className={`${TILE} ${height} ${className}`.trim()}>
       <div className="flex items-center justify-between gap-1">
-        <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">
+        <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">
           {label}
         </span>
         {badge ? (
           <span
-            className={`text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border shrink-0 ${
+            className={`text-xs font-extrabold uppercase px-2 py-0.5 rounded-md border shrink-0 ${
               TONE_BADGE[tone] ?? TONE_BADGE.zinc
             }`}
           >
@@ -108,7 +104,7 @@ export function StatTile({
       <div className="my-auto min-w-0">
         <p
           data-private
-          className={`text-2xl sm:text-3xl font-black font-outfit tracking-tight leading-tight truncate block ${valueTone}`}
+          className={`text-[32px] font-black font-outfit tracking-tight leading-[1.15] tabular-nums truncate block ${valueTone}`}
         >
           {value}
         </p>
@@ -116,9 +112,7 @@ export function StatTile({
 
       {sub ? (
         <div className="flex items-center justify-between gap-2 min-w-0">
-          <div className="text-[10.5px] sm:text-xs text-text-secondary dark:text-text-muted font-medium truncate">
-            {sub}
-          </div>
+          <div className="text-xs text-text-secondary dark:text-text-muted font-medium truncate">{sub}</div>
         </div>
       ) : null}
     </div>
@@ -126,20 +120,12 @@ export function StatTile({
 }
 
 /** Grouped list container — the workhorse for "N rows that look like one card". */
-export function ListShell({
-  className = "",
-  children,
-}: {
-  className?: string;
-  children: ReactNode;
-}) {
+export function ListShell({ className = "", children }: { className?: string; children: ReactNode }) {
   return <div className={`${LIST_SHELL} ${className}`.trim()}>{children}</div>;
 }
 
-const ROW_TITLE =
-  "font-bold text-sm text-text-heading truncate font-outfit leading-tight";
-const ROW_SUBTITLE_BASE =
-  "text-[11px] text-text-secondary dark:text-text-muted font-medium mt-0.5";
+const ROW_TITLE = "font-bold text-sm text-text-heading truncate font-outfit leading-tight";
+const ROW_SUBTITLE_BASE = "text-xs text-text-secondary dark:text-text-muted font-medium mt-0.5";
 const ROW_SUBTITLE = `${ROW_SUBTITLE_BASE} truncate`;
 const ROW_SUBTITLE_WRAP = `${ROW_SUBTITLE_BASE} whitespace-normal break-words`;
 
@@ -179,9 +165,7 @@ export function ListRowText({
         </Tag>
         {right ? <div className="flex items-center gap-2 shrink-0">{right}</div> : null}
       </div>
-      {subtitle ? (
-        <p className={wrapSubtitle ? ROW_SUBTITLE_WRAP : ROW_SUBTITLE}>{subtitle}</p>
-      ) : null}
+      {subtitle ? <p className={wrapSubtitle ? ROW_SUBTITLE_WRAP : ROW_SUBTITLE}>{subtitle}</p> : null}
     </div>
   );
 }
@@ -242,12 +226,8 @@ export function KeyValue({
     <div
       className={`p-3 rounded-2xl bg-surface-secondary dark:bg-background/50 border border-border-muted dark:border-border ${className}`.trim()}
     >
-      <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted block mb-0.5">
-        {label}
-      </span>
-      <span className={`font-extrabold text-text-heading ${valueClassName}`.trim()}>
-        {value}
-      </span>
+      <span className="text-xs font-bold uppercase tracking-wider text-text-muted block mb-0.5">{label}</span>
+      <span className={`font-extrabold text-text-heading ${valueClassName}`.trim()}>{value}</span>
     </div>
   );
 }

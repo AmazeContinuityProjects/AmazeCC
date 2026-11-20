@@ -36,6 +36,8 @@ import {
   Bus,
   Search,
   LogOut,
+  Blocks,
+  X,
   CarTaxiFront,
   MoreHorizontal,
   Rss,
@@ -64,7 +66,13 @@ import {
 import { useSyncTrigger } from "../shared/useSyncTrigger";
 import config from "../../../../config.json";
 import { shouldShowGpa, shouldShowProfilePhoto } from "@/lib/settingsVisibility";
-import { activateEntry, getModuleRegistry, type ModuleEntry } from "@/lib/navigation/registry";
+import {
+  activateEntry,
+  getModuleRegistry,
+  getPinLabel,
+  getRailLabel,
+  type ModuleEntry,
+} from "@/lib/navigation/registry";
 
 type NavItem = {
   id: string;
@@ -85,10 +93,15 @@ type Group = {
 type MobileNavItem = {
   id: string;
   label: string;
+  /** Short registry-sourced name shown under the icon on the bottom rail. */
+  shortLabel: string;
   icon: ReactNode;
   isActive: boolean;
   onClick: () => void;
 };
+
+/** Pins beyond this stay reachable in the App Library, not on the narrow rail. */
+const MAX_VISIBLE_RAIL_PINS = 3;
 
 const MobileBottomNav = memo(function MobileBottomNav({
   items,
@@ -98,7 +111,7 @@ const MobileBottomNav = memo(function MobileBottomNav({
   onItemTap: (item: MobileNavItem) => void;
 }) {
   return (
-    <div className="md:hidden fixed bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[380px] z-40 bg-white/95 dark:bg-zinc-950/95 border border-zinc-200/60 dark:border-zinc-800/80 rounded-[24px] p-1.5 shadow-[0_12px_35px_-8px_rgba(0,0,0,0.12)] dark:shadow-[0_12px_35px_-8px_rgba(0,0,0,0.55)] flex items-center justify-around mobile-bottom-nav-bar">
+    <div className="md:hidden fixed bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[380px] z-40 bg-white/95 dark:bg-zinc-950/95 border border-zinc-200/60 dark:border-zinc-800/80 rounded-[24px] p-1.5 shadow-2xl flex items-center justify-around mobile-bottom-nav-bar">
       {items.map((item) => (
         <button
           key={item.id}
@@ -106,19 +119,26 @@ const MobileBottomNav = memo(function MobileBottomNav({
           onClick={() => onItemTap(item)}
           aria-label={hasSectionHome(item.id) ? `${item.label} — double tap for home` : item.label}
           title={item.label}
-          className="flex items-center justify-center flex-1 py-2 relative select-none cursor-pointer group focus:outline-none transition-transform active:scale-95 motion-reduce:transition-none"
+          className="flex min-w-0 flex-col items-center justify-center flex-1 gap-0.5 py-1.5 relative select-none cursor-pointer group focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring transition-transform active:scale-95 motion-reduce:transition-none"
         >
           {item.isActive && <div className="absolute inset-1 rounded-2xl bg-info-surface/90 dark:bg-info/10 z-0" />}
-          <div className="relative z-10 flex items-center justify-center">
+          <div className="relative z-10 flex w-full min-w-0 flex-col items-center justify-center gap-0.5">
             <div
-              className={`p-1.5 transition-[color,transform] duration-200 ${
+              className={`p-1 transition-[color,transform] duration-200 ${
                 item.isActive
-                  ? "scale-[1.15] text-info"
+                  ? "scale-[1.1] text-info"
                   : "text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-600 dark:group-hover:text-zinc-300"
               }`}
             >
               {item.icon}
             </div>
+            <span
+              className={`w-full truncate text-center text-xs font-bold leading-4 ${
+                item.isActive ? "text-info" : "text-zinc-400 dark:text-zinc-500"
+              }`}
+            >
+              {item.shortLabel}
+            </span>
           </div>
         </button>
       ))}
@@ -128,7 +148,7 @@ const MobileBottomNav = memo(function MobileBottomNav({
 
 const navButtonBase = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/40";
 
-export default function NavigationTabs({
+function NavigationTabs({
   activeTab,
   setActiveTab,
   handleLogOutRequest,
@@ -202,7 +222,40 @@ export default function NavigationTabs({
 
   // Theme settings (next-themes)
   const { theme, setTheme } = useTheme();
-  const [isThemeExpanded, setIsThemeExpanded] = useState(false);
+
+  // The pin limit used to fail silently. One small status message, shared by
+  // every pin control in this sheet, now names the limit and the recovery.
+  const [pinToast, setPinToast] = useState<string | null>(null);
+  const pinToastTimer = useRef<number | null>(null);
+  const showPinToast = useCallback((message: string) => {
+    setPinToast(message);
+    if (pinToastTimer.current !== null) window.clearTimeout(pinToastTimer.current);
+    pinToastTimer.current = window.setTimeout(() => setPinToast(null), 2600);
+  }, []);
+  useEffect(
+    () => () => {
+      if (pinToastTimer.current !== null) window.clearTimeout(pinToastTimer.current);
+    },
+    [],
+  );
+
+  // A first-use hint makes the section-home gesture discoverable without
+  // changing the gesture itself (and without a permanent label on every rail
+  // item). Dismiss once; the preference survives reloads.
+  const [showDoubleTapHint, setShowDoubleTapHint] = useState(false);
+  useEffect(() => {
+    try {
+      setShowDoubleTapHint(localStorage.getItem("amaze_double_tap_hint_seen") !== "true");
+    } catch {
+      setShowDoubleTapHint(true);
+    }
+  }, []);
+  const dismissDoubleTapHint = useCallback(() => {
+    setShowDoubleTapHint(false);
+    try {
+      localStorage.setItem("amaze_double_tap_hint_seen", "true");
+    } catch {}
+  }, []);
 
   // Expanded mode depends on settings
   const isExpandedMode = !settings.isSidebarCollapsed;
@@ -348,25 +401,28 @@ export default function NavigationTabs({
     () => ({
       attendance:
         activeAttendanceSubTab === "calendar"
-          ? { icon: <Calendar className="h-5 w-5 stroke-[2]" />, label: "Calendar" }
-          : { icon: <CalendarCheck className="h-5 w-5 stroke-[2]" />, label: "Attendance" },
-      academics: { icon: <GraduationCap className="h-5 w-5 stroke-[2]" />, label: "Academics" },
-      tools: { icon: <Layers className="h-5 w-5 stroke-[2]" />, label: "Tools" },
-      payments: { icon: <CreditCard className="h-5 w-5 stroke-[2]" />, label: "Payments" },
-      libraries: { icon: <Library className="h-5 w-5 stroke-[2]" />, label: "Libraries" },
-      events: { icon: <Calendar className="h-5 w-5 stroke-[2]" />, label: "Event Hub" },
-      clubs: { icon: <LayoutGrid className="h-5 w-5 stroke-[2]" />, label: "Club Hub" },
-      community: { icon: <Rss className="h-5 w-5 stroke-[2]" />, label: "Announcements" },
-      "free-class": { icon: <DoorOpen className="h-5 w-5 stroke-[2]" />, label: "Free Classrooms" },
-      "paper-scanner": { icon: <ScanLine className="h-5 w-5 stroke-[2]" />, label: "Paper Scanner" },
-      "faculty-schedule": { icon: <UserSearch className="h-5 w-5 stroke-[2]" />, label: "Faculty Schedule" },
-      "friend-finder": { icon: <UsersRound className="h-5 w-5 stroke-[2]" />, label: "Find Classmates" },
-      cabshare: { icon: <CarTaxiFront className="h-5 w-5 stroke-[2]" />, label: "Cab Share" },
-      transport: { icon: <Bus className="h-5 w-5 stroke-[2]" />, label: "Transport" },
-      more: { icon: <MoreHorizontal className="h-5 w-5 stroke-[2]" />, label: "More" },
-      profile: { icon: <User className="h-5 w-5 stroke-[2]" />, label: "Profile" },
-      credentials: { icon: <Key className="h-5 w-5 stroke-[2]" />, label: "Credentials" },
-      hostel: { icon: <Home className="h-5 w-5 stroke-[2]" />, label: "Hostel Hub" },
+          ? { icon: <Calendar className="h-5 w-5 stroke-[2]" />, label: getPinLabel("attendance") }
+          : { icon: <CalendarCheck className="h-5 w-5 stroke-[2]" />, label: getPinLabel("attendance") },
+      academics: { icon: <GraduationCap className="h-5 w-5 stroke-[2]" />, label: getPinLabel("academics") },
+      tools: { icon: <Layers className="h-5 w-5 stroke-[2]" />, label: getPinLabel("tools") },
+      payments: { icon: <CreditCard className="h-5 w-5 stroke-[2]" />, label: getPinLabel("payments") },
+      libraries: { icon: <Library className="h-5 w-5 stroke-[2]" />, label: getPinLabel("libraries") },
+      events: { icon: <Calendar className="h-5 w-5 stroke-[2]" />, label: getPinLabel("events") },
+      clubs: { icon: <LayoutGrid className="h-5 w-5 stroke-[2]" />, label: getPinLabel("clubs") },
+      community: { icon: <Rss className="h-5 w-5 stroke-[2]" />, label: getPinLabel("community") },
+      "free-class": { icon: <DoorOpen className="h-5 w-5 stroke-[2]" />, label: getPinLabel("free-class") },
+      "paper-scanner": { icon: <ScanLine className="h-5 w-5 stroke-[2]" />, label: getPinLabel("paper-scanner") },
+      "faculty-schedule": {
+        icon: <UserSearch className="h-5 w-5 stroke-[2]" />,
+        label: getPinLabel("faculty-schedule"),
+      },
+      "friend-finder": { icon: <UsersRound className="h-5 w-5 stroke-[2]" />, label: getPinLabel("friend-finder") },
+      cabshare: { icon: <CarTaxiFront className="h-5 w-5 stroke-[2]" />, label: getPinLabel("cabshare") },
+      transport: { icon: <Bus className="h-5 w-5 stroke-[2]" />, label: getPinLabel("transport") },
+      more: { icon: <MoreHorizontal className="h-5 w-5 stroke-[2]" />, label: getPinLabel("more") },
+      profile: { icon: <User className="h-5 w-5 stroke-[2]" />, label: getPinLabel("profile") },
+      credentials: { icon: <Key className="h-5 w-5 stroke-[2]" />, label: getPinLabel("credentials") },
+      hostel: { icon: <Home className="h-5 w-5 stroke-[2]" />, label: getPinLabel("hostel") },
     }),
     [activeAttendanceSubTab],
   );
@@ -376,14 +432,17 @@ export default function NavigationTabs({
       const current = settings?.pinnedNavTabs ?? [];
       const isPinned = current.includes(tabId);
       const atLimit = !isPinned && current.length >= 4;
-      if (atLimit) return;
+      if (atLimit) {
+        showPinToast("4 of 4 pins used — unpin one first");
+        return;
+      }
       const next = isPinned ? current.filter((id: string) => id !== tabId) : [...current, tabId];
       setSettings((prev: any) => {
         const updated = { ...prev, pinnedNavTabs: next };
         return updated;
       });
     },
-    [settings, setSettings],
+    [settings, setSettings, showPinToast],
   );
 
   const rawNavItems = useMemo(() => {
@@ -393,6 +452,7 @@ export default function NavigationTabs({
         id: "home",
         icon: <Home className="h-5 w-5 stroke-[2]" />,
         label: "Home",
+        shortLabel: getRailLabel("home"),
         isActive: activeTab === "home" && !isAppLibraryOpen,
         onClick: () => {
           setIsAppLibraryOpen(false);
@@ -406,23 +466,35 @@ export default function NavigationTabs({
         id: "search",
         icon: <Search className="h-5 w-5 stroke-[2]" />,
         label: "Search",
+        shortLabel: getRailLabel("search"),
         isActive: false,
         onClick: openCommandPalette,
       });
     } else {
-      pinnedTabs.forEach((tabId: string) => {
+      // The rail is a fixed-height strip: show only the first few pins and keep
+      // the rest in the App Library, so adding a pin never grows the rail. The
+      // active pin is always kept in view when a student has pinned more than fit.
+      const pinIsActive = (tabId: string) =>
+        tabId === "credentials"
+          ? activeTab === "profile" && activeProfileSubTab === "credentials" && !isAppLibraryOpen
+          : tabId === "profile" && pinnedTabs.includes("credentials")
+            ? activeTab === "profile" && activeProfileSubTab !== "credentials" && !isAppLibraryOpen
+            : activeTab === tabId && !isAppLibraryOpen;
+      const visiblePinnedTabs =
+        pinnedTabs.length > MAX_VISIBLE_RAIL_PINS
+          ? [...pinnedTabs]
+              .sort((a, b) => Number(pinIsActive(b)) - Number(pinIsActive(a)))
+              .slice(0, MAX_VISIBLE_RAIL_PINS)
+          : pinnedTabs;
+      visiblePinnedTabs.forEach((tabId: string) => {
         const t = tabIcons[tabId];
         if (t) {
           rawItems.push({
             id: tabId,
             icon: t.icon,
             label: t.label,
-            isActive:
-              tabId === "credentials"
-                ? activeTab === "profile" && activeProfileSubTab === "credentials" && !isAppLibraryOpen
-                : tabId === "profile" && pinnedTabs.includes("credentials")
-                  ? activeTab === "profile" && activeProfileSubTab !== "credentials" && !isAppLibraryOpen
-                  : activeTab === tabId && !isAppLibraryOpen,
+            shortLabel: getRailLabel(tabId),
+            isActive: pinIsActive(tabId),
             onClick: () => {
               setIsAppLibraryOpen(false);
               if (tabId === "credentials") {
@@ -442,8 +514,9 @@ export default function NavigationTabs({
 
     rawItems.push({
       id: "modules",
-      icon: <LayoutGrid className="h-5 w-5 stroke-[2]" />,
+      icon: <Blocks className="h-5 w-5 stroke-[2]" />,
       label: "Modules",
+      shortLabel: getRailLabel("modules"),
       isActive: isAppLibraryOpen,
       onClick: () => {
         setIsAppLibraryOpen((prev) => !prev);
@@ -753,7 +826,11 @@ export default function NavigationTabs({
         },
       },
     };
-    return pinnedTabs.map((id: string) => ({ id, ...tabData[id] })).filter((item: any) => item.label !== undefined);
+    // One name per destination, read from the registry rather than retyped in
+    // each nav surface (sidebar, rail, app library, pin chips).
+    return pinnedTabs
+      .filter((id: string) => Boolean(tabData[id]))
+      .map((id: string) => ({ ...tabData[id], id, label: getPinLabel(id) }));
   }, [
     settings?.pinnedNavTabs,
     activeTab,
@@ -913,14 +990,39 @@ export default function NavigationTabs({
   const renderMobileNav = () => {
     return (
       <>
-        {/* Sleek Floating Pill Bottom Navigation Bar (Icon-Only on Mobile).
-            z-40, deliberately below every overlay surface: the option-picker
-            portal paints at z-50, sheets at z-55/60. At z-55 this pill floated
-            *above* an open picker — staying bright and tappable under the dim,
-            swallowing outside-taps meant to dismiss, and covering popups that
-            extended into its region. A bottom nav must dim with the page, not
-            hover over modals. */}
+        {/* Floating pill bottom navigation. z-40, deliberately below every
+            overlay surface: the option-picker portal paints at z-50, sheets at
+            z-55/60. At z-55 this pill floated *above* an open picker — staying
+            bright and tappable under the dim, swallowing outside-taps meant to
+            dismiss, and covering popups that extended into its region. A bottom
+            nav must dim with the page, not hover over modals. */}
         <MobileBottomNav items={rawNavItems} onItemTap={handleNavItemTap} />
+
+        {showDoubleTapHint && (
+          <div className="md:hidden fixed bottom-[calc(env(safe-area-inset-bottom,0px)+86px)] left-1/2 -translate-x-1/2 w-[calc(100%-3rem)] max-w-[360px] z-30 flex items-start gap-2 rounded-2xl border border-zinc-200 bg-white/95 px-3 py-2 text-sm font-medium text-zinc-600 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950/95 dark:text-zinc-300">
+            <span className="flex-1">Tip: tap the active tab again to go to its home.</span>
+            <button
+              type="button"
+              onClick={dismissDoubleTapHint}
+              aria-label="Dismiss navigation tip"
+              className="shrink-0 rounded-md p-0.5 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-pointer"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
+
+        {/* Above the App Library sheet so the pin-limit message is actually
+            seen at the moment the fifth pin is tapped. */}
+        {pinToast && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="fixed top-[calc(env(safe-area-inset-top,0px)+12px)] left-1/2 -translate-x-1/2 z-[70] max-w-[calc(100%-2rem)] rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm font-bold text-white shadow-2xl dark:border-zinc-200 dark:bg-zinc-100 dark:text-zinc-900"
+          >
+            {pinToast}
+          </div>
+        )}
 
         <AppLibraryPortal
           open={isAppLibraryOpen}
@@ -1021,9 +1123,9 @@ export default function NavigationTabs({
                 className="overflow-hidden space-y-3"
               >
                 {/* Left-aligned clean Semester Summary Card */}
-                <div className="mt-3 rounded-lg border border-sidebar-border bg-sidebar-accent/50 p-2.5 text-[11px] space-y-1.5 shadow-2xs">
+                <div className="mt-3 rounded-lg border border-sidebar-border bg-sidebar-accent/50 p-2.5 text-sm space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <div className="font-semibold text-sidebar-foreground/75 tracking-wide text-[10px] uppercase">
+                    <div className="font-semibold text-sidebar-foreground/75 tracking-wide text-xs uppercase">
                       Current Semester
                     </div>
                     <div role="group" aria-label="Current semester" className="flex max-w-[9rem] shrink-0">
@@ -1037,7 +1139,7 @@ export default function NavigationTabs({
                           label: formatSemesterName(semId),
                         }))}
                         searchable={false}
-                        className="w-full [&>button:first-child]:h-auto [&>button:first-child]:p-0 [&>button:first-child]:rounded-none [&>button:first-child]:border-none [&>button:first-child]:shadow-none [&>button:first-child]:justify-end [&>button:first-child]:text-info [&>button:first-child]:hover:underline [&>button:first-child_span]:text-[10px] [&>button:first-child_span]:font-semibold [&>button:first-child_span]:text-info [&>button:first-child_svg]:h-3 [&>button:first-child_svg]:w-3"
+                        className="w-full [&>button:first-child]:h-auto [&>button:first-child]:p-0 [&>button:first-child]:rounded-none [&>button:first-child]:border-none [&>button:first-child]:shadow-none [&>button:first-child]:justify-end [&>button:first-child]:text-info [&>button:first-child]:hover:underline [&>button:first-child_span]:text-xs [&>button:first-child_span]:font-semibold [&>button:first-child_span]:text-info [&>button:first-child_svg]:h-3 [&>button:first-child_svg]:w-3"
                       />
                     </div>
                   </div>
@@ -1127,14 +1229,14 @@ export default function NavigationTabs({
                   data-sidebar-nav="true"
                   onClick={openCommandPalette}
                   onKeyDown={(event) => handleNavKeyDown(event, openCommandPalette)}
-                  className={`group flex w-full items-center gap-2 rounded-xl border border-sidebar-border bg-sidebar-accent/50 px-3 py-2 text-left text-xs text-sidebar-foreground/ transition-all duration-300 hover:bg-sidebar-accent hover:border-sidebar-border hover:shadow-sm dark:hover:shadow-[0_0_15px_rgba(255,255,255,0.05)] hover:scale-[1.02] ${navButtonBase}`}
+                  className={`group flex w-full items-center gap-2 rounded-xl border border-sidebar-border bg-sidebar-accent/50 px-3 py-2 text-left text-sm text-sidebar-foreground/ transition-all duration-300 hover:bg-sidebar-accent hover:border-sidebar-border hover:shadow-sm hover:scale-[1.02] ${navButtonBase}`}
                   aria-label="Open command palette"
                 >
                   <Command className="h-4 w-4 shrink-0 text-sidebar-foreground/ transition-colors group-hover:text-sidebar-foreground/" />
                   <span className="flex-1 truncate transition-colors group-hover:text-sidebar-foreground/">
                     Search anything...
                   </span>
-                  <kbd className="rounded-md bg-sidebar-accent border border-sidebar-border px-1.5 py-0.5 text-[9px] font-bold text-sidebar-foreground/ shadow-sm transition-colors group-hover:bg-sidebar-accent group-hover:text-sidebar-foreground">
+                  <kbd className="rounded-md bg-sidebar-accent border border-sidebar-border px-1.5 py-0.5 text-xs font-bold text-sidebar-foreground/ shadow-sm transition-colors group-hover:bg-sidebar-accent group-hover:text-sidebar-foreground">
                     ⌘K
                   </kbd>
                 </button>
@@ -1224,7 +1326,7 @@ export default function NavigationTabs({
                   <div className="space-y-4">
                     <button
                       onClick={() => setShowAcademicsPanel(false)}
-                      className="flex items-center gap-2 px-2 py-1 text-xs font-bold text-sidebar-foreground/70 hover:text-sidebar-foreground transition-colors"
+                      className="flex items-center gap-2 px-2 py-1 text-sm font-bold text-sidebar-foreground/70 hover:text-sidebar-foreground transition-colors"
                     >
                       <ArrowLeft className="h-3.5 w-3.5" />
                       <span>Back</span>
@@ -1253,7 +1355,7 @@ export default function NavigationTabs({
                   <div className="space-y-4">
                     <button
                       onClick={() => setShowToolsPanel(false)}
-                      className="flex items-center gap-2 px-2 py-1 text-xs font-bold text-sidebar-foreground/70 hover:text-sidebar-foreground transition-colors"
+                      className="flex items-center gap-2 px-2 py-1 text-sm font-bold text-sidebar-foreground/70 hover:text-sidebar-foreground transition-colors"
                     >
                       <ArrowLeft className="h-3.5 w-3.5" />
                       <span>Back</span>
@@ -1282,7 +1384,7 @@ export default function NavigationTabs({
                   <div className="space-y-4">
                     <button
                       onClick={() => setShowHostelPanel(false)}
-                      className="flex items-center gap-2 px-2 py-1 text-xs font-bold text-sidebar-foreground/ hover:text-sidebar-foreground transition-colors"
+                      className="flex items-center gap-2 px-2 py-1 text-sm font-bold text-sidebar-foreground/ hover:text-sidebar-foreground transition-colors"
                     >
                       <ArrowLeft className="h-3.5 w-3.5" />
                       <span>Back</span>
@@ -1466,7 +1568,7 @@ export default function NavigationTabs({
             >
               {activeRailGroup === "account" ? (
                 <div>
-                  <div className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.15em] text-sidebar-foreground/ border-b border-sidebar-border pb-1.5 mb-1.5">
+                  <div className="px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-sidebar-foreground/ border-b border-sidebar-border pb-1.5 mb-1.5">
                     Account
                   </div>
                   <div className="space-y-1">
@@ -1480,7 +1582,7 @@ export default function NavigationTabs({
                             item.onSelect();
                             setActiveRailGroup(null);
                           }}
-                          className={`group relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} ${
+                          className={`group relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-[color,background-color] duration-150 ${navButtonBase} ${
                             item.isActive
                               ? sidebarActiveStyles
                               : "text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground"
@@ -1493,50 +1595,9 @@ export default function NavigationTabs({
                         </button>
                       ))}
 
-                    {/* Theme */}
-                    <div className="space-y-0.5">
-                      <button
-                        onClick={() => setIsThemeExpanded(!isThemeExpanded)}
-                        className={`group relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground`}
-                      >
-                        <Wrench className="h-4 w-4 shrink-0 text-sidebar-foreground/ group-hover:text-sidebar-foreground" />
-                        <span className="truncate flex-1 text-left">Theme</span>
-                        <m.div animate={{ rotate: isThemeExpanded ? 90 : 0 }} transition={{ duration: 0.18 }}>
-                          <ChevronRight className="h-3 w-3 text-sidebar-foreground/" />
-                        </m.div>
-                      </button>
-                      <m.div
-                        initial={false}
-                        animate={{ height: isThemeExpanded ? "auto" : 0, opacity: isThemeExpanded ? 1 : 0 }}
-                        transition={{ duration: 0.18, ease: "easeInOut" }}
-                        className="overflow-hidden"
-                      >
-                        <div className="pl-6 space-y-1 py-1">
-                          <button
-                            onClick={() => handleThemeChange("light")}
-                            className="flex items-center gap-2 w-full text-left text-xs text-sidebar-foreground/ hover:text-sidebar-foreground py-0.5 transition-colors"
-                          >
-                            <span
-                              className={`flex h-3 w-3 items-center justify-center rounded-full border transition-colors ${theme === "light" ? "border-info text-info bg-info-surface" : "border-sidebar-border"}`}
-                            >
-                              {theme === "light" && <span className="h-1 w-1 rounded-full bg-info" />}
-                            </span>
-                            <span className={theme === "light" ? "text-info font-medium" : ""}>Light</span>
-                          </button>
-                          <button
-                            onClick={() => handleThemeChange("dark")}
-                            className="flex items-center gap-2 w-full text-left text-xs text-sidebar-foreground/ hover:text-sidebar-foreground py-0.5 transition-colors"
-                          >
-                            <span
-                              className={`flex h-3 w-3 items-center justify-center rounded-full border transition-colors ${theme === "dark" ? "border-info text-info bg-info-surface" : "border-sidebar-border"}`}
-                            >
-                              {theme === "dark" && <span className="h-1 w-1 rounded-full bg-info" />}
-                            </span>
-                            <span className={theme === "dark" ? "text-info font-medium" : ""}>Dark</span>
-                          </button>
-                        </div>
-                      </m.div>
-                    </div>
+                    {/* Theme lives in the sidebar footer in both expanded and
+                        compact modes; the old Wrench-icon copy in this popover
+                        was the second, conflicting control. */}
 
                     {/* Log out */}
                     <button
@@ -1544,7 +1605,7 @@ export default function NavigationTabs({
                         handleLogOutRequest();
                         setActiveRailGroup(null);
                       }}
-                      className="group relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground mt-1.5 border-t border-sidebar-border pt-1.5"
+                      className="group relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-[color,background-color] duration-150 text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground mt-1.5 border-t border-sidebar-border pt-1.5"
                     >
                       <LogOut className="h-4 w-4 shrink-0 text-sidebar-foreground/" />
                       <span className="truncate">Log out</span>
@@ -1555,7 +1616,7 @@ export default function NavigationTabs({
                 <div>
                   <button
                     onClick={() => setActiveRailGroup("study")}
-                    className="flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold text-sidebar-foreground/ hover:text-sidebar-foreground transition-colors border-b border-sidebar-border pb-1.5 mb-1.5 w-full text-left"
+                    className="flex items-center gap-1.5 px-2.5 py-1 text-sm font-bold text-sidebar-foreground/ hover:text-sidebar-foreground transition-colors border-b border-sidebar-border pb-1.5 mb-1.5 w-full text-left"
                   >
                     <ArrowLeft className="h-3 w-3" />
                     <span>Back to Study</span>
@@ -1571,7 +1632,7 @@ export default function NavigationTabs({
                               item.onSelect();
                               setActiveRailGroup(null);
                             }}
-                            className={`group relative flex w-full items-center rounded-lg px-2.5 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} ${
+                            className={`group relative flex w-full items-center rounded-lg px-2.5 py-1.5 text-sm font-medium transition-[color,background-color] duration-150 ${navButtonBase} ${
                               item.isActive
                                 ? sidebarActiveStyles
                                 : "text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground"
@@ -1591,7 +1652,7 @@ export default function NavigationTabs({
                 <div>
                   <button
                     onClick={() => setActiveRailGroup("campus")}
-                    className="flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold text-sidebar-foreground/ hover:text-sidebar-foreground transition-colors border-b border-sidebar-border pb-1.5 mb-1.5 w-full text-left"
+                    className="flex items-center gap-1.5 px-2.5 py-1 text-sm font-bold text-sidebar-foreground/ hover:text-sidebar-foreground transition-colors border-b border-sidebar-border pb-1.5 mb-1.5 w-full text-left"
                   >
                     <ArrowLeft className="h-3 w-3" />
                     <span>Back to Campus</span>
@@ -1604,7 +1665,7 @@ export default function NavigationTabs({
                           item.onSelect();
                           setActiveRailGroup(null);
                         }}
-                        className={`group relative flex w-full items-center rounded-lg px-2.5 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} ${
+                        className={`group relative flex w-full items-center rounded-lg px-2.5 py-1.5 text-sm font-medium transition-[color,background-color] duration-150 ${navButtonBase} ${
                           item.isActive
                             ? sidebarActiveStyles
                             : "text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground"
@@ -1622,7 +1683,7 @@ export default function NavigationTabs({
                 <div>
                   <button
                     onClick={() => setActiveRailGroup("tools")}
-                    className="flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold text-sidebar-foreground/ hover:text-sidebar-foreground transition-colors border-b border-sidebar-border pb-1.5 mb-1.5 w-full text-left"
+                    className="flex items-center gap-1.5 px-2.5 py-1 text-sm font-bold text-sidebar-foreground/ hover:text-sidebar-foreground transition-colors border-b border-sidebar-border pb-1.5 mb-1.5 w-full text-left"
                   >
                     <ArrowLeft className="h-3 w-3" />
                     <span>Back to Tools</span>
@@ -1635,7 +1696,7 @@ export default function NavigationTabs({
                           item.onSelect();
                           setActiveRailGroup(null);
                         }}
-                        className={`group relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} ${item.isActive ? sidebarActiveStyles : "text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground"}`}
+                        className={`group relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-[color,background-color] duration-150 ${navButtonBase} ${item.isActive ? sidebarActiveStyles : "text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground"}`}
                       >
                         <item.icon
                           className={`h-4 w-4 shrink-0 ${item.isActive ? "text-info" : "text-sidebar-foreground/70"}`}
@@ -1647,7 +1708,7 @@ export default function NavigationTabs({
                 </div>
               ) : (
                 <div>
-                  <div className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.15em] text-sidebar-foreground/ border-b border-sidebar-border pb-1.5 mb-1.5">
+                  <div className="px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-sidebar-foreground/ border-b border-sidebar-border pb-1.5 mb-1.5">
                     {activeRailGroup === "study" && "Study"}
                     {activeRailGroup === "campus" && "Campus"}
                     {activeRailGroup === "tools" && "Tools"}
@@ -1698,5 +1759,10 @@ export default function NavigationTabs({
     </>
   );
 }
+
+// The shell only re-renders when one of the values it actually reads changes;
+// DashboardContent hands it stable callbacks, so an unrelated atom write no
+// longer repaints the whole navigation.
+export default memo(NavigationTabs);
 
 // Optimized Sub-component to isolate App Library state & prevent parent re-renders

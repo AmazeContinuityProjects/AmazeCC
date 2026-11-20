@@ -1,27 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Check,
-  ChevronUp,
-  Copy,
-  Database,
-  Eye,
-  EyeOff,
-  RefreshCcw,
-  Search,
-  Trash2,
-  X,
-} from "lucide-react";
-import { CHIP, LIST_ROW, SEARCH_FIELD } from "@/lib/uiTokens";
-import {
-  EmptyPanel,
-  GhostButton,
-  IconButton,
-  ListRowText,
-  ListShell,
-  SectionHeader,
-} from "../shared/primitives";
+import { Check, ChevronUp, Copy, Database, Eye, EyeOff, RefreshCcw, Search, Trash2, X } from "lucide-react";
+import { CHIP, LIST_ROW, MICRO_LABEL, SEARCH_FIELD, TEXT_CAPTION } from "@/lib/uiTokens";
+import { EmptyPanel, GhostButton, IconButton, ListRowText, ListShell, SectionHeader } from "../shared/primitives";
 
 /**
  * Local Storage, as a subpage of Settings.
@@ -95,13 +77,7 @@ interface StorageRow {
   sensitive: boolean;
 }
 
-function StorageRowBlock({
-  row,
-  onDelete,
-}: {
-  row: StorageRow;
-  onDelete: (key: string) => void;
-}) {
+function StorageRowBlock({ row, onDelete }: { row: StorageRow; onDelete: (key: string) => void }) {
   const [open, setOpen] = useState(false);
   const [revealed, setRevealed] = useState(!row.sensitive);
   const [copied, setCopied] = useState(false);
@@ -131,9 +107,7 @@ function StorageRowBlock({
           />
           {row.bytes > 90 && (
             <ChevronUp
-              className={`w-3.5 h-3.5 text-zinc-400 shrink-0 transition-transform ${
-                open ? "" : "rotate-180"
-              }`}
+              className={`w-3.5 h-3.5 text-zinc-400 shrink-0 transition-transform ${open ? "" : "rotate-180"}`}
             />
           )}
         </button>
@@ -164,13 +138,13 @@ function StorageRowBlock({
           <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/60 overflow-hidden">
             {row.sensitive && (
               <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-zinc-200 dark:border-zinc-800">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                <span className="text-xs font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400">
                   Sensitive value
                 </span>
                 <button
                   type="button"
                   onClick={() => setRevealed((v) => !v)}
-                  className="inline-flex items-center gap-1 text-[11px] font-bold text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white cursor-pointer"
+                  className="inline-flex items-center gap-1 text-xs font-bold text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white cursor-pointer"
                 >
                   {revealed ? (
                     <>
@@ -185,7 +159,7 @@ function StorageRowBlock({
               </div>
             )}
             <pre
-              className={`max-h-72 overflow-auto whitespace-pre-wrap break-all p-3 text-[11px] font-mono leading-relaxed text-zinc-700 dark:text-zinc-300 ${
+              className={`max-h-72 overflow-auto whitespace-pre-wrap break-all p-3 text-xs font-mono leading-relaxed text-zinc-700 dark:text-zinc-300 ${
                 row.sensitive && !revealed ? "blur-sm select-none" : ""
               }`}
             >
@@ -224,15 +198,13 @@ export default function LocalStorageSubpage() {
           };
         })
         .sort((a, b) => a.key.localeCompare(b.key)),
-    [entries]
+    [entries],
   );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return rows;
-    return rows.filter(
-      (r) => r.key.toLowerCase().includes(q) || r.pretty.toLowerCase().includes(q)
-    );
+    return rows.filter((r) => r.key.toLowerCase().includes(q) || r.pretty.toLowerCase().includes(q));
   }, [rows, query]);
 
   const totalBytes = useMemo(() => rows.reduce((n, r) => n + r.bytes, 0), [rows]);
@@ -247,7 +219,7 @@ export default function LocalStorageSubpage() {
       }
       load();
     },
-    [load]
+    [load],
   );
 
   const body = () => {
@@ -313,22 +285,16 @@ export default function LocalStorageSubpage() {
       {rows.length > 0 && (
         <div className="grid grid-cols-2 gap-3">
           <div className="p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-              Total size
-            </p>
+            <p className={MICRO_LABEL}>Total size</p>
             <p className="font-extrabold text-zinc-900 dark:text-white mt-0.5 tabular-nums">
               {formatBytes(totalBytes)}
             </p>
           </div>
           <div className="p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-              Sensitive
-            </p>
+            <p className={MICRO_LABEL}>Sensitive</p>
             <p
               className={`font-extrabold mt-0.5 tabular-nums ${
-                sensitiveCount > 0
-                  ? "text-amber-600 dark:text-amber-400"
-                  : "text-zinc-900 dark:text-white"
+                sensitiveCount > 0 ? "text-amber-600 dark:text-amber-400" : "text-zinc-900 dark:text-white"
               }`}
             >
               {sensitiveCount} of {rows.length}
@@ -361,9 +327,8 @@ export default function LocalStorageSubpage() {
       )}
 
       {sensitiveCount > 0 && rows.length > 0 && (
-        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 px-1">
-          {sensitiveCount} {sensitiveCount === 1 ? "key is" : "keys are"} hidden until
-          revealed.
+        <p className={`${TEXT_CAPTION} px-1`}>
+          {sensitiveCount} {sensitiveCount === 1 ? "key is" : "keys are"} hidden until revealed.
         </p>
       )}
 

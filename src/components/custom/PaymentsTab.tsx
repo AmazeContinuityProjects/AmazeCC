@@ -72,9 +72,12 @@ import {
   ExternalLink,
   FileText,
   ChevronRight,
+  Check,
+  Copy,
 } from "lucide-react";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import BottomSheet from "./shared/BottomSheet";
+import { useCarouselAutoplayPolicy } from "./tasks/useCarouselAutoplayPolicy";
 import {
   EmptyPanel,
   IconButton,
@@ -86,7 +89,21 @@ import {
   useCarousel,
   type InsightSlide,
 } from "./shared/primitives";
-import { LIST_SHELL, SECTION_CHIP, TILE } from "@/lib/uiTokens";
+import {
+  BADGE_MD,
+  BADGE_SM,
+  FOCUS_RING,
+  LIST_SHELL,
+  MICRO_LABEL,
+  SECTION_CHIP,
+  SECTION_TITLE,
+  STAT_GRID,
+  TEXT_BLOCK,
+  TEXT_CAPTION,
+  TILE,
+  TONE_BADGE as CANON_TONE_BADGE,
+  TONE_TEXT as CANON_TONE_TEXT,
+} from "@/lib/uiTokens";
 import {
   safeNum,
   fmtAmt,
@@ -110,22 +127,16 @@ type SubTab = (typeof SUB_TABS)[number];
 
 /* demo fixtures are provided via unified DEMO_FINANCE_ALL above */
 
+// Five tones are byte-identical to the canonical maps; spread those and keep a
+// deliberate local override for zinc (this page uses a fixed zinc step where the
+// canonical map reads the semantic surface tokens). Do not "fix" the zinc entry.
 const TONE_TEXT: Record<string, string> = {
-  red: "text-red-600 dark:text-red-400",
-  amber: "text-amber-600 dark:text-amber-400",
-  emerald: "text-emerald-600 dark:text-emerald-400",
-  indigo: "text-indigo-600 dark:text-indigo-400",
-  blue: "text-blue-600 dark:text-blue-400",
+  ...CANON_TONE_TEXT,
   zinc: "text-zinc-400 dark:text-zinc-500",
 };
 
 const TONE_BADGE: Record<string, string> = {
-  red: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
-  amber: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-  emerald: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-  indigo:
-    "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border-indigo-200/50 dark:border-indigo-800/40",
-  blue: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+  ...CANON_TONE_BADGE,
   zinc: "bg-zinc-500/10 text-zinc-500 dark:text-zinc-400 border-zinc-500/20",
 };
 
@@ -171,6 +182,11 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
     receipts: false,
     wallet: false,
   });
+  /** When the fee state was last read, so "All clear" is not a stale claim. */
+  const [lastCheckedAt, setLastCheckedAt] = useState<Date | null>(null);
+  /** Confirming an external handoff instead of dropping the student on VTOP. */
+  const [showPayHandoff, setShowPayHandoff] = useState(false);
+  const [payCopied, setPayCopied] = useState(false);
   const [error, setError] = useState<Record<SubTab, string | null>>({
     dues: null,
     receipts: null,
@@ -220,13 +236,15 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
       if (dues) setDuesData(dues);
       if (receipts) setReceiptsData(receipts);
       if (wallet) setWalletData(wallet);
+      setLastCheckedAt(new Date());
       if (res?.errors && typeof res.errors === "object") {
         const msg = (k: string) => (res.errors as Record<string, string>)[k] || null;
         setError({ dues: msg("dues"), receipts: msg("receipts"), wallet: msg("wallet") });
       }
       return res;
-    } catch (err: any) {
-      const msg = err?.message || "Fetch failed";
+    } catch {
+      // Raw transport errors are not student-facing copy.
+      const msg = "Couldn't refresh your payment details. Check your connection and try again.";
       setError({ dues: msg, receipts: msg, wallet: msg });
       return null;
     } finally {
@@ -317,7 +335,8 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
     return list;
   }, [balanceINR, balanceUSD, lastTxn, receiptList.length]);
 
-  const carousel = useCarousel(slides.length);
+  const autoplayMs = useCarouselAutoplayPolicy();
+  const carousel = useCarousel(slides.length, autoplayMs);
   const insightSlides = useMemo<InsightSlide[]>(
     () =>
       slides.map((s) => ({
@@ -398,32 +417,27 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
       subtitle="Dues, wallet ledger and official fee receipts"
       onBack={onBack}
       actions={
-        <IconButton onClick={refreshAll} title="Refresh payments from VTOP" disabled={anyLoading}>
+        <IconButton
+          onClick={refreshAll}
+          title="Refresh payments from VTOP"
+          className={`relative hit-expand ${FOCUS_RING}`}
+          disabled={anyLoading}
+        >
           <RefreshCcw className={`w-4 h-4 ${anyLoading ? "animate-spin text-indigo-500" : ""}`} />
         </IconButton>
       }
     >
-      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+      <div className={STAT_GRID}>
         {/* CARD 1: DUES */}
         <div className={CARD_BASE}>
           <div className="flex items-center justify-between gap-1">
-            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">
-              Fee clearance
-            </span>
+            <span className={`${MICRO_LABEL} font-outfit truncate`}>Fee clearance</span>
             {/* Badge only when there is something to act on — the headline
                 already states the status, so no second "all clear" chip. */}
             {loading.dues && !duesData ? (
-              <span
-                className={`text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shrink-0 border ${TONE_BADGE.zinc}`}
-              >
-                Syncing
-              </span>
+              <span className={`${BADGE_MD} shrink-0 ${TONE_BADGE.zinc}`}>Syncing</span>
             ) : hasPendingDues ? (
-              <span
-                className={`text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shrink-0 border ${TONE_BADGE.red}`}
-              >
-                Action needed
-              </span>
+              <span className={`${BADGE_MD} shrink-0 ${TONE_BADGE.red}`}>Action needed</span>
             ) : null}
           </div>
 
@@ -451,20 +465,27 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
           )}
 
           <div className="flex items-center justify-between gap-2">
-            <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">
-              {hasPendingDues ? "Outstanding payments pending on VTOP" : duesData?.message || "No outstanding fee dues"}
+            <p className={`${TEXT_CAPTION} font-medium truncate`}>
+              {hasPendingDues
+                ? "Outstanding payments pending on VTOP"
+                : `${duesData?.message || "No outstanding fee dues"}${
+                    lastCheckedAt
+                      ? ` · checked ${lastCheckedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+                      : ""
+                  }`}
             </p>
             {hasPendingDues && (
-              <a
-                href="https://vtop.vit.ac.in"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[10px] font-black shrink-0 transition-colors active:scale-[0.98]"
+              <button
+                type="button"
+                onClick={() => {
+                  setPayCopied(false);
+                  setShowPayHandoff(true);
+                }}
+                className={`relative hit-expand inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-black shrink-0 transition-colors active:scale-[0.98] ${FOCUS_RING}`}
               >
                 Pay
                 <ExternalLink className="w-3 h-3" />
-              </a>
+              </button>
             )}
           </div>
         </div>
@@ -482,9 +503,7 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
             ) : (
               <Receipt className="w-4 h-4 text-indigo-500" />
             )}
-            <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">
-              {listMode === "wallet" ? "Wallet" : "Receipts"}
-            </h2>
+            <h2 className={SECTION_TITLE}>{listMode === "wallet" ? "Wallet" : "Receipts"}</h2>
             <span className={SECTION_CHIP}>{listMode === "wallet" ? walletRows.length : receiptList.length}</span>
           </div>
 
@@ -499,7 +518,7 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
                 key={tab.id}
                 type="button"
                 onClick={() => setListMode(tab.id)}
-                className={`flex-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                className={`flex-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   listMode === tab.id
                     ? "bg-white dark:bg-zinc-900 text-indigo-600 dark:text-indigo-400 shadow-2xs font-extrabold"
                     : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200"
@@ -535,18 +554,20 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
                     <span
                       className={`w-1.5 h-1.5 rounded-full shrink-0 ${isDebit ? "bg-rose-500" : "bg-emerald-500"}`}
                     />
-                    <div className="min-w-0 flex-1">
+                    <div className={TEXT_BLOCK}>
                       <div className="flex items-center gap-2 min-w-0">
                         <p className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight">
                           {entry.particulars || (isDebit ? "Debit transaction" : "Credit deposit")}
                         </p>
                         {isRefunded && (
-                          <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md border shrink-0 bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">
+                          <span
+                            className={`${BADGE_SM} border shrink-0 bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20`}
+                          >
                             Refund
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5 truncate">
+                      <p className={`tabular-nums ${TEXT_CAPTION} font-medium mt-0.5 truncate`}>
                         {[entry.transactionDate, entry.receiptNumber, ledger === "USD" ? "USD" : null]
                           .filter(Boolean)
                           .join(" · ")}
@@ -555,7 +576,7 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
                     <div className="text-right shrink-0">
                       <p
                         data-private
-                        className={`font-black text-sm font-outfit leading-tight ${
+                        className={`tabular-nums font-black text-sm font-outfit leading-tight ${
                           isDebit ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"
                         }`}
                       >
@@ -563,7 +584,7 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
                         {fmtAmt(String(Math.abs(amt)), symbol)}
                       </p>
                       {entry.bookBalanceAmount && (
-                        <p data-private className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">
+                        <p data-private className="tabular-nums text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">
                           Bal {fmtAmt(entry.bookBalanceAmount, symbol)}
                         </p>
                       )}
@@ -599,11 +620,11 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
                   <div className="text-right">
                     <p
                       data-private
-                      className="font-black text-sm font-outfit text-zinc-900 dark:text-white leading-tight"
+                      className="tabular-nums font-black text-sm font-outfit text-zinc-900 dark:text-white leading-tight"
                     >
                       {fmtAmt(r.amount)}
                     </p>
-                    <p className="text-[9px] font-extrabold uppercase text-emerald-600 dark:text-emerald-400 mt-0.5">
+                    <p className="text-xs font-extrabold uppercase text-emerald-600 dark:text-emerald-400 mt-0.5">
                       Settled
                     </p>
                   </div>
@@ -657,7 +678,7 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
                   {openTables.map((table, idx) => (
                     <div key={idx} className="space-y-2.5">
                       {table.caption && (
-                        <h4 className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                        <h4 className="text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                           {table.caption}
                         </h4>
                       )}
@@ -680,9 +701,7 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
                                 key={header}
                                 className="p-2.5 rounded-xl bg-white dark:bg-zinc-900/60 border border-zinc-200/50 dark:border-zinc-800"
                               >
-                                <span className="text-[10px] font-bold text-zinc-400 uppercase block mb-0.5">
-                                  {header}
-                                </span>
+                                <span className="text-xs font-bold text-zinc-400 uppercase block mb-0.5">{header}</span>
                                 <span className="font-bold text-zinc-800 dark:text-zinc-200 break-words">
                                   {row?.[header] || "—"}
                                 </span>
@@ -696,7 +715,7 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
                 </div>
               ) : (
                 !openDetailLoading && (
-                  <p className="text-[11px] text-zinc-400 dark:text-zinc-500 font-medium text-center py-2">
+                  <p className="text-xs text-zinc-400 dark:text-zinc-500 font-medium text-center py-2">
                     No invoice breakdown available for this receipt.
                   </p>
                 )
@@ -705,6 +724,78 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
           </BottomSheet>
         )}
       </AnimatePresence>
+
+      {/* ── External handoff: explain, carry identity, copy, return point ── */}
+      {showPayHandoff && (
+        <BottomSheet
+          overlayId="payments-vtop-handoff"
+          onClose={() => setShowPayHandoff(false)}
+          title="Pay on VTOP"
+          subtitle="AmazeCC shows dues; VTOP takes payment"
+          maxWidth="max-w-md"
+        >
+          <div className="space-y-4 p-1 text-left" role="status">
+            <p className={`${TEXT_CAPTION} font-medium`}>
+              This opens VTOP&apos;s payments page in a new tab. Sign in there to see the exact amount and complete the
+              payment — AmazeCC cannot charge you.
+            </p>
+
+            <div className="rounded-2xl border border-border-muted bg-surface-secondary p-4 space-y-2 text-xs">
+              <p className={MICRO_LABEL}>Details to carry over</p>
+              <div className="flex justify-between gap-3">
+                <span className="text-text-muted">Register no.</span>
+                <span className="font-bold text-text-primary tabular-nums text-right">
+                  {duesData?.studentInfo?.registerNumber || "Not on file"}
+                </span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-text-muted">Student</span>
+                <span className="font-bold text-text-primary text-right">
+                  {duesData?.studentInfo?.studentName || "Not on file"}
+                </span>
+              </div>
+              <p className="text-text-muted pt-1">Confirm the final amount on VTOP before paying.</p>
+            </div>
+
+            <a
+              href="https://vtop.vit.ac.in"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`inline-flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-black text-white transition-colors hover:bg-red-700 ${FOCUS_RING}`}
+            >
+              Open VTOP payments <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+            <button
+              type="button"
+              onClick={async () => {
+                const lines = [
+                  "VTOP payments: https://vtop.vit.ac.in",
+                  `Register no.: ${duesData?.studentInfo?.registerNumber || "Not on file"}`,
+                  `Student: ${duesData?.studentInfo?.studentName || "Not on file"}`,
+                  "Confirm the exact amount on VTOP before paying.",
+                ];
+                try {
+                  await navigator.clipboard?.writeText(lines.join("\n"));
+                  setPayCopied(true);
+                } catch {
+                  setPayCopied(false);
+                }
+              }}
+              className={`inline-flex w-full items-center justify-center gap-2 rounded-xl border border-border-strong bg-surface px-4 py-2.5 text-sm font-bold text-text-primary transition-colors hover:bg-surface-secondary ${FOCUS_RING}`}
+            >
+              {payCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+              {payCopied ? "Copied" : "Copy payment details"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowPayHandoff(false)}
+              className={`w-full text-center text-xs font-bold text-text-secondary hover:text-text-heading ${FOCUS_RING} rounded`}
+            >
+              Stay in AmazeCC
+            </button>
+          </div>
+        </BottomSheet>
+      )}
     </PageShell>
   );
 }

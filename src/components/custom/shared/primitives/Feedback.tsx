@@ -30,11 +30,7 @@ export function ToneBadge({
   className?: string;
 }) {
   const sizing =
-    size === "sm"
-      ? "text-[9px] px-1.5 py-0.5"
-      : size === "lg"
-        ? "text-xs px-3 py-2 rounded-xl"
-        : "text-[9px] sm:text-[10px] px-2 py-0.5";
+    size === "sm" ? "text-xs px-1.5 py-0.5" : size === "lg" ? "text-xs px-3 py-2 rounded-xl" : "text-xs px-2 py-0.5";
   return (
     <span
       className={`${sizing} inline-flex items-center gap-1.5 font-extrabold uppercase rounded-md border shrink-0 ${
@@ -92,7 +88,7 @@ export function DotPill({
   size?: "sm" | "md";
   className?: string;
 }) {
-  const sizing = size === "sm" ? "text-[9px] px-1.5 py-0.5" : "text-[10px] sm:text-[11px] px-2 py-0.5";
+  const sizing = size === "sm" ? "text-xs px-1.5 py-0.5" : "text-xs px-2 py-0.5";
   return (
     <span
       className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border font-bold uppercase tracking-wide whitespace-nowrap ${
@@ -121,7 +117,7 @@ export function ToneLegend({
   if (!items.length) return null;
   return (
     <div
-      className={`flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[11px] font-bold text-text-secondary dark:text-text-muted ${className}`.trim()}
+      className={`flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs font-bold text-text-secondary dark:text-text-muted ${className}`.trim()}
     >
       {items.map((item) => (
         <span key={item.label as string} className="inline-flex items-center gap-1.5">
@@ -218,9 +214,7 @@ export function EmptyPanel({
       <div className={`${EMPTY_STATE} ${className}`.trim()}>
         {icon}
         <p className="text-xs font-bold text-text-secondary dark:text-text-muted mt-2">{title}</p>
-        {description ? (
-          <p className="text-[11px] text-text-muted dark:text-text-secondary mt-1">{description}</p>
-        ) : null}
+        {description ? <p className="text-xs text-text-muted dark:text-text-secondary mt-1">{description}</p> : null}
         {action ? <div className="mt-3 flex justify-center">{action}</div> : null}
       </div>
     );

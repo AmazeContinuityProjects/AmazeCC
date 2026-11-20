@@ -84,6 +84,8 @@ export type ModuleEntry = {
   pinnable?: boolean;
   pinId?: string;
   pinLabel?: string;
+  /** Short name for the mobile bottom rail — one destination, one name. */
+  railLabel?: string;
   isExpandable?: boolean;
 };
 
@@ -102,10 +104,11 @@ export const moduleRegistry: ModuleEntry[] = [
     surfaces: { sidebar: true, sidebarGroup: "study", commandPalette: true },
     pinnable: true,
     pinLabel: "Home",
+    railLabel: "Home",
   },
   {
     id: "attendance-calendar",
-    label: "Timetable Calendar",
+    label: "Attendance",
     description: "Academic calendar & timetable events",
     icon: Calendar,
     group: "Study",
@@ -122,7 +125,8 @@ export const moduleRegistry: ModuleEntry[] = [
     },
     pinnable: true,
     pinId: "attendance",
-    pinLabel: "Timetable Calendar",
+    pinLabel: "Attendance",
+    railLabel: "Attendance",
     keywords: ["calendar", "timetable", "attendance"],
   },
   {
@@ -145,6 +149,7 @@ export const moduleRegistry: ModuleEntry[] = [
     pinnable: true,
     pinId: "academics",
     pinLabel: "Academics",
+    railLabel: "Academics",
     isExpandable: true,
   },
   {
@@ -228,6 +233,7 @@ export const moduleRegistry: ModuleEntry[] = [
     },
     pinnable: true,
     pinLabel: "Payments",
+    railLabel: "Payments",
   },
   {
     id: "libraries",
@@ -248,6 +254,7 @@ export const moduleRegistry: ModuleEntry[] = [
     },
     pinnable: true,
     pinLabel: "Libraries",
+    railLabel: "Libraries",
   },
   {
     id: "transport",
@@ -268,6 +275,7 @@ export const moduleRegistry: ModuleEntry[] = [
     },
     pinnable: true,
     pinLabel: "Transport",
+    railLabel: "Transport",
   },
   {
     id: "events",
@@ -288,6 +296,7 @@ export const moduleRegistry: ModuleEntry[] = [
     },
     pinnable: true,
     pinLabel: "Event Hub",
+    railLabel: "Events",
   },
   {
     id: "clubs",
@@ -308,6 +317,7 @@ export const moduleRegistry: ModuleEntry[] = [
     },
     pinnable: true,
     pinLabel: "Club Hub",
+    railLabel: "Clubs",
   },
   {
     id: "community",
@@ -328,6 +338,7 @@ export const moduleRegistry: ModuleEntry[] = [
     },
     pinnable: true,
     pinLabel: "Announcements",
+    railLabel: "News",
     keywords: ["community feed"],
   },
   {
@@ -349,6 +360,7 @@ export const moduleRegistry: ModuleEntry[] = [
     },
     pinnable: true,
     pinLabel: "Free Classrooms",
+    railLabel: "Free Class",
     keywords: ["free classroom", "search free classrooms"],
   },
   {
@@ -370,6 +382,7 @@ export const moduleRegistry: ModuleEntry[] = [
     },
     pinnable: true,
     pinLabel: "Faculty Schedule",
+    railLabel: "Faculty",
     keywords: ["find faculty schedule"],
   },
   {
@@ -391,6 +404,7 @@ export const moduleRegistry: ModuleEntry[] = [
     },
     pinnable: true,
     pinLabel: "Find Classmates",
+    railLabel: "Classmates",
   },
   {
     id: "hostel",
@@ -521,6 +535,7 @@ export const moduleRegistry: ModuleEntry[] = [
     },
     pinnable: true,
     pinLabel: "Paper Scanner",
+    railLabel: "Scanner",
   },
   {
     id: "student-report",
@@ -560,6 +575,7 @@ export const moduleRegistry: ModuleEntry[] = [
     pinnable: true,
     pinId: "tools",
     pinLabel: "Tools",
+    railLabel: "Tools",
   },
   {
     id: "tools-overview",
@@ -600,7 +616,7 @@ export const moduleRegistry: ModuleEntry[] = [
   },
   {
     id: "tools-social",
-    label: "Timetable Sharing",
+    label: "Social",
     description: "Events, friends & timetables",
     icon: Users,
     group: "Tools",
@@ -625,6 +641,7 @@ export const moduleRegistry: ModuleEntry[] = [
     pinnable: true,
     pinId: "cabshare",
     pinLabel: "Cab Share",
+    railLabel: "Cabs",
   },
   {
     id: "cabshare",
@@ -816,6 +833,7 @@ export const moduleRegistry: ModuleEntry[] = [
     },
     pinnable: true,
     pinLabel: "Profile",
+    railLabel: "Profile",
   },
   {
     id: "about",
@@ -847,6 +865,7 @@ export const moduleRegistry: ModuleEntry[] = [
     surfaces: { commandPalette: true },
     pinnable: true,
     pinLabel: "More",
+    railLabel: "More",
   },
   {
     id: "feedback",
@@ -870,23 +889,51 @@ export const moduleRegistry: ModuleEntry[] = [
   },
 ];
 
+/**
+ * Pin labels are read from the registry, never retyped at a call site. A pin id
+ * is either an entry's `pinId` or its `id`; two ids have no registry entry of
+ * their own (a credential deep-link and the local search action).
+ */
+const PIN_LABEL_FALLBACKS: Record<string, string> = { credentials: "Credentials", search: "Search" };
+const RAIL_LABEL_FALLBACKS: Record<string, string> = {
+  credentials: "Login",
+  home: "Home",
+  search: "Search",
+  modules: "Modules",
+};
+
+function entryForPin(pinId: string): ModuleEntry | undefined {
+  return moduleRegistry.find((e) => (e.pinId ?? e.id) === pinId);
+}
+
+export function getPinLabel(pinId: string): string {
+  const entry = entryForPin(pinId);
+  return entry?.pinLabel ?? entry?.label ?? PIN_LABEL_FALLBACKS[pinId] ?? pinId;
+}
+
+/** The short, one-word-where-possible name used under a bottom-rail icon. */
+export function getRailLabel(pinId: string): string {
+  const entry = entryForPin(pinId);
+  return entry?.railLabel ?? entry?.pinLabel ?? entry?.label ?? RAIL_LABEL_FALLBACKS[pinId] ?? pinId;
+}
+
 export const quickPinTabs = [
-  { id: "attendance", label: "Timetable Calendar" },
-  { id: "academics", label: "Academics" },
-  { id: "payments", label: "Payments" },
-  { id: "libraries", label: "Libraries" },
-  { id: "free-class", label: "Free Classrooms" },
-  { id: "faculty-schedule", label: "Faculty Schedule" },
-  { id: "paper-scanner", label: "Paper Scanner" },
-  { id: "events", label: "Event Hub" },
-  { id: "clubs", label: "Club Hub" },
-  { id: "community", label: "Announcements" },
-  { id: "cabshare", label: "Cab Share" },
-  { id: "transport", label: "Transport" },
-  { id: "more", label: "More" },
-  { id: "profile", label: "Profile" },
-  { id: "credentials", label: "Credentials" },
-];
+  "attendance",
+  "academics",
+  "payments",
+  "libraries",
+  "free-class",
+  "faculty-schedule",
+  "paper-scanner",
+  "events",
+  "clubs",
+  "community",
+  "cabshare",
+  "transport",
+  "more",
+  "profile",
+  "credentials",
+].map((id) => ({ id, label: getPinLabel(id) }));
 
 export function getModuleRegistry(ctx: NavContext = {} as NavContext): ModuleEntry[] {
   return moduleRegistry.filter((e) => e.enabled !== false && (!e.visibleWhen || e.visibleWhen(ctx)));

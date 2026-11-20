@@ -1,5 +1,6 @@
 "use client";
 
+import { TEXT_BLOCK } from "@/lib/uiTokens";
 import { useMemo } from "react";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useTheme } from "next-themes";
@@ -125,23 +126,23 @@ export function useAppCommands(input: AppCommandInputs) {
                 />
               </svg>
               <span
-                className={`absolute inset-0 flex items-center justify-center text-[11px] font-bold ${color === "red" ? "text-red-600 dark:text-red-400" : color === "amber" ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}
+                className={`absolute inset-0 flex items-center justify-center text-xs font-bold ${color === "red" ? "text-red-600 dark:text-red-400" : color === "amber" ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}
               >
                 {!isNaN(pNum) ? Math.round(pNum) : "?"}%
               </span>
             </div>
-            <div className="min-w-0 flex-1">
+            <div className={TEXT_BLOCK}>
               <p className="text-sm font-bold text-gray-900  dark:text-white truncate">{course.courseTitle}</p>
               <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                <span className="text-[11px] font-medium text-gray-500  dark:text-gray-400">{course.courseCode}</span>
-                <span className="text-[11px] text-gray-400  dark:text-gray-500">·</span>
-                <span className="text-[11px] font-medium text-gray-500  dark:text-gray-400">
+                <span className="text-xs font-medium text-gray-500  dark:text-gray-400">{course.courseCode}</span>
+                <span className="text-xs text-gray-400  dark:text-gray-500">·</span>
+                <span className="text-xs font-medium text-gray-500  dark:text-gray-400">
                   {course.slotName || course.slotVenue || "—"}
                 </span>
                 {course.faculty && (
                   <>
-                    <span className="text-[11px] text-gray-400  dark:text-gray-500">·</span>
-                    <span className="text-[11px] text-gray-500  dark:text-gray-400 truncate">{course.faculty}</span>
+                    <span className="text-xs text-gray-400  dark:text-gray-500">·</span>
+                    <span className="text-xs text-gray-500  dark:text-gray-400 truncate">{course.faculty}</span>
                   </>
                 )}
               </div>
@@ -212,20 +213,20 @@ export function useAppCommands(input: AppCommandInputs) {
                 />
               </svg>
             </div>
-            <div className="min-w-0 flex-1">
+            <div className={TEXT_BLOCK}>
               <p className="text-sm font-bold text-gray-900  dark:text-white truncate">{course.courseTitle}</p>
               <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                <span className="text-[11px] font-medium text-gray-500  dark:text-gray-400">{course.courseCode}</span>
-                <span className="text-[11px] text-gray-400  dark:text-gray-500">·</span>
+                <span className="text-xs font-medium text-gray-500  dark:text-gray-400">{course.courseCode}</span>
+                <span className="text-xs text-gray-400  dark:text-gray-500">·</span>
                 <span
-                  className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-md ${course.courseType?.toLowerCase().includes("lab") ? "bg-purple-100 text-purple-700   dark:bg-purple-900/20 dark:text-purple-400" : "bg-blue-100 text-blue-700   dark:bg-blue-900/20 dark:text-blue-400"}`}
+                  className={`text-xs font-semibold px-1.5 py-0.5 rounded-md ${course.courseType?.toLowerCase().includes("lab") ? "bg-purple-100 text-purple-700   dark:bg-purple-900/20 dark:text-purple-400" : "bg-blue-100 text-blue-700   dark:bg-blue-900/20 dark:text-blue-400"}`}
                 >
                   {course.courseType || "Theory"}
                 </span>
                 {course.credits && (
                   <>
-                    <span className="text-[11px] text-gray-400  dark:text-gray-500">·</span>
-                    <span className="text-[11px] text-gray-500  dark:text-gray-400">{course.credits} cr</span>
+                    <span className="text-xs text-gray-400  dark:text-gray-500">·</span>
+                    <span className="text-xs text-gray-500  dark:text-gray-400">{course.credits} cr</span>
                   </>
                 )}
               </div>
@@ -250,10 +251,10 @@ export function useAppCommands(input: AppCommandInputs) {
           {assessments.length > 0 && (
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-[11px] font-semibold text-gray-400  dark:text-gray-500 uppercase tracking-wider">
+                <span className="text-xs font-semibold text-gray-400  dark:text-gray-500 uppercase tracking-wider">
                   Assessments
                 </span>
-                <span className="text-[10px] font-medium text-gray-400  dark:text-gray-500 bg-gray-100  dark:bg-gray-900 px-1.5 py-0.5 rounded-full">
+                <span className="text-xs font-medium text-gray-400  dark:text-gray-500 bg-gray-100  dark:bg-gray-900 px-1.5 py-0.5 rounded-full">
                   {assessments.length}
                 </span>
               </div>
@@ -269,11 +270,11 @@ export function useAppCommands(input: AppCommandInputs) {
                       <div
                         className={`w-1.5 h-1.5 rounded-full shrink-0 ${aColor === "emerald" ? "bg-emerald-500" : aColor === "amber" ? "bg-amber-500" : "bg-red-500"}`}
                       />
-                      <span className="flex-1 text-[11px] text-gray-700  dark:text-gray-300 truncate">
+                      <span className="flex-1 text-xs text-gray-700  dark:text-gray-300 truncate">
                         {a.name || `Assessment ${i + 1}`}
                       </span>
                       <span
-                        className={`text-[11px] font-bold shrink-0 ${aColor === "emerald" ? "text-emerald-600 dark:text-emerald-400" : aColor === "amber" ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400"}`}
+                        className={`text-xs font-bold shrink-0 ${aColor === "emerald" ? "text-emerald-600 dark:text-emerald-400" : aColor === "amber" ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400"}`}
                       >
                         {a.scoredMark || "?"}/{a.maxMark || "?"}
                       </span>
@@ -300,17 +301,19 @@ export function useAppCommands(input: AppCommandInputs) {
       return (
         <div className="space-y-3">
           <div className="flex items-center gap-3">
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-lg font-black shrink-0 ${gc}`}>
+            <div
+              className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl font-black tabular-nums shrink-0 ${gc}`}
+            >
               {g.grade || "?"}
             </div>
-            <div className="min-w-0 flex-1">
+            <div className={TEXT_BLOCK}>
               <p className="text-sm font-bold text-gray-900  dark:text-white truncate">{g.courseTitle}</p>
               <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                <span className="text-[11px] font-medium text-gray-500  dark:text-gray-400">{g.courseCode}</span>
+                <span className="text-xs font-medium text-gray-500  dark:text-gray-400">{g.courseCode}</span>
                 {g.courseType && (
                   <>
-                    <span className="text-[11px] text-gray-400  dark:text-gray-500">·</span>
-                    <span className="text-[11px] text-gray-500  dark:text-gray-400">{g.courseType}</span>
+                    <span className="text-xs text-gray-400  dark:text-gray-500">·</span>
+                    <span className="text-xs text-gray-500  dark:text-gray-400">{g.courseType}</span>
                   </>
                 )}
               </div>
@@ -318,12 +321,14 @@ export function useAppCommands(input: AppCommandInputs) {
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div className="px-3 py-2 rounded-xl bg-white  dark:bg-gray-900/60 border border-gray-100  dark:border-gray-800/30">
-              <p className="text-[10px] font-medium text-gray-400  dark:text-gray-500 uppercase tracking-wide">Grade</p>
-              <p className={`text-lg font-black mt-0.5 ${gc.split(" ")[0]}`}>{g.grade || "N/A"}</p>
+              <p className="text-xs font-medium text-gray-400  dark:text-gray-500 uppercase tracking-wide">Grade</p>
+              <p className={`text-xl font-black tabular-nums mt-0.5 ${gc.split(" ")[0]}`}>{g.grade || "N/A"}</p>
             </div>
             <div className="px-3 py-2 rounded-xl bg-white  dark:bg-gray-900/60 border border-gray-100  dark:border-gray-800/30">
-              <p className="text-[10px] font-medium text-gray-400  dark:text-gray-500 uppercase tracking-wide">Total</p>
-              <p className="text-lg font-black mt-0.5 text-gray-900  dark:text-white">{g.grandTotal || "—"}</p>
+              <p className="text-xs font-medium text-gray-400  dark:text-gray-500 uppercase tracking-wide">Total</p>
+              <p className="text-xl font-black tabular-nums mt-0.5 text-gray-900  dark:text-white">
+                {g.grandTotal || "—"}
+              </p>
             </div>
           </div>
         </div>
@@ -939,14 +944,14 @@ export function useAppCommands(input: AppCommandInputs) {
                       <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
                     </svg>
                   </div>
-                  <div className="min-w-0 flex-1">
+                  <div className={TEXT_BLOCK}>
                     <p className="text-sm font-bold text-gray-900  dark:text-white truncate">{exam.courseTitle}</p>
-                    <p className="text-[11px] text-gray-500  dark:text-gray-400">{exam.courseCode}</p>
+                    <p className="text-xs text-gray-500  dark:text-gray-400">{exam.courseCode}</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {exam.examDate && (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-violet-50  dark:bg-violet-900/10 text-violet-700  dark:text-violet-300 border border-violet-200/50 dark:border-violet-800/30">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-violet-50  dark:bg-violet-900/10 text-violet-700  dark:text-violet-300 border border-violet-200/50 dark:border-violet-800/30">
                       <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
                         <path
                           fillRule="evenodd"
@@ -959,7 +964,7 @@ export function useAppCommands(input: AppCommandInputs) {
                   )}
                   {exam.examSession && (
                     <span
-                      className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold border ${exam.examSession?.toLowerCase().includes("fn") ? "bg-amber-50  dark:bg-amber-900/10 text-amber-700  dark:text-amber-300 border-amber-200/50 dark:border-amber-800/30" : "bg-blue-50  dark:bg-blue-900/10 text-blue-700  dark:text-blue-300 border-blue-200/50 dark:border-blue-800/30"}`}
+                      className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold border ${exam.examSession?.toLowerCase().includes("fn") ? "bg-amber-50  dark:bg-amber-900/10 text-amber-700  dark:text-amber-300 border-amber-200/50 dark:border-amber-800/30" : "bg-blue-50  dark:bg-blue-900/10 text-blue-700  dark:text-blue-300 border-blue-200/50 dark:border-blue-800/30"}`}
                     >
                       <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
                         <path
@@ -972,7 +977,7 @@ export function useAppCommands(input: AppCommandInputs) {
                     </span>
                   )}
                   {exam.venue && (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-rose-50  dark:bg-rose-900/10 text-rose-700  dark:text-rose-300 border border-rose-200/50 dark:border-rose-800/30">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-rose-50  dark:bg-rose-900/10 text-rose-700  dark:text-rose-300 border border-rose-200/50 dark:border-rose-800/30">
                       <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
                         <path
                           fillRule="evenodd"
@@ -984,7 +989,7 @@ export function useAppCommands(input: AppCommandInputs) {
                     </span>
                   )}
                   {exam.seatNo && (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-gray-100  dark:bg-gray-900 text-gray-600  dark:text-gray-400 border border-gray-200/50  dark:border-gray-800/30">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-gray-100  dark:bg-gray-900 text-gray-600  dark:text-gray-400 border border-gray-200/50  dark:border-gray-800/30">
                       <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
                         <path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
                         <path d="M2 12a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2v-2z" />
@@ -1038,13 +1043,13 @@ export function useAppCommands(input: AppCommandInputs) {
                         />
                       </svg>
                     </div>
-                    <div className="min-w-0 flex-1">
+                    <div className={TEXT_BLOCK}>
                       <p className="text-sm font-bold text-gray-900  dark:text-white truncate">{ev.text}</p>
-                      <p className="text-[11px] text-gray-500  dark:text-gray-400">{ev.type || "Event"}</p>
+                      <p className="text-xs text-gray-500  dark:text-gray-400">{ev.type || "Event"}</p>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-violet-50  dark:bg-violet-900/10 text-violet-700  dark:text-violet-300 border border-violet-200/50 dark:border-violet-800/30">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-violet-50  dark:bg-violet-900/10 text-violet-700  dark:text-violet-300 border border-violet-200/50 dark:border-violet-800/30">
                       <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
                         <path
                           fillRule="evenodd"
@@ -1055,7 +1060,7 @@ export function useAppCommands(input: AppCommandInputs) {
                       {day.date} {month.month} {month.year || ""}
                     </span>
                     <span
-                      className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold border ${ev.type === "Holiday" ? "bg-emerald-50  dark:bg-emerald-900/10 text-emerald-700  dark:text-emerald-300 border-emerald-200/50 dark:border-emerald-800/30" : ev.type === "Instructional Day" ? "bg-blue-50  dark:bg-blue-900/10 text-blue-700  dark:text-blue-300 border-blue-200/50 dark:border-blue-800/30" : "bg-purple-50  dark:bg-purple-900/10 text-purple-700  dark:text-purple-300 border-purple-200/50 dark:border-purple-800/30"}`}
+                      className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold border ${ev.type === "Holiday" ? "bg-emerald-50  dark:bg-emerald-900/10 text-emerald-700  dark:text-emerald-300 border-emerald-200/50 dark:border-emerald-800/30" : ev.type === "Instructional Day" ? "bg-blue-50  dark:bg-blue-900/10 text-blue-700  dark:text-blue-300 border-blue-200/50 dark:border-blue-800/30" : "bg-purple-50  dark:bg-purple-900/10 text-purple-700  dark:text-purple-300 border-purple-200/50 dark:border-purple-800/30"}`}
                     >
                       <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
                         <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
@@ -1068,7 +1073,7 @@ export function useAppCommands(input: AppCommandInputs) {
                       {ev.type || "N/A"}
                     </span>
                     {ev.category && (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-amber-50  dark:bg-amber-900/10 text-amber-700  dark:text-amber-300 border border-amber-200/50 dark:border-amber-800/30">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-amber-50  dark:bg-amber-900/10 text-amber-700  dark:text-amber-300 border border-amber-200/50 dark:border-amber-800/30">
                         <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
                           <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4z" />
                           <path d="M3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6z" />
@@ -1108,16 +1113,16 @@ export function useAppCommands(input: AppCommandInputs) {
                     <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
                   </svg>
                 </div>
-                <div className="min-w-0 flex-1">
+                <div className={TEXT_BLOCK}>
                   <p className="text-sm font-bold text-gray-900  dark:text-white truncate">
                     {hData.blockName || "Hostel"}
                   </p>
-                  <p className="text-[11px] text-gray-500  dark:text-gray-400">Room {hData.roomNo || "N/A"}</p>
+                  <p className="text-xs text-gray-500  dark:text-gray-400">Room {hData.roomNo || "N/A"}</p>
                 </div>
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {hData.blockName && (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-indigo-50  dark:bg-indigo-900/10 text-indigo-700  dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/30">
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-indigo-50  dark:bg-indigo-900/10 text-indigo-700  dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/30">
                     <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
                       <path
                         fillRule="evenodd"
@@ -1129,7 +1134,7 @@ export function useAppCommands(input: AppCommandInputs) {
                   </span>
                 )}
                 {hData.roomNo && (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-gray-100  dark:bg-gray-900 text-gray-600  dark:text-gray-400 border border-gray-200/50  dark:border-gray-800/30">
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-gray-100  dark:bg-gray-900 text-gray-600  dark:text-gray-400 border border-gray-200/50  dark:border-gray-800/30">
                     <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
                       <path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
                       <path d="M2 12a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2v-2z" />
@@ -1138,7 +1143,7 @@ export function useAppCommands(input: AppCommandInputs) {
                   </span>
                 )}
                 {hData.messInfo && (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-emerald-50  dark:bg-emerald-900/10 text-emerald-700  dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/30">
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-emerald-50  dark:bg-emerald-900/10 text-emerald-700  dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/30">
                     <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
                       <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
                     </svg>
@@ -1178,18 +1183,18 @@ export function useAppCommands(input: AppCommandInputs) {
                         />
                       </svg>
                     </div>
-                    <div className="min-w-0 flex-1">
+                    <div className={TEXT_BLOCK}>
                       <p className="text-sm font-bold text-gray-900  dark:text-white truncate">
                         {l.reason || l.visitPlace || "Leave"}
                       </p>
-                      <p className="text-[11px] text-gray-500  dark:text-gray-400">
+                      <p className="text-xs text-gray-500  dark:text-gray-400">
                         {l.from || ""} → {l.to || ""}
                       </p>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {l.reason && (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-indigo-50  dark:bg-indigo-900/10 text-indigo-700  dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/30">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-indigo-50  dark:bg-indigo-900/10 text-indigo-700  dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/30">
                         <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
                           <path
                             fillRule="evenodd"
@@ -1201,7 +1206,7 @@ export function useAppCommands(input: AppCommandInputs) {
                       </span>
                     )}
                     {l.visitPlace && (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-rose-50  dark:bg-rose-900/10 text-rose-700  dark:text-rose-300 border border-rose-200/50 dark:border-rose-800/30">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-rose-50  dark:bg-rose-900/10 text-rose-700  dark:text-rose-300 border border-rose-200/50 dark:border-rose-800/30">
                         <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
                           <path
                             fillRule="evenodd"
@@ -1214,7 +1219,7 @@ export function useAppCommands(input: AppCommandInputs) {
                     )}
                     {l.status && (
                       <span
-                        className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold border ${l.status === "Approved" ? "bg-emerald-50  dark:bg-emerald-900/10 text-emerald-700  dark:text-emerald-300 border-emerald-200/50 dark:border-emerald-800/30" : l.status === "Pending" ? "bg-amber-50  dark:bg-amber-900/10 text-amber-700  dark:text-amber-300 border-amber-200/50 dark:border-amber-800/30" : "bg-red-50  dark:bg-red-900/10 text-red-700  dark:text-red-300 border-red-200/50 dark:border-red-800/30"}`}
+                        className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold border ${l.status === "Approved" ? "bg-emerald-50  dark:bg-emerald-900/10 text-emerald-700  dark:text-emerald-300 border-emerald-200/50 dark:border-emerald-800/30" : l.status === "Pending" ? "bg-amber-50  dark:bg-amber-900/10 text-amber-700  dark:text-amber-300 border-amber-200/50 dark:border-amber-800/30" : "bg-red-50  dark:bg-red-900/10 text-red-700  dark:text-red-300 border-red-200/50 dark:border-red-800/30"}`}
                       >
                         <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
                           <path
@@ -1295,14 +1300,14 @@ export function useAppCommands(input: AppCommandInputs) {
                     <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
                   </svg>
                 </div>
-                <div className="min-w-0 flex-1">
+                <div className={TEXT_BLOCK}>
                   <p className="text-sm font-bold text-gray-900  dark:text-white truncate">{shortName}</p>
-                  <p className="text-[11px] text-gray-500  dark:text-gray-400">{courseCode || ""}</p>
+                  <p className="text-xs text-gray-500  dark:text-gray-400">{courseCode || ""}</p>
                 </div>
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {courseCode && (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-blue-50  dark:bg-blue-900/10 text-blue-700  dark:text-blue-300 border border-blue-200/50 dark:border-blue-800/30">
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-blue-50  dark:bg-blue-900/10 text-blue-700  dark:text-blue-300 border border-blue-200/50 dark:border-blue-800/30">
                     <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
                       <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z" />
                     </svg>
@@ -1311,7 +1316,7 @@ export function useAppCommands(input: AppCommandInputs) {
                 )}
                 {a.due && (
                   <span
-                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold border ${a.done ? "bg-green-50  dark:bg-green-900/10 text-green-700  dark:text-green-300 border-green-200/50 dark:border-green-800/30" : "bg-amber-50  dark:bg-amber-900/10 text-amber-700  dark:text-amber-300 border-amber-200/50 dark:border-amber-800/30"}`}
+                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold border ${a.done ? "bg-green-50  dark:bg-green-900/10 text-green-700  dark:text-green-300 border-green-200/50 dark:border-green-800/30" : "bg-amber-50  dark:bg-amber-900/10 text-amber-700  dark:text-amber-300 border-amber-200/50 dark:border-amber-800/30"}`}
                   >
                     <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
                       <path
@@ -1324,7 +1329,7 @@ export function useAppCommands(input: AppCommandInputs) {
                   </span>
                 )}
                 <span
-                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold border ${a.done ? "bg-green-50  dark:bg-green-900/10 text-green-700  dark:text-green-300 border-green-200/50 dark:border-green-800/30" : "bg-orange-50  dark:bg-orange-900/10 text-orange-700  dark:text-orange-300 border-orange-200/50 dark:border-orange-800/30"}`}
+                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold border ${a.done ? "bg-green-50  dark:bg-green-900/10 text-green-700  dark:text-green-300 border-green-200/50 dark:border-green-800/30" : "bg-orange-50  dark:bg-orange-900/10 text-orange-700  dark:text-orange-300 border-orange-200/50 dark:border-orange-800/30"}`}
                 >
                   <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
                     <path
@@ -1401,15 +1406,15 @@ export function useAppCommands(input: AppCommandInputs) {
                           />
                         </svg>
                       </div>
-                      <div className="min-w-0 flex-1">
+                      <div className={TEXT_BLOCK}>
                         <p className="text-sm font-bold text-gray-900  dark:text-white truncate">
                           {desc || type || "Library charge"}
                         </p>
-                        <p className="text-[11px] text-gray-500  dark:text-gray-400">{type || "N/A"}</p>
+                        <p className="text-xs text-gray-500  dark:text-gray-400">{type || "N/A"}</p>
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-indigo-50  dark:bg-indigo-900/10 text-indigo-700  dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/30">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-indigo-50  dark:bg-indigo-900/10 text-indigo-700  dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/30">
                         <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
                           <path
                             fillRule="evenodd"
@@ -1421,7 +1426,7 @@ export function useAppCommands(input: AppCommandInputs) {
                       </span>
                       {outstanding && (
                         <span
-                          className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold border ${paidOff ? "bg-green-50  dark:bg-green-900/10 text-green-700  dark:text-green-300 border-green-200/50 dark:border-green-800/30" : "bg-red-50  dark:bg-red-900/10 text-red-700  dark:text-red-300 border-red-200/50 dark:border-red-800/30"}`}
+                          className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold border ${paidOff ? "bg-green-50  dark:bg-green-900/10 text-green-700  dark:text-green-300 border-green-200/50 dark:border-green-800/30" : "bg-red-50  dark:bg-red-900/10 text-red-700  dark:text-red-300 border-red-200/50 dark:border-red-800/30"}`}
                         >
                           <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
                             <path
@@ -1434,7 +1439,7 @@ export function useAppCommands(input: AppCommandInputs) {
                         </span>
                       )}
                       {created && (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-gray-100  dark:bg-gray-900 text-gray-600  dark:text-gray-400 border border-gray-200/50  dark:border-gray-800/30">
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-gray-100  dark:bg-gray-900 text-gray-600  dark:text-gray-400 border border-gray-200/50  dark:border-gray-800/30">
                           <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
                             <path
                               fillRule="evenodd"
@@ -1481,16 +1486,14 @@ export function useAppCommands(input: AppCommandInputs) {
                           <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
                         </svg>
                       </div>
-                      <div className="min-w-0 flex-1">
+                      <div className={TEXT_BLOCK}>
                         <p className="text-sm font-bold text-gray-900  dark:text-white truncate">{title}</p>
-                        {author && (
-                          <p className="text-[11px] text-gray-500  dark:text-gray-400 truncate">by {author}</p>
-                        )}
+                        {author && <p className="text-xs text-gray-500  dark:text-gray-400 truncate">by {author}</p>}
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {callNo && (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-gray-100  dark:bg-gray-900 text-gray-600  dark:text-gray-400 border border-gray-200/50  dark:border-gray-800/30">
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-gray-100  dark:bg-gray-900 text-gray-600  dark:text-gray-400 border border-gray-200/50  dark:border-gray-800/30">
                           <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
                             <path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
                             <path d="M2 12a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2v-2z" />
@@ -1499,7 +1502,7 @@ export function useAppCommands(input: AppCommandInputs) {
                         </span>
                       )}
                       {itemType && (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-purple-50  dark:bg-purple-900/10 text-purple-700  dark:text-purple-300 border border-purple-200/50 dark:border-purple-800/30">
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-purple-50  dark:bg-purple-900/10 text-purple-700  dark:text-purple-300 border border-purple-200/50 dark:border-purple-800/30">
                           <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
                             <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z" />
                           </svg>
@@ -1507,7 +1510,7 @@ export function useAppCommands(input: AppCommandInputs) {
                         </span>
                       )}
                       {date && !date.includes("Check-in") && (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-amber-50  dark:bg-amber-900/10 text-amber-700  dark:text-amber-300 border border-amber-200/50 dark:border-amber-800/30">
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-amber-50  dark:bg-amber-900/10 text-amber-700  dark:text-amber-300 border border-amber-200/50 dark:border-amber-800/30">
                           <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
                             <path
                               fillRule="evenodd"
@@ -1567,16 +1570,14 @@ export function useAppCommands(input: AppCommandInputs) {
                       <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
                     </svg>
                   </div>
-                  <div className="min-w-0 flex-1">
+                  <div className={TEXT_BLOCK}>
                     <p className="text-sm font-bold text-gray-900  dark:text-white truncate">{b.title || "Unknown"}</p>
-                    {b.author && (
-                      <p className="text-[11px] text-gray-500  dark:text-gray-400 truncate">by {b.author}</p>
-                    )}
+                    {b.author && <p className="text-xs text-gray-500  dark:text-gray-400 truncate">by {b.author}</p>}
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {b.isbn && (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-gray-100  dark:bg-gray-900 text-gray-600  dark:text-gray-400 border border-gray-200/50  dark:border-gray-800/30">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-gray-100  dark:bg-gray-900 text-gray-600  dark:text-gray-400 border border-gray-200/50  dark:border-gray-800/30">
                       <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
                         <path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
                         <path d="M2 12a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2v-2z" />
@@ -1585,7 +1586,7 @@ export function useAppCommands(input: AppCommandInputs) {
                     </span>
                   )}
                   {b.daysOverdue && (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-red-50  dark:bg-red-900/10 text-red-700  dark:text-red-300 border border-red-200/50 dark:border-red-800/30">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-red-50  dark:bg-red-900/10 text-red-700  dark:text-red-300 border border-red-200/50 dark:border-red-800/30">
                       <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
                         <path
                           fillRule="evenodd"
@@ -1596,7 +1597,7 @@ export function useAppCommands(input: AppCommandInputs) {
                       {b.daysOverdue} days overdue
                     </span>
                   )}
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-red-50  dark:bg-red-900/10 text-red-700  dark:text-red-300 border border-red-200/50 dark:border-red-800/30">
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-red-50  dark:bg-red-900/10 text-red-700  dark:text-red-300 border border-red-200/50 dark:border-red-800/30">
                     <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
                       <path
                         fillRule="evenodd"
@@ -1652,16 +1653,16 @@ export function useAppCommands(input: AppCommandInputs) {
                       />
                     </svg>
                   </div>
-                  <div className="min-w-0 flex-1">
+                  <div className={TEXT_BLOCK}>
                     <p className="text-sm font-bold text-gray-900  dark:text-white truncate">
                       {unifiedIdentity?.name || p?.name || p?.studentName || profileReg}
                     </p>
-                    <p className="text-[11px] text-gray-500  dark:text-gray-400">{profileReg}</p>
+                    <p className="text-xs text-gray-500  dark:text-gray-400">{profileReg}</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {p?.email && (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-cyan-50  dark:bg-cyan-900/10 text-cyan-700  dark:text-cyan-300 border border-cyan-200/50 dark:border-cyan-800/30">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-cyan-50  dark:bg-cyan-900/10 text-cyan-700  dark:text-cyan-300 border border-cyan-200/50 dark:border-cyan-800/30">
                       <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
                         <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
                         <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
@@ -1670,7 +1671,7 @@ export function useAppCommands(input: AppCommandInputs) {
                     </span>
                   )}
                   {p?.mobile && (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-emerald-50  dark:bg-emerald-900/10 text-emerald-700  dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/30">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-emerald-50  dark:bg-emerald-900/10 text-emerald-700  dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/30">
                       <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
                         <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
                       </svg>
@@ -1678,7 +1679,7 @@ export function useAppCommands(input: AppCommandInputs) {
                     </span>
                   )}
                   {(unifiedIdentity?.programme || p?.program) && (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-purple-50  dark:bg-purple-900/10 text-purple-700  dark:text-purple-300 border border-purple-200/50 dark:border-purple-800/30">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-purple-50  dark:bg-purple-900/10 text-purple-700  dark:text-purple-300 border border-purple-200/50 dark:border-purple-800/30">
                       <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
                         <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z" />
                       </svg>
@@ -1686,7 +1687,7 @@ export function useAppCommands(input: AppCommandInputs) {
                     </span>
                   )}
                   {(unifiedIdentity?.campus || p?.campus) && (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-amber-50  dark:bg-amber-900/10 text-amber-700  dark:text-amber-300 border border-amber-200/50 dark:border-amber-800/30">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-amber-50  dark:bg-amber-900/10 text-amber-700  dark:text-amber-300 border border-amber-200/50 dark:border-amber-800/30">
                       <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
                         <path
                           fillRule="evenodd"
@@ -1731,14 +1732,14 @@ export function useAppCommands(input: AppCommandInputs) {
                         <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z" />
                       </svg>
                     </div>
-                    <div className="min-w-0 flex-1">
+                    <div className={TEXT_BLOCK}>
                       <p className="text-sm font-bold text-gray-900  dark:text-white truncate">{label}</p>
-                      <p className="text-[11px] text-gray-500  dark:text-gray-400">{b.timing || ""}</p>
+                      <p className="text-xs text-gray-500  dark:text-gray-400">{b.timing || ""}</p>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {b.startPoint && b.endPoint && (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-blue-50  dark:bg-blue-900/10 text-blue-700  dark:text-blue-300 border border-blue-200/50 dark:border-blue-800/30">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-blue-50  dark:bg-blue-900/10 text-blue-700  dark:text-blue-300 border border-blue-200/50 dark:border-blue-800/30">
                         <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
                           <path
                             fillRule="evenodd"
@@ -1750,7 +1751,7 @@ export function useAppCommands(input: AppCommandInputs) {
                       </span>
                     )}
                     {b.timing && (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-gray-100  dark:bg-gray-900 text-gray-600  dark:text-gray-400 border border-gray-200/50  dark:border-gray-800/30">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-gray-100  dark:bg-gray-900 text-gray-600  dark:text-gray-400 border border-gray-200/50  dark:border-gray-800/30">
                         <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
                           <path
                             fillRule="evenodd"
@@ -1764,7 +1765,7 @@ export function useAppCommands(input: AppCommandInputs) {
                   </div>
                   {b.stops?.length > 0 && (
                     <div className="px-3 py-2 rounded-xl bg-gray-50/80  dark:bg-gray-900/40 border border-gray-200/50  dark:border-gray-800/30">
-                      <p className="text-[10px] font-semibold text-gray-500  dark:text-gray-400 mb-1">Stops</p>
+                      <p className="text-xs font-semibold text-gray-500  dark:text-gray-400 mb-1">Stops</p>
                       <p className="text-xs font-medium text-gray-900  dark:text-white">{b.stops.join(" · ")}</p>
                     </div>
                   )}

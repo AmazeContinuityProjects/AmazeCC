@@ -90,7 +90,7 @@ export default function ExperienceModePickerModal<T extends string = string>({
             </div>
           ) : null}
           <div className="min-w-0">
-            <h2 className="text-lg font-black text-text-heading tracking-tight leading-tight">{title}</h2>
+            <h2 className="text-xl font-black text-text-heading tracking-tight leading-tight">{title}</h2>
             {subtitle ? <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{subtitle}</p> : null}
           </div>
         </div>
@@ -121,7 +121,7 @@ export default function ExperienceModePickerModal<T extends string = string>({
                 </span>
                 <ListRowText title={option.title} titleTag="span" subtitle={option.description} />
                 {option.badge ? (
-                  <span className="hidden sm:inline-flex text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-surface-secondary text-muted-foreground border border-border-strong/60 shrink-0">
+                  <span className="hidden sm:inline-flex text-xs font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-surface-secondary text-muted-foreground border border-border-strong/60 shrink-0">
                     {option.badge}
                   </span>
                 ) : null}

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Check, Copy, ExternalLink, Globe } from "lucide-react";
 import { ListRowText, ListShell } from "../shared/primitives";
-import { GHOST_BUTTON, LIST_ROW, TONE_ICON_TILE } from "@/lib/uiTokens";
+import { GHOST_BUTTON, ICON_WELL, LIST_ROW, TONE_ICON_TILE } from "@/lib/uiTokens";
 
 const LINKS = [
   { url: "https://amaze-cc.vercel.app", label: "Amaze-CC on Vercel" },
@@ -35,23 +35,17 @@ export default function Links() {
         const copied = copiedUrl === link.url;
         return (
           <div key={link.url} className={LIST_ROW}>
-            <span
-              className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${TONE_ICON_TILE.sky}`}
-            >
+            <span className={`${ICON_WELL} ${TONE_ICON_TILE.sky}`}>
               <Globe className="w-4.5 h-4.5" />
             </span>
-            <ListRowText
-              title={link.label}
-              titleTooltip={link.url}
-              subtitle={link.url}
-            />
+            <ListRowText title={link.label} titleTooltip={link.url} subtitle={link.url} />
             <a
               href={link.url}
               target="_blank"
               rel="noopener noreferrer"
               title={`Open ${link.url}`}
               aria-label={`Open ${link.label}`}
-              className="shrink-0 text-zinc-400 hover:text-sky-600 dark:hover:text-sky-400 transition-colors"
+              className="relative hit-expand shrink-0 text-zinc-400 hover:text-sky-600 dark:hover:text-sky-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 active:scale-95"
             >
               <ExternalLink className="w-4 h-4" />
             </a>
@@ -66,7 +60,7 @@ export default function Links() {
               ) : (
                 <Copy className="w-3.5 h-3.5" />
               )}
-              <span className="text-[11px]">{copied ? "Copied" : "Copy"}</span>
+              <span className="text-xs">{copied ? "Copied" : "Copy"}</span>
             </button>
           </div>
         );

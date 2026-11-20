@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import posthog from "posthog-js";
 import ErrorDiagnosticCard from "@/components/custom/ErrorDiagnosticCard";
 import { isChunkLoadError, recoverFromChunkLoad } from "@/lib/chunkRecovery";
 
@@ -9,7 +8,20 @@ type ErrorWithDigest = Error & { digest?: string };
 
 export default function GlobalError({ error, reset }: { error: ErrorWithDigest; reset: () => void }) {
   useEffect(() => {
-    posthog.captureException(error);
+    // PostHog stays out of the initial bundle. Error capture itself must never
+    // depend on the telemetry chunk loading, so failures are swallowed here.
+    void import("posthog-js")
+      .then(({ default: posthog }) => {
+        try {
+          posthog.captureException(error);
+        } catch {
+          // Telemetry is best-effort on an error page.
+        }
+      })
+      .catch(() => {
+        // No PostHog (offline / blocked / chunk failure) — console.error below
+        // still records the error for diagnosis.
+      });
     console.error("[AmazeCC global app error]", error);
     if (!isChunkLoadError(error)) return;
 

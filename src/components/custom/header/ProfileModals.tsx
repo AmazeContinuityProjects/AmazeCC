@@ -125,7 +125,7 @@ export function RegistrationModalContent({ creds, onClose }: { creds: any; onClo
         <Clock className="w-10 h-10 text-blue-600 dark:text-blue-400" />
       </div>
       <div>
-        <p className="text-lg font-bold text-zinc-900 dark:text-zinc-100 font-outfit">Registration Scheduled</p>
+        <p className="text-xl font-bold text-zinc-900 dark:text-zinc-100 font-outfit">Registration Scheduled</p>
         <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
           {date && <span>Date: {date}</span>}
           {date && time && <span>{" • "}</span>}
@@ -222,7 +222,7 @@ export function BankDayStatusModal({ endpoint, title, creds }: { endpoint: strin
               <CheckCircle className="w-8 h-8" />
             </div>
             <div>
-              <p className="font-semibold text-emerald-700 dark:text-emerald-300 text-lg">{title} Filled</p>
+              <p className="font-semibold text-emerald-700 dark:text-emerald-300 text-xl">{title} Filled</p>
               <p className="text-sm text-emerald-600/70 dark:text-emerald-400/70">
                 Your {title.toLowerCase()} has been submitted successfully
               </p>
@@ -234,7 +234,7 @@ export function BankDayStatusModal({ endpoint, title, creds }: { endpoint: strin
               <AlertCircle className="w-8 h-8" />
             </div>
             <div>
-              <p className="font-semibold text-zinc-700 dark:text-zinc-300 text-lg">{title} Not Filled</p>
+              <p className="font-semibold text-zinc-700 dark:text-zinc-300 text-xl">{title} Not Filled</p>
               <p className="text-sm text-zinc-500 dark:text-zinc-400">No {title.toLowerCase()} found in the system</p>
             </div>
           </>

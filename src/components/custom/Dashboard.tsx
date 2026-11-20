@@ -1,6 +1,6 @@
 "use client";
 import NavigationTabs from "./header/NavigationTabs";
-import { useState, useEffect, memo } from "react";
+import { useState, useEffect, useCallback, memo } from "react";
 import { useAtom } from "jotai";
 import {
   attendanceDataAtom,
@@ -145,6 +145,48 @@ function DashboardContent({
   const [showFeedbackStatus, setShowFeedbackStatus] = useState(false);
   const [ffcsFeedback, setFfcsFeedback] = useState<any>(null);
 
+  // Stable identities for the callbacks handed to the memoized shell and the
+  // lazy feature screens. Inline arrows here were recreated on every render,
+  // which defeated memo even when nothing the student sees had changed.
+  const dismissFresherWelcome = useCallback(() => {
+    localStorage.setItem("fresherWelcomeDismissed", "true");
+    setShowFresherWelcome(false);
+  }, [setShowFresherWelcome]);
+
+  const completeInterfaceOnboarding = useCallback(() => {
+    setShowInterfaceOnboarding(false);
+  }, [setShowInterfaceOnboarding]);
+
+  const changeCurrSemester = useCallback(
+    (val: string) => {
+      setSettings((prev) => ({ ...prev, currSemesterID: val }));
+      const mapped = mapToFinalSemesterId(val);
+      if (mapped) broadcastGlobalSemesterChange(mapped);
+    },
+    [setSettings],
+  );
+
+  const changePassword = useCallback(
+    (val: string[]) => {
+      setIDs((prev) => ({ ...prev, VtopUsername: val[0], VtopPassword: val[1] }));
+      localStorage.setItem("IDs", JSON.stringify({ ...IDs, VtopUsername: val[0], VtopPassword: val[1] }));
+    },
+    [IDs, setIDs],
+  );
+
+  const openFeedbackStatus = useCallback(() => setShowFeedbackStatus(true), []);
+
+  const openCourse = useCallback(
+    (courseCode: string) => {
+      setCourseDashboardTarget({ courseCode, targetTab: "overview" });
+      setActiveTab("academics");
+      setActiveSubTab("course-dashboard");
+    },
+    [setCourseDashboardTarget, setActiveTab, setActiveSubTab],
+  );
+
+  const clearCourseTarget = useCallback(() => setCourseDashboardTarget(null), [setCourseDashboardTarget]);
+
   // Grades + feedback dialogs register themselves for system back via
   // BottomSheet; nothing to do here.
 
@@ -168,10 +210,7 @@ function DashboardContent({
   if (showFresherWelcome) {
     return (
       <FresherWelcomePage
-        onDismiss={() => {
-          localStorage.setItem("fresherWelcomeDismissed", "true");
-          setShowFresherWelcome(false);
-        }}
+        onDismiss={dismissFresherWelcome}
         username={unifiedIdentity.regNumber || IDs?.VtopUsername || ""}
         friendlyName={unifiedIdentity.friendlyName || settings?.friendlyName || ""}
         eptData={fresherEptData}
@@ -189,9 +228,7 @@ function DashboardContent({
         settings={settings}
         setSettings={setSettings}
         username={unifiedIdentity.regNumber || IDs?.VtopUsername}
-        onComplete={() => {
-          setShowInterfaceOnboarding(false);
-        }}
+        onComplete={completeInterfaceOnboarding}
         attendanceData={attendanceData}
         marksData={marksData}
         hostelData={hostelData}
@@ -219,22 +256,12 @@ function DashboardContent({
         handleLogOutRequest={handleLogOutRequest}
         handleReloadRequest={handleReloadRequest}
         currSemesterID={settings.currSemesterID}
-        setCurrSemesterID={(val: string) => {
-          setSettings((prev) => {
-            const next = { ...prev, currSemesterID: val };
-            return next;
-          });
-          const mapped = mapToFinalSemesterId(val);
-          if (mapped) broadcastGlobalSemesterChange(mapped);
-        }}
+        setCurrSemesterID={changeCurrSemester}
         handleLogin={handleLogin}
         setIsReloading={setIsReloading}
         username={unifiedIdentity.regNumber || IDs.VtopUsername}
         password={IDs.VtopPassword}
-        setPassword={(val: string[]) => {
-          setIDs((prev) => ({ ...prev, VtopUsername: val[0], VtopPassword: val[1] }));
-          localStorage.setItem("IDs", JSON.stringify({ ...IDs, VtopUsername: val[0], VtopPassword: val[1] }));
-        }}
+        setPassword={changePassword}
         settings={settings}
         setSettings={setSettings}
         attendancePercentage={attendancePercentage}
@@ -257,7 +284,7 @@ function DashboardContent({
         setActiveMoreSubTab={setActiveMoreSubTab}
         activeProfileSubTab={activeProfileSubTab}
         setActiveProfileSubTab={setActiveProfileSubTab}
-        onOpenFeedbackStatus={() => setShowFeedbackStatus(true)}
+        onOpenFeedbackStatus={openFeedbackStatus}
         onOpenCommandPalette={onOpenCommandPalette}
       />
 
@@ -265,11 +292,6 @@ function DashboardContent({
         className={`dashboard-content relative bg-gray-50/50  dark:bg-black min-h-[100dvh] text-gray-900  dark:text-gray-100 transition-all duration-300 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] md:pb-0 ${settings.isSidebarCollapsed ? "md:pl-24" : "md:pl-80"} w-full overflow-x-clip`}
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
-        {/* Ambient Background Glows */}
-        <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none -z-10">
-          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-info-surface blur-[120px]" />
-          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-emerald-400/10  dark:bg-emerald-500/5 blur-[120px]" />
-        </div>
         <AnimatePresence>
           {GradesDisplayIsOpen && (
             <GradesModal
@@ -340,11 +362,7 @@ function DashboardContent({
               handleCalendarFetch={handleCalendarFetch}
               handleFetchMoodle={handleFetchMoodle}
               setActiveTab={setActiveTab}
-              onOpenCourse={(courseCode) => {
-                setCourseDashboardTarget({ courseCode, targetTab: "overview" });
-                setActiveTab("academics");
-                setActiveSubTab("course-dashboard");
-              }}
+              onOpenCourse={openCourse}
               onSystemBack={onSystemBack}
               loginToVTOP={loginToVTOP}
               resetKey={activePageResetKey}
@@ -368,7 +386,7 @@ function DashboardContent({
               handleFetchGrades={handleAllGradesFetch}
               handleScheduleFetch={handleFetchSchedule}
               courseDashboardTarget={courseDashboardTarget}
-              onClearCourseTarget={() => setCourseDashboardTarget(null)}
+              onClearCourseTarget={clearCourseTarget}
               resetKey={activePageResetKey}
             />
           </DashboardRoute>

@@ -23,7 +23,7 @@ export { useCarousel, type CarouselState } from "./useCarousel";
 export { useHorizontalSwipe, type HorizontalSwipe } from "./useHorizontalSwipe";
 export { InsightCarousel, type InsightSlide } from "./InsightCarousel";
 export { SectionHeader, StatTile, ListShell, ListRowText, KeyValue, MiniBar } from "./Surfaces";
-export { IconButton, IconLink, GhostButton, SegmentedControl, ChipTabs, RadioGroup } from "./Controls";
+export { IconButton, IconLink, ReloadButton, GhostButton, SegmentedControl, ChipTabs, RadioGroup } from "./Controls";
 export { default as OptionPicker, type OptionPickerOption } from "./OptionPicker";
 export {
   default as ExperienceModePickerModal,

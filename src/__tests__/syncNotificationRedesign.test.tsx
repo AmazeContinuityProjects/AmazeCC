@@ -32,7 +32,7 @@ describe("SyncNotification Redesign", () => {
   // The minimized bar is the default now — expand before asserting on the
   // sheet's contents.
   const expand = () => {
-    fireEvent.click(screen.getByTitle(/expand sync view/i));
+    fireEvent.click(screen.getByTitle(/open expanded sync notification/i));
   };
 
   it("renders active session with hero progress and milestones", () => {
@@ -147,7 +147,7 @@ describe("SyncNotification Redesign", () => {
     fireEvent.click(minimizeBtn);
 
     // Minimized pill expand button appears
-    const expandBtn = screen.getByTitle(/expand sync view/i);
+    const expandBtn = screen.getByTitle(/open expanded sync notification/i);
     expect(expandBtn).toBeDefined();
 
     // Click expand — the exiting pill may linger in the DOM during its exit

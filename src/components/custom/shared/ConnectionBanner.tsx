@@ -38,7 +38,7 @@ export default function ConnectionBanner({ enabled }: { enabled: boolean }) {
       className={`fixed inset-x-0 top-0 z-[60] flex justify-center px-3 pt-[calc(env(safe-area-inset-top,0px)+0.5rem)] pointer-events-none`}
     >
       <div
-        className={`pointer-events-auto flex max-w-xl items-start gap-2.5 rounded-xl border px-3 py-2 text-xs font-medium shadow-lg backdrop-blur ${
+        className={`pointer-events-auto flex max-w-xl items-start gap-2.5 rounded-xl border px-3 py-2 text-sm font-medium shadow-lg backdrop-blur ${
           offline
             ? "border-amber-500/40 bg-amber-50/95 text-amber-900 dark:bg-amber-950/90 dark:text-amber-100"
             : "border-rose-500/40 bg-rose-50/95 text-rose-900 dark:bg-rose-950/90 dark:text-rose-100"

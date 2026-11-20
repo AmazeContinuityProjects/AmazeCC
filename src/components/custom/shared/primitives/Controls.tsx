@@ -1,8 +1,9 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { RefreshCcw } from "lucide-react";
 import { cn } from "@amazecontinuityprojects/amazeui";
-import { ICON_BUTTON, GHOST_BUTTON, SEG_ACTIVE, SEG_IDLE } from "@/lib/uiTokens";
+import { ICON_BUTTON, GHOST_BUTTON, SEG_ACTIVE, SEG_IDLE, FOCUS_RING } from "@/lib/uiTokens";
 
 /**
  * Icon-only action for page headers. `title` doubles as the accessible name
@@ -32,6 +33,34 @@ export function IconButton({
     >
       {children}
     </button>
+  );
+}
+
+/**
+ * Refresh/reload action. Eight surfaces repeated the same IconButton with a
+ * hit-expand target, focus ring, rotating glyph and disabled-while-loading
+ * behaviour; this owns that recipe so a missed suffix reads as a dead button.
+ */
+export function ReloadButton({
+  onClick,
+  title = "Reload",
+  loading = false,
+  className = "",
+}: {
+  onClick: () => void;
+  title?: string;
+  loading?: boolean;
+  className?: string;
+}) {
+  return (
+    <IconButton
+      onClick={onClick}
+      title={title}
+      disabled={loading}
+      className={`relative hit-expand ${FOCUS_RING} ${className}`.trim()}
+    >
+      <RefreshCcw className={loading ? "animate-spin" : ""} />
+    </IconButton>
   );
 }
 
@@ -86,12 +115,7 @@ export function GhostButton({
   className?: string;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={title}
-      className={`${GHOST_BUTTON} ${className}`.trim()}
-    >
+    <button type="button" onClick={onClick} title={title} className={`${GHOST_BUTTON} ${className}`.trim()}>
       {children}
     </button>
   );
@@ -124,9 +148,7 @@ export function SegmentedControl<T extends string>({
   scroll?: boolean;
   className?: string;
 }) {
-  const container = grow
-    ? "flex items-center gap-1"
-    : "flex flex-wrap items-center max-w-full";
+  const container = grow ? "flex items-center gap-1" : "flex flex-wrap items-center max-w-full";
   const overflow = scroll ? " overflow-x-auto hide-scrollbar" : "";
 
   return (
@@ -145,10 +167,10 @@ export function SegmentedControl<T extends string>({
           // idle colour instead of leaving both to the cascade.
           className={cn(
             "rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap",
-            grow ? "flex-1 px-2.5 py-1.5 text-[11px]" : "px-2.5 py-1 text-xs",
+            grow ? "flex-1 px-2.5 py-1.5 text-xs" : "px-2.5 py-1 text-xs",
             opt.icon && "flex items-center justify-center gap-1",
             value === opt.value ? SEG_ACTIVE : SEG_IDLE,
-            value === opt.value && "text-indigo-600 dark:text-indigo-400"
+            value === opt.value && "text-indigo-600 dark:text-indigo-400",
           )}
         >
           {opt.icon ? <span className="shrink-0 flex items-center">{opt.icon}</span> : null}
@@ -184,7 +206,7 @@ export function ChipTabs<T extends string>({
   size?: "sm" | "md";
   className?: string;
 }) {
-  const sizing = size === "sm" ? "text-[10px] px-2.5 py-1" : "text-[11px] px-3 py-1.5";
+  const sizing = size === "sm" ? "text-xs px-2.5 py-1" : "text-xs px-3 py-1.5";
 
   return (
     <div
@@ -206,7 +228,7 @@ export function ChipTabs<T extends string>({
               sizing,
               active
                 ? "bg-indigo-600 text-white shadow-xs"
-                : "bg-surface-tertiary dark:bg-surface-secondary text-text-secondary dark:text-text-muted hover:text-text-heading dark:hover:text-text-heading"
+                : "bg-surface-tertiary dark:bg-surface-secondary text-text-secondary dark:text-text-muted hover:text-text-heading dark:hover:text-text-heading",
             )}
           >
             {opt.label}
@@ -254,7 +276,7 @@ export function RadioGroup<T extends string>({
               "flex items-start gap-3 p-3 rounded-2xl border transition-all cursor-pointer select-none text-left",
               isSelected
                 ? "bg-indigo-50/70 dark:bg-indigo-950/30 border-indigo-500/40 dark:border-indigo-500/30 shadow-2xs"
-                : "bg-surface dark:bg-surface-secondary border-border-muted dark:border-border hover:bg-surface-secondary dark:hover:bg-surface-hover/60"
+                : "bg-surface dark:bg-surface-secondary border-border-muted dark:border-border hover:bg-surface-secondary dark:hover:bg-surface-hover/60",
             )}
           >
             <input
@@ -270,13 +292,11 @@ export function RadioGroup<T extends string>({
                 "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all",
                 isSelected
                   ? "border-indigo-600 dark:border-indigo-400 bg-indigo-600 dark:border-indigo-400"
-                  : "border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900"
+                  : "border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900",
               )}
               aria-hidden="true"
             >
-              {isSelected ? (
-                <span className="h-1.5 w-1.5 rounded-full bg-white dark:bg-zinc-950" />
-              ) : null}
+              {isSelected ? <span className="h-1.5 w-1.5 rounded-full bg-white dark:bg-zinc-950" /> : null}
             </span>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
@@ -284,9 +304,7 @@ export function RadioGroup<T extends string>({
                 <span
                   className={cn(
                     "text-xs sm:text-sm font-bold tracking-tight block truncate",
-                    isSelected
-                      ? "text-indigo-950 dark:text-indigo-100"
-                      : "text-text-heading"
+                    isSelected ? "text-indigo-950 dark:text-indigo-100" : "text-text-heading",
                   )}
                 >
                   {opt.label}
@@ -295,10 +313,10 @@ export function RadioGroup<T extends string>({
               {opt.description ? (
                 <p
                   className={cn(
-                    "text-[11px] leading-relaxed mt-0.5",
+                    "text-xs leading-relaxed mt-0.5",
                     isSelected
                       ? "text-indigo-700/80 dark:text-indigo-300/80"
-                      : "text-text-secondary dark:text-text-muted"
+                      : "text-text-secondary dark:text-text-muted",
                   )}
                 >
                   {opt.description}

@@ -1,4 +1,4 @@
-import { describe, expect, it, afterEach } from "vitest";
+import { describe, expect, it, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { useState } from "react";
 import { AnimatePresence } from "framer-motion";
@@ -33,8 +33,7 @@ afterEach(() => {
  * classes are what distinguish it from the panel and the keyboard-lift wrapper,
  * which are also `fixed inset-0`.
  */
-const backdrop = () =>
-  document.querySelector(".fixed.inset-0.bg-black\\/45") as HTMLElement | null;
+const backdrop = () => document.querySelector(".fixed.inset-0.bg-black\\/45") as HTMLElement | null;
 
 /**
  * A sheet host that actually unmounts on close.
@@ -100,15 +99,14 @@ function Solo({
   );
 }
 
-const renderStack = (ids: string[], onClose: (id: string) => void) =>
-  render(<Stack ids={ids} onClose={onClose} />);
+const renderStack = (ids: string[], onClose: (id: string) => void) => render(<Stack ids={ids} onClose={onClose} />);
 
 describe("BottomSheet dismissal", () => {
   it("keeps sheet content natively scrollable on touch devices without scroll chaining", () => {
     render(
       <BottomSheet overlayId="scrollable-sheet" onClose={() => {}}>
         <span>Scrollable sheet content</span>
-      </BottomSheet>
+      </BottomSheet>,
     );
 
     const content = document.querySelector(".overflow-y-auto");
@@ -174,13 +172,7 @@ describe("BottomSheet dismissal", () => {
     // The sync sheet's shape: swipe and backdrop *park*, only the X cancels.
     const parked: string[] = [];
     const cancelled: string[] = [];
-    render(
-      <Solo
-        onClose={() => cancelled.push("x")}
-        onSwipeDown={() => parked.push("park")}
-        showClose={false}
-      />,
-    );
+    render(<Solo onClose={() => cancelled.push("x")} onSwipeDown={() => parked.push("park")} showClose={false} />);
 
     fireEvent.keyDown(document, { key: "Escape" });
 
@@ -222,9 +214,7 @@ describe("BottomSheet dismissal", () => {
   it("honours a custom backdrop handler", () => {
     const parked: string[] = [];
     const closed: string[] = [];
-    render(
-      <Solo onClose={() => closed.push("x")} onBackdropClick={() => parked.push("park")} />,
-    );
+    render(<Solo onClose={() => closed.push("x")} onBackdropClick={() => parked.push("park")} />);
 
     const overlay = backdrop();
     fireEvent.click(overlay!);
@@ -260,5 +250,161 @@ describe("BottomSheet dismissal", () => {
     // flex child rather than overlapping the centred grabber.
     expect(close.className).not.toContain("absolute");
     expect(getComputedStyle(close).position).not.toBe("absolute");
+  });
+});
+
+/**
+ * The grabber gesture.
+ *
+ * A sheet that only dismisses when every pointer behaves is a sheet you have
+ * to aim at. These pin the ways a real touch sequence is allowed to fail: a
+ * second finger, an unrelated pointerup, a cancel, a lost capture and a window
+ * blur must all leave the sheet usable, and only a completed pull past the
+ * threshold may close it.
+ */
+describe("BottomSheet grabber gesture", () => {
+  const grabber = () => document.querySelector(".cursor-grab") as HTMLElement | null;
+  const panel = () => document.querySelector("[data-prevent-swipe]") as HTMLElement | null;
+
+  const renderSheet = (onSwipeDown: () => void, dismissable = true) =>
+    render(
+      <BottomSheet overlayId="gesture-sheet" dismissable={dismissable} onClose={() => {}} onSwipeDown={onSwipeDown}>
+        <span>content</span>
+      </BottomSheet>,
+    );
+
+  const down = (id: number, y: number) =>
+    fireEvent.pointerDown(grabber()!, { pointerId: id, pointerType: "touch", clientY: y });
+  const move = (id: number, y: number) =>
+    fireEvent.pointerMove(grabber()!, { pointerId: id, pointerType: "touch", clientY: y });
+  const up = (id: number, y: number) =>
+    fireEvent.pointerUp(grabber()!, { pointerId: id, pointerType: "touch", clientY: y });
+
+  it("dismisses on a completed pull and restores the panel transform", () => {
+    const onSwipeDown = vi.fn();
+    renderSheet(onSwipeDown);
+
+    down(1, 100);
+    move(1, 300);
+    expect(panel()?.style.transform).toBe("translateY(200px)");
+
+    up(1, 300);
+    expect(onSwipeDown).toHaveBeenCalledTimes(1);
+    expect(panel()?.style.transform).toBe("");
+  });
+
+  it("treats a short pull as a tap, not a dismissal", () => {
+    const onSwipeDown = vi.fn();
+    renderSheet(onSwipeDown);
+
+    down(1, 100);
+    move(1, 160);
+    up(1, 160);
+
+    expect(onSwipeDown).not.toHaveBeenCalled();
+    expect(panel()?.style.transform).toBe("");
+  });
+
+  it("keeps the first pointer's drag when a second finger lands mid-drag", () => {
+    // The old code re-anchored `startY` to the second finger, so the first
+    // drag either jumped to the new finger or never crossed the threshold.
+    const onSwipeDown = vi.fn();
+    renderSheet(onSwipeDown);
+
+    down(1, 100);
+    down(2, 500); // ignored: a second finger is not a new gesture
+    move(1, 300);
+    expect(panel()?.style.transform).toBe("translateY(200px)");
+
+    up(1, 300);
+    expect(onSwipeDown).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores a pointerup from a pointer that never started the drag", () => {
+    const onSwipeDown = vi.fn();
+    renderSheet(onSwipeDown);
+
+    down(1, 100);
+    move(1, 300);
+    up(2, 300); // another finger lifting off must not close or end the drag
+    expect(onSwipeDown).not.toHaveBeenCalled();
+    expect(panel()?.style.transform).toBe("translateY(200px)");
+
+    up(1, 300); // the owning pointer still closes it
+    expect(onSwipeDown).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    {
+      name: "pointercancel",
+      interrupt: () => fireEvent.pointerCancel(grabber()!, { pointerId: 1 }),
+    },
+    {
+      name: "lostpointercapture",
+      interrupt: () => fireEvent.lostPointerCapture(grabber()!, { pointerId: 1 }),
+    },
+    { name: "window blur", interrupt: () => fireEvent.blur(window) },
+  ])("restores without dismissing on $name", ({ interrupt }) => {
+    // An interrupted gesture is not a completed swipe. It must put the panel
+    // back, not read the distance travelled as an instruction to close.
+    const onSwipeDown = vi.fn();
+    renderSheet(onSwipeDown);
+
+    down(1, 100);
+    move(1, 300);
+    expect(panel()?.style.transform).toBe("translateY(200px)");
+
+    interrupt();
+    expect(onSwipeDown).not.toHaveBeenCalled();
+    expect(panel()?.style.transform).toBe("");
+  });
+
+  it("commits a release that lands outside the grabber", () => {
+    // Safety net for engines without pointer capture: the pointerup lands on
+    // the page, not the handle, but it is still the owning pointer finishing
+    // its own drag.
+    const onSwipeDown = vi.fn();
+    renderSheet(onSwipeDown);
+
+    down(1, 100);
+    move(1, 300);
+    fireEvent.pointerUp(document.body, { pointerId: 1, pointerType: "touch", clientY: 300 });
+
+    expect(onSwipeDown).toHaveBeenCalledTimes(1);
+    expect(panel()?.style.transform).toBe("");
+  });
+
+  it("accepts a fresh drag after an interrupted one", () => {
+    // Clearing state is only half the fix: the next gesture must work without
+    // a reload, and a new pointer must be free to own it.
+    const onSwipeDown = vi.fn();
+    renderSheet(onSwipeDown);
+
+    down(1, 100);
+    move(1, 300);
+    fireEvent.pointerCancel(grabber()!, { pointerId: 1 });
+    expect(onSwipeDown).not.toHaveBeenCalled();
+
+    down(3, 100);
+    move(3, 300);
+    up(3, 300);
+    expect(onSwipeDown).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not start a drag when the sheet is not dismissable", () => {
+    const onSwipeDown = vi.fn();
+    renderSheet(onSwipeDown, false);
+
+    // framer-motion owns the panel's inline transform (initial `y: "100%"`).
+    // A non-dismissable sheet must never have that replaced with a drag offset,
+    // so compare against the value before the gesture instead of assuming "".
+    const before = panel()?.style.transform;
+    down(1, 100);
+    move(1, 300);
+    up(1, 300);
+
+    expect(onSwipeDown).not.toHaveBeenCalled();
+    expect(panel()?.style.transform).toBe(before);
+    expect(panel()?.style.transform).not.toMatch(/translateY\(\d+px\)/);
   });
 });

@@ -310,6 +310,33 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
     [persistDefaultSyncMode, handleReloadRequest],
   );
 
+  // These actions are handed straight through AuthenticatedWorkspace to
+  // memo(DashboardContent). Their hook implementations close over `settings`
+  // and `IDs`, so their identities change on an unrelated atom write (a sync
+  // completion or a settings toggle) and the memoized shell re-renders anyway.
+  // The wrappers keep one identity for the whole session and always call the
+  // latest implementation via a ref — no stale closures, no whole-shell churn.
+  const latestActions = useRef({
+    handleLogOutRequest,
+    handleReloadRequest,
+    loginToVTOP,
+    handleLogin,
+    selectSyncMode,
+  });
+  latestActions.current = { handleLogOutRequest, handleReloadRequest, loginToVTOP, handleLogin, selectSyncMode };
+
+  const stableHandleLogOutRequest = useCallback(() => latestActions.current.handleLogOutRequest(), []);
+  const stableHandleReloadRequest = useCallback(
+    (semesterId?: string, modeId?: string) => latestActions.current.handleReloadRequest(semesterId, modeId),
+    [],
+  );
+  const stableLoginToVTOP = useCallback(() => latestActions.current.loginToVTOP(), []);
+  const stableHandleLogin = useCallback(
+    (semesterId?: string, ids?: Ids) => latestActions.current.handleLogin(semesterId, ids),
+    [],
+  );
+  const stableSelectSyncMode = useCallback((id: string) => latestActions.current.selectSyncMode(id), []);
+
   // Sign-in now lives on page one of the onboarding hero, so this returns the
   // outcome instead of driving a sheet: `true` on success, and on failure the
   // reason from the sync log is surfaced by the caller.
@@ -509,13 +536,13 @@ function MainRuntime({ initialIntent, onSignedOut }: MainProps) {
 
           <ConnectionBanner enabled={isLoggedIn && !demoMode} />
           <AuthenticatedWorkspace
-            handleLogOutRequest={handleLogOutRequest}
-            handleReloadRequest={handleReloadRequest}
-            loginToVTOP={loginToVTOP}
-            handleLogin={handleLogin}
+            handleLogOutRequest={stableHandleLogOutRequest}
+            handleReloadRequest={stableHandleReloadRequest}
+            loginToVTOP={stableLoginToVTOP}
+            handleLogin={stableHandleLogin}
             onOpenCommandPalette={openCommandPalette}
             onOpenShortcutsHelp={openShortcutsHelp}
-            onRunSyncMode={selectSyncMode}
+            onRunSyncMode={stableSelectSyncMode}
             intro={{
               // "Try the demo" and a saved session skip straight to the welcome
               // beat; everyone else lands on page one of onboarding: sign in.
@@ -603,7 +630,7 @@ function GlobalShortcutsModal({ onClose }: { onClose: () => void }) {
       maxWidth="max-w-lg"
       title="Keyboard Shortcuts"
       icon={<Keyboard className="w-5 h-5" />}
-      accent="bg-indigo-500/10 border-indigo-500/20 text-indigo-600 dark:text-indigo-400"
+      accent="bg-info-surface border-info/20 text-info"
       closeLabel="Close shortcuts help"
     >
       <div className="flex flex-col min-h-0">
@@ -613,19 +640,19 @@ function GlobalShortcutsModal({ onClose }: { onClose: () => void }) {
               <h4 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
                 {cat.title}
               </h4>
-              <div className="divide-y divide-gray-100 dark:divide-gray-850/40 border border-gray-150 dark:border-gray-800/80 rounded-xl overflow-hidden bg-white/40 dark:bg-slate-900/10">
+              <div className="divide-y divide-gray-100 dark:divide-gray-800/40 border border-gray-100 dark:border-gray-800/80 rounded-xl overflow-hidden bg-white/40 dark:bg-slate-900/10">
                 {cat.items.map((item, iIdx) => (
-                  <div key={iIdx} className="flex items-center justify-between px-3.5 py-2.5 text-xs">
+                  <div key={iIdx} className="flex items-center justify-between px-3.5 py-2.5 text-sm">
                     <span className="text-gray-700 dark:text-gray-300 font-medium">{item.desc}</span>
                     <div className="flex items-center gap-1">
                       {item.keys.map((k, kIdx) => (
                         <span key={kIdx} className="flex items-center gap-1">
                           {kIdx > 0 && (
-                            <span className="text-[10px] text-gray-400 font-bold px-0.5">
+                            <span className="text-xs text-gray-400 font-bold px-0.5">
                               {"joiner" in item ? item.joiner : "+"}
                             </span>
                           )}
-                          <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-md font-mono text-[10px] font-bold text-gray-800 dark:text-gray-200 shadow-xs">
+                          <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-md font-mono text-xs font-bold text-gray-800 dark:text-gray-200 shadow-xs">
                             {k}
                           </kbd>
                         </span>
@@ -640,7 +667,7 @@ function GlobalShortcutsModal({ onClose }: { onClose: () => void }) {
         <div className="pt-3 border-t border-zinc-200/70 dark:border-zinc-800/70 flex justify-end">
           <button
             onClick={onClose}
-            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer active:scale-95"
+            className="px-5 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold rounded-xl transition-all cursor-pointer active:scale-95"
           >
             Got it, thanks!
           </button>

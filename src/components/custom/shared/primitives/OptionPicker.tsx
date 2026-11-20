@@ -63,16 +63,8 @@ function useIsMobile(): boolean {
 const OVERLAY_Z = "z-[70]";
 
 const OptionPicker = forwardRef<HTMLDivElement, OptionPickerProps>(function OptionPicker(
-  {
-    className,
-    value,
-    onChange,
-    options,
-    placeholder = "Select...",
-    searchable = true,
-    disabled = false,
-  },
-  ref
+  { className, value, onChange, options, placeholder = "Select...", searchable = true, disabled = false },
+  ref,
 ) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -85,8 +77,7 @@ const OptionPicker = forwardRef<HTMLDivElement, OptionPickerProps>(function Opti
   const filtered = query
     ? options.filter(
         (o) =>
-          o.label.toLowerCase().includes(query.toLowerCase()) ||
-          o.value.toLowerCase().includes(query.toLowerCase())
+          o.label.toLowerCase().includes(query.toLowerCase()) || o.value.toLowerCase().includes(query.toLowerCase()),
       )
     : options;
 
@@ -133,7 +124,7 @@ const OptionPicker = forwardRef<HTMLDivElement, OptionPickerProps>(function Opti
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [open ]);
+  }, [open]);
 
   const handleSelect = (opt: OptionPickerOption) => {
     onChange(opt.value);
@@ -143,7 +134,7 @@ const OptionPicker = forwardRef<HTMLDivElement, OptionPickerProps>(function Opti
   const listContent = (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
       {searchable && (
-        <div className="relative shrink-0 border-b border-border">
+        <div className="relative shrink-0 border-b border-border focus-within:ring-2 focus-within:ring-inset focus-within:ring-ring">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60 pointer-events-none" />
           <input
             type="text"
@@ -185,14 +176,10 @@ const OptionPicker = forwardRef<HTMLDivElement, OptionPickerProps>(function Opti
                 onClick={() => handleSelect(opt)}
                 className={cn(
                   "flex flex-row items-center gap-3 px-4 py-3 transition-colors mx-1 rounded-lg w-[calc(100%-8px)] text-left cursor-pointer",
-                  active
-                    ? "bg-info/10 text-info font-semibold"
-                    : "text-foreground hover:bg-muted/70"
+                  active ? "bg-info/10 text-info font-semibold" : "text-foreground hover:bg-muted/70",
                 )}
               >
-                <span className={cn("text-sm flex-1", active ? "font-semibold" : "font-medium")}>
-                  {opt.label}
-                </span>
+                <span className={cn("text-sm flex-1", active ? "font-semibold" : "font-medium")}>{opt.label}</span>
                 {active && <span className="w-2 h-2 rounded-full bg-info shrink-0" />}
               </button>
             );
@@ -214,7 +201,7 @@ const OptionPicker = forwardRef<HTMLDivElement, OptionPickerProps>(function Opti
           "flex flex-row items-center justify-between gap-2 h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm",
           "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
           disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:bg-muted/30",
-          !selected && "text-muted-foreground/60"
+          !selected && "text-muted-foreground/60",
         )}
       >
         <span className="truncate text-sm">{selected ? selected.label : placeholder}</span>
@@ -238,7 +225,7 @@ const OptionPicker = forwardRef<HTMLDivElement, OptionPickerProps>(function Opti
               className={cn(
                 `fixed ${OVERLAY_Z} bg-popover border border-border rounded-xl shadow-xl overflow-hidden`,
                 "animate-in fade-in slide-in-from-top-2 duration-200",
-                "min-w-[240px] min-h-0"
+                "min-w-[240px] min-h-0",
               )}
               style={{
                 top: position.top,
@@ -250,10 +237,12 @@ const OptionPicker = forwardRef<HTMLDivElement, OptionPickerProps>(function Opti
               <div className="h-full min-h-0 flex flex-col">{listContent}</div>
             </div>
           </>,
-          document.body
+          document.body,
         )}
 
-      {open && isMobile && typeof document !== "undefined" &&
+      {open &&
+        isMobile &&
+        typeof document !== "undefined" &&
         createPortal(
           <div className={`fixed inset-0 ${OVERLAY_Z} flex items-center justify-center p-4`}>
             {/* The dim layer dismisses — amazeui's mobile modal had no tap handler
@@ -273,7 +262,7 @@ const OptionPicker = forwardRef<HTMLDivElement, OptionPickerProps>(function Opti
               {listContent}
             </div>
           </div>,
-          document.body
+          document.body,
         )}
     </div>
   );

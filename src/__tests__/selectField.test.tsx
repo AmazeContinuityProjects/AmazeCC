@@ -48,15 +48,7 @@ describe("SelectField", () => {
   });
 
   it("passes an aria-label through to the wrapper, since OptionPicker cannot", () => {
-    render(
-      <SelectField
-        value="a"
-        options={OPTIONS}
-        onChange={() => {}}
-        role="group"
-        aria-label="Pick one"
-      />,
-    );
+    render(<SelectField value="a" options={OPTIONS} onChange={() => {}} role="group" aria-label="Pick one" />);
     expect(screen.getByLabelText("Pick one")).toBeTruthy();
   });
 
@@ -87,9 +79,7 @@ describe("SelectField", () => {
   });
 
   it("honours an explicit searchable override", () => {
-    render(
-      <SelectField value="a" options={OPTIONS} onChange={() => {}} searchable={false} />,
-    );
+    render(<SelectField value="a" options={OPTIONS} onChange={() => {}} searchable={false} />);
     fireEvent.click(screen.getByRole("button"));
     expect(screen.queryByPlaceholderText(/search/i)).toBeNull();
   });
@@ -133,12 +123,7 @@ describe("SelectField", () => {
     };
 
     const picker = (size?: "xs" | "sm" | "md" | "lg" | "xl" | "auto") => (
-      <SelectField
-        value="a"
-        options={OPTIONS}
-        onChange={() => {}}
-        {...(size ? { size } : {})}
-      />
+      <SelectField value="a" options={OPTIONS} onChange={() => {}} {...(size ? { size } : {})} />
     );
 
     const heights = (["xs", "sm", "md", "lg", "xl", "auto"] as const).map(
@@ -159,6 +144,6 @@ describe("SelectField", () => {
     const trigger = screen.getByRole("button");
     const wrapper = trigger.parentElement as HTMLElement;
     expect(wrapper.className).toContain("first-child]:h-6");
-    expect(wrapper.className).toContain("first-child_span]:text-[10px]");
+    expect(wrapper.className).toContain("first-child_span]:text-[12px]");
   });
 });

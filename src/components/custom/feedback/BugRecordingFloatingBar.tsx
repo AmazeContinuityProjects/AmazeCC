@@ -87,7 +87,8 @@ export default function BugRecordingFloatingBar() {
     <div
       role="status"
       aria-live="polite"
-      className="fixed top-3 left-1/2 -translate-x-1/2 z-[100] animate-in slide-in-from-top-4 duration-300 pointer-events-auto select-none"
+      className="fixed left-1/2 -translate-x-1/2 z-[100] animate-in slide-in-from-top-4 duration-300 pointer-events-auto select-none"
+      style={{ top: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
     >
       <div className="flex items-center gap-2.5 sm:gap-3 px-3.5 py-1.5 sm:py-2 rounded-full bg-zinc-950/95 text-white dark:bg-zinc-900/95 backdrop-blur-md border border-rose-500/40 shadow-xl shadow-rose-950/30">
         <span className="flex items-center gap-1.5 font-mono text-xs font-bold text-rose-400 shrink-0">
@@ -106,7 +107,7 @@ export default function BugRecordingFloatingBar() {
           <button
             type="button"
             onClick={handleFinishAndReview}
-            className="flex items-center gap-1 px-3 py-1 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-transform active:scale-95 cursor-pointer shadow-xs"
+            className="flex min-h-11 items-center gap-1 px-3 py-1 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-transform active:scale-95 cursor-pointer shadow-xs"
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
             <span>Finish & Review</span>
@@ -115,7 +116,7 @@ export default function BugRecordingFloatingBar() {
             type="button"
             onClick={handleCancel}
             title="Cancel recording"
-            className="p-1 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+            className="flex min-h-11 min-w-11 items-center justify-center p-1 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors cursor-pointer"
           >
             <X className="w-3.5 h-3.5" />
           </button>
