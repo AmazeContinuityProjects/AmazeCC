@@ -85,7 +85,7 @@ export const LIST_ROW =
   "w-full flex items-center gap-3 py-3 px-4 text-left transition-colors hover:bg-surface-secondary dark:hover:bg-surface-hover/40";
 
 export const CHIP =
-  "text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-surface-tertiary dark:bg-surface-secondary text-text-secondary dark:text-text-muted border border-border-muted dark:border-border";
+  "text-xs font-extrabold uppercase px-2 py-0.5 rounded-md bg-surface-tertiary dark:bg-surface-secondary text-text-secondary dark:text-text-muted border border-border-muted dark:border-border";
 
 export const SECTION_CHIP = CHIP;
 
@@ -191,7 +191,9 @@ export const OPTION_PICKER_TRIGGER =
  */
 const OPTION_PICKER_SIZE: Record<string, string> = {
   // Inline controls that sit in a header strip or a chip row.
-  xs: "[&>button:first-child]:h-6 [&>button:first-child]:px-2 [&>button:first-child_span]:text-[10px]",
+  // `xs` and `auto` share the 12px label token with `selectField.test.tsx`,
+  // which pins the exact class string; keep the two in sync.
+  xs: "[&>button:first-child]:h-6 [&>button:first-child]:px-2 [&>button:first-child_span]:text-[12px]",
   sm: "[&>button:first-child]:h-7 [&>button:first-child]:px-2.5 [&>button:first-child_span]:text-xs",
   // Compact fields: the old `py-1.5` selects.
   md: "[&>button:first-child]:h-8 [&>button:first-child]:px-3 [&>button:first-child_span]:text-xs",
@@ -199,7 +201,7 @@ const OPTION_PICKER_SIZE: Record<string, string> = {
   // The default: what the native `<select>`'s `py-3` used to give.
   xl: "[&>button:first-child]:h-10 [&>button:first-child]:px-3 [&>button:first-child_span]:text-sm",
   // A bare text link in a header — height has to collapse to the line box.
-  auto: "[&>button:first-child]:h-auto [&>button:first-child]:p-0 [&>button:first-child_span]:text-[10px]",
+  auto: "[&>button:first-child]:h-auto [&>button:first-child]:p-0 [&>button:first-child_span]:text-[12px]",
 };
 
 export const optionPickerSize = (size: string): string => OPTION_PICKER_SIZE[size] ?? OPTION_PICKER_SIZE.xl;
@@ -207,3 +209,64 @@ export const optionPickerSize = (size: string): string => OPTION_PICKER_SIZE[siz
 /** Small ghost action used for secondary row/page actions (Libraries, dues). */
 export const GHOST_BUTTON =
   "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-tertiary dark:bg-surface-secondary text-text-secondary dark:text-text-muted hover:bg-border-muted dark:hover:bg-surface-hover transition-colors cursor-pointer shrink-0";
+
+/* ------------------------------------------------------------------------- *
+ * Shared interaction and type recipes (extracted from repeated call sites).
+ * These are verbatim strings: swapping a hand-written recipe for one of these
+ * tokens changes no pixel. The accent-family ring colours (`indigo`) are
+ * remapped to `--theme-accent` by the block in globals.css, so the picker
+ * keeps working. Semantic rings (emerald/red/amber/teal/info) stay local.
+ * ------------------------------------------------------------------------- */
+
+/** Keyboard focus affordance used by interactive elements across the app. */
+export const FOCUS_RING = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+
+/** Same affordance for a full-width row, where the ring must hug its edge. */
+export const FOCUS_RING_INSET = `${FOCUS_RING} focus-visible:ring-inset`;
+
+/** Offset suffix for rings that sit on raised controls rather than rows. */
+export const FOCUS_RING_OFFSET = "focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+
+/**
+ * Visually identical to `text-xs text-zinc-500 dark:text-zinc-400`: under the
+ * `@theme inline` chain zinc-500 resolves to `--text-secondary` and zinc-400 to
+ * `--text-muted`. Prefer the semantic names so a palette change cannot desync.
+ */
+export const TEXT_CAPTION = "text-xs text-text-secondary dark:text-text-muted";
+
+/** A copy block that yields space to a trailing control. */
+export const TEXT_BLOCK = "min-w-0 flex-1";
+
+/** Uppercase micro-label (the lighter zinc pair — not `TEXT_CAPTION`). */
+export const MICRO_LABEL = "text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500";
+
+/** Two-up stat/insight grid used on every dashboard-style page. */
+export const STAT_GRID = "grid grid-cols-2 gap-3 sm:gap-4";
+
+/** 40px tone-tinted icon well; pair with `TONE_ICON_TILE[tone]`. */
+export const ICON_WELL = "w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border";
+
+/** A full-width, focusable list row button. */
+export const LIST_ROW_BUTTON =
+  "w-full flex items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-surface-secondary/60 " +
+  FOCUS_RING_INSET;
+
+/** The app's solid primary action; callers append size/disabled suffixes. */
+export const PRIMARY_BUTTON =
+  "inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-black text-white transition-colors hover:bg-indigo-700";
+
+/** Status-pill chrome, paired with a `TONE_BADGE[tone]` value. */
+export const BADGE_MD = "text-xs font-extrabold uppercase px-2 py-0.5 rounded-md border";
+export const BADGE_SM = "text-xs font-extrabold uppercase px-1.5 py-0.5 rounded-md";
+
+/** Search-field leading icon and trailing clear button geometry. */
+export const SEARCH_ICON = "absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400";
+
+/** Spinner glyph inside loading buttons. */
+export const SPINNER_ICON = "w-4 h-4 animate-spin";
+
+/** Tracked field label used by the CabShare forms and task editor. */
+export const FIELD_LABEL = "block text-xs font-bold uppercase tracking-wider text-text-muted";
+
+/** Hand-rolled section heading that matches the `SectionHeader` title role. */
+export const SECTION_TITLE = "text-balance text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight";

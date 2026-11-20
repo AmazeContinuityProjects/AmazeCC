@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 /**
@@ -51,50 +51,39 @@ describe("globals.css mobile rules", () => {
   });
 });
 
+function sourceFiles(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const full = resolve(dir, entry.name);
+    if (entry.isDirectory()) return sourceFiles(full);
+    return /\.(ts|tsx)$/.test(entry.name) ? [full] : [];
+  });
+}
+
 /**
- * Tailwind emits no rule for off-scale palette steps (`gray-150`,
- * `indigo-650`, …) — the class name looks right and silently paints nothing
- * (bg) or a heavier-than-intended border. The @theme aliases in globals.css
- * are the safety net until source normalisation happens; deleting one
- * reopens a hole in 200+ call sites, so the set is pinned here.
+ * Off-scale palette steps (`gray-150`, `indigo-650`, …) emit no CSS at all:
+ * the class name looks right and silently paints nothing. They used to be
+ * propped up by @theme aliases in globals.css; source is now normalised to
+ * stock steps, so both the aliases and their use are guarded against.
  */
-describe("globals.css off-scale palette aliases", () => {
-  const aliasBlock = css.slice(css.indexOf("Off-scale zinc steps"));
+describe("no off-scale palette steps", () => {
+  const offScale =
+    /(?:zinc|gray|slate|neutral|indigo|blue|red|rose|amber|emerald|purple|sky)-(?:55|150|205|250|350|405|450|455|505|550|555|605|650|655|750|850|855|955)\b/;
 
-  it("aliases every off-scale neutral-family step in use", () => {
-    for (const step of [55, 150, 205, 250, 350, 405, 450, 455, 550, 555, 650, 655, 750, 850, 955]) {
-      expect(aliasBlock, `gray-${step}`).toMatch(new RegExp(`--color-gray-${step}:`));
-    }
-    for (const step of [205, 405, 455, 650, 655, 850, 855]) {
-      expect(aliasBlock, `slate-${step}`).toMatch(new RegExp(`--color-slate-${step}:`));
-    }
-    expect(aliasBlock).toMatch(/--color-neutral-850:/);
+  it("does not define off-scale palette aliases in globals.css", () => {
+    expect(css).not.toMatch(
+      /--color-[a-z]+-(?:55|150|205|250|350|405|450|455|505|550|555|605|650|655|750|850|855|955):/,
+    );
   });
 
-  it("aliases the off-scale accent steps in use", () => {
-    for (const [fam, steps] of Object.entries({
-      indigo: [505, 550, 605, 650, 655, 750, 850],
-      blue: [105, 550, 605, 650, 655, 955],
-      red: [450, 455, 505, 550, 650, 655],
-      amber: [450, 455, 605, 650, 655, 955],
-      emerald: [55, 550, 605, 650, 655],
-    } as Record<string, number[]>)) {
-      for (const step of steps) {
-        expect(aliasBlock, `${fam}-${step}`).toMatch(new RegExp(`--color-${fam}-${step}:`));
-      }
-    }
-  });
-
-  it("aliases downward only — a border never gets darker than written", () => {
-    // Every alias must point at a stock step at or below its own step.
-    const aliases = [...aliasBlock.matchAll(/--color-([a-z]+)-(\d+): var\(--color-[a-z]+-(\d+)\)/g)];
-    expect(aliases.length).toBeGreaterThan(30);
-    for (const [, fam, written, target] of aliases) {
-      expect(Number(target), `${fam}-${written} -> ${target}`).toBeLessThanOrEqual(Number(written));
-    }
-    // Neutral-family aliases route through amazeui's --neutral vars (dark-mode
-    // aware) rather than raw steps.
-    const neutral = [...aliasBlock.matchAll(/--color-(gray|slate|neutral)-(\d+): var\(--neutral-(\d+)\)/g)];
-    expect(neutral.length).toBeGreaterThan(20);
+  it("does not use off-scale palette steps in source", () => {
+    const offenders = sourceFiles(resolve(process.cwd(), "src"))
+      .filter((file) => !file.includes("__tests__"))
+      .flatMap((file) =>
+        readFileSync(file, "utf8")
+          .split("\n")
+          .map((text, index) => ({ file, line: index + 1, text: text.trim() }))
+          .filter(({ text }) => offScale.test(text) && !text.startsWith("*") && !text.startsWith("//")),
+      );
+    expect(offenders.map(({ file, line, text }) => `${file}:${line} ${text}`)).toEqual([]);
   });
 });

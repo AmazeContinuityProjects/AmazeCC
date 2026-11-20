@@ -59,104 +59,6 @@
 }
 
 /*
- * Off-scale zinc steps, aliased to the nearest stock step.
- *
- * `zinc-55`, `zinc-150`, `zinc-850` and friends are not stock Tailwind and were
- * not defined in any theme, so Tailwind emitted no rule for them and they
- * rendered as nothing — a silent hole, not a near-miss colour. 219 occurrences
- * across 40 files. Defining them here makes the existing markup paint; the
- * source-level normalisation is Phase 0 of the UI plan, and until then this is
- * the safety net. They alias to the stock step below them, never above, so a
- * border never gets darker than intended.
- */
-@theme inline {
-  --color-zinc-55: var(--neutral-50);
-  --color-zinc-150: var(--neutral-100);
-  --color-zinc-250: var(--neutral-200);
-  --color-zinc-350: var(--neutral-300);
-  --color-zinc-405: var(--neutral-400);
-  --color-zinc-450: var(--neutral-400);
-  --color-zinc-455: var(--neutral-400);
-  --color-zinc-550: var(--neutral-500);
-  --color-zinc-555: var(--neutral-500);
-  --color-zinc-650: var(--neutral-600);
-  --color-zinc-655: var(--neutral-600);
-  --color-zinc-750: var(--neutral-700);
-  --color-zinc-850: var(--neutral-800);
-
-  /* gray / slate / neutral — same silent-hole story as zinc above: Tailwind
-   * emits nothing for `gray-150` or `slate-850`, so 100+ call sites across
-   * the hostel, laundry, leave, attendance and landing views were painting
-   * transparent backgrounds and over-dark borders. Aliased to the same
-   * `--neutral-*` vars amazeui maps the stock gray/slate steps to, so dark
-   * mode follows for free. */
-  --color-gray-55: var(--neutral-50);
-  --color-gray-150: var(--neutral-100);
-  --color-gray-205: var(--neutral-200);
-  --color-gray-250: var(--neutral-200);
-  --color-gray-350: var(--neutral-300);
-  --color-gray-405: var(--neutral-400);
-  --color-gray-450: var(--neutral-400);
-  --color-gray-455: var(--neutral-400);
-  --color-gray-550: var(--neutral-500);
-  --color-gray-555: var(--neutral-500);
-  --color-gray-650: var(--neutral-600);
-  --color-gray-655: var(--neutral-600);
-  --color-gray-750: var(--neutral-700);
-  --color-gray-850: var(--neutral-800);
-  --color-gray-955: var(--neutral-950);
-  --color-slate-205: var(--neutral-200);
-  --color-slate-405: var(--neutral-400);
-  --color-slate-455: var(--neutral-400);
-  --color-slate-650: var(--neutral-600);
-  --color-slate-655: var(--neutral-600);
-  --color-slate-850: var(--neutral-800);
-  --color-slate-855: var(--neutral-800);
-  --color-neutral-850: var(--neutral-800);
-
-  /* Accent families: off-scale steps aliased to the nearest stock step
-   * below, never above, so nothing renders darker than written. These
-   * reference the stock scale vars, so they stay palette-following if the
-   * accent is ever redefined. (amazeui itself ships `emerald-450`; it is
-   * deliberately absent here.) */
-  --color-indigo-505: var(--color-indigo-500);
-  --color-indigo-550: var(--color-indigo-500);
-  --color-indigo-605: var(--color-indigo-600);
-  --color-indigo-650: var(--color-indigo-600);
-  --color-indigo-655: var(--color-indigo-600);
-  --color-indigo-750: var(--color-indigo-700);
-  --color-indigo-850: var(--color-indigo-800);
-  --color-blue-105: var(--color-blue-100);
-  --color-blue-550: var(--color-blue-500);
-  --color-blue-605: var(--color-blue-600);
-  --color-blue-650: var(--color-blue-600);
-  --color-blue-655: var(--color-blue-600);
-  --color-blue-955: var(--color-blue-950);
-  --color-red-450: var(--color-red-400);
-  --color-red-455: var(--color-red-400);
-  --color-red-505: var(--color-red-500);
-  --color-red-550: var(--color-red-500);
-  --color-red-650: var(--color-red-600);
-  --color-red-655: var(--color-red-600);
-  --color-rose-450: var(--color-rose-400);
-  --color-rose-455: var(--color-rose-400);
-  --color-amber-450: var(--color-amber-400);
-  --color-amber-455: var(--color-amber-400);
-  --color-amber-605: var(--color-amber-600);
-  --color-amber-650: var(--color-amber-600);
-  --color-amber-655: var(--color-amber-600);
-  --color-amber-955: var(--color-amber-950);
-  --color-emerald-55: var(--color-emerald-50);
-  --color-emerald-550: var(--color-emerald-500);
-  --color-emerald-605: var(--color-emerald-600);
-  --color-emerald-650: var(--color-emerald-600);
-  --color-emerald-655: var(--color-emerald-600);
-  --color-sky-450: var(--color-sky-400);
-  --color-sky-605: var(--color-sky-600);
-  --color-purple-650: var(--color-purple-600);
-}
-
-/*
  * The border steps, pushed a full step darker.
  *
  * amazeui ships `--border-muted` at oklch 0.93 and `--border-strong` at 0.84 in
@@ -265,43 +167,34 @@
   color: var(--text-primary);
 }
 
-.error-banner {
-  padding: 1rem;
-  border-radius: 1rem;
-  background: var(--danger-surface);
-  color: var(--danger-foreground);
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.success-banner {
-  padding: 1rem;
-  border-radius: 1rem;
-  background: var(--success-surface);
-  color: var(--success-foreground);
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
+/* One banner shape, three semantic hues. The geometry lives once; a banner
+   only names which status surface and foreground it paints. */
+.error-banner,
+.success-banner,
 .warning-banner {
   padding: 1rem;
   border-radius: 1rem;
-  background: var(--warning-surface);
-  color: var(--warning-foreground);
   font-size: 0.875rem;
   line-height: 1.25rem;
   font-weight: 500;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.error-banner {
+  background: var(--danger-surface);
+  color: var(--danger-foreground);
+}
+
+.success-banner {
+  background: var(--success-surface);
+  color: var(--success-foreground);
+}
+
+.warning-banner {
+  background: var(--warning-surface);
+  color: var(--warning-foreground);
 }
 
 /* Apply to everything */
@@ -313,13 +206,15 @@
 
 body {
   overscroll-behavior-y: none; /* Prevent pull-to-refresh and bounce on mobile */
-  user-select: none; /* Make text unselectable to feel like a native app */
 }
 
-input,
-textarea,
-[contenteditable] {
-  user-select: auto; /* Keep text fields selectable */
+/* Text stays selectable app-wide so students can copy course codes, dates and
+   notes. Only genuine gesture surfaces opt out: the slider below, and the
+   scanner/drag surfaces that already carry Tailwind's `select-none`
+   (ScannerEditor.tsx) and `touch-none`. */
+input[type="range"].m3-range {
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 /*
@@ -412,19 +307,6 @@ input:-webkit-autofill:focus {
 
 *::-webkit-scrollbar-thumb:hover {
   background-color: var(--text-secondary);
-}
-
-@keyframes pageEnter {
-  0% {
-    opacity: 0;
-    transform: translateY(10px) scale(0.985);
-    filter: blur(4px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-    filter: blur(0px);
-  }
 }
 
 .animate-fadeIn {
@@ -596,11 +478,10 @@ input:-webkit-autofill:focus {
     -webkit-backdrop-filter: none !important;
   }
 
-  /* GPU Hardware accelerate and smooth the overflow-y scrolling in the AppLibrary sheet drawer */
+  /* Backdrop blur is disabled for this sheet above, so the scroll container no
+     longer needs a permanent GPU hint. Keep native momentum scrolling only. */
   .fixed.bottom-0.left-0.right-0.z-\[60\] div.overflow-y-auto {
-    will-change: scroll-position, transform;
     -webkit-overflow-scrolling: touch;
-    transform: translate3d(0, 0, 0);
     overscroll-behavior-y: contain;
   }
 }
@@ -632,6 +513,16 @@ input:-webkit-autofill:focus {
   content: "";
   position: absolute;
   inset: -0.5rem;
+  border-radius: inherit;
+}
+
+/* Compact toggle switches (a 20px-tall track) need a wider invisible ring than
+   `hit-expand` to reach the 44px touch minimum. Same mechanism, one extra step:
+   no layout or visual change, just a larger tappable region. */
+.hit-expand-lg::after {
+  content: "";
+  position: absolute;
+  inset: -0.75rem;
   border-radius: inherit;
 }
 
