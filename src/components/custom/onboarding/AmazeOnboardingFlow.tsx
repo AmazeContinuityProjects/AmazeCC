@@ -8,6 +8,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Check,
+  CheckCircle2,
+  AlertTriangle,
   GraduationCap,
   Bus,
   Bell,
@@ -22,6 +24,7 @@ import {
   Download,
   Share,
   Plus,
+  Wifi,
 } from "lucide-react";
 import { AnimatePresence, m } from "framer-motion";
 import { getAssetPath } from "@/lib/utils";
@@ -285,6 +288,10 @@ export default function AmazeOnboardingFlow({
     onComplete(finalSettings.currSemesterID);
   }, [temp, setSettings, onComplete]);
 
+  // The wizard is optional: every step can launch right away with the defaults
+  // already in `temp`, so value is never gated behind five screens.
+  const skipSetup = () => finish();
+
   useEffect(() => {
     if (!shouldAutoSelectInterface || hasAutoSelectedInterface.current) return;
     hasAutoSelectedInterface.current = true;
@@ -361,7 +368,7 @@ export default function AmazeOnboardingFlow({
     <div className="p-5 sm:p-6 rounded-[28px] sm:rounded-[32px] bg-zinc-900/80 border border-zinc-800/80 backdrop-blur-xl shadow-2xl space-y-4 text-left">
       {/* Friendly Name */}
       <div className="space-y-1.5">
-        <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 font-outfit">
+        <label className="text-xs font-black uppercase tracking-wider text-zinc-400 font-outfit">
           What should we call you?
         </label>
         <input
@@ -375,7 +382,7 @@ export default function AmazeOnboardingFlow({
 
       {/* Current Semester Selector */}
       <div className="space-y-1.5">
-        <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 font-outfit">
+        <label className="text-xs font-black uppercase tracking-wider text-zinc-400 font-outfit">
           Current Semester
         </label>
         <div>
@@ -397,7 +404,7 @@ export default function AmazeOnboardingFlow({
 
       {/* Campus Residency & Bus Mode */}
       <div className="space-y-2">
-        <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 font-outfit">
+        <label className="text-xs font-black uppercase tracking-wider text-zinc-400 font-outfit">
           Campus Residency & Commute
         </label>
         <div className="grid grid-cols-2 gap-2.5">
@@ -423,7 +430,7 @@ export default function AmazeOnboardingFlow({
                 <opt.icon className={`w-4 h-4 ${isSelected ? "text-indigo-400" : "text-zinc-500"}`} />
                 <div>
                   <p className="font-extrabold text-xs text-white font-outfit">{opt.label}</p>
-                  <p className="text-[9.5px] text-zinc-500">{opt.desc}</p>
+                  <p className="text-xs text-zinc-500">{opt.desc}</p>
                 </div>
               </button>
             );
@@ -436,13 +443,13 @@ export default function AmazeOnboardingFlow({
             <Bus className="w-4 h-4 text-indigo-400 shrink-0" />
             <div>
               <p className="text-xs font-bold text-white">College Bus User?</p>
-              <p className="text-[9.5px] text-zinc-500">Enable bus routes and stops</p>
+              <p className="text-xs text-zinc-500">Enable bus routes and stops</p>
             </div>
           </div>
           <button
             type="button"
             onClick={() => update("isDayscholarWithBus", !temp.isDayscholarWithBus)}
-            className={`px-3 py-1 rounded-xl text-xs font-black transition-all cursor-pointer ${
+            className={`relative hit-expand px-3 py-1 rounded-xl text-xs font-black transition-all cursor-pointer ${
               temp.isDayscholarWithBus
                 ? "bg-indigo-600 text-white shadow-xs"
                 : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200"
@@ -524,7 +531,7 @@ export default function AmazeOnboardingFlow({
     <div className="p-5 sm:p-6 rounded-[28px] sm:rounded-[32px] bg-zinc-900/80 border border-zinc-800/80 backdrop-blur-xl shadow-2xl space-y-4 text-left">
       {/* Dashboard Avatar Option */}
       <div className="space-y-1.5">
-        <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 font-outfit">
+        <label className="text-xs font-black uppercase tracking-wider text-zinc-400 font-outfit">
           Dashboard Greeting Avatar
         </label>
         <div className="grid grid-cols-2 gap-2.5">
@@ -542,7 +549,7 @@ export default function AmazeOnboardingFlow({
             </div>
             <div className="min-w-0">
               <p className="font-extrabold text-xs text-white font-outfit truncate">Profile Photo</p>
-              <p className="text-[9px] text-zinc-500 truncate">Your VTOP picture</p>
+              <p className="text-xs text-zinc-500 truncate">Your VTOP picture</p>
             </div>
           </button>
 
@@ -564,7 +571,7 @@ export default function AmazeOnboardingFlow({
             />
             <div className="min-w-0">
               <p className="font-extrabold text-xs text-white font-outfit truncate">AmazeCC Logo</p>
-              <p className="text-[9px] text-zinc-500 truncate">Minimal app icon</p>
+              <p className="text-xs text-zinc-500 truncate">Minimal app icon</p>
             </div>
           </button>
         </div>
@@ -573,7 +580,7 @@ export default function AmazeOnboardingFlow({
       {/* Target Attendance Goal */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 font-outfit">
+          <label className="text-xs font-black uppercase tracking-wider text-zinc-400 font-outfit">
             Target Attendance Goal
           </label>
           <span className="text-xs font-black text-indigo-400">{temp.targetAttendance || 75}%</span>
@@ -586,7 +593,7 @@ export default function AmazeOnboardingFlow({
                 key={pct}
                 type="button"
                 onClick={() => update("targetAttendance", pct)}
-                className={`py-2 rounded-xl border text-xs font-black transition-all cursor-pointer ${
+                className={`min-h-11 py-2 rounded-xl border text-xs font-black transition-all cursor-pointer ${
                   isSelected
                     ? "bg-indigo-600 text-white border-indigo-500 shadow-xs"
                     : "bg-zinc-950/40 border-zinc-800 text-zinc-400 hover:text-zinc-200"
@@ -601,9 +608,7 @@ export default function AmazeOnboardingFlow({
 
       {/* Accent Color Swatches */}
       <div className="space-y-1.5">
-        <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 font-outfit">
-          Color Accent
-        </label>
+        <label className="text-xs font-black uppercase tracking-wider text-zinc-400 font-outfit">Color Accent</label>
         <div className="flex items-center gap-2 justify-between">
           {COLOR_PALETTES.map((p) => {
             const isSelected = temp.colorPalette === p.id || (!temp.colorPalette && p.id === "default");
@@ -619,7 +624,7 @@ export default function AmazeOnboardingFlow({
                 }`}
               >
                 <span className="w-4 h-4 rounded-full shadow-xs" style={{ backgroundColor: p.color }} />
-                <span className="text-[9px] font-bold text-zinc-400">{p.label}</span>
+                <span className="text-xs font-bold text-zinc-400">{p.label}</span>
               </button>
             );
           })}
@@ -630,12 +635,12 @@ export default function AmazeOnboardingFlow({
       <div className="pt-2 border-t border-zinc-800/60 flex items-center justify-between">
         <div>
           <p className="text-xs font-bold text-white">Show GPA on Home</p>
-          <p className="text-[10px] text-zinc-500">Quick grade indicator card</p>
+          <p className="text-xs text-zinc-500">Quick grade indicator card</p>
         </div>
         <button
           type="button"
           onClick={() => update("showGpa", !temp.showGpa)}
-          className={`w-10 h-5 rounded-full transition-colors p-0.5 cursor-pointer ${
+          className={`relative hit-expand-lg w-10 h-5 rounded-full transition-colors p-0.5 cursor-pointer ${
             temp.showGpa ? "bg-indigo-600" : "bg-zinc-800"
           }`}
         >
@@ -655,7 +660,7 @@ export default function AmazeOnboardingFlow({
       <div className="p-2.5 rounded-2xl bg-zinc-950/60 border border-zinc-800 flex items-center justify-around">
         <div className="flex flex-col items-center gap-0.5 opacity-60">
           <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-          <span className="text-[10px] font-bold text-zinc-400">Home</span>
+          <span className="text-xs font-bold text-zinc-400">Home</span>
         </div>
         {(temp.pinnedNavTabs || []).map((tId: string) => {
           const found = AVAILABLE_NAV_TABS.find((x) => x.id === tId);
@@ -664,13 +669,13 @@ export default function AmazeOnboardingFlow({
           return (
             <div key={tId} className="flex flex-col items-center gap-0.5 animate-in fade-in zoom-in duration-150">
               <Icon className="w-3.5 h-3.5 text-white" />
-              <span className="text-[10px] font-extrabold text-white truncate max-w-[48px]">{found.label}</span>
+              <span className="text-xs font-extrabold text-white truncate max-w-[48px]">{found.label}</span>
             </div>
           );
         })}
         <div className="flex flex-col items-center gap-0.5 opacity-60">
           <LayoutGrid className="w-3.5 h-3.5 text-zinc-400" />
-          <span className="text-[10px] font-bold text-zinc-400">Apps</span>
+          <span className="text-xs font-bold text-zinc-400">Apps</span>
         </div>
       </div>
 
@@ -699,7 +704,7 @@ export default function AmazeOnboardingFlow({
               </div>
               <div className="min-w-0">
                 <p className="font-extrabold text-xs text-white font-outfit truncate">{tab.label}</p>
-                <p className="text-[9px] text-zinc-500 truncate">{tab.desc}</p>
+                <p className="text-xs text-zinc-500 truncate">{tab.desc}</p>
               </div>
             </button>
           );
@@ -711,18 +716,21 @@ export default function AmazeOnboardingFlow({
   const renderNotificationsCard = () => (
     <div className="p-5 sm:p-6 rounded-[28px] sm:rounded-[32px] bg-zinc-900/80 border border-zinc-800/80 backdrop-blur-xl shadow-2xl space-y-3 text-left">
       {[
-        { title: "Timetable Reminders", desc: "15 minutes before your class", icon: "⏰" },
-        { title: "Attendance Safeguard", desc: "Alert if attendance drops below 75%", icon: "🚨" },
-        { title: "Exam Seat & Venue Alerts", desc: "Live seating and room schedules", icon: "📝" },
-      ].map((perk, i) => (
-        <div key={i} className="flex items-center gap-3 p-2.5 rounded-2xl bg-zinc-950/40 border border-zinc-800/60">
-          <span className="text-base">{perk.icon}</span>
-          <div>
-            <p className="text-xs font-bold text-white">{perk.title}</p>
-            <p className="text-[10px] text-zinc-500">{perk.desc}</p>
+        { title: "Timetable Reminders", desc: "15 minutes before your class", icon: Bell },
+        { title: "Attendance Safeguard", desc: "Alert if attendance drops below 75%", icon: AlertTriangle },
+        { title: "Exam Seat & Venue Alerts", desc: "Live seating and room schedules", icon: CalendarCheck },
+      ].map((perk, i) => {
+        const Icon = perk.icon;
+        return (
+          <div key={i} className="flex items-center gap-3 p-2.5 rounded-2xl bg-zinc-950/40 border border-zinc-800/60">
+            <Icon className="w-4 h-4 shrink-0 text-indigo-400" />
+            <div>
+              <p className="text-xs font-bold text-white">{perk.title}</p>
+              <p className="text-xs text-zinc-500">{perk.desc}</p>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
 
       <button
         type="button"
@@ -749,12 +757,10 @@ export default function AmazeOnboardingFlow({
       {/* Fresher Specific Callout if detected */}
       {eptData?.tables?.[0]?.rows?.length > 0 && (
         <div className="p-3 rounded-2xl bg-indigo-950/30 border border-indigo-900/40 space-y-0.5 mt-2">
-          <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-400">
+          <span className="text-xs font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-400">
             Fresher Schedule Active
           </span>
-          <p className="text-[11px] font-bold text-zinc-300">
-            EPT & Orientation Schedule integrated into your calendar.
-          </p>
+          <p className="text-xs font-bold text-zinc-300">EPT & Orientation Schedule integrated into your calendar.</p>
         </div>
       )}
     </div>
@@ -765,18 +771,21 @@ export default function AmazeOnboardingFlow({
     return (
       <div className="p-5 sm:p-6 rounded-[28px] sm:rounded-[32px] bg-zinc-900/80 border border-zinc-800/80 backdrop-blur-xl shadow-2xl space-y-3 text-left">
         {[
-          { title: "Full-Screen App", desc: "Opens like a native app, no browser chrome", icon: "📱" },
-          { title: "Works Offline", desc: "Your dashboard loads even on patchy campus wifi", icon: "📶" },
-          { title: "Push Notifications", desc: "Class alerts keep flowing outside the tab", icon: "🔔" },
-        ].map((perk, i) => (
-          <div key={i} className="flex items-center gap-3 p-2.5 rounded-2xl bg-zinc-950/40 border border-zinc-800/60">
-            <span className="text-base">{perk.icon}</span>
-            <div>
-              <p className="text-xs font-bold text-white">{perk.title}</p>
-              <p className="text-[10px] text-zinc-500">{perk.desc}</p>
+          { title: "Full-Screen App", desc: "Opens like a native app, no browser chrome", icon: Smartphone },
+          { title: "Works Offline", desc: "Your dashboard loads even on patchy campus wifi", icon: Wifi },
+          { title: "Push Notifications", desc: "Class alerts keep flowing outside the tab", icon: Bell },
+        ].map((perk, i) => {
+          const Icon = perk.icon;
+          return (
+            <div key={i} className="flex items-center gap-3 p-2.5 rounded-2xl bg-zinc-950/40 border border-zinc-800/60">
+              <Icon className="w-4 h-4 shrink-0 text-indigo-400" />
+              <div>
+                <p className="text-xs font-bold text-white">{perk.title}</p>
+                <p className="text-xs text-zinc-500">{perk.desc}</p>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {isInstalled ? (
           <button
@@ -819,13 +828,31 @@ export default function AmazeOnboardingFlow({
             </li>
           </ol>
         ) : (
-          <p className="text-[11px] text-zinc-500 leading-relaxed pt-1">
-            Use your browser&apos;s menu to add AmazeCC to your home screen for the full app experience.
-          </p>
+          <button
+            type="button"
+            onClick={finish}
+            className="w-full py-3 rounded-xl font-black text-xs transition-all flex items-center justify-center gap-2 mt-2 bg-indigo-600 hover:bg-indigo-700 text-white shadow-md cursor-pointer"
+          >
+            <ArrowRight className="w-4 h-4" />
+            <span>Open my dashboard</span>
+          </button>
         )}
       </div>
     );
   };
+
+  // Present on every step of both layouts. It calls finish(), which applies the
+  // current defaults and launches — so "Launch AmazeCC" is one tap from step 1.
+  const renderSkipButton = () =>
+    !isStandaloneInterfacePicker ? (
+      <button
+        type="button"
+        onClick={skipSetup}
+        className="relative hit-expand min-h-11 rounded-lg px-3 py-1 text-xs font-bold text-zinc-400 underline underline-offset-2 transition-colors hover:text-zinc-200"
+      >
+        Skip setup — use defaults
+      </button>
+    ) : null;
 
   if (!introDone && intro) {
     return <OnboardingIntro initialPhase={intro.initialPhase} login={intro.login} onDone={() => setIntroDone(true)} />;
@@ -846,7 +873,7 @@ export default function AmazeOnboardingFlow({
       {!isStandaloneInterfacePicker && syncSession.open && (
         <div
           role="status"
-          className="fixed left-1/2 top-[calc(env(safe-area-inset-top,0px)+0.75rem)] z-30 flex -translate-x-1/2 items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/90 px-3.5 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-zinc-300 shadow-xl backdrop-blur-md font-outfit"
+          className="fixed left-1/2 top-[calc(env(safe-area-inset-top,0px)+0.75rem)] z-30 flex -translate-x-1/2 items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/90 px-3.5 py-1.5 text-xs font-black uppercase tracking-[0.14em] text-zinc-300 shadow-xl backdrop-blur-md font-outfit"
         >
           <Loader2 size={12} className="animate-spin text-indigo-400" />
           Syncing {Math.round(syncSession.progress)}%
@@ -864,7 +891,7 @@ export default function AmazeOnboardingFlow({
                 <button
                   type="button"
                   onClick={prevStep}
-                  className="flex items-center gap-1.5 text-xs font-bold text-zinc-400 hover:text-white transition-colors cursor-pointer py-1.5 px-3 rounded-xl bg-zinc-900/60 border border-zinc-800 backdrop-blur-md active:scale-95"
+                  className="relative hit-expand flex items-center gap-1.5 text-xs font-bold text-zinc-400 hover:text-white transition-colors cursor-pointer py-1.5 px-3 rounded-xl bg-zinc-900/60 border border-zinc-800 backdrop-blur-md active:scale-95"
                 >
                   <ChevronLeft className="w-4 h-4" />
                   <span>Back</span>
@@ -892,7 +919,7 @@ export default function AmazeOnboardingFlow({
               )}
 
               {!isStandaloneInterfacePicker ? (
-                <span className="text-[11px] font-bold text-zinc-400 font-outfit">
+                <span className="text-xs font-bold text-zinc-400 font-outfit">
                   Step {visibleStep + 1} of {totalSteps}
                 </span>
               ) : (
@@ -918,10 +945,10 @@ export default function AmazeOnboardingFlow({
                       className="w-12 h-12 rounded-2xl object-contain shadow-md border border-zinc-800 p-0.5 bg-zinc-900 shrink-0"
                     />
                     <div>
-                      <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400 font-outfit">
+                      <span className="text-xs font-black uppercase tracking-wider text-indigo-400 font-outfit">
                         Workspace Layout
                       </span>
-                      <h2 className="text-2xl lg:text-3xl font-black text-white font-outfit tracking-tight">
+                      <h2 className="text-2xl font-black text-white font-outfit tracking-tight">
                         Choose your interface
                       </h2>
                     </div>
@@ -932,7 +959,7 @@ export default function AmazeOnboardingFlow({
 
                   {/* Icon-Only Option Bar */}
                   <div className="space-y-2 pt-1 w-full">
-                    <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 font-outfit">
+                    <label className="text-xs font-black uppercase tracking-wider text-zinc-400 font-outfit">
                       Select Mode
                     </label>
                     <div className="inline-flex items-center gap-2 p-1.5 rounded-full bg-zinc-900/90 border border-zinc-800/90 backdrop-blur-xl shadow-lg">
@@ -945,7 +972,7 @@ export default function AmazeOnboardingFlow({
                             onClick={() => setActiveInterfaceIdx(idx)}
                             title={item.title}
                             aria-pressed={isCurrent}
-                            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer ${
+                            className={`relative hit-expand w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer ${
                               isCurrent
                                 ? "bg-indigo-600 text-white shadow-md scale-105"
                                 : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60"
@@ -963,7 +990,7 @@ export default function AmazeOnboardingFlow({
                         <currentOption.icon className="w-4 h-4 text-indigo-400" />
                         <span>{currentOption.title}</span>
                       </p>
-                      <p className="text-[11px] text-zinc-400 leading-relaxed">
+                      <p className="text-xs text-zinc-400 leading-relaxed">
                         Clean, focused single-page view with essential widgets, quick timetable glance, and simplified
                         cards.
                       </p>
@@ -981,12 +1008,10 @@ export default function AmazeOnboardingFlow({
                       className="w-12 h-12 rounded-2xl object-contain shadow-md border border-zinc-800 p-0.5 bg-zinc-900 shrink-0"
                     />
                     <div>
-                      <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400 font-outfit">
+                      <span className="text-xs font-black uppercase tracking-wider text-indigo-400 font-outfit">
                         Getting Started
                       </span>
-                      <h1 className="text-2xl lg:text-3xl font-black text-white font-outfit tracking-tight">
-                        Welcome to AmazeCC
-                      </h1>
+                      <h1 className="text-2xl font-black text-white font-outfit tracking-tight">Welcome to AmazeCC</h1>
                     </div>
                   </div>
                   <p className="text-xs text-zinc-400 font-medium leading-relaxed">
@@ -1000,12 +1025,10 @@ export default function AmazeOnboardingFlow({
                       <Palette className="w-6 h-6" />
                     </div>
                     <div>
-                      <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400 font-outfit">
+                      <span className="text-xs font-black uppercase tracking-wider text-indigo-400 font-outfit">
                         Personalization
                       </span>
-                      <h2 className="text-2xl lg:text-3xl font-black text-white font-outfit tracking-tight">
-                        Display & Goals
-                      </h2>
+                      <h2 className="text-2xl font-black text-white font-outfit tracking-tight">Display & Goals</h2>
                     </div>
                   </div>
                   <p className="text-xs text-zinc-400 font-medium leading-relaxed">
@@ -1019,12 +1042,10 @@ export default function AmazeOnboardingFlow({
                       <Smartphone className="w-6 h-6" />
                     </div>
                     <div>
-                      <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400 font-outfit">
+                      <span className="text-xs font-black uppercase tracking-wider text-indigo-400 font-outfit">
                         Navigation
                       </span>
-                      <h2 className="text-2xl lg:text-3xl font-black text-white font-outfit tracking-tight">
-                        Bottom Navigation
-                      </h2>
+                      <h2 className="text-2xl font-black text-white font-outfit tracking-tight">Bottom Navigation</h2>
                     </div>
                   </div>
                   <p className="text-xs text-zinc-400 font-medium leading-relaxed">
@@ -1038,10 +1059,10 @@ export default function AmazeOnboardingFlow({
                       <Bell className="w-6 h-6" />
                     </div>
                     <div>
-                      <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400 font-outfit">
+                      <span className="text-xs font-black uppercase tracking-wider text-indigo-400 font-outfit">
                         Smart Alerts
                       </span>
-                      <h2 className="text-2xl lg:text-3xl font-black text-white font-outfit tracking-tight">
+                      <h2 className="text-2xl font-black text-white font-outfit tracking-tight">
                         Stay Ahead of Classes
                       </h2>
                     </div>
@@ -1053,65 +1074,72 @@ export default function AmazeOnboardingFlow({
               ) : (
                 <>
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
-                      <Download className="w-6 h-6" />
+                    <div className="relative shrink-0">
+                      <span
+                        aria-hidden="true"
+                        className="absolute inset-0 animate-ping rounded-full bg-indigo-500/20 blur-xl"
+                      />
+                      <div className="relative flex h-12 w-12 items-center justify-center rounded-full border border-indigo-500/30 bg-indigo-500/10">
+                        <CheckCircle2 className="h-6 w-6 text-indigo-400" strokeWidth={1.75} />
+                      </div>
                     </div>
                     <div>
-                      <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400 font-outfit">
-                        Install
+                      <span className="text-xs font-black uppercase tracking-wider text-indigo-400 font-outfit">
+                        Setup complete
                       </span>
-                      <h2 className="text-2xl lg:text-3xl font-black text-white font-outfit tracking-tight">
-                        AmazeCC on Your Device
-                      </h2>
+                      <h2 className="text-2xl font-black text-white font-outfit tracking-tight">You&apos;re all set</h2>
                     </div>
                   </div>
                   <p className="text-xs text-zinc-400 font-medium leading-relaxed">
-                    Add AmazeCC as a web app for a full-screen, offline-ready experience.
+                    Your workspace is ready. Add AmazeCC to your home screen — or jump straight in.
                   </p>
                 </>
               )}
             </div>
 
             {/* Bottom: Action Buttons on the Left */}
-            <div className="flex items-center gap-2.5 shrink-0 pt-2 w-full">
-              {interfaces.length > 1 && (step === 1 || isStandaloneInterfacePicker) && (
+            <div className="shrink-0 pt-2 w-full space-y-1">
+              <div className="flex items-center gap-2.5 w-full">
+                {interfaces.length > 1 && (step === 1 || isStandaloneInterfacePicker) && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveInterfaceIdx((prev) => (prev - 1 + interfaces.length) % interfaces.length)}
+                    aria-label="Previous Interface"
+                    className="w-12 h-12 rounded-2xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 text-white flex items-center justify-center shadow-lg transition-all active:scale-90 hover:scale-105 cursor-pointer shrink-0"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                )}
+
                 <button
                   type="button"
-                  onClick={() => setActiveInterfaceIdx((prev) => (prev - 1 + interfaces.length) % interfaces.length)}
-                  aria-label="Previous Interface"
-                  className="w-12 h-12 rounded-2xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 text-white flex items-center justify-center shadow-lg transition-all active:scale-90 hover:scale-105 cursor-pointer shrink-0"
+                  onClick={nextStep}
+                  className="flex-1 py-3.5 px-5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs sm:text-sm shadow-xl transition-all active:scale-95 cursor-pointer font-outfit tracking-wide flex items-center justify-center gap-2 truncate"
                 >
-                  <ChevronLeft className="w-5 h-5" />
+                  <span className="truncate">
+                    {isStandaloneInterfacePicker
+                      ? `Select ${currentOption.title}`
+                      : step === 5
+                        ? "Launch AmazeCC"
+                        : step === 1
+                          ? `Continue with ${currentOption.title}`
+                          : "Continue"}
+                  </span>
+                  <ArrowRight className="w-4 h-4 shrink-0" />
                 </button>
-              )}
 
-              <button
-                type="button"
-                onClick={nextStep}
-                className="flex-1 py-3.5 px-5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs sm:text-sm shadow-xl transition-all active:scale-95 cursor-pointer font-outfit tracking-wide flex items-center justify-center gap-2 truncate"
-              >
-                <span className="truncate">
-                  {isStandaloneInterfacePicker
-                    ? `Select ${currentOption.title}`
-                    : step === 5
-                      ? "Launch AmazeCC"
-                      : step === 1
-                        ? `Continue with ${currentOption.title}`
-                        : "Continue"}
-                </span>
-                <ArrowRight className="w-4 h-4 shrink-0" />
-              </button>
-
-              {interfaces.length > 1 && (step === 1 || isStandaloneInterfacePicker) && (
-                <button
-                  type="button"
-                  onClick={() => setActiveInterfaceIdx((prev) => (prev + 1) % interfaces.length)}
-                  aria-label="Next Interface"
-                  className="w-12 h-12 rounded-2xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 text-white flex items-center justify-center shadow-lg transition-all active:scale-90 hover:scale-105 cursor-pointer shrink-0"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              )}
+                {interfaces.length > 1 && (step === 1 || isStandaloneInterfacePicker) && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveInterfaceIdx((prev) => (prev + 1) % interfaces.length)}
+                    aria-label="Next Interface"
+                    className="w-12 h-12 rounded-2xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 text-white flex items-center justify-center shadow-lg transition-all active:scale-90 hover:scale-105 cursor-pointer shrink-0"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
+              {renderSkipButton()}
             </div>
           </div>
 
@@ -1141,7 +1169,7 @@ export default function AmazeOnboardingFlow({
               <button
                 type="button"
                 onClick={prevStep}
-                className="flex items-center gap-1.5 text-xs font-bold text-zinc-400 hover:text-white transition-colors cursor-pointer py-1.5 px-2.5 rounded-xl bg-zinc-900/60 border border-zinc-800"
+                className="relative hit-expand flex items-center gap-1.5 text-xs font-bold text-zinc-400 hover:text-white transition-colors cursor-pointer py-1.5 px-2.5 rounded-xl bg-zinc-900/60 border border-zinc-800"
               >
                 <ChevronLeft className="w-4 h-4" />
                 <span>Back</span>
@@ -1169,7 +1197,7 @@ export default function AmazeOnboardingFlow({
             )}
 
             {!isStandaloneInterfacePicker ? (
-              <span className="text-[11px] font-bold text-zinc-400 font-outfit">
+              <span className="text-xs font-bold text-zinc-400 font-outfit">
                 Step {visibleStep + 1} of {totalSteps}
               </span>
             ) : (
@@ -1205,9 +1233,7 @@ export default function AmazeOnboardingFlow({
                       decoding="async"
                       className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl object-contain shadow-lg border border-zinc-800 p-0.5 bg-zinc-900"
                     />
-                    <h1 className="text-2xl sm:text-3xl font-black text-white font-outfit tracking-tight">
-                      Welcome to AmazeCC
-                    </h1>
+                    <h1 className="text-2xl font-black text-white font-outfit tracking-tight">Welcome to AmazeCC</h1>
                     <p className="text-xs text-zinc-400 font-medium max-w-xs">
                       Set up your personalized college companion in seconds.
                     </p>
@@ -1252,7 +1278,7 @@ export default function AmazeOnboardingFlow({
                             onClick={() => setActiveInterfaceIdx(idx)}
                             title={item.title}
                             aria-pressed={isCurrent}
-                            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer ${
+                            className={`relative hit-expand w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer ${
                               isCurrent
                                 ? "bg-indigo-600 text-white shadow-md scale-105"
                                 : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60"
@@ -1284,9 +1310,7 @@ export default function AmazeOnboardingFlow({
                     <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
                       <Palette className="w-6 h-6" />
                     </div>
-                    <h2 className="text-2xl sm:text-3xl font-black text-white font-outfit tracking-tight">
-                      Display & Goals
-                    </h2>
+                    <h2 className="text-2xl font-black text-white font-outfit tracking-tight">Display & Goals</h2>
                     <p className="text-xs text-zinc-400 font-medium">
                       Set your avatar, colors, and attendance safe goals.
                     </p>
@@ -1311,9 +1335,7 @@ export default function AmazeOnboardingFlow({
                     <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
                       <Smartphone className="w-6 h-6" />
                     </div>
-                    <h2 className="text-2xl sm:text-3xl font-black text-white font-outfit tracking-tight">
-                      Bottom Navigation
-                    </h2>
+                    <h2 className="text-2xl font-black text-white font-outfit tracking-tight">Bottom Navigation</h2>
                     <p className="text-xs text-zinc-400 font-medium">
                       Pin up to 4 quick-access tabs for your mobile dock.
                     </p>
@@ -1338,9 +1360,7 @@ export default function AmazeOnboardingFlow({
                     <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
                       <Bell className="w-6 h-6" />
                     </div>
-                    <h2 className="text-2xl sm:text-3xl font-black text-white font-outfit tracking-tight">
-                      Stay Ahead of Classes
-                    </h2>
+                    <h2 className="text-2xl font-black text-white font-outfit tracking-tight">Stay Ahead of Classes</h2>
                     <p className="text-xs text-zinc-400 font-medium">
                       Instant class alerts and low attendance safeguards.
                     </p>
@@ -1362,14 +1382,21 @@ export default function AmazeOnboardingFlow({
                   className="my-auto w-full space-y-4 sm:space-y-5 text-center"
                 >
                   <div className="flex flex-col items-center gap-2">
-                    <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-                      <Download className="w-6 h-6" />
+                    <div className="relative">
+                      <span
+                        aria-hidden="true"
+                        className="absolute inset-0 animate-ping rounded-full bg-indigo-500/20 blur-xl"
+                      />
+                      <div className="relative flex h-12 w-12 items-center justify-center rounded-full border border-indigo-500/30 bg-indigo-500/10">
+                        <CheckCircle2 className="h-6 w-6 text-indigo-400" strokeWidth={1.75} />
+                      </div>
                     </div>
-                    <h2 className="text-2xl sm:text-3xl font-black text-white font-outfit tracking-tight">
-                      Install AmazeCC
-                    </h2>
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-400 font-outfit">
+                      Setup complete
+                    </p>
+                    <h2 className="text-2xl font-black text-white font-outfit tracking-tight">You&apos;re all set</h2>
                     <p className="text-xs text-zinc-400 font-medium max-w-xs">
-                      Add it as a web app for a full-screen, offline-ready experience.
+                      Your workspace is ready. Add AmazeCC to your home screen for offline access — or jump straight in.
                     </p>
                   </div>
 
@@ -1381,48 +1408,51 @@ export default function AmazeOnboardingFlow({
           </main>
 
           {/* ── BOTTOM ACTION BAR (GENEROUS SPACING & DUAL ARROWS) ── */}
-          <footer className="relative z-20 w-full max-w-sm sm:max-w-md mx-auto flex items-center justify-center gap-2.5 shrink-0 pb-1 sm:pb-3">
-            {/* If on interface step, provide left & right carousel arrows */}
-            {interfaces.length > 1 && (step === 1 || isStandaloneInterfacePicker) && (
+          <footer className="relative z-20 w-full max-w-sm sm:max-w-md mx-auto flex flex-col items-center gap-1 shrink-0 pb-1 sm:pb-3">
+            <div className="flex w-full items-center justify-center gap-2.5">
+              {/* If on interface step, provide left & right carousel arrows */}
+              {interfaces.length > 1 && (step === 1 || isStandaloneInterfacePicker) && (
+                <button
+                  type="button"
+                  onClick={() => setActiveInterfaceIdx((prev) => (prev - 1 + interfaces.length) % interfaces.length)}
+                  aria-label="Previous Interface"
+                  className="w-12 h-12 rounded-2xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 text-white flex items-center justify-center shadow-lg transition-all active:scale-90 hover:scale-105 cursor-pointer shrink-0"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+              )}
+
+              {/* Main CTA Button */}
               <button
                 type="button"
-                onClick={() => setActiveInterfaceIdx((prev) => (prev - 1 + interfaces.length) % interfaces.length)}
-                aria-label="Previous Interface"
-                className="w-12 h-12 rounded-2xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 text-white flex items-center justify-center shadow-lg transition-all active:scale-90 hover:scale-105 cursor-pointer shrink-0"
+                onClick={nextStep}
+                className="flex-1 py-3.5 px-5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs sm:text-sm shadow-xl transition-all active:scale-95 cursor-pointer font-outfit tracking-wide flex items-center justify-center gap-2 truncate"
               >
-                <ChevronLeft className="w-5 h-5" />
+                <span className="truncate">
+                  {isStandaloneInterfacePicker
+                    ? `Select ${currentOption.title}`
+                    : step === 5
+                      ? "Launch AmazeCC"
+                      : step === 1
+                        ? `Continue with ${currentOption.title}`
+                        : "Continue"}
+                </span>
+                <ArrowRight className="w-4 h-4 shrink-0" />
               </button>
-            )}
 
-            {/* Main CTA Button */}
-            <button
-              type="button"
-              onClick={nextStep}
-              className="flex-1 py-3.5 px-5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs sm:text-sm shadow-xl transition-all active:scale-95 cursor-pointer font-outfit tracking-wide flex items-center justify-center gap-2 truncate"
-            >
-              <span className="truncate">
-                {isStandaloneInterfacePicker
-                  ? `Select ${currentOption.title}`
-                  : step === 5
-                    ? "Launch AmazeCC"
-                    : step === 1
-                      ? `Continue with ${currentOption.title}`
-                      : "Continue"}
-              </span>
-              <ArrowRight className="w-4 h-4 shrink-0" />
-            </button>
-
-            {/* If on interface step, provide right arrow */}
-            {interfaces.length > 1 && (step === 1 || isStandaloneInterfacePicker) && (
-              <button
-                type="button"
-                onClick={() => setActiveInterfaceIdx((prev) => (prev + 1) % interfaces.length)}
-                aria-label="Next Interface"
-                className="w-12 h-12 rounded-2xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 text-white flex items-center justify-center shadow-lg transition-all active:scale-90 hover:scale-105 cursor-pointer shrink-0"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            )}
+              {/* If on interface step, provide right arrow */}
+              {interfaces.length > 1 && (step === 1 || isStandaloneInterfacePicker) && (
+                <button
+                  type="button"
+                  onClick={() => setActiveInterfaceIdx((prev) => (prev + 1) % interfaces.length)}
+                  aria-label="Next Interface"
+                  className="w-12 h-12 rounded-2xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 text-white flex items-center justify-center shadow-lg transition-all active:scale-90 hover:scale-105 cursor-pointer shrink-0"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              )}
+            </div>
+            {renderSkipButton()}
           </footer>
         </>
       )}

@@ -102,9 +102,7 @@ function Brand() {
 }
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 font-outfit">{children}</label>
-  );
+  return <label className="text-xs font-black uppercase tracking-wider text-zinc-400 font-outfit">{children}</label>;
 }
 
 const inputClass =
@@ -112,6 +110,14 @@ const inputClass =
 
 const ctaClass =
   "flex w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-5 py-3.5 font-black text-sm text-white shadow-xl shadow-indigo-600/20 transition-all hover:bg-indigo-500 active:scale-[0.98] cursor-pointer font-outfit tracking-wide";
+
+/** Mount ids are internal; students see plain names plus any consequence. */
+function serverLabel(id: string, name: string): string {
+  if (id === "unicc") return "UniCC — sends your VTOP password to api.uni-cc.site";
+  if (id === "legacy") return "AmazeCC (backup)";
+  if (id === "hono") return "AmazeCC (recommended)";
+  return name || "AmazeCC";
+}
 
 export default function OnboardingIntro({ initialPhase, login, onDone }: OnboardingIntroProps) {
   const [phase, setPhase] = useState<IntroPhase>(initialPhase);
@@ -122,6 +128,7 @@ export default function OnboardingIntro({ initialPhase, login, onDone }: Onboard
 
   const [activeApi, setActiveApi] = useState("");
   const uniccTarget = useUniccTarget();
+  const [uniccConsent, setUniccConsent] = useState(false);
   // Only mounts that can serve the login op (vtop) are shown as sign-in targets.
   const mountOptions = listMounts().filter((m) => mountServes(m.id, "login", "vtop"));
   const preferredMount = getPreferredMount();
@@ -132,6 +139,7 @@ export default function OnboardingIntro({ initialPhase, login, onDone }: Onboard
       : activeApi === BACKUP_API_URL
         ? (mountOptions.find((m) => m.id === "legacy")?.id ?? mountOptions[0]?.id ?? "hono")
         : (mountOptions.find((m) => m.id === "hono")?.id ?? mountOptions[0]?.id ?? "hono");
+  const usingUnicc = uniccTarget === "unicc" || targetValue === "unicc";
   const [amazeIdUser, setAmazeIdUser] = useState<StoredUser | null>(null);
 
   const isLoggedIn = useAtomValue(isLoggedInAtom);
@@ -165,6 +173,10 @@ export default function OnboardingIntro({ initialPhase, login, onDone }: Onboard
     if (submitting) return;
     if (!login.username.trim() || !login.password) {
       setLocalError("Enter your VTOP user ID and password to continue.");
+      return;
+    }
+    if (usingUnicc && !uniccConsent) {
+      setLocalError("Confirm the third-party password handoff to sign in with UniCC.");
       return;
     }
     setLocalError(null);
@@ -232,19 +244,19 @@ export default function OnboardingIntro({ initialPhase, login, onDone }: Onboard
         {phase === "login" && (
           <div className="grid w-full animate-in fade-in slide-in-from-bottom-4 duration-300 gap-6 lg:grid-cols-2 lg:items-center lg:gap-10">
             {/* Amaze ID — one account for every AmazeCC app */}
-            <div className="rounded-3xl border border-indigo-500/25 bg-indigo-500/[0.07] p-4 sm:p-5 backdrop-blur-xl lg:col-span-2">
+            <div className="rounded-[24px] border border-indigo-500/25 bg-indigo-500/[0.07] p-4 sm:p-5 backdrop-blur-xl lg:col-span-2">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex min-w-0 items-center gap-3">
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-indigo-600/20 text-indigo-300">
                     <ShieldCheck size={22} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-indigo-400 font-outfit">
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-400 font-outfit">
                       Amaze ID
                     </p>
                     <p className="text-sm font-bold text-zinc-100">One account for every AmazeCC app</p>
-                    <p className="text-[10px] text-zinc-500">
-                      Club Hub, Admin Portal, GoRoBo and more - with VTOP as an optional link.
+                    <p className="text-xs text-zinc-500">
+                      Clubs, admin tools, and more — with VTOP as an optional link.
                     </p>
                   </div>
                 </div>
@@ -253,17 +265,15 @@ export default function OnboardingIntro({ initialPhase, login, onDone }: Onboard
                   <div className="flex shrink-0 items-center gap-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-3 py-2">
                     <CheckCircle2 size={17} className="shrink-0 text-emerald-400" />
                     <div className="min-w-0">
-                      <p className="max-w-[190px] truncate text-[11px] font-bold text-emerald-300">
-                        {amazeIdUser.name}
-                      </p>
-                      <p className="max-w-[190px] truncate text-[9px] text-emerald-500">{amazeIdUser.email}</p>
+                      <p className="max-w-[190px] truncate text-xs font-bold text-emerald-300">{amazeIdUser.name}</p>
+                      <p className="max-w-[190px] truncate text-xs text-emerald-500">{amazeIdUser.email}</p>
                     </div>
                     <button
                       type="button"
                       onClick={() => {
                         void signOutApp().then(() => setAmazeIdUser(null));
                       }}
-                      className="shrink-0 text-[10px] font-bold text-zinc-500 underline underline-offset-2 transition-colors hover:text-zinc-300"
+                      className="relative hit-expand shrink-0 text-xs font-bold text-zinc-500 underline underline-offset-2 transition-colors hover:text-zinc-300"
                     >
                       Sign out
                     </button>
@@ -273,7 +283,7 @@ export default function OnboardingIntro({ initialPhase, login, onDone }: Onboard
                     <button
                       type="button"
                       onClick={signInInteractive}
-                      className="inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2.5 text-[11px] font-black uppercase tracking-wider text-white shadow-lg shadow-indigo-600/25 transition-all hover:bg-indigo-500 active:scale-[0.98] font-outfit"
+                      className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-black uppercase tracking-wider text-white shadow-lg shadow-indigo-600/25 transition-all hover:bg-indigo-500 active:scale-[0.98] font-outfit"
                     >
                       Sign in with Amaze ID
                       <ArrowRight size={12} strokeWidth={3} />
@@ -281,7 +291,7 @@ export default function OnboardingIntro({ initialPhase, login, onDone }: Onboard
                     <button
                       type="button"
                       onClick={signInInteractive}
-                      className="text-center text-[10px] font-bold text-amber-400/90 transition-colors hover:text-amber-300 hover:underline"
+                      className="inline-flex min-h-11 items-center justify-center text-center text-xs font-bold text-amber-400/90 transition-colors hover:text-amber-300 hover:underline"
                     >
                       New here? Create an Amaze ID →
                     </button>
@@ -293,10 +303,10 @@ export default function OnboardingIntro({ initialPhase, login, onDone }: Onboard
             {/* Pitch (design language of the hero pages) */}
             <div className="space-y-4 text-left">
               <Brand />
-              <p className="inline-flex w-fit items-center gap-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-indigo-400 font-outfit">
+              <p className="inline-flex w-fit items-center gap-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-indigo-400 font-outfit">
                 <Sparkles size={11} /> Step one of onboarding
               </p>
-              <h1 className="text-3xl font-black leading-[1.05] tracking-tight text-white font-outfit sm:text-4xl">
+              <h1 className="text-[32px] font-black leading-[1.15] tracking-tight text-balance text-white font-outfit">
                 Bring your VIT life
                 <span className="block bg-gradient-to-r from-indigo-400 via-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
                   into one place.
@@ -306,9 +316,9 @@ export default function OnboardingIntro({ initialPhase, login, onDone }: Onboard
                 Sign in with your VTOP credentials and we will pull attendance, grades, your timetable and campus
                 services straight from the source.
               </p>
-              <ul className="flex flex-wrap gap-2 text-[10px] font-bold text-zinc-400">
+              <ul className="flex flex-wrap gap-2 text-xs font-bold text-zinc-400">
                 {[
-                  { icon: Lock, text: "Stays in this browser" },
+                  { icon: Lock, text: "Cached on this device" },
                   { icon: Shield, text: "Verified with VTOP" },
                   { icon: Server, text: "Free forever" },
                 ].map((item) => (
@@ -330,31 +340,40 @@ export default function OnboardingIntro({ initialPhase, login, onDone }: Onboard
                   <h2 className="text-sm font-black uppercase tracking-wider text-white font-outfit">
                     Sign in to VTOP
                   </h2>
-                  <p className="text-[11px] text-zinc-500">Just your user ID and password.</p>
+                  <p className="text-xs text-zinc-500">Just your user ID and password.</p>
                 </div>
 
                 <div className="flex items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-950/60 px-3 py-2.5">
-                  <div className="flex items-center gap-2 text-[11px] font-bold text-zinc-400">
+                  <div className="flex items-center gap-2 text-xs font-bold text-zinc-400">
                     <Server size={13} className="text-zinc-500" />
-                    Target server
+                    Sign-in server
                   </div>
                   <SelectField
                     value={targetValue}
                     onChange={handleApiChange}
-                    options={mountOptions.map((m) => ({ value: m.id, label: m.name }))}
+                    options={mountOptions.map((m) => ({ value: m.id, label: serverLabel(m.id, m.name) }))}
                     searchable={false}
                     size="sm"
                     role="group"
-                    aria-label="Target server"
+                    aria-label="Sign-in server"
                     className="w-auto shrink-0 [&>button:first-child]:border-none [&>button:first-child]:bg-transparent [&>button:first-child]:px-0 [&>button:first-child]:text-indigo-400"
                   />
                 </div>
 
-                {uniccTarget === "unicc" && (
-                  <p className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-[10px] leading-relaxed text-amber-400">
-                    Your VTOP password is sent to <span className="font-bold">api.uni-cc.site</span>, a third-party
-                    service, to sign you in. Everything else still comes from AmazeCC.
-                  </p>
+                {usingUnicc && (
+                  <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2.5">
+                    <input
+                      type="checkbox"
+                      checked={uniccConsent}
+                      onChange={(e) => setUniccConsent(e.target.checked)}
+                      disabled={submitting}
+                      className="mt-0.5 h-4 w-4 shrink-0 accent-indigo-500"
+                    />
+                    <span className="text-xs leading-relaxed text-amber-300">
+                      I understand that choosing UniCC sends my VTOP password to <strong>api.uni-cc.site</strong>, a
+                      third-party service, to sign me in. Everything else still comes from AmazeCC.
+                    </span>
+                  </label>
                 )}
 
                 <div className="space-y-1.5">
@@ -389,12 +408,17 @@ export default function OnboardingIntro({ initialPhase, login, onDone }: Onboard
                       type="button"
                       aria-label={showPassword ? "Hide password" : "Show password"}
                       onClick={() => setShowPassword((prev) => !prev)}
-                      className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-lg p-2 text-zinc-500 transition-colors hover:text-white"
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 hit-expand rounded-lg p-2 text-zinc-500 transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
                     >
                       {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                     </button>
                   </div>
                 </div>
+
+                <p className="text-xs leading-relaxed text-zinc-500">
+                  Stored here: your VTOP user ID and password, cached in this browser. Sign-in runs through the server
+                  selected above.
+                </p>
 
                 {error && (
                   <SignInRejection
@@ -404,15 +428,21 @@ export default function OnboardingIntro({ initialPhase, login, onDone }: Onboard
                   />
                 )}
 
-                <button type="submit" className={ctaClass} disabled={submitting}>
+                <button
+                  type="submit"
+                  className={`${ctaClass} disabled:cursor-not-allowed disabled:opacity-50`}
+                  disabled={submitting || (usingUnicc && !uniccConsent)}
+                >
                   {submitting ? <Loader2 size={15} className="animate-spin" /> : null}
                   <span>{submitting ? "Signing in…" : "Continue"}</span>
                   {!submitting && <ArrowRight size={15} />}
                 </button>
 
-                <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[10px] text-zinc-500">
-                  <span>Credentials never leave this browser.</span>
-                  <a href="/ffcs/" className="font-bold text-indigo-400 transition-colors hover:text-indigo-300">
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs text-zinc-500">
+                  <a
+                    href="/ffcs/"
+                    className="inline-flex min-h-11 items-center font-bold text-indigo-400 transition-colors hover:text-indigo-300"
+                  >
                     Skip — open FFCS Planner
                   </a>
                 </div>
@@ -458,7 +488,7 @@ function SignInRejection({
     return (
       <div
         role="alert"
-        className="flex items-start gap-2 rounded-xl border border-rose-500/25 bg-rose-500/10 px-3 py-2.5 text-[11px] font-semibold text-rose-400"
+        className="flex items-start gap-2 rounded-xl border border-rose-500/25 bg-rose-500/10 px-3 py-2.5 text-xs font-semibold text-rose-400"
       >
         <AlertCircle size={14} className="mt-0.5 shrink-0" />
         <span className="min-w-0 break-words">{message}</span>
@@ -473,10 +503,10 @@ function SignInRejection({
       <div className="flex items-start gap-2">
         <KeyRound size={14} className="mt-0.5 shrink-0 text-amber-400" />
         <div className="min-w-0 space-y-1">
-          <p className="text-[10px] font-black uppercase tracking-wider text-amber-400">
+          <p className="text-xs font-black uppercase tracking-wider text-amber-400">
             {badCredentials ? "Check your password" : "Sign-in rejected"}
           </p>
-          <p className="text-[11px] font-semibold leading-relaxed text-zinc-300">
+          <p className="text-xs font-semibold leading-relaxed text-zinc-300">
             {badCredentials ? (
               <>
                 VTOP says that user ID and password don&apos;t match. If you changed your password recently, update it
@@ -490,7 +520,7 @@ function SignInRejection({
               </>
             )}
           </p>
-          <p className="break-words text-[10px] font-semibold text-zinc-500">{message}</p>
+          <p className="break-words text-xs font-semibold text-zinc-500">{message}</p>
         </div>
       </div>
 
@@ -498,7 +528,7 @@ function SignInRejection({
         <button
           type="button"
           onClick={onChangePassword}
-          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-[10px] font-black uppercase tracking-wider text-white shadow-md shadow-indigo-500/20 transition-colors hover:bg-indigo-500 active:scale-[0.985]"
+          className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-xs font-black uppercase tracking-wider text-white shadow-md shadow-indigo-500/20 transition-colors hover:bg-indigo-500 active:scale-[0.985]"
         >
           <KeyRound size={11} />
           <span>Change Password</span>
@@ -509,7 +539,7 @@ function SignInRejection({
         href="https://vtopcc.vit.ac.in"
         target="_blank"
         rel="noreferrer"
-        className={`flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-amber-500/25 px-4 py-3 text-[10px] font-black uppercase tracking-wider transition-colors active:scale-[0.985] ${
+        className={`flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-amber-500/25 px-4 py-3 text-xs font-black uppercase tracking-wider transition-colors active:scale-[0.985] ${
           badCredentials
             ? "bg-amber-500/10 text-amber-300 hover:bg-amber-500/20"
             : "bg-amber-500 text-white shadow-md shadow-amber-500/25 hover:bg-amber-600"
@@ -576,8 +606,8 @@ function SyncFace({ progress, lines, title }: { progress: number; lines: SyncLog
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-4xl font-black text-white tabular-nums font-outfit">{pct}%</span>
-          <span className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-zinc-500 font-outfit">
+          <span className="text-[32px] font-black text-white tabular-nums font-outfit">{pct}%</span>
+          <span className="mt-1 text-xs font-black uppercase tracking-[0.18em] text-zinc-500 font-outfit">
             {title || "Full Sync"}
           </span>
         </div>
@@ -604,7 +634,7 @@ function SyncFace({ progress, lines, title }: { progress: number; lines: SyncLog
           {recent.map((line, idx) => (
             <li
               key={`${line.text}-${idx}`}
-              className="flex items-start gap-2 rounded-lg border border-zinc-900 bg-zinc-900/50 px-3 py-2 text-[11px] text-zinc-400"
+              className="flex items-start gap-2 rounded-lg border border-zinc-900 bg-zinc-900/50 px-3 py-2 text-xs text-zinc-400"
             >
               <LineIcon status={line.status} />
               <span className="min-w-0 break-words">{line.text}</span>
@@ -634,16 +664,16 @@ function WelcomeFace({ onDone }: { onDone: () => void }) {
       </div>
 
       <div className="space-y-2">
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 font-outfit">
-          Sign-in complete
-        </p>
-        <h2 className="text-3xl font-black tracking-tight text-white font-outfit sm:text-4xl">Welcome to AmazeCC</h2>
+        <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-400 font-outfit">Sign-in complete</p>
+        <h2 className="text-[32px] font-black tracking-tight text-balance text-white font-outfit">
+          Welcome to AmazeCC
+        </h2>
         <p className="mx-auto max-w-md text-sm leading-relaxed text-zinc-400">
           Your records are on this device. Now a few quick choices and your workspace is ready.
         </p>
       </div>
 
-      <ul className="flex flex-wrap justify-center gap-2 text-[10px] font-bold text-zinc-300">
+      <ul className="flex flex-wrap justify-center gap-2 text-xs font-bold text-zinc-300">
         {["Attendance & marks", "Grades & timetable", "Campus services"].map((label) => (
           <li
             key={label}
