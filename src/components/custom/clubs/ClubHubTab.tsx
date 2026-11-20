@@ -1,23 +1,24 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useSetAtom } from "jotai";
 import { activeTabAtom } from "@/store";
 import { api } from "@/lib/sync-engine";
 import { Skeleton, cn } from "@amazecontinuityprojects/amazeui";
 import { Search, X, LayoutGrid, Users, Layers, RefreshCcw, ChevronRight, SearchX, Rss, WifiOff } from "lucide-react";
-import { LIST_ROW, SEARCH_FIELD, TONE_BADGE, TONE_ICON_TILE } from "@/lib/uiTokens";
+import { ICON_WELL, LIST_ROW, SEARCH_FIELD, STAT_GRID, TONE_BADGE, TONE_ICON_TILE } from "@/lib/uiTokens";
 import { getSimilarity } from "@/lib/string-similarity";
 import ClubDetailsModal from "./ClubDetailsModal";
+import { useCarouselAutoplayPolicy } from "../tasks/useCarouselAutoplayPolicy";
 import {
   EmptyPanel,
   GhostButton,
-  IconButton,
   InsightCarousel,
   ListRowText,
   ListShell,
   ListSkeleton,
   PageShell,
+  ReloadButton,
   ChipTabs,
   SectionHeader,
   StatTile,
@@ -65,11 +66,16 @@ const DEMO_CLUBS = [
 
 /** Compare on letters and digits only, so "Fine Arts Club (TFAC)" == "fine arts club". */
 const normalise = (value: string): string =>
-  String(value ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+  String(value ?? "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
 
 const isChapter = (type: string): boolean => /chapter/i.test(String(type ?? ""));
-const toneFor = (type: string): string => (isChapter(type) ? "violet" : type ? "indigo" : "sky");
+// Type is a category, not a status: the glyph and the neutral badge carry it.
 const IconFor = (type: string) => (isChapter(type) ? Layers : Users);
+
+/** Skip layout/paint for off-screen rows without removing them from the DOM or a11y tree. */
+const LAZY_ROW: CSSProperties = { contentVisibility: "auto", containIntrinsicSize: "72px" };
 
 /**
  * Find a club's public profile.
@@ -84,9 +90,7 @@ function matchDetail(name: string, id: string, details: any[]): any | null {
   if (details.length === 0) return null;
   const n = normalise(name);
   const i = normalise(id);
-  const exact = details.find(
-    (d) => (n && normalise(d.club_name) === n) || (i && normalise(d.club_id) === i)
-  );
+  const exact = details.find((d) => (n && normalise(d.club_name) === n) || (i && normalise(d.club_id) === i));
   if (exact) return exact;
   return details.find((d) => getSimilarity(name, d.club_name) > 0.8) ?? null;
 }
@@ -169,8 +173,8 @@ export default function ClubHubTab({
       setClubs(
         withDetails(
           DEMO_CLUBS.map((name, i) => ({ id: String(i + 1), name, type: i >= 5 ? "CHAPTER" : "CLUB" })),
-          []
-        )
+          [],
+        ),
       );
       setVtopUnavailable(false);
       setLoading(false);
@@ -191,9 +195,7 @@ export default function ClubHubTab({
     } else if (details.length > 0) {
       // The public directory stands in. Each row is its own profile, so the
       // match is already done.
-      setClubs(
-        details.map((d: any) => ({ id: d.club_id || "", name: d.club_name || "", type: "", detail: d }))
-      );
+      setClubs(details.map((d: any) => ({ id: d.club_id || "", name: d.club_name || "", type: "", detail: d })));
       setVtopUnavailable(true);
     } else {
       setClubs([]);
@@ -201,7 +203,7 @@ export default function ClubHubTab({
       setError(
         enrolled.status === "rejected"
           ? enrolled.reason?.message || "Couldn't reach VTOP or the club database."
-          : "No clubs are published yet."
+          : "No clubs are published yet.",
       );
     }
 
@@ -283,7 +285,8 @@ export default function ClubHubTab({
     return slides;
   }, [summary]);
 
-  const carousel = useCarousel(insightSlides.length);
+  const autoplayMs = useCarouselAutoplayPolicy();
+  const carousel = useCarousel(insightSlides.length, autoplayMs);
 
   // No type column in the fallback, so there is nothing honest to filter on.
   const types = useMemo(() => {
@@ -309,22 +312,18 @@ export default function ClubHubTab({
       eyebrow="Club Hub"
       title="Clubs & Chapters"
       subtitle="Every student organisation at VIT, and how to join each one."
-      actions={
-        <IconButton title="Reload clubs" onClick={load} disabled={loading}>
-          <RefreshCcw className={loading ? "animate-spin" : ""} />
-        </IconButton>
-      }
+      actions={<ReloadButton title="Reload clubs" onClick={load} loading={loading} />}
       selectable
     >
       {/* ── HERO STATS ── */}
       {loading ? (
-        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+        <div className={STAT_GRID}>
           <Skeleton className="h-32 sm:h-36 rounded-[24px]" />
           <Skeleton className="h-32 sm:h-36 rounded-[24px]" />
         </div>
       ) : error ? null : (
         <>
-          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+          <div className={STAT_GRID}>
             <StatTile
               label={vtopUnavailable ? "Public directory" : "Clubs"}
               value={summary.total}
@@ -340,7 +339,7 @@ export default function ClubHubTab({
             />
           </div>
 
-          <p className="px-1 -mt-3 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
+          <p className="text-pretty px-1 -mt-3 text-xs leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
             {vtopUnavailable
               ? "VTOP's club list is unavailable, so this is the club database's own directory — every club, without the CLUB/CHAPTER split. Tap one for its mission, contacts and recruitment."
               : "Profiles are published by each club's representatives. A club with no profile here is still listed — it just hasn't written one."}
@@ -418,7 +417,6 @@ export default function ClubHubTab({
 
           <ListShell>
             {visible.map((club) => {
-              const tone = toneFor(club.type);
               const Icon = IconFor(club.type);
               // A row number is not an identifier, so it is only worth showing
               // when the id says something the name does not.
@@ -426,14 +424,15 @@ export default function ClubHubTab({
                 club.id && normalise(club.id) !== normalise(club.name)
                   ? club.id
                   : club.detail
-                  ? "Profile published"
-                  : "No profile yet";
+                    ? "Profile published"
+                    : "No profile yet";
 
               return (
                 <button
                   key={`${club.id}-${club.name}`}
                   type="button"
                   onClick={() => setSelectedClub({ ...club, club_name: club.name, ...club.detail })}
+                  style={LAZY_ROW}
                   className={cn(LIST_ROW, "gap-3 cursor-pointer active:bg-zinc-100 dark:active:bg-zinc-800/60")}
                 >
                   {club.detail?.logo_url ? (
@@ -444,23 +443,14 @@ export default function ClubHubTab({
                       className="w-10 h-10 rounded-2xl object-cover shrink-0 border border-zinc-200/70 dark:border-zinc-800/80"
                     />
                   ) : (
-                    <span
-                      className={cn(
-                        "w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border",
-                        TONE_ICON_TILE[tone] ?? TONE_ICON_TILE.sky
-                      )}
-                    >
+                    <span className={cn(ICON_WELL, TONE_ICON_TILE.zinc)}>
                       <Icon className="w-4.5 h-4.5" />
                     </span>
                   )}
 
                   <ListRowText title={club.name} subtitle={subtitle} />
 
-                  {club.type ? (
-                    <span className={cn(TONE_BADGE[tone] ?? TONE_BADGE.zinc, "shrink-0")}>
-                      {club.type}
-                    </span>
-                  ) : null}
+                  {club.type ? <span className={cn(TONE_BADGE.zinc, "shrink-0")}>{club.type}</span> : null}
 
                   <ChevronRight className="w-4 h-4 text-zinc-400 shrink-0" />
                 </button>
@@ -479,11 +469,7 @@ export default function ClubHubTab({
         </div>
       )}
 
-      <ClubDetailsModal
-        isOpen={!!selectedClub}
-        onClose={() => setSelectedClub(null)}
-        club={selectedClub}
-      />
+      <ClubDetailsModal isOpen={!!selectedClub} onClose={() => setSelectedClub(null)} club={selectedClub} />
     </PageShell>
   );
 }

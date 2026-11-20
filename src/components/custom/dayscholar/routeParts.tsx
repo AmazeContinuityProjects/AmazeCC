@@ -2,7 +2,7 @@
 import { Phone, Shield, UserCircle2 } from "lucide-react";
 import type { ElementType, ReactNode } from "react";
 import { ListRowText, SectionHeader, ToneBadge } from "../shared/primitives";
-import { LIST_ROW, LIST_SHELL, TONE_ICON_TILE } from "@/lib/uiTokens";
+import { ICON_WELL, LIST_ROW, LIST_SHELL, TEXT_BLOCK, TONE_ICON_TILE } from "@/lib/uiTokens";
 import type { BusPlacement, BusRoute, BusStop } from "@/types/transport";
 
 /**
@@ -36,7 +36,7 @@ export function RouteIdentity({
             <span className="flex items-center gap-2 shrink-0">
               <ToneBadge tone={routeTone(route.type)}>{route.type}</ToneBadge>
               {route.busLocation ? (
-                <span className="text-[11px] font-medium text-text-secondary dark:text-text-muted truncate max-w-32">
+                <span className="text-xs font-medium text-text-secondary dark:text-text-muted truncate max-w-32">
                   {route.busLocation}
                 </span>
               ) : null}
@@ -83,7 +83,7 @@ export function RouteContacts({ route }: { route: BusRoute }) {
       {people.map((p) => (
         <div key={p.fallback} className={LIST_ROW}>
           <span
-            className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${TONE_ICON_TILE[p.tone]}`}
+            className={`${ICON_WELL} ${TONE_ICON_TILE[p.tone]}`}
           >
             {p.icon}
           </span>
@@ -132,7 +132,7 @@ export function StopsTimeline({
         const isLast = i === shown.length - 1 && !hasMore;
         return (
           <div key={`${stop.stopOrder}-${stop.stopName}`} className="flex items-start gap-3 py-2.5 px-4">
-            <span className="shrink-0 w-11 text-right text-[10px] font-black font-outfit text-text-heading pt-0.5">
+            <span className="shrink-0 w-11 text-right text-xs font-black font-outfit text-text-heading pt-0.5">
               {stop.pickupTime || "—"}
             </span>
             <span className="flex flex-col items-center shrink-0 self-stretch">
@@ -141,7 +141,7 @@ export function StopsTimeline({
               />
               {!isLast && <span className="w-px flex-1 my-0.5 bg-border-muted" />}
             </span>
-            <span className="text-xs font-semibold text-text-heading leading-5 min-w-0 flex-1">
+            <span className={`text-xs font-semibold text-text-heading leading-5 ${TEXT_BLOCK}`}>
               {stop.stopName}
             </span>
           </div>
@@ -163,7 +163,7 @@ export function PlacementZones({ placements }: { placements: BusPlacement[] }) {
             <span className="block text-base font-black font-outfit text-text-heading leading-none">
               {p.dispersalTime}
             </span>
-            <span className="text-[9px] font-bold uppercase tracking-wider text-text-muted">
+            <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
               dispersal
             </span>
           </span>

@@ -7,6 +7,7 @@ import { getTypedStorageItem, setTypedStorageItem } from "@/lib/storage";
 import { RefreshCcw, Clock, Sparkles, Utensils, Sun, Coffee, Moon, CalendarCheck } from "lucide-react";
 import { useIsMobile } from "../shared";
 import { WORKER_BASE } from "@/lib/workerBase";
+import { TEXT_CAPTION } from "@/lib/uiTokens";
 
 /**
  * Mess menus, served by the AmazeCC worker rather than fetched from unmessify's
@@ -123,8 +124,10 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
           <Utensils size={28} />
         </div>
         <div>
-          <h3 className="text-base font-bold text-zinc-900 dark:text-white font-outfit">Hostel Mess Information</h3>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 font-medium max-w-sm">
+          <h3 className="text-balance text-base font-bold text-zinc-900 dark:text-white font-outfit">
+            Hostel Mess Information
+          </h3>
+          <p className={`${TEXT_CAPTION} mt-1 font-medium max-w-sm`}>
             You are currently not registered as a Hosteller in VTOP records.
           </p>
         </div>
@@ -289,13 +292,13 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
       {/* Header Bar */}
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-4 border-b border-zinc-200/80 dark:border-zinc-800/80">
         <div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 mb-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 mb-2">
             <Utensils size={11} /> Mess Menu
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-zinc-900 dark:text-white leading-tight font-outfit">
+          <h1 className="text-balance text-2xl sm:text-3xl font-black text-zinc-900 dark:text-white leading-tight font-outfit">
             Hostel Mess Schedule
           </h1>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 font-medium flex items-center gap-1.5">
+          <p className={`${TEXT_CAPTION} mt-0.5 font-medium flex items-center gap-1.5`}>
             <span>{currentMonth} Schedule</span>
             <span>•</span>
             {smartMode ? (
@@ -385,7 +388,7 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
               {activeDay} Menu ({gender} • {type})
             </span>
             {activeDay === today && currentActiveMealName && (
-              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+              <span className="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                 Active: {currentActiveMealName}
               </span>
@@ -438,14 +441,16 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <h3 className="font-bold text-zinc-900 dark:text-white text-sm font-outfit">{meal.name}</h3>
+                            <h3 className="text-balance font-bold text-zinc-900 dark:text-white text-sm font-outfit">
+                              {meal.name}
+                            </h3>
                             {isCurrentNow && (
-                              <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                              <span className="text-xs font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                                 Serving Now
                               </span>
                             )}
                           </div>
-                          <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium flex items-center gap-1 mt-0.5">
+                          <p className={`${TEXT_CAPTION} font-medium flex items-center gap-1 mt-0.5`}>
                             <Clock size={10} /> {meal.time}
                           </p>
                         </div>
@@ -482,14 +487,16 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
                             <MealIcon size={16} className={meal.accentColor} />
                           </div>
                           <div>
-                            <h3 className="font-bold text-zinc-900 dark:text-white text-xs font-outfit">{meal.name}</h3>
-                            <p className="text-[9.5px] text-zinc-500 dark:text-zinc-400 font-medium flex items-center gap-1 mt-0.5">
+                            <h3 className="text-balance font-bold text-zinc-900 dark:text-white text-xs font-outfit">
+                              {meal.name}
+                            </h3>
+                            <p className={`${TEXT_CAPTION} font-medium flex items-center gap-1 mt-0.5`}>
                               <Clock size={9} /> {meal.time}
                             </p>
                           </div>
                         </div>
                         {isCurrentNow && (
-                          <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
+                          <span className="text-xs font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
                             Active
                           </span>
                         )}
@@ -505,7 +512,7 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
         </div>
       ) : (
         <div className="p-8 text-center card-surface border border-zinc-200/50 dark:border-zinc-800/80 rounded-2xl">
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+          <p className={`${TEXT_CAPTION} font-medium`}>
             No menu found for {activeDay}. Please click reload if data is outdated.
           </p>
         </div>

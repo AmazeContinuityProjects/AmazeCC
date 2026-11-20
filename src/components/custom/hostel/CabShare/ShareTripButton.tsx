@@ -29,7 +29,7 @@ export default function ShareTripButton({ trip }: { trip: CabShareTrip }) {
   return (
     <button type="button" onClick={handleShare} className={GHOST_BUTTON} title="Share Trip">
       {copied ? <Check className="w-3 h-3" /> : <Share2 className="w-3 h-3" />}
-      <span className="text-[11px]">{copied ? "Copied" : "Share"}</span>
+      <span className="text-xs">{copied ? "Copied" : "Share"}</span>
     </button>
   );
 }

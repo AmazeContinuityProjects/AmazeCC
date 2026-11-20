@@ -33,8 +33,18 @@ export interface EventLike {
 }
 
 const MONTH_INDEX: Record<string, number> = {
-  jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
-  jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
+  jan: 0,
+  feb: 1,
+  mar: 2,
+  apr: 3,
+  may: 4,
+  jun: 5,
+  jul: 6,
+  aug: 7,
+  sep: 8,
+  oct: 9,
+  nov: 10,
+  dec: 11,
 };
 
 /** Local midnight for a Y/M/D triple, or null if it is not a real calendar date. */
@@ -69,9 +79,7 @@ export function parseEventDate(value?: string | null): number | null {
   // Day-first, numeric or textual month: "15-Jul-2026", "15/07/2026".
   const parts = raw.split(/[-/]/).map((p) => p.trim());
   if (parts.length === 3 && /^\d{4}$/.test(parts[2]) && /^\d{1,2}$/.test(parts[0])) {
-    const month = /^\d+$/.test(parts[1])
-      ? Number(parts[1]) - 1
-      : MONTH_INDEX[parts[1].slice(0, 3).toLowerCase()];
+    const month = /^\d+$/.test(parts[1]) ? Number(parts[1]) - 1 : MONTH_INDEX[parts[1].slice(0, 3).toLowerCase()];
     if (month !== undefined) return localMidnight(parts[2], month + 1, parts[0]);
   }
 
@@ -108,7 +116,9 @@ export function daysUntil(value?: string | null, now: Date = new Date()): number
  * answer here.
  */
 export function isFreeEvent(event?: { price?: string | null } | null): boolean {
-  const price = String(event?.price ?? "").trim().toLowerCase();
+  const price = String(event?.price ?? "")
+    .trim()
+    .toLowerCase();
   if (!price) return true;
   return price.includes("free") || price.includes("no cost") || price === "nil";
 }
@@ -121,7 +131,9 @@ export function isFreeEvent(event?: { price?: string | null } | null): boolean {
  * registration the Pay Now button considers settled is a bug.
  */
 export function isRegistrationPaid(details?: any): boolean {
-  const status = String(details?.paymentStatus ?? "").trim().toLowerCase();
+  const status = String(details?.paymentStatus ?? "")
+    .trim()
+    .toLowerCase();
   if (!status) return false;
   return status.includes("paid") || status.includes("free") || status.includes("success");
 }
@@ -142,7 +154,7 @@ export interface EventSummary {
 export function summariseEvents(
   events: readonly EventLike[] | null | undefined,
   registeredEvents: readonly any[] | null | undefined = [],
-  now: Date = new Date()
+  now: Date = new Date(),
 ): EventSummary {
   const list = Array.isArray(events) ? events.filter(Boolean) : [];
   const registered = Array.isArray(registeredEvents) ? registeredEvents : [];
@@ -177,7 +189,7 @@ export function eventHubLoginHtml(username: string, password: string): string {
 <head>
     <title>Redirecting to Event Hub...</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f8fafc; color: #334155; }
+        body { font-family: ui-sans-serif, system-ui, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f8fafc; color: #334155; }
         .loader { border: 3px solid #e2e8f0; border-top: 3px solid #3b82f6; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; margin-right: 12px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .container { display: flex; align-items: center; background: white; padding: 20px 30px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
@@ -199,4 +211,3 @@ export function eventHubLoginHtml(username: string, password: string): string {
 </body>
 </html>`;
 }
-

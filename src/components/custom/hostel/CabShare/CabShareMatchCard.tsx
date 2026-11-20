@@ -161,7 +161,7 @@ export default function CabShareMatchCard() {
           </span>
           <div className="min-w-0">
             <h3 className={`text-sm font-black font-outfit tracking-tight ${MATCH_INK[tone]}`}>{title}</h3>
-            <p className="text-[11px] font-medium text-text-secondary dark:text-text-muted mt-0.5">{sub}</p>
+            <p className="text-xs font-medium text-text-secondary dark:text-text-muted mt-0.5">{sub}</p>
           </div>
         </div>
         {children}
@@ -180,7 +180,7 @@ export default function CabShareMatchCard() {
     <>
       <p className="flex items-center gap-1 text-xs font-bold text-text-heading">{hub}</p>
       {time ? (
-        <p className="mt-0.5 flex items-center gap-1 text-[11px] font-medium text-text-secondary dark:text-text-muted">
+        <p className="mt-0.5 flex items-center gap-1 text-xs font-medium text-text-secondary dark:text-text-muted">
           {time}
         </p>
       ) : null}
@@ -213,7 +213,7 @@ export default function CabShareMatchCard() {
             }
             right={
               <div className="text-right">
-                <p className="text-[11px] font-medium text-text-muted">Host</p>
+                <p className="text-xs font-medium text-text-muted">Host</p>
                 <p className="text-xs font-black text-text-heading">{trip.owner_name}</p>
               </div>
             }
@@ -244,7 +244,7 @@ export default function CabShareMatchCard() {
                   />
                 }
                 right={
-                  <span className="shrink-0 text-[11px] font-bold text-text-secondary dark:text-text-muted">
+                  <span className="shrink-0 text-xs font-bold text-text-secondary dark:text-text-muted">
                     <Clock className="h-3 w-3" /> {req.trip?.preferred_time}
                   </span>
                 }
@@ -277,7 +277,7 @@ export default function CabShareMatchCard() {
             }
             right={
               <div className="text-right">
-                <p className="text-[11px] font-medium text-text-muted">Contact</p>
+                <p className="text-xs font-medium text-text-muted">Contact</p>
                 <p className="text-xs font-black text-text-heading">
                   {acceptedMatch.role === "host"
                     ? acceptedMatch.requests.find((r: any) => r.status === "accepted")?.phone_number

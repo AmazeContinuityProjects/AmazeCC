@@ -20,7 +20,7 @@ import {
   StatTile,
   ToneBadge,
 } from "../shared/primitives";
-import { LIST_ROW, SEARCH_FIELD, TONE_ICON_TILE } from "@/lib/uiTokens";
+import { ICON_WELL, LIST_ROW, PRIMARY_BUTTON, SEARCH_FIELD, STAT_GRID, TONE_ICON_TILE } from "@/lib/uiTokens";
 import type { BusRoute, TransportData } from "@/types/transport";
 
 interface BusFinderProps {
@@ -94,7 +94,7 @@ const BusFinder = ({
       }
     >
       <div className="space-y-6">
-        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+        <div className={STAT_GRID}>
           <StatTile
             label="Routes running"
             value={buses.length}
@@ -152,7 +152,7 @@ const BusFinder = ({
                     <button
                       type="button"
                       onClick={() => setSearchQuery("")}
-                      className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-black text-white transition-colors hover:bg-indigo-700"
+                      className={PRIMARY_BUTTON}
                     >
                       Clear search
                     </button>
@@ -169,7 +169,7 @@ const BusFinder = ({
                     className={`${LIST_ROW} cursor-pointer`}
                   >
                     <span
-                      className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border font-black text-sm font-outfit ${TONE_ICON_TILE[routeTone(bus.type)]}`}
+                      className={`${ICON_WELL} font-black text-sm font-outfit ${TONE_ICON_TILE[routeTone(bus.type)]}`}
                     >
                       {bus.id}
                     </span>
@@ -212,7 +212,7 @@ function BusDetailSheet({ bus, onClose }: { bus: BusRoute; onClose: () => void }
         <span className="inline-flex items-center gap-2 flex-wrap">
           <ToneBadge tone={routeTone(bus.type)}>{bus.type}</ToneBadge>
           {bus.busLocation ? (
-            <span title={bus.busLocation} className="text-[11px] font-medium text-text-secondary dark:text-text-muted truncate max-w-32">
+            <span title={bus.busLocation} className="text-xs font-medium text-text-secondary dark:text-text-muted truncate max-w-32">
               {bus.busLocation}
             </span>
           ) : null}

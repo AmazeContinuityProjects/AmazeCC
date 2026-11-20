@@ -1,21 +1,19 @@
 "use client";
 
 import { AnimatePresence } from "framer-motion";
-import {
-  Globe,
-  Instagram,
-  MessageCircle,
-  Link as LinkIcon,
-  User,
-  Calendar,
-  Star,
-  Phone,
-  Mail,
-} from "lucide-react";
+import { Globe, Instagram, MessageCircle, Link as LinkIcon, User, Calendar, Star, Phone, Mail } from "lucide-react";
 import { useState, useEffect } from "react";
 import { api } from "@/lib/sync-engine";
 import { cn } from "@amazecontinuityprojects/amazeui";
-import { TILE_CARD, TONE_ICON_TILE } from "@/lib/uiTokens";
+import {
+  FOCUS_RING,
+  ICON_WELL,
+  MICRO_LABEL,
+  TEXT_BLOCK,
+  TEXT_CAPTION,
+  TILE_CARD,
+  TONE_ICON_TILE,
+} from "@/lib/uiTokens";
 import BottomSheet from "../shared/BottomSheet";
 import { SectionHeader } from "../shared/primitives";
 import ReactMarkdown from "react-markdown";
@@ -132,7 +130,7 @@ export default function ClubDetailsModal({ club, isOpen, onClose }: ClubDetailsM
               <div className="space-y-2">
                 <SectionHeader icon={Star} title="Our Mission" />
                 <blockquote
-                  className="border-l-2 pl-4 py-1 text-[13px] italic text-zinc-700 dark:text-zinc-200 leading-relaxed"
+                  className="border-l-2 pl-4 py-1 text-sm italic text-zinc-700 dark:text-zinc-200 leading-relaxed"
                   style={accent ? { borderColor: accent } : undefined}
                 >
                   "{club.mission}"
@@ -148,7 +146,7 @@ export default function ClubDetailsModal({ club, isOpen, onClose }: ClubDetailsM
                   {club.description ? (
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{club.description}</ReactMarkdown>
                   ) : (
-                    <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed whitespace-pre-wrap">
+                    <p className="text-pretty text-zinc-700 dark:text-zinc-300 leading-relaxed whitespace-pre-wrap">
                       No detailed description provided.
                     </p>
                   )}
@@ -173,20 +171,18 @@ export default function ClubDetailsModal({ club, isOpen, onClose }: ClubDetailsM
                           />
                         </div>
                       )}
-                      <h4 className="text-sm font-bold text-zinc-900 dark:text-white font-outfit leading-tight">
+                      <h4 className="text-balance text-sm font-bold text-zinc-900 dark:text-white font-outfit leading-tight">
                         {proj.title}
                       </h4>
                       {proj.description && (
-                        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-1 leading-snug">
-                          {proj.description}
-                        </p>
+                        <p className={`${TEXT_CAPTION} font-medium mt-1 leading-snug`}>{proj.description}</p>
                       )}
                       {proj.link && (
                         <a
                           href={proj.link}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-1 mt-3 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
+                          className="inline-flex items-center gap-1 mt-3 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
                         >
                           View Project
                         </a>
@@ -210,12 +206,12 @@ export default function ClubDetailsModal({ club, isOpen, onClose }: ClubDetailsM
                       >
                         {ev.year?.slice(-2) || "—"}
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <h4 className="text-sm font-bold text-zinc-900 dark:text-white font-outfit leading-tight">
+                      <div className={TEXT_BLOCK}>
+                        <h4 className="text-balance text-sm font-bold text-zinc-900 dark:text-white font-outfit leading-tight">
                           {ev.name}
                         </h4>
                         {ev.description && (
-                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5 leading-snug line-clamp-2">
+                          <p className={`${TEXT_CAPTION} font-medium mt-0.5 leading-snug line-clamp-2`}>
                             {ev.description}
                           </p>
                         )}
@@ -249,20 +245,18 @@ export default function ClubDetailsModal({ club, isOpen, onClose }: ClubDetailsM
                       rel="noreferrer"
                       className={cn(
                         "flex items-center gap-3 p-3 rounded-2xl border bg-white/80 dark:bg-zinc-900/70 hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors cursor-pointer",
-                        "border-zinc-200/70 dark:border-zinc-800/80"
+                        "border-zinc-200/70 dark:border-zinc-800/80",
                       )}
                     >
                       <span
                         className={cn(
                           "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border",
-                          TONE_ICON_TILE[tone] ?? TONE_ICON_TILE.sky
+                          TONE_ICON_TILE[tone] ?? TONE_ICON_TILE.sky,
                         )}
                       >
                         <Icon className="w-4 h-4" />
                       </span>
-                      <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300 truncate">
-                        {label}
-                      </span>
+                      <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300 truncate">{label}</span>
                     </a>
                   ))}
                 </div>
@@ -273,22 +267,15 @@ export default function ClubDetailsModal({ club, isOpen, onClose }: ClubDetailsM
             {(club.poc || club.poc_name || club.poc_contact || club.poc_email) && (
               <div className={cn(TILE_CARD, "flex flex-col sm:flex-row sm:items-center justify-between gap-3")}>
                 <div className="flex items-center gap-3 min-w-0">
-                  <span
-                    className={cn(
-                      "w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border",
-                      TONE_ICON_TILE.indigo
-                    )}
-                  >
+                  <span className={cn(ICON_WELL, TONE_ICON_TILE.indigo)}>
                     <User className="w-4.5 h-4.5" />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                      Point of Contact
-                    </p>
+                    <p className={MICRO_LABEL}>Point of Contact</p>
                     <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100 font-outfit truncate">
                       {pocName}
                       {club.poc_designation && (
-                        <span className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 font-normal">
+                        <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 font-normal">
                           {" "}
                           ({club.poc_designation})
                         </span>
@@ -305,8 +292,8 @@ export default function ClubDetailsModal({ club, isOpen, onClose }: ClubDetailsM
                         title="Call"
                         aria-label={`Call ${pocName}`}
                         className={cn(
-                          "w-10 h-10 rounded-2xl flex items-center justify-center border transition-colors",
-                          TONE_ICON_TILE.sky
+                          `w-11 h-11 rounded-2xl flex items-center justify-center border transition-colors ${FOCUS_RING}`,
+                          TONE_ICON_TILE.sky,
                         )}
                       >
                         <Phone className="w-4 h-4" />
@@ -318,8 +305,8 @@ export default function ClubDetailsModal({ club, isOpen, onClose }: ClubDetailsM
                         title="Message on WhatsApp"
                         aria-label={`Message ${pocName} on WhatsApp`}
                         className={cn(
-                          "w-10 h-10 rounded-2xl flex items-center justify-center border transition-colors",
-                          TONE_ICON_TILE.emerald
+                          `w-11 h-11 rounded-2xl flex items-center justify-center border transition-colors ${FOCUS_RING}`,
+                          TONE_ICON_TILE.emerald,
                         )}
                       >
                         <MessageCircle className="w-4 h-4" />
@@ -332,8 +319,8 @@ export default function ClubDetailsModal({ club, isOpen, onClose }: ClubDetailsM
                       title="Email"
                       aria-label={`Email ${pocName}`}
                       className={cn(
-                        "w-10 h-10 rounded-2xl flex items-center justify-center border transition-colors",
-                        TONE_ICON_TILE.violet
+                        `w-11 h-11 rounded-2xl flex items-center justify-center border transition-colors ${FOCUS_RING}`,
+                        TONE_ICON_TILE.violet,
                       )}
                     >
                       <Mail className="w-4 h-4" />

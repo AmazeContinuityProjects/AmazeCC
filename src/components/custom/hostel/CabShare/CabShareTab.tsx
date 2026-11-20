@@ -12,7 +12,7 @@ import CabShareAuthModal from "./CabShareAuthModal";
 import { api } from "@/lib/sync-engine";
 import { readJsonResponse } from "./cabShareFallback";
 import { PageShell, ChipTabs, ListSkeleton, SectionHeader, StatTile, ToneBadge } from "../../shared/primitives";
-import { TILE_INTERACTIVE_ROW, TILE_CARD } from "@/lib/uiTokens";
+import { MICRO_LABEL, STAT_GRID, TILE_INTERACTIVE_ROW, TILE_CARD } from "@/lib/uiTokens";
 
 const TABS = [
   { value: "search", label: "Find Ride" },
@@ -103,7 +103,7 @@ export default function CabShareTab({ onBack }: { onBack?: () => void }) {
 
       {cabShareUser && (
         <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+          <div className={STAT_GRID}>
             <StatTile
               label="Pending requests"
               value={pendingCount}
@@ -119,9 +119,7 @@ export default function CabShareTab({ onBack }: { onBack?: () => void }) {
               className={cn(TILE_INTERACTIVE_ROW, "flex-col items-start justify-end gap-2 p-4 sm:p-5")}
             >
               <span className="flex w-full items-center justify-between gap-2">
-                <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">
-                  Post a ride
-                </span>
+                <span className={`${MICRO_LABEL} font-outfit truncate`}>Post a ride</span>
                 <ChevronRight className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
               </span>
               <span className="my-auto flex w-full items-center gap-3">
@@ -132,7 +130,7 @@ export default function CabShareTab({ onBack }: { onBack?: () => void }) {
                   <span className="block text-base font-black font-outfit tracking-tight leading-tight text-text-heading">
                     Split your cab
                   </span>
-                  <span className="block text-[11px] text-text-secondary dark:text-text-muted font-medium mt-0.5 truncate">
+                  <span className="block text-xs text-text-secondary dark:text-text-muted font-medium mt-0.5 truncate">
                     {pendingCount > 0 ? `${pendingCount} pending on your rides` : "Offer your route to others"}
                   </span>
                 </span>

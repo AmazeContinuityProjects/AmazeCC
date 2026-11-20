@@ -28,9 +28,17 @@ import {
 import type { CabShareTrip, CabShareUser } from "@/types/storage";
 import SelectField from "../../shared/primitives/SelectField";
 import { EmptyPanel, ListRowText, ListSkeleton, SectionHeader, ToneBadge } from "../../shared/primitives";
-import { FIELD_INPUT, TILE_CARD, TONE_ICON_TILE } from "@/lib/uiTokens";
+import {
+  FIELD_INPUT,
+  FIELD_LABEL as FIELD_LABEL_BASE,
+  PRIMARY_BUTTON,
+  SPINNER_ICON,
+  TILE_CARD,
+  TONE_ICON_TILE,
+} from "@/lib/uiTokens";
 
-const FIELD_LABEL = "block text-[10px] font-black uppercase tracking-wider text-text-muted mb-1";
+// This surface adds `mb-1`; keep the spacing local, build it from the token.
+const FIELD_LABEL = `${FIELD_LABEL_BASE} mb-1`;
 
 export default function SearchTrips({ cabShareUser }: { cabShareUser: CabShareUser }) {
   const [hubs, setHubs] = useState<CabShareHub[]>([]);
@@ -204,8 +212,10 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: CabShareUs
             <Route className="h-5 w-5" />
           </span>
           <div className="min-w-0">
-            <h2 className="text-base font-black text-text-heading font-outfit tracking-tight">Find a matching ride</h2>
-            <p className="text-[11px] text-text-secondary dark:text-text-muted font-medium mt-0.5">
+            <h2 className="text-balance text-base font-black text-text-heading font-outfit tracking-tight">
+              Find a matching ride
+            </h2>
+            <p className="text-xs text-text-secondary dark:text-text-muted font-medium mt-0.5">
               Search by hub and date, then request to join a posted ride.
             </p>
           </div>
@@ -251,7 +261,7 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: CabShareUs
               className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-4 text-sm font-black text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {loading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className={SPINNER_ICON} />
               ) : (
                 <>
                   <Search className="w-4 h-4" /> Search
@@ -284,11 +294,7 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: CabShareUs
             title="No active rides found"
             description="Create an alert for this hub and date so you know when someone posts a matching ride."
             action={
-              <button
-                type="button"
-                onClick={handleAlertMe}
-                className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-black text-white transition-colors hover:bg-indigo-700"
-              >
+              <button type="button" onClick={handleAlertMe} className={PRIMARY_BUTTON}>
                 <Bell className="w-4 h-4" /> Alert Me
               </button>
             }
@@ -337,7 +343,7 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: CabShareUs
                     </ToneBadge>
                   </div>
                   {trip.notes && (
-                    <p className="text-xs font-medium leading-relaxed text-text-secondary dark:text-text-muted">
+                    <p className="text-pretty text-xs font-medium leading-relaxed text-text-secondary dark:text-text-muted">
                       {trip.notes}
                     </p>
                   )}
@@ -363,8 +369,8 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: CabShareUs
               <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
                 <Clock3 className="h-8 w-8" />
               </span>
-              <h3 className="mt-5 text-xl font-black text-text-heading font-outfit">Request Pending</h3>
-              <p className="mt-2 text-sm font-medium leading-relaxed text-text-secondary dark:text-text-muted">
+              <h3 className="text-balance mt-5 text-xl font-black text-text-heading font-outfit">Request Pending</h3>
+              <p className="text-pretty mt-2 text-sm font-medium leading-relaxed text-text-secondary dark:text-text-muted">
                 The host will see your request and respond soon. You can check the status in My Trips.
               </p>
               <button

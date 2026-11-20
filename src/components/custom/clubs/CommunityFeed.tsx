@@ -1,26 +1,30 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, type CSSProperties } from "react";
 import { useSetAtom } from "jotai";
 import { activeTabAtom } from "@/store";
 import { api } from "@/lib/sync-engine";
 import { Skeleton, cn } from "@amazecontinuityprojects/amazeui";
 import { m } from "framer-motion";
 import { ArrowUp, Calendar, MapPin, IndianRupee, ExternalLink, Rss, RefreshCcw, Building, WifiOff } from "lucide-react";
-import { TILE_CARD, TONE_BADGE } from "@/lib/uiTokens";
+import { SECTION_TITLE, STAT_GRID, TEXT_CAPTION, TILE_CARD, TONE_BADGE } from "@/lib/uiTokens";
 import {
   EmptyPanel,
   GhostButton,
-  IconButton,
   InsightCarousel,
   ListSkeleton,
   PageShell,
+  ReloadButton,
   StatTile,
   useCarousel,
   type InsightSlide,
 } from "../shared/primitives";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useCarouselAutoplayPolicy } from "../tasks/useCarouselAutoplayPolicy";
+
+/** A feed can be long; keep every post focusable while skipping off-screen paint. */
+const LAZY_POST: CSSProperties = { contentVisibility: "auto", containIntrinsicSize: "240px" };
 
 /**
  * Club announcements.
@@ -56,8 +60,12 @@ export default function CommunityFeed({
       setError("");
       const vtopIdParam = currentVtopId ? `?vtop_id=${currentVtopId}` : "";
       const [feedRes, eventsRes] = await Promise.all([
-        (api(`club-admin/feed${vtopIdParam}`, { parse: "raw" }) as Promise<Response>).then((res) => res.ok ? res.json() : Promise.reject(new Error(`API Error: ${res.status}`))),
-        (api("events", { parse: "raw" }) as Promise<Response>).then((res) => res.ok ? res.json() : []).catch(() => [])
+        (api(`club-admin/feed${vtopIdParam}`, { parse: "raw" }) as Promise<Response>).then((res) =>
+          res.ok ? res.json() : Promise.reject(new Error(`API Error: ${res.status}`)),
+        ),
+        (api("events", { parse: "raw" }) as Promise<Response>)
+          .then((res) => (res.ok ? res.json() : []))
+          .catch(() => []),
       ]);
 
       if (feedRes.success) {
@@ -101,19 +109,21 @@ export default function CommunityFeed({
     try {
       const data = (await api("club-admin/feed/promote", {
         method: "POST",
-        body: { post_id: postId, vtop_id: currentAuthID }
+        body: { post_id: postId, vtop_id: currentAuthID },
       })) as any;
       if (data.success) {
-        setFeed(prev => prev.map(p => {
-          if (p.id === postId) {
-            return {
-              ...p,
-              has_promoted: data.promoted,
-              promote_count: data.promoted ? Number(p.promote_count) + 1 : Number(p.promote_count) - 1
-            };
-          }
-          return p;
-        }));
+        setFeed((prev) =>
+          prev.map((p) => {
+            if (p.id === postId) {
+              return {
+                ...p,
+                has_promoted: data.promoted,
+                promote_count: data.promoted ? Number(p.promote_count) + 1 : Number(p.promote_count) - 1,
+              };
+            }
+            return p;
+          }),
+        );
       } else {
         alert(data.error || "Failed to promote post");
       }
@@ -171,7 +181,8 @@ export default function CommunityFeed({
 
   // Longer than the app default: a feed has few distinct numbers, and a card
   // that changes every five seconds is just noise.
-  const carousel = useCarousel(insightSlides.length, 8000);
+  const autoplayMs = useCarouselAutoplayPolicy(8000);
+  const carousel = useCarousel(insightSlides.length, autoplayMs);
 
   return (
     <PageShell
@@ -180,22 +191,20 @@ export default function CommunityFeed({
       title="Announcements"
       subtitle="What clubs and chapters have posted, newest first."
       actions={
-        <IconButton
+        <ReloadButton
           title="Reload feed"
-          disabled={loading}
+          loading={loading}
           onClick={() => {
             setLoading(true);
             fetchFeed(IDs?.VtopUsername);
           }}
-        >
-          <RefreshCcw className={loading ? "animate-spin" : ""} />
-        </IconButton>
+        />
       }
       selectable
     >
       {loading ? (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+          <div className={STAT_GRID}>
             <Skeleton className="h-32 sm:h-36 rounded-[24px]" />
             <Skeleton className="h-32 sm:h-36 rounded-[24px]" />
           </div>
@@ -227,7 +236,7 @@ export default function CommunityFeed({
         />
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+          <div className={STAT_GRID}>
             <StatTile
               label="Posts"
               value={summary.posts}
@@ -251,14 +260,13 @@ export default function CommunityFeed({
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   key={post.id}
+                  style={LAZY_POST}
                   className={cn(TILE_CARD, "space-y-4")}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <h3 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight leading-tight truncate">
-                        Club {post.club_id}
-                      </h3>
-                      <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
+                      <h3 className={`${SECTION_TITLE} leading-tight truncate`}>Club {post.club_id}</h3>
+                      <p className={`tabular-nums ${TEXT_CAPTION} font-medium mt-0.5`}>
                         {new Date(post.created_at).toLocaleDateString("en-US", {
                           weekday: "short",
                           month: "short",
@@ -266,9 +274,7 @@ export default function CommunityFeed({
                         })}
                       </p>
                     </div>
-                    {post.event_id && (
-                      <span className={cn(TONE_BADGE.violet, "shrink-0")}>Event</span>
-                    )}
+                    {post.event_id && <span className={cn(TONE_BADGE.violet, "shrink-0")}>Event</span>}
                   </div>
 
                   <div className={MARKDOWN}>
@@ -300,10 +306,10 @@ export default function CommunityFeed({
                     <div className="rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/25 border border-indigo-200/60 dark:border-indigo-900/40 p-4 flex flex-col sm:flex-row gap-4 items-center">
                       <div className="flex-1 w-full min-w-0">
                         <span className={cn(TONE_BADGE.indigo, "mb-2 inline-block")}>Featured Event</span>
-                        <h4 className="text-base font-black text-zinc-900 dark:text-white font-outfit leading-snug">
+                        <h4 className="text-balance text-base font-black text-zinc-900 dark:text-white font-outfit leading-snug">
                           {eventDetails.title}
                         </h4>
-                        <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-2 text-[11px] text-zinc-600 dark:text-zinc-300 font-medium">
+                        <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-2 text-xs text-zinc-600 dark:text-zinc-300 font-medium">
                           {eventDetails.date && (
                             <span className="flex items-center gap-1.5">
                               <Calendar className="w-3.5 h-3.5 text-indigo-500" />
@@ -348,7 +354,7 @@ export default function CommunityFeed({
                           href={link.url}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-1.5 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/30 px-3 py-1.5 rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-950/60 transition-colors"
+                          className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/30 px-3 py-1.5 rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-950/60 transition-colors"
                         >
                           {link.title}
                           <ExternalLink className="w-3.5 h-3.5" />
@@ -366,7 +372,7 @@ export default function CommunityFeed({
                         "inline-flex items-center gap-2 px-3.5 py-2 rounded-2xl text-xs font-bold transition-colors cursor-pointer disabled:opacity-50",
                         post.has_promoted
                           ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20"
-                          : "bg-zinc-100 dark:bg-zinc-800/80 text-zinc-500 dark:text-zinc-400 border border-zinc-200/70 dark:border-zinc-800/80 hover:bg-zinc-200 dark:hover:bg-zinc-800"
+                          : "bg-zinc-100 dark:bg-zinc-800/80 text-zinc-500 dark:text-zinc-400 border border-zinc-200/70 dark:border-zinc-800/80 hover:bg-zinc-200 dark:hover:bg-zinc-800",
                       )}
                     >
                       <ArrowUp className={cn("w-4 h-4", post.has_promoted && "fill-current")} />

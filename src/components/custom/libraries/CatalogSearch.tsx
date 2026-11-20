@@ -1,19 +1,14 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  ArrowLeft,
-  BookOpen,
-  ChevronLeft,
-  ChevronRight,
-  Loader2,
-  Search,
-  X,
-} from "lucide-react";
+import React, { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { ArrowLeft, BookOpen, ChevronLeft, ChevronRight, Loader2, Search, X } from "lucide-react";
 import { api } from "@/lib/sync-engine";
 import BookCover from "./BookCover";
 import { ListSkeleton } from "../shared/primitives";
 import { DEMO_BOOKS, DEMO_DETAILS } from "@/lib/libraries/demo";
+
+/** Rows stay focusable/readable; only their off-screen paint is skipped. */
+const LAZY_RESULT: CSSProperties = { contentVisibility: "auto", containIntrinsicSize: "68px" };
 import {
   PAGE_SIZE,
   SEARCH_LABELS,
@@ -27,12 +22,19 @@ import {
   type SearchIndex,
 } from "@/lib/libraries/koha";
 import {
+  BADGE_SM,
   CHIP,
   EMPTY_STATE,
+  FOCUS_RING,
+  FOCUS_RING_OFFSET,
   LIST_ROW,
   LIST_SHELL,
+  SEARCH_ICON,
   SEG_ACTIVE,
+  SPINNER_ICON,
   SEG_IDLE,
+  TEXT_BLOCK,
+  TEXT_CAPTION,
   TONE_BADGE,
 } from "@/lib/libraries/ui";
 
@@ -52,13 +54,7 @@ interface CatalogSearchProps {
   initialQuery?: string;
 }
 
-export default function CatalogSearch({
-  variant,
-  isDemo,
-  onSearched,
-  autoFocus,
-  initialQuery,
-}: CatalogSearchProps) {
+export default function CatalogSearch({ variant, isDemo, onSearched, autoFocus, initialQuery }: CatalogSearchProps) {
   const [query, setQuery] = useState(initialQuery || "");
   const [idx, setIdx] = useState<SearchIndex>("kw");
   const [books, setBooks] = useState<BookResult[]>([]);
@@ -108,9 +104,7 @@ export default function CatalogSearch({
           if (controller.signal.aborted) return;
           const lower = term.toLowerCase();
           const matched = DEMO_BOOKS.filter(
-            (b) =>
-              b.title.toLowerCase().includes(lower) ||
-              (b.author || "").toLowerCase().includes(lower)
+            (b) => b.title.toLowerCase().includes(lower) || (b.author || "").toLowerCase().includes(lower),
           );
           setBooks(matched);
           setTotal(matched.length);
@@ -144,7 +138,7 @@ export default function CatalogSearch({
         if (!controller.signal.aborted) setLoading(false);
       }
     },
-    [isDemo]
+    [isDemo],
   );
 
   // Debounced live search — the previous palette fired a request per keystroke.
@@ -191,7 +185,7 @@ export default function CatalogSearch({
         setDetailLoading(false);
       }
     },
-    [isDemo]
+    [isDemo],
   );
 
   const closeDetail = useCallback(() => {
@@ -242,7 +236,7 @@ export default function CatalogSearch({
           key={k}
           type="button"
           onClick={() => setIdx(k)}
-          className={`px-2.5 py-1 rounded-lg text-[11px] transition-colors cursor-pointer whitespace-nowrap ${
+          className={`px-2.5 py-1 rounded-lg text-xs transition-colors cursor-pointer whitespace-nowrap ${
             idx === k ? SEG_ACTIVE : SEG_IDLE
           }`}
         >
@@ -254,7 +248,7 @@ export default function CatalogSearch({
 
   const inputRow = (
     <div className="relative">
-      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+      <Search className={SEARCH_ICON} />
       <input
         ref={inputRef}
         autoFocus={autoFocus}
@@ -269,7 +263,7 @@ export default function CatalogSearch({
         }}
         placeholder="Title, author, subject or ISBN"
         aria-label="Search the library catalog"
-        className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-sm font-bold text-zinc-900 dark:text-white placeholder:text-zinc-400 placeholder:font-medium focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-500"
+        className={`w-full pl-10 pr-9 py-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-sm font-bold text-zinc-900 dark:text-white placeholder:text-zinc-400 placeholder:font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${FOCUS_RING_OFFSET} focus:border-zinc-400 dark:focus:border-zinc-500`}
       />
       {query && (
         <button
@@ -293,33 +287,27 @@ export default function CatalogSearch({
       {results.map((book, i) => {
         const available = Number(book.available);
         const hasAvailability = book.available !== undefined && !isNaN(available);
+        // Hover is a CSS cue on LIST_ROW; `selectedIndex` is keyboard state only,
+        // so moving the pointer never re-renders the whole result list.
         return (
           <button
             key={book.biblionumber || i}
             type="button"
             onClick={() => void openDetail(book)}
-            onMouseEnter={() => setSelectedIndex(i)}
+            style={LAZY_RESULT}
             className={`${LIST_ROW} cursor-pointer ${
               i === selectedIndex && !selectedBook ? "bg-zinc-100/70 dark:bg-zinc-800/50" : ""
             }`}
           >
             <BookCover url={book.coverUrl} className="w-9 h-12" />
-            <div className="min-w-0 flex-1">
+            <div className={TEXT_BLOCK}>
               <p className="text-sm font-bold text-zinc-900 dark:text-white truncate font-outfit leading-tight">
                 {book.title}
               </p>
-              {book.author && (
-                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5 truncate">
-                  {book.author}
-                </p>
-              )}
+              {book.author && <p className={`${TEXT_CAPTION} font-medium mt-0.5 truncate`}>{book.author}</p>}
             </div>
             {hasAvailability && (
-              <span
-                className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md border shrink-0 ${
-                  available > 0 ? TONE_BADGE.emerald : TONE_BADGE.red
-                }`}
-              >
+              <span className={`${BADGE_SM} border shrink-0 ${available > 0 ? TONE_BADGE.emerald : TONE_BADGE.red}`}>
                 {available > 0 ? `${available} free` : "All out"}
               </span>
             )}
@@ -332,15 +320,13 @@ export default function CatalogSearch({
   const resultMeta =
     results.length > 0 ? (
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400">
+        <span className="tabular-nums text-xs font-bold text-zinc-500 dark:text-zinc-400">
           {total > results.length
             ? `${results.length} of ${total} results`
             : `${results.length} result${results.length === 1 ? "" : "s"}`}
         </span>
         {variant === "palette" && (
-          <kbd className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500">
-            ↑↓ navigate · ↵ view
-          </kbd>
+          <kbd className="text-xs font-bold text-zinc-400 dark:text-zinc-500">↑↓ navigate · ↵ view</kbd>
         )}
       </div>
     ) : null;
@@ -353,11 +339,11 @@ export default function CatalogSearch({
           onClick={() => void runSearch(query, idx, Math.max(0, offset - PAGE_SIZE))}
           disabled={offset <= 0}
           aria-label="Previous page"
-          className="p-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 disabled:opacity-40 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all cursor-pointer"
+          className={`relative hit-expand p-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 disabled:opacity-40 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all cursor-pointer ${FOCUS_RING}`}
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
-        <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400">
+        <span className="tabular-nums text-xs font-bold text-zinc-500 dark:text-zinc-400">
           Page {currentPage} of {pages}
         </span>
         <button
@@ -365,7 +351,7 @@ export default function CatalogSearch({
           onClick={() => void runSearch(query, idx, offset + PAGE_SIZE)}
           disabled={offset + PAGE_SIZE >= total}
           aria-label="Next page"
-          className="p-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 disabled:opacity-40 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all cursor-pointer"
+          className={`relative hit-expand p-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 disabled:opacity-40 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all cursor-pointer ${FOCUS_RING}`}
         >
           <ChevronRight className="w-4 h-4" />
         </button>
@@ -373,47 +359,35 @@ export default function CatalogSearch({
     ) : null;
 
   // ── detail view ───────────────────────────────────────────────────────
-  const detailMeta = [selectedBook?.publisher, detail?.edition, selectedBook?.itemtype]
-    .filter(Boolean)
-    .join(" · ");
+  const detailMeta = [selectedBook?.publisher, detail?.edition, selectedBook?.itemtype].filter(Boolean).join(" · ");
 
   const detailView = selectedBook ? (
     <div className="space-y-4">
       <button
         type="button"
         onClick={closeDetail}
-        className="inline-flex items-center gap-1.5 text-xs font-bold text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer px-1"
+        className={`relative hit-expand inline-flex items-center gap-1.5 text-xs font-bold text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer px-1 py-1.5 rounded-lg ${FOCUS_RING}`}
       >
         <ArrowLeft className="w-4 h-4" />
         Back to results
       </button>
 
       <div className="flex gap-4">
-        <BookCover
-          url={selectedBook.coverUrl}
-          className="w-20 h-28 rounded-xl"
-          alt={selectedBook.title}
-        />
-        <div className="min-w-0 flex-1">
-          <h3 className="text-base font-black text-zinc-900 dark:text-white font-outfit leading-tight">
+        <BookCover url={selectedBook.coverUrl} className="w-20 h-28 rounded-xl" alt={selectedBook.title} />
+        <div className={TEXT_BLOCK}>
+          <h3 className="text-balance text-base font-black text-zinc-900 dark:text-white font-outfit leading-tight">
             {detail?.title || selectedBook.title}
           </h3>
           {selectedBook.author && (
-            <p className="text-xs text-zinc-600 dark:text-zinc-300 font-medium mt-1">
-              {selectedBook.author}
-            </p>
+            <p className="text-xs text-zinc-600 dark:text-zinc-300 font-medium mt-1">{selectedBook.author}</p>
           )}
-          {detailMeta && (
-            <p className="text-[11px] text-zinc-400 dark:text-zinc-500 font-medium mt-1.5">
-              {detailMeta}
-            </p>
-          )}
+          {detailMeta && <p className="text-xs text-zinc-400 dark:text-zinc-500 font-medium mt-1.5">{detailMeta}</p>}
         </div>
       </div>
 
       {detailLoading && (
         <div className="flex items-center gap-2 text-xs font-bold text-zinc-500 dark:text-zinc-400">
-          <Loader2 className="w-4 h-4 animate-spin" />
+          <Loader2 className={SPINNER_ICON} />
           Loading details…
         </div>
       )}
@@ -425,25 +399,17 @@ export default function CatalogSearch({
       )}
 
       {(isbns.length > 0 || detail?.ddc) && (
-        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
+        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-xs">
           {isbns.map((i) => (
             <div key={i} className="flex gap-2 min-w-0">
-              <dt className="w-9 shrink-0 text-zinc-400 dark:text-zinc-500 font-bold uppercase">
-                ISBN
-              </dt>
-              <dd className="font-mono font-bold text-zinc-700 dark:text-zinc-300 truncate">
-                {i}
-              </dd>
+              <dt className="w-9 shrink-0 text-zinc-400 dark:text-zinc-500 font-bold uppercase">ISBN</dt>
+              <dd className="font-mono font-bold text-zinc-700 dark:text-zinc-300 truncate">{i}</dd>
             </div>
           ))}
           {detail?.ddc && (
             <div className="flex gap-2 min-w-0">
-              <dt className="w-9 shrink-0 text-zinc-400 dark:text-zinc-500 font-bold uppercase">
-                DDC
-              </dt>
-              <dd className="font-mono font-bold text-zinc-700 dark:text-zinc-300 truncate">
-                {detail.ddc}
-              </dd>
+              <dt className="w-9 shrink-0 text-zinc-400 dark:text-zinc-500 font-bold uppercase">DDC</dt>
+              <dd className="font-mono font-bold text-zinc-700 dark:text-zinc-300 truncate">{detail.ddc}</dd>
             </div>
           )}
         </dl>
@@ -451,9 +417,7 @@ export default function CatalogSearch({
 
       {detail?.subjects && detail.subjects.length > 0 && (
         <div className="space-y-1.5">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
-            Subjects
-          </p>
+          <p className="text-xs font-bold uppercase tracking-wider text-zinc-400">Subjects</p>
           <div className="flex flex-wrap gap-1.5">
             {detail.subjects.map((s) => (
               <span key={s} className={CHIP}>
@@ -466,18 +430,14 @@ export default function CatalogSearch({
 
       {detail?.summary && (
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
-            Summary
-          </p>
-          <p className="text-xs text-zinc-700 dark:text-zinc-200 leading-relaxed">
-            {detail.summary}
-          </p>
+          <p className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1">Summary</p>
+          <p className="text-pretty text-xs text-zinc-700 dark:text-zinc-200 leading-relaxed">{detail.summary}</p>
         </div>
       )}
 
       {groups.length > 0 && (
         <div className="space-y-2">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 px-1">
+          <p className="text-xs font-bold uppercase tracking-wider text-zinc-400 px-1">
             Copies & locations ({detail?.holdings?.length || 0})
           </p>
           {groups.map((g) => {
@@ -498,7 +458,7 @@ export default function CatalogSearch({
                 className="p-4 rounded-2xl card-surface border border-zinc-200/70 dark:border-zinc-800/80"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <p className="min-w-0 text-[11px] font-bold text-zinc-700 dark:text-zinc-200">
+                  <p className="min-w-0 text-xs font-bold text-zinc-700 dark:text-zinc-200">
                     {where || "Unshelved"}
                     <span className="font-medium text-zinc-400 dark:text-zinc-500">
                       {" · "}
@@ -506,16 +466,12 @@ export default function CatalogSearch({
                     </span>
                   </p>
                   <p
-                    className={`shrink-0 text-sm font-black font-outfit leading-none ${
-                      g.available === 0
-                        ? "text-red-600 dark:text-red-400"
-                        : "text-zinc-900 dark:text-white"
+                    className={`tabular-nums shrink-0 text-sm font-black font-outfit leading-none ${
+                      g.available === 0 ? "text-red-600 dark:text-red-400" : "text-zinc-900 dark:text-white"
                     }`}
                   >
                     {g.available}/{g.total}
-                    <span className="ml-1 text-[9px] font-bold uppercase tracking-wider text-zinc-400">
-                      free
-                    </span>
+                    <span className="ml-1 text-xs font-bold uppercase tracking-wider text-zinc-400">free</span>
                   </p>
                 </div>
 
@@ -534,25 +490,18 @@ export default function CatalogSearch({
                     const tone = holdingStatusTone(h.status);
                     const unavailable = tone === "red";
                     return (
-                      <p
-                        key={h.itemId || i}
-                        className="flex flex-wrap items-center gap-x-2 text-[11px] text-zinc-500 dark:text-zinc-400"
-                      >
-                        <span className="font-mono font-bold text-zinc-600 dark:text-zinc-300">
-                          {h.barcode || "—"}
-                        </span>
+                      <p key={h.itemId || i} className={`flex flex-wrap items-center gap-x-2 ${TEXT_CAPTION}`}>
+                        <span className="font-mono font-bold text-zinc-600 dark:text-zinc-300">{h.barcode || "—"}</span>
                         <span className={unavailable ? "text-red-600 dark:text-red-400" : ""}>
                           {h.status || "Unknown"}
                         </span>
                         {h.dateDue && (
-                          <span className="text-zinc-400 dark:text-zinc-500">
+                          <span className="tabular-nums text-zinc-400 dark:text-zinc-500">
                             due {new Date(h.dateDue).toLocaleDateString()}
                           </span>
                         )}
                         {h.currentLibrary && (
-                          <span className="text-zinc-400 dark:text-zinc-500 truncate">
-                            {h.currentLibrary}
-                          </span>
+                          <span className="text-zinc-400 dark:text-zinc-500 truncate">{h.currentLibrary}</span>
                         )}
                       </p>
                     );
@@ -564,9 +513,7 @@ export default function CatalogSearch({
         </div>
       )}
 
-      {detail?.description && (
-        <p className="text-[11px] text-zinc-400 dark:text-zinc-500">{detail.description}</p>
-      )}
+      {detail?.description && <p className="text-xs text-zinc-400 dark:text-zinc-500">{detail.description}</p>}
     </div>
   ) : null;
 
@@ -579,9 +526,7 @@ export default function CatalogSearch({
     <div className={EMPTY_STATE}>
       <X className="w-7 h-7 text-red-400 mx-auto" />
       <p className="text-xs font-bold text-zinc-700 dark:text-zinc-300 mt-2">{error}</p>
-      <p className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1">
-        Check your connection and try again.
-      </p>
+      <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">Check your connection and try again.</p>
     </div>
   ) : results.length > 0 ? (
     <div className="space-y-3">
@@ -593,7 +538,7 @@ export default function CatalogSearch({
     <div className={EMPTY_STATE}>
       <BookOpen className="w-7 h-7 text-zinc-400 mx-auto" />
       <p className="text-xs font-bold text-zinc-700 dark:text-zinc-300 mt-2">No books found</p>
-      <p className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1">
+      <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
         Try a different {SEARCH_LABELS[idx].toLowerCase()} or spelling.
       </p>
     </div>
@@ -601,7 +546,7 @@ export default function CatalogSearch({
     <div className={EMPTY_STATE}>
       <BookOpen className="w-7 h-7 text-zinc-400 mx-auto" />
       <p className="text-xs font-bold text-zinc-700 dark:text-zinc-300 mt-2">Library catalog</p>
-      <p className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1">
+      <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
         Search across the whole collection by keyword, title, author, subject or ISBN.
       </p>
     </div>
@@ -609,11 +554,7 @@ export default function CatalogSearch({
 
   if (variant === "palette") {
     return (
-      <div
-        className="flex flex-col h-full min-h-[320px]"
-        onKeyDown={onKeyDown}
-        role="search"
-      >
+      <div className="flex flex-col h-full min-h-[320px]" onKeyDown={onKeyDown} role="search">
         <div className="shrink-0 space-y-2 border-b border-zinc-200/60 dark:border-zinc-800/40 px-4 py-3">
           {inputRow}
           {fieldChips}
@@ -625,9 +566,7 @@ export default function CatalogSearch({
 
   return (
     <div className="flex flex-col h-full" onKeyDown={onKeyDown} role="search">
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pb-2">
-        {body}
-      </div>
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pb-2">{body}</div>
 
       {/* Boxed search bar pinned to the bottom of the sheet. The sheet
           publishes --sheet-kb-inset, so the home-indicator padding collapses
@@ -636,8 +575,7 @@ export default function CatalogSearch({
       <div
         className="shrink-0 rounded-2xl border border-zinc-200/70 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/60 p-2.5"
         style={{
-          paddingBottom:
-            "calc(10px + max(0px, env(safe-area-inset-bottom, 0px) - var(--sheet-kb-inset, 0px)))",
+          paddingBottom: "calc(10px + max(0px, env(safe-area-inset-bottom, 0px) - var(--sheet-kb-inset, 0px)))",
         }}
       >
         <div className="space-y-1.5">

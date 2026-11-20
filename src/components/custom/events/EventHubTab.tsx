@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { clearEventHubSession, eventHubRequest, loginToEventHub } from "@/lib/sync-engine";
 import { runPageSync } from "@/lib/sync-engine/single-sync";
 import { setTypedStorageItem } from "@/lib/storage";
@@ -15,17 +15,19 @@ import {
 } from "@/lib/eventhub";
 import { Calendar, CalendarOff, ChevronRight, RefreshCcw, Search, SearchX, Ticket, X } from "lucide-react";
 import { m } from "framer-motion";
-import { SEARCH_FIELD, TILE_CARD } from "@/lib/uiTokens";
+import { FOCUS_RING, SEARCH_FIELD, STAT_GRID, TILE_CARD } from "@/lib/uiTokens";
+import { clickable } from "@/lib/a11y";
 import EventHubSubpage from "./EventHubSubpage";
+import { useCarouselAutoplayPolicy } from "../tasks/useCarouselAutoplayPolicy";
 import TabHelpFooter from "../shared/TabHelpFooter";
 import {
   ChipTabs,
   DotPill,
   EmptyPanel,
   GhostButton,
-  IconButton,
   InsightCarousel,
   PageShell,
+  ReloadButton,
   SegmentedControl,
   SectionHeader,
   StatTile,
@@ -93,6 +95,9 @@ function hideBrokenImage(e: React.SyntheticEvent<HTMLImageElement>) {
   (e.currentTarget as HTMLImageElement).style.visibility = "hidden";
 }
 
+/** Long grids stay in the DOM (and a11y tree); only off-screen paint is skipped. */
+const LAZY_CARD: CSSProperties = { contentVisibility: "auto", containIntrinsicSize: "380px" };
+
 /**
  * Placeholder for the event grid.
  *
@@ -124,7 +129,12 @@ function CardSkeletonGrid({ count }: { count: number }) {
  */
 function EventCard({ event, onOpen }: { event: any; onOpen: (e: any) => void }) {
   return (
-    <m.div whileTap={{ scale: 0.99 }} onClick={() => onOpen(event)} className="h-full cursor-pointer">
+    <m.div
+      whileTap={{ scale: 0.99 }}
+      {...clickable(() => onOpen(event))}
+      style={LAZY_CARD}
+      className={`h-full cursor-pointer rounded-2xl ${FOCUS_RING}`}
+    >
       <div className={cn(TILE_CARD, "h-full flex flex-col")}>
         {/* Posters vary wildly in shape, so the frame takes the poster's own
             height rather than cropping it to a fixed ratio. */}
@@ -145,7 +155,7 @@ function EventCard({ event, onOpen }: { event: any; onOpen: (e: any) => void }) 
           {event.title}
         </h3>
 
-        <p className="mt-1.5 flex items-center gap-1.5 text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
+        <p className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">
           <Calendar className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
           <span className="truncate">{eventDateLabel(event.date)}</span>
           {event.time ? (
@@ -159,15 +169,15 @@ function EventCard({ event, onOpen }: { event: any; onOpen: (e: any) => void }) 
         <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
           <DateChip event={event} />
           <PaymentPill details={event.registeredDetails} />
-          {event.type ? <DotPill tone="violet">{event.type}</DotPill> : null}
-          {event.eligibility ? <DotPill tone="sky">{event.eligibility}</DotPill> : null}
+          {event.type ? <DotPill tone="zinc">{event.type}</DotPill> : null}
+          {event.eligibility ? <DotPill tone="zinc">{event.eligibility}</DotPill> : null}
         </div>
 
         <div className="mt-auto pt-3 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between gap-2">
-          <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">
+          <span className="text-xs font-extrabold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">
             {priceLabel(event)}
           </span>
-          <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
+          <span className="inline-flex items-center gap-0.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
             Details
             <ChevronRight className="w-3.5 h-3.5" />
           </span>
@@ -306,8 +316,8 @@ export default function EventHubTab({
       });
       if (!res) return;
       setError("");
-    } catch (err: any) {
-      setError(err.message || "An error occurred");
+    } catch {
+      setError("Couldn't load events. Check your connection and try again.");
       clearEventHubSession();
     } finally {
       setLoading(false);
@@ -376,8 +386,8 @@ export default function EventHubTab({
           password: IDs.VtopPassword,
         })) as EventHubPreview;
         setPreviewData(data);
-      } catch (err: any) {
-        setPreviewError(err.message || "Failed to load preview");
+      } catch {
+        setPreviewError("Couldn't load this event's preview. Try again.");
         clearEventHubSession();
       } finally {
         setPreviewLoading(false);
@@ -426,8 +436,8 @@ export default function EventHubTab({
         const list: EventHubRegistration[] = data.events || [];
         setRegisteredEvents?.(list);
         setTypedStorageItem("registeredEvents", list);
-      } catch (err: any) {
-        if (!cancelled) setRegisteredError(err.message || "An error occurred");
+      } catch {
+        if (!cancelled) setRegisteredError("Couldn't load your registrations. Try again.");
         clearEventHubSession();
       } finally {
         if (!cancelled) setLoadingRegistered(false);
@@ -510,7 +520,8 @@ export default function EventHubTab({
     return slides;
   }, [summary, openPreview]);
 
-  const carousel = useCarousel(insightSlides.length);
+  const autoplayMs = useCarouselAutoplayPolicy();
+  const carousel = useCarousel(insightSlides.length, autoplayMs);
 
   if (selectedEvent) {
     return (
@@ -566,22 +577,18 @@ export default function EventHubTab({
       eyebrow="Campus · Events"
       title="Event Hub"
       subtitle="Clubs, chapters and technical events at VIT."
-      actions={
-        <IconButton title="Reload events" onClick={fetchEvents} disabled={loading}>
-          <RefreshCcw className={loading ? "animate-spin" : ""} />
-        </IconButton>
-      }
+      actions={<ReloadButton title="Reload events" onClick={fetchEvents} loading={loading} />}
       selectable
     >
       {/* ── HERO STATS ── */}
       {loading ? (
-        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+        <div className={STAT_GRID}>
           <Skeleton className="h-32 sm:h-36 rounded-[24px]" />
           <Skeleton className="h-32 sm:h-36 rounded-[24px]" />
         </div>
       ) : error ? null : (
         <>
-          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+          <div className={STAT_GRID}>
             <button
               type="button"
               onClick={() => setViewMode("registered")}
@@ -605,7 +612,7 @@ export default function EventHubTab({
             />
           </div>
 
-          <p className="px-1 -mt-3 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
+          <p className="text-pretty px-1 -mt-3 text-xs leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
             A blank fee means the event is free to enter. Registration and payment run on the official Event Hub portal
             — tap any card for the full details.
           </p>
