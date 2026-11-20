@@ -5,6 +5,7 @@ import { Layers } from "lucide-react";
 import type { ClassTaskSummary } from "@/lib/taskMatch";
 import { KIND_CONFIG } from "./TaskCard";
 import { clickable } from "@/lib/a11y";
+import { FOCUS_RING } from "@/lib/uiTokens";
 
 interface TaskBadgeProps {
   summary: ClassTaskSummary;
@@ -22,12 +23,7 @@ interface TaskBadgeProps {
  * `summary.today` is zeroed for non-current days, so browsing another weekday
  * can never show a "today" claim.
  */
-export default function TaskBadge({
-  summary,
-  onClick,
-  className = "",
-  compact = false,
-}: TaskBadgeProps) {
+export default function TaskBadge({ summary, onClick, className = "", compact = false }: TaskBadgeProps) {
   if (!summary || summary.total === 0) return null;
 
   const today = summary.today;
@@ -39,8 +35,7 @@ export default function TaskBadge({
   if (today.total > 0 && today.tests > 0) {
     text = "Test today";
     count = today.tests;
-    colorClass =
-      "text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border-red-200/60 dark:border-red-900/30";
+    colorClass = "text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border-red-200/60 dark:border-red-900/30";
     Icon = KIND_CONFIG.test.icon;
   } else if (today.total > 0 && today.das > 0) {
     text = compact ? "DA today" : "Digital assignment today";
@@ -64,7 +59,7 @@ export default function TaskBadge({
         e.stopPropagation();
         onClick?.(e);
       })}
-      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-bold border shrink-0 transition-all ${colorClass} ${className}`}
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold border shrink-0 transition-all cursor-pointer ${FOCUS_RING} ${colorClass} ${className}`}
     >
       <Icon className="w-3 h-3 shrink-0" />
       <span className="truncate">{label}</span>

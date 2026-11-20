@@ -15,19 +15,32 @@ import {
   Layers,
   Sparkles,
   CheckSquare,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
+import {
+  EMPTY_STATE,
+  FOCUS_RING,
+  GHOST_BUTTON,
+  ICON_WELL,
+  SEARCH_ICON,
+  TEXT_BLOCK,
+  TEXT_CAPTION,
+  TONE_ICON_TILE,
+} from "@/lib/uiTokens";
 
 interface ToolsHubProps {
   setActiveToolsSubTab: (subTab: string) => void;
   setActiveTab?: (tab: string) => void;
 }
 
-export default function ToolsHub({
-  setActiveToolsSubTab,
-}: ToolsHubProps) {
+export default function ToolsHub({ setActiveToolsSubTab }: ToolsHubProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [showAll, setShowAll] = useState(false);
 
+  // Category is a filter, not a hue: every tool reads the same neutral icon
+  // well, and the Lucide glyph carries the meaning without a status colour.
   const tools = [
     {
       id: "tasks",
@@ -35,16 +48,13 @@ export default function ToolsHub({
       subtitle: "Homework, tests, week scheduling, pomodoro & LMS sync",
       category: "academic",
       icon: CheckSquare,
-      iconColor: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/20 border-emerald-500/20",
     },
     {
       id: "attendance-predictor",
       title: "Attendance Predictor",
-
       subtitle: "Simulate attendance percentages and safe bunk margins",
       category: "academic",
       icon: CalendarCheck,
-      iconColor: "text-blue-600 dark:text-blue-400 bg-blue-500/10 dark:bg-blue-500/20 border-blue-500/20",
     },
     {
       id: "qbank",
@@ -52,7 +62,6 @@ export default function ToolsHub({
       subtitle: "Previous years CAT & FAT question papers",
       category: "academic",
       icon: Database,
-      iconColor: "text-rose-600 dark:text-rose-400 bg-rose-500/10 dark:bg-rose-500/20 border-rose-500/20",
     },
     {
       id: "faculty-info",
@@ -60,7 +69,6 @@ export default function ToolsHub({
       subtitle: "Directory, cabins & direct contact details",
       category: "academic",
       icon: UserCheck,
-      iconColor: "text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 dark:bg-indigo-500/20 border-indigo-500/20",
     },
     {
       id: "marks-predictor",
@@ -68,7 +76,6 @@ export default function ToolsHub({
       subtitle: "Simulate test marks, weightage lost & FAT targets",
       category: "academic",
       icon: Sparkles,
-      iconColor: "text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 dark:bg-indigo-500/20 border-indigo-500/20",
     },
     {
       id: "social",
@@ -76,7 +83,6 @@ export default function ToolsHub({
       subtitle: "Share schedules & find common free slots",
       category: "social",
       icon: Users,
-      iconColor: "text-purple-600 dark:text-purple-400 bg-purple-500/10 dark:bg-purple-500/20 border-purple-500/20",
     },
     {
       id: "cabshare",
@@ -84,7 +90,6 @@ export default function ToolsHub({
       subtitle: "Find travel partners & split cab fares",
       category: "campus",
       icon: Car,
-      iconColor: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/20 border-emerald-500/20",
     },
     {
       id: "free-class",
@@ -92,7 +97,6 @@ export default function ToolsHub({
       subtitle: "Find empty classrooms & quiet study spots",
       category: "campus",
       icon: DoorOpen,
-      iconColor: "text-teal-600 dark:text-teal-400 bg-teal-500/10 dark:bg-teal-500/20 border-teal-500/20",
     },
     {
       id: "ffcs",
@@ -100,23 +104,32 @@ export default function ToolsHub({
       subtitle: "Draft schedule & resolve slot clashes",
       category: "academic",
       icon: Compass,
-      iconColor: "text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 dark:bg-indigo-500/20 border-indigo-500/20",
     },
   ];
 
+  /** The four tools students reach for most; the rest sit behind a disclosure. */
+  const frequentIds = ["tasks", "attendance-predictor", "qbank", "faculty-info"];
+
+  /** At most three chips — the remaining categories stay reachable via search. */
+  const categories = [
+    { id: "all", label: "All Utilities" },
+    { id: "academic", label: "Academic & Exam Tools" },
+    { id: "campus", label: "Campus & Travel" },
+  ];
+
   const filteredTools = tools.filter((tool) => {
-    const matchesCategory =
-      categoryFilter === "all" || tool.category === categoryFilter;
+    const matchesCategory = categoryFilter === "all" || tool.category === categoryFilter;
     const term = searchTerm.toLowerCase().trim();
     const matchesSearch =
-      !term ||
-      tool.title.toLowerCase().includes(term) ||
-      tool.subtitle.toLowerCase().includes(term);
+      !term || tool.title.toLowerCase().includes(term) || tool.subtitle.toLowerCase().includes(term);
     return matchesCategory && matchesSearch;
   });
 
+  const isBrowsing = categoryFilter === "all" && !searchTerm.trim();
+  const visibleTools = isBrowsing && !showAll ? tools.filter((tool) => frequentIds.includes(tool.id)) : filteredTools;
+
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-5 md:pb-8 animate-fadeIn text-left select-none">
+    <div className="w-full max-w-7xl mx-auto space-y-5 md:pb-8 text-left">
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -124,10 +137,10 @@ export default function ToolsHub({
             <Layers className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white font-outfit tracking-tight">
+            <h1 className="text-balance text-xl sm:text-2xl font-black text-zinc-900 dark:text-white font-outfit tracking-tight">
               Tools & Utilities
             </h1>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+            <p className={`${TEXT_CAPTION} font-medium`}>
               Essential campus utilities, exam archives, and academic tools
             </p>
           </div>
@@ -135,7 +148,7 @@ export default function ToolsHub({
 
         {/* Search Bar */}
         <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+          <Search className={SEARCH_ICON} />
           <input
             type="text"
             value={searchTerm}
@@ -148,12 +161,7 @@ export default function ToolsHub({
 
       {/* Category Tabs Filter */}
       <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1">
-        {[
-          { id: "all", label: "All Utilities" },
-          { id: "academic", label: "Academic & Exam Tools" },
-          { id: "social", label: "Social & Friends" },
-          { id: "campus", label: "Campus & Travel" },
-        ].map((cat) => {
+        {categories.map((cat) => {
           const isActive = categoryFilter === cat.id;
           return (
             <button
@@ -171,46 +179,55 @@ export default function ToolsHub({
         })}
       </div>
 
-      {/* Compact Tools Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {filteredTools.map((tool) => {
+      {/* Compact Tools Cards Grid. The default four are a clean 2x2 from `sm`;
+          a third column is only worth it once the disclosure shows all nine. */}
+      <div className={`grid grid-cols-1 sm:grid-cols-2 gap-3 ${showAll ? "lg:grid-cols-3" : ""}`}>
+        {visibleTools.map((tool) => {
           const Icon = tool.icon;
           return (
             <button
               key={tool.id}
-              onClick={() => tool.id === "ffcs" ? navigateToFFCSPlanner() : setActiveToolsSubTab(tool.id)}
-              className="group relative flex items-center justify-between p-3.5 sm:p-4 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 card-surface hover:border-indigo-500/40 dark:hover:border-indigo-500/40 transition-all duration-150 cursor-pointer shadow-2xs hover:shadow-sm active:scale-[0.99] text-left"
+              onClick={() => (tool.id === "ffcs" ? navigateToFFCSPlanner() : setActiveToolsSubTab(tool.id))}
+              className="flex items-center justify-between p-3.5 sm:p-4 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 card-surface shadow-2xs hover:bg-surface-secondary dark:hover:bg-surface-secondary/60 transition-colors duration-150 cursor-pointer text-left"
             >
-              <div className="flex items-center gap-3.5 min-w-0 flex-1 pr-2">
-                <div
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${tool.iconColor} group-hover:scale-105 transition-transform duration-150`}
-                >
+              <div className={`flex items-center gap-3.5 ${TEXT_BLOCK} pr-2`}>
+                <div className={`${ICON_WELL} ${TONE_ICON_TILE.zinc}`}>
                   <Icon className="w-5 h-5" />
                 </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white font-outfit tracking-tight truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                <div className={TEXT_BLOCK}>
+                  <h3 className="text-balance text-xs sm:text-sm font-bold text-zinc-900 dark:text-white font-outfit tracking-tight truncate">
                     {tool.title}
                   </h3>
-                  <p className="text-[11px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate mt-0.5">
-                    {tool.subtitle}
-                  </p>
+                  <p className={`${TEXT_CAPTION} font-medium truncate mt-0.5`}>{tool.subtitle}</p>
                 </div>
               </div>
-              <ChevronRight className="w-4 h-4 text-zinc-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all shrink-0" />
+              <ChevronRight className="w-4 h-4 text-zinc-400 shrink-0" />
             </button>
           );
         })}
       </div>
 
-      {filteredTools.length === 0 && (
-        <div className="p-12 rounded-[24px] border border-dashed border-zinc-300 dark:border-zinc-800 text-center space-y-2">
-          <Search className="w-8 h-8 text-zinc-400 mx-auto" />
-          <p className="text-sm font-bold text-zinc-700 dark:text-zinc-300">
-            No tools found matching &quot;{searchTerm}&quot;
-          </p>
-          <p className="text-xs text-zinc-400">
-            Try adjusting your search query or category filter.
-          </p>
+      {visibleTools.length === 0 && (
+        <div className={`${EMPTY_STATE} space-y-2`}>
+          <Search className="w-8 h-8 text-text-muted mx-auto" />
+          <p className="text-sm font-bold text-text-primary">No tools found matching &quot;{searchTerm}&quot;</p>
+          <p className="text-xs text-text-muted">Try adjusting your search query or category filter.</p>
+        </div>
+      )}
+
+      {/* Single disclosure for the remaining utilities. Search/filter always
+          reveals the full result set, so every tool stays reachable. */}
+      {isBrowsing && (
+        <div className="flex justify-center pt-1">
+          <button
+            type="button"
+            onClick={() => setShowAll((v) => !v)}
+            aria-expanded={showAll}
+            className={`${GHOST_BUTTON} ${FOCUS_RING}`}
+          >
+            {showAll ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            {showAll ? "Show fewer" : `All utilities (${tools.length})`}
+          </button>
         </div>
       )}
     </div>

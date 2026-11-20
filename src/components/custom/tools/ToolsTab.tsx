@@ -57,7 +57,7 @@ export default function ToolsTab({
   handleReloadRequest,
 }: ToolsTabProps) {
   return (
-    <div className="animate-fadeIn w-full max-w-7xl mx-auto space-y-4 md:pb-8">
+    <div className="w-full max-w-7xl mx-auto space-y-4 md:pb-8">
       {/* Main View Router */}
       <div>
         {activeToolsSubTab === "overview" && (
@@ -74,13 +74,13 @@ export default function ToolsTab({
         )}
 
         {activeToolsSubTab === "faculty-info" && (
-          <div className="animate-fadeIn">
+          <div>
             <FacultyInfoTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveToolsSubTab} />
           </div>
         )}
 
         {activeToolsSubTab === "marks-predictor" && (
-          <div className="animate-fadeIn">
+          <div>
             <MarksPredictorTab
               marksData={marksData}
               marksStats={marksStats}
@@ -91,19 +91,19 @@ export default function ToolsTab({
         )}
 
         {activeToolsSubTab === "social" && (
-          <div className="animate-fadeIn">
+          <div>
             <SocialTab attendanceData={attendanceData} isDemo={IDs?.VtopUsername === "demo"} />
           </div>
         )}
 
         {activeToolsSubTab === "cabshare" && (
-          <div className="animate-fadeIn">
+          <div>
             <CabShareTab onBack={() => setActiveToolsSubTab("overview")} />
           </div>
         )}
 
         {activeToolsSubTab === "free-class" && (
-          <div className="animate-fadeIn">
+          <div>
             <FreeClassroomsTab
               onBack={() => setActiveToolsSubTab("overview")}
               handleReloadRequest={handleReloadRequest}
@@ -112,7 +112,7 @@ export default function ToolsTab({
         )}
 
         {activeToolsSubTab === "attendance-predictor" && (
-          <div className="animate-fadeIn">
+          <div>
             {(() => {
               // Without the calendar the predictor has no working days, no
               // milestones and therefore no locks — every course showed "no
@@ -140,13 +140,13 @@ export default function ToolsTab({
         )}
 
         {activeToolsSubTab === "ffcs" && (
-          <div className="animate-fadeIn">
+          <div>
             <FFCSTimetableTab />
           </div>
         )}
 
         {activeToolsSubTab === "tasks" && (
-          <div className="animate-fadeIn">
+          <div>
             <TasksTab onBack={() => setActiveToolsSubTab("overview")} />
           </div>
         )}

@@ -2,18 +2,14 @@
 
 import { useState, useMemo } from "react";
 import { useAtom } from "jotai";
-import {
-  CheckCircle2,
-  Clock,
-  History,
-  ArrowRight,
-} from "lucide-react";
+import { CheckCircle2, Clock, History, ArrowRight } from "lucide-react";
 import { pomodoroSessionsAtom } from "@/store/dataAtoms";
 import { getTodayAttendanceDay } from "@/lib/attendanceTimetable";
 import type { Task } from "@/types/tasks";
 import PomodoroTimer from "./PomodoroTimer";
 import SelectField from "../shared/primitives/SelectField";
 import { clickable } from "@/lib/a11y";
+import { FOCUS_RING, TEXT_CAPTION } from "@/lib/uiTokens";
 
 interface FocusPageProps {
   tasks: Task[];
@@ -21,22 +17,13 @@ interface FocusPageProps {
   onEditTask: (task: Task) => void;
 }
 
-export default function FocusPage({
-  tasks,
-  onCycleStatus,
-  onEditTask,
-}: FocusPageProps) {
+export default function FocusPage({ tasks, onCycleStatus, onEditTask }: FocusPageProps) {
   const [sessions] = useAtom(pomodoroSessionsAtom);
   const activeTasks = useMemo(() => tasks.filter((t) => t.status !== "done"), [tasks]);
 
-  const [selectedTaskId, setSelectedTaskId] = useState<string>(
-    activeTasks[0]?.id || ""
-  );
+  const [selectedTaskId, setSelectedTaskId] = useState<string>(activeTasks[0]?.id || "");
 
-  const selectedTask = useMemo(
-    () => tasks.find((t) => t.id === selectedTaskId) || null,
-    [tasks, selectedTaskId]
-  );
+  const selectedTask = useMemo(() => tasks.find((t) => t.id === selectedTaskId) || null, [tasks, selectedTaskId]);
 
   // Today's scheduled chunks
   const today = getTodayAttendanceDay();
@@ -58,10 +45,10 @@ export default function FocusPage({
       <div className="rounded-[24px] card-surface border border-zinc-200/70 dark:border-zinc-800/80 p-5 sm:p-6 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
           <div>
-            <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 font-outfit">
+            <span className="text-xs font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 font-outfit">
               Distraction-Free Focus
             </span>
-            <h3 className="text-lg font-black text-zinc-900 dark:text-white font-outfit">
+            <h3 className="text-balance text-xl font-black text-zinc-900 dark:text-white font-outfit">
               {selectedTask ? selectedTask.title : "Standalone Focus Mode"}
             </h3>
           </div>
@@ -91,13 +78,11 @@ export default function FocusPage({
           <div className="mb-4 p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/60 dark:border-zinc-800 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
               {selectedTask.courseCode && (
-                <span className="text-[10.5px] font-bold px-2 py-0.5 rounded-md bg-white dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/80 text-zinc-800 dark:text-zinc-200 shrink-0">
+                <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-white dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/80 text-zinc-800 dark:text-zinc-200 shrink-0">
                   {selectedTask.courseCode}
                 </span>
               )}
-              <span className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
-                {selectedTask.notes || "No notes"}
-              </span>
+              <span className={`${TEXT_CAPTION} truncate`}>{selectedTask.notes || "No notes"}</span>
             </div>
 
             <button
@@ -112,10 +97,7 @@ export default function FocusPage({
         )}
 
         {/* Pomodoro Timer */}
-        <PomodoroTimer
-          task={selectedTask}
-          onSessionComplete={() => {}}
-        />
+        <PomodoroTimer task={selectedTask} onSessionComplete={() => {}} />
       </div>
 
       {/* Up Next From Today's Chunks */}
@@ -126,9 +108,7 @@ export default function FocusPage({
               <Clock className="w-3.5 h-3.5 text-indigo-500" />
               Up Next Today ({today})
             </span>
-            <span className="text-[10px] text-zinc-400">
-              {todayUpcomingChunks.length} scheduled slots
-            </span>
+            <span className="text-xs text-zinc-400">{todayUpcomingChunks.length} scheduled slots</span>
           </div>
 
           <div className="space-y-2">
@@ -136,14 +116,14 @@ export default function FocusPage({
               <div
                 key={idx}
                 {...clickable(() => setSelectedTaskId(task.id))}
-                className={`p-2.5 rounded-xl border flex items-center justify-between gap-3 text-xs transition-all cursor-pointer ${
+                className={`p-2.5 rounded-xl border flex items-center justify-between gap-3 text-xs transition-all cursor-pointer ${FOCUS_RING} ${
                   selectedTaskId === task.id
                     ? "bg-indigo-50/70 dark:bg-indigo-950/30 border-indigo-500/40 text-indigo-900 dark:text-indigo-200"
                     : "bg-white dark:bg-zinc-800 border-zinc-200/70 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:border-zinc-300"
                 }`}
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-[11px] font-bold text-zinc-500 shrink-0">
+                  <span className="text-xs font-bold text-zinc-500 shrink-0">
                     {start} – {end}
                   </span>
                   <span className="font-bold truncate">{task.title}</span>
@@ -163,26 +143,29 @@ export default function FocusPage({
             Recent Focus Sessions
           </span>
           <div className="divide-y divide-zinc-100 dark:divide-zinc-800 text-xs">
-            {sessions.slice(-3).reverse().map((s) => (
-              <div key={s.id} className="py-2 flex items-center justify-between">
-                <div>
-                  <span className="font-bold text-zinc-800 dark:text-zinc-200">
-                    {s.roundsDone} rounds ({s.roundsDone * s.focusMin}m focus)
+            {sessions
+              .slice(-3)
+              .reverse()
+              .map((s) => (
+                <div key={s.id} className="py-2 flex items-center justify-between">
+                  <div>
+                    <span className="font-bold text-zinc-800 dark:text-zinc-200">
+                      {s.roundsDone} rounds ({s.roundsDone * s.focusMin}m focus)
+                    </span>
+                    <p className="text-xs text-zinc-400">
+                      {new Date(s.startedAt).toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  </div>
+                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                    Completed
                   </span>
-                  <p className="text-[10.5px] text-zinc-400">
-                    {new Date(s.startedAt).toLocaleDateString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </p>
                 </div>
-                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
-                  Completed
-                </span>
-              </div>
-            ))}
+              ))}
           </div>
         </div>
       )}

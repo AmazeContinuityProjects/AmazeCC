@@ -4,6 +4,7 @@ import React from "react";
 import { Plus, CheckCircle2, Clock, PlayCircle } from "lucide-react";
 import type { Task, TaskStatus } from "@/types/tasks";
 import TaskCard from "./TaskCard";
+import { FOCUS_RING } from "@/lib/uiTokens";
 
 interface KanbanViewProps {
   tasks: Task[];
@@ -34,13 +35,7 @@ const COLUMNS: { id: TaskStatus; title: string; icon: React.ElementType; color: 
   },
 ];
 
-export default function KanbanView({
-  tasks,
-  onEdit,
-  onStatusCycle,
-  onDelete,
-  onNewTask,
-}: KanbanViewProps) {
+export default function KanbanView({ tasks, onEdit, onStatusCycle, onDelete, onNewTask }: KanbanViewProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
       {COLUMNS.map((col) => {
@@ -56,17 +51,17 @@ export default function KanbanView({
             <div className="flex items-center justify-between pb-3 px-1">
               <div className="flex items-center gap-2">
                 <Icon className={`w-4 h-4 ${col.color}`} />
-                <h3 className="font-outfit font-black text-sm text-zinc-900 dark:text-white">
+                <h3 className="text-balance font-outfit font-black text-sm text-zinc-900 dark:text-white">
                   {col.title}
                 </h3>
-                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60">
+                <span className="text-xs font-extrabold px-2 py-0.5 rounded-full bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60">
                   {colTasks.length}
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => onNewTask(col.id)}
-                className="p-1 rounded-lg hover:bg-white dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 transition-colors cursor-pointer"
+                className={`relative hit-expand p-1 rounded-lg hover:bg-white dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 transition-colors cursor-pointer ${FOCUS_RING}`}
                 title={`Add ${col.title} task`}
               >
                 <Plus className="w-4 h-4" />
@@ -83,7 +78,7 @@ export default function KanbanView({
                   <button
                     type="button"
                     onClick={() => onNewTask(col.id)}
-                    className="mt-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                    className={`relative hit-expand mt-2 px-2 py-1.5 rounded-lg text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer ${FOCUS_RING}`}
                   >
                     + Add Task
                   </button>

@@ -9,6 +9,7 @@ import { scanFilename, uploadStoredScan } from "@/lib/scanner/pipeline";
 import { loadScannerSettings } from "@/lib/scanner/settings";
 import type { ScanStore } from "@/lib/scanner/store";
 import type { ExamCategory, ExamDetails, ScanMeta, ScanRecord, UploadStatus } from "@/lib/scanner/types";
+import { FIELD_LABEL, TEXT_BLOCK } from "@/lib/uiTokens";
 
 /**
  * One scan, in full: preview, the net's classification, extracted text, the
@@ -197,7 +198,7 @@ export default function PaperDetailSheet({ record, store, onClose, onChanged, on
               <FileText className="h-6 w-6 text-text-muted" aria-hidden />
             </div>
           )}
-          <div className="grid min-w-0 flex-1 grid-cols-2 gap-2">
+          <div className={`grid ${TEXT_BLOCK} grid-cols-2 gap-2`}>
             <KeyValue
               label="Kind"
               value={
@@ -230,7 +231,7 @@ export default function PaperDetailSheet({ record, store, onClose, onChanged, on
           <div className="min-w-0">
             <DotPill tone={UPLOAD_TONE[meta.upload.status]}>{UPLOAD_LABEL[meta.upload.status]}</DotPill>
             {meta.upload.error && (
-              <p className="mt-1.5 flex items-start gap-1.5 text-[11px] font-bold text-red-600 dark:text-red-400">
+              <p className="mt-1.5 flex items-start gap-1.5 text-xs font-bold text-red-600 dark:text-red-400">
                 <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
                 {meta.upload.error}
               </p>
@@ -262,7 +263,7 @@ export default function PaperDetailSheet({ record, store, onClose, onChanged, on
           <SectionHeader title="Details" />
           <div className="space-y-2">
             <label className="block">
-              <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-text-muted">Title</span>
+              <span className={`mb-1 ${FIELD_LABEL}`}>Title</span>
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -272,9 +273,7 @@ export default function PaperDetailSheet({ record, store, onClose, onChanged, on
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-text-muted">
-                Subject code
-              </span>
+              <span className={`mb-1 ${FIELD_LABEL}`}>Subject code</span>
               <input
                 value={subjectCode}
                 onChange={(e) => setSubjectCode(e.target.value.toUpperCase())}
@@ -287,12 +286,10 @@ export default function PaperDetailSheet({ record, store, onClose, onChanged, on
 
             {/* Examination & Assessment categorization */}
             <div className="pt-2 border-t border-border-muted dark:border-border space-y-2">
-              <span className="block text-[10px] font-bold uppercase tracking-wider text-text-muted">
-                Examination &amp; Assessment
-              </span>
+              <span className={FIELD_LABEL}>Examination &amp; Assessment</span>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <span className="mb-1 block text-[10px] font-medium text-text-secondary dark:text-text-muted">
+                  <span className="mb-1 block text-xs font-medium text-text-secondary dark:text-text-muted">
                     Assessment
                   </span>
                   <select value={examCategory} onChange={(e) => setExamCategory(e.target.value)} className={INPUT}>
@@ -306,7 +303,7 @@ export default function PaperDetailSheet({ record, store, onClose, onChanged, on
                   </select>
                 </div>
                 <div>
-                  <span className="mb-1 block text-[10px] font-medium text-text-secondary dark:text-text-muted">
+                  <span className="mb-1 block text-xs font-medium text-text-secondary dark:text-text-muted">
                     Semester
                   </span>
                   <input
@@ -319,7 +316,7 @@ export default function PaperDetailSheet({ record, store, onClose, onChanged, on
               </div>
               <div className="grid grid-cols-3 gap-2">
                 <div>
-                  <span className="mb-1 block text-[10px] font-medium text-text-secondary dark:text-text-muted">
+                  <span className="mb-1 block text-xs font-medium text-text-secondary dark:text-text-muted">
                     Session
                   </span>
                   <input
@@ -330,9 +327,7 @@ export default function PaperDetailSheet({ record, store, onClose, onChanged, on
                   />
                 </div>
                 <div>
-                  <span className="mb-1 block text-[10px] font-medium text-text-secondary dark:text-text-muted">
-                    Slot
-                  </span>
+                  <span className="mb-1 block text-xs font-medium text-text-secondary dark:text-text-muted">Slot</span>
                   <input
                     value={slot}
                     onChange={(e) => setSlot(e.target.value.toUpperCase())}
@@ -341,7 +336,7 @@ export default function PaperDetailSheet({ record, store, onClose, onChanged, on
                   />
                 </div>
                 <div>
-                  <span className="mb-1 block text-[10px] font-medium text-text-secondary dark:text-text-muted">
+                  <span className="mb-1 block text-xs font-medium text-text-secondary dark:text-text-muted">
                     Max Marks
                   </span>
                   <input
@@ -383,7 +378,7 @@ export default function PaperDetailSheet({ record, store, onClose, onChanged, on
           />
           {record.ocrText ? (
             <div className="max-h-56 overflow-y-auto overscroll-y-contain rounded-2xl border border-border-muted dark:border-border bg-surface-secondary dark:bg-surface/60 px-4 py-3">
-              <p className="whitespace-pre-wrap break-words text-left text-xs font-medium leading-relaxed text-text-secondary dark:text-text-muted">
+              <p className="text-pretty whitespace-pre-wrap break-words text-left text-xs font-medium leading-relaxed text-text-secondary dark:text-text-muted">
                 {record.ocrText}
               </p>
             </div>
