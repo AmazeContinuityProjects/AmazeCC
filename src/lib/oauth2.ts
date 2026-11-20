@@ -35,7 +35,7 @@ export const OIDC = {
 
 const KEYS = {
   accessToken: "amaze_oidc_access_token",
-  refreshToken: "amaze_oidc_refresh_token", // legacy cleanup only - scope no longer includes offline_access
+  refreshToken: "amaze_oidc_refresh_token", // rotating refresh token - offline_access is in scope
   expiresAt: "amaze_oidc_expires_at",
   idToken: "amaze_oidc_id_token",
   user: "amaze_oidc_user",
